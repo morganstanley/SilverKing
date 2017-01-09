@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<project name="Silverking" default="main" basedir=".">
+	<!-- Sets variables which can later be used. -->
+	<!-- The value of a property is accessed via ${} -->
+	<property name="project.name"        value="silverking" />
+	<property name="build.folder"     location="${project.name}_build" />
+	<property name="src.dir"          location="../src" />
+	<property name="test.dir"         location="../test" />
+	<property name="lib.dir"          location="../lib" />
+	<property name="classes.dir"      location="${build.folder}/classes" />
+	<property name="classes.src.dir"  location="${classes.dir}/src" />
+	<property name="classes.test.dir" location="${classes.dir}/test" />
+	<property name="jar.dir"          location="${build.folder}/jar" />
+	<property name="jar.file"         location="${jar.dir}/${project.name}.jar" />
+	<property name="docs.dir"         location="${build.folder}/javadocs" />
+	<property name="report.dir"          value="${build.folder}/junitreport"/>
+  
+<!--
+    <presetdef name="javac">
+		<javac includeantruntime="false" />
+	</presetdef>
+-->
+  
+	<path id="application" location="${jar.file}" />
+	<path id="classpath">
+		<fileset dir="${lib.dir}" includes="**/*.jar" />
+		<!--
+		<fileset dir="${src.dir}" includes="**/com/ms/silverking/cloud/dht/collection/oldpkc/*.java" />
+		<fileset dir="${src.dir}/com/ms/silverking/cloud/dht/collection/oldpkc/">
+			<exclude name="*.java" />
+		</fileset>
+		-->
+	</path>
+	<path id="classpath.test">
+		<path refid="classpath"/>
+		<pathelement location="${classes.src.dir}" />
+		<pathelement location="${classes.test.dir}" />
+	</path>
+	
+	<!-- Deletes the existing build, docs and jar directory-->
+	<target name="clean">
+		<delete dir="${classes.dir}" />
+		<delete dir="${docs.dir}" />
+		<delete dir="${jar.dir}" />
+		<delete dir="${report.dir}" />
+	</target>
+
+	<!-- Creates the build, docs and jar directory-->
+	<target name="makedir">
+		<mkdir dir="${classes.dir}" />
+		<mkdir dir="${classes.src.dir}" />
+		<mkdir dir="${classes.test.dir}" />
+		<mkdir dir="${docs.dir}" />
+		<mkdir dir="${jar.dir}" />
+		<mkdir dir="${report.dir}"/>
+	</target>
+
+	<!-- Compiles the java code (including the usage of library for JUnit -->
+	<target name="compile" depends="clean, makedir">
+		<javac srcdir="${src.dir}" destdir="${classes.src.dir}" classpathref="classpath" encoding="utf-8">
+			<compilerarg line="-Xmaxerrs 1000" />
+			<compilerarg line="-Xmaxwarns 100" />
+			<compilerarg line="-XDignore.symbol.file" />
+			<!-- <exclude name="com/ms/silverking/cloud/dht/collection/oldpkc/*.java" /> -->
+			<exclude name="**/oldpkc/*.java" />
+			<!-- <exclude name="com/ms/gpcg/grid/dht2/test/MD5Test.java" /> -->
+		</javac>
+		<javac srcdir="${test.dir}" destdir="${classes.test.dir}" classpathref="classpath.test" encoding="utf-8">
+		</javac>
+	</target>
+
+	<!-- Creates Javadoc -->
+	<target name="docs" depends="compile">
+		<javadoc packagenames="*" sourcepath="${src.dir}" destdir="${docs.dir}" classpathref="classpath" encoding="utf-8">
+			<arg value="-Xmaxerrs"/>
+			<arg value="1000"/>
+			<arg value="-Xmaxwarns"/>
+			<arg value="1000"/>
+			<!-- Define which files / directory should get included, we include all -->
+			<fileset dir="${src.dir}">
+				<include name="**/*.java" />
+				<!-- <exclude name="**/*.sh" /> -->
+			</fileset>
+		</javadoc>
+	</target>
+
+	<!--Creates the deployable jar file  -->
+	<target name="jar" depends="compile">
+		<jar destfile="${jar.file}" basedir="${classes.src.dir}">
+			<manifest>
+				<attribute name="Main-Class" value="com.ms.silverking.compression.Main" />
+			</manifest>
+			<!-- <zipgroupfileset dir="${lib.dir}" includes="*.jar" /> -->
+		</jar>
+	</target>
+<!--	
+	<target name="test" depends="jar">
+		<junit printsummary="yes" fork="yes" haltonfailure="yes">
+			<classpath refid="classpath.test"/>
+			<formatter type="plain"/>
+			<test name="com.ms.silverking.collection.PairTest"/>
+			<test name="com.ms.silverking.collection.TripleTest"/>
+		</junit>
+	</target>
+-->
+	<target name="junit" depends="jar">
+		<junit printsummary="withOutAndErr" haltonfailure="yes">
+			<classpath refid="classpath.test"/>
+			<formatter type="xml"/>
+			<!--
+			<test name="com.ms.silverking.collection.PairTest"/>
+			<test name="com.ms.silverking.collection.TripleTest"/>
+			-->
+			<batchtest fork="yes" todir="${report.dir}">
+                <!-- <fileset dir="${test.dir}" includes="**/*Test.java"/> -->
+				<fileset dir="${classes.test.dir}" includes="**/*Test.class"/>
+			</batchtest>
+		</junit>
+	</target>
+
+	<target name="junitreport">
+		<junitreport todir="${report.dir}">
+			<fileset dir="${report.dir}" includes="TEST-*.xml"/>
+			<report todir="${report.dir}"/>
+		</junitreport>
+	</target>
+  
+	<target name="main" depends="compile, docs, jar, junit">
+		<description>Main target</description>
+	</target>
+  
+  
+</project> 

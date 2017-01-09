@@ -1,0 +1,74 @@
+<html>
+<head><title>Client Primer</title>
+<link href="style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<h1>Client Primer</h1>
+
+<p>
+This document provides a very brief introduction to writing SilverKing client applications.
+Example code is shown using the Java API. Other languages are similar.
+</p>
+
+<h2>HelloDHT</h2>
+
+<p>
+To illustrate how to write a simple SilverKing application, we will consider the
+HelloDHT example application. The listing below shows the core of the application.
+(Full source is <a href="../src/com/ms/silverking/cloud/dht/client/example/HelloDHT.java">here</a>.)
+</p>
+<pre class="code">
+<code>
+	SynchronousNamespacePerspective&lt;String, String&gt;	syncNSP;
+
+	syncNSP = new DHTClient()
+		.openSession(GridConfiguration.parseFile(args[0]))
+		.openSyncNamespacePerspective("_MyNamespace", String.class, String.class);
+	syncNSP.put("Hello", "world!");
+	System.out.println(syncNSP.get("Hello"));
+</code>
+</pre>
+
+<p>The first class that a client must instantiate is a <code>DHTClient</code>. In general, only one client instance
+is required irrespective of the number of DHTs, sessions, or namespaces that will be used.
+</p>
+
+<p>
+The <code>DHTClient</code> is then used to open a <code>Session</code> to a particular DHT. The DHT is specified using
+the name of a <code>GridConfiguration</code> passed in from the command line.
+</p>
+
+<p>
+The open <code>Session</code> is then used to open a synchronous "namespace perspective" for the namespace "_MyNamespace".
+Namespaces provide a unique key-space for all keys used in SilverKing. Moreover, each namespace
+has a set of options associated with it such as where and how the data is stored.
+(See <a href="MetaData.html">Key Concepts and Meta Data Constructs</a> for details.)
+In this case, default options are being used and the namespace is being created on the fly.
+As SilverKing stores data natively using byte arrays, a namespace perspective maps types from Java 
+into and out of the namespace. 
+The synchronous specification means that all operations will block until completion.
+</p>
+
+<p>
+Once the <code>SynchronousNamespacePerspective</code> instance is obtained, the client writes a value into the DHT
+and immediately reads it out.
+</p>
+
+<!--
+<h2>Versioning</h2>
+
+<p>
+In addition to the write-once data model supported by SilverRails, SilverKing allows multiple versions of
+</p>
+-->
+
+<p>
+</p>
+
+<p>
+</p>
+
+
+</body>
+</html>

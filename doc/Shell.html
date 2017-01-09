@@ -1,0 +1,110 @@
+<html>
+<head><title>SilverKing Shell</title>
+<link href="style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<h1>SilverKing Client Shell</h1>
+<h2>
+Introduction
+</h2>
+<p>
+The SilverKing Client Shell provides a command line shell for performing simple operations. 
+Shell commands may be issued interactively or accepted from the command line.
+</p>
+
+<h2>
+Sample Usage
+</h2>
+<p>
+<table border="0">
+<td><code>skc -g GC_TEST -n _ns.1</code></td>
+<td></td>
+<td>Start skc using grid configuration GC_TEST and a namespace of _ns.1</td>
+<tr>
+<td><code>skc> p k.1 v.1;</code></td>
+<td></td>
+<td>Store a value</td>
+<tr>
+<td><code>skc> g k.1;</code></td>
+<td></td>
+<td>Read a value</td>
+<tr>
+<td><code>k.1 => v.1</code></td>
+<td></td>
+<td></td>
+</table>
+</p>
+
+<h2>
+Commands
+</h2>
+<p>
+<table border="1">
+<tr>
+<th>Command</th>
+<th>Parameters</th>
+<th>Short Form</th>
+<th>Example</th>
+<tr>
+<td>Get</td>
+<td>key</td>
+<td>g</td>
+<td><code>g k.1;</code></td>
+<tr>
+<td>Put</td>
+<td>key value</td>
+<td>p</td>
+<td><code>p k.1 v.1;</code></td>
+<tr>
+<td>GetMeta</td>
+<td>key</td>
+<td>gm</td>
+<td><code>gm k.1;</code></td>
+<tr>
+<td>WaitFor</td>
+<td>key</td>
+<td>w</td>
+<td><code>w k.1;</code></td>
+<tr>
+<td>ToggleVerbose</td>
+<td>none</td>
+<td>v</td>
+<td><code>v;</code></td>
+<tr>
+<td>Quit</td>
+<td>none</td>
+<td>q</td>
+<td><code>q;</code></td>
+<tr>
+<td>CreateNamespace</td>
+<td>namespace [namespaceOptions]</td>
+<td>cn</td>
+<td><code>cn ns.1;</code><br>
+<code>cn ns.1 storageType=RAM,versionMode=SINGLE_VERSION;</code></td>
+<tr>
+<td>SelectNamespace</td>
+<td>namespace [namespacePerspectiveOptions]</td>
+<td>sn</td>
+<td><code>sn ns.1;</code><br>
+<code>sn ns.1 defaultPutOptions={compression=NONE};</code></td>
+<tr>
+<td>ValueMapDisplay</td>
+<td>[basic|tabDelimited|csv]</td>
+<td>vmd</td>
+<td><code>vmd csv;</code></td>
+</table>
+</p>
+
+<h2>
+Command Line Usage
+</h2>
+<p>
+From the system shell, a series of commands may be passed in using the "-c" parameter. For instance:<br>
+<code>
+skc -g GC_TEST -n _ns.1 -c "g k.1 k.2 k.3; sn __Replicas__; g k.1 k.2 k.3;"
+</code>
+</p>
+
+
+</body>
+</html>

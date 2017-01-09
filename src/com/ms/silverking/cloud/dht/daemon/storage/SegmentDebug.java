@@ -1,0 +1,61 @@
+package com.ms.silverking.cloud.dht.daemon.storage;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.HashSet;
+
+import com.ms.silverking.cloud.dht.NamespaceOptions;
+import com.ms.silverking.cloud.dht.NonExistenceResponse;
+import com.ms.silverking.cloud.dht.RetrievalOptions;
+import com.ms.silverking.cloud.dht.RetrievalType;
+import com.ms.silverking.cloud.dht.VersionConstraint;
+import com.ms.silverking.cloud.dht.WaitMode;
+import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
+import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
+import com.ms.silverking.cloud.dht.common.SimpleKey;
+import com.ms.silverking.cloud.dht.net.ForwardingMode;
+
+public class SegmentDebug {
+    private final File  nsDir;
+    
+    public SegmentDebug(File nsDir) {
+        this.nsDir = nsDir;
+    }
+    
+    public void debug(int segmentNumber, NamespaceOptions nsOptions) throws IOException {
+        FileSegment fileSegment;
+        
+        fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
+        fileSegment.displayForDebug();
+        // FUTURE - add ability to debug single key
+        //ByteBuffer buf = fileSegment.retrieve(new SimpleKey(0x6df75ca5ca56b001L, 0x349088631a803dbeL), new InternalRetrievalOptions(new RetrievalOptions(new SimpleTimeoutController(1, 1000), new HashSet<>(), RetrievalType.VALUE_AND_META_DATA, WaitMode.GET, VersionConstraint.greatest, NonExistenceResponse.EXCEPTION, false, false, ForwardingMode.DO_NOT_FORWARD, false)));
+        //System.out.println(buf);
+    }
+    
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {
+        try {
+            if (args.length != 2) {
+                System.out.println("args: <nsDir> <segmentNumber>");
+            } else {
+                File    nsDir;
+                int     segmentNumber;
+                NamespaceOptions    nsOptions;
+                
+                nsDir = new File(args[0]);
+                if (!nsDir.isDirectory()) {
+                    throw new RuntimeException("Can't find nsDir: "+ nsDir);
+                }
+                segmentNumber = Integer.parseInt(args[1]);
+                nsOptions = NamespacePropertiesIO.read(nsDir).getOptions();
+                System.out.println(nsOptions);
+                new SegmentDebug(nsDir).debug(segmentNumber, nsOptions);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}

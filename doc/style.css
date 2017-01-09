@@ -1,0 +1,66 @@
+h1 {
+	color: #aa0000;
+	font-family: "Arial",Verdana,Sans-serif;
+}
+
+h2 {
+	color: #880000;
+	font-family: "Arial",Verdana,Sans-serif;
+}
+
+h3 {
+	color: #0000aa;
+	font-size: 18px;
+	font-family: "Arial",Verdana,Sans-serif;
+	font-weight: normal;
+}
+
+pre {
+	font-weight: bold;
+	color: #880000;
+	font-family: "Arial",Verdana,Sans-serif;
+}
+
+pre.code {
+	font-weight: bold;
+	color: #880000;
+	font-family: "Courier New",Courier,monospace;
+}
+
+p {
+	font-family: "Arial",Verdana,Sans-serif;
+}
+
+ul {
+	font-family: "Arial",Verdana,Sans-serif;
+}
+
+code {
+	color: black;
+}
+
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;	
+}
+
+table.column_lined {
+    border: 0px solid black;
+    border-collapse: separate;	
+}
+
+table.layout, th, td {
+    border: 0px solid black;
+}
+
+th {
+    background-color: #dd9999;
+}
+
+td {
+	font-size: 14px;
+}
+
+tr:nth-child(even) {
+    background-color: #eeeeee;
+}

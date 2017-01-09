@@ -1,0 +1,41 @@
+package com.ms.silverking.cloud.dht.daemon;
+
+import com.ms.silverking.log.Log;
+import com.ms.silverking.util.memory.JVMMemoryObserver;
+import com.ms.silverking.util.memory.JVMMonitor;
+
+/**
+ * Watches over JVM heap usage. 
+ */
+public class MemoryManager implements JVMMemoryObserver {
+    private final JVMMonitor  monitor;
+
+    private static final int jvmMonitorMinIntervalMillis = 10 * 1000;
+    private static final int jvmMonitorMaxIntervalMillis = 10 * 1000;
+    //private static final int jvmMonitorMaxIntervalMillis = 15 * 60 * 1000;
+    //private static final int jvmFinalizationIntervalMillis = 15 * 60 * 1000;
+    private static final int jvmFinalizationIntervalMillis = Integer.MAX_VALUE;
+    private static final double     jvmMonitorLowMemoryThresholdMB = 50;
+    
+    public MemoryManager() {
+        monitor = new JVMMonitor(jvmMonitorMinIntervalMillis, 
+                                 jvmMonitorMaxIntervalMillis, 
+                                 jvmFinalizationIntervalMillis,
+                                 true,
+                                 jvmMonitorLowMemoryThresholdMB);
+        monitor.addMemoryObserver(this);
+    }
+
+    @Override
+    public void jvmMemoryLow(boolean isLow) {
+        Log.warning("Memory low!");
+    }
+
+    @Override
+    public void jvmMemoryStatus(long bytesFree) {
+    }
+
+    public JVMMonitor getJVMMonitor() {
+        return monitor;
+    }
+}
