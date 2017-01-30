@@ -19,20 +19,16 @@ that make it an attractive solution for many use-cases.
 <ul>
 <li><b>Extreme scale</b> - SilverKing supports many tens of thousands of simultaneous clients, 
   at least thousands of storage servers, and storage limited by the aggregate capacity of the server disks. 
-  SilverKing is in active use by tens of thousands of clients in production, and runs on two clusters of 418 servers each. 
-  (SilverKing's predecessor ran on two clusters of 2,500 servers each in production); 
-  each cluster is used by tens of thousands of active clients.</li>
+</li>
 <li><b>Rich topology support</b> - Users can directly specify high-level storage policies such as: 
 "primary replicas in New York and London. Secondary replicas in all other regions. 
 Within each regional data center, each primary value must be stored in two racks, and every rack must have a 
 secondary replica." We are not aware of any existing solution that provides similar support in an automated fashion.</li>
 <li><b>Speed</b> - SilverKing is as fast as the best RAM-only distributed key-value store (that we are aware of), 
 but also supports disk storage.</li>
-<li><b>Memory efficiency</b> - SilverKing is more memory efficient than existing RAM-only key-value stores.</li>
+<li><b>Memory efficiency</b> - SilverKing is more memory efficient than existing RAM-only distributed key-value stores.</li>
 <li><b>Coordination primitives</b> - In addition to pure storage, SilverKing supports Linda-like coordination primitives. 
 This makes writing distributed applications far easier than with conventional techniques.</li>
-<li><b>Incast avoidance</b> - Distributed storage systems commonly encounter TCP-incast induced failure. 
-Our recommended installation of SilverKing avoids this.</li>
 <li><b>Scale out existing vendor file systems</b> - SKFS enables snapshot-capable file systems  
 to scale out far more powerfully and more economically than with vendor solutions alone. In production this enables 
 volume snapshots to be used on large computational grids. (This could be used, for example, to scale out an 
@@ -115,22 +111,6 @@ The same mechanisms that make it possible to support live topology changes, also
 SilverKing to function in the presence of failures (within the realm of what is 
 feasible given the storage policy and level of failure.)
 </p>
-<h2>DCTCP+</h2>
-
-<p>
-SilverKing is capable of moving massive quantities of data very quickly. Doing this well
-requires a datacenter-optimized network.
-Standard TCP suffers from serious deficiencies that cause significant problems in 
-typical distributed storage systems. This is a leading reason why many systems like Hadoop suffer from 
-straggler tasks and attempt to work around the problem by issuing duplicate tasks.
-We have incorporated DCTCP into our datacenter, 
-and extended it in order to provide SilverKing with robust, low-latency TCP performance.
-This eliminates long tails on jobs due to TCP-induced file system slowness.
-</p>
-
-<p>
-See <a href="DCTCP+.pdf">DCTCP+</a> for more details.
-</p>
 
 <h2>Key Concepts</h2>
 <p>
@@ -163,24 +143,6 @@ Javadoc documentation is available for the Java API.
 <p>
 The <a href="Shell.html">SilverKing Client Shell</a> provides a simple interactive interface 
 that can also act as a command line utility.
-</p>
-
-<h2>What's New in SilverKing</h2>
-<p>
-For SilverRails users,
-<a href="WhatsNew.html">What's New</a> briefly describes differences between SilverRails and SilverKing.
-</p>
-
-<h2>Related Systems</h2>
-<p>
-A brief comparison with
-<a href="RelatedSystems.html">related systems.</a>
-</p>
-
-
-<h2>Contact</h2>
-<p>
-Contact us for more information.
 </p>
 
 </body>
