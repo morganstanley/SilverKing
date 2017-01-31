@@ -27,7 +27,7 @@ This makes writing distributed applications far easier than with conventional te
 to scale out far more powerfully and more economically than with vendor solutions alone. In production this enables 
 volume snapshots to be used on large computational grids. (This could be used, for example, to scale out an 
 existing vendor volume for use on a Hadoop cluster.)
-* SilverKing's file system - SKFS - inherits the key-value store's scale, speed, and topology support.
+* **SilverKing's file system - SKFS** - inherits the key-value store's scale, speed, and topology support.
 
 ## Supported Storage Interfaces
 
@@ -40,7 +40,6 @@ Linda-like coordination primitives simplify distributed application development.
 ### File System
 
 The SilverKing File System (SKFS) provides a highly-scalable file system by leveraging the SilverKing DHT. 
-SKFS is the successor to the SRFS project.
 
 
 ## Topology Support
@@ -63,7 +62,7 @@ Specifically, SilverKing provides scale and performance along many dimensions su
 * **Data throughput**: limited by the network for large data items
 * **Latency**: < 200 us average for sustained operations contained within a rack
 * **Clients**: at least tens of thousands of concurrent writers (and readers) for large instances
-* **Storage**: limited by the aggregate capacity of all hard drives in use.
+* **Storage**: limited by the aggregate capacity of all hard drives in use
 
 
 
