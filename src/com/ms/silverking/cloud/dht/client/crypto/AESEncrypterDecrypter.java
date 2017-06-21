@@ -16,9 +16,6 @@ import javax.crypto.spec.PBEKeySpec;
 
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.StreamUtil;
-import com.ms.silverking.text.StringUtil;
-import com.ms.silverking.util.PropertiesHelper;
-import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
 /**
  * AES EncrypterDecrypter
@@ -69,7 +66,7 @@ public class AESEncrypterDecrypter implements EncrypterDecrypter {
 	}	
 	
 	public AESEncrypterDecrypter() throws IOException {
-		this(FileUtil.readFileAsBytes(new File(PropertiesHelper.systemHelper.getString(EncrypterDecrypter.keyFilePropertyName, UndefinedAction.ExceptionOnUndefined))));
+		this(Util.getBytesFromKeyFile());
 	}
 	
 	private Cipher getCipher(int mode) {
@@ -117,9 +114,9 @@ public class AESEncrypterDecrypter implements EncrypterDecrypter {
 		byte[] plainText;
 		Cipher cipher;
 		
-		System.out.printf("%d %d\n", offset, length);
-		System.out.printf("cipherText: %s\n",
-		StringUtil.byteArrayToHexString(cipherTextWithLength, offset, length));
+//		System.out.printf("%d %d\n", offset, length);
+//		System.out.printf("cipherText: %s\n",
+//		StringUtil.byteArrayToHexString(cipherTextWithLength, offset, length));
 		cipher = getCipher(Cipher.DECRYPT_MODE);
 		try {
 			plainText = cipher.doFinal(cipherTextWithLength,
@@ -129,9 +126,33 @@ public class AESEncrypterDecrypter implements EncrypterDecrypter {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		System.out.printf("plainText:  %s\n",
-		StringUtil.byteArrayToHexString(plainText));
-		System.out.printf("plainTextS: %s\n", new String(plainText));
+//		System.out.printf("plainText:  %s\n",
+//		StringUtil.byteArrayToHexString(plainText));
+//		System.out.printf("plainTextS: %s\n", new String(plainText));
 		return plainText;
+	}
+	
+	@Override
+	public int hashCode() {
+		return secretKey.hashCode() ^ iv.hashCode();
+	}
+	
+    @Override
+    public boolean equals(Object o) {
+    	if (this == o) {
+    		return true;
+    	}
+    	
+    	if (this.getClass() != o.getClass()) {
+    		return false;
+    	}
+    	
+    	AESEncrypterDecrypter other = (AESEncrypterDecrypter)o;
+    	return secretKey.equals(other.secretKey) && iv.equals(other.iv);
+    }
+	
+	@Override
+	public String toString() {
+		return "[Name: " + name + ", Salt length: " + saltLength + ", secretKey: " + " , iv: " + "]";
 	}
 }

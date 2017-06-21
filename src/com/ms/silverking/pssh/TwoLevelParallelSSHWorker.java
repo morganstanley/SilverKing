@@ -47,13 +47,13 @@ public class TwoLevelParallelSSHWorker implements Runnable {
         
         this.timeoutSeconds = timeoutSeconds;
 
-        sshBase = new ParallelSSHBase();
         active = new AtomicInteger();
         runningThreads = new AtomicInteger();
         
         myHost = InetAddress.getLocalHost().getCanonicalHostName();
 
         sshMaster = findMaster(masterURL);
+        sshBase = new ParallelSSHBase(null, sshMaster.getSSHCmdMap());
 
         if (sshMaster == null) {
             throw new RuntimeException("Master not found: " + masterURL);

@@ -26,16 +26,21 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
  * to demonstrate that multiple connections are possible.
  */
 public class MultiDHTExample {
-    private final DHTClient        dhtClient;
     private final String        namespace;
     private final AtomicInteger    threadCount;
+    private SKGridConfiguration[] gridConfigurations;
+    private String[] preferredServers;
     
-    public MultiDHTExample(SKGridConfiguration[] gridConfigurations, String[] preferredServers, 
-                           int iterations) throws IOException, ClientException {
-        dhtClient = new DHTClient();
+    public MultiDHTExample(SKGridConfiguration[] gridConfigurations, String[] preferredServers) {
         namespace = new Long(System.currentTimeMillis()).toString();
         System.out.println("namespace: "+ namespace);
         threadCount = new AtomicInteger();
+        
+        this.gridConfigurations = gridConfigurations;
+        this.preferredServers   = preferredServers;
+    }
+    
+    public void start(int iterations) throws ClientException, IOException {
         for (int i = 0; i < gridConfigurations.length; i++) {
             new Writer(gridConfigurations[i], preferredServers[i], iterations, gridConfigurations[i].getName());
             new Reader(gridConfigurations[i], preferredServers[i], iterations, gridConfigurations[i].getName());
@@ -153,7 +158,8 @@ public class MultiDHTExample {
                     preferredServers[i] = "localhost";
                 }
             }
-            new MultiDHTExample(gridConfigurations, preferredServers, iterations);
+            MultiDHTExample mDht = new MultiDHTExample(gridConfigurations, preferredServers);
+            mDht.start(iterations);
         } catch (Exception e) {
             e.printStackTrace();
         }

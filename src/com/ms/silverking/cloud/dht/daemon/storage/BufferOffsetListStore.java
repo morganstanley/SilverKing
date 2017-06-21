@@ -22,6 +22,7 @@ public class BufferOffsetListStore implements OffsetListStore {
     BufferOffsetListStore(ByteBuffer rawHTBuf, NamespaceOptions nsOptions) {
         this.rawHTBuf = rawHTBuf;
         this.nsOptions = nsOptions;
+        ensureBufInitialized(); // eager
     }
     
     private void ensureBufInitialized() {
@@ -32,8 +33,7 @@ public class BufferOffsetListStore implements OffsetListStore {
             if (debug) {
                 System.out.println("\thtBufSize: "+ htBufSize);
             }
-            buf = ((ByteBuffer)rawHTBuf.duplicate().position(htBufSize + CuckooConfig.BYTES + NumConversion.BYTES_PER_INT)).slice();
-            buf = buf.order(ByteOrder.nativeOrder());
+            buf = ((ByteBuffer)rawHTBuf.duplicate().position(htBufSize + CuckooConfig.BYTES + NumConversion.BYTES_PER_INT)).slice().order(ByteOrder.nativeOrder());
         }
     }
 
@@ -51,7 +51,7 @@ public class BufferOffsetListStore implements OffsetListStore {
 	        int         listSizeBytes;
 	        boolean     supportsStorageTime;
 	        
-	        ensureBufInitialized();
+	        //ensureBufInitialized(); // lazy, chance of multiple calls
 	        if (index < 0) {
 	            throw new RuntimeException("panic: "+ index);
 	        }
@@ -62,6 +62,9 @@ public class BufferOffsetListStore implements OffsetListStore {
 	        // in the line below, the -1 to translate to an internal index
 	        // and the +1 of the length offset cancel out
 	        listOffset = buf.getInt(index * NumConversion.BYTES_PER_INT);
+	        if (listOffset < 0 || listOffset >= buf.limit()) {
+	        	throw new InvalidOffsetListIndexException(index);
+	        }
 	        if (debug) {
 	            System.out.printf("%d\t%x\n", listOffset, listOffset);
 	            System.out.println(buf);

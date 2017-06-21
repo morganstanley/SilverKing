@@ -8,6 +8,7 @@ import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.EnumValues;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
@@ -114,7 +115,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
         
         stLength = getSTLength(mg);
         if (stLength == 0) {
-            return null;
+            return DHTConstants.noSecondaryTargets;
         } else {
             stDef = new byte[stLength];
             System.arraycopy(mg.getBuffers()[optionBufferIndex].array(), 

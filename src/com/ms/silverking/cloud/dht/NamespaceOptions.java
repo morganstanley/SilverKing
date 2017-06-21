@@ -44,13 +44,13 @@ public class NamespaceOptions {
     static final boolean	defaultAllowLinks = false;
     
     private static final long					defaultInvalidatedRetentionIntervalSeconds = 1 * 60;
-    private static final ValueRetentionPolicy<InvalidatedRetentionState>	defaultRetentionPolicy = new InvalidatedRetentionPolicy(defaultInvalidatedRetentionIntervalSeconds);
+    static final ValueRetentionPolicy<InvalidatedRetentionState>	defaultRetentionPolicy = new InvalidatedRetentionPolicy(defaultInvalidatedRetentionIntervalSeconds);
 
     // for parsing only
-    private static final NamespaceOptions templateOptions = new NamespaceOptions();
+    static final NamespaceOptions templateOptions = new NamespaceOptions();
     
     static {
-        ObjectDefParser2.addParser(new NamespaceOptions());
+        ObjectDefParser2.addParser(templateOptions);
     }
 
     /**
@@ -117,7 +117,7 @@ public class NamespaceOptions {
     			secondarySyncIntervalSeconds, segmentSize, allowLinks, defaultRetentionPolicy);
     }
     
-    NamespaceOptions() {
+    private NamespaceOptions() {
         this(DHTConstants.defaultStorageType, DHTConstants.defaultConsistencyProtocol, 
                 DHTConstants.defaultVersionMode, DHTConstants.defaultRevisionMode, 
                 DHTConstants.standardPutOptions, DHTConstants.standardInvalidationOptions,
@@ -371,9 +371,9 @@ public class NamespaceOptions {
      */
     public NamespaceOptions segmentSize(int segmentSize) {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
-                defaultPutOptions, defaultInvalidationOptions, 
-                defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+            defaultPutOptions, defaultInvalidationOptions, 
+            defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
+            segmentSize, allowLinks, valueRetentionPolicy);
     }
     
     /**
@@ -418,21 +418,29 @@ public class NamespaceOptions {
     
     @Override
     public boolean equals(Object o) {
-        NamespaceOptions    oNamespaceOptions;
+        NamespaceOptions    other;
         
-        oNamespaceOptions = (NamespaceOptions)o;
-        return storageType == oNamespaceOptions.storageType
-                && consistencyProtocol == oNamespaceOptions.consistencyProtocol
-                && versionMode == oNamespaceOptions.versionMode
-                && revisionMode == oNamespaceOptions.revisionMode
-                && defaultPutOptions.equals(oNamespaceOptions.defaultPutOptions)
-                && defaultInvalidationOptions.equals(oNamespaceOptions.defaultInvalidationOptions)
-                && defaultGetOptions.equals(oNamespaceOptions.defaultGetOptions)
-                && defaultWaitOptions.equals(oNamespaceOptions.defaultWaitOptions)
-                && secondarySyncIntervalSeconds == oNamespaceOptions.secondarySyncIntervalSeconds 
-                && segmentSize == oNamespaceOptions.segmentSize
-                && allowLinks == oNamespaceOptions.allowLinks
-                && valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy);
+    	if (this == o) {
+    		return true;
+    	}
+    	
+    	if (this.getClass() != o.getClass()) {
+    		return false;
+    	}
+    	        
+        other = (NamespaceOptions)o;
+        return storageType == other.storageType
+                && consistencyProtocol == other.consistencyProtocol
+                && versionMode == other.versionMode
+                && revisionMode == other.revisionMode
+                && defaultPutOptions.equals(other.defaultPutOptions)
+                && defaultInvalidationOptions.equals(other.defaultInvalidationOptions)
+                && defaultGetOptions.equals(other.defaultGetOptions)
+                && defaultWaitOptions.equals(other.defaultWaitOptions)
+                && secondarySyncIntervalSeconds == other.secondarySyncIntervalSeconds 
+                && segmentSize == other.segmentSize
+                && allowLinks == other.allowLinks
+                && valueRetentionPolicy.equals(other.valueRetentionPolicy);
     }
     
     public void debugEquality(Object o) {

@@ -9,8 +9,10 @@ import java.nio.channels.FileChannel.MapMode;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.collection.CuckooConfig;
-import com.ms.silverking.cloud.dht.collection.HybridPartialKeyCuckoo;
+import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
 import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 
@@ -24,9 +26,18 @@ public class FileSegment extends WritableSegmentBase {
     
     private final int   noReferences = Integer.MIN_VALUE;
     
+    static final boolean	mapEverything;
+    
     enum SyncMode {NoSync, Sync};
     
-    enum BufferMode {PreRead, InPlace};
+    enum SegmentPrereadMode {NoPreread, Preread};
+    
+    private static final int	vmPageSize = 4096;
+    
+    static {
+    	mapEverything = StoreConfiguration.fileSegmentCacheCapacity == DHTConstants.noCapacityLimit;
+    	Log.warning("FileSegment.mapEverything: "+ mapEverything);
+    }
     
     private static String syncModeToFileOpenMode(SyncMode syncMode) {
         return syncMode == SyncMode.NoSync ? rwFileMode : rwdFileMode;
@@ -50,22 +61,36 @@ public class FileSegment extends WritableSegmentBase {
     }
     
     public static FileSegment openForDataUpdate(File nsDir, int segmentNumber, int dataSegmentSize,
-                                                SyncMode syncMode, NamespaceOptions nsOptions) throws IOException {
-        return open(nsDir, segmentNumber, MapMode.READ_WRITE, dataSegmentSize, syncMode, nsOptions, BufferMode.InPlace);
+                                                SyncMode syncMode, NamespaceOptions nsOptions, 
+                                                SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) throws IOException {
+        return open(nsDir, segmentNumber, MapMode.READ_WRITE, dataSegmentSize, syncMode, nsOptions, segmentIndexLocation, segmentPrereadMode);
     }
     
     public static FileSegment openReadOnly(File nsDir, int segmentNumber, int dataSegmentSize, 
             NamespaceOptions nsOptions) throws IOException {
-        return openReadOnly(nsDir, segmentNumber, dataSegmentSize, nsOptions, BufferMode.InPlace);
+        return openReadOnly(nsDir, segmentNumber, dataSegmentSize, nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
     }
     
     public static FileSegment openReadOnly(File nsDir, int segmentNumber, int dataSegmentSize, 
-                                           NamespaceOptions nsOptions, BufferMode bufferMode) throws IOException {
-        return open(nsDir, segmentNumber, MapMode.READ_ONLY, dataSegmentSize, SyncMode.NoSync, nsOptions, bufferMode);
+                                           NamespaceOptions nsOptions, SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) throws IOException {
+        return open(nsDir, segmentNumber, MapMode.READ_ONLY, dataSegmentSize, SyncMode.NoSync, nsOptions, segmentIndexLocation, segmentPrereadMode);
+    }
+    
+    private static void forcePreread(ByteBuffer buf, int bufSize) {
+    	int	b;
+    	
+    	b = 0;
+    	for (int i = 0; i < bufSize; i += vmPageSize) {
+    		b = b ^ buf.get(i);
+    	}
+	    if (System.currentTimeMillis() == 0) {
+	    	System.out.println(b); // ensure get() above is not a nop
+	    }
     }
     
     private static FileSegment open(File nsDir, int segmentNumber, MapMode dataMapMode, int dataSegmentSize, 
-                                    SyncMode syncMode, NamespaceOptions nsOptions, BufferMode bufferMode) 
+                                    SyncMode syncMode, NamespaceOptions nsOptions, 
+                                    SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) 
                                             throws IOException {
         RandomAccessFile    raFile;
         ByteBuffer          dataBuf;
@@ -75,6 +100,8 @@ public class FileSegment extends WritableSegmentBase {
         int                 htTotalEntries;
         String              fileOpenMode;
         WritableCuckooConfig        segmentCuckooConfig;
+        
+        //Log.warningf("open %s %d", nsDir.toString(), segmentNumber);
 
         if (dataMapMode == MapMode.READ_ONLY) {
             fileOpenMode = roFileMode;
@@ -86,7 +113,9 @@ public class FileSegment extends WritableSegmentBase {
             throw new RuntimeException("Unexpected dataMapMode: "+ dataMapMode);
         }
         raFile = new RandomAccessFile(fileForSegment(nsDir, segmentNumber), fileOpenMode);
-        if (bufferMode == BufferMode.PreRead) {
+        if (false) {
+        	// This would allow us to force each segment onto the heap
+        	// FUTURE: consider whether we want to keep this option
             byte[]      _bufArray;
             
             _bufArray = new byte[dataSegmentSize];
@@ -94,9 +123,27 @@ public class FileSegment extends WritableSegmentBase {
             raFile.read(_bufArray);
             dataBuf = ByteBuffer.wrap(_bufArray);
         } else {
+        	int	b;
+        	
+        	b = 0;
             dataBuf = raFile.getChannel().map(dataMapMode, 0, dataSegmentSize);
+            if (segmentPrereadMode == SegmentPrereadMode.Preread) {
+                forcePreread(dataBuf, dataSegmentSize);
+            }
         }
-        rawHTBuf = raFile.getChannel().map(MapMode.READ_ONLY, dataSegmentSize, raFile.length() - dataSegmentSize);
+        if (segmentIndexLocation == SegmentIndexLocation.RAM) {
+            byte[]      _htBufArray;
+            
+            _htBufArray = new byte[(int)(raFile.length() - dataSegmentSize)];
+            raFile.seek(dataSegmentSize);
+            raFile.read(_htBufArray);
+            rawHTBuf = ByteBuffer.wrap(_htBufArray);
+        } else {
+	        rawHTBuf = raFile.getChannel().map(MapMode.READ_ONLY, dataSegmentSize, raFile.length() - dataSegmentSize);
+            if (segmentPrereadMode == SegmentPrereadMode.Preread) {
+                forcePreread(rawHTBuf, (int)(raFile.length() - dataSegmentSize));
+            }
+        }
         rawHTBuf = rawHTBuf.order(ByteOrder.nativeOrder());
         try {
         htBuf = ((ByteBuffer)rawHTBuf.duplicate().position(NumConversion.BYTES_PER_INT + CuckooConfig.BYTES)).slice();
@@ -117,7 +164,8 @@ public class FileSegment extends WritableSegmentBase {
         htBufSize = rawHTBuf.getInt(0);
         segmentCuckooConfig = new WritableCuckooConfig(CuckooConfig.read(rawHTBuf, NumConversion.BYTES_PER_INT), -1); // FIXME - verify -1
         
-        htTotalEntries = htBufSize / NumConversion.BYTES_PER_LONG;
+        
+        htTotalEntries = htBufSize / (NumConversion.BYTES_PER_LONG * 2 + NumConversion.BYTES_PER_INT);
         return new FileSegment(nsDir, segmentNumber, raFile, dataBuf, htBuf, 
                                segmentCuckooConfig.newTotalEntries(htTotalEntries), 
                                new BufferOffsetListStore(rawHTBuf, nsOptions), dataSegmentSize);
@@ -188,7 +236,7 @@ public class FileSegment extends WritableSegmentBase {
     
     public void persist() throws IOException {
         ByteBuffer  htBuf;
-        long[]      ht;
+        byte[]		ht;
         int         offsetStoreSize;
         int         htBufSize;
         long        mapSize;
@@ -201,8 +249,9 @@ public class FileSegment extends WritableSegmentBase {
             System.out.printf("raFile.length() %d\n", raFile.length());
         }
         
-        ht = ((HybridPartialKeyCuckoo)pkc).getHashTableArray();
-        htBufSize = ht.length * NumConversion.BYTES_PER_LONG;
+        ht = ((IntArrayCuckoo)keyToOffset).getAsBytes();
+        
+        htBufSize = ht.length;
         htPersistedSize = NumConversion.BYTES_PER_INT + htBufSize + CuckooConfig.BYTES;
         mapSize = htPersistedSize + offsetStoreSize;
         htBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, mapSize).order(ByteOrder.nativeOrder());
@@ -212,7 +261,7 @@ public class FileSegment extends WritableSegmentBase {
 
         // Store the size of the ht, then the config
         htBuf.putInt(htBufSize);
-        pkc.getConfig().persist(htBuf, NumConversion.BYTES_PER_INT);
+        keyToOffset.getConfig().persist(htBuf, NumConversion.BYTES_PER_INT);
         if (debugPut) {
             System.out.printf("\tpersist htBufSize: %d\tmapSize: %d\n", htBufSize, mapSize);
             System.out.printf("c raFile.length() %d %s\n", raFile.length(), raFile.toString());
@@ -220,7 +269,7 @@ public class FileSegment extends WritableSegmentBase {
         htBuf.position(NumConversion.BYTES_PER_INT + CuckooConfig.BYTES);
         
         // Persist the ht itself
-        htBuf.asLongBuffer().put(ht);
+        htBuf.put(ht);
         htBuf.position(htPersistedSize);
         
         // Now persist the offsetListStore
@@ -243,27 +292,34 @@ public class FileSegment extends WritableSegmentBase {
     
     public boolean addReferences(int numReferences) {
         assert numReferences > 0;
-        synchronized (this) {
-            if (references != noReferences) {
-                references += numReferences;
-                return true;
-            } else {
-                return false;
-            }
-        }
+    	if (!mapEverything) {
+	        synchronized (this) {
+	            if (references != noReferences) {
+	                references += numReferences;
+	                return true;
+	            } else {
+	                return false;
+	            }
+	        }
+    	} else {
+    		return true;
+    	}
     }
     
     public void removeReference() {
-        synchronized (this) {
-            if (references <= 0) {
-                throw new RuntimeException("Invalid removeReference: "+ this +" "+ references);
-            }
-            --references;
-            if (references == 0) {
-                references = noReferences;
-                close();
-            }
-        }
+    	if (!mapEverything) {
+	        synchronized (this) {
+	            if (references <= 0) {
+	                Log.warning("Invalid removeReference: "+ this +" "+ references);
+	                return;
+	            }
+	            --references;
+	            if (references == 0) {
+	                references = noReferences;
+	                close();
+	            }
+	        }
+    	}
     }
     
     @Override

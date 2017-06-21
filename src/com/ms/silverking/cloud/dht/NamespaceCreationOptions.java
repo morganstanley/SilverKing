@@ -85,8 +85,8 @@ public class NamespaceCreationOptions {
      */
     public boolean canBeAutoCreated(String ns) {
         return mode == Mode.RequireAutoCreation 
-                || (mode == Mode.OptionalAutoCreation_AllowMatches && ns.matches(regex))
-                || (mode == Mode.OptionalAutoCreation_DisallowMatches && !ns.matches(ns));
+                || (mode == Mode.OptionalAutoCreation_AllowMatches    &&  ns.matches(regex))
+                || (mode == Mode.OptionalAutoCreation_DisallowMatches && !ns.matches(regex));
     }
     
     /*

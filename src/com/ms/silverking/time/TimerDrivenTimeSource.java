@@ -15,7 +15,7 @@ public final class TimerDrivenTimeSource extends TimerTask implements RelNanosAb
 	private volatile long	absTimeMillis;
 	private volatile long	relTimeNanos;
 	
-	private static final long	defaultPeriodMillis = 5;
+	static final long	defaultPeriodMillis = 5;
 	private static final String	defaultTimerNameBase = "TimerDriveTimeSource_";
 	
 	private static String defaultTimerName() {
@@ -62,5 +62,5 @@ public final class TimerDrivenTimeSource extends TimerTask implements RelNanosAb
 	public void run() {
 		relTimeNanos = System.nanoTime();
 		absTimeMillis = System.currentTimeMillis();
-	}	
+	}
 }

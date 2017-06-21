@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-source lib_common.sh
+source lib/common.lib
 
 # params
 RELEASE_AREA=$1

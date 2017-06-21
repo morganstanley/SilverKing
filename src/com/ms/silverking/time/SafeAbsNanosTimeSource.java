@@ -1,5 +1,6 @@
 package com.ms.silverking.time;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.ms.silverking.util.PropertiesHelper;
@@ -22,6 +23,8 @@ public class SafeAbsNanosTimeSource implements AbsNanosTimeSource {
     public final AtomicLong	lastSystemNanos;
     public final long		sanityCheckThresholdNanos;
     public final long		originDeltaToleranceNanos;
+    
+    private final AtomicLong	lastTimeNanos = new AtomicLong();
         
     private static final boolean	debug = false;
     
@@ -106,7 +109,13 @@ public class SafeAbsNanosTimeSource implements AbsNanosTimeSource {
 	
 	@Override
 	public long absTimeNanos() {
-		return System.nanoTime() - nanoOriginTimeInNanos.get();
+		long	t;
+		long	prev;
+		
+		t = System.nanoTime() - nanoOriginTimeInNanos.get();
+		prev = lastTimeNanos.getAndUpdate(x -> x < t ? t : x + 1);
+		return t > prev ? t : prev + 1;
+		//return System.nanoTime() - nanoOriginTimeInNanos.get();
 	}
 	
 	/*
@@ -191,7 +200,59 @@ public class SafeAbsNanosTimeSource implements AbsNanosTimeSource {
         return TimeSourceUtil.relTimeRemainingAsInt(absDeadlineNanos, absTimeNanos());
 	}
 	
+//	@Override
+//	public int hashCode() {
+//		return Long.hashCode(nanoOriginTimeInMillis) 
+//				^ Long.hashCode(sanityCheckThresholdNanos)
+//				^ Long.hashCode(originDeltaToleranceNanos);
+////		return Long.hashCode(nanoOriginTimeInMillis) 
+////				^ nanoOriginTimeInNanos.hashCode()
+////				^ lastReturnedAbsTimeNanos.hashCode()
+////				^ lastSystemNanos.hashCode()
+////				^ Long.hashCode(sanityCheckThresholdNanos)
+////				^ Long.hashCode(originDeltaToleranceNanos);
+//	}
+	
+//	@Override
+//	public boolean equals(Object o) {
+//    	if (this == o) {
+//    		return true;
+//    	}
+//    		
+//    	if (this.getClass() != o.getClass()) {
+//    		return false;
+//    	}
+//		
+//		SafeAbsNanosTimeSource other = (SafeAbsNanosTimeSource)o;
+//
+//		return nanoOriginTimeInMillis == other.nanoOriginTimeInMillis
+//				&& sanityCheckThresholdNanos == other.sanityCheckThresholdNanos
+//				&& originDeltaToleranceNanos == other.originDeltaToleranceNanos;
+////		return nanoOriginTimeInMillis == other.nanoOriginTimeInMillis
+////				&& nanoOriginTimeInNanos.equals(other.nanoOriginTimeInNanos)
+////				&& lastReturnedAbsTimeNanos.equals(other.lastReturnedAbsTimeNanos)
+////				&& lastSystemNanos.equals(other.lastSystemNanos)
+////				&& sanityCheckThresholdNanos == other.sanityCheckThresholdNanos
+////				&& originDeltaToleranceNanos == other.originDeltaToleranceNanos;
+//	}
+	
 	public static void main(String[] args) {
+		SafeAbsNanosTimeSource	s;
+		Timer					timer;
+		long					t0;
+		long					t1;
+		
+		timer = new StopwatchBasedTimer(new SimpleStopwatch(), TimeUnit.SECONDS, 120);		
+		s = new SafeAbsNanosTimeSource(System.currentTimeMillis());
+		t0 = s.absTimeNanos();
+		do {
+			t1 = s.absTimeNanos();
+			if (t1 < t0) {
+				System.out.printf("%d < %d\n", t1, t0);
+			}
+			t0 = t1;
+		} while (!timer.hasExpired());
+		/*
 		SafeAbsNanosTimeSource	s;
 		long					absTimeNanos;
 		long					t1;
@@ -212,5 +273,6 @@ public class SafeAbsNanosTimeSource implements AbsNanosTimeSource {
 			}
 			_t3 = t3;
 		} while (absTimeNanos < 24 * 60 * 60 * 1000 * nanosPerMilli);
+		*/
 	}
 }

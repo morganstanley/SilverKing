@@ -57,7 +57,7 @@ public class ProducerConsumer {
                 usage();
             } else {
                 ProducerConsumer   pc;
-                SKGridConfiguration  gridConfig;
+                SKGridConfiguration gridConfig;
                 Mode               mode;
                 int                startKey;
                 int                endKey;
@@ -67,7 +67,7 @@ public class ProducerConsumer {
                 startKey = Integer.parseInt(args[2]);
                 endKey = Integer.parseInt(args[3]);
                 pc = new ProducerConsumer(gridConfig);
-                pc.run(Mode.valueOf(args[1]), startKey, endKey);
+                pc.run(mode, startKey, endKey);
             }
         } catch (Exception e) {
             e.printStackTrace();

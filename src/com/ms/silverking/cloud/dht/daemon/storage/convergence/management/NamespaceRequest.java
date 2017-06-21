@@ -57,6 +57,9 @@ class NamespaceRequest {
     }
     
     public void peerComplete(IPAndPort peer, Set<Long> peerNamespaces) {
+        if (debug) {
+            Log.warningf("peerComplete: %s", peer);
+        }
         removePeer(peer);
         namespaces.addAll(peerNamespaces);
     }

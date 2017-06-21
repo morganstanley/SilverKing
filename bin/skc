@@ -1,40 +1,27 @@
 #!/bin/bash
 
-allArgs="$@"
-#echo "${allArgs}"
-
-#EXPECTED_ARGS=6
-EXPECTED_ARGS=2
-E_BADARGS=65
-
 old_dir=`pwd`
 cd `dirname $0`
 bin_dir=`pwd`
 
-source sk.global.vars
+source lib/common.lib
 
-# skGlobalCodebase is overrides the normal codebase
-# This is typically used when running out of a development shadow
-if [[ ! -n "${skGlobalCodebase}" ]]; then      
-    cd ../lib
-    cpBase=`pwd`
-    cp=""
-    for f in `ls $cpBase/*.jar`; do
-            cp=$cp:$f
-    done
-    classpath=$cp
-    cd "${bin_dir}"
-else
-    classpath=$skGlobalCodebase
-    skJava=${skDevJavaHome}/bin/java
-fi
+allArgs="$@"
 
-cd ../bin
+f_sourceGlobalVars
+f_configureClasspath
+
 clientToolClass=com.ms.silverking.cloud.dht.client.apps.SilverKingClient
-
 clientToolOpt=$(${skJava} -cp ${classpath} ${clientToolClass} 2>&1 | grep -v "Option .* is required" )
 ##   clientGetopt=$(echo "${clientToolOpt}" | cut -b 3 | sort | uniq | gawk '{a=a $0 ":"}END{a[length(a)]="";print a}')
+cmd="${skJava} -cp ${classpath} ${skCmdPreArgs} ${clientToolClass} ${allArgs}"
+echo $cmd
+$cmd
 
+
+#EXPECTED_ARGS=6
+EXPECTED_ARGS=2
+E_BADARGS=65
 
 usage()
 {
@@ -47,13 +34,6 @@ DOCHERE
     exit $E_BADARGS
 }
 
-
 #if [ $# -lt $EXPECTED_ARGS ]; then
 #  usage
 #fi
-
-cmd="${skJava} -cp ${classpath} ${skCmdPreArgs} ${clientToolClass} ${allArgs}"
-echo $cmd
-$cmd
-
-

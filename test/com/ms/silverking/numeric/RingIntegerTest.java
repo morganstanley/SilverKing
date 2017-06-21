@@ -1,6 +1,6 @@
 package com.ms.silverking.numeric;
 
-import static com.ms.silverking.testing.Util.exceptionNameChecker;
+import static com.ms.silverking.testing.Assert.exceptionNameChecker;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static org.junit.Assert.assertEquals;
 

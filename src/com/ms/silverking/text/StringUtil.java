@@ -32,6 +32,8 @@ public class StringUtil {
     private static final char   hexMinorDelim = ':';
     private static final char   delim = ' ';
     
+    private static final String	defaultNullString = "<null>";
+    
 	public static String[] splitAndTrim(String source, String regex) {
 		String[]	splitSource;
 		
@@ -77,7 +79,6 @@ public class StringUtil {
     		    byte  curByte;
     		    
     		    curByte = inBytes[offset + i];
-    		    System.out.println(curByte);
     			out.append(digits[(curByte & 0xF0) >>> 4]);
     			out.append(digits[curByte & 0x0f]);
                 if ((i + 1) % minorGroupSize == 0) {
@@ -353,10 +354,15 @@ public class StringUtil {
 	}	
 	
 	public static int countOccurrences(String string, char c) {
+		return countOccurrences(string, c, Integer.MAX_VALUE);
+	}
+	
+	public static int countOccurrences(String string, char c, int limit) {
 		int	occurrences;
 		
 		occurrences = 0;
-		for (int i = 0; i < string.length(); i++) {
+		limit = Math.min(limit, string.length());
+		for (int i = 0; i < limit; i++) {
 			if (string.charAt(i) == c) {
 				occurrences++;
 			}
@@ -464,6 +470,18 @@ public class StringUtil {
 	public static String escapeForRegex(String s) {
 		// FUTURE - make this more complete
 		return s.replaceAll("\\.", "\\.");
+	}
+	
+	public static String nullSafeToString(Object o) {
+		return nullSafeToString(o, defaultNullString);
+	}
+	
+	public static String nullSafeToString(Object o, String nullString) {
+		if (o == null) {
+			return nullString;
+		} else {
+			return o.toString();
+		}
 	}
 	
 	public static void main(String[] args) {

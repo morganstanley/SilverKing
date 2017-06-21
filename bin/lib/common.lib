@@ -1,0 +1,116 @@
+#!/bin/bash
+
+function f_sourceGlobalVars {
+	f_exitIfUndefined "bin_dir" $bin_dir
+	cd $bin_dir
+	source lib/sk.global.vars
+}
+
+function f_configureClasspath {
+	f_exitIfUndefined "bin_dir" $bin_dir
+	
+	if [[ -z $skGlobalCodebase ]]; then  
+		cd ../lib
+		typeset cpBase=`pwd`
+		typeset cp=""
+		typeset count=1;
+		for f in `ls $cpBase/*.jar`; do
+			if [[ $count -ne 1 ]] ; then
+				cp+=":"
+			fi
+			cp+=$f
+			((count++))
+		done
+		classpath=$cp
+		cd $bin_dir
+	else    
+		echo "Using skGlobalCodebase"
+	
+		f_exitIfUndefined "skGlobalCodebase" $skGlobalCodebase
+		f_exitIfUndefined "skDevJavaHome"    $skDevJavaHome
+		
+		classpath=$skGlobalCodebase
+		   skJava=${skDevJavaHome}/bin/java
+	fi
+}
+
+function f_exitIfUndefined {
+	if [[ -z $2 ]]; then
+		echo "Undefined: $1"
+		exit -1
+    fi
+}
+
+function f_rmFile {
+	rm $1 2> /dev/null
+}
+
+# this method is overloaded
+function f_tm_getHosts {
+	typeset        cellOrFile=$1
+	typeset appNameOrEndpoint=$2
+	
+	echo "$(f_tm_getHostsAndPorts "$cellOrFile" "$appNameOrEndpoint")" | cut -d ':' -f 1
+}
+
+# this method is overloaded
+function f_tm_getPorts {
+	typeset        cellOrFile=$1
+	typeset appNameOrEndpoint=$2
+	
+	echo "$(f_tm_getHostsAndPorts "$cellOrFile" "$appNameOrEndpoint")" | cut -d ':' -f 2
+}
+
+# this method is overloaded
+function f_tm_getHostsAndPorts {
+	typeset        cellOrFile=$1
+	typeset appNameOrEndpoint=$2
+	
+	typeset hostsAndPorts=;
+	if [[ ${#cellOrFile} -le 3 && ! $cellOrFile =~ "*.*" ]]; then	# assume it's rr, oy, oz, dd3, etc..
+		hostsAndPorts=$(f_tm_discovery_Helper "$cellOrFile" "$appNameOrEndpoint" "ssh")
+	else
+		hostsAndPorts=`cat $cellOrFile | grep $appNameOrEndpoint` 
+	fi
+	
+	echo "$hostsAndPorts" | cut -d ' ' -f 2
+}
+
+function f_tm_getInstanceIds {
+	typeset    cell=$1
+	typeset appName=$2
+	
+	echo "$(f_tm_discovery_Helper "$cell" "$appName" "ssh")" | cut -d ':' -f 1
+}
+
+function f_tm_discovery_Helper {
+	typeset         cell=$1
+	typeset      appName=$2
+	typeset endpointName=$3
+	
+	treadmill discovery --cell $cell $appName $endpointName
+}
+
+# quotes around $1 is important!
+function f_countHelper {
+	if [[ `echo "$1" | wc -w` == 0 ]] ; then
+		echo "0"
+	else
+		echo "`echo -e \"$1\" | wc -l`"
+	fi 
+}
+
+function f_printSection {
+	((SECTION_COUNT++))
+	echo
+	f_printHeaderHelper "${SECTION_COUNT}." "$1"
+}
+
+function f_printHeaderHelper {
+	echo "##### $1 $2 #####"
+}
+
+function f_printSubSection {
+	echo
+	echo "  ---> $1 "
+}

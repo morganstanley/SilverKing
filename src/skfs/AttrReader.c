@@ -45,7 +45,7 @@ static void ar_store_native_alias_attribs(AttrReader *ar);
 static void ar_translate_reverse_path(AttrReader *ar, char *path, const char *nativePath);
 static int ar_is_no_error_cache_path(AttrReader *ar, char *path);
 static void _ar_store_dir_attribs(AttrReader *ar, char *path, uint16_t mode);
-static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath);
+static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath, uint64_t minModificationTimeMicros);
 static void ar_store_attr_in_cache(AttrReadRequest *arr, FileAttr *fa, uint64_t timeoutMillis = CACHE_NO_TIMEOUT);
 static void ar_process_prefetch(void **requests, int numRequests, int curThreadIndex);
 
@@ -205,7 +205,7 @@ static void ar_store_attr_in_cache(AttrReadRequest *arr, FileAttr *fa, uint64_t 
 	f2p_put(arr->attrReader->f2p, (FileID *)mem_dup_no_dbg(&cachedFileAttr->fid, sizeof(FileID)), arr->path); 
 	// store f2p before cache to ensure that anything that can read the cache
 	// can get the mapping
-	result = ac_store_raw_data(arr->attrReader->attrCache, arr->path, cachedFileAttr, TRUE, timeoutMillis);
+	result = ac_store_raw_data(arr->attrReader->attrCache, arr->path, cachedFileAttr, TRUE, arr->minModificationTimeMicros, timeoutMillis);
 	if (result == CACHE_STORE_SUCCESS) {
 		srfsLog(LOG_FINE, "storing in f2p %s", arr->path);
 		//f2p_put(arr->attrReader->f2p, fid_new_native(cachedStat), arr->path); // moved to above
@@ -323,7 +323,7 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 									// non-existence, store as an error
 									srfsLog(LOG_FINE, "%s not found in DHT. Storing ENOENT. %s %d", arr->path, __FILE__, __LINE__);
                                     ao_set_complete_error(op, ENOENT);
-									ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, attrTimeoutMillis);
+									ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, arr->minModificationTimeMicros, attrTimeoutMillis);
 									successful = TRUE;
 								} else {
 									srfsLog(LOG_FINE, "!SRFS_ENABLE_DHT_ENOENT_CACHING. Ignoring ENOENT found in DHT.");
@@ -456,7 +456,7 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 				            // non-existence, store as an error
 							srfsLog(LOG_FINE, "%s not found in DHT. Storing ENOENT. %s %d", arr->path, __FILE__, __LINE__);
                             ao_set_complete_error(op, ENOENT);
-				            ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, attrTimeoutMillis);
+				            ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, arr->minModificationTimeMicros, attrTimeoutMillis);
 				            successful = TRUE;
 			            } else {
 				            srfsLog(LOG_FINE, "!SRFS_ENABLE_DHT_ENOENT_CACHING. Ignoring ENOENT found in DHT.");
@@ -586,7 +586,7 @@ static void ar_process_native_request(void *_requestOpRef, int curThreadIndex) {
             // for r/o paths, ENOENT is stored permanently
             // for errors other than ENOENT, the calling code will retry to the file system
             ao_set_complete_error(op, errnoValue);
-            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue);
+            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue, arr->minModificationTimeMicros);
 			if (!ar_is_no_error_cache_path(arr->attrReader, nativePath)) {
 				if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
 					srfsLog(LOG_FINE, "storing _attr_does_not_exist to DHT for %s", nativePath);
@@ -600,7 +600,7 @@ static void ar_process_native_request(void *_requestOpRef, int curThreadIndex) {
             // Non ENOENT errors are stored temporarily
             // For errors other than ENOENT, the calling code will also retry to the file system
             ao_set_complete_error(op, errnoValue);
-            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue, _AR_ERR_TIMEOUT_MILLIS);
+            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue, arr->minModificationTimeMicros, _AR_ERR_TIMEOUT_MILLIS);
 		}
 	}
 	srfsLog(LOG_FINE, "set op complete %llx", _requestOpRef);
@@ -675,7 +675,7 @@ static void _ar_store_dir_attribs(AttrReader *ar, char *path, uint16_t mode) {
 	st.st_gid = get_gid();
 	st.st_blksize = SRFS_BLOCK_SIZE;
 	fa = fa_new(fid_generate_new_skfs_internal(), &st);
-	ac_store_raw_data(ar->attrCache, path, fa); // FIXME - verify result
+	ac_store_raw_data(ar->attrCache, path, fa, FALSE); // FIXME - verify result
 }
 
 static void ar_store_native_alias_attribs(AttrReader *ar) {
@@ -748,7 +748,7 @@ static int ar_is_valid_path(AttrReader *ar, const char *path) {
 
 
 // Callback from Cache. Cache write lock is held during callback.
-ActiveOp *ar_create_active_op(void *_ar, void *_nativePath, uint64_t minModificationTimeMillis) {
+ActiveOp *ar_create_active_op(void *_ar, void *_nativePath, uint64_t minModificationTimeMicros) {
 	AttrReader *ar;
 	char *nativePath;
 	ActiveOp *op;
@@ -757,7 +757,7 @@ ActiveOp *ar_create_active_op(void *_ar, void *_nativePath, uint64_t minModifica
 	ar = (AttrReader *)_ar;
 	nativePath = (char *)_nativePath;
 	srfsLog(LOG_FINE, "ar_create_active_op %s", nativePath);
-	attrReadRequest = arr_new(ar, nativePath);
+	attrReadRequest = arr_new(ar, nativePath, minModificationTimeMicros);
 	arr_display(attrReadRequest, LOG_FINE);
 	op = ao_new(attrReadRequest, (void (*)(void **))arr_delete);
 	return op;
@@ -805,7 +805,7 @@ int ar_get_attr_stat(AttrReader *ar, char *path, struct stat *st) {
 	return result;
 }
 
-int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa) {
+int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, uint64_t minModificationTimeMicros) {
 	int isValidPath;
 	int isNativePath;
 	int errorCode;
@@ -841,7 +841,7 @@ int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa) {
 	ar_translate_path(ar, nativePath, path);
 	srfsLog(LOG_FINE, "translated %s --> %s", path, nativePath);	    
     
-	errorCode = _ar_get_attr(ar, path, fa, isNativePath, nativePath);
+	errorCode = _ar_get_attr(ar, path, fa, isNativePath, nativePath, minModificationTimeMicros);
     // If error code is non-zero, fa will contain the error code.
     // We must not treat fa as a valid FileAttr in this case.
 	
@@ -938,7 +938,7 @@ static void ar_cp_rVal_to_fa(FileAttr *fa, ActiveOpRef *aor, char *file, int lin
     memcpy(fa, aor_get_rVal(aor), rValLength);
 }
 
-static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath) {
+static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath, uint64_t minModificationTimeMicros) {
 	CacheReadResult	result;
     AOResult        aoResult;
 	ActiveOpRef		*activeOpRef;
@@ -952,7 +952,7 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
 	// Create a new operation if none exists
 
 	srfsLog(LOG_FINE, "looking in cache for %s", nativePath);
-	result = ac_read(ar->attrCache, nativePath, fa, &activeOpRef, ar);
+	result = ac_read(ar->attrCache, nativePath, fa, &activeOpRef, ar, minModificationTimeMicros);
 	srfsLog(LOG_FINE, "cache result %d %s", result, crr_strings[result]);
 	if (result == CRR_FOUND && !memcmp(fa, &_attr_does_not_exist, sizeof(FileAttr))) {
 		if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
@@ -1090,7 +1090,7 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
     return -1;
 }
 
-CacheStoreResult ar_store_attr_in_cache_static(char *path, FileAttr *fa, int replace, uint64_t timeoutMillis) {
+CacheStoreResult ar_store_attr_in_cache_static(char *path, FileAttr *fa, int replace, uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
 	AttrReader		*ar;
 	FileAttr	*cachedFileAttr;
 	CacheStoreResult	result;
@@ -1106,7 +1106,7 @@ CacheStoreResult ar_store_attr_in_cache_static(char *path, FileAttr *fa, int rep
 	f2p_put(ar->f2p, (FileID *)mem_dup_no_dbg(&cachedFileAttr->fid, sizeof(FileID)), path); 
 	// store f2p before cache to ensure that anything that can read the cache
 	// can get the mapping
-	result = ac_store_raw_data(ar->attrCache, path, cachedFileAttr, replace, timeoutMillis);
+	result = ac_store_raw_data(ar->attrCache, path, cachedFileAttr, replace, modificationTimeMicros, timeoutMillis);
 	if (result != CACHE_STORE_SUCCESS) {
 		srfsLog(LOG_FINE, "Cache store rejected.");
         if (cachedFileAttr != NULL) {
@@ -1191,11 +1191,13 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
 						if (pval->m_len == sizeof(FileAttr) ){
 							if (memcmp(pval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
 								uint64_t	attrTimeoutMillis;
+                                uint64_t    modificationTimeMicros;
 							
 								attrTimeoutMillis = is_writable_path(path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
+                                modificationTimeMicros = is_writable_path(path) ? stat_mtime_micros( &((FileAttr *)pval->m_pVal)->stat ) : CACHE_NO_MODIFICATION_TIME;
 
 								// a normal data item, store in cache
-								ar_store_attr_in_cache_static(path, (FileAttr *)pval->m_pVal, FALSE, attrTimeoutMillis);
+								ar_store_attr_in_cache_static(path, (FileAttr *)pval->m_pVal, FALSE, modificationTimeMicros, attrTimeoutMillis);
 								successful = TRUE;
 							} else {
 								// ignore not found when prefetching
@@ -1260,10 +1262,12 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
                 } else if (ppval->m_len == sizeof(FileAttr) ){
 		            if (memcmp(ppval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
 						uint64_t	attrTimeoutMillis;
+                        uint64_t    modificationTimeMicros;
 					
 						attrTimeoutMillis = is_writable_path(path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
-			            // a normal data item, store in cache
-			            ar_store_attr_in_cache_static(path, (FileAttr *)ppval->m_pVal, FALSE, attrTimeoutMillis);
+			            modificationTimeMicros = is_writable_path(path) ? stat_mtime_micros( &((FileAttr *)ppval->m_pVal)->stat ) : CACHE_NO_MODIFICATION_TIME;
+                        // a normal data item, store in cache
+			            ar_store_attr_in_cache_static(path, (FileAttr *)ppval->m_pVal, FALSE, modificationTimeMicros, attrTimeoutMillis);
 			            successful = TRUE;
 		            } else {
 						// ignore not found when prefetching

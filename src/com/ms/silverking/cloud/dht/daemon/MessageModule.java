@@ -34,7 +34,6 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.SingleWriterConsisten
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocol;
 //import com.ms.silverking.cloud.dht.gcmd.GlobalCommandServer;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
@@ -235,7 +234,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private void handleReceive(MessageGroup message, MessageGroupConnectionProxy connection) {
         try {
             if (debugReceivedMessages) {
-                Log.warning("\t*** Received: ", message);
+                Log.warningf("\t*** Received: %s\n%s", message, Thread.currentThread().getName());
                 message.displayForDebug(true);
             }
             if (debugShortTimeMessages) {
@@ -307,8 +306,16 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                  throw new RuntimeException("type not handled: "+ message.getMessageType());
             }
         } catch (RuntimeException re) {
-            re.printStackTrace();
-            Log.logErrorWarning(re, "Error processing connection: "+ connection.getConnectionID());
+			Throwable	t;
+			
+			Log.warning("************************************** "+ Thread.currentThread().getName());
+			t = re;
+			while (t != null) {
+				Log.logErrorWarning(t);
+				t = t.getCause();
+				Log.warning("......................................");
+			}
+            Log.logErrorWarning(re, "MessageModule error processing connection: "+ connection.getConnectionID());
         }
     }
     
@@ -339,7 +346,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         
         nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.FetchRemotely);
         nsOptions = nsProperties.getOptions();
-        if (message.getForwardingMode() == ForwardingMode.FORWARD) {
+        if (message.getForwardingMode().forwards()) {
             new ActiveProxyPut(message, connection, this, getStorageProtocol(nsOptions), 
                     message.getDeadlineAbsMillis(absMillisTimeSource), false, nsOptions).startOperation();
         } else {
@@ -732,7 +739,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void handlePing(MessageGroup message, MessageGroupConnectionProxy connection) {
-        Log.finef("%s %s", message.getMessageType(), connection.getConnectionID());
+    	if (Log.levelMet(Level.FINE)) {
+    		Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
+    	}
         if (connection instanceof MessageGroupConnectionProxyRemote) {
         	MessageGroupConnectionProxyRemote	c;
         	ProtoPingAckMessageGroup	ack;
@@ -748,7 +757,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void handlePingAck(MessageGroup message, MessageGroupConnectionProxy connection) {
-        Log.finef("%s %s", message.getMessageType(), connection.getConnectionID());
+    	if (Log.levelMet(Level.FINE)) {
+    		Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
+    	}
         if (connection instanceof MessageGroupConnectionProxyRemote) {
         	MessageGroupConnectionProxyRemote	c;
         	
@@ -809,7 +820,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private static final int	workerPoolTargetSize = 2;
-    private static final int	workerPoolMaxSize = 4;
+    private static final int	workerPoolMaxSize = Runtime.getRuntime().availableProcessors();
     
     static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModuleNSPPool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
     

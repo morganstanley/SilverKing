@@ -6,7 +6,7 @@ class StaticDHTCreatorOptions {
 	StaticDHTCreatorOptions() {
 	}
 	
-	private static final int	defaultPort = 7575;
+	static final int	defaultPort = 7575;
 	
 	@Option(name="-z", usage="zkEnsemble", required=true)
 	String	zkEnsemble;
@@ -22,6 +22,12 @@ class StaticDHTCreatorOptions {
 	
 	@Option(name="-G", usage="gridConfigDir", required=true)
 	String	gridConfigDir;
+	
+	@Option(name="-L", usage="skInstanceLogBaseVar", required=false)
+	String	skInstanceLogBaseVar;
+	
+	@Option(name="-D", usage="dataBaseVar", required=false)
+	String	dataBaseVar;
 	
 	@Option(name="-d", usage="dhtName", required=false)
 	String	dhtName;
@@ -43,4 +49,7 @@ class StaticDHTCreatorOptions {
 	
     @Option(name="-v", usage="verbose")
     boolean verbose;
+    
+	@Option(name="-k", usage="skfsConfigurationFile", required=false)
+	String	skfsConfigurationFile;    
 }

@@ -518,3 +518,17 @@ void dd_display_ordered(DirData *dd, FILE *file) {
 		fprintf(file, "}\n\n");
 	}
 }
+
+int dd_is_empty(DirData *dd) {
+    uint32_t    i;
+
+    for (i = 0; i < dd->numEntries; i++) {
+        DirEntry	*de;
+        
+        de = dd_get_entry(dd, i);
+        if (!de_is_deleted(de)) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}

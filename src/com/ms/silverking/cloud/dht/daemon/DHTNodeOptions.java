@@ -11,4 +11,6 @@ public class DHTNodeOptions {
     public String zkConfig;
     @Option(name="-into", usage="inactiveNodeTimeoutSeconds", required=false)
     public int inactiveNodeTimeoutSeconds = defaultInactiveNodeTimeoutSeconds;
+    @Option(name="-r", usage="disableReap", required=false)
+    public boolean disableReap = false;
 }

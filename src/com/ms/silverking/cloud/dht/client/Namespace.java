@@ -95,4 +95,8 @@ public interface Namespace {
      *  such as "bytesFree"
      */ 
     public static final String  nodeName = "__Node__";
+    /** 
+     * Name of the System namespace. The System namespace provides information about the overall SK instance.
+     */ 
+    public static final String  systemName = "__System__";
 }

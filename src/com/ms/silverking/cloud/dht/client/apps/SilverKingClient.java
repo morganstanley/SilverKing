@@ -189,7 +189,7 @@ public class SilverKingClient {
         for (String key : sortedList(keys)) {
             StoredValue<byte[]>    storedValue;
 
-            storedValue = storedValues.get(key); 
+            storedValue = storedValues.get(key);
             out.printf("\n%s\n%s\n", key, storedValue != null ? MetaDataTextUtil.toMetaDataString(storedValue.getMetaData(), true) : noSuchValue);
         }
     }
@@ -330,6 +330,27 @@ public class SilverKingClient {
     private void doPut(String[] args) throws OperationException, IOException {
         Map<String,byte[]>  map;
         ImmutableMap.Builder<String,byte[]>    builder;
+        PutOptions	putOptions;
+        
+        if (args[0].startsWith("{")) {
+            if (!args[0].endsWith("}")) {
+                err.printf("putOptions missing closing }\n");
+                return;
+            } else {
+                String[]    newArgs;
+                
+                newArgs = new String[args.length - 1];
+                System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+                putOptions = ((PutOptions)ObjectDefParser2.parse(PutOptions.class, 
+                                args[0].substring(1, args[0].length() - 1)));
+                if (verbose) {
+                    out.printf("putOptions: %s\n", putOptions);
+                }
+                args = newArgs;
+            }
+        } else {
+        	putOptions = syncNSP.getNamespace().getOptions().getDefaultPutOptions();
+        }
         
         builder = ImmutableMap.builder();
         for (int i = 0; i < args.length; i += 2) {
@@ -340,7 +361,7 @@ public class SilverKingClient {
         sw.reset();
         try {
             for (int i = 0; i < reps; i++) {
-                syncNSP.put(map);
+                syncNSP.put(map, putOptions);
             }
         } catch (PutException pe) {
             out.println(pe.getDetailedFailureMessage());
@@ -847,8 +868,13 @@ public class SilverKingClient {
     		//if (options.verbose) {
     		//    Log.setLevelAll();
     		//}
+    		
     		if (options.gridConfig != null) {
-    			configProvider = SKGridConfiguration.parseFile(options.gridConfig);
+        		if (options.gridConfigBase != null) {
+        			configProvider = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
+        		} else {
+        			configProvider = SKGridConfiguration.parseFile(options.gridConfig);
+        		}
     		} else if (options.clientDHTConfiguration != null) {
     			configProvider = ClientDHTConfiguration.parse(options.clientDHTConfiguration);
     		} else {
@@ -892,7 +918,7 @@ public class SilverKingClient {
 					commandArg = "";
 				}
 			} else {
-				if (arg.startsWith("-")) {
+				if (arg.startsWith("-") && arg.length() > 1 && !Character.isDigit(arg.charAt(1))) {
 					newArgs.add(commandArg);
 					newArgs.add(arg);
 					inCommand = false;

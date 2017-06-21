@@ -29,7 +29,7 @@ public class ProtoChecksumTreeRequestMessageGroup extends ProtoMessageGroup {
     
     private static final int	localFlagOffset = replicaOffset + IPAndPort.SIZE_BYTES;
     
-    private static final int    deadlineRelativeMillis = 10 * 60 * 1000;
+    private static final int    deadlineRelativeMillis = 25 * 60 * 1000; // For now, interpreted as a progress deadline, not at absolute op deadline
     
     public ProtoChecksumTreeRequestMessageGroup(UUIDBase uuid, long context, 
                                                 ConvergencePoint targetCP, 

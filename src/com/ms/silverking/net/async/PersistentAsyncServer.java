@@ -46,12 +46,13 @@ public class PersistentAsyncServer<T extends Connection>
 								int numSelectorControllers,  
 								String controllerClass, 
 								ConnectionCreator<T> connectionCreator, 
-								LWTPool lwtPool, boolean enabled, boolean debug, 
-								MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
+								LWTPool lwtPool, int selectionThreadWorkLimit, boolean enabled, 
+								boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
 	    this.debug = debug;
 		asyncServer = new AsyncServer<T>(port, backlog, 
 		                                numSelectorControllers,  
-										controllerClass, connectionCreator, this, lwtPool, enabled, debug);
+										controllerClass, connectionCreator, this, lwtPool, 
+										selectionThreadWorkLimit, enabled, debug);
 		connections = new ConcurrentHashMap<InetSocketAddress,T>();
 		newConnectionLocks = new ConcurrentHashMap<InetSocketAddress,ReentrantLock>();	
 		asyncConnector = new AsyncConnector(lwtPool); 
@@ -64,21 +65,25 @@ public class PersistentAsyncServer<T extends Connection>
     public PersistentAsyncServer(int port, int backlog, int numSelectorControllers, 
             String controllerClass, ConnectionCreator<T> connectionCreator) throws IOException {
         this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, true, false, null, null);
+                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, 
+                SelectorController.defaultSelectionThreadWorkLimit, true, false, null, null);
     }
     
     public PersistentAsyncServer(int port, int backlog, int numSelectorControllers, 
             String controllerClass, ConnectionCreator<T> connectionCreator, 
+            int selectionThreadWorkLimit,
             MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
         this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, true, false, mqListener, mqUUID);
+                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, 
+                selectionThreadWorkLimit, true, false, mqListener, mqUUID);
     }
     
     public PersistentAsyncServer(int port, int backlog, int numSelectorControllers,  
             	String controllerClass, 
             	ConnectionCreator<T> connectionCreator, LWTPool lwtPool, boolean debug) throws IOException {
         this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, lwtPool, true, debug, null, null);
+                controllerClass, connectionCreator, lwtPool, 
+                SelectorController.defaultSelectionThreadWorkLimit, true, debug, null, null);
     }
     
 	public PersistentAsyncServer(int port, ConnectionCreator<T> connectionCreator) throws IOException {
@@ -93,8 +98,10 @@ public class PersistentAsyncServer<T extends Connection>
     
     public PersistentAsyncServer(int port, ConnectionCreator<T> connectionCreator,
             int numSelectorControllers, String controllerClass,
-            MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
-    	this(port, useDefaultBacklog, numSelectorControllers, controllerClass, connectionCreator, mqListener, mqUUID);
+            MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID,
+            int selectionThreadWorkLimit) throws IOException {
+    	this(port, useDefaultBacklog, numSelectorControllers, controllerClass, connectionCreator, 
+    			selectionThreadWorkLimit, mqListener, mqUUID);
 }
     
     public PersistentAsyncServer(int port,  
@@ -331,7 +338,7 @@ public class PersistentAsyncServer<T extends Connection>
 					backoff.backoff();
 				} else {
 				    if (suspectAddressListener != null) {
-				        suspectAddressListener.addSuspect(dest, null);
+				        suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
 				    }
 					throw new ConnectException(ste.toString());
 				}

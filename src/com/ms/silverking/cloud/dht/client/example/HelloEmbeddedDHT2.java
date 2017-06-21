@@ -7,7 +7,7 @@ import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 
 public class HelloEmbeddedDHT2 {
 	
-	public static String test() {
+	public static String runExample() {
 		try {
 			SynchronousNamespacePerspective<String, String> syncNSP;
 			ClientDHTConfiguration							dhtConfig;
@@ -21,14 +21,12 @@ public class HelloEmbeddedDHT2 {
 			syncNSP.put("Hello", "world!");
 			return syncNSP.get("Hello");
 		} catch (Exception e) {
-			e.printStackTrace();
+            throw new RuntimeException(e);
 		}
-  
-		return "<error: shouldn't have reached here>";	
 	}
 	
 	public static void main(String[] args) {
-		System.out.println( test() );
+		System.out.println( runExample() );
 		System.exit(0);
 	}
 }

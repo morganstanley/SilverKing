@@ -12,12 +12,13 @@
 ///////////////////
 // implementation
 
-AttrReadRequest *arr_new(AttrReader *attrReader, char *path) {
+AttrReadRequest *arr_new(AttrReader *attrReader, char *path, uint64_t minModificationTimeMicros) {
 	AttrReadRequest *arr;
 
 	arr = (AttrReadRequest*)mem_alloc(1, sizeof(AttrReadRequest));
 	arr->attrReader = attrReader;
 	arr->path = (char *)mem_alloc(strlen(path) + 1, 1);
+    arr->minModificationTimeMicros = minModificationTimeMicros;
 	strcpy(arr->path, path);
 	return arr;
 }

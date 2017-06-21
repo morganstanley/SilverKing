@@ -51,9 +51,11 @@ public class PerspectiveTest {
             ns.openAsyncPerspective(String.class, byte[].class);
         }
         runSW.stop();
+        out.printf("Num Perspectives: %d\n", numPerspectives);
         out.printf("Elapsed: %f\n", runSW.getElapsedSeconds());
         out.printf("Perspectives / s: %f\n", (double)numPerspectives / runSW.getElapsedSeconds());
         out.printf("s / Perspective:  %f\n", runSW.getElapsedSeconds() / (double)numPerspectives);
+        out.printf("\n");
     }
     
     /**

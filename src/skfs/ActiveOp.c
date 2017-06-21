@@ -9,6 +9,13 @@
 #include <string.h>
 
 
+///////////////////////
+// private prototypes
+
+static int _ao_find_empty_ref(ActiveOp *ao) ;
+static void ao_check_for_deletion(ActiveOp *ao);
+
+
 ///////////////////
 // implementation
 
@@ -67,17 +74,38 @@ int ao_create_ref(ActiveOp *ao) {
 
 	ref = -1;
 	pthread_mutex_lock(ao->mutex);
-	if (ao->nextRef < AO_MAX_REFS) {
-		ref = ao->nextRef++;
-		if (ao->refStatus[ref] != AOR_Invalid) {
-			fatalError("ao->refStatus[ref] != AOR_Invalid", __FILE__, __LINE__);
-		}
-		ao->refStatus[ref] = AOR_Created;
-	} else {
-		fatalError("AO_MAX_REFS exceeded", __FILE__, __LINE__);
-	}
+    
+    if (ao->nextRef >= AO_RECYCLE_THRESHOLD) {
+        ref = _ao_find_empty_ref(ao);
+    }
+    if (ref >= 0) {
+        ao->refStatus[ref] = AOR_Created;
+    } else {
+        if (ao->nextRef < AO_MAX_REFS) {
+            ref = ao->nextRef++;
+            if (ao->refStatus[ref] != AOR_Invalid) {
+                fatalError("ao->refStatus[ref] != AOR_Invalid", __FILE__, __LINE__);
+            }
+            ao->refStatus[ref] = AOR_Created;
+        } else {
+            fatalError("AO_MAX_REFS exceeded", __FILE__, __LINE__);
+        }
+    }
+    
 	pthread_mutex_unlock(ao->mutex);
 	return ref;
+}
+
+// lock must be held
+static int _ao_find_empty_ref(ActiveOp *ao) {
+	int	i;
+
+    for (i = 0; i < ao->nextRef; i++) {
+        if (ao->refStatus[i] != AOR_Created) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 static void ao_check_for_deletion(ActiveOp *ao) {

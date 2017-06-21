@@ -35,6 +35,8 @@ using jace::proxy::com::ms::silverking::cloud::dht::WaitOptions;
 using jace::proxy::com::ms::silverking::cloud::dht::client::KeyDigestType;
 #include "jace/proxy/com/ms/silverking/cloud/dht/client/VersionProvider.h"
 using jace::proxy::com::ms::silverking::cloud::dht::client::VersionProvider;
+#include "jace/proxy/com/ms/silverking/cloud/dht/client/ConstantVersionProvider.h"
+using jace::proxy::com::ms::silverking::cloud::dht::client::ConstantVersionProvider;
 typedef JArray< jace::proxy::types::JByte > ByteArray;
 
 SKNamespacePerspectiveOptions::SKNamespacePerspectiveOptions( /* KeyClass k, ValueClass v, */ 

@@ -68,6 +68,8 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
             // negative offsets are an index to the list in the offsetListStore
             try {
             	offsetList = offsetListStore.getOffsetList(-offset);
+            } catch (InvalidOffsetListIndexException ie) {
+            	throw ie;
             } catch (RuntimeException re) {
             	Log.warningf("offset %d", offset);
             	throw re;
@@ -96,14 +98,20 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
         if (debugExternalStore) {
             Log.warning("entryMatches: ", offset);
         }
-        offset = checkOffset(offset);
-        // perform a complete check to see if the full key matches
-        entryMSL = dataBuf.getLong(offset);
-        entryLSL = dataBuf.getLong(offset + NumConversion.BYTES_PER_LONG);
-        if (debugExternalStore) {
-            System.out.printf("%x:%x\t%x:%x\n", msl, lsl, entryMSL, entryLSL);
+        try {
+        	offset = checkOffset(offset);
+	        // perform a complete check to see if the full key matches
+	        entryMSL = dataBuf.getLong(offset);
+	        entryLSL = dataBuf.getLong(offset + NumConversion.BYTES_PER_LONG);
+	        if (debugExternalStore) {
+	            System.out.printf("%x:%x\t%x:%x\n", msl, lsl, entryMSL, entryLSL);
+	        }
+	        return msl == entryMSL && lsl == entryLSL;
+        } catch (InvalidOffsetListIndexException ie) {
+        	Log.warningAsyncf("InvalidOffsetListIndexException segment %d checkOffset %d key %x:%x", getSegmentNumber(), offset, msl, lsl);
+        	// indicates that we're not looking at a valid entry
+        	return false;
         }
-        return msl == entryMSL && lsl == entryLSL;
     }
     
     /*

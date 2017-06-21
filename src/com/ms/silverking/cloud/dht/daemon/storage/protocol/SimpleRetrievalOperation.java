@@ -109,7 +109,7 @@ class SimpleRetrievalOperation extends BaseRetrievalOperation<RetrievalEntrySing
             case NO_SUCH_VALUE:
                 int _completeEntries;
                 
-                if (entryState.isPrimaryReplica(replica) || forwardingMode == ForwardingMode.DO_NOT_FORWARD) {
+                if ((entryState.isPrimaryReplica(replica) && forwardingMode != ForwardingMode.ALL) || forwardingMode == ForwardingMode.DO_NOT_FORWARD) {
                     entryState.setState(RetrievalState.NO_SUCH_VALUE);
                     synchronized (rvComm) {
                         rvComm.sendResult(update);
@@ -127,6 +127,16 @@ class SimpleRetrievalOperation extends BaseRetrievalOperation<RetrievalEntrySing
                         System.out.printf("forward entry state %s %s\n", key, nextReplica);
                     }
                     if (nextReplica == null) {
+                    	if (forwardingMode == ForwardingMode.ALL) {
+                            entryState.setState(RetrievalState.NO_SUCH_VALUE);
+                            synchronized (rvComm) {
+                                rvComm.sendResult(update);
+                            }
+                            _completeEntries = completeEntries.incrementAndGet();
+                            if (_completeEntries >= numEntries) {
+                                setOpResult(OpResult.SUCCEEDED);
+                            }
+                    	}
                         return;
                     }
                     synchronized (rvComm) {

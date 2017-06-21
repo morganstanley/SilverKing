@@ -112,7 +112,7 @@ public class FileID {
 	
 	@Override
 	public String toString() {
-		return String.format("%d.%d.%d.%d", fileSystem.ordinal(), hash, instance, sequence);
+		return String.format("%d.%d.%d", fileSystem.ordinal(), instance, sequence);
 	}
 
 	public static void main(String[] args) {
@@ -125,5 +125,6 @@ public class FileID {
 		for (int i = 0; i < 5; i++) {
 			System.out.printf("%s\n", StringUtil.byteArrayToHexString(generateSKFSFileID().serialize()));
 		}
+		System.out.printf("%s\n", generateSKFSFileID().toString());
 	}
 }

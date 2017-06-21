@@ -26,6 +26,8 @@
 // defines
 
 #define WFR_MAX_REFS    128
+#define WFR_RECYCLE_THRESHOLD    64
+// WFR_RECYCLE_THRESHOLD must be < WFR_MAX_REFS for reference number recycling to be active
 
 
 //////////
@@ -53,6 +55,7 @@ typedef struct WritableFile {
     HashTableAndLock    *htl;
 	uint64_t	leastIncompleteBlockIndex;
     WritableFileReferentState   referentState;
+    uint8_t kvAttrStale;
 } WritableFile;
 
 

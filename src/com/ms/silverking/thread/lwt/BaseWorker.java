@@ -176,12 +176,12 @@ public abstract class BaseWorker<I> {
 		return sb.toString();
 	}
 	
-	private AtomicBoolean  foo = new AtomicBoolean(false);
+	//private AtomicBoolean  foo = new AtomicBoolean(false);
 
     public I[] newWorkArray(int size) {
-        if (foo.compareAndSet(false, true)) {
-            ThreadUtil.printStackTraces();
-        }
+        //if (foo.compareAndSet(false, true)) {
+        //    ThreadUtil.printStackTraces();
+        //}
         //throw new RuntimeException(this +" doesn't support multiple work");
         return null;
     }

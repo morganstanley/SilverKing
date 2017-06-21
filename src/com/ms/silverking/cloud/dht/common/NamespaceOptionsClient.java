@@ -58,6 +58,7 @@ public class NamespaceOptionsClient {
         this.seTimeoutController = seTimeoutController;
         systemNamespaceOptions = new HashMap<>();
         nsCreator = new SimpleNamespaceCreator();
+        systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.systemName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
         systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.nodeName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
         systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.replicasName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
     }

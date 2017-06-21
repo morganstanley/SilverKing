@@ -10,7 +10,7 @@ import com.ms.silverking.time.SystemTimeSource;
 public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<InvalidatedRetentionState> {
 	private final long	invalidatedRetentionIntervalSeconds;
 	
-	private static final InvalidatedRetentionPolicy	template = new InvalidatedRetentionPolicy(0);
+	static final InvalidatedRetentionPolicy	template = new InvalidatedRetentionPolicy(0);
 
 	static {
         ObjectDefParser2.addParser(template);
@@ -57,6 +57,14 @@ public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<Invalida
 	
 	@Override
 	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		
+		if (this.getClass() != o.getClass()) {
+			return false;
+		}
+		
 		InvalidatedRetentionPolicy	other;
 		
 		other = (InvalidatedRetentionPolicy)o;

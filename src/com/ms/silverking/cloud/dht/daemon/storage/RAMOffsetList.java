@@ -26,6 +26,8 @@ class RAMOffsetList extends OffsetListBase {
     private static final int   storageTimeLsiOffset = offsetOffset + 1 + lsiOffset;
     private static final int   storageTimeMsiOffset = offsetOffset + 1 + msiOffset;
     
+    private static final int	intArrayListDefaultInitialSize = 1;
+    
     static {
         if (ByteOrder.nativeOrder() != ByteOrder.LITTLE_ENDIAN) {
             throw new RuntimeException("Only LITTLE_ENDIAN implemented in this class");
@@ -35,7 +37,7 @@ class RAMOffsetList extends OffsetListBase {
     RAMOffsetList(int index, boolean supportsStorageTime) {
         super(supportsStorageTime);
         this.index = index;
-        offsetList = new IntArrayList();
+        offsetList = new IntArrayList(intArrayListDefaultInitialSize);
     }
     
     public int getIndex() {

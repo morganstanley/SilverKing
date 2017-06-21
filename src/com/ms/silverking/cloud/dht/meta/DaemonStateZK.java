@@ -10,7 +10,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -19,6 +18,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper.States;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
@@ -196,6 +196,14 @@ public class DaemonStateZK implements Watcher {
     }
     
     public Pair<Boolean,Map<IPAndPort, DaemonState>> getQuorumState(Set<IPAndPort> members, DaemonState targetState) throws KeeperException {
+    	return getQuorumState(members, targetState, maxIncompletePerFetch);
+    }
+    
+    public Pair<Boolean,Map<IPAndPort, DaemonState>> getAllQuorumState(Set<IPAndPort> members, DaemonState targetState) throws KeeperException {
+    	return getQuorumState(members, targetState, Integer.MAX_VALUE);
+    }
+    
+    private Pair<Boolean,Map<IPAndPort, DaemonState>> getQuorumState(Set<IPAndPort> members, DaemonState targetState, int _maxIncompletePerFetch) throws KeeperException {
         Map<IPAndPort, DaemonState> quorumState;
         boolean	allRead;
         int		incomplete;
@@ -207,21 +215,24 @@ public class DaemonStateZK implements Watcher {
             DaemonState state;
             
             state = getMemberState(member);
-            if (state != null) {
-        		quorumState.put(member, state);
-            	if (state.ordinal() < targetState.ordinal()) {
-            		++incomplete;
-                	if (incomplete >= maxIncompletePerFetch && incomplete < members.size()) {
-                		allRead = false;
-                		break;
-                	}
+            Log.warningf("member %s state %s", member, state);
+    		quorumState.put(member, state);
+        	if (state == null || state.ordinal() < targetState.ordinal()) {
+        		++incomplete;
+            	if (incomplete >= _maxIncompletePerFetch && incomplete < members.size()) {
+            		allRead = false;
+            		break;
             	}
-            }
+        	}
         }
         return new Pair<>(allRead, quorumState);
     }
     
-    public void waitForQuorumState(Set<IPAndPort> members, DaemonState targetState, int inactiveNodeTimeoutSeconds) {
+    public boolean waitForQuorumState(Set<IPAndPort> members, DaemonState targetState, int inactiveNodeTimeoutSeconds) {
+    	return waitForQuorumState(members, targetState, inactiveNodeTimeoutSeconds, false).isEmpty();
+    }
+    
+    public Map<IPAndPort, DaemonState> waitForQuorumState(Set<IPAndPort> members, DaemonState targetState, int inactiveNodeTimeoutSeconds, boolean exitOnTimeout) {
         boolean targetReached;
         int     lastNotReadyCount;
         int     notReadyCount;
@@ -274,6 +285,14 @@ public class DaemonStateZK implements Watcher {
 	                                targetReached = false;
 	                            } else {
 	                                sb.append(String.format("%s\t%s\tinactive node timed out\n", incompleteMember, memberState));
+	                                if (exitOnTimeout) {
+	                                	Map<IPAndPort, DaemonState>	stateMap;
+	                                	
+	    	                            System.out.print(sb);
+	                                	Log.warningf("Timeout: %s", incompleteMember);
+	                                	stateMap = fetchAndDisplayIncompleteState(incompleteMembers, targetState);
+	                                	return stateMap;
+	                                }
 	                            }
                         	} else {
                         		targetReached = false;
@@ -305,6 +324,21 @@ public class DaemonStateZK implements Watcher {
             if (!targetReached) {
             	int	maxSleepMillis;
             	
+                if ((int)sw.getSplitSeconds() > inactiveNodeTimeoutSeconds) {
+                    if (exitOnTimeout) {
+                    	Map<IPAndPort, DaemonState>	stateMap;
+                    	
+                    	Log.warningf("Timeout in targetState: %s", targetState);
+                    	try {
+							stateMap = fetchAndDisplayIncompleteState(incompleteMembers, targetState);
+						} catch (KeeperException e) {
+							e.printStackTrace();
+							stateMap = ImmutableMap.of();
+						}
+                    	return stateMap;
+                    }
+                }
+            	
             	maxSleepMillis = (int)Math.max((double)maxQuorumStatePollIntervalMillis * ((double)incompleteMembers.size()/(double)maxQuorumStatePollThreshold), minQuorumStatePollIntervalMillis);
             	maxSleepMillis = Math.min(maxSleepMillis, maxQuorumStatePollIntervalMillis);
             	Log.info("waitForQuorumState maxSleepMillis: ", maxSleepMillis);
@@ -316,9 +350,27 @@ public class DaemonStateZK implements Watcher {
         if (verbose) {
             System.out.printf("Quorum state reached: %s\n", targetState);
         }
+        return ImmutableMap.of();
     }
     
-    private void randomAwait(int minMillis, int maxMillis) {
+    private Map<IPAndPort,DaemonState> fetchAndDisplayIncompleteState(Set<IPAndPort> members, DaemonState targetState) throws KeeperException {
+    	Pair<Boolean,Map<IPAndPort, DaemonState>>	sp;
+    	Map<IPAndPort, DaemonState>					qs;
+    	
+    	sp = getAllQuorumState(members, targetState);
+    	qs = sp.getV2();
+        for (IPAndPort im : members) {
+        	DaemonState	state;
+        	
+        	state = qs.get(im);
+        	if (state == null || state != targetState) {
+        		System.out.printf("Incomplete:\t%s\t%s\n", im, state);
+        	}
+        }
+        return qs;
+	}
+
+	private void randomAwait(int minMillis, int maxMillis) {
     	lock.lock();
     	try {
     		ThreadUtil.randomAwait(cv, minMillis, maxMillis);

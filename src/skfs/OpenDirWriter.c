@@ -234,8 +234,13 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
                 delete pOpMap;
             }
         } catch (SKPutException &e) {
-            srfsLog(LOG_ERROR, "odw mput dhtErr at %s:%d\n%s\n", __FILE__, __LINE__, e.what());
-            srfsLog(LOG_WARNING, " %s\n",  e.getDetailedFailureMessage().c_str());
+            const char    *cause;
+            
+            cause = e.what();
+            if (cause == NULL || strstr(cause, "INVALID_VERSION") == NULL) {
+                srfsLog(LOG_ERROR, "odw mput dhtErr at %s:%d\n%s\n", __FILE__, __LINE__, cause);
+                srfsLog(LOG_WARNING, " %s\n",  e.getDetailedFailureMessage().c_str());
+            }
             /*
             Catching failed puts is deprecated for now in favor of the periodic reconciliation approach.
             {

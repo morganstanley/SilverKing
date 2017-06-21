@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-source lib_common.sh
+source lib/common.lib
 
 f_printSubSection "Uninstall: removing old install files"
 

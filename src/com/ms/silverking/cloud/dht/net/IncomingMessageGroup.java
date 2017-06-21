@@ -65,7 +65,7 @@ public final class IncomingMessageGroup implements IncomingData {
     private static final int   maxNumBuffers = 65536; 
     private static final int   minNumBuffers = 1;
     
-	private final boolean	debug = false;
+	private static final boolean	debug = false;
 	
 	public static void setClient() {
 		//isClient = true;

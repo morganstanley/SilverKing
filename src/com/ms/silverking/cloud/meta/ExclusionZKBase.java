@@ -57,6 +57,9 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
         String[]        nodes;
         Stat			stat;
 
+        if (version == VersionedDefinition.NO_VERSION) {
+        	version = zk.getLatestVersion(base);
+        }
         vBase = getVBase(version);
         //nodes = zk.getChildren(vBase);
         stat = new Stat();

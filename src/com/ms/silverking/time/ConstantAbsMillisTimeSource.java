@@ -19,4 +19,23 @@ public final class ConstantAbsMillisTimeSource implements AbsMillisTimeSource {
     public int relMillisRemaining(long absDeadlineMillis) {
         return TimeSourceUtil.relTimeRemainingAsInt(absDeadlineMillis, absTimeMillis());
     }
+    
+    @Override
+    public int hashCode() {
+    	return Long.hashCode(absMillisTime);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+    	if (this == o) {
+    		return true;
+    	}
+    		
+    	if (this.getClass() != o.getClass()) {
+    		return false;
+    	}
+    	
+    	ConstantAbsMillisTimeSource other = (ConstantAbsMillisTimeSource)o;
+    	return absMillisTime == other.absMillisTime;
+    }
 }

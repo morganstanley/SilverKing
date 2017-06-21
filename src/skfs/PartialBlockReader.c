@@ -18,7 +18,7 @@
 #define _PBR_MAX_NATIVE_READ_ATTEMPTS 8
 #define _PBR_NATIVE_READ_ERROR_SLEEP_MICROS 200
 #define _PBR_MAX_SKFS_BLOCK_READ_RETRIES 8
-#define _PBR_SKFS_READ_ERROR_SLEEP_MICROS 200
+#define _PBR_SKFS_READ_ERROR_SLEEP_MICROS (200 * 1000)
 
 
 ///////////////////
@@ -200,7 +200,7 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
 			}
 			blockReadSize = blockReadEnd - blockReadOffset;
 			pbrrs[i] = pbrr_new(fbids[i], dest + totalSize, blockReadOffset, blockReadSize, 
-                                fa->stat.st_mtime * 1000 + (fa->stat.st_mtim.tv_nsec / 1000000));
+                                stat_mtime_micros(&fa->stat));
 			totalSize += blockReadSize;
 		}
 		if (totalSize != actualReadSize) {
@@ -211,7 +211,7 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
 		for (i = 0; i < numBlocksReadAhead; i++) {
 			fbidsReadAhead[i] = fbid_new(&fa->fid, lastBlock + 1 + i);
 			pbrrsReadAhead[i] = pbrr_new(fbidsReadAhead[i], NULL, 0, 0, 
-                                    fa->stat.st_mtime * 1000 + (fa->stat.st_mtim.tv_nsec / 1000000));
+                                    stat_mtime_micros(&fa->stat));
 		}
 
 		totalRead = fbr_read(pbr->fbr, pbrrs, numBlocks, pbrrsReadAhead, numBlocksReadAhead);

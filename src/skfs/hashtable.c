@@ -1,5 +1,4 @@
 /* Copyright (C) 2004 Christopher Clark <firstname.lastname@cl.cam.ac.uk> */
-/* Modified by gmj 1/9/2017 */
 
 #include "hashtable.h"
 #include "hashtable_private.h"

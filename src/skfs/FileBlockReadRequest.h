@@ -17,7 +17,7 @@
 typedef struct FileBlockReadRequest {
 	FileBlockReader	*fileBlockReader;
 	FileBlockID	*fbid;
-    uint64_t    minModificationTimeMillis;
+    uint64_t    minModificationTimeMicros;
 } FileBlockReadRequest;
 
 
@@ -25,7 +25,7 @@ typedef struct FileBlockReadRequest {
 // prototypes
 
 FileBlockReadRequest *fbrr_new(FileBlockReader *fileBlockReader, FileBlockID *fbid, 
-                               uint64_t minModificationTimeMillis);
+                               uint64_t minModificationTimeMicros);
 void fbrr_delete(FileBlockReadRequest **fbrr);
 void fbrr_display(FileBlockReadRequest *fbrr, LogLevel level);
 

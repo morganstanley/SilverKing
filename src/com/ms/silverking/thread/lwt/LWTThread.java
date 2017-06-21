@@ -152,7 +152,15 @@ class LWTThread extends Thread implements LWTCompatibleThread {
 					}
 				}
 			} catch (Exception e) {
-                Log.logErrorWarning(e);
+				Throwable	t;
+				
+				Log.warning("************************************** "+ getName());
+				t = e;
+				while (t != null) {
+					Log.logErrorWarning(t);
+					t = t.getCause();
+					Log.warning("......................................");
+				}
 				ThreadUtil.pauseAfterException();
 			}
 		}

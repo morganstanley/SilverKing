@@ -4,6 +4,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import com.ms.silverking.SKConstants;
@@ -17,6 +18,7 @@ import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.RevisionMode;
+import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.StorageType;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitOptions;
@@ -28,6 +30,7 @@ import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
 import com.ms.silverking.cloud.dht.client.crypto.AESEncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
+import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.ClassVars;
 import com.ms.silverking.util.PropertiesHelper;
@@ -39,8 +42,7 @@ import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
  */
 public class DHTConstants {
     public static final long noSuchVersion = Long.MIN_VALUE;
-    public static final int unspecifiedVersion = 0;
-    public static final int writeOnceVersion = unspecifiedVersion;
+    public static final long	unspecifiedVersion = 0;
     
     public static final byte[]	emptyByteArray = new byte[0];
     
@@ -51,8 +53,14 @@ public class DHTConstants {
     public static final int                    defaultSegmentSize = 64 * 1024 * 1024;
     public static final int                    defaultSecondarySyncIntervalSeconds = 30 * 60;
     public static final int                    defaultSecondaryReplicaUpdateTimeoutMillis = 2 * 60 * 1000;
+    public static final SegmentIndexLocation   defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
+    public static final int					   defaultNSPrereadGB = 0;
+    
+    public static final int noCapacityLimit = -1;
+    public static final int defaultFileSegmentCacheCapacity = noCapacityLimit;
     
     private static final int				   defaultReapInterval = 10;
+    public static final StorageModule.RetrievalImplementation	defaultRetrievalImplementation = StorageModule.RetrievalImplementation.Ungrouped;
     
     public static final String  systemClassBase = "com.ms.silverking";
     public static final String	daemonPackageBase = systemClassBase +".cloud.dht.daemon";
@@ -78,6 +86,15 @@ public class DHTConstants {
 	public static final String	checkSKFSCommandEnvVar = "skCheckSKFSCommand";	
 	public static final String	reapIntervalVar = "reapInterval";
 	public static final String	reapIntervalProperty = daemonPackageBase +".ReapInterval";
+	public static final String	fileSegmentCacheCapacityVar = "fileSegmentCacheCapacity";
+	public static final String	fileSegmentCacheCapacityProperty = daemonPackageBase +".FileSegmentCacheCapacity";
+	public static final String	retrievalImplementationVar = "retrievalImplementation";
+	public static final String	retrievalImplementationProperty = daemonPackageBase +".RetrievalImplementation";
+	public static final String	segmentIndexLocationVar = "segmentIndexLocation";
+	public static final String	segmentIndexLocationProperty = daemonPackageBase +".SegmentIndexLocation";
+	public static final String	nsPrereadGBVar = "nsPrereadGB";
+	public static final String	nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";
+	
 	
 	public static final String classpathEnv = "SK_CLASSPATH";
 	public static final String classpathProperty = "java.class.path";
@@ -100,6 +117,10 @@ public class DHTConstants {
 		defMap.put(clearDataCommandVar, "rm -rf");
 		defMap.put(checkSKFSCommandVar, PropertiesHelper.envHelper.getString(checkSKFSCommandEnvVar, UndefinedAction.ZeroOnUndefined));
 		defMap.put(reapIntervalVar, Integer.toString(defaultReapInterval));
+		defMap.put(retrievalImplementationVar, defaultRetrievalImplementation.toString());
+		defMap.put(fileSegmentCacheCapacityVar, Integer.toString(defaultFileSegmentCacheCapacity));
+		defMap.put(segmentIndexLocationVar, defaultSegmentIndexLocation.toString());
+		defMap.put(nsPrereadGBVar, Integer.toString(defaultNSPrereadGB));
 		defaultDefaultClassVars = new ClassVars(defMap, 0);
 	}
 	
@@ -108,6 +129,7 @@ public class DHTConstants {
 					+"/"+ gc.getClientDHTConfiguration().getName();
 	}
     
+	public static final Set<SecondaryTarget> noSecondaryTargets = null;
     public static final OpTimeoutController	standardTimeoutController = new OpSizeBasedTimeoutController();
     public static final OpTimeoutController	standardWaitForTimeoutController = new WaitForTimeoutController();
     /** 
@@ -116,11 +138,11 @@ public class DHTConstants {
      */
     public static final PutOptions standardPutOptions = new PutOptions(
                                                     standardTimeoutController, 
-                                                    null, Compression.LZ4, 
+                                                    noSecondaryTargets, Compression.LZ4, 
                                                     ChecksumType.MURMUR3_32, 
                                                     false, 
                                                     PutOptions.defaultVersion, null); // FUTURE - FOR NOW THIS MUST BE REPLICATED IN PUT OPTIONS, parse limitation
-    public static final InvalidationOptions standardInvalidationOptions = OptionsHelper.newInvalidationOptions(standardTimeoutController, InvalidationOptions.defaultVersion, null);
+    public static final InvalidationOptions standardInvalidationOptions = OptionsHelper.newInvalidationOptions(standardTimeoutController, InvalidationOptions.defaultVersion, noSecondaryTargets);
     public static final GetOptions standardGetOptions = OptionsHelper.newGetOptions(
             standardTimeoutController, RetrievalType.VALUE, VersionConstraint.defaultConstraint);
     public static final WaitOptions standardWaitOptions = OptionsHelper.newWaitOptions(

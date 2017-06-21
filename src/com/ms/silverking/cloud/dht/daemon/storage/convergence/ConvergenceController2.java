@@ -448,13 +448,13 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         MessageGroup    mg;
         UUIDBase        uuid;
     	
-        uuid = new UUIDBase(true);
+        uuid = UUIDBase.random();
         outstandingChecksumTreeRequests.put(uuid, ctr); 
         convergenceControllers.put(uuid, this);
         mg = new ProtoChecksumTreeRequestMessageGroup(uuid, ns, ctr.getTargetCP(), ctr.getCurCP(),  
                                                       mgBase.getMyID(), ctr.getRegion(), false).toMessageGroup(); 
         if (verbose || debug) {
-            System.out.printf("%x requestChecksumTree: %s\t%s\t%s\t%s\n", ns, ctr.getReplica(), ctr.getRegion(), ctr.getTargetCP(), ctr.getCurCP());
+        	Log.warningAsyncf("%x requestChecksumTree: %s\t%s\t%s\t%s", ns, ctr.getReplica(), ctr.getRegion(), ctr.getTargetCP(), ctr.getCurCP());
         }
         mgBase.send(mg, ctr.getReplica());
         ctr.setSent();
@@ -518,11 +518,11 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         localTree = checksumTreeServer.getRegionChecksumTree_Local(cp, 
                                         remoteTree.getRegion(), new LongInterval(Long.MIN_VALUE, cp.getDataVersion()));
         if (verbose) {
-            System.out.printf("incomingChecksumTree %s\n", incomingUUID);
+        	Log.warningAsyncf("incomingChecksumTree %s", incomingUUID);
         }
         if (debug) {
-            System.out.printf("incomingChecksumTree %x\t%s\t%s\t%s\n", ns, cp, remoteTree.getRegion(), incomingUUID);
-            System.out.println(remoteTree +"\n\nlocalTree\n"+ localTree);
+        	Log.warningAsyncf("incomingChecksumTree %x\t%s\t%s\t%s", ns, cp, remoteTree.getRegion(), incomingUUID);
+        	Log.warningAsyncf(remoteTree +"\n\nlocalTree\n"+ localTree);
         }
         if (localTree == null) {
         	checkForCompletion();
@@ -538,7 +538,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
             throw re;
         }
         if (debug) {
-            System.out.println(matchResult);
+        	Log.warningAsyncf("%s", matchResult);
         }
         keysToFetch = new HashSet<>();
         for (KeyAndVersionChecksum kvc : matchResult.getDestNotInSource()) {
@@ -589,7 +589,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
             retrievalOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE_AND_META_DATA, WaitMode.GET,
                                                     checksumVersionConstraint(cp.getDataVersion()));
                     //new VersionConstraint(Long.MIN_VALUE + 1, version, Mode.NEWEST)); 
-            uuid = new UUIDBase(true);
+            uuid = UUIDBase.random();
             srr = new SyncRetrievalRequest(uuid, batchKeys, cp.getDataVersion(), connection);
             outstandingSyncRetrievalRequests.put(uuid, srr); 
             convergenceControllers.put(uuid, this);
@@ -610,7 +610,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         }
         checkMGQueue();
         if (debug) {
-            System.out.println("no more keysToFetch");
+        	Log.warningAsyncf("no more keysToFetch");
         }
         checkForCompletion();
     }
@@ -706,7 +706,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
             
             removed = activeConvergenceControllers.remove(this);
             if (removed) {
-                Log.warning(String.format("ConvergenceController is complete: %s\t%x\n", ownerQueryMode, ns));
+            	Log.warningAsyncf(String.format("ConvergenceController is complete: %s\t%x\n", ownerQueryMode, ns));
                 ncg.setComplete(this);
                 activeConvergenceControllers.remove(this);
                 convergenceControllers.remove(myUUID);
@@ -731,7 +731,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         }
         
         if (debug) {
-            Log.warning("incomingSyncRetrievalResponse");
+        	Log.warningAsyncf("incomingSyncRetrievalResponse");
         }
         svpList = new ArrayList<>();
         for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
@@ -996,9 +996,9 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
 						(maxQueuedConnection != null ? maxQueuedConnection.getQueueLength() : 0)));
 			}
 			if (queueLength > queuePauseThreshold) {
-				pauseConvergence();
+				//pauseConvergence();
 			} else if (queueLength < queueUnpauseThreshold) {
-				unpauseConvergence();
+				//unpauseConvergence();
 			}
 		}    	
     }

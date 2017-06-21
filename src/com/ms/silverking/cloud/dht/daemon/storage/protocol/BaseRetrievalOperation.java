@@ -50,7 +50,7 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
         // By "forwarding" them, they will be handled in bulk 
         
         entryState = initializeEntryState(key, primaryReplicas, secondaryReplicas);
-        if (forwardingMode == ForwardingMode.FORWARD) {
+        if (forwardingMode.forwards()) {
             //initializeEntryState(entry, primaryReplicas, secondaryReplicas);
             if (retrievalOperationContainer.containsLocalReplica(primaryReplicas) 
                     || retrievalOperationContainer.containsLocalReplica(secondaryReplicas)) {

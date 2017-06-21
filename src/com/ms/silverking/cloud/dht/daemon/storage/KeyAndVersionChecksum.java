@@ -10,13 +10,10 @@ import com.ms.silverking.cloud.dht.common.SimpleKey;
 
 /**
  * Key and version checksum pair for use in convergence.
- * 
- * A version checksum is an xor of all versions in consideration
- * FIXME - this is temporary since straight xor is imperfect
  */
 public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> {
     private final DHTKey    key;
-    private final long      versionChecksum;
+    private final long      versionChecksum; // may need to expand this for multi-version
     
     public KeyAndVersionChecksum(DHTKey key, long versionChecksum) {
         this.key = new SimpleKey(key);
@@ -65,7 +62,8 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
     
     private static final int    mslOffset = 0;
     private static final int    lslOffset = 1;
-    private static final int    serializedSizeLongs = 2;
+    private static final int    checksumOffset = 2;
+    private static final int    serializedSizeLongs = 3;
     
     public static long[] listToArray(List<KeyAndVersionChecksum> kvcList) {
         long[]  kvcArray;
@@ -78,6 +76,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
         for (KeyAndVersionChecksum kvc : kvcList) {
             kvcArray[i + mslOffset] = kvc.getKey().getMSL();
             kvcArray[i + lslOffset] = kvc.getKey().getLSL();
+            kvcArray[i + checksumOffset] = kvc.getVersionChecksum();
             i += serializedSizeLongs;
         }
         return kvcArray;
@@ -90,7 +89,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
         // FUTURE - support full bitemporal convergence
         kvcList = new ArrayList<>(kvcArray.length / serializedSizeLongs);
         for (int i = 0; i < kvcArray.length; i += serializedSizeLongs) {
-            kvcList.add(new KeyAndVersionChecksum(new SimpleKey(kvcArray[i + mslOffset], kvcArray[i + lslOffset]), 0));
+            kvcList.add(new KeyAndVersionChecksum(new SimpleKey(kvcArray[i + mslOffset], kvcArray[i + lslOffset]), kvcArray[i + checksumOffset]));
         }
         return kvcList;
     }
@@ -133,14 +132,14 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
     }
     
     private static boolean isValidKVCIndex(long[] kvcArray, int index) {
-		return index < entriesInArray(kvcArray) && (kvcArray.length % serializedSizeLongs) == 0;
+		return index < kvcArray.length && (index % serializedSizeLongs) == 0;
     }
     
     public static KeyAndVersionChecksum kvcAt(long[] kvcArray, int index) {
         assert isValidKVCIndex(kvcArray, index);
         
         return new KeyAndVersionChecksum(new SimpleKey(kvcArray[index + mslOffset], 
-                kvcArray[index + lslOffset]), 0);
+                kvcArray[index + lslOffset]), kvcArray[index + checksumOffset]);
     }
     
     /*

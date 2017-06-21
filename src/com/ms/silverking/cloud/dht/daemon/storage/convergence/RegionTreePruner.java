@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.daemon.storage.convergence;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.KeyAndVersionChecksum;
@@ -16,9 +17,11 @@ import com.ms.silverking.log.Log;
  */
 public class RegionTreePruner {
 	public static ChecksumNode prune(ChecksumNode root, RingRegion pruneRegion) {
-		Log.warning("in prune "+ root.getRegion() +" "+ pruneRegion +" "+ root.estimatedKeys());
+		if (Log.levelMet(Level.INFO)) {
+			Log.info("in prune "+ root.getRegion() +" "+ pruneRegion +" "+ root.estimatedKeys());
+		}
 		if (root.getRegion().equals(pruneRegion)) {
-			Log.warning("root.getRegion == pruneRegion");
+			Log.info("root.getRegion == pruneRegion");
 			return root;
 		} else {
 			if (RingRegion.intersectionType(root.getRegion(), pruneRegion) != IntersectionType.aSubsumesB) {
@@ -27,7 +30,9 @@ public class RegionTreePruner {
 				ChecksumNode	prunedRoot;
 				
 				prunedRoot = _prune(root, pruneRegion);
-				Log.warning("out prune "+ prunedRoot.getRegion() +" "+ pruneRegion +" "+ prunedRoot.estimatedKeys());
+				if (Log.levelMet(Level.INFO)) {
+					Log.info("out prune "+ prunedRoot.getRegion() +" "+ pruneRegion +" "+ prunedRoot.estimatedKeys());
+				}
 				return prunedRoot;
 			}
 		}

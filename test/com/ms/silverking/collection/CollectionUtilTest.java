@@ -6,10 +6,10 @@ import static com.ms.silverking.collection.CollectionUtil.defaultMapEntrySeparat
 import static com.ms.silverking.collection.CollectionUtil.defaultMapString;
 import static com.ms.silverking.collection.CollectionUtil.defaultSeparator;
 import static com.ms.silverking.collection.CollectionUtil.defaultStartBrace;
-import static com.ms.silverking.collection.Util.createSet;
+import static com.ms.silverking.testing.Util.createSet;
 import static com.ms.silverking.testing.Util.createList;
 import static com.ms.silverking.testing.Util.createToString;
-import static com.ms.silverking.collection.Util.empty;
+import static com.ms.silverking.collection.TestUtil.empty;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static org.junit.Assert.assertEquals;
 

@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import com.google.common.io.Files;
+
 
 public class FileUtil {
 	public static void writeToFile(File file, byte[] value) throws IOException {
@@ -81,7 +83,7 @@ public class FileUtil {
 	}
 
     public static void cleanDirectory(File dir) {
-        for(File file : dir.listFiles()) {
+        for (File file : dir.listFiles()) {
             file.delete();
         }
     }
@@ -105,4 +107,25 @@ public class FileUtil {
     		}
     	}
     }
+	
+	public static void copyDirectories(File src, File dest) {
+		if (src.isFile()) {
+			throw new RuntimeException("src needs to a be a directory");
+		}
+		
+		for (File srcFile : src.listFiles()) {
+			File destFile = new File(dest, srcFile.getName());
+			if (srcFile.isDirectory()) {
+				destFile.mkdir();
+				copyDirectories(srcFile, destFile);
+			}
+			else {
+				try {
+					Files.copy(srcFile, destFile);
+				} catch (IOException e) {
+					throw new RuntimeException("couldn't copy " + srcFile + " to " + destFile, e);
+				}
+			}
+		}
+	}
 }

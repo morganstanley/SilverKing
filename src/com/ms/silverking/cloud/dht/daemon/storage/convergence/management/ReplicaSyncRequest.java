@@ -4,24 +4,47 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.net.IPAndPort;
 
-class ReplicaSyncRequest {
-	private final UUIDBase		uuid;
+class ReplicaSyncRequest extends Action {
+	private final long			uuidMSL;
+	private final long			uuidLSL;
 	private final long			ns;
-	private final RingRegion	region;
-	private final IPAndPort		newOwner;
-	private final IPAndPort		oldOwner;
+	private final long			rrStart;
+	private final long			rrEnd;
+	private final long			newOwner;
+	private final long			oldOwner;
 	private long				sendTimeMillis;
 	
-	ReplicaSyncRequest(long ns, RingRegion region, IPAndPort newOwner, IPAndPort oldOwner) {
-		this.uuid = new UUIDBase();
+	private ReplicaSyncRequest(UUIDBase uuid, long ns, RingRegion region, IPAndPort newOwner, IPAndPort oldOwner, Action[] upstreamDependencies) {
+		super(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), upstreamDependencies);		
+		this.uuidMSL = uuid.getMostSignificantBits();
+		this.uuidLSL = uuid.getLeastSignificantBits();
 		this.ns = ns;
-		this.region = region;
-		this.newOwner = newOwner;
-		this.oldOwner = oldOwner;
+		this.rrStart = region.getStart();
+		this.rrEnd = region.getEnd();
+		this.newOwner = newOwner.toLong();
+		this.oldOwner = oldOwner.toLong();
 	}
 	
-	UUIDBase getUUID() {
-		return uuid;
+	public static ReplicaSyncRequest of(long ns, RingRegion region, IPAndPort newOwner, IPAndPort oldOwner, Action upstreamDependency) {
+		Action[]	upstreamDependencies;
+		UUIDBase	uuid;
+		
+		if (upstreamDependency != null) {
+			upstreamDependencies = new Action[1];
+			upstreamDependencies[0] = upstreamDependency;
+		} else {
+			upstreamDependencies = new Action[0];
+		}
+		uuid = UUIDBase.random(); // random to allow for easy use in hashCode()
+		return new ReplicaSyncRequest(uuid, ns, region, newOwner, oldOwner, upstreamDependencies);
+	}
+	
+	public static ReplicaSyncRequest of(long ns, RingRegion region, IPAndPort newOwner, IPAndPort oldOwner) {
+		return of(ns, region, newOwner, oldOwner, null);
+	}
+	
+	public UUIDBase getUUID() {
+		return new UUIDBase(uuidMSL, uuidLSL);
 	}
 	
 	long getNS() {
@@ -29,15 +52,15 @@ class ReplicaSyncRequest {
 	}
 
 	RingRegion getRegion() {
-		return region;
+		return new RingRegion(rrStart, rrEnd);
 	}
 
 	IPAndPort getNewOwner() {
-		return newOwner;
+		return IPAndPort.fromLong(newOwner);
 	}
 
 	IPAndPort getOldOwner() {
-		return oldOwner;
+		return IPAndPort.fromLong(oldOwner);
 	}
 	
 	void setSendTime(long sendTimeMillis) {
@@ -56,13 +79,14 @@ class ReplicaSyncRequest {
 	
 	@Override
 	public int hashCode() {
-		return super.hashCode();
-		//return Long.hashCode(ns) ^ region.hashCode() ^ newOwner.hashCode() ^ oldOwner.hashCode();
+		return (int)uuidLSL;
+		//return super.hashCode();
 	}
 	
 	@Override
 	public boolean equals(Object obj) {
-		return super.equals(obj);
+		return this == obj;
+		//return super.equals(obj);
 		/*
 		ReplicaSyncRequest	o;
 		
@@ -73,6 +97,6 @@ class ReplicaSyncRequest {
 	
 	@Override
 	public String toString() {
-		return String.format("%s:%d:%s:%s<=%s:%d", uuid, ns, region, newOwner, oldOwner, sendTimeMillis);
+		return String.format("%s:%d:%s:%s<=%s:%d", getUUID(), ns, getRegion(), IPAndPort.fromLong(newOwner), IPAndPort.fromLong(oldOwner), sendTimeMillis);
 	}	
 }

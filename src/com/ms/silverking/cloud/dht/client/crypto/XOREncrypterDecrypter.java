@@ -2,21 +2,20 @@ package com.ms.silverking.cloud.dht.client.crypto;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 import com.ms.silverking.io.FileUtil;
-import com.ms.silverking.util.PropertiesHelper;
-import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
 /**
  * Trivial EncrypterDecrypter. This implementation provides basic obfuscation only.
  */
 public class XOREncrypterDecrypter implements EncrypterDecrypter {
-	private final byte[]	key;
+	private final byte[] key;
 	
-	public static final String	name = "xor";
+	public static final String name = "xor";
 	
 	public XOREncrypterDecrypter(byte[] key) {
-			this.key = key;
+		this.key = key;
 	}
 	
 	public XOREncrypterDecrypter(File file) throws IOException {
@@ -24,7 +23,7 @@ public class XOREncrypterDecrypter implements EncrypterDecrypter {
 	}	
 	
 	public XOREncrypterDecrypter() throws IOException {
-		this(FileUtil.readFileAsBytes(new File(PropertiesHelper.systemHelper.getString(EncrypterDecrypter.keyFilePropertyName, UndefinedAction.ExceptionOnUndefined))));
+		this(Util.getBytesFromKeyFile());
 	}
 	
 	@Override
@@ -57,5 +56,24 @@ public class XOREncrypterDecrypter implements EncrypterDecrypter {
 		//System.out.printf("plainText:  %s\n", StringUtil.byteArrayToHexString(plainText));
 		//System.out.printf("plainTextS: %s\n", new String(plainText));
 		return plainText;
+	}
+	
+	@Override
+	public int hashCode() {
+		return Arrays.hashCode(key);
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		
+		if (this.getClass() != o.getClass()) {
+			return false;
+		}
+		
+		XOREncrypterDecrypter other = (XOREncrypterDecrypter)o;
+		return Arrays.equals(key, other.key);
 	}
 }

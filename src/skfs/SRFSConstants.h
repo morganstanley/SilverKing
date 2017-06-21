@@ -36,6 +36,7 @@
 
 #define SKFS_ATTR_NS "attr"
 #define SKFS_DIR_NS "dir"
+#define SK_SYSTEM_NS "__System__"
 
 #define SRFS_HOSTNAME_SIZE	512
 #define SRFS_MILLIS_PER_SECOND	1000
@@ -68,8 +69,8 @@
 #define AW_DHT_THREADS	2
 #define AW_DHT_QUEUE_SIZE	1024
 #define AW_MAX_BATCH_SIZE	100
-#define ODW_DHT_THREADS	2
-#define ODW_DHT_QUEUE_SIZE	1024
+#define ODW_DHT_THREADS	10
+#define ODW_DHT_QUEUE_SIZE	4096
 #define ODW_MAX_BATCH_SIZE	100
 
 #define ODW_RETRY_QUEUE_SIZE 131072

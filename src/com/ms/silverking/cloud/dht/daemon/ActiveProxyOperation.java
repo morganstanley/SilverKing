@@ -61,7 +61,7 @@ abstract class ActiveProxyOperation<K extends DHTKey,R extends KeyedResult> impl
                          MessageModule messageModule, long absDeadlineMillis, boolean sendResultsDuringStart) {
         this.connection = connection;
         this.message = message;
-        forwardingMode = message.getForwardingMode();
+        forwardingMode = getForwardingMode(message);
         uuid = message.getUUID();
         namespace = message.getContext();
         originator = message.getOriginator();
@@ -73,6 +73,10 @@ abstract class ActiveProxyOperation<K extends DHTKey,R extends KeyedResult> impl
         }
         this.estimatedKeys = message.estimatedKeys();
         this.sendResultsDuringStart = sendResultsDuringStart;
+    }
+    
+    protected static ForwardingMode getForwardingMode(MessageGroup message) {
+    	return StorageModule.isDynamicNamespace(message.getContext()) ? ForwardingMode.DO_NOT_FORWARD : message.getForwardingMode();
     }
     
     public int getNumEntries() {
@@ -185,7 +189,7 @@ abstract class ActiveProxyOperation<K extends DHTKey,R extends KeyedResult> impl
     private <L extends DHTKey> void forwardGroup(IPAndPort replica, List<L> destEntries,
             ByteBuffer optionsByteBuffer, ForwardCreator<L> forwardCreator, OpCommunicator<K,R> comm) {
         
-        if (forwardingMode == ForwardingMode.FORWARD) {
+        if (forwardingMode.forwards()) {
             MessageGroup mg;
     
             assert replica != null;
@@ -207,7 +211,7 @@ abstract class ActiveProxyOperation<K extends DHTKey,R extends KeyedResult> impl
             Set<SecondaryTarget> secondaryTargets) {
         List<IPAndPort> filteredSecondaryReplicas;
         
-        if (forwardingMode == ForwardingMode.FORWARD) {
+        if (forwardingMode.forwards()) {
             if (secondaryTargets != null) {
                 Set<IPAndPort>  secondarySet;
     

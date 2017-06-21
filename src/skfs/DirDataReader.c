@@ -267,7 +267,7 @@ static void ddr_process_dht_batch(void **requests, int numRequests, int curThrea
                     srfsLog(LOG_INFO, "ddr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
                 }
                 if (ppval == NULL ){
-	                srfsLog(LOG_WARNING, "ddr dhtErr no val %s %d line %d", ddrr->path, opState,  __LINE__);
+	                srfsLog(LOG_INFO, "ddr dhtErr no val %s %d line %d", ddrr->path, opState,  __LINE__);
 					ddr_update_DirData_in_cache(ddrr, NULL, NULL); // Trigger an update
 	            }
             } else if (opState == SKOperationState::INCOMPLETE) {
@@ -286,7 +286,7 @@ static void ddr_process_dht_batch(void **requests, int numRequests, int curThrea
 						sd_op_failed(ddr->sd, dhtMgetErr);
 						srfsLog(LOG_WARNING, "ddr dhtErr %s %d %d %d/%d line %d", ddrr->path, opState, cause, i, numRequests, __LINE__);
 					} else { 
-						srfsLog(LOG_FINE, "ddr dhtErr %s %d %d %d/%d line %d", ddrr->path, opState, cause, i, numRequests, __LINE__);
+						srfsLog(LOG_INFO, "ddr dhtErr %s %d %d %d/%d line %d", ddrr->path, opState, cause, i, numRequests, __LINE__);
 						ddr_update_DirData_in_cache(ddrr, NULL, NULL); // Trigger an update
 					}
 				} catch(SKClientException & e) { 

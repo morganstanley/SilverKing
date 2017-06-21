@@ -75,10 +75,15 @@ public class RingTreeBuilder {
 		        ring = ringCreator.create(recipe, node.getIDString(), sourceRing);
 		        maps.put(node.getIDString(), ring);
 		        built = true;
+		        Log.warningf("%s built successfully", node);
         	} catch (Exception e) {
         		Log.logErrorWarning(e);
                 ringCreator = new TopologyRingCreator(ringCreator.getMagnitudeTolerance() * 10);
         	}
+        }
+        if (!built) {
+        	Log.warning("Unable to build. maxMagnitudeTolerance exceeded");
+        	System.exit(-1);
         }
     }
     
@@ -124,10 +129,15 @@ public class RingTreeBuilder {
                 ring = ringCreator.create(recipe, node.getIDString());
                 maps.put(node.getIDString(), ring);
                 built = true;
+		        Log.warningf("%s built successfully", node);
         	} catch (Exception e) {
         		Log.logErrorWarning(e);
                 ringCreator = new TopologyRingCreator(ringCreator.getMagnitudeTolerance() * 10);
         	}
+        }
+        if (!built) {
+        	Log.warning("Unable to build. maxMagnitudeTolerance exceeded");
+        	System.exit(-1);
         }
     }
     

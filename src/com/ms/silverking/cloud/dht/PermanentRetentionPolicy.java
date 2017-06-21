@@ -4,7 +4,7 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.text.ObjectDefParser2;
 
 public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueRetentionState> {
-	private static final PermanentRetentionPolicy	template = new PermanentRetentionPolicy();
+	static final PermanentRetentionPolicy	template = new PermanentRetentionPolicy();
 
 	static {
         ObjectDefParser2.addParser(template);
@@ -31,16 +31,12 @@ public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueReten
 	
 	@Override
 	public int hashCode() {
-		return 0;
+		return this.getClass().hashCode();
 	}
 	
 	@Override
 	public boolean equals(Object o) {
-		if (o instanceof PermanentRetentionPolicy) {
-			return true;
-		} else {
-			throw new ClassCastException();
-		}
+		return this.getClass() == o.getClass();
 	}
 	
     @Override

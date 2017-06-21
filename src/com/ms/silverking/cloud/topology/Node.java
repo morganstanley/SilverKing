@@ -84,10 +84,18 @@ public abstract class Node {
 	
 	@Override
 	public boolean equals(Object other) {
-		Node	oNode;
-		
-		oNode = (Node)other;
-		return this.getIDString().equals(oNode.getIDString());
+		if (this == other) {
+			return true;
+		} else {
+			Node	oNode;
+			
+			oNode = (Node)other;
+			if (this.hashCode != oNode.hashCode) {
+				return false;
+			} else {
+				return this.getIDString().equals(oNode.getIDString());
+			}
+		}
 	}
 		
 	void buildString(StringBuilder sb, int level) {

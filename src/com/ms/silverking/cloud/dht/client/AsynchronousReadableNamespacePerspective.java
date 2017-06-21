@@ -7,7 +7,7 @@ import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.WaitOptions;
 
 /**
- * <p>A namespace perspective that provides synchronous read operations. All operations return immediately, 
+ * <p>A namespace perspective that provides asynchronous read operations. All operations return immediately, 
  * and provide an object that can be used to query the state of the asynchronous operation.</p>
  * 
  * <p>Retrieval operations are either "Get" operations that complete whether or not a desired key has a 

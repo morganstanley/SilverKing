@@ -54,9 +54,8 @@ SKInvalidationOptions * SKInvalidationOptions::opTimeoutController(SKOpTimeoutCo
 }
 
 SKInvalidationOptions * SKInvalidationOptions::secondaryTargets(set<SKSecondaryTarget*> * secondaryTargets) {
-	Set targets ;
+	Set targets = java_new<HashSet>();
 	if (secondaryTargets && secondaryTargets->size() > 0) {
-		targets = java_new<HashSet>();
 		std::set<SKSecondaryTarget*>::iterator it;
 		for (it = secondaryTargets->begin(); it != secondaryTargets->end(); ++it) {
 			SecondaryTarget * pSt = (*it)->getPImpl();

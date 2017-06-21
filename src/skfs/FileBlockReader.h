@@ -55,13 +55,12 @@ FileBlockReader *fbr_new(FileIDToPathMap *f2p,
 						 FileBlockWriter *fbwCompress, FileBlockWriter *fbwRaw,
 						 SRFSDHT *sd, 
 						 ResponseTimeStats *rtsDHT, ResponseTimeStats *rtsNFS,
-                         int numSubCaches,
-						 int transientCacheSize = 0);
+                         FileBlockCache *fbc);
 void fbr_delete(FileBlockReader **fbr);
 int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrr, int numRequests,
 			PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead);
 int fbr_read_test(FileBlockReader *fbr, FileBlockID *fbid, void *dest, size_t readOffset, size_t readSize);
-ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMillis);
+ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMicros);
 void fbr_parse_permanent_suffixes(FileBlockReader *fbReader, char *permanentSuffixes);
 void fbr_display_stats(FileBlockReader *fbr, int detailedStats);
 void *fbr_read_block_compressed_test(void *fbrr, size_t *_blockSize, char *path);

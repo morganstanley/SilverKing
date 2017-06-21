@@ -63,10 +63,9 @@ SKGetOptions * SKGetOptions::opTimeoutController(SKOpTimeoutController * opTimeo
 
 SKGetOptions * SKGetOptions::secondaryTargets(std::set<SKSecondaryTarget*> * secondaryTargets)
 {
-	Set targets ;
+	Set targets = java_new<HashSet>();
 	if(secondaryTargets && secondaryTargets->size()>0) 
 	{
-		targets = java_new<HashSet>();
 		std::set<SKSecondaryTarget*>::iterator it;
 		for (it = secondaryTargets->begin(); it != secondaryTargets->end(); ++it)
 		{
@@ -146,6 +145,24 @@ SKGetOptions * SKGetOptions::updateSecondariesOnMiss(bool updateSecondariesOnMis
     return this;
 }
 
+SKGetOptions * SKGetOptions::forwardingMode(SKForwardingMode forwardingMode)
+{
+	ForwardingMode * pFm = ::getForwardingMode(forwardingMode);
+	GetOptions * pGetOptImp = new GetOptions(java_cast<GetOptions>(
+		((GetOptions*)pImpl)->forwardingMode(*pFm)
+	)); 
+	delete pFm;
+    delete ((GetOptions*)pImpl);
+    pImpl = pGetOptImp;
+    return this;
+}
+
+SKForwardingMode SKGetOptions::getForwardingMode() const
+{
+	int  fm = (int)((GetOptions*)pImpl)->getForwardingMode().ordinal() ; 
+	return static_cast<SKForwardingMode> (fm);
+}
+
 ////////
 
 SKGetOptions * SKGetOptions::parse(const char * def)
@@ -174,12 +191,14 @@ SKGetOptions::SKGetOptions(SKOpTimeoutController * opTimeoutController,
                         SKVersionConstraint * versionConstraint, 
                         SKNonExistenceResponse::SKNonExistenceResponse nonExistenceResponse, 
                         bool verifyChecksums, bool returnInvalidations,
+                        SKForwardingMode forwardingMode,
                         bool updateSecondariesOnMiss)
 {
 	OpTimeoutController * pTimeoutCtrl = opTimeoutController->getPImpl();
 	VersionConstraint * pvc = (VersionConstraint *) versionConstraint->getPImpl();  //FIXME: friend
 	RetrievalType * pRt = ::getRetrievalType(retrievalType);
 	NonExistenceResponse * pNer = ::getNonExistenceResponseType(nonExistenceResponse);
+	ForwardingMode * pFm = ::getForwardingMode(forwardingMode);
 
 	Set targets ;
 	if(secondaryTargets && secondaryTargets->size()){
@@ -194,9 +213,11 @@ SKGetOptions::SKGetOptions(SKOpTimeoutController * opTimeoutController,
 
 	pImpl = new GetOptions(java_new<GetOptions>(*pTimeoutCtrl, targets,
         *pRt, *pvc, *pNer, JBoolean(verifyChecksums), JBoolean(returnInvalidations),
+        *pFm, 
 		JBoolean(updateSecondariesOnMiss) )); 
 	delete pRt;
 	delete pNer;
+	delete pFm;
 }
 
 SKGetOptions::SKGetOptions(void * pOpt) : SKRetrievalOptions(pOpt) {};  //FIXME: make protected ?

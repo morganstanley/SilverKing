@@ -20,14 +20,14 @@ typedef struct PartialBlockReadRequest {
 	void		*dest;
 	size_t		readOffset;
 	size_t		readSize;
-    uint64_t    minModificationTimeMillis;
+    uint64_t    minModificationTimeMicros;
 } PartialBlockReadRequest;
 
 
 ///////////////
 // prototypes
 
-PartialBlockReadRequest *pbrr_new(FileBlockID *fbid, void *dest, size_t readOffset, size_t readSize, uint64_t minModificationTimeMillis);
+PartialBlockReadRequest *pbrr_new(FileBlockID *fbid, void *dest, size_t readOffset, size_t readSize, uint64_t minModificationTimeMicros);
 void pbrr_delete(PartialBlockReadRequest **pbrr);
 
 #endif

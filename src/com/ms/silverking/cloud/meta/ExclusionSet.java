@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.net.IPAndPort;
@@ -48,6 +49,26 @@ public class ExclusionSet extends ServerSetExtension implements ZKVersionedDefin
     
     public ExclusionSet add(Set<String> newExcludedEntities) {
         return new ExclusionSet(serverSet.add(newExcludedEntities));
+    }
+    
+    public ExclusionSet addByIPAndPort(Set<IPAndPort> newExcludedEntities) {
+    	Set<String>	s;
+    	
+    	s = new HashSet<>();
+    	for (IPAndPort e : newExcludedEntities) {
+    		s.add(e.getIPAsString());
+    	}
+    	return add(s);
+    }
+    
+    public Set<IPAndPort> asIPAndPortSet(int port) {
+    	Set<IPAndPort>	s;
+    	
+    	s = new HashSet<>();
+    	for (String server : serverSet.getServers()) {
+    		s.add(new IPAndPort(server, port));
+    	}
+    	return ImmutableSet.copyOf(s);
     }
     
     public ExclusionSet remove(Set<String> newIncludedEntities) {

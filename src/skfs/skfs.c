@@ -125,6 +125,11 @@
 #define _SKFS_RENAME_RETRY_DELAY_MS    5
 #define _SKFS_RENAME_MAX_ATTEMPTS   20
 #define _SKFS_TIMEOUT_NEVER 0x0fffffff
+#define _FBC_NAME "FileBlockCache"
+#define _MAX_REASONABLE_DISK_STAT_LENGTH 32
+
+#define _rn_retry_limit 20
+#define _rn_retry_interval_ms 10
 
 //////////
 // types
@@ -145,6 +150,10 @@ static void add_fuse_option(char *option);
 static int ensure_not_writable(char *path1, char *path2 = NULL);
 static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid);
 static void skfs_destroy(void* private_data);
+static void init_util_sk();
+static uint64_t _get_sk_system_uint64(const char *stat);
+
+
 ////////////
 // globals
 
@@ -228,6 +237,10 @@ SKSessionOptions	*sessOption;
 static int  destroyCalled;
 static pthread_spinlock_t	destroyLockInstance;
 static pthread_spinlock_t	*destroyLock = &destroyLockInstance;
+
+static SKSession    *pUtilSession;
+static SKSyncNSPerspective *systemNSP;
+
 
 ///////////////////
 // implementation
@@ -442,7 +455,7 @@ static void displayArguments(CmdArgs *arguments) {
 // FUSE interface
 
 static int skfs_getattr(const char *path, struct stat *stbuf) {
-	srfsLogAsync(LOG_OPS, "_ga %s", path);
+	srfsLogAsync(LOG_OPS, "_ga %x %s", get_caller_pid(), path);
 	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
 		char nativePath[SRFS_MAX_PATH_LENGTH];
 
@@ -809,12 +822,12 @@ static int skfs_releasedir(const char* path, struct fuse_file_info *fi) {
 }
 
 static int skfs_mkdir(const char *path, mode_t mode) {
-	srfsLogAsync(LOG_OPS, "_mkd%s", path);
+	srfsLogAsync(LOG_OPS, "_mkd %s", path);
 	return odt_mkdir(odt, (char *)path, mode);
 }
 
 static int skfs_rmdir(const char *path) {
-	srfsLogAsync(LOG_OPS, "_rmd%s", path);
+	srfsLogAsync(LOG_OPS, "_rmd %s", path);
 	return odt_rmdir(odt, (char *)path);
 }
 
@@ -845,6 +858,29 @@ static int skfs_rename(const char *oldpath, const char *newpath) {
         if (result != 0) {
             return -ENOENT;
         } else {
+            int rnRetries;
+            
+            /*
+            // FUTURE - The below segment is a temporary workaround for the case where a zero-size attribute is somehow read
+            // Unclear if this is an application error or a bug, but we work around either case.
+            rnRetries = 0;
+            while (fa.stat.st_size == 0 && rnRetries < _rn_retry_limit) {
+                int         _result;
+                FileAttr    _fa;
+                
+                usleep(_rn_retry_interval_ms * 1000);
+                memset(&_fa, 0, sizeof(FileAttr));
+                _result = ar_get_attr(ar, (char *)oldpath, &_fa, stat_mtime_micros(&fa.stat) + 1);
+                if (_result == 0) {
+                    memcpy(&fa, &_fa, sizeof(FileAttr));
+                } else {
+                    // We presume the zero-size is legit
+                }
+                srfsLog(LOG_WARNING, "Detected zero-size attr in _rn for %s. Retry %s. fa.stat.st_size %d", oldpath, _result == 0 ? "succeeded" : "failed", fa.stat.st_size);
+                ++rnRetries;
+            }
+            */
+            
             if (S_ISDIR(fa.stat.st_mode)) {
                 return -ENOTSUP;
             } else {
@@ -1119,7 +1155,7 @@ static int skfs_read(const char *path, char *dest, size_t readSize, off_t readOf
                     struct fuse_file_info *fi) {
 	int	totalRead;
 	
-	srfsLogAsync(LOG_OPS, "_r %s %d %ld", path, readSize, readOffset);
+	srfsLogAsync(LOG_OPS, "_r %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
 	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
 		char nativePath[SRFS_MAX_PATH_LENGTH];
 
@@ -1184,8 +1220,7 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
             return rc;
         } else {
             return wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
-        }
-        
+        }        
 	}
 }
 
@@ -1203,15 +1238,63 @@ int skfs_flush(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
-static int skfs_statfs(const char *path, struct statvfs *stbuf) {
-    int res;
+static void init_util_sk() {
+    SKNamespace	*systemNS;
+    SKNamespacePerspectiveOptions *nspOptions;
+    
+    pUtilSession = sd_new_session(sd);
+    systemNS = pUtilSession->getNamespace(SK_SYSTEM_NS);
+    nspOptions = systemNS->getDefaultNSPOptions();
+    systemNSP = systemNS->openSyncPerspective(nspOptions);
+    delete systemNS;
+}
+
+static uint64_t _get_sk_system_uint64(const char *stat) {
+    SKVal       *pval;
+    uint64_t    bytes;
+
+    pval = systemNSP->get(stat);
+    if (pval != NULL) {
+        if (pval->m_pVal != NULL && pval->m_len > 0 && pval->m_len < _MAX_REASONABLE_DISK_STAT_LENGTH){
+            bytes = strtoull((const char *)pval->m_pVal, NULL, 10);
+        } else {
+            bytes = 0;
+        }
+        sk_destroy_val(&pval);
+    } else {
+        bytes = 0;
+    }
+    return bytes;
+}
+
+static int skfs_statfs(const char *path, struct statvfs *s) {
+    uint64_t    totalBytes;
+    uint64_t    freeBytes;
 
 	srfsLogAsync(LOG_OPS, "_s %s", path);
-    res = statvfs(path, stbuf);
-    if (res == -1)
-        return -errno;
-
-    return 0;
+    
+    totalBytes = _get_sk_system_uint64("totalDiskBytes");
+    freeBytes = _get_sk_system_uint64("freeDiskBytes");
+    if (totalBytes != 0 && freeBytes != 0) {
+        memset(s, 0, sizeof(struct statvfs));
+        
+        s->f_bsize = SRFS_BLOCK_SIZE;
+        
+        s->f_blocks = totalBytes / SRFS_BLOCK_SIZE;
+        s->f_bfree = freeBytes / SRFS_BLOCK_SIZE;
+        s->f_bavail = freeBytes / SRFS_BLOCK_SIZE;
+        
+        s->f_files = 0;
+        s->f_ffree = 0;
+        s->f_favail = 0;
+        
+        s->f_fsid = 0;
+        s->f_flag = 0;
+        s->f_namemax = SRFS_MAX_PATH_LENGTH;
+        return 0;
+    } else {
+        return -EIO;
+    }
 }
 
 static int skfs_symlink(const char* to, const char* from) {
@@ -1371,6 +1454,7 @@ static void *skfs_init(struct fuse_conn_info *conn) {
 	fid_module_init();
 	initReaders();
 	initDirs();
+    init_util_sk();
 	wft = wft_new("WritableFileTable", aw, ar->attrCache, ar, fbwSKFS);
 	initPaths();
 	pthread_create(&statsThread, NULL, stats_thread, NULL);
@@ -1409,9 +1493,12 @@ static void skfs_destroy(void* private_data) {
         }
         srfsLog(LOG_WARNING, "skfs_destroy() done waiting for threads");
         */
+        /*
         destroyPaths();
+        below is crashing; for now we ignore this
         destroyReaders();
         destroyDHT();
+        */
         srfsLog(LOG_WARNING, "skfs_destroy() complete");
     }
 }
@@ -1597,6 +1684,8 @@ void initFuse() {
 	skfs_oper.unlink = skfs_unlink;	
     
     skfs_oper.rename = skfs_rename;
+    
+    skfs_oper.statfs = skfs_statfs;
 }
 
 void initDHT() {
@@ -1619,6 +1708,17 @@ void initDHT() {
         if (!pClient) {
             srfsLog(LOG_WARNING, "dht client init failed. Will continue with NFS-only");
         }
+        
+        SKValueCreator  *vc;
+        
+        vc = pClient->getValueCreator();
+        if (vc != NULL) {
+            myValueCreator = getValueCreatorAsUint64(vc);
+            delete vc;
+        } else {
+            fatalError("NULL pClient->getValueCreator()", __FILE__, __LINE__);
+        }
+        srfsLog(LOG_WARNING, "myValueCreator %x", myValueCreator);
 
         SKGridConfiguration * pGC = SKGridConfiguration::parseFile(args->gcname);
         SKClientDHTConfiguration * pCdc = pGC->getClientDHTConfiguration();
@@ -1686,8 +1786,20 @@ void initPaths() {
 void destroyPaths() {
 }
 
+FileBlockCache *createFileBlockCache(int numSubCaches, int transientCacheSize, FileIDToPathMap *f2p) {
+    int evictionBatch;
+    
+	if (transientCacheSize == 0) {
+		transientCacheSize = FBR_TRANSIENT_CACHE_SIZE;
+	}
+    evictionBatch = int_max(int_min(FBR_TRANSIENT_CACHE_EVICTION_BATCH, transientCacheSize / numSubCaches), 1);
+    
+	return fbc_new(_FBC_NAME, transientCacheSize, evictionBatch, f2p, numSubCaches);
+}
+
 void initReaders() {
 	uint64_t	transientCacheSizeBlocks;
+    FileBlockCache  *fbc;
 
 	sd = sd_new((char *)args->host, (char *)args->gcname, NULL, args->compression, 
 				SRFS_DHT_OP_MIN_TIMEOUT_MS, SRFS_DHT_OP_MAX_TIMEOUT_MS, 
@@ -1695,10 +1807,13 @@ void initReaders() {
 
 	f2p = f2p_new();
 	aw = aw_new(sd);
-	awSKFS = aw_new(sd);
-	fbwCompress = fbw_new(sd, TRUE, args->fbwReliableQueue);
-	fbwRaw = fbw_new(sd, FALSE, args->fbwReliableQueue);
-	fbwSKFS = fbw_new(sd, TRUE, args->fbwReliableQueue);
+	awSKFS = aw_new(sd);    
+    
+	transientCacheSizeBlocks = (uint64_t)args->transientCacheSizeKB * (uint64_t)1024 / (uint64_t)SRFS_BLOCK_SIZE;
+    fbc = createFileBlockCache(args->cacheConcurrency, transientCacheSizeBlocks, f2p);
+	fbwCompress = fbw_new(sd, TRUE, fbc, args->fbwReliableQueue);
+	fbwRaw = fbw_new(sd, FALSE, fbc, args->fbwReliableQueue);
+	fbwSKFS = fbw_new(sd, TRUE, fbc, args->fbwReliableQueue);
 	rtsAR_DHT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
 	rtsAR_NFS = rts_new(SRFS_RTS_NFS_ALPHA, SRFS_RTS_NFS_OP_TIME_INITIALIZER);
 	rtsFBR_DHT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
@@ -1710,8 +1825,7 @@ void initReaders() {
 	//PathGroup * pg = initTaskOutputPaths(&taskOutputPort);
 	//srfsLog(LOG_WARNING, "taskOutputPort %d", taskOutputPort);
 	ar_set_g2tor(ar, NULL);
-	transientCacheSizeBlocks = (uint64_t)args->transientCacheSizeKB * (uint64_t)1024 / (uint64_t)SRFS_BLOCK_SIZE;
-	fbr = fbr_new(f2p, fbwCompress, fbwRaw, sd, rtsFBR_DHT, rtsFBR_NFS, args->cacheConcurrency, transientCacheSizeBlocks);
+	fbr = fbr_new(f2p, fbwCompress, fbwRaw, sd, rtsFBR_DHT, rtsFBR_NFS, fbc);
 	pbr = pbr_new(ar, fbr, NULL);
 
 #if 0
@@ -1789,6 +1903,16 @@ bool addEnvToFuseArg(const char * envVarName, const char * fuseOpt, const char *
 
 void parseArgs(int argc, char *argv[], CmdArgs *arguments) {
     argp_parse(&argp, argc, argv, 0, 0, arguments);
+    
+    if (arguments->entryTimeoutSecs < 0) {
+        arguments->entryTimeoutSecs = SKFS_DEF_ENTRY_TIMEOUT_SECS;
+    }
+    if (arguments->attrTimeoutSecs < 0) {
+        arguments->attrTimeoutSecs = SKFS_DEF_ATTR_TIMEOUT_SECS;
+    }
+    if (arguments->negativeTimeoutSecs < 0) {
+        arguments->negativeTimeoutSecs = SKFS_DEF_NEGATIVE_TIMEOUT_SECS;
+    }    
 }
 
 static void add_fuse_option(char *option) {
@@ -1853,10 +1977,10 @@ int main(int argc, char *argv[]) {
     add_fuse_option("-ouse_ino");
     add_fuse_option("-oauto_cache");
     
-	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs >= 0 ? args->entryTimeoutSecs : SKFS_DEF_ENTRY_TIMEOUT_SECS);
-	sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs >= 0 ? args->attrTimeoutSecs : SKFS_DEF_ATTR_TIMEOUT_SECS);
-	sprintf(fuseACAttrOption, "-oac_attr_timeout=%d", args->attrTimeoutSecs >= 0 ? args->attrTimeoutSecs : SKFS_DEF_ATTR_TIMEOUT_SECS);
-	sprintf(fuseNegativeOption, "-onegative_timeout=%d", args->negativeTimeoutSecs >= 0 ? args->negativeTimeoutSecs : SKFS_DEF_NEGATIVE_TIMEOUT_SECS);
+	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
+	sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs);
+	sprintf(fuseACAttrOption, "-oac_attr_timeout=%d", args->attrTimeoutSecs);
+	sprintf(fuseNegativeOption, "-onegative_timeout=%d", args->negativeTimeoutSecs);
 	
 	addEnvToFuseArg("SKFS_ENTRY_TIMEOUT", "-oentry_timeout=", fuseEntryOption);
 	addEnvToFuseArg("SKFS_ATTR_TIMEOUT", "-oattr_timeout=", fuseAttrOption);

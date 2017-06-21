@@ -289,7 +289,9 @@ public class RingEntry {
             List<RingRegion>    regions;
             
             regions = getRegions(entries);
-            Collections.sort(regions, RingRegion.positionComparator);
+            if (entries.size() > 2) {
+            	Collections.sort(regions, RingRegion.positionComparator);
+            }
             for (int i = 0; i < regions.size(); i++) {
                 int j;
                 

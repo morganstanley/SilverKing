@@ -75,5 +75,6 @@ DirData *dd_dup(DirData *dd);
 MergeResult dd_merge(DirData *dd1, DirData *dd2);
 void dd_display(DirData *dd, FILE *file = stdout);
 DirEntry *dd_get_entry(DirData *dd, uint32_t index);
+int dd_is_empty(DirData *dd);
 
 #endif /* _DIR_DATA_H_ */

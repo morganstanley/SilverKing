@@ -21,7 +21,10 @@ import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.NodeClass;
 import com.ms.silverking.cloud.topology.Topology;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.time.SimpleStopwatch;
+import com.ms.silverking.time.Stopwatch;
 
 /**
  * Tree of TopologyRings for a topology. Every parent in the topology
@@ -152,26 +155,107 @@ public class RingTree {
     /////////////////////////////////
     
     public ResolvedReplicaMap getResolvedMap(String ringParentName, ReplicaPrioritizer replicaPrioritizer) {
-        ResolvedReplicaMap  resolvedMap;
-        List<RingEntry>     entryList;
-        Node				node;
+    	try {
+	        ResolvedReplicaMap  resolvedMap;
+	        List<RingEntry>     entryList;
+	        Node				node;
+	        Stopwatch			sw;
+	        
+	        Log.warningf("getResolvedMap: %s", ringParentName);
+	        sw = new SimpleStopwatch();
+	        resolvedMap = new ResolvedReplicaMap(replicaPrioritizer);
+	        if (debug) {
+	            System.out.println("getResolvedMap: "+ topology.getRoot());
+	        }
+	        node = topology.getNodeByID(ringParentName);
+	        if (node == null) {
+	        	throw new RuntimeException("Unable to getNodeByID "+ ringParentName);
+	        }
+	        entryList = project(node, LongRingspace.globalRegion);
+	        for (RingEntry entry : entryList) {
+	            resolvedMap.addEntry(entry);
+	        }
+	        resolvedMap.computeReplicaSet();
+	        sw.stop();
+	        Log.warningf("getResolvedMap: %s complete %f", ringParentName, sw.getElapsedSeconds());
+	        return resolvedMap;
+    	} catch (RuntimeException re) {
+    		re.printStackTrace();
+    		throw re;
+    	}
+    }
+
+    private List<RingEntry> project(Node node, RingRegion parentRegion) {
+        List<RingEntry> entryList;
+        List<RingEntry> projectedEntryList;
+        List<RingEntry> cleanedEntryList;
         
-        resolvedMap = new ResolvedReplicaMap(replicaPrioritizer);
         if (debug) {
-            System.out.println("getResolvedMap: "+ topology.getRoot());
+            System.out.println("project "+ node +" "+ parentRegion);
         }
-        node = topology.getNodeByID(ringParentName);
-        if (node == null) {
-        	throw new RuntimeException("Unable to getNodeByID "+ ringParentName);
+        if (node.childNodeClassMatches(NodeClass.server)) {
+            entryList = getRawEntryList(node);
+        } else {
+            if (!node.hasChildren()) {
+                return new ArrayList<>();
+            } else {
+                TopologyRing    ring;
+                StoragePolicy   storagePolicy;
+                
+                entryList = new ArrayList<>();
+                ring = getNodeRing(node);
+                if (ring == null) {
+                    throw new RuntimeException("Can't find ring for node: "+ node);
+                } else {
+                    List<RingEntry> allChildList;
+                    
+                    allChildList = new ArrayList<>();
+                    for (RingEntry entry : ring.getMembers()) {
+                        // For all entries, go through all nodes and project
+                        // all subentries to this entry
+                        if (debug) {
+                            System.out.println("primary");
+                        }
+                        for (Node childNode : entry.getPrimaryOwnersList()) {
+                            List<RingEntry> childList;
+                            
+                            childList = project(childNode, entry.getRegion());
+                            if (debug) {
+                                System.out.println("back to "+ node +" from "+ childNode);
+                            }
+                            allChildList.addAll(childList);
+                            //merge(entryList, childList);
+                        }
+                        
+                        
+                        if (debug) {
+                            System.out.println("secondary");
+                        }
+                        for (Node childNode : entry.getSecondaryOwnersList()) {
+                            List<RingEntry> childList;
+                            
+                            childList = convertPrimaryToSecondary(project(childNode, entry.getRegion()));
+                            if (debug) {
+                                System.out.println("back to "+ node +" from "+ childNode);
+                            }
+                            allChildList.addAll(childList);
+                            //merge(entryList, childList);
+                        }
+                    }
+                    merge(entryList, allChildList);
+                }
+            }
         }
-        entryList = project(node, LongRingspace.globalRegion);
-        for (RingEntry entry : entryList) {
-            resolvedMap.addEntry(entry);
-        }
-        resolvedMap.computeReplicaSet();
-        return resolvedMap;
+        displayForDebug(entryList, "entryList");
+        RingEntry.ensureEntryRegionsDisjoint(entryList);
+        projectedEntryList = projectEntryList(entryList, parentRegion);
+        displayForDebug(projectedEntryList, "projectedEntryList");
+        cleanedEntryList = cleanupList(parentRegion, projectedEntryList);
+        displayForDebug(cleanedEntryList, "cleanedEntryList");
+        return cleanedEntryList;
     }
     
+    /*
     private List<RingEntry> project(Node node, RingRegion parentRegion) {
         List<RingEntry> entryList;
         List<RingEntry> projectedEntryList;
@@ -235,6 +319,7 @@ public class RingTree {
         displayForDebug(cleanedEntryList, "cleanedEntryList");
         return cleanedEntryList;
     }
+    */
         
     private void displayForDebug(List<RingEntry> list, String name) {
         if (debug) {
@@ -258,9 +343,8 @@ public class RingTree {
     private void merge(List<RingEntry> destList, List<RingEntry> _sourceList) {
         List<RingEntry> sourceList;
         
-        //if (destList.size() == 0) {
-        //    throw new RuntimeException("Unexpected empty dest list");
-        //}
+        Collections.sort(destList, RingEntryPositionComparator.instance);
+        
         if (_sourceList.size() == 0) {
             throw new RuntimeException("Unexpected empty source list");
         }
@@ -272,19 +356,43 @@ public class RingTree {
             System.out.println("===================================");
         }
         RingEntry.ensureEntryRegionsDisjoint(destList);
-        RingEntry.ensureEntryRegionsDisjoint(_sourceList);
+        //RingEntry.ensureEntryRegionsDisjoint(_sourceList); // c/o since we support non-disjoint now
         sourceList = new ArrayList<>(_sourceList);
         while (sourceList.size() > 0) {
             RingEntry   oldSourceEntry;
             RingRegion  oldSourceRegion;
             boolean     destScanActive;
+            int			searchResult;
+            int			startIndex;
+            int			endIndex;
+            int			insertionIndex;
             
             oldSourceEntry = sourceList.remove(0);
             oldSourceRegion = oldSourceEntry.getRegion();
+
+            searchResult = Collections.binarySearch(destList, oldSourceEntry, RingEntryPositionComparator.instance);
+            if (searchResult < 0) {
+            	// no exact match for this position was found
+            	// we can look at the two entries next to us to figure out what's up
+            	insertionIndex = -(searchResult + 1);
+            	startIndex = insertionIndex - 1;
+            	if (startIndex < 0) {
+            		startIndex = 0;
+            		endIndex = destList.size();
+            	} else {
+                	endIndex = startIndex + 1;
+            	}
+            } else {
+            	// we found an exact match for this position, there will be some sort of match below
+        		insertionIndex = Integer.MIN_VALUE; // should have perfect match, no insertion
+            	startIndex = searchResult;
+            	endIndex = searchResult;
+            }
+            
             // For simplicity, we perform a naive loop through all dests even though
             // it would be possible to avoid this loop.
             destScanActive = true;
-            for (int destIndex = 0; destScanActive && destIndex < destList.size();) {
+            for (int destIndex = startIndex; destScanActive && destIndex <= endIndex && destIndex < destList.size();) {
                 RingEntry           oldDestEntry;
                 RingRegion          oldDestRegion;
                 IntersectionResult  iResult;
@@ -371,7 +479,9 @@ public class RingTree {
                 }
             }
             if (destScanActive) { // if we didn't add it, then add here
-                destList.add(oldSourceEntry);
+            	destList.add(insertionIndex, oldSourceEntry);
+                //destList.add(oldSourceEntry);
+                //Collections.sort(destList, RingEntryPositionComparator.instance);
             }
         }
         RingEntry.ensureEntryRegionsDisjoint(destList);
@@ -382,7 +492,7 @@ public class RingTree {
             System.out.println();
         }
     }
-    
+
     private List<RingEntry> getRawEntryList(Node node) {
         List<RingEntry> entryList;
         

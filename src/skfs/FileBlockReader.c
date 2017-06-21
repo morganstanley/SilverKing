@@ -25,7 +25,6 @@ using std::exception;
 ////////////////////
 // private defines
 
-#define FBR_FBC_NAME "FileBlockCache"
 #define _FBR_ERR_TIMEOUT_MILLIS (10 * 1000)
 
 // For prefetch operations, there is no waiting thread. Hence,
@@ -61,23 +60,16 @@ FileBlockReader *fbr_new(FileIDToPathMap *f2p,
 						 FileBlockWriter *fbwCompress, FileBlockWriter *fbwRaw, 
 						 SRFSDHT *sd, 
 						 ResponseTimeStats *rtsDHT, ResponseTimeStats *rtsNFS,
-						 int numSubCaches,
-						 int transientCacheSize) {
+						 FileBlockCache *fbc) {
 	FileBlockReader *fbr;
-    int evictionBatch;
 
 	fbr = (FileBlockReader*)mem_alloc(1, sizeof(FileBlockReader));
 	fbr->f2p = f2p;
 	fbr->fbwCompress = fbwCompress;
 	fbr->fbwRaw = fbwRaw;
 	fbr->sd = sd;
-	if (transientCacheSize == 0) {
-		transientCacheSize = FBR_TRANSIENT_CACHE_SIZE;
-	}
-    evictionBatch = int_max(int_min(FBR_TRANSIENT_CACHE_EVICTION_BATCH, transientCacheSize / numSubCaches), 1);
     
-	fbr->fileBlockCache = fbc_new(FBR_FBC_NAME, transientCacheSize, 
-        evictionBatch, f2p, numSubCaches);
+	fbr->fileBlockCache = fbc;
 	fbr->nfsFileBlockQueueProcessor = qp_new(fbr_process_nfs_request, __FILE__, __LINE__, FBR_NFS_QUEUE_SIZE, ABQ_FULL_BLOCK, FBR_NFS_THREADS);
 	fbr->dhtFileBlockQueueProcessor = qp_new_batch_processor(fbr_process_dht_batch, __FILE__, __LINE__, 
 											FBR_DHT_QUEUE_SIZE, ABQ_FULL_DROP, FBR_DHT_THREADS, FBR_MAX_BATCH_SIZE);
@@ -283,7 +275,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
                             ao_set_complete(op, AOResult_Success, ppval->m_pVal, ppval->m_len);
 						    successful = TRUE;
                             srfsLog(LOG_FINE, "Storing block cache");
-                            result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid, ppval, fbrr->minModificationTimeMillis);
+                            result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid, ppval, fbrr->minModificationTimeMicros);
                             if (result != CACHE_STORE_SUCCESS) {
                                 srfsLog(LOG_FINE, "Cache store rejected");
                                 sk_destroy_val(&ppval);
@@ -433,7 +425,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
                     successful = TRUE;
                     srfsLog(LOG_FINE, "Storing block cache");
                     result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid,
-                                                 ppval, fbrr->minModificationTimeMillis);
+                                                 ppval, fbrr->minModificationTimeMicros);
                     if (result != CACHE_STORE_SUCCESS) {
                         srfsLog(LOG_FINE, "Cache store rejected");
                         sk_destroy_val(&ppval);
@@ -701,7 +693,7 @@ static void fbr_process_nfs_request(void *_requestOpRef, int curThreadIndex) {
         blockDataForWrite = mem_dup(blockData, blockSize);
 		srfsLog(LOG_FINE, "Storing block cache %d", blockSize);
 		result = fbc_store_raw_data(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid,      
-                            blockData, blockSize, TRUE, fbrr->minModificationTimeMillis);
+                            blockData, blockSize, TRUE, fbrr->minModificationTimeMicros);
 		if (result == CACHE_STORE_SUCCESS) {
 			if (cacheInDHT) {
                 fbw_write_file_block(fbrr->fileBlockReader->fbwCompress, fbrr->fbid, blockSize, blockDataForWrite, NULL);
@@ -723,14 +715,14 @@ static void fbr_process_nfs_request(void *_requestOpRef, int curThreadIndex) {
 		//srfsLog(LOG_FINE, "Storing error cache");
 		////fbc_store_raw_data(fbrr->fileBlockReader->fileBlockCache, fbrr->path, fbrr->dest);
         //fbc_store_error(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid, -1,
-        //                fbrr->minModificationTimeMillis, _FBR_ERR_TIMEOUT_MILLIS);
+        //                fbrr->minModificationTimeMicros, _FBR_ERR_TIMEOUT_MILLIS);
 	}
     // No need to set op complete here. Taken care of above
 	aor_delete(&aor);
 	srfsLog(LOG_FINE, "out fbr_process_nfs_request %llx", _requestOpRef);
 }
 
-ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMillis) {
+ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMicros) {
 	FileBlockReader	*fbr;
 	FileBlockID		*fbid;
 	ActiveOp		*op;
@@ -739,7 +731,7 @@ ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModification
 	fbr = (FileBlockReader *)_fbr;
 	fbid = (FileBlockID *)_fbid;
 	srfsLog(LOG_FINE, "fb_create_active_op %llx", fbid);
-	fileBlockReadRequest = fbrr_new(fbr, fbid, minModificationTimeMillis);
+	fileBlockReadRequest = fbrr_new(fbr, fbid, minModificationTimeMicros);
 	fbrr_display(fileBlockReadRequest, LOG_FINE);
 	op = ao_new(fileBlockReadRequest, (void (*)(void **))fbrr_delete);
 	return op;
@@ -781,7 +773,7 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 	srfsLog(LOG_FINE, "looking in cache for block");
 	for (i = 0; i < numRequests; i++) {
 		results[i] = fbc_read(fbr->fileBlockCache, pbrrs[i]->fbid, (unsigned char *)pbrrs[i]->dest, 
-							pbrrs[i]->readOffset, pbrrs[i]->readSize, &activeOpRefs[i], &cacheNumRead[i], fbr, pbrrs[i]->minModificationTimeMillis, _FBR_READ_OP_TIMEOUT_MILLIS);
+							pbrrs[i]->readOffset, pbrrs[i]->readSize, &activeOpRefs[i], &cacheNumRead[i], fbr, pbrrs[i]->minModificationTimeMicros, _FBR_READ_OP_TIMEOUT_MILLIS);
 		statCounted[i] = 0;
 		srfsLog(LOG_FINE, "cache results[%d] %d cacheNumRead[i] %d", i, results[i], cacheNumRead[i]);
 		if (results[i] == CRR_ACTIVE_OP_CREATED) {
@@ -806,7 +798,9 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 				statCounted[i] = TRUE;
                 aoResults[i] = AOResult_Success;
 			} else {
-				fatalError("Error: cacheNumRead[i] != pbrrs[i]->readSize", __FILE__, __LINE__);
+                srfsLog(LOG_WARNING, "1) cacheNumRead[%d] (%d) != pbrrs[%d]->readSize (%d)", 
+                                     i, cacheNumRead[i], i, pbrrs[i]->readSize);
+                fatalError("Error: cacheNumRead[i] != pbrrs[i]->readSize", __FILE__, __LINE__);
 			}
 		}
 	}
@@ -820,7 +814,7 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 		aor = NULL;
 		cacheReadResult = fbc_read(fbr->fileBlockCache, pbrrsReadAhead[i]->fbid, NULL, 
 									0, 0, &aor, NULL, fbr, 
-                                    pbrrsReadAhead[i]->minModificationTimeMillis,
+                                    pbrrsReadAhead[i]->minModificationTimeMicros,
                                     _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
 		if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
 			int	added;
@@ -954,7 +948,7 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 		aor = NULL;
 		cacheReadResult = fbc_read(fbr->fileBlockCache, pbrrsReadAhead[i]->fbid, NULL, 
 									0, 0, &aor, NULL, fbr, 
-                                    pbrrsReadAhead[i]->minModificationTimeMillis,
+                                    pbrrsReadAhead[i]->minModificationTimeMicros,
                                     _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
 		if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
 			int	added;

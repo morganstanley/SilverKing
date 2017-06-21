@@ -247,7 +247,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 		CacheStoreResult	acResult;
 		
 		acResult = ac_store_raw_data(ac, (char *)path, fa_dup(fa), TRUE, 
-                                SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
+                                curTimeMicros(), SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
 		if (acResult != CACHE_STORE_SUCCESS) {
 			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d at %s %d", acResult, __FILE__, __LINE__);
 			result = SKOperationState::FAILED;

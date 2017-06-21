@@ -1,0 +1,50 @@
+{{ForAllClasses}}
+
+{{SetOutput(Class,".h")}}
+// {{Package}}.{{Class}}.h
+
+#ifndef {{CLASS}}_H
+#define {{CLASS}}_H
+
+namespace {{Replace(Package, '.', '_')}} {
+
+class {{Class}} {
+private:
+    {{ForAllMethods}}
+    jmethodID    id_{{methodName}};
+    {{EndForAllMethods}}
+public:
+    {{Class}}();
+    ~{{Class}}();
+    {{ForAllMethods}}
+    {{methodReturnType}} {{methodName}}({{ForAllParameters}}{{ParameterType}}{{ParameterName}}, {{EndForAllParameters}});
+    {{EndForAllMethods}}
+};
+}
+
+#endif // {{CLASSNAME}}_H
+
+{{SetOutput(Class,".cpp")}}
+// {{Package}}.{{Class}}.cpp
+
+#include <jni.h>
+#include "SKWrapperCommon.h"
+#include "{{Class}}.h"
+
+using {{Replace(Package, '.', '_')}};
+
+{{Class}}::{{Class}}() {
+    jclass _class = skw_jenv->FindClass("{{Replace(Package, '.', '/')}}/{{Class}}");
+    id_waitForCompletion = skw_jenv->GetMethodID(_class, "waitForCompletion", "");
+}
+
+{{Class}}::~{{Class}}() {
+}
+
+{{ForAllMethods}}
+void {{Class}}::{{methodName}}({{ForAllParameters}}{{PrameterType}}{{ParameterName}}, {{EndForAllParameters}}) {
+    skw_jenv->CallXXXXMethod(instance, _class, id_{{methodName}}, );
+}
+{{EndForAllMethods}}
+
+{{EndForAllClasses}}

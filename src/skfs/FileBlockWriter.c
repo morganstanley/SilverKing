@@ -38,7 +38,7 @@ static void fbwadp_delete(FBW_ActiveDirectPut **adp);
 ///////////////////
 // implementation
 
-FileBlockWriter *fbw_new(SRFSDHT *sd, int useCompression, int reliableQueue) {
+FileBlockWriter *fbw_new(SRFSDHT *sd, int useCompression, FileBlockCache *fbc, int reliableQueue) {
 	FileBlockWriter *fbw;
 
 	fbw = (FileBlockWriter*)mem_alloc(1, sizeof(FileBlockWriter));
@@ -48,6 +48,7 @@ FileBlockWriter *fbw_new(SRFSDHT *sd, int useCompression, int reliableQueue) {
 	fbw->sd = sd;
 	fbw->pSession = sd_new_session(fbw->sd);
 	fbw->useCompression = useCompression;
+    fbw->fbc = fbc;
     try {
 		int	i;		
 		SKNamespace	*ns;
@@ -160,7 +161,7 @@ void fbw_write_file_block(FileBlockWriter *fbw, FileBlockID *fbid, size_t dataLe
 	added = qp_add(fbw->qp, fbwr);
 	if (!added) {
 		fbwr_delete(&fbwr);
-	}
+    }
 }
 
 static void fbw_process_dht_batch(void **requests, int numRequests, int curThreadIndex) {
@@ -327,6 +328,9 @@ FBW_ActiveDirectPut *fbw_put_direct(FileBlockWriter *fbw, FileBlockID *fbid, Wri
 	if (srfsLogLevelMet(LOG_FINE)) {
 		srfsLog(LOG_FINE, "fbw_put_direct adp->key %s wfb->size %u pVal->m_len %u", adp->key, wfb->size, adp->pVal->m_len);	
 	}
+    // Below is a bit redundant since the micro resolution solves this for now
+    // Using this for now, but could comment out as long as 1us resolution is sufficient
+    fbc_remove(fbw->fbc, fbid, FALSE); // Don't delete any ongoing ops
     try {
         //adp->pPut = fbw->ansp->put(adp->key, adp->pVal);
         //adp->pPut = fbw->_ansp[fbid_hash(fbid) % FBW_DHT_SESSIONS]->put(adp->key, adp->pVal);
@@ -407,10 +411,12 @@ void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numReques
 	SKOperationState::SKOperationState	dhtErr = SKOperationState::INCOMPLETE;
    	StrVector           requestGroup;  // sets of keys 
 	int					i;
-	char				keys[numRequests][SRFS_FBID_KEY_SIZE];
+	char				**keys;
 
 	srfsLog(LOG_FINE, "in fbw_invalidate_file_blocks");
 
+    keys = str_alloc_array(numRequests, SRFS_FBID_KEY_SIZE);
+    
     // First, construct the requestGroup
 	for (i = 0; i < numRequests; i++) {
         FileBlockID *fbid;
@@ -513,6 +519,7 @@ void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numReques
 		//pInvalidation->close();
 		delete pInvalidation;
 	}
+    str_free_array(&keys, numRequests);    
 	srfsLog(LOG_FINE, "out fbw_invalidate_file_blocks");
 }
 

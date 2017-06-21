@@ -28,7 +28,7 @@ public class RegionTreeBuilder {
     
     RegionTreeBuilder(RingRegion region, int entriesPerNode, int estimatedKeys) {
         if (entriesPerNode < 2) {
-            throw new RuntimeException("entriesPerNode must be < 2");
+            throw new RuntimeException("entriesPerNode must be >= 2");
         }
         this.region = region;
         this.entriesPerNode = entriesPerNode;

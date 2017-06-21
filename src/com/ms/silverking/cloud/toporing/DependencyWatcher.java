@@ -76,7 +76,7 @@ public class DependencyWatcher implements VersionListener {
         this.ignoreSource = options.ignoreSource;
         dhtMC = new com.ms.silverking.cloud.dht.meta.MetaClient(gridConfig);
         zkConfig = dhtMC.getZooKeeper().getZKConfig();
-        consecutiveUpdateGuardSeconds = options.consecutiveUpdateGuardSeconds;
+        consecutiveUpdateGuardSeconds = options.exitAfterBuild ? 0 : options.consecutiveUpdateGuardSeconds;
         
         lastBuild = new HashMap<>();
         buildQueue = new LinkedBlockingQueue<>();
@@ -187,7 +187,9 @@ public class DependencyWatcher implements VersionListener {
                         DHTUtil.currentTimeMillis());
                 Log.warning("Recipe.ringParent: "+ recipe.ringParent);
             } catch (RuntimeException re) {
-                Log.warning("ringConfig: ", ringConfig);
+            	re.printStackTrace(System.out);
+                Log.warning("ringConfig: ", ringConfig +" "+ re);
+                Log.logErrorWarning(re);
                 throw re;
             }
                         

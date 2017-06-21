@@ -1,0 +1,46 @@
+<html>
+<head><title>The GridConfiguration Framework</title>
+<link href="style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<h1>The GridConfiguration Framework</h1>
+
+<h2>Overview</h2>
+<p>
+The GridConfiguration Framework simplifies configuration settings 
+for SilverKing (and other distributed applications) by providing 
+a single identifier that groups configuration settings.
+A GridConfiguration provides a mapping from a user-specified identifier
+to a group of environment variables.
+</p>
+
+<p>
+Every SilverKing instance needs three configuration settings to run: 
+the name of the SilverKing instance (e.g. SK.My.Instance), 
+the port that SK accepts client connections on (e.g. 7777), 
+and the ZooKeeper ensemble definition (e.g. zk1:9999,zk2:9999).
+While it is possible to specify these manually, SilverKing
+generally uses a grid configuration in place of these
+(e.g. GC_SK_My_Instance).
+</p>
+
+<h2>Defining Grid Configurations</h2>
+<p>
+For simple setups, StaticInstanceCreator.sh will automatically create a grid 
+configuration file when it is run.
+<p>
+<p>
+</p>
+<p>
+SilverKing expects the environment variable GC_DEFAULT_BASE to point to the location
+where it can find the grid configuration files. For configurations created by
+StaticInstanceCreator.sh, this is the path used for -G. For
+manual configurations, this path is the location of the .env files.
+For example: 
+<pre>
+GC_DEFAULT_BASE=/my/gc/path
+<pre>
+</p>
+
+</body>
+</html>

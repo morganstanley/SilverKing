@@ -16,4 +16,23 @@ public class RelNanosVersionProvider implements VersionProvider {
     public long getVersion() {
         return relNanosTimeSource.relTimeNanos();
     }
+    
+    @Override
+    public int hashCode() {
+    	return relNanosTimeSource.hashCode();
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+    	if (this == o) {
+    		return true;
+    	}
+    		
+    	if (this.getClass() != o.getClass()) {
+    		return false;
+    	}
+    	
+    	RelNanosVersionProvider other = (RelNanosVersionProvider)o;
+    	return this.relNanosTimeSource.equals(other.relNanosTimeSource);
+    }
 }

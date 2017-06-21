@@ -368,9 +368,12 @@ public class SingleRingZK extends MetaToolModuleBase<TopologyRing,MetaPaths> {
         }
         topologyVersion = VersionedDefinition.NO_VERSION;
         for (String mapName : mapNames) {
+        	String	tp;
             long    tv;
             
-            tv = zk.getInt(ringInstancePath +"/"+ mapName +"/"+ versionNode);
+            tp = ringInstancePath +"/"+ mapName +"/"+ versionNode;
+            tv = zk.getInt(tp);
+            Log.warningf("topology %s %d", tp, tv);
             if (topologyVersion == VersionedDefinition.NO_VERSION) {
                 topologyVersion = tv;
             } else {

@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -16,6 +17,7 @@ import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.common.Namespace;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
+import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
@@ -96,6 +98,25 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
             }
         }
         return value;
+    }
+    
+    // Dynamic namespaces don't do anything special for a grouped retrieval.
+    // Simply forward to the single key retrieval.
+    protected ByteBuffer[] _retrieve(DHTKey[] keys, InternalRetrievalOptions options) {
+        ByteBuffer[] results;
+
+        results = new ByteBuffer[keys.length];
+        for (int i = 0; i < results.length; i ++) {
+        	results[i] = _retrieve(keys[i], options);
+        }
+        return results;
+    }    
+
+    // For now, no dynamic namespace supports writing. Return errors
+    public void put(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
+        for (StorageValueAndParameters value : values) {
+            resultListener.sendResult(value.getKey(), OpResult.MUTATION);
+        }
     }
     
     protected abstract byte[] createDynamicValue(DHTKey key, InternalRetrievalOptions options);

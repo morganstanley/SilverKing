@@ -1,5 +1,36 @@
 #!/bin/ksh
 
+function f_getSkfsPid {
+	echo `pgrep -f $SKFSD_PATTERN`
+}
+
+function f_printPass {
+	f_printHelper "PASS"
+}
+
+function f_printFail {
+	f_printHelper "FAIL"
+}
+
+function f_printHelper {
+	echo 
+	echo "RESULT: $1"
+}
+
+usage() 
+{
+  echo "usage      : $0 -c <command> -z <zkEnsemble> -g <GCName> [ -C <Compression> -s <skGlobalCodebase> -l <logLevel> -n <fsNativeOnlyFile> -L <coreLimit>] -f <forceSKFSDirCreation> -E <skfsEntryTimeoutSecs> -A <skfsAttrTimeoutSecs> -N <skfsNegativeTimeoutSecs> -T <transientCacheSizeKB>"
+  echo "    command         : Command to apply {$CHECK_SKFS_COMMAND, $STOP_SKFS_COMMAND}"
+  echo "    zkEnsemble      : ZooKeeper ensemble definition"
+  echo "    GCName          : GridConfig Name"
+  echo "    Compression     : skfs compression {LZ4, SNAPPY, ZIP, BZIP2, NOCOMPRESSION}"
+  echo "    skGlobalCodebase: skGlobalCodebase override"
+  echo "    logLevel        : logLevel {FINE,OPS} default: OPS"
+  echo "    nativeFSOnlyFile: fsNativeOnlyFile file  with csv filelist [/rel/path:y,...]"
+  echo "    coreLimit       : ulimit -c <coreLimit>"
+  exit 1
+}
+
 fuseVersion=2.6.3
 
 export PATH=$PATH:/usr/bin
@@ -10,30 +41,16 @@ curDir=`pwd`
 
 hostname
 
-usage() 
-{
-  echo "usage      : $0 -c <command> -z <zkEnsemble> -g <GCName> [ -C <Compression> -s <skGlobalCodebase> -l <logLevel> -n <fsNativeOnlyFile> -L <coreLimit>] -f <forceSKFSDirCreation> -E <skfsEntryTimeoutSecs> -A <skfsAttrTimeoutSecs> -N <skfsNegativeTimeoutSecs> -T <transientCacheSizeKB>"
-  echo "    command       : Command to apply {CheckSKFS, StopSKFS}"
-  echo "    zkEnsemble    : ZooKeeper ensemble definition"
-  echo "    GCName        : GridConfig Name"
-  echo "    Compression   : skfs compression {LZ4, SNAPPY, ZIP, BZIP2, NOCOMPRESSION}"
-  echo "    skGlobalCodebase: skGlobalCodebase override"
-  echo "    logLevel      : logLevel {FINE,OPS} default: OPS"
-  echo "    nativeFSOnlyFile: fsNativeOnlyFile file  with csv filelist [/rel/path:y,...]"
-  echo "    coreLimit     : ulimit -c <coreLimit>"
-  exit 1
-}
-
 # Initialize values from the environment.
 # Any command line parameters will override these.
-Compression="${GC_SK_COMRESSION}"
-if [[ "${Compression}" == "" ]] ; then
+Compression="${GC_SK_COMPRESSION}"
+if [[ -z "${Compression}" ]] ; then
 	Compression="LZ4"
 fi
-if [[ "${GC_SK_LOG_LEVEL}" != "" ]] ; then 
+if [[ -n "${GC_SK_LOG_LEVEL}" ]] ; then 
 	logLevel="${GC_SK_LOG_LEVEL}"
 fi
-if [[ "${GC_SK_NATIVE_ONLY_FILE}" != "" ]] ; then 
+if [[ -n "${GC_SK_NATIVE_ONLY_FILE}" ]] ; then 
 	nativeFSOnlyFile="${GC_SK_NATIVE_ONLY_FILE}"
 fi
 
@@ -60,30 +77,34 @@ while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:" opt; do
 done
 shift $(($OPTIND - 1))
 
-echo "Basic arguments parsed"
-echo
-echo "GCName $GCName"
-echo "nodeControlCommand $nodeControlCommand"
-echo "zkEnsemble $zkEnsemble"
-echo "forceSKFSDirCreation $forceSKFSDirCreation"
+source ../lib/common.lib
+f_printSection "BASIC ARGUMENTS PARSED"
+echo "GCName:               $GCName"
+echo "nodeControlCommand:   $nodeControlCommand"
+echo "zkEnsemble:           $zkEnsemble"
+echo "forceSKFSDirCreation: $forceSKFSDirCreation"
 
-if [[ ! -n "${GCName}"  || ! -n "${nodeControlCommand}" || ! -n "${zkEnsemble}" ]] ; then
+SKFSD_PATTERN="skfsd.*${GCName}"
+   
+  CHECK_SKFS_COMMAND="CheckSKFS"
+   STOP_SKFS_COMMAND="StopSKFS"
+   
+
+if [[ -z "${GCName}"  || -z "${nodeControlCommand}" || -z "${zkEnsemble}" ]] ; then
   echo "Missing required argument"
   usage
 fi
-if [ $nodeControlCommand == "CheckSKFS" ]; then
-    echo
-elif [ $nodeControlCommand == "StopSKFS" ]; then
+if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND || $nodeControlCommand == $STOP_SKFS_COMMAND ]]; then
     echo
 else
-    echo "Unknown command $nodeControlCommand"
+    echo "Unknown command: '$nodeControlCommand'"
     usage
 fi
 
 ## logging level option
-if [[ "${logLevel}" != "OPS" && "${logLevel}" != "FINE" ]] ; then
-	if [[ "${logLevel}" != "" ]] ; then
-		echo "Unsupported log level : ${logLevel}. Re-setting logLevel to default: OPS."
+if [[ "${logLevel}" != "OPS" && "${logLevel}" != "FINE" && "${logLevel}" != "INFO" ]] ; then
+	if [[ -n "${logLevel}" ]] ; then
+		echo "Unsupported log level: ${logLevel}. Re-setting logLevel to default: OPS."
 	fi
 	logLevel="OPS";
 fi
@@ -94,22 +115,52 @@ else
 	verbosity="false";
 fi
 
-id=`pgrep skfsd`
-if [ "$id" != "" ]; then
-    echo "Found skfsd"
-	if [ "${nodeControlCommand}" != "StopSKFS" ] ; then 
+f_printSection "PRE-EXISTING CHECKS"
+f_printSubSection "Checking for skfs"
+id=$(f_getSkfsPid)
+if [[ -n "$id" ]]; then
+    echo "FOUND - skfsd $GCName $id"
+	if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
+		f_printPass
 		exit
-	else
-	    echo "continuing a"
 	fi
 else
-    echo "No skfsd found"
+    echo "NOT FOUND - skfsd $GCName"
 fi
 
+f_printSubSection "Checking GC File"
+fullGcFilePath=$GC_DEFAULT_BASE/$GCName.env
+if [[ ! -e $fullGcFilePath ]] ; then
+    echo "Can't find configuration file $fullGcFilePath"
+	f_printFail
+    exit
+fi
+source $fullGcFilePath
+if [[ -z "${GC_SK_NAME}" ]] ; then
+    echo "Error in $fullGcFilePath - can't find 'GC_SK_NAME'"
+	f_printFail
+    exit
+fi
 
-echo "curDir = ${curDir}"
+SK_PATTERN="DHTNode.*${GC_SK_NAME}"
+f_printSubSection "Checking for sk"
+id=`pgrep -f $SK_PATTERN`
+if [[ -n "$id" ]]; then
+    echo "FOUND - sk $GC_SK_NAME $id"
+else
+    echo "NOT FOUND - sk $GC_SK_NAME"
+    if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then 
+		echo "Sk daemon needs to exist in order to execute: $nodeControlCommand"
+		f_printFail
+        exit -1
+    fi
+fi
+
+f_printSection "DOING SKFS inits"
+f_printSubSection "Configuring CLASSPATH and SK VARS"
+echo "curDir: ${curDir}"
 jaceLibs=${SK_JACE_HOME}/lib/jace-core.jar:${SK_JACE_HOME}/common/lib/jace-runtime.jar
-if [[ ! -n "${skGlobalCodebase}" ]]; then      
+if [[ -z "${skGlobalCodebase}" ]]; then      
         cd ../../lib
         cpBase=`pwd`
         cp=""
@@ -127,23 +178,32 @@ else
 	export SK_CLASSPATH=${CLASSPATH}
 fi
 
-echo $CLASSPATH
+echo "CLASSPATH:    $CLASSPATH"
+echo "SK_JAVA_HOME: $SK_JAVA_HOME"
+echo "SK_JACE_HOME: $SK_JACE_HOME"
+echo "SK_CLASSPATH: $SK_CLASSPATH"
 
-UTIL_CLASS="com.ms.silverking.cloud.skfs.management.MetaUtil"
 tmpfile=/tmp/skfs.${USER}.$$
+tmpfileConf=${tmpfile}.conf
+f_printSubSection "Retrieving $GCName config from $zkEnsemble into $tmpfile"
+UTIL_CLASS="com.ms.silverking.cloud.skfs.management.MetaUtil"
 utilCmd="${SK_JAVA_HOME}/bin/java ${UTIL_CLASS} -c GetFromZK -d ${GCName} -z ${zkEnsemble} -t ${tmpfile}"
 echo ${utilCmd}
 ${utilCmd}
 if [[ $? != 0 ]] ; then
 	echo "MetaUtil failed to get ${GCName} configuration from ${zkEnsemble} into ${tmpfile}, exiting" ;
+	f_printFail
 	exit 1 ;
 fi
-grep -v "^null$" /tmp/skfs.${USER}.$$ > ${tmpfile}.conf
-chmod 755 ${tmpfile}.conf
-. ${tmpfile}.conf
-echo tmpfile ${tmpfile}
+grep -v "^null$" /tmp/skfs.${USER}.$$ > $tmpfileConf
+chmod 755 $tmpfileConf
+source $tmpfileConf
+echo "tmpfile:     ${tmpfile}"
+echo "tmpfileConf: ${tmpfileConf}"
 rm ${tmpfile}
 
+f_printSection "TEARING DOWN OLD SKFS"
+f_printSubSection "Unmounting FUSE"
 # Must be set in conf:
 #useBigWrites="";
 #fusePath
@@ -157,51 +217,52 @@ export PATH=${PATH}:${fuseBin}
 ${fuseBin}/fusermount -u $skfsMount 
 sleep 1
 ${fuseBin}/fusermount -z -u $skfsMount 
+sleep 1
 
-killall -9 skfsd
-pkill skfsd
+echo "Removing old mount: $skfsMount"
+rmdir $skfsMount
 
+f_printSubSection "Trying last resort pkill skfsd"
+pkill -9 -f $SKFSD_PATTERN
+
+if [[ $nodeControlCommand == $STOP_SKFS_COMMAND ]] ; then 
+	f_printPass
+	exit
+fi
+
+f_printSection "SETTING UP NEW SKFS"
 if [[ "${forceSKFSDirCreation}" != "false" ]] ; then
-    if [ -e $skfsBase ] ; then
-	"Creating new SKFS Dir"
-	echo mv ${skfsBase} ${skfsBase}.$$
-	mv ${skfsBase} ${skfsBase}.$$
-	echo $?
-	echo mkdir ${skfsBase}
-	mkdir ${skfsBase}
-	echo $?
+    if [[ -e $skfsBase ]] ; then
+		echo "Creating new SKFS Dir"
+		echo mv ${skfsBase} ${skfsBase}.$$
+		mv ${skfsBase} ${skfsBase}.$$
+		echo $?
+		echo mkdir ${skfsBase}
+		mkdir ${skfsBase}
+		echo $?
     fi
 fi
+
 # below is needed until skfs.c picks up a log dir from config
 mkdir -p /var/tmp/silverking/skfs/logs
 
-
-if [ ${nodeControlCommand} == "StopSKFS" ] ; then 
-	exit
-else
-    echo "continuing b"
-fi
-
-if [ ! -e $skfsLogs ] ; then
+if [[ ! -e $skfsLogs ]] ; then
 	mkdir -m 777 -p $skfsLogs
 fi
 
-echo "Removing old $skfsMount"
-rmdir $skfsMount
-echo "Creating $skfsMount"
-
-if [ ! -e $skfsMount ] ; then
+if [[ ! -e $skfsMount ]] ; then
+	echo "Creating mount:     $skfsMount"
 	mkdir -m 777 -p $skfsMount
 fi
 
-echo zkEnsemble $zkEnsemble
-echo GCName $GCName
-echo Compression $Compression
-echo checksum $checksum
-echo "skGlobalCodebase $skGlobalCodebase"
+echo "zkEnsemble:       $zkEnsemble"
+echo "GCName:           $GCName"
+echo "Compression:      $Compression"
+echo "checksum:         $checksum"
+echo "skGlobalCodebase: $skGlobalCodebase"
 
 ##nativeFSOnlyFile - file with csv files/dirs list that will be accessed only from native FS
-if [[  "${nativeFSOnlyFile}" != "" ]] ; then
+if [[ -n "${nativeFSOnlyFile}" ]] ; then
 	if [[ ! -f ${nativeFSOnlyFile} ]] ; then
 		touch ${nativeFSOnlyFile}
 	fi
@@ -213,110 +274,147 @@ fi
 
 boost=""
 export LD_LIBRARY_PATH=${gccPath}:${boost}:$curDir/fuse/libs:${fuseLibKO}:${SK_JACE_HOME}/lib/dynamic:${JAVA_LIB_HOME}/jre/lib/amd64/server:${fuseLib}
-
+echo
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
 echo "Core limit: ${coreLimit}"
 ulimit -c ${coreLimit}
 
-FS_EXEC="$curDir/skfsd"
+f_printSubSection "Configuring path to skfsd"
+# Determine path to binary
+# skLocalSys variable may come from host group vars; if so, that overrides all
+if [[ -z "${skLocalSys}" ]]; then
+    # Otherwise, check to see if we're running in a dev env
+    # If not running in dev env, just use path without any system component
+    if [[ -n "${skGlobalCodebase}" ]]; then
+        # In a dev environment, use uname -r
+        skLocalSys=`uname -r`
+    fi
+fi
 
-SKFS_DIR=$skfsBase
+echo "skLocalSys: $skLocalSys"
+    
+# Add '/' if needed
+if [[ -n "${skLocalSys}" ]]; then
+    skLocalSysPath="/${skLocalSys}"
+else
+    skLocalSysPath=""
+fi
+
+# Full path to binary
+FS_EXEC="${curDir}${skLocalSysPath}/skfsd"
+
+
+if [[ -z "${skGlobalCodebase}" ]]; then
+    FS_EXEC="$curDir/skfsd"
+else
+    if [[ -z "${localSys}" ]]; then
+        localSys=`uname -r`
+    fi
+    FS_EXEC="$curDir/$localSys/skfsd"
+fi
+
+echo "skfsd path: $FS_EXEC"
+
 SKFS_MOUNT=$skfsMount
 SKFS_LOG_DIR=$skfsLogs
-mkdir -p $SKFS_LOG_DIR > /dev/null 2>&1
 
 fbwQOption="--fbwReliableQueue=TRUE"
 noFBWPaths=""
 
+f_printSubSection "Configuring options"
 # override any class vars with cmd line params
-if [[ "${_skfsEntryTimeoutSecs}" != "" ]] ; then
+if [[ -n "${_skfsEntryTimeoutSecs}" ]] ; then
     skfsEntryTimeoutSecs=${_skfsEntryTimeoutSecs}
 fi
-if [[ "${_skfsAttrTimeoutSecs}" != "" ]] ; then
+if [[ -n "${_skfsAttrTimeoutSecs}" ]] ; then
     skfsAttrTimeoutSecs=${_skfsAttrTimeoutSecs}
 fi
-if [[ "${_skfsNegativeTimeoutSecs}" != "" ]] ; then
+if [[ -n "${_skfsNegativeTimeoutSecs}" ]] ; then
     skfsNegativeTimeoutSecs=${_skfsNegativeTimeoutSecs}
 fi
-if [[ "${_transientCacheSizeKB}" != "" ]] ; then
+if [[ -n "${_transientCacheSizeKB}" ]] ; then
     transientCacheSizeKB=${_transientCacheSizeKB}
 fi
 
 # now set the options
-if [[ "${skfsEntryTimeoutSecs}" != "" ]] ; then
+if [[ -n "${skfsEntryTimeoutSecs}" ]] ; then
     entryTimeoutOption="--entryTimeoutSecs=${skfsEntryTimeoutSecs}"
 fi
 
-if [[ "${skfsAttrTimeoutSecs}" != "" ]] ; then
+if [[ -n "${skfsAttrTimeoutSecs}" ]] ; then
     attrTimeoutOption="--attrTimeoutSecs=${skfsAttrTimeoutSecs}"
 fi
 
-if [[ "${skfsNegativeTimeoutSecs}" != "" ]] ; then
+if [[ -n "${skfsNegativeTimeoutSecs}" ]] ; then
     negativeTimeoutOption="--negativeTimeoutSecs=${skfsNegativeTimeoutSecs}"
 fi
 
-echo "entryTimeoutOption $entryTimeoutOption"
-echo "attrTimeoutOption $attrTimeoutOption"
-echo "negativeTimeoutOption $negativeTimeoutOption"
+echo "entryTimeoutOption:    $entryTimeoutOption"
+echo "attrTimeoutOption:     $attrTimeoutOption"
+echo "negativeTimeoutOption: $negativeTimeoutOption"
 
-if [[ "${jvmOptions}" != "" ]] ; then
+if [[ -n "${jvmOptions}" ]] ; then
 	skfsJvmOpt="--jvmOptions=${jvmOptions}";
 fi
 
-if [[ "${transientCacheSizeKB}" == "" ]] ; then
+if [[ -z "${transientCacheSizeKB}" ]] ; then
     memKB=`cat /proc/meminfo | grep MemTotal | gawk '{print $2}' `
     transientCacheSizeLimitKB=12000000
     transientCacheSizeKB=$((${memKB} / 48))
-    if [ ${transientCacheSizeKB} -gt ${transientCacheSizeLimitKB} ]; then
+    if [[ ${transientCacheSizeKB} -gt ${transientCacheSizeLimitKB} ]]; then
         transientCacheSizeKB=${transientCacheSizeLimitKB}
     fi 
 fi
-echo "transientCacheSizeKB ${transientCacheSizeKB}"
-
-mkdir_mnt="mkdir -p $SKFS_MOUNT"
-load_module="${fuseBin}/fusectl start > ${SKFS_LOG_DIR}/load.log 2>&1"
-# note -d option is currently in skfs.c
-export start_fuse="nohup $FS_EXEC --mount=${SKFS_MOUNT} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} "--permanentSuffixes=${permanentSuffixes}" --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${skfsJvmOpt} > ${SKFS_LOG_DIR}/fuse.log.$$ 2>&1"
-
-echo $start_fuse
+echo "transientCacheSizeKB:  ${transientCacheSizeKB}"
 
 #for key in "${!mountMap[@]}"; do
 #    ls ${mountMap[$key]}
 #done
 
-run_cmd="$mkdir_mnt && $load_module"
-
-echo "SK_JAVA_HOME $SK_JAVA_HOME"
-echo "SK_JACE_HOME $SK_JACE_HOME"
-echo "SK_CLASSPATH $SK_CLASSPATH"
-
+f_printSubSection "Making mount and starting fusectl"
+load_module="${fuseBin}/fusectl start > ${SKFS_LOG_DIR}/load.log 2>&1"
+run_cmd="$load_module"
+echo
+echo "$run_cmd"
 eval $run_cmd
 sleep 6 
 
+f_printSubSection "Writing to tmpFile"
 tmpFile=/tmp/$$.skfs.fuse.tmp
-rm $tmpFile 
+rm -v $tmpFile 
+echo "writing to tmpFile: $tmpFile"
 echo "export PATH=${SK_JAVA_HOME}/bin:${PATH}:${fuseBin}:" >> $tmpFile
+# note -d option is currently in skfs.c
+export start_fuse="nohup $FS_EXEC --mount=${SKFS_MOUNT} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${skfsJvmOpt} > ${SKFS_LOG_DIR}/fuse.log.$$ 2>&1"
 #echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $tmpFile  
 #echo "export MALLOC_ARENA_MAX=4" >> $tmpFile
 #echo "export CLASSPATH=${CLASSPATH}" >> $tmpFile
 echo "$start_fuse" >> $tmpFile
 chmod +x $tmpFile
 
-skfsdpid=`pgrep skfsd`
-if [ "$skfsdpid" != "" ]; then
-    echo "found skfsd pid $skfsdpid, exiting";
+# possible sanity check against concurrent CheckSKFS processes
+f_printSubSection "Checking for skfs"
+id=$(f_getSkfsPid)
+if [[ -n "$id" ]]; then
+    echo "FOUND - skfsd $id, exiting";
+	f_printPass
 	exit
 fi
 
+f_printSubSection "Starting fuse"
+cat $tmpFile
 $tmpFile &
 sleep 1
 
-id=`pgrep skfsd`
-if [ "$id" != "" ]; then
-    echo found skfsd
+f_printSubSection "Checking for skfs again"
+id=$(f_getSkfsPid)
+if [[ -n "$id" ]]; then
+    echo "FOUND - skfsd $id";
+	f_printPass
 else
-    echo no skfsd found: noskfsd
+    echo "NOT FOUND - skfsd"
+	f_printFail
 fi
 
 cd $old_dir

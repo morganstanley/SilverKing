@@ -2,7 +2,7 @@ package com.ms.silverking.text;
 
 import static com.ms.silverking.testing.Util.createList;
 import static com.ms.silverking.testing.Util.createToString;
-import static com.ms.silverking.testing.Util.exceptionNameChecker;
+import static com.ms.silverking.testing.Assert.exceptionNameChecker;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static com.ms.silverking.testing.Util.int_maxVal;
 import static com.ms.silverking.testing.Util.long_maxVal;

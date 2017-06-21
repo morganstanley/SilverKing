@@ -1,0 +1,168 @@
+<html>
+<head><title>Full-scale SilverKing Administration</title>
+<link href="style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<h1>Full-scale Administration</h1>
+
+<h2>Overview</h2>
+<p>
+SilverKing has a variety of simplified configurations in which it can run.
+This section discusses administering SilverKing without any of these
+simplified methods. This exposes all configuration features to
+the administrator. This is useful when running SilverKing in larger-scale
+environments, or in environments where multiple SilverKing instances
+are running.
+</p>
+
+<p>
+SilverKing configuration is grouped into three levels of abstractions:
+cloud, ring, and DHT (key-value store) levels. 
+</p>
+
+<h2>Tools</h2>
+
+<p>
+This section briefly describes the primary SilverKing administrative tools
+and gives common usage. For more complete options, run each command
+without arguments.
+</p>
+
+<h2>SKAdmin</h2>
+<p>
+SKAdmin is used to start and stop a SilverKing instance as well as to perform related operations.
+</p>
+<p>
+<h3>Usage</h3>
+<code>
+SKAdmin.sh -g &ltGrid Configuration&gt -c &ltCommand,Command,...&gt
+</code>
+</p>
+
+<h3>Example</h3>
+
+<p>
+Start up a SilverKing instance.
+</p>
+<code>
+SKAdmin.sh -g GC_MY_TEST -c StartNodes
+</code>
+
+<p>
+Stop a SilverKing instance.
+</p>
+<code>
+SKAdmin.sh -g GC_MY_TEST -c StopNodes
+</code>
+
+<p>
+Start a SilverKing instance used for SKFS.
+Create namespaces for this instance (only needs to be done the very first time), 
+and start up the SKFS daemons.
+</p>
+<code>
+SKAdmin.sh -g GC_MY_TEST -c StartNodes,CreateSKFSns,CheckSKFS
+</code>
+
+<p>
+Stop SilverKing instance used for SKFS.
+</p>
+<code>
+SKAdmin.sh -g GC_MY_TEST -c StopSKFS,StopNodes
+</code>
+
+<p>
+Start a SilverKing instance. Allow for some daemon failures. Give the daemons 240
+seconds to start up. Daemons that fail to start in 240 seconds will be added to
+the instance exclusion set. Daemons that succeed after the first round, but fail 
+after another 600 seconds will be considered failed.
+Each daemon will wait 480 seconds for other unresponsive daemons.
+(These options will change in the future.)
+</p>
+<code>
+SKAdmin.sh -g GC_MY_TEST -c StartNodes -excludeInstanceExclusions -to 240,600 -into 480
+</code>
+
+
+<h2>
+Exclusion File Monitor
+</h2>
+<p>
+The Exclusion File Monitor is used to update the system exclusion set. It monitors a single flat file for changes, and updates the <b>system exclusion set</b> to match the flat file.
+</p>
+<p>
+<h3>Usage</h3>
+<code>
+ExclusionFileMonitor.sh -g &ltGrid Configuration&gt -f &ltExclusion File&gt
+</code>
+</p>
+
+<h2>
+Health Monitor
+</h2>
+<p>
+The Health Monitor monitors and maintains the health of a single SilverKing instance. When the Health Monitor believes that an instance node daemon is unhealthy, that node is added to the <b>instance exclusion set</b>.
+</p>
+<p>
+<h3>Usage</h3>
+<code>
+HealthMonitor.sh -g &ltGrid Configuration&gt -dri &ltFailed node restart interval seconds&gt -c &ltconviction limits&gt
+</code>
+<h3>Example</h3>
+</p>
+<code>
+HealthMonitor.sh -g GC_MY_TEST -dri 300 -c totalGuiltyServers=10,guiltyServersPerHour=4
+</code>
+</p>
+
+<h2>
+Dependency Watcher
+</h2>
+<p>
+Every SilverKing instance currently has a single <b>ring</b> associated with it that specifies
+what servers are responsible for what data. This ring is a function of several different
+inputs.
+The Dependency Watcher is responsible for watching ring dependencies for changes and
+computing a new ring whenever these dependencies change.
+</p>
+<p>
+The inputs that are observed for changes are: the ring configuration, the topology, node weights, the storage policy, the system exclusion set, and the instance exclusion set.
+If any of the above change, a new ring will be generated.
+</p>
+<p>
+<h3>Usage</h3>
+<p>
+To start a Dependency Watcher that continuously creates new rings as dependencies change:
+</p>
+<code>
+RingDependencyWatcher.sh -g &ltGrid Configuration&gt
+</code>
+<p>
+To start a Dependency Watcher that runs before SilverKing is started and creates a 
+new ring ignoring any old ring. (This should only be used if the SilverKing instance
+in question is not running, and no data has previously been stored to this instance.)
+</p>
+<code>
+RingDependencyWatcher.sh -g &ltGrid Configuration&gt -s -x
+</code>
+
+<h2>
+Ring Master
+</h2>
+<p>
+As discussed above, each SilverKing instance has a ring that tells it what servers
+are responsible for what data. Whenever the ring dependencies change, a new ring
+is computed.
+When this happens, SilverKing transitions from using the old ring to using the new ring.
+The Ring Master is responsible for controlling this transition from old ring to new ring.
+</p>
+<p>
+<h3>Usage</h3>
+<code>
+DHTRingMaster.sh -g &ltGrid Configuration&gt
+</code>
+</p>
+
+
+</body>
+</html>

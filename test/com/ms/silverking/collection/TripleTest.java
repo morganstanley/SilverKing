@@ -1,24 +1,31 @@
 package com.ms.silverking.collection;
 
 import static com.ms.silverking.testing.Util.getTestMessage;
-import static com.ms.silverking.collection.Util.expectedDoubleValue;
-import static com.ms.silverking.collection.Util.expectedIntValue;
-import static com.ms.silverking.collection.Util.expectedStringValue;
-import static com.ms.silverking.collection.Util.pD;
-import static com.ms.silverking.collection.Util.pI;
-import static com.ms.silverking.collection.Util.pS;
-import static com.ms.silverking.collection.Util.pSI;
+import static com.ms.silverking.collection.TestUtil.expectedDoubleValue;
+import static com.ms.silverking.collection.TestUtil.expectedIntValue;
+import static com.ms.silverking.collection.TestUtil.expectedIntValue2;
+import static com.ms.silverking.collection.TestUtil.expectedStringValue;
+import static com.ms.silverking.collection.TestUtil.pD;
+import static com.ms.silverking.collection.TestUtil.pI;
+import static com.ms.silverking.collection.TestUtil.pS;
+import static com.ms.silverking.collection.TestUtil.pSI;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public class TripleTest {
 
-	public static final Triple<Integer, Integer, Integer>  tI = new Triple<>(expectedIntValue,       expectedIntValue, expectedIntValue);
-	public static final Triple<Double, Double, Double>     tD = new Triple<>(expectedDoubleValue, expectedDoubleValue, expectedDoubleValue);
-	public static final Triple<String, String, String>     tS = new Triple<>(expectedStringValue, expectedStringValue, expectedStringValue);
-	public static final Triple<Integer, String, Integer> tISI = new Triple<>(expectedIntValue,    expectedStringValue, expectedIntValue);
-	public static final Triple<Triple<Integer, String, Integer>, String, String> tM = new Triple<>(tISI, expectedStringValue, expectedStringValue);
+	public static final Triple<Integer, Integer, Integer>  tI                       = new Triple<>(expectedIntValue,    expectedIntValue,    expectedIntValue);
+	public static final Triple<Integer, Integer, Integer>  tI_OneThirdCopy1         = new Triple<>(expectedIntValue,    expectedIntValue2,   expectedIntValue2);
+	public static final Triple<Integer, Integer, Integer>  tI_OneThirdCopy2         = new Triple<>(expectedIntValue2,   expectedIntValue,    expectedIntValue2);
+	public static final Triple<Integer, Integer, Integer>  tI_OneThirdCopy3         = new Triple<>(expectedIntValue2,   expectedIntValue2,   expectedIntValue);
+	public static final Triple<Integer, Integer, Integer>  tI_TwoThirdCopy1         = new Triple<>(expectedIntValue2,   expectedIntValue,    expectedIntValue);
+	public static final Triple<Integer, Integer, Integer>  tI_TwoThirdCopy2         = new Triple<>(expectedIntValue,    expectedIntValue2,   expectedIntValue);
+	public static final Triple<Integer, Integer, Integer>  tI_TwoThirdCopy3         = new Triple<>(expectedIntValue,    expectedIntValue,    expectedIntValue2);
+	public static final Triple<Double, Double, Double>     tD                       = new Triple<>(expectedDoubleValue, expectedDoubleValue, expectedDoubleValue);
+	public static final Triple<String, String, String>     tS                       = new Triple<>(expectedStringValue, expectedStringValue, expectedStringValue);
+	public static final Triple<Integer, String, Integer>   tISI                     = new Triple<>(expectedIntValue,    expectedStringValue, expectedIntValue);
+	public static final Triple<Triple<Integer, String, Integer>, String, String> tM = new Triple<>(tISI,                expectedStringValue, expectedStringValue);
 	public static final Triple<Integer, Integer, Integer> tPI1 = Triple.of(pI, expectedIntValue);
 	public static final Triple<Integer, Integer, Integer> tPI2 = Triple.of(expectedIntValue, pI);
 	
@@ -59,10 +66,16 @@ public class TripleTest {
 	@Test
 	public void testEquals_Valid() {
 		Object[][] testCases = {
-			{tI,     tI,    true},
-			{tI,     tD,   false},
-			{tS,     tD,   false},
-			{tPI1, tPI2,    true},
+			{tI,   tI,               true},
+			{tI,   tI_OneThirdCopy1, false},
+			{tI,   tI_OneThirdCopy2, false},
+			{tI,   tI_OneThirdCopy3, false},
+			{tI,   tI_TwoThirdCopy1, false},
+			{tI,   tI_TwoThirdCopy2, false},
+			{tI,   tI_TwoThirdCopy3, false},
+			{tI,   tD,               false},
+			{tS,   tD,               false},
+			{tPI1, tPI2,              true},
 		};
 			
 		for (Object[] testCase : testCases) {

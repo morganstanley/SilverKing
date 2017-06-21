@@ -19,16 +19,22 @@ that make it an attractive solution for many use-cases.
 <ul>
 <li><b>Extreme scale</b> - SilverKing supports many tens of thousands of simultaneous clients, 
   at least thousands of storage servers, and storage limited by the aggregate capacity of the server disks. 
-</li>
+  SilverKing is in active use by tens of thousands of clients in production, and runs on two clusters of 418 servers each. 
+  (SilverKing's predecessor ran on two clusters of 2,500 servers each in production); 
+  each cluster is used by tens of thousands of active clients.</li>
 <li><b>Rich topology support</b> - Users can directly specify high-level storage policies such as: 
 "primary replicas in New York and London. Secondary replicas in all other regions. 
 Within each regional data center, each primary value must be stored in two racks, and every rack must have a 
 secondary replica." We are not aware of any existing solution that provides similar support in an automated fashion.</li>
 <li><b>Speed</b> - SilverKing is as fast as the best RAM-only distributed key-value store (that we are aware of), 
 but also supports disk storage.</li>
-<li><b>Memory efficiency</b> - SilverKing is more memory efficient than existing RAM-only distributed key-value stores.</li>
+<li><b>Native Support for Bitemporal Data </b> - SilverKing <a href="Versioning.html">versioning</a> support can
+provide bitemporal data natively.</li>
+<li><b>Memory efficiency</b> - SilverKing is more memory efficient than existing RAM-only key-value stores.</li>
 <li><b>Coordination primitives</b> - In addition to pure storage, SilverKing supports Linda-like coordination primitives. 
 This makes writing distributed applications far easier than with conventional techniques.</li>
+<li><b>Incast avoidance</b> - Distributed storage systems commonly encounter TCP-incast induced failure. 
+Our recommended installation of SilverKing avoids this.</li>
 <li><b>Scale out existing vendor file systems</b> - SKFS enables snapshot-capable file systems  
 to scale out far more powerfully and more economically than with vendor solutions alone. In production this enables 
 volume snapshots to be used on large computational grids. (This could be used, for example, to scale out an 
@@ -36,6 +42,8 @@ existing vendor volume for use on a Hadoop cluster.)</li>
 <li>SilverKing's file system - SKFS - inherits the key-value store's scale, speed, and topology support.</li>
 </ul>
 </p>
+
+<!-- LocalDocumentation -->
 
 <h2>Supported Storage Interfaces</h2>
 <h3>Key-value Store</h2>
@@ -112,9 +120,38 @@ SilverKing to function in the presence of failures (within the realm of what is
 feasible given the storage policy and level of failure.)
 </p>
 
+<hr>
+
+<h2>Quick Start</h2>
+
+<p>
+<a href="QuickStart.html">Quick Start</a> describes how to quickly get up and running with
+a simple SilverKing instance.
+</p>
+
+<hr>
+
+<h2>DCTCP+</h2>
+
+<p>
+SilverKing is capable of moving massive quantities of data very quickly. Doing this well
+requires a datacenter-optimized network.
+Standard TCP suffers from serious deficiencies that cause significant problems in 
+typical distributed storage systems. This is a leading reason why many systems like Hadoop suffer from 
+straggler tasks and attempt to work around the problem by issuing duplicate tasks.
+We have incorporated DCTCP into our datacenter, 
+and extended it in order to provide SilverKing with robust, low-latency TCP performance.
+This eliminates long tails on jobs due to TCP-induced file system slowness.
+</p>
+
+
+<p>
+See <a href="DCTCP+.pdf">DCTCP+</a> for more details.
+</p>
+
 <h2>Key Concepts</h2>
 <p>
-<a href="MetaData.html">Key Concepts and Meta Data Constructs</a>
+<a href="KeyConcepts.html">Key Concepts</a>
 </p>
 
 <h2>Client APIs</h2>
@@ -126,7 +163,6 @@ See the <a href="ClientPrimer.html">Client Primer</a> for a brief introduction t
 </p>
 <p>
 <a href="javadocs/index.html">Javadoc documentation</a> is available for the Java API.
-Javadoc documentation is available for the Java API.
 </p>
 
 <h2>Examples</h2>
@@ -136,13 +172,19 @@ Javadoc documentation is available for the Java API.
 
 <h2>Administration</h2>
 <p>
-<a href="Administration.html">Admnistration</a>
+<a href="FullScaleAdministration.html">Full-Scale Admnistration</a> documents administration
+of a full-scale SilverKing instance.
 </p>
 
 <h2>SilverKing Client Shell</h2>
 <p>
 The <a href="Shell.html">SilverKing Client Shell</a> provides a simple interactive interface 
 that can also act as a command line utility.
+</p>
+
+<h2>Contact</h2>
+<p>
+Contact us for more information.
 </p>
 
 </body>

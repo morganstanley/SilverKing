@@ -12,13 +12,13 @@
 // implementation
 
 FileBlockReadRequest *fbrr_new(FileBlockReader *fileBlockReader, FileBlockID *fbid,
-                               uint64_t minModificationTimeMillis) {
+                               uint64_t minModificationTimeMicros) {
 	FileBlockReadRequest *fbrr;
 
 	fbrr = (FileBlockReadRequest*)mem_alloc(1, sizeof(FileBlockReadRequest));
 	fbrr->fileBlockReader = fileBlockReader;
 	fbrr->fbid = fbid_dup(fbid);
-    fbrr->minModificationTimeMillis = minModificationTimeMillis;
+    fbrr->minModificationTimeMicros = minModificationTimeMicros;
 	return fbrr;
 }
 

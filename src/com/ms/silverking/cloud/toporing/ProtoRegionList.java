@@ -2,7 +2,9 @@ package com.ms.silverking.cloud.toporing;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
@@ -29,7 +31,10 @@ class ProtoRegionList {
     ProtoRegionList duplicate() {
         List<ProtoRegion>  protoRegions2;
         
-        protoRegions2 = new ArrayList<>(protoRegions);
+        protoRegions2 = new ArrayList<>(protoRegions.size());
+        for (ProtoRegion pr : protoRegions) {
+        	protoRegions2.add(pr.duplicate());
+        }
         return new ProtoRegionList(protoRegions2);
     }
     
@@ -354,5 +359,24 @@ class ProtoRegionList {
         ring.freeze(recipe.weightSpecs);
         RingEntry.ensureEntryRegionsDisjoint(ring.getMembers());
         return ring;
+    }
+    
+    public Map<String,Long> getAllocations() {
+    	Map<String,Long>	allocations;
+    	
+    	allocations = new HashMap<>();
+    	for (ProtoRegion pr : protoRegions) {
+    		for (Node node : pr.getPrimaryOwners()) {
+    			Long	allocation;
+    			
+    			allocation = allocations.get(node.getIDString());
+    			if (allocation == null) {
+    				allocation = new Long(0);
+    			}
+    			allocation += pr.getRegionSize();
+    			allocations.put(node.getIDString(), allocation);
+    		}
+    	}
+    	return allocations;
     }
 }

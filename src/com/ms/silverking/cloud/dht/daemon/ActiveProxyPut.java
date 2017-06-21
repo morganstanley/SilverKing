@@ -20,7 +20,6 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.PutOperationContainer
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageOperation;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocol;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocolUtil;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyEntry;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyOrdinalEntry;
@@ -78,7 +77,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
             System.out.println(this +" "+ forwardingMode +" "+ storageOperation);
         }
         pComm = new PutCommunicator(this);
-        if (forwardingMode == ForwardingMode.FORWARD) {
+        if (forwardingMode.forwards()) {
             messageModule.addActivePut(uuid, this);
         }
         super.startOperation(pComm, 
@@ -156,7 +155,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
                         values,
                         getUserData(),
                         pComm);
-            if (forwardingMode == ForwardingMode.FORWARD) {
+            if (forwardingMode.forwards()) {
                 for (DHTKey _entry : _entries) {
                     storageOperation.localUpdate(_entry, 
                                                 StorageProtocolUtil.initialStorageStateOrdinal, 

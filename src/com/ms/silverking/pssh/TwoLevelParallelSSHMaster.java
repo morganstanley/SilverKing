@@ -69,8 +69,8 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     private static final int      maxWorkers = 20;
     private static final double   workerFraction = 0.05;
     private static final int      maxWorkerThreads = 20;
-    private static final double   workerSecondsPerHost = 0.15;
-    private static final int      workerTimeoutMinSeconds = 1 * 60;
+    private static final double   workerSecondsPerHost = 15;
+    private static final int      workerTimeoutMinSeconds = 5 * 60;
     
     private static final String javaCmd;
     
@@ -112,6 +112,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         
         workerTimeoutSeconds = (int)Math.max(workerTimeoutMinSeconds, 
                                 (double)hosts.size() * workerSecondsPerHost);            
+        Log.warning("workerTimeoutSeconds: ", workerTimeoutSeconds);
         Log.warning("hosts.size(): ", hosts.size());
         if (hosts.size() == 0) {
         	terminate();
@@ -179,7 +180,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         List<String>	hostList;
         int				numWorkers;
     	
-        hostList = ImmutableList.copyOf(hosts);
+        hostList = ImmutableList.copyOf(workerCandidateHosts);
         random = new Random();
         numWorkers = (int)Math.min((double)workerCandidateHosts.size() * workerFraction, maxWorkers);;
         numWorkers = Math.max(numWorkers, 1);
@@ -219,6 +220,12 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     }
     
     //////////////////////////////////////////////////////////////////////
+
+
+	@Override
+	public Map<String, String> getSSHCmdMap() throws RemoteException {
+		return workerSSH.getSSHCmdMap();
+	}
     
     @Override
     public HostAndCommand getHostAndCommand() {

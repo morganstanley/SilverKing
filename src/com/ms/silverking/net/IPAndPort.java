@@ -26,6 +26,10 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     
     public static final List<IPAndPort> emptyList = ImmutableList.of();
     
+    private IPAndPort(long ipAndPort) {
+        this.ipAndPort = ipAndPort;
+    }
+    
     public IPAndPort(int ip, int port) {
         this.ipAndPort = (ip << 32) | port;
     }
@@ -70,6 +74,14 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     
     public static IPAndPort fromByteArray(byte[] ipAndPort) {
         return fromByteArray(ipAndPort, 0);
+    }
+    
+    public static IPAndPort fromLong(long l) {
+    	return new IPAndPort(l);
+    }
+    
+    public long toLong() {
+    	return ipAndPort;
     }
     
     public byte[] toByteArray() {

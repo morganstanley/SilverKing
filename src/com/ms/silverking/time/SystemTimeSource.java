@@ -50,4 +50,24 @@ public final class SystemTimeSource implements RelNanosAbsMillisTimeSource, AbsN
     public long relNanosRemaining(long absDeadlineNanos) {
     	return absNanosTimeSource.relNanosRemaining(absDeadlineNanos);
     }
+    
+    @Override
+    public int hashCode() {
+    	return absNanosTimeSource.hashCode();
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+    	if (this == o) {
+    		return true;
+    	}
+    		
+    	if (this.getClass() != o.getClass()) {
+    		return false;
+    	}
+    	
+    	SystemTimeSource other = (SystemTimeSource)o;
+    	
+    	return absNanosTimeSource.equals(other.absNanosTimeSource);
+    }
 }

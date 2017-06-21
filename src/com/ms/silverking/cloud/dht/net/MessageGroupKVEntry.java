@@ -11,7 +11,7 @@ import com.ms.silverking.text.StringUtil;
  * creating new ByteBuffers that are views into the original buffers.
  */
 public abstract class MessageGroupKVEntry extends MessageGroupKeyEntry {
-    private final short bufferIndex;
+    private final int	bufferIndex;
     private final int   bufferOffset;
     protected int       storedLength;
     
@@ -21,7 +21,7 @@ public abstract class MessageGroupKVEntry extends MessageGroupKeyEntry {
     
     public MessageGroupKVEntry(ByteBuffer keyBuffer, int offset) {
         super(keyBuffer, offset);
-        bufferIndex = keyBuffer.getShort(offset + KeyValueMessageFormat.bufferIndexOffset);
+        bufferIndex = keyBuffer.getInt(offset + KeyValueMessageFormat.bufferIndexOffset);
         bufferOffset = keyBuffer.getInt(offset + KeyValueMessageFormat.bufferOffsetOffset);
     }
     
@@ -85,7 +85,7 @@ public abstract class MessageGroupKVEntry extends MessageGroupKeyEntry {
         }
     }
     
-    public short getBufferIndex() {
+    public int getBufferIndex() {
         return bufferIndex;
     }
 

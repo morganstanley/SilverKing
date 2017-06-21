@@ -39,7 +39,7 @@ public class ChecksumTreeServer {
     private final NodeRingMaster2       ringMaster;
     private final Cache<ChecksumTreeKey,CTGAndLock>  checksumTreeGroups;
     
-    private static final boolean    debug = true;
+    private static final boolean    debug = false;
     private static final boolean    verbose = true;
     
     //private static final int    entriesPerNode = 2; // 2 is for testing only

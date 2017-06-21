@@ -63,7 +63,7 @@ public class PeerHealthMonitor implements SuspectAddressListener {
     			Long	lastWeakErrorTime;
     			
     			lastWeakErrorTime = lastWeakErrorTimes.get(peer);
-    			if (lastWeakErrorTime != null && SystemTimeUtil.systemTimeSource.absTimeMillis() - lastWeakErrorTime < weakErrorTimeoutMillis) {
+    			if (lastWeakErrorTime != null && SystemTimeUtil.systemTimeSource.absTimeMillis() - lastWeakErrorTime <= weakErrorTimeoutMillis) {
     				return true;
     			} else {
     				// possibly take action
@@ -82,7 +82,11 @@ public class PeerHealthMonitor implements SuspectAddressListener {
     	if (t == null) {
     		return Long.MAX_VALUE;
     	} else {
-    		return t;
+    		if (SystemTimeUtil.systemTimeSource.absTimeMillis() - t <= weakErrorTimeoutMillis) { 
+    			return t;
+    		} else {
+        		return Long.MAX_VALUE;
+    		}
     	}
     }
 

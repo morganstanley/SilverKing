@@ -6,7 +6,7 @@ import com.ms.silverking.numeric.NumConversion;
 /**
  * Functionality common to all Cuckoo hash table implementations.
  */
-public abstract class CuckooBase {
+public abstract class CuckooBase implements Iterable<DHTKeyIntEntry> {
     // config
     private final WritableCuckooConfig  config;
     protected final int totalEntries;
@@ -27,6 +27,9 @@ public abstract class CuckooBase {
     protected static final boolean    debugCycle = false;
     protected static final boolean    sanityCheck = true;
     protected static final boolean    debugIterator = false;
+    
+    protected static final int    empty = Integer.MIN_VALUE;
+    public static final int    keyNotFound = empty;
     
     // entry - key/value entry
     // bucket - group of entries
@@ -87,6 +90,9 @@ public abstract class CuckooBase {
         }
     }
     
+    public abstract int get(DHTKey key);
+    public abstract void put(DHTKey key, int offset);
+    
     public boolean remove(DHTKey key) {
         long    msl;
         long    lsl;
@@ -137,9 +143,6 @@ public abstract class CuckooBase {
             entrySizeLongs = singleEntrySize;
             bucketSizeLongs = singleEntrySize * entriesPerBucket;
             this.bufferSizeLongs = numBuckets * bucketSizeLongs;
-            if (Integer.bitCount(numBuckets) != 1) {
-                throw new RuntimeException("Supplied numBuckets must be a perfect power of 2");
-            }
             bitMask = numBuckets - 1;
         }
         

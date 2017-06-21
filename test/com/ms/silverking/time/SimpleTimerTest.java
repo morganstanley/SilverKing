@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import static com.ms.silverking.testing.Assert.*;
 import static com.ms.silverking.testing.Util.*;
 
 import java.math.BigDecimal;

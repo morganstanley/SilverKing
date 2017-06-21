@@ -17,6 +17,7 @@
 
 #define OD_MIN_PREFETCH_INTERVAL_MILLIS	(1 * 60 * 1000)
 #define OD_TRIGGER_INTERVAL_MILLIS	4
+#define OD_RECONCILIATION_PERIOD_MILLIS (4 * 60 * 1000)
 
 
 ///////////////////
@@ -30,6 +31,7 @@ OpenDirWriter	*od_odw;
 
 static void od_merge_DirData_pendingUpdates(OpenDir *od);
 static void od_clear_pending_updates(OpenDir *od);
+static void od_remove_from_reconciliation(OpenDir *od);
 
 
 ///////////////
@@ -56,7 +58,10 @@ OpenDir *od_new(const char *path, DirData *dirData) {
     if (pthread_mutex_init(od->mutex, &mutexAttr) != 0) {
         fatalError("\n mutex init failed", __FILE__, __LINE__);
 	}
-	od->lastUpdateMillis = curTimeMillis();
+    // Force an update
+	od->lastUpdateMillis = 0;
+	od->needsReconciliation = TRUE;
+	rcst_add_to_reconciliation_set(od->path);
 	
 	return od;
 }
@@ -73,7 +78,9 @@ void od_delete(OpenDir **od) {
 		for (i = 0; i < (*od)->numPendingUpdates; i++) {
 			mem_free((void **)&(*od)->pendingUpdates[i].name);
 		}
-		mem_free((void **)&(*od)->pendingUpdates);
+        if ((*od)->pendingUpdates != NULL) {
+            mem_free((void **)&(*od)->pendingUpdates);
+        }
 		
 		pthread_mutex_destroy((*od)->mutex);
 		mem_free((void **)od);
@@ -109,7 +116,9 @@ static void od_clear_pending_updates(OpenDir *od) {
 		for (i = 0; i < od->numPendingUpdates; i++) {
 			mem_free((void **)&od->pendingUpdates[i].name);
 		}
-		mem_free((void **)&od->pendingUpdates);
+        if (od->pendingUpdates != NULL) {
+            mem_free((void **)&od->pendingUpdates);
+        }
 		od->numPendingUpdates = 0;
 	}
 }
@@ -152,10 +161,11 @@ static void od_add_update(OpenDir *od, char *name, int type, uint64_t version) {
 	existing = FALSE;
 	// lock
     pthread_mutex_lock(od->mutex);	
+	//srfsLog(LOG_WARNING, "od_add_update %s %d %d", name, type, version);
 	for (i = 0; i < od->numPendingUpdates; i++) {
 		if (!strncmp(name, od->pendingUpdates[i].name, SRFS_MAX_PATH_LENGTH)) {
 			existing = TRUE;
-			if (version > od->pendingUpdates[i].version) {
+			if (version >= od->pendingUpdates[i].version) {
 				srfsLog(LOG_FINE, "Modifying update %s to %d, %d", name, type, version);
 				odu_modify(&od->pendingUpdates[i], type, version);
 			} else {
@@ -184,6 +194,12 @@ void od_add_entry(OpenDir *od, char *name, uint64_t version) {
 	od_add_update(od, name, ODU_T_ADDITION, version);
 }
 
+static void od_remove_from_reconciliation(OpenDir *od) {
+    rcst_remove_from_reconciliation_set(od->path);
+    od->needsReconciliation = FALSE; 
+    srfsLog(LOG_FINE, "Remove from rcst %s", od->path);
+}
+
 void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 	uint64_t	metaDataVersion;
 	uint64_t	_curTimeMillis;
@@ -206,26 +222,45 @@ void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 		od_merge_DirData_pendingUpdates(od);
 		mr = dd_merge(od->dd, dd);
 		od->lastMergedVersion = metaDataVersion;
+        // if kvs data had no new data
 		if (!mr.dd1NotIn0) {
 			srfsLog(LOG_FINE, "No updates from KVS data");
-			// Note, mr.dd is always NULL in this case
+			// Note, mr.dd is always NULL in this case, no need to free
 			//od->needsReconciliation = FALSE; 
 		} else {
+            // kvs store had new data
 			dd_delete(&od->dd);
 			od->dd = mr.dd;
 			od->lastUpdateMillis = _curTimeMillis;
 			od->ddVersion = metaDataVersion;
 		}
+        // if local data had entries not in the kvs, update kvs with merged result
 		if (mr.dd0NotIn1) {
 			srfsLog(LOG_FINE, "Updating KVS version with local data");
 			odw_write_dir(od_odw, od->path, od);
 		}
+        // if local data and kvs data are an exact match
 		if (!mr.dd1NotIn0 && !mr.dd0NotIn1) {
-			srfsLog(LOG_INFO, "getID() %d get_pid() %d", metaData != NULL ? metaData->getCreator()->getID() : 0, get_pid());
-			if (metaData != NULL && metaData->getCreator()->getID() != get_pid()) {
-				rcst_remove_from_reconciliation_set(od->path);
-				od->needsReconciliation = FALSE; 
-			}
+            if (metaData != NULL) {
+                SKValueCreator  *vc;
+                
+                vc = metaData->getCreator();
+                if (vc != NULL) {
+                    uint64_t    dataVC;
+                    
+                    dataVC = getValueCreatorAsUint64(vc);
+                    delete vc;
+                    srfsLog(LOG_INFO, "myValueCreator %x dataVC %x", myValueCreator, dataVC);
+                    // only clear needsReconciliation if somebody else wrote last, and we have an exact match
+                    if (myValueCreator != dataVC) {
+                        od_remove_from_reconciliation(od);
+                    }
+                } else {
+                    srfsLog(LOG_INFO, "Can't compare IDs due to NULL metaData->getCreator()");
+                }
+            } else {
+                srfsLog(LOG_INFO, "Can't compare IDs due to NULL metaData");
+            }
 			//if (od->needsReconciliation > 0) {
 			//	--od->needsReconciliation;
 			//}
@@ -234,6 +269,9 @@ void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 		}
 	} else {
 		srfsLog(LOG_FINE, "Ignoring stale or duplicate update %llx %l", od, od->ddVersion);
+		if (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS) {
+            od_remove_from_reconciliation(od);
+        }
 	}
     pthread_mutex_unlock(od->mutex);	
     if (deleteOnExit) {

@@ -23,6 +23,7 @@ import com.ms.silverking.cloud.dht.client.ClientException;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
+import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.ClassVars;
 import com.ms.silverking.cloud.dht.meta.ClassVarsZK;
@@ -41,6 +42,9 @@ import com.ms.silverking.cloud.skfs.management.SKFSNamespaceCreator;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.NodeClass;
 import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
+import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
+import com.ms.silverking.cloud.toporing.SingleRingZK;
+import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
@@ -49,6 +53,7 @@ import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.pssh.TwoLevelParallelSSHMaster;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
@@ -75,10 +80,12 @@ public class SKAdmin {
 	private final ClassVars				defaultClassVars;
 	private final NamespaceOptions	skfsNSOptions; 
 	private final NamespaceOptions	skfsMutableNSOptions;
+	private final NamespaceOptions	skfsFileBlockNSOptions;
+	private final NamespaceOptions	skfsDirNSOptions;
 	private final String	skGlobalCodebase;
 	private final RingConfiguration		ringConfig;
 	private final InstantiatedRingTree	ringTree;
-	private final ExclusionSet			exclusionSet;
+	private ExclusionSet			exclusionSet;
 	
 	private static final String	jreSuffix = "/jre";
 	
@@ -91,13 +98,19 @@ public class SKAdmin {
 	//private static final String[]	_skfsNamespaces = {"fb.524288.b", "fb.131072.b", "fb.262144.b", "dht.health"};
 	//private static final String[]	_skfsMutableNamespaces = {"dir", "attr"};
 	private static final String[]	_skfsNamespaces = {};
-	private static final String[]	_skfsMutableNamespaces = {"dir", "attr", "fb.524288.b", "fb.131072.b", "fb.262144.b", "dht.health"};
+	private static final String[]	_skfsMutableNamespaces = {"attr", "dht.health"};
+	private static final String[]	_skfsFileBlockNamespaces = {"fb.524288.b", "fb.131072.b", "fb.262144.b"};
+	private static final String[]	_skfsDirNamespaces = {"dir"};
 	private static final Set<String>	skfsNamespaces = ImmutableSet.copyOf(_skfsNamespaces);
 	private static final Set<String>	skfsMutableNamespaces = ImmutableSet.copyOf(_skfsMutableNamespaces);
+	private static final Set<String>	skfsFileBlockNamespaces = ImmutableSet.copyOf(_skfsFileBlockNamespaces);
+	private static final Set<String>	skfsDirNamespaces = ImmutableSet.copyOf(_skfsDirNamespaces);
 	
-	private static final int	unsafeWarningCountdown = 20;
+	private static final int	unsafeWarningCountdown = 10;
 	
 	private static final String	logFileName = "SKAdmin.out";
+	
+	public static boolean	exitOnCompletion = true;
 	
 	public SKAdmin(SKGridConfiguration gc, SKAdminOptions options) throws IOException, KeeperException {
 		Pair<RingConfiguration,InstantiatedRingTree>	ringConfigAndTree;
@@ -114,25 +127,59 @@ public class SKAdmin {
 			ringTree = null;
 			cloudMC = null;
 			exclusionSet = null;
+			throw new RuntimeException("No current ring for this instance");
 		} else {
+			ExclusionSet	es1;
+			ExclusionSet	es2;
+			
 			ringConfig = ringConfigAndTree.getV1();
 			ringTree = ringConfigAndTree.getV2();
 			cloudMC = new com.ms.silverking.cloud.meta.MetaClient(ringConfig.getCloudConfiguration(), dhtMC.getZooKeeper().getZKConfig());
-			exclusionSet = new ExclusionZK(cloudMC).readLatestFromZK();
+			es1 = new ExclusionZK(cloudMC).readLatestFromZK();	
+			if (options.excludeInstanceExclusions) {
+				es2 = new InstanceExclusionZK(dhtMC).readLatestFromZK();
+			} else {
+				es2 = ExclusionSet.emptyExclusionSet(0);
+			}
+			exclusionSet = ExclusionSet.union(es1, es2);
 		}
 		
 		
 		classVarsZK = new ClassVarsZK(dhtMC);
-		if (dhtConfig.getDefaultClassVars() != null) {
-			defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(classVarsZK.getClassVars(dhtConfig.getDefaultClassVars()));
+		if (options.defaultClassVars != null) {
+			defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(classVarsZK.getClassVars(options.defaultClassVars));
 		} else {
-			defaultClassVars = DHTConstants.defaultDefaultClassVars;
+			if (dhtConfig.getDefaultClassVars() != null) {
+				defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(classVarsZK.getClassVars(dhtConfig.getDefaultClassVars()));
+			} else {
+				defaultClassVars = DHTConstants.defaultDefaultClassVars;
+			}
 		}
 		// FUTURE - allow for a real retention interval
 		// FUTURE - eliminate parse
-		skfsNSOptions = NamespaceOptions.parse("versionMode=SINGLE_VERSION,storageType=FILE,consistencyProtocol="+ ConsistencyProtocol.TWO_PHASE_COMMIT +",defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,},valueRetentionPolicy=<InvalidatedRetentionPolicy>{invalidatedRetentionIntervalSeconds=10},defaultGetOptions={nonExistenceResponse=NULL_VALUE}");
-		skfsMutableNSOptions = NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,revisionMode=NO_REVISIONS,storageType=FILE,consistencyProtocol="+ ConsistencyProtocol.TWO_PHASE_COMMIT +",defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,},valueRetentionPolicy=<InvalidatedRetentionPolicy>{invalidatedRetentionIntervalSeconds=10},defaultGetOptions={nonExistenceResponse=NULL_VALUE}");
+		String	opOptions;
+		String	commonNSOptions;
+		String	opTimeoutController;
+		String	dirNSPutTimeoutController;
+		String	dirNSOpOptions;
+		String	dirNSValueRetentionPolicy;
+		
+		commonNSOptions = "revisionMode=NO_REVISIONS,storageType=FILE,consistencyProtocol="+ ConsistencyProtocol.TWO_PHASE_COMMIT;
+		opTimeoutController = "opTimeoutController="+ options.opTimeoutController;
+		dirNSPutTimeoutController = "opTimeoutController="+ options.dirNSPutTimeoutController;
+		opOptions = "defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,"+ opTimeoutController +"},"
+				   +"defaultInvalidationOptions={"+ opTimeoutController +"},"
+				   +"defaultGetOptions={nonExistenceResponse=NULL_VALUE,"+ opTimeoutController +"}";
+		dirNSOpOptions = "defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,"+ dirNSPutTimeoutController +"},"
+				   +"defaultInvalidationOptions={"+ opTimeoutController +"},"
+				   +"defaultGetOptions={nonExistenceResponse=NULL_VALUE,"+ opTimeoutController +"}";
+		dirNSValueRetentionPolicy = "valueRetentionPolicy=<TimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=1,timeSpanSeconds=86400}";
+		skfsNSOptions = NamespaceOptions.parse("versionMode=SINGLE_VERSION,"+ commonNSOptions +","+ opOptions);
+		skfsMutableNSOptions =                   NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions);
+		skfsFileBlockNSOptions =                 NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions);
+		skfsDirNSOptions =                 		NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ dirNSOpOptions +","+ dirNSValueRetentionPolicy);
 		skGlobalCodebase = PropertiesHelper.envHelper.getString("skGlobalCodebase", UndefinedAction.ZeroOnUndefined);
+		
 	}
 	
 	private static Pair<RingConfiguration,InstantiatedRingTree> getRing(DHTConfiguration dhtConfig, com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) throws IOException, KeeperException {
@@ -259,7 +306,11 @@ public class SKAdmin {
 	
 	private String getJVMOptions(ClassVars classVars) {
 		return "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="
-				+DHTConstants.getSKInstanceLogDir(classVars, gc) +"/"+ DHTConstants.heapDumpFile;
+				+getHeapDumpFile(classVars);
+	}
+	
+	private String getHeapDumpFile(ClassVars classVars) {
+		return DHTConstants.getSKInstanceLogDir(classVars, gc) +"/"+ DHTConstants.heapDumpFile;
 	}
 
 	private String getProfilingOptions(SKAdminOptions options) {
@@ -277,33 +328,66 @@ public class SKAdmin {
 		return classVars.getVarMap().get(DHTConstants.reapIntervalVar);
 	}
 	
+	private String getFileSegmentCacheCapacity(ClassVars classVars) {
+		return classVars.getVarMap().get(DHTConstants.fileSegmentCacheCapacityVar);
+	}
+	
+	private String getRetrievalImplementation(ClassVars classVars) {
+		return classVars.getVarMap().get(DHTConstants.retrievalImplementationVar);
+	}
+	
+	private String getSegmentIndexLocation(ClassVars classVars) {
+		return classVars.getVarMap().get(DHTConstants.segmentIndexLocationVar);
+	}
+	
+	private String getNSPrereadGB(ClassVars classVars) {
+		return classVars.getVarMap().get(DHTConstants.nsPrereadGBVar);
+	}
+	
 	private String getDHTOptions(SKAdminOptions options, ClassVars classVars) {
 		return "-Dcom.ms.silverking.Log="+ options.logLevel
 				+" -D"+ DHTConstants.dataBasePathProperty +"="+ getDataDir(classVars)
-				+" -D"+ DHTConstants.reapIntervalProperty +"="+ getReapInterval(classVars);
+				+" -D"+ DHTConstants.reapIntervalProperty +"="+ getReapInterval(classVars)
+				+" -D"+ DHTConstants.fileSegmentCacheCapacityProperty +"="+ getFileSegmentCacheCapacity(classVars)
+				+" -D"+ DHTConstants.retrievalImplementationProperty +"="+ getRetrievalImplementation(classVars)
+				+" -D"+ DHTConstants.segmentIndexLocationProperty +"="+ getSegmentIndexLocation(classVars)
+				+" -D"+ DHTConstants.nsPrereadGBProperty +"="+ getNSPrereadGB(classVars)
+				;
+	}
+	
+	private String createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
+		String	cmdFile;
+		
+		cmdFile = "/tmp/cmd."+ System.currentTimeMillis();
+		return "echo \""+ _createStartCommand(dhtConfig, classVars, options) +"\" > "+ cmdFile +"; chmod +x "+ cmdFile +"; nohup "+cmdFile +" 1> /dev/null 2>&1 < /dev/null &";
 	}
 	
 	// FUTURE - make os specific commands generic
-	private String createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
+	private String _createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
 		String	daemonLogDir;
 		String	daemonLogFile;
 		String	prevDaemonLogFile;
+		boolean	destructive;
 		
+		destructive = options.destructive;
 		daemonLogDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
 		daemonLogFile = daemonLogDir +"/"+ DHTConstants.daemonLogFile;
 		prevDaemonLogFile = daemonLogDir +"/"+ DHTConstants.prevDaemonLogFile;
-		return 
-				createStopCommand(dhtConfig, classVars) +"; "
+		return  (destructive ? "" : "netstat -tulpn | grep tcp.*:"+ dhtConfig.getPort() +" ; ") +
+				(destructive ? "" : "if [ \\$? -ne 0 ]; then { ") +
+				(destructive ? createStopCommand(dhtConfig, classVars) +"; " : "")
 				+"mkdir -p "+ getDataDir(classVars) +"; "
 				+"mkdir -p "+ daemonLogDir +"; "
+				+"rm "+ getHeapDumpFile(classVars) +"; "
 				+"mv "+ daemonLogFile +" "+ prevDaemonLogFile +"; "
 				+ getPreJavaCommand(classVars) +" "
 				+ getJavaCmdStart(options, classVars) 
 				+" "+ DHTNode.class.getCanonicalName()
+				+ (options.disableReap ? " -r " : "")
 				+" -n "+ gc.getClientDHTConfiguration().getName() 
 				+" -z "+ new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs()).toString()
 				+" -into "+ options.inactiveNodeTimeoutSeconds
-				+" 1>"+ daemonLogFile +" 2>&1 &"
+				+( destructive ? (" 1>"+ daemonLogFile +" 2>&1 &") : (" 1>"+ daemonLogFile +"; 2>&1; } & fi") )
 				;
 	}
 	
@@ -355,8 +439,8 @@ public class SKAdmin {
 	}
 	
 	/*
-	 * Previous heap definitions allowed unitless quantities to be treated as MB. 
-	 * Do that here for smaller unitless quantities
+	 * Previous heap definitions allowed unit-less quantities to be treated as MB. 
+	 * Do that here for smaller unit-less quantities
 	 */
 	private String checkForLegacyHeapDef(String def) {
 		def = def.trim();
@@ -378,7 +462,8 @@ public class SKAdmin {
 	
 	private String getCheckSKFSBaseCommand(ClassVars classVars, String command) {
 		return (skGlobalCodebase == null ? "" : "export skGlobalCodebase="+ skGlobalCodebase +"; ")
-				+"export "+ GridConfiguration.defaultBaseEnvVar +"="+ GridConfiguration.defaultBase +"; " 
+				+"export "+ GridConfiguration.defaultBaseEnvVar +"="+ 
+					(options.gridConfigBase == null ? GridConfiguration.getDefaultBase() : new File(options.gridConfigBase)) +"; " 
 				+"export "+ DHTConstants.jaceHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.jaceHomeEnv, UndefinedAction.ExceptionOnUndefined) +"; "
 				+"export "+ DHTConstants.javaHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.javaHomeEnv, getSystemJavaHome()) +"; "
 				+"export "+ DHTConstants.classpathEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.classpathEnv, System.getProperty(DHTConstants.classpathProperty)) +"; "
@@ -411,7 +496,9 @@ public class SKAdmin {
 			} else {
 				_result = execAdminCommandGroup(commandGroup);
 			}
-			result = result && _result;
+			if (!_result) {
+				return false;
+			}
 		}
 		return result;
 	}
@@ -474,6 +561,9 @@ public class SKAdmin {
 				case SetInstanceExclusions:
 					_result = setInstanceExclusions();
 					break;
+				case GetInstanceExclusions:
+					_result = displayInstanceExclusions();
+					break;
 				default:
 					throw new RuntimeException("panic");
 				}
@@ -494,11 +584,43 @@ public class SKAdmin {
 	}
 
 	private boolean setInstanceExclusions() throws KeeperException, IOException {
+		return setInstanceExclusions(options.targets != null ? ExclusionSet.parse(options.targets) : ExclusionSet.emptyExclusionSet(VersionedDefinition.NO_VERSION));
+	}
+	
+	private boolean setInstanceExclusions(ExclusionSet exclusionSet) throws KeeperException, IOException {
 		InstanceExclusionZK	instanceExclusionZK;
 		
 		instanceExclusionZK = new InstanceExclusionZK(dhtMC);
-		instanceExclusionZK.writeToZK(options.newHost != null ? ExclusionSet.parse(options.newHost) : ExclusionSet.emptyExclusionSet(VersionedDefinition.NO_VERSION));
+		instanceExclusionZK.writeToZK(exclusionSet);
 		return true;
+	}
+	
+	private boolean displayInstanceExclusions() throws KeeperException, IOException {
+		System.out.println(getInstanceExclusions());
+		return true;
+	}
+	
+	private ExclusionSet getInstanceExclusions() throws KeeperException, IOException {
+		InstanceExclusionZK	instanceExclusionZK;
+		ExclusionSet		exclusions;
+		
+		instanceExclusionZK = new InstanceExclusionZK(dhtMC);
+		exclusions = instanceExclusionZK.readFromZK(VersionedDefinition.NO_VERSION, null);
+		return exclusions;
+	}
+	
+	private void addToInstanceExclusions(Set<IPAndPort> serversToAdd) throws KeeperException, IOException {
+		ExclusionSet	exclusionSet;
+		ExclusionSet	newExclusionSet;
+		
+		exclusionSet = getInstanceExclusions();
+		newExclusionSet = exclusionSet.addByIPAndPort(serversToAdd);
+		setInstanceExclusions(newExclusionSet);
+		System.out.println("............................");
+		System.out.println(newExclusionSet);
+		System.out.println("----------------------------");
+		displayInstanceExclusions();
+		System.out.println("============================");
 	}
 	
 	private boolean execCreateSKFSns() throws IOException, ClientException, KeeperException {
@@ -514,29 +636,36 @@ public class SKAdmin {
 		Log.warning("hostGroupTableName: ", hostGroupTableName);
 		hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
 		
-		preferredServer = findArbitraryActiveServer(dhtConfig.getHostGroups(), hostGroupTable);
+		if (options.preferredServer == null) {
+			preferredServer = findArbitraryActiveServer(dhtConfig.getHostGroups(), hostGroupTable);
+		} else {
+			preferredServer = options.preferredServer;
+		}
 		Log.warning("Using preferredServer ", preferredServer);
 		nsCreator = new SKFSNamespaceCreator(gc.getClientDHTConfiguration(), preferredServer);
 		nsCreator.createNamespaces(skfsNamespaces, skfsNSOptions);
 		nsCreator.createNamespaces(skfsMutableNamespaces, skfsMutableNSOptions);
+		nsCreator.createNamespaces(skfsFileBlockNamespaces, skfsFileBlockNSOptions);
+		nsCreator.createNamespaces(skfsDirNamespaces, skfsDirNSOptions);
 		return true;
 	}
 	
-	private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers) {
+	private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers, Set<String> targetServers) {
 		Set<String>	_servers;
 		
 		_servers = new HashSet<>(servers);
-		if (!options.includeExcludedHosts) {
+		if (!options.includeExcludedHosts && !options.targetsEqualsExclusionsTarget()) {
 			_servers.removeAll(exclusionSet.getServers());
 		}
-		if (options.newHost != null) {
-			Set<String>	newHosts;
+		if (options.targets != null) {
 			Set<String>	_s;
 			
-			newHosts = CollectionUtil.parseSet(options.newHost, ",");
-			//Log.warningf("options.newHost %s newHosts %d", options.newHost, newHosts.size());
 			_s = new HashSet<>(_servers);
-			_s.retainAll(newHosts);
+			if (options.targetsEqualsExclusionsTarget()) {
+				_s.retainAll(exclusionSet.getServers());
+			} else {
+				_s.retainAll(targetServers);
+			}
 			return _s;
 		} else {
 			return _servers;
@@ -569,6 +698,19 @@ public class SKAdmin {
 			}
 		}		
 	}	
+	
+    public InstantiatedRingTree readCurrentTree() throws KeeperException, IOException {
+    	DHTRingCurTargetZK	curTargetZK;
+    	Triple<String,Long,Long>	curRingAndVersionPair;
+    	InstantiatedRingTree	ringTree;
+    	
+    	curTargetZK = new DHTRingCurTargetZK(dhtMC, dhtConfig);
+    	curRingAndVersionPair = curTargetZK.getCurRingAndVersionPair();
+    	ringTree = SingleRingZK.readTree(new com.ms.silverking.cloud.toporing.meta.MetaClient(
+    			new NamedRingConfiguration(dhtConfig.getRingName(), ringConfig), dhtMC.getZooKeeper().getZKConfig()), curRingAndVersionPair.getTail());
+    	return ringTree;
+    }
+    
 
 	private boolean execClusterCommandGroup(SKAdminCommand[] commands) throws IOException, KeeperException {
 		/*
@@ -595,6 +737,10 @@ public class SKAdmin {
 		Map<String,String[]>	serverCommands;
 		Set<String>				passiveNodeHostGroupNames;
 		boolean					result;
+		Set<String>				targetServers;
+		Set<String>				passiveTargetServers;
+		
+		targetServers = CollectionUtil.parseSet(options.targets, ",");		
 		
 		activeHostGroupNames = dhtConfig.getHostGroups();
 		Log.warning("hostGroupNames: ", CollectionUtil.toString(activeHostGroupNames));		
@@ -609,22 +755,34 @@ public class SKAdmin {
 		// active and passive, the ring from containing servers without class vars, etc.
 		
 		validActiveServers = findValidActiveServers(activeHostGroupNames, hostGroupTable, ringTree);
-		validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers);
+		validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers);
 		verifyServerEligibility(validActiveServers, commands);
 		Log.warning("validActiveServers: ", CollectionUtil.toString(validActiveServers));
+		
+		passiveTargetServers = new HashSet<>();
+		passiveTargetServers.addAll(targetServers);
+		passiveTargetServers.removeAll(validActiveServers);
 		
 		passiveNodeHostGroupNames = dhtConfig.getPassiveNodeHostGroupsAsSet();
 		Log.warning("passiveNodeHostGroupNames: ", CollectionUtil.toString(passiveNodeHostGroupNames));
 		
-		validPassiveServers = findValidPassiveServers(passiveNodeHostGroupNames, hostGroupTable);
-		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers);
+		if (passiveTargetServers.size() > 0) {
+			validPassiveServers = ImmutableSet.copyOf(passiveTargetServers);
+		} else {
+			validPassiveServers = findValidPassiveServers(passiveNodeHostGroupNames, hostGroupTable);
+		}
+		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers);
 		Log.warning("validPassiveServers: ", CollectionUtil.toString(validPassiveServers));
+		
+		if (Arrays.contains(commands, SKAdminCommand.ClearData) && !options.targetsEqualsExclusionsTarget()) {
+			Log.countdownWarning("*** Clearing ALL data ***", unsafeWarningCountdown);
+		}
 		
 		result = true;
 		for (SKAdminCommand command : commands) {
 			boolean	_result;
 			
-			Log.warning("Executing cluster command: ", command);
+			Log.warning("Executing cluster command: ", command);			
 			serverCommands = createServerCommands(command, validActiveServers, validPassiveServers, 
 												hostGroupTable, hostGroupToClassVars, 
 												activeHostGroupNames, passiveNodeHostGroupNames);
@@ -636,20 +794,77 @@ public class SKAdmin {
 					break;
 				}
 			}
-			Log.warning("Waiting for nodes to enter running state...");
 			if (command.equals(SKAdminCommand.StartNodes)) {
-				waitUntilRunning(IPAndPort.set(validActiveServers, dhtConfig.getPort()));
+				int[]	timeouts;
+				boolean	running;
+				int		attemptIndex;
+				
+				Log.warning("Waiting for nodes to enter running state...");
+				timeouts = NumUtil.parseIntArray(options.timeoutSeconds, ",");
+				running = false;
+				attemptIndex = 0;
+				do {
+					Pair<Set<IPAndPort>,Boolean>	waitResult;
+					Set<IPAndPort>	failedServers;
+					
+					Log.warningf("attemptIndex: %d\ttimeout: %d", attemptIndex, timeouts[attemptIndex]);					
+
+					{
+						InstantiatedRingTree	curTree;
+						ResolvedReplicaMap		replicaMap;
+						List<Set<IPAndPort>>	excludedReplicaSets;
+						
+						curTree = readCurrentTree();
+						replicaMap = curTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());
+						excludedReplicaSets = replicaMap.getExcludedReplicaSets(exclusionSet.asIPAndPortSet(0));
+						if (excludedReplicaSets.size() != 0) {
+							Log.warning("Exclusion set excludes at least one replica set:");
+							for (Set<IPAndPort> s : excludedReplicaSets) {
+								Log.warningf("%s", s);
+							}
+							return false;
+						}
+					}
+					
+					waitResult = waitUntilRunning(IPAndPort.set(validActiveServers, dhtConfig.getPort()), timeouts[attemptIndex]);
+					failedServers = waitResult.getV1();
+					if (waitResult.getV2()) {
+						running = true;
+					} else {
+						++attemptIndex;
+						if (attemptIndex < timeouts.length) {
+							Log.warningf("Adding to instance exclusion set: %s", failedServers);
+							if (options.excludeInstanceExclusions) {
+								exclusionSet = exclusionSet.addByIPAndPort(failedServers);
+							}
+							addToInstanceExclusions(failedServers);
+							validActiveServers = removeServers(validActiveServers, failedServers);
+						}
+					}
+				} while (!running && attemptIndex < timeouts.length);
+				if (!running) {
+					return false;
+				}
 			}
 		}
-		
 		return result;
 	}
 	
+	private Set<String> removeServers(Set<String> originalServers, Set<IPAndPort> serversToRemove) {
+		Set<String>	newServers;
+		
+		newServers = new HashSet<>();
+		newServers.addAll(originalServers);
+		newServers.removeAll(IPAndPort.copyServerIPsAsMutableSet(serversToRemove));
+		return ImmutableSet.copyOf(newServers);
+	}
+
 	private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts) throws IOException {
 		TwoLevelParallelSSHMaster	sshMaster;
 		boolean	result;
 		
-		sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.timeoutSeconds, options.maxAttempts, false);
+		Log.warningf("serverCommands.size() %d", serverCommands.size());
+		sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
 		Log.warning("Starting workers");
 		sshMaster.startWorkers();
 		Log.warning("Waiting for workers");
@@ -699,6 +914,10 @@ public class SKAdmin {
 				case ClearData:
 					rawServerCommand = createClearDataCommand(dhtConfig, serverClassVars);
 					break;
+				case StartSKFS:
+					if (options.destructive) {
+						throw new RuntimeException("Destructive StartSKFS not supported");
+					}
 				case CheckSKFS:
 					rawServerCommand = createCheckSKFSCommand(dhtConfig, serverClassVars);
 					break;
@@ -733,7 +952,7 @@ public class SKAdmin {
 		serverHostGroups = hostGroupTable.getHostGroups(server);
 		acceptableHostGroups = new HashSet<>(serverHostGroups);
 		activeAndPassiveHostGroupNames = new HashSet<>();
-		activeAndPassiveHostGroupNames.addAll(acceptableHostGroups);
+		activeAndPassiveHostGroupNames.addAll(activeHostGroupNames);
 		activeAndPassiveHostGroupNames.addAll(passiveNodeHostGroupNames);
 		acceptableHostGroups.retainAll(activeAndPassiveHostGroupNames);
 		if (acceptableHostGroups.size() == 1) {
@@ -744,24 +963,50 @@ public class SKAdmin {
 			serverHostGroup = acceptableHostGroups.iterator().next();
 		} else {
 			Log.warning(server +" has no valid host group ");
-			return null;
+			return defaultClassVars;
 		}
 		serverClassVars = hostGroupToClassVars.get(serverHostGroup);
 		if (serverClassVars != null) {
 			return defaultClassVars.overrideWith(serverClassVars);
 		} else {
 			Log.warning(server +" has no ClassVars for group "+ serverHostGroup);
-			return null;
+			return defaultClassVars;
 		}
 	}
 	
 	///////////////////////////////////////////
 	
-	public void waitUntilRunning(Set<IPAndPort> activeNodes) {
-		DaemonStateZK	daemonStateZK;
+	public Pair<Set<IPAndPort>,Boolean> waitUntilRunning(Set<IPAndPort> activeNodes, int timeoutSeconds) {
+		DaemonStateZK				daemonStateZK;
+		Map<IPAndPort, DaemonState>	daemonState;
 		
         daemonStateZK = new DaemonStateZK(dhtMC);
-		daemonStateZK.waitForQuorumState(activeNodes, DaemonState.RUNNING, Integer.MAX_VALUE);
+        daemonState = daemonStateZK.waitForQuorumState(activeNodes, DaemonState.RUNNING, timeoutSeconds, true);
+        Log.warningf("daemonState: %s", daemonState);
+        if (daemonState.isEmpty()) {
+        	return new Pair<>(ImmutableSet.of(), true);
+        } else {
+        	HashSet<IPAndPort>	failedDaemons;
+        	boolean				running;
+
+        	running = true;
+        	failedDaemons = new HashSet<>();
+        	for (IPAndPort activeNode : activeNodes) {
+        		DaemonState	ds;
+        		
+        		ds = daemonState.get(activeNode);
+        		System.out.printf("Node: %s\tstate: %s\n", activeNode, ds);
+        		if (ds == null) {
+        			failedDaemons.add(activeNode);
+        			running = false;
+        		} else {
+        			if (ds != DaemonState.RUNNING) {
+        				running = false;
+        			}
+        		}
+        	}
+        	return new Pair<>(failedDaemons, running);
+        }
 	}
 	
 	///////////////////////////////////////////
@@ -775,15 +1020,22 @@ public class SKAdmin {
 		}
 	}
 	
+
+	private static void sanityCheckOptions(SKAdminOptions options) {
+		// FUTURE - add
+	}
+	
 	///////////////////////////////////////////
 	
 	public static void main(String[] args) {
+		boolean			success;
+		
+		success = false;
     	try {
     		SKAdmin			skAdmin;
     		SKAdminOptions	options;
     		CmdLineParser	parser;
     		SKGridConfiguration	gc;
-    		boolean			success;
     		SKAdminCommand[]	commands;
     		
             LWTPoolProvider.createDefaultWorkPools();
@@ -799,6 +1051,7 @@ public class SKAdmin {
     		}
     		
     		fillDefaultOptions(options);
+    		sanityCheckOptions(options);
     		
     		if (options.gridConfigBase != null) {
     			gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
@@ -816,10 +1069,12 @@ public class SKAdmin {
     		skAdmin = new SKAdmin(gc, options);
     		commands = SKAdminCommand.parseCommands(options.commands);
     		success = skAdmin.execCommand(commands);
-    		Log.warning("SKAdmin exiting success="+ success);
-    		//System.exit(success ? 0 : -1);
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
+		Log.warning("SKAdmin exiting success="+ success);
+		if (exitOnCompletion) {
+			System.exit(success ? 0 : -1);
+		}
     }
 }

@@ -101,7 +101,6 @@ public class RetrievalOptions extends OperationOptions {
      * @return the modified RetrievalOptions
      */
     public RetrievalOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-        Preconditions.checkNotNull(secondaryTargets);
         return new RetrievalOptions(getOpTimeoutController(), secondaryTargets, 
 					                retrievalType, waitMode, versionConstraint, 
 					                nonExistenceResponse, verifyChecksums, 
@@ -129,7 +128,6 @@ public class RetrievalOptions extends OperationOptions {
      * @return the modified RetrievalOptions
      */
     public RetrievalOptions retrievalType(RetrievalType retrievalType) {
-        Preconditions.checkNotNull(retrievalType);
         return new RetrievalOptions(getOpTimeoutController(), getSecondaryTargets(), 
 					                retrievalType, waitMode, versionConstraint, 
 					                nonExistenceResponse, verifyChecksums, 
@@ -143,7 +141,6 @@ public class RetrievalOptions extends OperationOptions {
      * @return the modified RetrievalOptions
      */
 	public RetrievalOptions waitMode(WaitMode waitMode) {
-        Preconditions.checkNotNull(waitMode);
         return new RetrievalOptions(getOpTimeoutController(), getSecondaryTargets(), 
 					                retrievalType, waitMode, versionConstraint, 
 					                nonExistenceResponse, verifyChecksums, 
@@ -157,7 +154,6 @@ public class RetrievalOptions extends OperationOptions {
      * @return the modified RetrievalOptions
      */
     public RetrievalOptions versionConstraint(VersionConstraint versionConstraint) {
-        Preconditions.checkNotNull(versionConstraint);
         return new RetrievalOptions(getOpTimeoutController(), getSecondaryTargets(), 
 					                retrievalType, waitMode, versionConstraint, 
 					                nonExistenceResponse, verifyChecksums, 

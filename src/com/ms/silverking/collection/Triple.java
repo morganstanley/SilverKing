@@ -2,6 +2,8 @@ package com.ms.silverking.collection;
 
 import java.util.List;
 
+import com.ms.silverking.text.StringUtil;
+
 public class Triple<T1,T2,T3> extends TupleBase {
 	private final T1    v1;
     private final T2    v2;
@@ -77,7 +79,7 @@ public class Triple<T1,T2,T3> extends TupleBase {
     
     @Override 
     public String toString() {
-        return v1.toString() +":"+ v2.toString() +":"+ v3.toString();
+    	return StringUtil.nullSafeToString(v1) + ":"+ StringUtil.nullSafeToString(v2) + ":"+  StringUtil.nullSafeToString(v3);
     }
     
     public static <T1,T2,T3> Triple<T1,T2,T3> parseDefault(String def, String... typeNames) {

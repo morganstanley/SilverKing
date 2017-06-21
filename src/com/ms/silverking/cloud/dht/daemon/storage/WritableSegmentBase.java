@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,14 +16,15 @@ import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.RevisionMode;
+import com.ms.silverking.cloud.dht.StorageType;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
 import com.ms.silverking.cloud.dht.ValueRetentionState;
 import com.ms.silverking.cloud.dht.VersionConstraint;
+import com.ms.silverking.cloud.dht.collection.CuckooBase;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
-import com.ms.silverking.cloud.dht.collection.HybridPartialKeyCuckoo;
-import com.ms.silverking.cloud.dht.collection.PartialKeyCuckoo;
-import com.ms.silverking.cloud.dht.collection.PartialKeyIntCuckooBase;
+import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
+import com.ms.silverking.cloud.dht.collection.IntBufferCuckoo;
 import com.ms.silverking.cloud.dht.collection.TableFullException;
 import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -41,7 +43,8 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     protected final int         dataSegmentSize;
     protected final int         indexOffset;
     
-    protected PartialKeyIntCuckooBase  pkc;
+    protected CuckooBase	keyToOffset;
+
     protected final int               segmentNumber; // zero-based
     protected final File          nsDir;
         
@@ -51,10 +54,10 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     private static final boolean    debugCompaction = false;
     
     WritableSegmentBase(ByteBuffer dataBuf, OffsetListStore offsetListStore, 
-                            int segmentNumber, PartialKeyIntCuckooBase pkc, int dataSegmentSize) {
+                            int segmentNumber, IntArrayCuckoo keyToOffset, int dataSegmentSize) {
         super(dataBuf, offsetListStore);
         this.segmentNumber = segmentNumber;
-        this.pkc = pkc;
+        this.keyToOffset = keyToOffset;
         nextFree = new AtomicInteger(SegmentFormat.headerSize);        
         this.nsDir = null;
         this.dataSegmentSize = dataSegmentSize;
@@ -67,7 +70,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
             int dataSegmentSize) throws IOException {
         super(dataBuf, bufferOffsetListStore);        
         this.segmentNumber = segmentNumber;
-        this.pkc = new PartialKeyCuckoo(cuckooConfig, this, htBuf);
+        this.keyToOffset = new IntBufferCuckoo(cuckooConfig, htBuf);
         nextFree = new AtomicInteger(SegmentFormat.headerSize);
         this.nsDir = nsDir;
         this.dataSegmentSize = dataSegmentSize;
@@ -82,7 +85,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
             int dataSegmentSize, NamespaceOptions nsOptions) {
         super(dataBuf, new RAMOffsetListStore(nsOptions));
         this.segmentNumber = segmentNumber;
-        this.pkc = new HybridPartialKeyCuckoo(initialCuckooConfig, this);
+        this.keyToOffset = new IntArrayCuckoo(initialCuckooConfig);
         nextFree = new AtomicInteger(SegmentFormat.headerSize);
         this.nsDir = nsDir;
         this.dataSegmentSize = dataSegmentSize;
@@ -92,23 +95,21 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         }
     }
     
-    // FIXME - think about this def and usage
-    public int totalSize() {
+    public int getDataSegmentSize() {
         return dataSegmentSize;
-        //return data.length + pkc.getTotalSizeBytes();
     }
     
     int getSegmentNumber() {
         return segmentNumber;
     }
     
-    public PartialKeyIntCuckooBase getPKC() {
-        return pkc;
+    public CuckooBase getPKC() {
+        return keyToOffset;
     }
     
     @Override
     protected int getRawOffset(DHTKey key) {
-        return pkc.get(key);
+        return keyToOffset.get(key);
     }    
     
     void setNextFree(int nextFree) {
@@ -155,27 +156,48 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         OffsetList  offsetList;
         int existingOffset;
                     
-        existingOffset = pkc.get(key);
+        existingOffset = keyToOffset.get(key);
         if (debugPut) {
             Log.warning("segmentNumber: ", segmentNumber);
             Log.warning("existingOffset: ", existingOffset);
         }
-        if (existingOffset == PartialKeyIntCuckooBase.keyNotFound) {
+        if (existingOffset == CuckooBase.keyNotFound ) {
             // no offset for the key; add the mapping
-            if (debugPut) {
-                Log.warning("initial mapping: ", KeyUtil.keyToString(key));
-            }
-            try {
-                pkc.put(key, offset);
-                if (debugPut) {
-                    if (pkc.get(key) != offset) {
-                        Log.warning("sanity check failed"+ pkc.get(key) +" "+ offset);
-                    }
+            if (nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION || nsOptions.getStorageType() == StorageType.RAM) {
+	            if (debugPut) {
+	                Log.warning("initial mapping: ", KeyUtil.keyToString(key));
+	            }
+	            try {
+	            	keyToOffset.put(key, offset);
+	                if (debugPut) {
+	                    if (keyToOffset.get(key) != offset) {
+	                        Log.warning("sanity check failed"+ keyToOffset.get(key) +" "+ offset);
+	                    }
+	                }
+	            } catch (TableFullException tfe) {
+	                Log.warning("Segment pkc full. Creating new table");
+	                keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, offset);
+	            }
+            } else {
+                long    creationTime;
+                
+                // Recovery takes too long if we need to look all over for the version
+                // For disk-based ns, we currently always create an offset list
+                // Similar logic in NamespaceStore.putSegmentNumberAndVersion()
+                offsetList = offsetListStore.newOffsetList();                                    
+                if (nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS) {
+                    creationTime = getCreationTime(offset);
+                } else {
+                    creationTime = 0;
                 }
-            } catch (TableFullException tfe) {
-                //tfe.printStackTrace();
-                Log.warning("Segment pkc full. Creating new table");
-                pkc = HybridPartialKeyCuckoo.rehashAndAdd(pkc, key, offset);
+                
+                offsetList.putOffset(version, offset, creationTime);
+                try {
+                	keyToOffset.put(key, -((RAMOffsetList)offsetList).getIndex());
+	            } catch (TableFullException tfe) {
+	                Log.warning("Segment pkc full. Creating new table");
+	                keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, -((RAMOffsetList)offsetList).getIndex());
+	            }
             }
         } else {
             // this key exists in pkc, we next determine whether it has
@@ -216,7 +238,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                     existingVersion = getVersion(existingOffset);
                     
                     if (nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS) {
-                        existingCreationTime = getCreationTime(offset);
+                        existingCreationTime = getCreationTime(existingOffset);
                         creationTime = getCreationTime(offset);
                     } else {
                         existingCreationTime = 0;
@@ -231,13 +253,18 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                             Log.warning("removing existing mapping: ", KeyUtil.keyToString(key));
                         }
                         boolean removed;
-                        removed = pkc.remove(key);
+                        removed = keyToOffset.remove(key);
                         if (debugPut || Log.levelMet(Level.FINE)) {
                             Log.warning("removed: ", removed);
-                            Log.warning("pkc.get: ", pkc.get(key));
+                            Log.warning("pkc.get: ", keyToOffset.get(key));
                             Log.warning("putting new mapping: ", KeyUtil.keyToString(key) +" "+ -((RAMOffsetList)offsetList).getIndex());
                         }
-                        pkc.put(key, -((RAMOffsetList)offsetList).getIndex());
+                        try {
+                        	keyToOffset.put(key, -((RAMOffsetList)offsetList).getIndex());
+	    	            } catch (TableFullException tfe) {
+	    	                Log.warning("Segment pkc full. Creating new table");
+	    	                keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, -((RAMOffsetList)offsetList).getIndex());
+	    	            }
                     } else {
                     	ValueCreator	creator;
                     	
@@ -256,7 +283,9 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                         		return SegmentStorageResult.duplicateStore;
                             } else {
                                 if (debugPut) {
-                                	Log.warning(String.format("Duplicate version, but checksums failed to compare: %s %s", 
+                                	Log.warning(String.format("Duplicate existingVersion %d version %d, eo %d o %d, but checksums failed to compare: %s %s",
+                                			existingVersion, version,
+                                			existingOffset, offset,
                                 			StringUtil.byteArrayToHexString(existingChecksum), StringUtil.byteArrayToHexString(newChecksum)));
                                 }
     	                        return SegmentStorageResult.invalidVersion;
@@ -264,7 +293,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                     	} else {
 	                        // FUTURE: Consider: allow puts of incomplete stores to continue?
 	                        if (debugPut) {
-	                            Log.warning("WritableSegmentBase._put detected invalid version");
+	                            Log.warning("WritableSegmentBase._put detected invalid version b");
 	                            Log.warning(nsOptions);
 	                        }
 	                        return SegmentStorageResult.invalidVersion;
@@ -277,7 +306,10 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                     // offset list is associated, use the existing offset list
                     offsetList = offsetListStore.getOffsetList(-existingOffset);
                     if (nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS
-                            || version > offsetList.getLatestVersion()) {
+                            || version >= offsetList.getLatestVersion()) { 
+                    								// note: > since we want new versions to be added
+                    								// == since we might need to store over an incomplete store
+                    								// so >= to cover both
                         long    creationTime;
                         
                         if (debugPut || Log.levelMet(Level.FINE)) {
@@ -325,37 +357,79 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     
 	/////////////////////////
 
+    private static class OffsetVersionAndCreationTimeListReverseComparator implements Comparator<Triple<Integer,Long,Long>> {
+		@Override
+		public int compare(Triple<Integer, Long, Long> t1, Triple<Integer, Long, Long> t2) {
+			if (t1.getV1() < t2.getV1()) {
+				return 1; // reverse order
+			} else if (t1.getV1() > t2.getV1()) {
+				return -1; // reverse order
+			} else {
+				if (t1.getV2() < t2.getV2()) {
+					return 1; // reverse order
+				} else if (t1.getV2() > t2.getV2()) {
+					return -1; // reverse order
+				} else {
+					if (t1.getV3() < t2.getV3()) {
+						return 1; // reverse order
+					} else if (t1.getV3() > t2.getV3()) {
+						return -1; // reverse order
+					} else {
+						return 0;
+					}
+				}
+			}
+		}    	
+    }
+    
 	public <T extends ValueRetentionState> Triple<CompactionCheckResult,Set<Integer>,Set<Integer>> 
-							singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, NodeRingMaster2 ringMaster) {
-		int		numRetained;
-		int		numDiscarded;
-		Set<Integer>	retainedOffsets;
-		Set<Integer>	discardedOffsets;
-		
+								singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, NodeRingMaster2 ringMaster) {
+		int numRetained;
+		int numDiscarded;
+		Set<Integer> retainedOffsets;
+		Set<Integer> discardedOffsets;
+
 		numRetained = 0;
 		numDiscarded = 0;
 		retainedOffsets = new HashSet<>();
 		discardedOffsets = new HashSet<>();
 		// Within each segment, the backwards walking is per key.
 		// The outer loop loops through the keys first.
-		for (DHTKeyIntEntry entry : pkc) {
-			int					rawOffset;
-			List<Integer>		offsetList;
-			
+		for (DHTKeyIntEntry entry : keyToOffset) {
+			int rawOffset;
+			List<Triple<Integer,Long,Long>> offsetVersionAndCreationTimeList;
+
 			rawOffset = entry.getValue();
 			if (rawOffset >= 0) {
-				offsetList = ImmutableList.of(rawOffset);
+				long	version;
+				long	creationTime;
+				
+				version = getVersion(rawOffset);
+				creationTime = getCreationTime(rawOffset);
+				offsetVersionAndCreationTimeList = ImmutableList.of(new Triple<>(rawOffset, version, creationTime));
 			} else {
-				offsetList = new ArrayList(ImmutableList.copyOf(offsetListStore.getOffsetList(-rawOffset)));
-				Collections.sort(offsetList, Collections.reverseOrder());
+				offsetVersionAndCreationTimeList = new ArrayList(ImmutableList.copyOf(offsetListStore.getOffsetList(-rawOffset).offsetVersionAndStorageTimeIterable()));
+				Collections.sort(offsetVersionAndCreationTimeList, new OffsetVersionAndCreationTimeListReverseComparator());
 			}
 			// List is now in reverse order; iterate down through the offsets
-			for (int offset : offsetList) {
-				DHTKey	entryKey;
-				
+			for (Triple<Integer,Long,Long> offsetVersionAndCreationTime : offsetVersionAndCreationTimeList) {
+				DHTKey entryKey;
+				int	offset;
+				long	version;
+				long	creationTime;
+
+				offset = offsetVersionAndCreationTime.getV1();
+				version = offsetVersionAndCreationTime.getV2();
+				creationTime = offsetVersionAndCreationTime.getV3();
 				entryKey = entry.getKey();
-				//Log.warningf("%s %d %d %d %s", entry.getKey(), offset, getCreationTime(offset), curTimeNanos, isInvalidated(offset));
-				if (vrp.retains(entryKey, getVersion(offset), getCreationTime(offset), isInvalidated(offset), valueRetentionState, curTimeNanos)
+				//Log.warningf("%s %d %d %d %s", entry.getKey(), offset,
+				//getCreationTime(offset), curTimeNanos,
+				//isInvalidated(offset));
+				// FUTURE - the isInvalidated() call below may touch disk and dramatically increase the
+				// execution time. Not a huge deal for segments that will be modified, but
+				// a dramatic increase in time for segments that won't.
+				// Leaving for now as tracking in memory requires space
+				if (vrp.retains(entryKey, version, creationTime, isInvalidated(offset), valueRetentionState, curTimeNanos)
 						&& ringMaster.iAmPotentialReplicaFor(entryKey)) {
 					++numRetained;
 					retainedOffsets.add(offset);
@@ -369,4 +443,5 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
 		}
 		return new Triple<>(new CompactionCheckResult(numRetained, numDiscarded), retainedOffsets, discardedOffsets);
 	}
+    
 }

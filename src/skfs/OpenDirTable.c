@@ -22,6 +22,9 @@
 #define ODT_TRIGGER_INTERVAL_MILLIS	10
 // FUTURE - limit ODC cache size in the future, and add an eviction batch size such as 128
 
+#define _ODT_OPENDIR_RETRIES    10
+#define _ODT_OPENDIR_RETRY_INTERVAL_SECONDS 1
+
 
 ////////////
 // externs
@@ -35,6 +38,7 @@ extern OpenDirWriter	*od_odw;
 static uint64_t _minReconciliationSleepMillis = 1 * 1000;
 static uint64_t	_maxReconciliationSleepMillis = 8 * 1000;
 static unsigned int _reconciliationSeed;
+static uint64_t _lastVersion;
 
 
 ///////////////////////
@@ -47,6 +51,7 @@ static DirData *odt_get_DirData(OpenDirTable *odt, char *path);
 static int odt_rm_entry(OpenDirTable *odt, char *path, char *child);
 static int odt_add_entry(OpenDirTable *odt, char *path, char *child);
 
+static uint64_t odt_getVersion();
 
 
 ///////////////
@@ -114,17 +119,30 @@ static DirData *odt_get_DirData(OpenDirTable *odt, char *path) {
 
 int odt_opendir(OpenDirTable *odt, const char* path, struct fuse_file_info* fi) {
 	DirData	*openDir;
+    int     attempt;
+    int     result;
 	
-	openDir = odt_get_DirData(odt, (char *)path);
-	if (openDir) {
-		if (fi) {
-			fi->fh = (uint64_t)openDir;
-		}
-		return 0;
-	} else {
-        srfsLog(LOG_INFO, "odt_open_dir can't find %s", path);
-		return -ENOENT;
-	}
+    attempt = 0;
+    result = 0;
+    do {
+        openDir = odt_get_DirData(odt, (char *)path);
+        if (openDir) {
+            if (fi) {
+                fi->fh = (uint64_t)openDir;
+            }
+            result = 0;
+        } else {
+            srfsLog(LOG_INFO, "odt_opendir can't find %s", path);
+            result = -ENOENT;
+        }
+        if (result != 0) {
+            srfsLog(LOG_WARNING, "odt_opendir error %s %d", path, result);
+            if (attempt < _ODT_OPENDIR_RETRIES) {
+                sleep(_ODT_OPENDIR_RETRY_INTERVAL_SECONDS);
+            }
+        }
+    } while (result != 0 && attempt++ < _ODT_OPENDIR_RETRIES);
+    return result;
 }
 
 int odt_readdir(OpenDirTable *odt, const char *path, void *buf, fuse_fill_dir_t filler,
@@ -176,12 +194,27 @@ int odt_releasedir(OpenDirTable *odt, const char* path, struct fuse_file_info *f
 	return 0;
 }
 
+static uint64_t odt_getVersion() {
+    uint64_t    v;
+    
+    v = curTimeMillis();
+    // below is not thread-safe
+    // a simplistic attempt to reduce collisions without impacting speed
+    if (v == _lastVersion) {
+        _lastVersion++;
+        v++;
+    } else {
+        _lastVersion = v;
+    }
+    return v;
+}
+
 static int odt_rm_entry(OpenDirTable *odt, char *path, char *child) {
 	int	result;
 	OpenDir	*od;
     uint64_t    version;
 
-    version = curTimeMillis();
+    version = odt_getVersion();
 	srfsLog(LOG_FINE, "odt_rm_entry %s %s", path, child);
 	result = ddr_get_OpenDir(odt->ddr, path, &od, DDR_NO_AUTO_CREATE);
 	if (result == 0) {
@@ -204,7 +237,7 @@ static int odt_add_entry(OpenDirTable *odt, char *path, char *child) {
 	OpenDir	*od;
     uint64_t    version;
 
-    version = curTimeMillis();
+    version = odt_getVersion();
 	srfsLog(LOG_FINE, "odt_add_entry %s %s", path, child);
     od = NULL;
     // We auto-create below as a safety check. The parent
@@ -358,8 +391,27 @@ int odt_mkdir(OpenDirTable *odt, char *path, mode_t mode) {
 	// Write out attribute information & wait for the write to complete
 	awResult = aw_write_attr_direct(odt->aw, path, &fa, ar_get_attrCache(odt->ar));
 	if (awResult != SKOperationState::SUCCEEDED) {
-		srfsLog(LOG_WARNING, "odt_mkdir aw_write_attr_direct failed %s", path);
-		result = EIO;
+        FileAttr    fa;
+        int         gaResult;
+        
+        memset(&fa, 0, sizeof(FileAttr));
+        gaResult = ar_get_attr(odt->ar, path, &fa);
+        if (!gaResult) {
+            srfsLog(LOG_WARNING, "odt_mkdir aw_write_attr_direct failed / EEXIST %s %d %d %x", path, awResult, gaResult, fa.stat.st_mode);
+            // FUTURE - change to LOG_INFO - LOG_WARNING for verification only
+            result = EEXIST;
+        } else {
+            int rmpResult;
+            
+            srfsLog(LOG_WARNING, "odt_mkdir aw_write_attr_direct failed2 %s %d %d", path, awResult, gaResult);
+            result = EIO;
+            
+            // Remove this entry from the parent since the aw failed
+            rmpResult = odt_rm_entry_from_parent_dir(odt, path);
+            if (rmpResult != 0) {
+                srfsLog(LOG_WARNING, "odt_mkdir aw_write_attr_direct failed and can't remove from parent. %s %d %d", path, awResult, gaResult);
+            }
+        }
 	} else {
 		OpenDir	*od;
 	
@@ -368,53 +420,66 @@ int odt_mkdir(OpenDirTable *odt, char *path, mode_t mode) {
 		srfsLog(LOG_FINE, "odt_mkdir ddr_get_OpenDir %s %d", path, result);
 		if (result == 0) {
 			odw_write_dir(odt->odw, path, od);
-		}
+		} else {
+            srfsLog(LOG_WARNING, "odt_mkdir ddr_get_OpenDir failed %s %d", path, result);
+			odw_write_dir(odt->odw, path, od);
+        }
 	}
 	srfsLog(LOG_FINE, "out odt_mkdir %s %d", path, -result);	
 	return -result;
 }
 
 int odt_rmdir(OpenDirTable *odt, char *path) {
-	int	result;
-	FileAttr	fa;
-	time_t	curEpochTimeSeconds;
-	SKOperationState::SKOperationState	awResult;
-	struct fuse_context	*fuseContext;	
+    DirData *dd;
+	
+	srfsLog(LOG_FINE, "in odt_rmdir %s", path);    
+	dd = ddr_get_DirData(odt->ddr, path);
+    if (dd == NULL) {
+        srfsLog(LOG_WARNING, "null ddr_get_DirData %s", path);    
+        return -EIO;
+    }
+    if (!dd_is_empty(dd)) {
+        return -ENOTEMPTY;
+    } else {
+        int     result;
+        FileAttr	fa;
+        time_t	curEpochTimeSeconds;
+        SKOperationState::SKOperationState	awResult;
+        //struct fuse_context	*fuseContext;	
+        //fuseContext = fuse_get_context();
+    
+        memset(&fa, 0, sizeof(struct FileAttr));
+        
+        result = odt_rm_entry_from_parent_dir(odt, path);
+        if (result != 0) {
+            return -result;
+        }
+        
+        fid_generate_and_init_skfs(&fa.fid);
+        
+        // Fill in file stat information
+        srfsLog(LOG_FINE, "mode %o", fa.stat.st_mode);
+        fa.stat.st_nlink = 0;
 
-	fuseContext = fuse_get_context();
-	
-	srfsLog(LOG_FINE, "in odt_rmdir %s", path);
-	memset(&fa, 0, sizeof(struct FileAttr));
-	
-	result = odt_rm_entry_from_parent_dir(odt, path);
-	if (result != 0) {
-		return -result;
-	}
-	
-	fid_generate_and_init_skfs(&fa.fid);
-	
-	// Fill in file stat information
-	srfsLog(LOG_FINE, "mode %o", fa.stat.st_mode);
-	fa.stat.st_nlink = 0;
-
-	//aw_write_attr(aw, wf->path, &wf->fa); // old queued async write
-	// Write out attribute information & wait for the write to complete
-	awResult = aw_write_attr_direct(odt->aw, path, &fa, ar_get_attrCache(odt->ar));
-	if (awResult != SKOperationState::SUCCEEDED) {
-		srfsLog(LOG_WARNING, "odt_mkdir aw_write_attr_direct failed %s", path);
-		result = EIO;
-	} else {
-		OpenDir	*od;
-	
-		od = NULL;
-		result = ddr_get_OpenDir(odt->ddr, path, &od, DDR_AUTO_CREATE);
-		srfsLog(LOG_FINE, "odt_rmdir ddr_get_OpenDir %s %d", path, result);
-		if (result == 0) {
-			od_mark_deleted(od);
-		}
-	}
-	srfsLog(LOG_FINE, "out odt_mkdir %s %d", path, -result);	
-	return -result;
+        //aw_write_attr(aw, wf->path, &wf->fa); // old queued async write
+        // Write out attribute information & wait for the write to complete
+        awResult = aw_write_attr_direct(odt->aw, path, &fa, ar_get_attrCache(odt->ar));
+        if (awResult != SKOperationState::SUCCEEDED) {
+            srfsLog(LOG_WARNING, "odt_mkdir aw_write_attr_direct failed %s", path);
+            result = EIO;
+        } else {
+            OpenDir	*od;
+        
+            od = NULL;
+            result = ddr_get_OpenDir(odt->ddr, path, &od, DDR_AUTO_CREATE);
+            srfsLog(LOG_FINE, "odt_rmdir ddr_get_OpenDir %s %d", path, result);
+            if (result == 0) {
+                od_mark_deleted(od);
+            }
+        }
+        srfsLog(LOG_FINE, "out odt_mkdir %s %d", path, -result);	
+        return -result;
+    }
 }
 
 /*

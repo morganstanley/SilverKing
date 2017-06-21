@@ -115,7 +115,15 @@ public class MetaUtil {
                 return;
             }
             
-            mu = new MetaUtil(options.skfsConfigName, options.zkEnsemble) ;
+            if (options.gridConfigName == null) {
+            	if (options.skfsConfigName == null) {
+            		System.err.println("One of -d or -g must be specified");
+            	} else {
+            		options.gridConfigName = options.skfsConfigName;
+            	}
+            }
+            
+            mu = new MetaUtil(options.gridConfigName, options.zkEnsemble) ;
             mu.run(options);
         } catch (Exception e){
             e.printStackTrace();

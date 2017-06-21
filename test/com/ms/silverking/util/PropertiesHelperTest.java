@@ -1,6 +1,6 @@
 package com.ms.silverking.util;
 
-import static com.ms.silverking.testing.Util.exceptionNameChecker;
+import static com.ms.silverking.testing.Assert.exceptionNameChecker;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static com.ms.silverking.util.PropertiesHelper.ParseExceptionAction.DefaultOnParseException;
 import static com.ms.silverking.util.PropertiesHelper.ParseExceptionAction.RethrowParseException;

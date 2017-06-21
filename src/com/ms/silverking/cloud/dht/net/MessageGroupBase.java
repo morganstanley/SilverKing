@@ -15,6 +15,7 @@ import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.MultipleConnectionQueueLengthListener;
 import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.net.async.QueueingConnectionLimitListener;
+import com.ms.silverking.net.async.SelectorController;
 import com.ms.silverking.time.AbsMillisTimeSource;
 
 public class MessageGroupBase {
@@ -40,7 +41,11 @@ public class MessageGroupBase {
         this.deadlineTimeSource = deadlineTimeSource;
         paServer = new PersistentAsyncServer<>(port, 
                              new MessageGroupConnectionCreator(messageGroupReceiver, limitListener, queueLimit), 
-                             numSelectorControllers, controllerClass, mqListener, mqUUID);
+                             numSelectorControllers, controllerClass, mqListener, mqUUID,
+                             SelectorController.defaultSelectionThreadWorkLimit);
+        if (port == 0) {
+        	port = paServer.getPort();
+        }
         myIP = InetAddress.getLocalHost().getAddress();
         // FIXME - think about above for multi-homed hosts, may want to round-robin
         //         and/or allow user specification

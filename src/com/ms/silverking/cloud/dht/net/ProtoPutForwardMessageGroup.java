@@ -104,14 +104,15 @@ public final class ProtoPutForwardMessageGroup extends ProtoValueMessageGroupBas
                 // in below line we don't need to consider compressedValueSize since
                 // dedicatedBufferSizeThreshold <= valueBufferSize
                 valueBuffer = ByteBuffer.allocate(valueBufferSize);
-                if (bufferList.size() >= Short.MAX_VALUE) {
-                    throw new RuntimeException("Too many buffers");
-                }
-                curMultiValueBufferIndex = (short)bufferList.size(); 
+                //if (bufferList.size() >= Short.MAX_VALUE) {
+                //    throw new RuntimeException("Too many buffers");
+                //}
+                curMultiValueBufferIndex = bufferList.size(); 
                 bufferList.add(valueBuffer);
             }
             // record where the value will be written into the key buffer
-            keyByteBuffer.putShort(curMultiValueBufferIndex);
+            //keyByteBuffer.putShort(curMultiValueBufferIndex);
+            keyByteBuffer.putInt(curMultiValueBufferIndex);
             keyByteBuffer.putInt(valueBuffer.position());
             keyByteBuffer.putInt(uncompressedValueSize);
             keyByteBuffer.putInt(compressedValueSize);
@@ -130,11 +131,12 @@ public final class ProtoPutForwardMessageGroup extends ProtoValueMessageGroupBas
         } else {
             //ByteBuffer  newBuf;
             
-            if (bufferList.size() >= Short.MAX_VALUE) {
-                throw new RuntimeException("Too many buffers");
-            }
+            //if (bufferList.size() >= Short.MAX_VALUE) {
+            //    throw new RuntimeException("Too many buffers");
+            //}
             // record where the value will be located in the key buffer
-            keyByteBuffer.putShort((short)bufferList.size());
+            //keyByteBuffer.putShort((short)bufferList.size());
+            keyByteBuffer.putInt(bufferList.size());
             keyByteBuffer.putInt(value.position());
             keyByteBuffer.putInt(uncompressedValueSize);
             keyByteBuffer.putInt(compressedValueSize);

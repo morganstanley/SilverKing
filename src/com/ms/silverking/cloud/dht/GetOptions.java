@@ -5,7 +5,6 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
-import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
@@ -16,7 +15,7 @@ import com.ms.silverking.text.ObjectDefParser2;
  * Options for Get operations. (RetrievalOptions with WaitMode fixed at GET.) 
  */
 public final class GetOptions extends RetrievalOptions {
-    private static final Set<String>    exclusionFields = ImmutableSet.of("waitMode", "forwardingMode");
+    private static final Set<String>    exclusionFields = ImmutableSet.of("waitMode");
     
     private static final GetOptions    template = OptionsHelper.newGetOptions(
             DHTConstants.standardTimeoutController, RetrievalType.VALUE, VersionConstraint.defaultConstraint);
@@ -43,10 +42,10 @@ public final class GetOptions extends RetrievalOptions {
     public GetOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
             RetrievalType retrievalType, VersionConstraint versionConstraint, 
             NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, 
-            boolean returnInvalidations, boolean updateSecondariesOnMiss) {
+            boolean returnInvalidations, ForwardingMode forwardingMode, boolean updateSecondariesOnMiss) {
         super(opTimeoutController, secondaryTargets, retrievalType, WaitMode.GET, versionConstraint, 
-        		nonExistenceResponse, verifyChecksums, returnInvalidations, ForwardingMode.FORWARD, false);
-    }    
+        		nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, false);
+    }
     
     /**
      * Return a GetOptions instance like this instance, but with a new OpTimeoutController.
@@ -54,11 +53,10 @@ public final class GetOptions extends RetrievalOptions {
      * @return the modified GetOptions
      */
     public GetOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-        Preconditions.checkNotNull(opTimeoutController);
         return new GetOptions(opTimeoutController, getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -67,11 +65,10 @@ public final class GetOptions extends RetrievalOptions {
      * @return the modified GetOptions
      */
     public GetOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-        Preconditions.checkNotNull(secondaryTargets);
         return new GetOptions(getOpTimeoutController(), secondaryTargets, 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -84,7 +81,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -93,11 +90,10 @@ public final class GetOptions extends RetrievalOptions {
      * @return the modified GetOptions
      */
     public GetOptions retrievalType(RetrievalType retrievalType) {
-        Preconditions.checkNotNull(retrievalType);
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 retrievalType, getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -106,11 +102,10 @@ public final class GetOptions extends RetrievalOptions {
      * @return the modified GetOptions
      */
     public GetOptions versionConstraint(VersionConstraint versionConstraint) {
-        Preconditions.checkNotNull(versionConstraint);
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), versionConstraint, 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -119,11 +114,10 @@ public final class GetOptions extends RetrievalOptions {
      * @return the modified GetOptions
      */
     public GetOptions nonExistenceResponse(NonExistenceResponse nonExistenceResponse) {
-        Preconditions.checkNotNull(nonExistenceResponse);
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 nonExistenceResponse, getVerifyChecksums(), 
-                getReturnInvalidations(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -135,7 +129,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), verifyChecksums, 
-                getReturnInvalidations(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -147,7 +141,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                returnInvalidations, getUpdateSecondariesOnMiss());
+                returnInvalidations, getForwardingMode(), getUpdateSecondariesOnMiss());
     }
     
     /**
@@ -159,20 +153,23 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), updateSecondariesOnMiss);
+                getReturnInvalidations(), getForwardingMode(), updateSecondariesOnMiss);
+    }
+    
+    /**
+     * Return a GetOptions instance like this instance, but with a new forwardingMode.
+     * @param forwardingMode the new field value
+     * @return the modified GetOptions
+     */
+    public GetOptions forwardingMode(ForwardingMode forwardingMode) {
+        return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
+                getRetrievalType(), getVersionConstraint(), 
+                getNonExistenceResponse(), getVerifyChecksums(), 
+                getReturnInvalidations(), forwardingMode, getUpdateSecondariesOnMiss());
     }
     
     @Override
     public String toString() {
         return ObjectDefParser2.objectToString(this);
-    }
-    
-    /**
-     * Parse a definition 
-     * @param def object definition 
-     * @return a parsed GetOptions instance 
-     */
-    public static GetOptions parse(String def) {
-        return ObjectDefParser2.parse(GetOptions.class, def);
     }
 }

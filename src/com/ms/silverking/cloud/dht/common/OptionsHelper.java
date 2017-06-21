@@ -57,7 +57,7 @@ public class OptionsHelper {
 		return new RetrievalOptions(
 				waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
 						: DHTConstants.standardWaitForTimeoutController,
-				null, retrievalType, waitMode,
+				DHTConstants.noSecondaryTargets, retrievalType, waitMode,
 				versionConstraint, nonExistenceResponse, verifyChecksums,
 				false, ForwardingMode.FORWARD, false);
 	}
@@ -153,8 +153,8 @@ public class OptionsHelper {
 
 	public static GetOptions newGetOptions(OpTimeoutController opTimeoutController,
 										RetrievalType retrievalType, VersionConstraint versionConstraint) {
-		return new GetOptions(opTimeoutController, null, retrievalType,
-				versionConstraint, NonExistenceResponse.defaultResponse, true, false, false);
+		return new GetOptions(opTimeoutController, DHTConstants.noSecondaryTargets, retrievalType,
+				versionConstraint, NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, false);
 	}
 
 	public static GetOptions newGetOptions(RetrievalType retrievalType, VersionConstraint versionConstraint) {
@@ -182,7 +182,7 @@ public class OptionsHelper {
      */
     public static WaitOptions newWaitOptions(RetrievalType retrievalType, VersionConstraint versionConstraint,
                        int timeoutSeconds, int threshold, TimeoutResponse timeoutResponse) {
-    	return new WaitOptions(DHTConstants.standardWaitForTimeoutController, null,
+    	return new WaitOptions(DHTConstants.standardWaitForTimeoutController, DHTConstants.noSecondaryTargets,
                        retrievalType, versionConstraint, 
                        NonExistenceResponse.defaultResponse, true,
                        false,

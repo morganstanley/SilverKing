@@ -120,7 +120,13 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
 	 */
 	private void resolveVersion() {
 	    if (resolvedVersion.get() == DHTConstants.noSuchVersion) {
-            resolvedVersion.compareAndSet(DHTConstants.noSuchVersion, versionProvider.getVersion());
+	    	long	v;
+	    	
+	    	v = putOperation.putOptions().getVersion();
+	    	if (v == PutOptions.defaultVersion) {
+	    		v = versionProvider.getVersion();
+	    	}
+            resolvedVersion.compareAndSet(DHTConstants.noSuchVersion, v);
 	    }
 	}
     
@@ -131,15 +137,17 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
 	ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate, byte[] creator) {
 	    OperationUUID  opUUID;
 	    ConcurrentMap<DHTKey,ActiveKeyedOperationResultListener<OpResult>>  newMap;
+	    long	resolvedVersion;
 	    
+	    resolvedVersion = getResolvedVersion();
 	    opUUID = activePutListeners.newOpUUIDAndMap();
         return new ProtoPutMessageGroup<>(opUUID, 
                                           context.contextAsLong(),
                                           estimate.getNumKeys(),
                                           estimate.getNumBytes(),
-                                          getResolvedVersion(),
+                                          resolvedVersion,
                                           nspoImpl.getValueSerializer(),
-                                          putOperation.putOptions().version(resolvedVersion.get()), 
+                                          putOperation.putOptions().version(resolvedVersion), 
                                           putOperation.putOptions().getChecksumType(), 
                                           originator,
                                           creator,

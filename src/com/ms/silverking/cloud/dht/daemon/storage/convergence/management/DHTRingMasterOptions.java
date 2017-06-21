@@ -8,5 +8,5 @@ public class DHTRingMasterOptions {
     @Option(name="-i", usage="intervalSeconds", required=false)
     public int  watchIntervalSeconds = 10;
     @Option(name="-m", usage="Mode", required=false)
-    public Mode mode = Mode.Automatic;
+    public Mode mode = Mode.Manual;
 }

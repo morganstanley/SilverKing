@@ -1,5 +1,4 @@
 /* Copyright (C) 2002, 2004 Christopher Clark <firstname.lastname@cl.cam.ac.uk> */
-/* Modified by gmj 1/9/2017 */
 
 #ifndef __HASHTABLE_PRIVATE_CWC22_H__
 #define __HASHTABLE_PRIVATE_CWC22_H__

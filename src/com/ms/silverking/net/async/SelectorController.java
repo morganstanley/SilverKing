@@ -39,12 +39,13 @@ public final class SelectorController<C extends Connection> implements Runnable 
 	private final BaseWorker<C>    writeWorker;
 	private final SelectorThread   selectorThread;
 	
+	private final int				selectionThreadWorkLimit;
+	
     private final Queue<NewServerSocketChannel> newServerChannels;
     private final Queue<KeyChangeRequest> keyChangeRequests;
     private final boolean   debug;
     
     private volatile boolean	wakeupPending;
-    private volatile boolean    keyChangesPending;
 
 	private boolean running;
 
@@ -53,24 +54,29 @@ public final class SelectorController<C extends Connection> implements Runnable 
 	private static final boolean   allowReceiveWorkInSelectionThread = true;
     private static final boolean   allowSendWorkInSelectionThread = true;
     
+    public static final int	NO_SELECTION_THREAD_WORK_LIMIT = Integer.MAX_VALUE;
+    public static final int	defaultSelectionThreadWorkLimit = NO_SELECTION_THREAD_WORK_LIMIT;
+    
     private static ConcurrentMap<String,AtomicInteger>	ccSelectorThreadIDs = new ConcurrentHashMap<>();
 	
 	public SelectorController(BaseWorker<ServerSocketChannel> acceptWorker, 
                 	          BaseWorker<C> connectWorker, 
                 	          BaseWorker<C> readWorker, BaseWorker<C> writeWorker, 
-                	          String controllerClass, boolean debug) throws IOException {
+                	          String controllerClass,
+                	          int selectionThreadWorkLimit,
+                	          boolean debug) throws IOException {
 	    AtomicInteger 	selectorThreadID;
 	    
 		this.acceptWorker = acceptWorker;
 		this.connectWorker = connectWorker;
 		this.readWorker = readWorker;
 		this.writeWorker = writeWorker;
+		this.selectionThreadWorkLimit = selectionThreadWorkLimit;
         this.debug = debug;
 		selector = Selector.open();
 		newServerChannels = new ConcurrentLinkedQueue<NewServerSocketChannel>();
 		keyChangeRequests = new ConcurrentLinkedQueue<KeyChangeRequest>();
 		running = true;
-		keyChangesPending = true;
 		// FUTURE - consider making this an report that it is an LWT thread
 		// to allow direct calls when the selector is idle
 	    ccSelectorThreadIDs.putIfAbsent(controllerClass, new AtomicInteger());
@@ -139,8 +145,8 @@ public final class SelectorController<C extends Connection> implements Runnable 
 	
 	private void doSelection() throws IOException {
 		Iterator<SelectionKey> selectedKeys;
-		boolean   onFirstKey;
-		boolean   workInSelectionThread;
+		int			keyIndex;
+		boolean		workInSelectionThread;
 
 		// Wait for an event one of the registered channels
 		if (AsyncGlobals.debug && debug && Log.levelMet(Level.FINE)) {
@@ -167,7 +173,7 @@ public final class SelectorController<C extends Connection> implements Runnable 
 		if (AsyncGlobals.debug && debug) {
 			Log.fine("Iterating through keys");
 		}
-		onFirstKey = true;
+		keyIndex = 0;
 		while (selectedKeys.hasNext()) {
 			SelectionKey key;
 
@@ -176,10 +182,10 @@ public final class SelectorController<C extends Connection> implements Runnable 
 				Log.fine("key: ", key);
 			}
 			selectedKeys.remove();
-            workInSelectionThread = true; // FIXME - think about this and make configurable
+			workInSelectionThread = keyIndex++ < selectionThreadWorkLimit;
+            //workInSelectionThread = true; // FUTURE - think about this and make configurable
 			//workInSelectionThread = onFirstKey && !selectedKeys.hasNext();
 			//selectorThread.setAllowBlocking(workInSelectionThread);
-			onFirstKey = false;
 			if (key.isValid()) {
 				// Handle the event
 				int readyOps;
@@ -305,19 +311,16 @@ public final class SelectorController<C extends Connection> implements Runnable 
 		if (AsyncGlobals.debug && debug) {
 			Log.fine("processKeyChangeRequests");
 		}
-		if (true || keyChangesPending) {
-		    keyChangesPending = false;
-    		do {
-    			keyChangeRequest = keyChangeRequests.poll();
-    			if (keyChangeRequest != null) {
-    				try {
-    					processKeyChangeRequest(keyChangeRequest);
-    				} catch (CancelledKeyException cke) {
-    					Log.warning("Ignoring CancelledKeyException");
-    				}
-    		    }
-    		} while (keyChangeRequest != null);
-		}
+		do {
+			keyChangeRequest = keyChangeRequests.poll();
+			if (keyChangeRequest != null) {
+				try {
+					processKeyChangeRequest(keyChangeRequest);
+				} catch (CancelledKeyException cke) {
+					Log.warning("Ignoring CancelledKeyException");
+				}
+		    }
+		} while (keyChangeRequest != null);
 	}
 
 	private void processKeyChangeRequest(KeyChangeRequest keyChangeRequest) {
@@ -402,18 +405,22 @@ public final class SelectorController<C extends Connection> implements Runnable 
 	    if (AsyncGlobals.debug) {
 	        Log.fine("addKeyChangeRequest: ", keyChangeRequest);
 	    }
-	    keyChangesPending = true;
 		keyChangeRequests.add(keyChangeRequest);
 		wakeupSelector();
 	}
 	
 	private void wakeupSelector() {
+		if (!inThisSelectorThread()) {
+			selector.wakeup();
+		}
+		/*
 		if (!inThisSelectorThread() && !wakeupPending) {
 			// chance that we get in here multiple times
 			// we'll just have an extra wakeup
 			wakeupPending = true;
 			selector.wakeup();
 		}
+		*/
 	}
 	
 	public void addSelectionKeyOps(SelectionKey key, int newOps) {

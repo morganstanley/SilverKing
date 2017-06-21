@@ -20,15 +20,19 @@ public class GridConfiguration implements Serializable  {
 	private final Map<String,String>	   envMap;
 	
 	public static final String	defaultBaseEnvVar = "GC_DEFAULT_BASE";
-	private static final String	defaultBaseProperty = GridConfiguration.class.getCanonicalName() +".DefaultBase";
-	public static final File	defaultBase;
+	static final String	defaultBaseProperty = GridConfiguration.class.getCanonicalName() +".DefaultBase";
+	private static File	defaultBase;
 	
 	public static final String	envSuffixEnvVar = "GC_ENV_SUFFIX";
-	private static final String	envSuffixProperty = GridConfiguration.class.getCanonicalName() +".EnvSuffix";
-	public static final String	envSuffix;
+	static final String	envSuffixProperty = GridConfiguration.class.getCanonicalName() +".EnvSuffix";
+	public static String	envSuffix;
 	private static final String	defaultEnvSuffix = ".env";
 	
 	static {
+		staticInit();
+	}
+	
+	static void staticInit() {
 		String	defaultBaseVal;
 		String	envSuffixVal;
 		
@@ -36,25 +40,39 @@ public class GridConfiguration implements Serializable  {
 		if (defaultBaseVal == null) {
 			defaultBaseVal = PropertiesHelper.envHelper.getString(defaultBaseEnvVar, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
 			if (defaultBaseVal == null) {
-				System.err.printf("Property %s is undefined\n", defaultBaseProperty);
-				System.err.printf("Environment variable %s is undefined\n", defaultBaseEnvVar);
-				throw new RuntimeException("Unable to find GridConfig default base");
+				//System.err.printf("Property %s is undefined\n", defaultBaseProperty);
+				//System.err.printf("Environment variable %s is undefined\n", defaultBaseEnvVar);
+				//throw new RuntimeException("Unable to find GridConfig default base");
 			} else {
 				Log.info("GridConfiguration using defaultBase from environment variable");
 			}
 		} else {
 			Log.info("GridConfiguration using defaultBase from property");
 		}
-		if (defaultBaseVal.trim().length() == 0) {
-			throw new RuntimeException("GridConfiguration defaultBase is zero length");
+		//if (defaultBaseVal.trim().length() == 0) {
+			//throw new RuntimeException("GridConfiguration defaultBase is zero length");
+		//}
+		if (defaultBaseVal != null && defaultBaseVal.trim().length() > 0) {
+			defaultBase = new File(defaultBaseVal);
+		} else {
+			defaultBase = null;
 		}
-		defaultBase = new File(defaultBaseVal);
 		
 		envSuffixVal = PropertiesHelper.systemHelper.getString(envSuffixProperty, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
 		if (envSuffixVal == null) {
 			envSuffixVal = PropertiesHelper.envHelper.getString(envSuffixEnvVar, defaultEnvSuffix);
 		}
 		envSuffix = envSuffixVal;
+	}
+	
+	public static File getDefaultBase() {
+		if (defaultBase == null) {
+			Log.warning("defaultBase is undefined");
+			Log.warningf("Set env var %s or property %s", defaultBaseEnvVar, defaultBaseProperty);
+			throw new RuntimeException("defaultBase is undefined");
+		} else {
+			return defaultBase;
+		}
 	}
 	
 	public GridConfiguration(String name, Map<String,String> envMap) {
@@ -64,13 +82,12 @@ public class GridConfiguration implements Serializable  {
 		
 	public static GridConfiguration parseFile(File gcBase, String gcName) throws IOException {
 		Map<String,String>	envMap;
-		
 		envMap = readEnvFile(new File(gcBase, gcName + envSuffix));
 		return new GridConfiguration(gcName, envMap);
 	}
 	
 	public static GridConfiguration parseFile(String gcName) throws IOException {
-		return parseFile(defaultBase, gcName);
+		return parseFile(getDefaultBase(), gcName);
 	}
 	
 	public static Map<String, String> readEnvFile(File envFile) throws IOException {
@@ -119,7 +136,19 @@ public class GridConfiguration implements Serializable  {
 	public String get(String envKey) {
 		return envMap.get(envKey);
 	}
+
+	@Override
+	public int hashCode() {
+		return name.hashCode() ^ envMap.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		GridConfiguration other = (GridConfiguration)o;
+		return name.equals(other.name) && envMap.equals(other.envMap);
+	}
 	
+	@Override
 	public String toString() {
 		StringBuilder	sb;
 		
