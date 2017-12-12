@@ -4,7 +4,11 @@ import static org.junit.Assert.*;
 import static com.ms.silverking.fs.TestUtil.setupAndCheckTestsDirectory;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -39,16 +43,35 @@ public class FileWriteWithDelayTest {
 		server2     = Util.getServer2();
 	}
 	
-	@Test
+	@Test(timeout=45_000)
 	public void testWrite() throws InterruptedException {
-		String filename = "file1";
-		String size = "15000000";
-		String rateLimit = "1";
+		File f = new File(fileWriteWithDelayDir, "file1");
+		int size = 15_000_000;
+		int rateLimit = 1;
 		String className = FileWriteWithDelay.class.getCanonicalName();
-		String[] commands = ProcessExecutor.getSshCommands(server2, "cd " + fileWriteWithDelayDir.getAbsolutePath() + "; " + javaBin + " -cp " + skClasspath + " " + className + " " + filename + "2 " + size + " " + rateLimit);
+		// if you're going to run from cmdline and test, use abs path names and set SK_CLASSPATH=/abs/path/to/repo/bin-ide/eclipse:/abs/path/to/repo/lib/*
+		// lib/* will work here, you don't have to list each jar one by one
+		String[] commands = ProcessExecutor.getSshCommands(server2, javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false > /tmp/fwwd.out");
 		ProcessExecutor.runCmdNoWait(commands);
-		File f = new File(fileWriteWithDelayDir, filename);
-		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size, rateLimit});
+		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});
+		
+		Thread.sleep(5_000);
+		
+		checkContentsEquals(f, size, (byte)'A');
+	}
+	
+	private void checkContentsEquals(File f, int size, byte expected) {
+		try {
+			InputStream out = new FileInputStream(f);
+	
+			for (int i = 0; i < size; i++) {
+				byte actual = (byte)out.read();
+				assertEquals("byte: " + i, expected, actual);
+			}
+			out.close();
+		} catch (IOException e) {
+			fail(e.getMessage());
+		}
 	}
 	
 	public static void main(String[] args) throws IOException {

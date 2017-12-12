@@ -16,15 +16,14 @@ import com.ms.silverking.cloud.dht.client.PutException;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.testing.Util;
-
 import com.ms.silverking.testing.annotations.SkLarge;
 
 @SkLarge
 public class SingleVersionUnrestrictedRevisionsTest {
 
 	private static SynchronousNamespacePerspective<String, String> syncNsp;
-	
-	private static final String namespaceName = "SingleVersionUnrestrictedRevisionTest";
+
+	private static final String namespaceName = SingleVersionUnrestrictedRevisionsTest.class.getSimpleName();
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws ClientException, IOException {
@@ -39,10 +38,10 @@ public class SingleVersionUnrestrictedRevisionsTest {
         _checkGet(k1, v1);
 	}
 
-	// currently, failing, expected exception but operation is succeeding
+	// currently, failing, expected exception but operation is succeeding (user shouldn't be allowed to pass any version when in SINGLE_VERSION mode, it's all taken care for him behind the scenes)
 	@Test(expected = PutException.class)
 	public void test_Put_WithVersion() throws PutException {
-        _putVersion(k2, v1, 1);
+        _putVersion(k2, v1, version1);
 	}
 
 	@Test
@@ -68,13 +67,13 @@ public class SingleVersionUnrestrictedRevisionsTest {
 	@Test(expected = PutException.class)
 	public void test_PutKeyTwice_SameValue_WithVersion() throws PutException {
 		_put(       k5, v1);
-        _putVersion(k5, v1, 1);
+        _putVersion(k5, v1, version1);
 	}
 
 	@Test(expected = PutException.class)
 	public void test_PutKeyTwice_DiffValue_WithVersion() throws PutException {
 		_put(       k6, v1);
-        _putVersion(k6, v2, 1);
+        _putVersion(k6, v2, version1);
 	}
 	
 	private void _put(String k, String v) throws PutException {

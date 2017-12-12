@@ -74,6 +74,7 @@ MultiPutMultiGet::put(const vector<string>& ks, const vector<string>& vs) {
   StrValMap vals = Util::getStrValMap(ks, vs);
 
   try {
+    Util::HighResolutionClock log("MultiPutMultiGet-put-sync");
     snsp->put(&vals);
   } catch (SKPutException & pe ){
     fprintf(stdout, "SKPutException in MultiPutMultiGet : %s" , pe.what() );
@@ -96,6 +97,7 @@ MultiPutMultiGet::put(const map<string, string>& kvs, SKPutOptions* pPutOpts) {
   Util::getKeyValues(vals, kvs);
 
   try {
+    Util::HighResolutionClock log("MultiPutMultiGet-put-sync-putOpts");
     snsp->put(&vals, pPutOpts);
   } catch (SKPutException & pe ){
     fprintf(stdout, "SKPutException in MultiPutMultiGet : %s" , pe.what() );
@@ -118,6 +120,7 @@ MultiPutMultiGet::get(const vector<string>& ks) {
 
   StrValMap* strValMap = NULL;
   try {
+    Util::HighResolutionClock log("MultiPutMultiGet-get-sync");
     strValMap = snsp->get(&keys);
   } catch (SKClientException & ce ){
     exhandler( "caught in get", __FILE__, __LINE__, ns.c_str() );
@@ -139,6 +142,7 @@ MultiPutMultiGet::get(const vector<string>& ks, SKGetOptions* getOpts) {
   StrVector keys = Util::getStrKeys(ks);
   StrSVMap* svMap = NULL;
   try {
+    Util::HighResolutionClock log("MultiPutMultiGet-get-sync-getOpts");
     svMap = snsp->get(&keys, getOpts);
   } catch (SKClientException & ce ){
     exhandler( "caught in get", __FILE__, __LINE__, ns.c_str() );

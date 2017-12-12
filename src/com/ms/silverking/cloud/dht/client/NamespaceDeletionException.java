@@ -1,5 +1,8 @@
 package com.ms.silverking.cloud.dht.client;
 
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
+
+@NonVirtual
 public class NamespaceDeletionException extends ClientException {
     public NamespaceDeletionException() {
         super();

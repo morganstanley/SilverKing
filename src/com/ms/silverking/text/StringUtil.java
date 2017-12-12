@@ -5,7 +5,6 @@ package com.ms.silverking.text;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +13,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.ms.silverking.cloud.dht.crypto.MD5Digest;
 import com.ms.silverking.numeric.MutableInteger;
 
 
@@ -341,17 +341,15 @@ public class StringUtil {
 	
 	public static String md5(String string) {
 		MessageDigest	digest;
-		int				numRead;
 		
-		try {
-			digest = MessageDigest.getInstance("md5");
-		} catch (NoSuchAlgorithmException nsae) {
-			nsae.printStackTrace();
-			throw new RuntimeException("couldn't find md5!");
-		}
+		digest = MD5Digest.getLocalMessageDigest();
 		digest.update(string.getBytes(), 0, string.length());
 		return StringUtil.byteArrayToHexString( digest.digest() );
 	}	
+	
+	public static String trimLength(String s, int length) {
+		return s.substring(0, Math.min(s.length(), length));
+	}
 	
 	public static int countOccurrences(String string, char c) {
 		return countOccurrences(string, c, Integer.MAX_VALUE);

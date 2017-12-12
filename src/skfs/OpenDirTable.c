@@ -35,8 +35,12 @@ extern OpenDirWriter	*od_odw;
 /////////////////
 // private data
 
-static uint64_t _minReconciliationSleepMillis = 1 * 1000;
-static uint64_t	_maxReconciliationSleepMillis = 8 * 1000;
+//static uint64_t _minReconciliationSleepMillis = 1 * 1000;
+//static uint64_t	_maxReconciliationSleepMillis = 8 * 1000;
+static uint64_t _minMinReconciliationSleepMillis = 1;
+static uint64_t	_maxMaxReconciliationSleepMillis = 1 * 60 * 1000;
+static uint64_t _minReconciliationSleepMillis = 800;
+static uint64_t	_maxReconciliationSleepMillis = 1 * 1000;
 static unsigned int _reconciliationSeed;
 static uint64_t _lastVersion;
 
@@ -44,12 +48,13 @@ static uint64_t _lastVersion;
 ///////////////////////
 // private prototypes
 
+static void odt_set_reconciliation_sleep(OpenDirTable *odt, char *reconciliationSleep);
+
 static void odt_fetch_all_attr(OpenDirTable *odt, OpenDir *od);
 static void *odt_od_reconciliation_run(void *_odt);
 
-static DirData *odt_get_DirData(OpenDirTable *odt, char *path);
 static int odt_rm_entry(OpenDirTable *odt, char *path, char *child);
-static int odt_add_entry(OpenDirTable *odt, char *path, char *child);
+static int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od = NULL);
 
 static uint64_t odt_getVersion();
 
@@ -57,7 +62,7 @@ static uint64_t odt_getVersion();
 ///////////////
 // implementation
 
-OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader *ar, ResponseTimeStats *rtsDirData) {
+OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader *ar, ResponseTimeStats *rtsDirData, char *reconciliationSleep, uint64_t odwMinWriteIntervalMillis) {
 	OpenDirTable	*odt;
 	int	i;
 	CacheStoreResult	result;
@@ -67,7 +72,7 @@ OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader 
     odt->name = name;
 	odt->odc = odc_new(ODT_ODC_NAME, ODT_ODC_CACHE_SIZE, ODT_ODC_CACHE_EVICTION_BATCH, ODT_ODC_SUB_CACHES);
 	odt->ddr = ddr_new(sd, rtsDirData, odt->odc);
-	odt->odw = odw_new(sd/*, odt->ddr*/);
+	odt->odw = odw_new(sd/*, odt->ddr*/, odwMinWriteIntervalMillis);
 	odt->aw = aw;
 	odt->ar = ar;
 	
@@ -75,8 +80,38 @@ OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader 
 	
 	_reconciliationSeed = (unsigned int)curTimeMillis() ^ (unsigned int)(uint64_t)odt;
 	pthread_create(&odt->reconciliationThread, NULL, odt_od_reconciliation_run, odt);
+    
+    odt_set_reconciliation_sleep(odt, reconciliationSleep);
+    srfsLog(LOG_WARNING, "odt->minReconciliationSleepMillis %lu odt->maxReconciliationSleepMillis %lu\n", 
+            odt->minReconciliationSleepMillis, odt->maxReconciliationSleepMillis);
 	
 	return odt;
+}
+
+static void odt_set_reconciliation_sleep(OpenDirTable *odt, char *reconciliationSleep) {
+    uint64_t    _min;
+    uint64_t    _max;
+    
+    _min = _minReconciliationSleepMillis;
+    _max = _maxReconciliationSleepMillis;
+    if (reconciliationSleep != NULL) {
+        char    *c;
+        
+        c = strchr(reconciliationSleep, ',');
+        if (c != NULL) {
+            *c = '\0';
+            _min = strtoull(reconciliationSleep, NULL, 10);
+            _max = strtoull(c + 1, NULL, 10);
+        }
+    }
+    if (_min < _minMinReconciliationSleepMillis) {
+        _min = _minMinReconciliationSleepMillis;
+    }
+    if (_max > _maxMaxReconciliationSleepMillis) {
+        _max = _maxMaxReconciliationSleepMillis;
+    }
+    odt->minReconciliationSleepMillis = _min;
+    odt->maxReconciliationSleepMillis = _max;
 }
 
 void odt_delete(OpenDirTable **odt) {
@@ -92,7 +127,7 @@ void odt_delete(OpenDirTable **odt) {
 /**
  * Read directory data
  */
-static DirData *odt_get_DirData(OpenDirTable *odt, char *path) {
+DirData *odt_get_DirData(OpenDirTable *odt, char *path) {
     DirData *dd;
     
     srfsLog(LOG_FINE, "odt_get_DirData");
@@ -232,7 +267,7 @@ static int odt_rm_entry(OpenDirTable *odt, char *path, char *child) {
 	return result;
 }
 
-static int odt_add_entry(OpenDirTable *odt, char *path, char *child) {
+static int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od) {
 	int	result;
 	OpenDir	*od;
     uint64_t    version;
@@ -245,6 +280,9 @@ static int odt_add_entry(OpenDirTable *odt, char *path, char *child) {
     // loose consistency of dirs may mean that we don't see it yet.
 	result = ddr_get_OpenDir(odt->ddr, path, &od, DDR_AUTO_CREATE);
 	if (result == 0) {
+        if (_od != NULL) {
+            *_od = od;
+        }
 		if (srfsLogLevelMet(LOG_FINE)) {
 			srfsLog(LOG_WARNING, "od before addition");
 			od_display(od, stderr);
@@ -259,7 +297,7 @@ static int odt_add_entry(OpenDirTable *odt, char *path, char *child) {
 	return result;
 }
 
-int odt_add_entry_to_parent_dir(OpenDirTable *odt, char *path) {
+int odt_add_entry_to_parent_dir(OpenDirTable *odt, char *path, OpenDir **od) {
 	char	*lastSlash;
 	
 	lastSlash = strrchr(path, '/');
@@ -274,7 +312,7 @@ int odt_add_entry_to_parent_dir(OpenDirTable *odt, char *path) {
 			char	*child;
 			
 			child = lastSlash + 1;
-			return odt_add_entry(odt, parent, child);
+			return odt_add_entry(odt, parent, child, od);
 		} else {
 			return 0;
 		}
@@ -602,23 +640,7 @@ static void odt_fetch_all_attr(OpenDirTable *odt, OpenDir *od) {
 }
 
 static void odt_od_reconciliation(OpenDirTable *odt) {
-	CacheKeyList	keyList;
-	int				i;
-	
 	srfsLog(LOG_INFO, "in odt_od_reconciliation");
-	/*
-    // FIXME - consider removing this entirely and punting on the odc_key_list issue
-    //         probably put a note in mentioning the null key issue
-	keyList = odc_key_list(odt->odc);
-	for (i = 0; i < keyList.size; i++) {
-		srfsLog(LOG_INFO, "ddr_check_for_reconciliation %s", keyList.keys[i]);
-		if (keyList.keys[i] != NULL) { // FIXME - check where the null keys are coming from; null cache entries?
-			ddr_check_for_reconciliation(odt->ddr, keyList.keys[i]);
-			mem_free((void **)&keyList.keys[i]);
-		}
-	}
-	mem_free((void **)&keyList.keys);
-	*/
 	std::set<std::string> rcst;
 	
 	rcst = rcst_get_current_set();
@@ -626,7 +648,6 @@ static void odt_od_reconciliation(OpenDirTable *odt) {
 		srfsLog(LOG_INFO, "ddr_check_for_reconciliation %s", it->c_str());
 		ddr_check_for_reconciliation(odt->ddr, (char *)it->c_str());
 	}
-	
 	srfsLog(LOG_INFO, "out odt_od_reconciliation");
 }
 
@@ -638,7 +659,7 @@ static void *odt_od_reconciliation_run(void *_odt) {
 	srfsLog(LOG_FINE, "Starting odt_od_reconciliation_run");
 	running = TRUE;
 	while (running) {
-		sleep_random_millis(_minReconciliationSleepMillis, _maxReconciliationSleepMillis, &_reconciliationSeed);
+		sleep_random_millis(odt->minReconciliationSleepMillis, odt->maxReconciliationSleepMillis, &_reconciliationSeed);
 		odt_od_reconciliation(odt);
 	}
     return NULL;

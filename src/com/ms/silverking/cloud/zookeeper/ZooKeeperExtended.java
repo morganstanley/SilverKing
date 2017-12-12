@@ -78,7 +78,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
      */
     public ZooKeeperExtended(ZooKeeperConfig zkConfig, int sessionTimeout, Watcher watcher) throws KeeperException,
             IOException {
-        super(zkConfig.getEnsembleString(), sessionTimeout, watcher);
+        super(zkConfig.getConnectString(), sessionTimeout, watcher);
         this.zkConfig = zkConfig;
         this.watcher = watcher;
         //activeOps = new ConcurrentHashMap<ZKRequestUUID, ActiveOp>();
@@ -96,7 +96,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
      */
     public ZooKeeperExtended(ZooKeeperConfig zkConfig, int sessionTimeout, Watcher watcher, long sessionId,
             byte[] sessionPasswd) throws KeeperException, IOException {
-        super(zkConfig.getEnsembleString(), sessionTimeout, watcher, sessionId, sessionPasswd);
+        super(zkConfig.getConnectString(), sessionTimeout, watcher, sessionId, sessionPasswd);
         this.zkConfig = zkConfig;
         this.watcher = watcher;
         //activeOps = new ConcurrentHashMap<ZKRequestUUID, ActiveOp>();

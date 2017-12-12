@@ -35,6 +35,7 @@ public class MetaPaths extends MetaPathsBase {
         
     private static final String curRingAndVersionPairNodeName = "curRingAndVersionPair";
     private static final String targetRingAndVersionPairNodeName = "targetRingAndVersionPair";
+    private static final String masterRingAndVersionPairNodeName = "masterRingAndVersionPair";
     
     /*
     public final String         dhtInfoBase;
@@ -148,6 +149,10 @@ public class MetaPaths extends MetaPathsBase {
     
     public static String getInstanceTargetRingAndVersionPairPath(String dhtName) {
         return getInstanceRingStatePath(dhtName) +"/"+ targetRingAndVersionPairNodeName;
+    }
+    
+    public static String getInstanceMasterRingAndVersionPairPath(String dhtName) {
+        return getInstanceRingStatePath(dhtName) +"/"+ masterRingAndVersionPairNodeName;
     }
     
     public String getInstancePath() {

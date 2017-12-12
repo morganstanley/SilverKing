@@ -14,22 +14,33 @@ TEST_F(MultiPutMultiGetTest, PutGetHelloWorld) {
 	vector<string> vals = putGetHelloWorld->getValues();
 	TestUtil::checkKeysAndValues(keys, vals);
 	
+	// cout << "NSP: " << putGetHelloWorld->getNamespaceOptions()->toString() << endl;
+	// cout << endl;
+	// cout << "NSPO: " << putGetHelloWorld->getNSPOptions()->toString() << endl;
+	
 	map<string, string> keysAndVals = putGetHelloWorld->getKeyVals(); 
 	if (!putGetHelloWorld->isCompressSet()) {
+		// cout << "NOT compressSet" << endl;
 		putGetHelloWorld->put(keys, vals);
 	}
 	else {
+		// cout << "compressSet" << endl;
+		// cout << "PutOpt: " << putGetHelloWorld->getPutOpt()->toString() << endl;
 		putGetHelloWorld->put(keysAndVals, putGetHelloWorld->getPutOpt());
 	}
 	
 	map<string, string> storedKeysValues;
 	if (!putGetHelloWorld->isValueVersionSet()) {	
+		// cout << "NOT valueVersionSet" << endl;
 		storedKeysValues = putGetHelloWorld->get(keys); // values stored in SK
 	}
 	else {
 		ASSERT_NOT_NULL(putGetHelloWorld->getGetOpt());
+		// cout << "valueVersionSet" << endl;
+		// cout << "GetOpt: " << putGetHelloWorld->getGetOpt()->toString() << endl;
 		storedKeysValues = putGetHelloWorld->get(keys, putGetHelloWorld->getGetOpt()); // values stored in SK
 	}
+	
 	
 	int numKeys = putGetHelloWorld->getNumOfKeys();
 	TestUtil::checkKeysAndValues(numKeys, keys, keysAndVals, storedKeysValues);

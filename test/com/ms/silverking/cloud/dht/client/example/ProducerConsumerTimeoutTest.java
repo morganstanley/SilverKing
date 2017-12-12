@@ -18,11 +18,12 @@ import com.ms.silverking.testing.Util;
 
 import com.ms.silverking.testing.annotations.SkLarge;
 
-@SkLarge
 // from: http://stackoverflow.com/questions/37355035/junit-test-for-an-expected-timeout
+//     The only one limitation: you have to place your test in separate class, because Rule applies to all tests inside it
+@SkLarge
 public class ProducerConsumerTimeoutTest {
 
-    private static final int TIMEOUT_MILLIS = TimeUtils.secondsInMillis(3);
+    private static final int TIMEOUT_MILLIS = 15_000;
 
     @Rule
     public Timeout timeout = new Timeout(TIMEOUT_MILLIS) {
@@ -41,7 +42,8 @@ public class ProducerConsumerTimeoutTest {
 
     @Test(expected = TimeoutException.class)
 	public void testConsumer_WaitForValueNeverWritten() throws ClientException, IOException {
-		new ProducerConsumer(Util.getTestGridConfig()).consumer(2, 2);
+    	String nsSuffix = "Timeout";
+		new ProducerConsumer(Util.getTestGridConfig(), nsSuffix).consumer(2, 2);
 	}
 	
 	public static void main(String[] args) {

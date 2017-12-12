@@ -3,14 +3,15 @@ package com.ms.silverking.cloud.dht.client;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static org.junit.Assert.assertEquals;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.AbsNanosTimeSource;
 import com.ms.silverking.time.ConstantAbsMillisTimeSource;
 import com.ms.silverking.time.RelNanosTimeSource;
 import com.ms.silverking.time.SafeAbsNanosTimeSource;
-import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
 
+@OmitGeneration
 public class TestUtil {
 
 	public static int getMaxAttempts(OpTimeoutController controller) {

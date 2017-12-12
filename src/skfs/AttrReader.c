@@ -191,6 +191,12 @@ AttrCache *ar_get_attrCache(AttrReader *ar) {
 	return ar->attrCache;
 }
 
+void ar_ensure_path_fid_associated(AttrReader *ar, char * path, FileID *fid) {
+    if (f2p_get(ar->f2p, fid) == NULL) {
+        f2p_put(ar->f2p, (FileID *)mem_dup_no_dbg(fid, sizeof(FileID)), path); 
+    }
+}
+
 // cache
 
 static void ar_store_attr_in_cache(AttrReadRequest *arr, FileAttr *fa, uint64_t timeoutMillis) {
@@ -574,10 +580,14 @@ static void ar_process_native_request(void *_requestOpRef, int curThreadIndex) {
 		FileAttr	*fa;
 		
 		tmpStat.st_blksize = SRFS_BLOCK_SIZE;
+        tmpStat.st_nlink = FA_NATIVE_LINK_MAGIC;
 		fa = fa_new_native(&tmpStat);
         ao_set_complete(op, AOResult_Success, fa, sizeof(FileAttr));
 		ar_store_attr_in_cache(arr, fa);
 		srfsLog(LOG_FINE, "sending to AttrWriter %s inode %lu", arr->path, tmpStat.st_ino);
+		fa_delete(&fa);
+        tmpStat.st_nlink = FA_NATIVE_LINK_NORMAL;
+		fa = fa_new_native(&tmpStat);
 		aw_write_attr(arr->attrReader->aw, arr->path, fa);
 		fa_delete(&fa);
 	} else {

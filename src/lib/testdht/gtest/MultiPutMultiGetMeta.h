@@ -28,7 +28,7 @@ private:
   vector<string> keys;
   vector<string> values;
   int numOfKeys;
-  map<string, string> keyVals; // local map used for comparision with the key/value stored in server
+  map<string, string> keyVals; // local map used for comparison with the key/value stored in server
 
   SKSyncNSPerspective* snsp;
   SKGetOptions* pGetOpt;

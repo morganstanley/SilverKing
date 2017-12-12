@@ -27,6 +27,7 @@ import com.ms.silverking.time.AbsMillisTimeSource;
  */
 public final class MessageGroup {
     private final MessageType     messageType;
+    private int                   options; // internal options used in processing
     private final long            context;
     private final ByteBuffer[]    buffers;
     private final int             bytesPerKeyEntry;
@@ -47,9 +48,12 @@ public final class MessageGroup {
     
     public static final int	minDeadlineRelativeMillis = OutgoingData.minRelativeDeadline;
     
-    public MessageGroup(MessageType messageType, UUIDBase uuid, long context, ByteBuffer[] buffers, 
+    private static final int	MG_O_peer = 1;
+    
+    public MessageGroup(MessageType messageType, int options, UUIDBase uuid, long context, ByteBuffer[] buffers, 
                         byte[] originator, int deadlineRelativeMillis, ForwardingMode forward) {
         this.messageType = messageType;
+        this.options = options;
         this.uuid = uuid;
         this.context = context;
         this.buffers = buffers;
@@ -106,9 +110,9 @@ public final class MessageGroup {
         }
     }
     
-    public MessageGroup(MessageType messageType, UUIDBase uuid, long context, List<ByteBuffer> buffers, 
+    public MessageGroup(MessageType messageType, int options, UUIDBase uuid, long context, List<ByteBuffer> buffers, 
                         byte[] originator, int deadlineRelativeMillis, ForwardingMode forward) {
-        this(messageType, uuid, context, buffers.toArray(new ByteBuffer[0]), originator, 
+        this(messageType, options, uuid, context, buffers.toArray(new ByteBuffer[0]), originator, 
              deadlineRelativeMillis, forward);
         /*
          // For debugging only
@@ -120,6 +124,18 @@ public final class MessageGroup {
         */
     }
     
+    public void setPeer(boolean peer) {
+    	if (peer) {
+    		options = options | MG_O_peer;
+    	} else {
+    		options = options & (~MG_O_peer);
+    	}
+    }
+    
+    public boolean getPeer() {
+    	return (options & MG_O_peer) != 0;
+    }
+    
     public MessageGroup duplicate() {
         ByteBuffer[]    _buffers;
         
@@ -127,7 +143,7 @@ public final class MessageGroup {
         for (int i = 0; i < buffers.length; i++) {
             _buffers[i] = buffers[i].duplicate();
         }
-        return new MessageGroup(messageType, uuid, context, _buffers, originator, 
+        return new MessageGroup(messageType, options, uuid, context, _buffers, originator, 
                                 deadlineRelativeMillis, forward);
     }
     
@@ -150,13 +166,17 @@ public final class MessageGroup {
 	        for (int i = 0; i < buffers.length; i++) {
 	            _buffers[i] = BufferUtil.ensureArrayBacked(buffers[i]);
 	        }
-	        return new MessageGroup(messageType, uuid, context, _buffers, originator, 
+	        return new MessageGroup(messageType, options, uuid, context, _buffers, originator, 
 	                                deadlineRelativeMillis, forward);
         }
     }
     
     public MessageType getMessageType() {
         return messageType;
+    }
+    
+    public int getOptions() {
+    	return options;
     }
     
     public long getContext() {
@@ -421,7 +441,7 @@ public final class MessageGroup {
     }
     
     public static MessageGroup clone(MessageGroup mg) {
-        return new MessageGroup(mg.messageType, mg.uuid, mg.context, cloneBuffers(mg), 
+        return new MessageGroup(mg.messageType, mg.options, mg.uuid, mg.context, cloneBuffers(mg), 
                 mg.originator, mg.deadlineRelativeMillis, mg.forward);
     }
 

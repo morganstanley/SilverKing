@@ -1,6 +1,7 @@
 package com.ms.silverking.collection;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -113,5 +114,9 @@ public class CollectionUtil {
     	} else {
     		return ImmutableSet.of();
     	}
+    }
+    
+    public static <K extends Enum<K>> EnumSet<K> arrayToEnumSet(K[] a) {
+    	return EnumSet.copyOf(ImmutableSet.copyOf(a));
     }
 }

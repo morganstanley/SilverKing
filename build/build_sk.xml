@@ -184,7 +184,7 @@
 	</target>
   
 	<target name="runTests">
-		<junit printsummary="withOutAndErr" haltonfailure="no" forkmode="perTest" threads="16">
+		<junit printsummary="withOutAndErr" haltonfailure="no" forkmode="perTest" threads="16" showoutput="true">
 			<classpath refid="classpath.test"/>
 			<formatter type="xml"/>
 			<batchtest fork="yes" todir="${output.run.dir}">

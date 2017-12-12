@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 
 /**
@@ -26,6 +27,7 @@ public class SKGridConfiguration extends GridConfiguration implements Serializab
 		this.skfsConfigName = envMap.get(skfsConfigNameVar);
 	}
 		
+    @OmitGeneration
     public SKGridConfiguration(GridConfiguration gc) {
         super(gc.getName(), gc.getEnvMap());
         this.dhtConfig = ClientDHTConfiguration.create(gc.getEnvMap());

@@ -12,9 +12,9 @@ f_sourceGlobalVars
 f_configureClasspath 
 
 toolClass=${__SK_TOOL_EXEC_TOOL_CLASS}
-cmd="${skJava} -ea -cp $classpath ${toolClass} ${allArgs}"
+cmd="${skJava} -ea -cp ${classpath} ${toolClass} ${allArgs}"
 ${cmd}
-exitCode=$?
+javaExitCode=$?
 
 cd $old_dir
-exit $exitCode 
+f_exit "$javaExitCode"

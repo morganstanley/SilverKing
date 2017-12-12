@@ -6,8 +6,9 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.SessionOptions;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.net.AddrAndPort;
-import com.ms.silverking.net.HostAndPort;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
 
@@ -17,9 +18,9 @@ import com.ms.silverking.text.ObjectDefParser2;
 public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
 	private final String	       name;
     private final int              port;
-	private final AddrAndPort[]    zkLocs;
+	private final ZooKeeperConfig  zkConfig;
 	
-	public static ClientDHTConfiguration	embeddedKVS = new ClientDHTConfiguration(SessionOptions.EMBEDDED_KVS, new AddrAndPort[0]);
+	public static ClientDHTConfiguration	embeddedKVS = new ClientDHTConfiguration(SessionOptions.EMBEDDED_KVS, new ZooKeeperConfig(new AddrAndPort[0]));
 	
 	private static final int   portInZKOnly = Integer.MIN_VALUE;
 	
@@ -42,32 +43,34 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
         
         ObjectDefParser2.addParser(emptyTemplate, FieldsRequirement.REQUIRE_ALL_NONOPTIONAL_FIELDS, optionalFields, constructorFieldClasses, constructorFieldNames);        
     }
-	
-    public ClientDHTConfiguration(String dhtName, int dhtPort, String zkLocs) {
-        this(dhtName, dhtPort, HostAndPort.parseMultiple(zkLocs));
-    }
-    
-    public ClientDHTConfiguration(String dhtName, int dhtPort, AddrAndPort[] zkLocs) {
+	   
+    public ClientDHTConfiguration(String dhtName, int dhtPort, ZooKeeperConfig zkConfig) {
     	Preconditions.checkNotNull(dhtName, "dhtName must be non-null");
     	Preconditions.checkArgument(dhtPort > 0 || dhtPort == portInZKOnly, "dhtPort must be > 0. Found: ", dhtPort);
-    	Preconditions.checkNotNull(zkLocs, "zkLocs must be non-null");
+    	Preconditions.checkNotNull(zkConfig, "zkConfig must be non-null");
         this.name = dhtName;
         this.port = dhtPort;
-        this.zkLocs = zkLocs;
+        this.zkConfig = zkConfig;
+    }
+
+    @OmitGeneration
+    public ClientDHTConfiguration(String dhtName, ZooKeeperConfig zkConfig) {
+        this(dhtName, portInZKOnly, zkConfig);
     }
     
-    public ClientDHTConfiguration(String dhtName, AddrAndPort[] zkLocs) {
-        this(dhtName, portInZKOnly, zkLocs);
+    public ClientDHTConfiguration(String dhtName, String zkConfig) {
+        this(dhtName, portInZKOnly, zkConfig);
     }
     
-    public ClientDHTConfiguration(String dhtName, String zkLocs) {
-        this(dhtName, HostAndPort.parseMultiple(zkLocs));
+    public ClientDHTConfiguration(String dhtName, int dhtPort, String zkLocs) {
+        this(dhtName, dhtPort, new ZooKeeperConfig(zkLocs));
     }
     
+    @OmitGeneration
 	public static ClientDHTConfiguration create(Map<String,String> envMap) {
 		return new ClientDHTConfiguration(envMap.get(nameVar), 
 		        envMap.get(portVar) == null ? portInZKOnly : Integer.parseInt(envMap.get(portVar)), 
-				HostAndPort.parseMultiple(envMap.get(zkLocVar)));
+				new ZooKeeperConfig(envMap.get(zkLocVar)));
 	}
 	
 	public String getName() {
@@ -78,8 +81,8 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
         return port;
     }
     
-	public AddrAndPort[] getZkLocs() {
-		return zkLocs;
+	public ZooKeeperConfig getZKConfig() {
+		return zkConfig;
 	}
 	
     @Override
@@ -89,20 +92,11 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
 	
 	public String toString() {
 		StringBuilder sb;
-		boolean       first;
 		
 		sb = new StringBuilder();
 		sb.append(name);
 		sb.append(':');
-        first = true;
-        for (AddrAndPort zkLoc : zkLocs) {
-            if (!first) {
-                sb.append(AddrAndPort.multipleDefDelimiter);
-            } else {
-                first = false;
-            }
-            sb.append(zkLoc.toString());
-        }
+        sb.append(zkConfig);
 		return sb.toString();
 	}
 
@@ -112,13 +106,7 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
     
     @Override
     public int hashCode() {
-        int hashCode;
-        
-        hashCode = name.hashCode() ^ port;
-        for (AddrAndPort member : zkLocs) {
-            hashCode = hashCode ^ member.hashCode();
-        }
-        return hashCode;
+        return name.hashCode() ^ port ^ zkConfig.hashCode();
     }
     
     @Override
@@ -131,17 +119,7 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
         } else if (port != otherCDC.port) {
             return false;
         } else {
-            if (zkLocs.length != otherCDC.zkLocs.length) {
-                return false;
-            } else {
-                // Note that this implementation is currently order-sensitive
-                for (int i = 0; i < zkLocs.length; i++) {
-                    if (!zkLocs[i].equals(otherCDC.zkLocs[i])) {
-                        return false;
-                    }
-                }
-                return true;
-            }
+        	return zkConfig.equals(otherCDC.zkConfig);
         }
     }
     

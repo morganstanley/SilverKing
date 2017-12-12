@@ -1,39 +1,4 @@
 #!/bin/bash
 
-old_dir=`pwd`
-cd `dirname $0`
-bin_dir=`pwd`
-
-source lib/common.lib
-
-allArgs="$@"
-
-f_sourceGlobalVars
-f_configureClasspath
-
-clientToolClass=com.ms.silverking.cloud.dht.client.apps.SilverKingClient
-clientToolOpt=$(${skJava} -cp ${classpath} ${clientToolClass} 2>&1 | grep -v "Option .* is required" )
-##   clientGetopt=$(echo "${clientToolOpt}" | cut -b 3 | sort | uniq | gawk '{a=a $0 ":"}END{a[length(a)]="";print a}')
-cmd="${skJava} -cp ${classpath} ${skCmdPreArgs} ${clientToolClass} ${allArgs}"
-echo $cmd
-$cmd
-
-
-#EXPECTED_ARGS=6
-EXPECTED_ARGS=2
-E_BADARGS=65
-
-usage()
-{
-    cat <<-DOCHERE 
-Usage: `basename $0` <options> 
-	where options are:
-${clientToolOpt}
-DOCHERE
-	
-    exit $E_BADARGS
-}
-
-#if [ $# -lt $EXPECTED_ARGS ]; then
-#  usage
-#fi
+export __SK_TOOL_EXEC_TOOL_CLASS="com.ms.silverking.cloud.dht.client.apps.SilverKingClient"
+`dirname $0`/ToolExec.sh "$@"

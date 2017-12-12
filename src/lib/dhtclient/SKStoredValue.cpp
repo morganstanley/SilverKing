@@ -46,8 +46,36 @@ SKStoredValue::~SKStoredValue() {
 };
 
 SKMetaData * SKStoredValue::getMetaData() const {
-	MetaData * pmd = new MetaData(java_cast<MetaData>(dynamic_cast<StoredValue*>(pImpl)->getMetaData()));
-	return new SKMetaData(pmd);
+    if (pImpl == NULL) {
+        return NULL;
+    } else {
+        SKMetaData  *skmd = NULL;
+        
+        try {
+            StoredValue *_sv;
+            
+            _sv = dynamic_cast<StoredValue*>(pImpl);
+            if (_sv == NULL || _sv->isNull()) {
+                skmd = NULL;
+            } else {
+                MetaData md0;
+                
+                md0 = java_cast<MetaData>(_sv->getMetaData());
+                if (md0.isNull()) {
+                    skmd = NULL;
+                } else {
+                    skmd = new SKMetaData(new MetaData(md0));
+                }
+            }
+        } catch(Throwable &t) {
+            t.printStackTrace();
+            throw SKClientException( &t, __FILE__, __LINE__ );
+        }
+        return skmd;
+
+        //MetaData * pmd = new MetaData(java_cast<MetaData>(dynamic_cast<StoredValue*>(pImpl)->getMetaData()));
+        //return new SKMetaData(pmd);
+    }
 }
 
 SKVal * SKStoredValue::getValue() const {

@@ -105,7 +105,11 @@ public class Doctor {
 		args = "-g "+ gc.getName() +" -c StartNodes -to "+ nodeStartupTimeoutSeconds +" "
 		+ (forceInclusionOfUnsafeExcludedServers ? "-forceUnsafe " :"") +"-e -t "+ CollectionUtil.toString(nodes, ','); 
 		Log.warningf("args: {%s} ", args);
-		SKAdmin.main(args.split("\\s+"));
+		try {
+			SKAdmin.main(args.split("\\s+"));
+		} catch (IneligibleServerException ise) {
+			Log.warningf("Ignoring IneligibleServerException %s", ise.getMessage());
+		}
 	}
 	
 	public void makeRounds() {

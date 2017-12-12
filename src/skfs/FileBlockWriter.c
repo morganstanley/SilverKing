@@ -298,9 +298,13 @@ static void fbw_process_dht_batch(void **requests, int numRequests, int curThrea
         
 		ppval = requestGroup.at(keys[i]);
 		//m_pVal points to fbwr's member, which is deleted below
-		if (ppval == NULL || ppval->m_len == 0) {
-			srfsLog(LOG_WARNING, "fbw unexpected NULL %s %s\n", SKFS_FB_NS, keys[i]);
-		}
+		if (ppval == NULL) {
+			srfsLog(LOG_WARNING, "fbw unexpected ppval == NULL %s %s\n", SKFS_FB_NS, keys[i]);
+		} else {
+            if (ppval->m_len == 0) {
+                srfsLog(LOG_WARNING, "fbw unexpected ppval->m_len == 0 %s %s\n", SKFS_FB_NS, keys[i]);
+            }
+        }
 		ppval->m_len = 0; 
         ppval->m_pVal = NULL;
 		//sk_destroy_val( &ppval ); // FIXME - double free check

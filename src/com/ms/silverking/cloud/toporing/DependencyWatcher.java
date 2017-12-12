@@ -342,10 +342,11 @@ public class DependencyWatcher implements VersionListener {
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+	            System.exit(-1);
             }
         } catch (Exception e) {
             e.printStackTrace();
+            System.exit(-1);
         }
     }    
 }

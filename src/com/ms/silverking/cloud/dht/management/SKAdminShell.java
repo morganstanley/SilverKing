@@ -80,7 +80,7 @@ public class SKAdminShell implements Watcher {
     
 	public SKAdminShell(SKGridConfiguration gc, InputStream in, PrintStream out, PrintStream err, String server, int port) throws NotBoundException, KeeperException, IOException {
 		this.gc = gc;
-		zkConfig = new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs());
+		zkConfig = gc.getClientDHTConfiguration().getZKConfig();
 		zk = new ZooKeeperExtended(zkConfig, zkTimeout, this);
         this.in = new BufferedReader(new InputStreamReader(in));
         this.out = out;
@@ -353,15 +353,19 @@ public class SKAdminShell implements Watcher {
 			status = rmc.getStatus(uuid);
 			if (status != null) {
 				if (prevStatus == null || !status.equals(prevStatus)) {
-					out.printf("%s\n", status.getStatusString());
+					out.printf("%s\t%s\n", new Date().toString(), status.getStatusString());
 					prevStatus = status;
 				}
 			}
 		} while (status != null && !status.requestComplete());
-		if (status.getRequestState() == RequestState.FAILED) {
-			throw new RuntimeException("Request failed");
+		if (status == null) {
+			out.printf("Received null status for %s\n", uuid.toString());
+		} else {
+			if (status.getRequestState() == RequestState.FAILED) {
+				throw new RuntimeException("Request failed");
+			}
 		}
-		out.printf("Complete\n");
+		out.printf("Complete %s\t%s\n", uuid.toString(), new Date().toString());
 	}
 	
 	/**

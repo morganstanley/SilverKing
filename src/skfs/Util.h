@@ -115,6 +115,7 @@ unsigned int mem_hash(void *m, int size);
 
 void stat_display(struct stat *s, FILE *f = stdout);
 uint64_t stat_mtime_micros(struct stat *s);
+uint64_t stat_mtime_millis(struct stat *s);
 
 size_t size_max(size_t a, size_t b);
 size_t size_min(size_t a, size_t b);

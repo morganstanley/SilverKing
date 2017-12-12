@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.SingleWriterConsisten
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocol;
 //import com.ms.silverking.cloud.dht.gcmd.GlobalCommandServer;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
+import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
@@ -223,7 +225,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         } else {
             maxDirectCallDepth = Integer.MAX_VALUE;
         }
-        worker.addWork(new MessageAndConnection(message, createProxyForConnection(connection)), maxDirectCallDepth, Integer.MAX_VALUE);
+        worker.addWork(new MessageAndConnection(message, createProxyForConnection(connection, message.getDeadlineAbsMillis(absMillisTimeSource), message.getPeer())), maxDirectCallDepth, Integer.MAX_VALUE);
     }
     
     /**
@@ -243,6 +245,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                     message.displayForDebug(true);
                 }
             }
+        	if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
+                if (debugReceivedMessages) {
+                	Log.warning("Setting message to peer: ", message.getMessageType());
+                }
+        		message.setPeer(true);
+        	}
             switch (message.getMessageType()) {
             case PUT:
                 handlePut(message, connection);
@@ -331,12 +339,20 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         return ((MessageGroupConnectionProxyRemote)connection).getConnection();
     }
     
-    private MessageGroupConnectionProxy createProxyForConnection(MessageGroupConnection connection) {
+    private MessageGroupConnectionProxy createProxyForConnection(MessageGroupConnection connection, long deadline, boolean peer) {
         if (connection == null || connection.getRemoteIPAndPort().equals(myIPAndPort)) {
-        //if (connection.getRemoteIPAndPort().getIPAsInt() == myIPAndPort.getIPAsInt()) {
             return new MessageGroupConnectionProxyLocal(worker);
         } else {
-            return new MessageGroupConnectionProxyRemote(connection);
+        	if (!peer) {
+        		return new MessageGroupConnectionProxyRemote(connection);
+        	} else {
+	        	try {
+	        		return new MessageGroupConnectionProxyRemote(mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
+	        	} catch (ConnectException ce) {
+	        		Log.logErrorWarning(ce, "Reverting to incoming connection for outgoing messages for "+ connection);
+	                return new MessageGroupConnectionProxyRemote(connection);
+	        	}
+        	}
         }
     }
     

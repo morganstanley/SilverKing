@@ -77,7 +77,7 @@ public class DHTNode {
         ConvergenceController2.setAbsMillisTimeSource(absMillisTimeSource);
     }
     
-	public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, boolean disableReap) {
+	public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, boolean disableReap, boolean leaveTrash) {
 	    try {
 	        IPAndPort  daemonIPAndPort;
 	        //DHTRingCurTargetWatcher	dhtRingCurTargetWatcher;
@@ -117,7 +117,7 @@ public class DHTNode {
                                              inactiveNodeTimeoutSeconds);
             daemonStateZK.setState(DaemonState.ENABLING_COMMUNICATION);
             if (!disableReap) {
-            	storage.initialReap();
+            	storage.initialReap(leaveTrash);
             }
             msgModule.enable();
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.ENABLING_COMMUNICATION, 
@@ -141,10 +141,12 @@ public class DHTNode {
 
 	public void run() {
         while (running) {
-            try {
-                this.wait();
-            } catch (InterruptedException ie) {
-            }
+        	synchronized (this) {
+	            try {
+	                this.wait();
+	            } catch (InterruptedException ie) {
+	            }
+        	}
         }
     }
     
@@ -175,7 +177,7 @@ public class DHTNode {
                 
                 dhtName = options.dhtName;
                 zkConfig = new ZooKeeperConfig(options.zkConfig);                
-                dhtNode = new DHTNode(dhtName, zkConfig, options.inactiveNodeTimeoutSeconds, options.disableReap);
+                dhtNode = new DHTNode(dhtName, zkConfig, options.inactiveNodeTimeoutSeconds, options.disableReap, options.leaveTrash);
                 //Log.setLevelAll();
                 Log.initAsyncLogging();
                 dhtNode.run();

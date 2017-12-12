@@ -13,6 +13,7 @@
 #include "FileBlockCache.h"
 #include "FileBlockWriter.h"
 #include "HashTableAndLock.h"
+#include "OpenDir.h"
 #include "WritableFileReference.h"
 #include "PartialBlockReader.h"
 #include "WritableFileBlock.h"
@@ -47,6 +48,8 @@ typedef struct WritableFile {
 	uint16_t	magic;	
     const char  *path;
     const char  *pendingRename;
+    OpenDir     *parentDir;
+    uint64_t    parentDirUpdateTimeMillis;
 	FileAttr	fa;
 	ArrayBlockList		*blockList;
     WritableFileBlock    *curBlock;
@@ -65,6 +68,7 @@ typedef struct WritableFile {
 WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl, AttrWriter *aw, 
                      FileAttr *fa = NULL, PartialBlockReader *pbr = NULL);
 void wf_delete(WritableFile **wf);
+void wf_set_parent_dir(WritableFile *, OpenDir *parentDir, uint64_t parentDirUpdateTimeMillis);
 WritableFileReference *wf_add_reference(WritableFile *wf, char *file, int line);
 void wf_set_pending_rename(WritableFile *wf, const char *newName);
 int wf_write(WritableFile *wf, const char *src, size_t writeSize, off_t writeOffset, 
@@ -78,5 +82,6 @@ int wf_create_ref(WritableFile *wf);
 int wf_delete_ref(WritableFile *wf, int ref, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
 void wf_debug(WritableFile *wf);
 void wf_sanity_check(WritableFile *wf);
+void wf_set_sync_dir_updates(int syncDirUpdates);
 
 #endif

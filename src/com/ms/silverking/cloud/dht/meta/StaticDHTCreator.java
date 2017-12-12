@@ -28,7 +28,6 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.StreamParser;
 import com.ms.silverking.io.StreamUtil;
-import com.ms.silverking.net.AddrAndPortUtil;
 
 /**
  * Simplifies creation of a "static" DHT (a DHT which will not change in ring topology, 
@@ -98,8 +97,8 @@ public class StaticDHTCreator {
 		
 		classVarsName = "classVars." + uuid.toString();
 		varsMap = new HashMap<>();
-		varsMap.put("initialHeapSize", Integer.toString(initialHeapSize));
-		varsMap.put("maxHeapSize", Integer.toString(maxHeapSize));
+		varsMap.put(DHTConstants.initialHeapSizeVar, Integer.toString(initialHeapSize));
+		varsMap.put(DHTConstants.maxHeapSizeVar,     Integer.toString(maxHeapSize));
 		if (skInstanceLogBaseVar != null) {
 			varsMap.put(DHTConstants.skInstanceLogBaseVar, skInstanceLogBaseVar);
 		}
@@ -130,7 +129,7 @@ public class StaticDHTCreator {
 		envMap = new HashMap<>();
 		envMap.put(ClientDHTConfiguration.nameVar, dhtName);
 		envMap.put(ClientDHTConfiguration.portVar, Integer.toString(port));
-		envMap.put(ClientDHTConfiguration.zkLocVar, zkConfig.getEnsembleString());
+		envMap.put(ClientDHTConfiguration.zkLocVar, zkConfig.getConnectString());
 		writeGridConfig(new SKGridConfiguration(gcName, envMap), gridConfigDir, gcName);
 		System.out.println(gcName);
 	}
@@ -146,7 +145,7 @@ public class StaticDHTCreator {
 		envMap = new HashMap<>();
 		envMap.put(ClientDHTConfiguration.nameVar, clientConfig.getName());
 		envMap.put(ClientDHTConfiguration.portVar, Integer.toString(clientConfig.getPort()));
-		envMap.put(ClientDHTConfiguration.zkLocVar, AddrAndPortUtil.toString(clientConfig.getZkLocs()));
+		envMap.put(ClientDHTConfiguration.zkLocVar, clientConfig.getZKConfig().toString());
 		writeGridConfig(new SKGridConfiguration(gcName, envMap), gridConfigDir, gcName);
 		System.out.println(gcName);
 	}
@@ -178,13 +177,13 @@ public class StaticDHTCreator {
 			} catch (CmdLineException cle) {
 				System.err.println(cle.getMessage());
 				parser.printUsage(System.err);
-				return;
+    			System.exit(-1);
 			}
 			if ((options.serverFile == null && options.servers == null) 
 					|| (options.serverFile != null && options.servers != null)) {
 				System.err.println("Exactly one of serverFile and servers should be provided");
 				parser.printUsage(System.err);
-				return;
+    			System.exit(-1);
 			}
 			if (options.serverFile != null) {
 				servers = ImmutableSet.copyOf(StreamParser.parseFileLines(options.serverFile));
@@ -218,6 +217,7 @@ public class StaticDHTCreator {
 			sdc.createStaticDHT(uuid, options.initialHeapSize, options.maxHeapSize, options.skInstanceLogBaseVar, options.dataBaseVar, options.skfsConfigurationFile);
 		} catch (Exception e) {
 			e.printStackTrace();
+			System.exit(-1);
 		}
 	}
 }

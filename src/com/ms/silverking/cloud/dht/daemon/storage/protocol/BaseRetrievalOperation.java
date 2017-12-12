@@ -110,7 +110,7 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
                     	IPAndPort	replica;
                     	
                     	replica = entryState.currentReplica();
-                    	if (replica != null) {
+                    	if (replica != null && !entryState.prevReplicaSameAsCurrent()) {
                     		Log.warning("Non-fatal replica timedOut "+ replica +" "+ this);
                     		timedOutReplicas.add(replica);
                     	}

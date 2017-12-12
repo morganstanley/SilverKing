@@ -19,6 +19,8 @@
 #define OD_TRIGGER_INTERVAL_MILLIS	4
 #define OD_RECONCILIATION_PERIOD_MILLIS (4 * 60 * 1000)
 
+#define _OD_DEBUG_MERGE 0
+
 
 ///////////////////
 // public globals
@@ -58,6 +60,7 @@ OpenDir *od_new(const char *path, DirData *dirData) {
     if (pthread_mutex_init(od->mutex, &mutexAttr) != 0) {
         fatalError("\n mutex init failed", __FILE__, __LINE__);
 	}
+	cv_init(&od->cvInstance, &od->cv);
     // Force an update
 	od->lastUpdateMillis = 0;
 	od->needsReconciliation = TRUE;
@@ -97,6 +100,26 @@ uint64_t od_getElapsedSinceLastUpdateMillis(OpenDir *od) {
 	return curTimeMillis() - od->lastUpdateMillis;
 }
 
+uint64_t od_getLastWriteMillis(OpenDir *od) {
+    return od->lastWriteMillis;
+}
+
+void od_setLastWriteMillis(OpenDir *od, uint64_t lastWriteMillis) {
+    srfsLog(LOG_INFO, "setLastWriteMillis %s %lu", od->path, lastWriteMillis);
+    pthread_mutex_lock(od->mutex);	
+    od->lastWriteMillis = lastWriteMillis;
+	pthread_cond_signal(od->cv);
+    pthread_mutex_unlock(od->mutex);	
+}    
+
+void od_waitForWrite(OpenDir *od, uint64_t writeTimeMillis) {
+    srfsLog(LOG_INFO, "Waiting for write %s %lu", od->path, writeTimeMillis);
+	while (od->lastWriteMillis < writeTimeMillis) {
+		pthread_cond_wait(od->cv, od->mutex);
+	}
+    srfsLog(LOG_INFO, "Wait for write complete %s %lu", od->path, writeTimeMillis);
+}
+    
 void od_mark_deleted(OpenDir *od) {
     // FUTURE - for now we can't free data or reconciliation may go bad
     /*
@@ -200,12 +223,14 @@ static void od_remove_from_reconciliation(OpenDir *od) {
     srfsLog(LOG_FINE, "Remove from rcst %s", od->path);
 }
 
-void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
+int od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 	uint64_t	metaDataVersion;
 	uint64_t	_curTimeMillis;
     int         deleteOnExit;
-	
-	srfsLog(LOG_FINE, "od_add_DirData %llx %llx", od, dd);
+    int         kvsMissingLocalData;
+
+	srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "od_add_DirData %llx %llx", od, dd);
+    kvsMissingLocalData = FALSE;
 	_curTimeMillis = curTimeMillis();
     if (dd == NULL) {
         dd = dd_new_empty();
@@ -216,15 +241,18 @@ void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
         metaDataVersion = metaData->getVersion();
     }
     pthread_mutex_lock(od->mutex);	
-	if (od->ddVersion < metaDataVersion && od->lastMergedVersion != metaDataVersion) {
+	srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "od->ddVersion %ld\tmetaDataVersion %ld\tlastMergedVersion %ld", od->ddVersion, metaDataVersion, od->lastMergedVersion);
+	//if (od->ddVersion < metaDataVersion && od->lastMergedVersion != metaDataVersion) {
+	if (od->ddVersion <= metaDataVersion && od->lastMergedVersion != metaDataVersion) {
 		MergeResult	mr;
 		
 		od_merge_DirData_pendingUpdates(od);
 		mr = dd_merge(od->dd, dd);
-		od->lastMergedVersion = metaDataVersion;
+		//od->lastMergedVersion = metaDataVersion; // Moved below for now
         // if kvs data had no new data
 		if (!mr.dd1NotIn0) {
-			srfsLog(LOG_FINE, "No updates from KVS data");
+            od->lastMergedVersion = metaDataVersion; // Repurposing lastMergedVersion as last merged & verified version
+			srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "No updates from KVS data");
 			// Note, mr.dd is always NULL in this case, no need to free
 			//od->needsReconciliation = FALSE; 
 		} else {
@@ -236,8 +264,9 @@ void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 		}
         // if local data had entries not in the kvs, update kvs with merged result
 		if (mr.dd0NotIn1) {
-			srfsLog(LOG_FINE, "Updating KVS version with local data");
-			odw_write_dir(od_odw, od->path, od);
+			srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "Updating KVS version with local data");
+			//odw_write_dir(od_odw, od->path, od);
+            kvsMissingLocalData = TRUE; // new code does the write externally
 		}
         // if local data and kvs data are an exact match
 		if (!mr.dd1NotIn0 && !mr.dd0NotIn1) {
@@ -250,16 +279,19 @@ void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
                     
                     dataVC = getValueCreatorAsUint64(vc);
                     delete vc;
-                    srfsLog(LOG_INFO, "myValueCreator %x dataVC %x", myValueCreator, dataVC);
+                    srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "myValueCreator %x dataVC %x", myValueCreator, dataVC);
                     // only clear needsReconciliation if somebody else wrote last, and we have an exact match
                     if (myValueCreator != dataVC) {
-                        od_remove_from_reconciliation(od);
+                        //od_remove_from_reconciliation(od);
+                        if (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS) {
+                            od_remove_from_reconciliation(od);
+                        }
                     }
                 } else {
-                    srfsLog(LOG_INFO, "Can't compare IDs due to NULL metaData->getCreator()");
+                    srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "Can't compare IDs due to NULL metaData->getCreator()");
                 }
             } else {
-                srfsLog(LOG_INFO, "Can't compare IDs due to NULL metaData");
+                srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "Can't compare IDs due to NULL metaData");
             }
 			//if (od->needsReconciliation > 0) {
 			//	--od->needsReconciliation;
@@ -268,7 +300,7 @@ void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 			od->needsReconciliation = TRUE;
 		}
 	} else {
-		srfsLog(LOG_FINE, "Ignoring stale or duplicate update %llx %l", od, od->ddVersion);
+		srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "Ignoring stale or duplicate update %llx %ld", od, od->ddVersion);
 		if (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS) {
             od_remove_from_reconciliation(od);
         }
@@ -277,7 +309,8 @@ void od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
     if (deleteOnExit) {
         dd_delete(&dd);
     }
-	srfsLog(LOG_FINE, "out od_add_DirData %llx %llx", od, dd);
+	srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "out od_add_DirData %llx %llx", od, dd);
+    return kvsMissingLocalData;
 }
 
 int od_updates_pending(OpenDir *od) {

@@ -75,6 +75,8 @@ public class AsyncBase<T extends Connection> {
 		if (AsyncGlobals.verbose) {
     		Log.warning("defReceiveBufferSize: "+ defReceiveBufferSize);
             Log.warning("defSendBufferSize: "+ defSendBufferSize);
+    		Log.warning("defSocketReadTimeout: "+ defSocketReadTimeout);
+            Log.warning("defSocketConnectTimeout: "+ defSocketConnectTimeout);
 		}
 	}
 	
@@ -162,8 +164,8 @@ public class AsyncBase<T extends Connection> {
 	
 	//////////////////////////////////////////////////////////////////////
 
-	private void disconnect(Connection connection) {
-		Log.warning("AsyncBase disconnect: ", connection);
+	private void disconnect(Connection connection, String reason) {
+		Log.warning("AsyncBase disconnect: ", connection +" "+ reason);
         if (Connection.statsEnabled) {
         	connections.remove(connection);
         }
@@ -211,7 +213,7 @@ public class AsyncBase<T extends Connection> {
                     // Remote entity shut the socket down cleanly. Do the
                     // same from our end and cancel the channel.
                     // Also called if there is a corrupt message.
-                    disconnect(connection);
+                    disconnect(connection, "numRead < 0");
                 }
             } catch (IOException ioe) {
                 Log.logErrorWarning(ioe);
@@ -232,7 +234,7 @@ public class AsyncBase<T extends Connection> {
                 Log.logErrorWarning(e, "Unhandled exception");
             } finally {
                 if (!cleanRead) {
-                    disconnect(connection);
+                    disconnect(connection, "!cleanRead");
                 }
             }
 		}
@@ -270,7 +272,7 @@ public class AsyncBase<T extends Connection> {
                 Log.logErrorWarning(e, "Unhandled exception()");
             } finally {
                 if (!cleanWrite) {
-                    disconnect(connection);
+                    disconnect(connection, "!cleanWrite");
                 }
             }
 		}
@@ -314,7 +316,7 @@ public class AsyncBase<T extends Connection> {
         channel.socket().setTcpNoDelay(tcpNoDelay);
         channel.socket().setReceiveBufferSize(defReceiveBufferSize);
         channel.socket().setSendBufferSize(defSendBufferSize);
-        channel.socket().setSoTimeout(defSocketReadTimeout);
+        channel.socket().setSoTimeout(defSocketReadTimeout); // Useless for SocketChannel I/O. Remove
 		try {
 			channel.configureBlocking(false);
 		} catch (IOException ioe) {

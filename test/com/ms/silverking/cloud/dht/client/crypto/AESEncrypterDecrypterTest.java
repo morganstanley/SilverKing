@@ -1,12 +1,6 @@
 package com.ms.silverking.cloud.dht.client.crypto;
 
 import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.*;
-import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.empty;
-import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.m2mXORCopy;
-import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.negOne;
-import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.negOneCopy;
-import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.posOne;
-import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.testCases;
 import static com.ms.silverking.testing.AssertFunction.test_EqualsOrNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_HashCode;
 import static org.junit.Assert.assertEquals;
@@ -15,6 +9,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
+import com.ms.silverking.testing.Util;
 import com.ms.silverking.util.PropertyException;
 
 public class AESEncrypterDecrypterTest {
@@ -43,12 +38,13 @@ public class AESEncrypterDecrypterTest {
 	public void testConstructors_Exception() throws IOException {
 		new AESEncrypterDecrypter();
 	}
-	
-	@Test
-	public void testConstructors() {
-		for (byte[] testCase : testCases)
-			createAES(testCase);
-	}
+
+	// already tested in static variables above, and ctor 'secureRandom.generateSeed(16)' takes a lot of time, so commenting out is to speed up overall test runtime
+//	@Test
+//	public void testConstructors() {
+//		for (byte[] testCase : testCases)
+//			createAES(testCase);
+//	}
 
 	@Test
 	public void testGetName() {
@@ -57,9 +53,21 @@ public class AESEncrypterDecrypterTest {
 
 	@Test
 	public void testEncryptDecrypt() {
-		for (byte[] testCase : testCases) {
-			AESEncrypterDecrypter ec = createAES(testCase);
-			checkEncryptDecrypt(testCase, ec);
+//		for (byte[] testCase : testCases) {
+//			AESEncrypterDecrypter ec = createAES(testCase);
+//			checkEncryptDecrypt(testCase, ec);
+//		}
+		// use already create AES obj's to speed up test runtime
+		Object[][] testCases = {
+			{negOne,        negOneAES},
+			{empty,          emptyAES},
+			{posOne,        posOneAES},
+			{byte_minToMax,    m2mAES},
+		};
+		for (Object[] testCase : testCases) { 
+			byte[] expected          =                (byte[])testCase[0];
+			AESEncrypterDecrypter ec = (AESEncrypterDecrypter)testCase[1];
+			checkEncryptDecrypt(expected, ec);
 		}
 	}
 	
@@ -71,5 +79,9 @@ public class AESEncrypterDecrypterTest {
 	@Test
 	public void testEquals() {
 		test_EqualsOrNotEquals(testCasesEqualsNotEquals);
+	}
+	
+	public static void main(String[] args) throws IOException {
+		Util.runTests(AESEncrypterDecrypterTest.class);
 	}
 }

@@ -70,11 +70,15 @@ function f_compileAndLinkProxiesIntoLib {
 	f_cleanOrMakeDirectory "$buildObjDir"
 	
 	f_compileAssembleDirectoryTree "$PROXY_SRC_DIR" "$buildObjDir" "$cc" "$cc_opts" "$inc_opts"
-	f_createStaticLibrary "$J_SK_LIB_NAME" "$INSTALL_ARCH_LIB_DIR" "$buildObjDir/$ALL_DOT_O_FILES" ""
+	if [[ $CREATE_STATIC_LIBS == $TRUE ]]; then
+		f_createStaticLibrary "$J_SK_LIB_NAME" "$INSTALL_ARCH_LIB_DIR" "$buildObjDir/$ALL_DOT_O_FILES" ""
+	fi
 	f_createSharedLibrary "$J_SK_LIB_NAME" "$INSTALL_ARCH_LIB_DIR" "$buildObjDir/$ALL_DOT_O_FILES" "$ld" "$ld_opts" "$lib_opts"
 	
 	f_testEquals "$buildObjDir" "$ALL_DOT_O_FILES" "167"
-	f_testEquals "$INSTALL_ARCH_LIB_DIR" "$J_SK_LIB_STATIC_NAME" "1"
+	if [[ $CREATE_STATIC_LIBS == $TRUE ]]; then
+		f_testEquals "$INSTALL_ARCH_LIB_DIR" "$J_SK_LIB_STATIC_NAME" "1"
+	fi
 	f_testEquals "$INSTALL_ARCH_LIB_DIR" "$J_SK_LIB_SHARED_NAME" "1"
 }
 
@@ -94,7 +98,9 @@ function f_buildMainLib {
 	f_cleanOrMakeDirectory "$buildObjDir"
 	
 	f_compileAssembleDirectory "$DHT_CLIENT_SRC_DIR" "$buildObjDir" "$cc" "$cc_opts -DSKVER=$sk_ver" "$inc_opts"
-	f_createStaticLibrary "$SK_LIB_NAME" "$INSTALL_ARCH_LIB_DIR" "$buildObjDir/$ALL_DOT_O_FILES" "$J_SK_LIB"
+	if [[ $CREATE_STATIC_LIBS == $TRUE ]]; then
+		f_createStaticLibrary "$SK_LIB_NAME" "$INSTALL_ARCH_LIB_DIR" "$buildObjDir/$ALL_DOT_O_FILES" "$J_SK_LIB"
+	fi
 	f_createSharedLibrary "$SK_LIB_NAME" "$INSTALL_ARCH_LIB_DIR" "$buildObjDir/$ALL_DOT_O_FILES" "$ld" "$ld_opts" "$lib_opts -L${INSTALL_ARCH_LIB_DIR} -l${J_SK_LIB_NAME}"
 	# fixme was using jace dynamic loader if/else
 #	typeset lib_name=$(f_createSharedLibraryName "$SK_LIB_NAME");
@@ -109,15 +115,17 @@ function f_buildMainLib {
 	#fi
 	
 	f_testEquals "$buildObjDir" "$ALL_DOT_O_FILES" "68"
-	f_testEquals "$INSTALL_ARCH_LIB_DIR" "$SK_LIB_STATIC_NAME" "1"
+	if [[ $CREATE_STATIC_LIBS == $TRUE ]]; then
+		f_testEquals "$INSTALL_ARCH_LIB_DIR" "$SK_LIB_STATIC_NAME" "1"
+	fi
 	f_testEquals "$INSTALL_ARCH_LIB_DIR" "$SK_LIB_SHARED_NAME" "1"
 }
 
 function f_installHeaderFiles {
 	f_printSection "Installing Header Files"
-	f_makeWithParents $INSTALL_INC_DIR
-	cp -f $DHT_CLIENT_SRC_DIR/SK*.h $DHT_CLIENT_SRC_DIR/sk*.h $INSTALL_INC_DIR/
-	cp -rf $PROXY_INC/jace  $INSTALL_INC_DIR/
+	f_makeWithParents $INSTALL_COMMON_INC_DIR
+	cp -f $DHT_CLIENT_SRC_DIR/SK*.h $DHT_CLIENT_SRC_DIR/sk*.h $INSTALL_COMMON_INC_DIR/
+	cp -rf $PROXY_INC/jace $INSTALL_COMMON_INC_DIR/
 }
 
 function f_buildTestApp {
@@ -139,7 +147,7 @@ function f_buildTestApp {
 	typeset app=$INSTALL_ARCH_BIN_DIR/$appName
 	f_makeWithParents $INSTALL_ARCH_BIN_DIR
 	
-	f_compileAssembleDirectory "$APP_SRC_DIR/$appName" "$buildObjDir" "$cc" "$cc_opts" "$inc_opts -I${INSTALL_INC_DIR}"
+	f_compileAssembleDirectory "$APP_SRC_DIR/$appName" "$buildObjDir" "$cc" "$cc_opts" "$inc_opts -I${INSTALL_COMMON_INC_DIR}"
 	f_link "$app" "$buildObjDir/$ALL_DOT_O_FILES" "$ld" "$ld_opts -Wl,--rpath -Wl,${INSTALL_ARCH_LIB_DIR}" "$lib_opts -L${INSTALL_ARCH_LIB_DIR} -l${SK_LIB_NAME} -l${J_SK_LIB_NAME} -ldl"
 	# fixme show glenn
 #	f_printSubSection "linking $app"
@@ -182,14 +190,14 @@ function f_buildGtestFramework {
 	
 	typeset vars="
      	                   CC=\"$cc\"
-	                  CC_OPTS=\"-std=c++0x $cc_opts\"
+	                  CC_OPTS=\"$cc_opts -std=c++11\"
 	                 INC_OPTS=\"$inc_opts\"
 	                       LD=\"$ld\"
 	                  LD_OPTS=\"$ld_opts\"
 	                 LIB_OPTS=\"$ld_opts\"
 	               G_TEST_INC=\"$G_TEST_INC\"
 	                PROXY_INC=\"$PROXY_INC\"
-	          INSTALL_INC_DIR=\"$INSTALL_INC_DIR\"
+	   INSTALL_COMMON_INC_DIR=\"$INSTALL_COMMON_INC_DIR\"
 	           G_TEST_SRC_DIR=\"$g_test_src_dir\"
 	              LD_LIB_OPTS=\"$LD_LIB_OPTS\"
 	                RPATH_DIR=\"$RPATH_DIR\"
@@ -252,10 +260,10 @@ function f_buildKdbHelper {
 		typeset testdht_q_name=testdht.q
 		f_printSubSection "Building q lib: $q_lib_shared"
 		echo
-		f_compileAssembleLink "$q_app_dir/$qdht_name.c" "$q_lib_shared" "$cc" "$ld_opts -Wno-write-strings -shared -D__STDC_LIMIT_MACROS $d_kx_ver" "-I${BOOST_INC} -I${q_app_dir} -I${INSTALL_INC_DIR} -I${kdb_dir_name}/include" "$lib_opts" 
+		f_compileAssembleLink "$q_app_dir/$qdht_name.c" "$q_lib_shared" "$cc" "$ld_opts -Wno-write-strings -shared -D__STDC_LIMIT_MACROS $d_kx_ver" "-I${BOOST_INC} -I${q_app_dir} -I${INSTALL_COMMON_INC_DIR} -I${kdb_dir_name}/include" "$lib_opts" 
 		## -Wno-write-strings, as krr("error-such-and-such") expects char* , not const, and new versions of gcc give warnings
-		#echo $cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I$q_app_dir -I$INSTALL_INC_DIR -I$kdb_dir_name/include -I${BOOST_INC} $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
-		#$cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I${BOOST_INC} -I$q_app_dir -I$INSTALL_INC_DIR -I$kdb_dir_name/include $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
+		#echo $cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I$q_app_dir -I$INSTALL_COMMON_INC_DIR -I$kdb_dir_name/include -I${BOOST_INC} $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
+		#$cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I${BOOST_INC} -I$q_app_dir -I$INSTALL_COMMON_INC_DIR -I$kdb_dir_name/include $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
 
 		typeset full_testdht_q_name=${prefix}${testdht_q_name}
 		$CAT $q_app_dir/$qdht_q_name    | $SED "s#$DHT_LIB_PATH_PLACEHOLDER#$q_path_dir#" > $q_lib_install_dir/$qdht_q_name
@@ -299,11 +307,11 @@ function f_buildPerlClient {
 		typeset  obj=$buildObjDir/${wrapName}.o
 
 		f_printSubSection "swigging $SK_LIB_NAME lib"
-		f_runCmd "$SWIG -c++ -perl5 -cpperraswarn -I${INSTALL_INC_DIR} -I${SWIG_INC_DIR} -o $wrap $perl_app_dir/dht.i" #-debug-tmsearch -debug-tmused -Wall
+		f_runCmd "$SWIG -c++ -perl5 -cpperraswarn -I${INSTALL_COMMON_INC_DIR} -I${SWIG_INC_DIR} -o $wrap $perl_app_dir/dht.i" #-debug-tmsearch -debug-tmused -Wall
 
 		typeset perl_opts=`${PERL_5_8//5.8/$ver} -MExtUtils::Embed -e ccopts | $SED s/-Wdeclaration-after-statement//`
 		echo
-		f_compileAssemble "$wrap" "$obj" "$cc" "-Wno-literal-suffix $perl_opts -fPIC" "$inc_opts -I${INSTALL_INC_DIR}"
+		f_compileAssemble "$wrap" "$obj" "$cc" "-Wno-literal-suffix $perl_opts -fPIC" "$inc_opts -I${INSTALL_COMMON_INC_DIR}"
 
 		typeset lib_name=SKClientImpl.so
 		typeset perl_lib=$actual_perl_version_lib_install/$lib_name

@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.client;
 
 import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.VersionConstraint;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 
 
 /**
@@ -32,6 +33,7 @@ public interface BaseNamespacePerspective<K,V> {
 	 * Get this perspective's Namespace.
 	 * @return the perspective's Namespace
 	 */
+	@OmitGeneration
 	public Namespace getNamespace();
 	/**
 	 * Get the NamespacePerspectiveOptions currently in use by this perspective.

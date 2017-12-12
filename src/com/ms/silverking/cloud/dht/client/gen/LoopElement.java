@@ -8,7 +8,7 @@ public class LoopElement implements Statement {
 	private static final String	loopString = "ForAll";
 	
 	public static enum Position {Start, End};
-	public static enum Target {Classes, Methods, Parameters};
+	public static enum Target {Packages, Classes, Methods, StaticMethods, Parameters, Constructors, ReferencedClasses, StaticFields, Enums, EnumValues, Interfaces, InheritedClasses};
 	
 	public LoopElement(Target target, Position position) {
 		this.target = target;
@@ -19,7 +19,7 @@ public class LoopElement implements Statement {
 		int	i;
 		
 		i = s.indexOf(loopString);
-		if (i < 1) {
+		if (i < 0) {
 			return null;
 		} else {
 			Position	position;
@@ -45,5 +45,10 @@ public class LoopElement implements Statement {
 
 	public Position getPosition() {
 		return position;
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("Loop %s %s", target, position);
 	}
 }

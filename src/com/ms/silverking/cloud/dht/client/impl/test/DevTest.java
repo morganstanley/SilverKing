@@ -21,6 +21,7 @@ import com.ms.silverking.cloud.dht.client.DHTClient;
 import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.StoredValue;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.net.HostAndPort;
 import com.ms.silverking.net.NetUtil;
@@ -67,7 +68,7 @@ public class DevTest {
         
         asyncPut = null;
         client = new DHTClient();
-        dhtConfig = new ClientDHTConfiguration(dhtName, zkLocs);
+        dhtConfig = new ClientDHTConfiguration(dhtName, new ZooKeeperConfig(zkLocs));
         session = client.openSession(dhtConfig);
         putOptions = session.getDefaultNamespaceOptions().getDefaultPutOptions().compression(compression).checksumType(checksumType);
         asyncNSP = session.openAsyncNamespacePerspective(namespace, String.class, String.class);

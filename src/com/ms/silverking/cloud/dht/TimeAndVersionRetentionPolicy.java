@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht;
 
 import java.util.concurrent.TimeUnit;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.collection.Pair;
@@ -20,6 +21,7 @@ public class TimeAndVersionRetentionPolicy implements ValueRetentionPolicy<TimeA
         ObjectDefParser2.addParser(template);
     }    	
 	
+	@OmitGeneration
 	public TimeAndVersionRetentionPolicy(Mode mode, int minVersions, long timeSpanSeconds) {
 		this.mode = mode;
 		this.minVersions = minVersions;

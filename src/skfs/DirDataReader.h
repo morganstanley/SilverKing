@@ -39,6 +39,8 @@ typedef struct DirDataReader {
 	SKSession		*(pSession[DDR_DHT_THREADS]);
     SKAsyncNSPerspective *(ansp[DDR_DHT_THREADS]);
 	ResponseTimeStats	*rtsDirData;
+    SKGetOptions	*metaDataGetOptions;
+    SKGetOptions	*valueAndMetaDataGetOptions;    
 } DirDataReader;
 
 

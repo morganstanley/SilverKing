@@ -1,15 +1,19 @@
 package com.ms.silverking.cloud.dht;
 
 import static com.ms.silverking.cloud.dht.TestUtil.getImplementationType;
-import static com.ms.silverking.testing.AssertFunction.*;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_SecondNotEqualsThird;
 import static com.ms.silverking.testing.AssertFunction.test_Getters;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 
+@OmitGeneration
 public class InvalidatedRetentionPolicyTest {
 
 	private static final int irisCopy = 0;

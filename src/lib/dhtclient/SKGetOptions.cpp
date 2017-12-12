@@ -87,10 +87,13 @@ SKGetOptions * SKGetOptions::retrievalType(SKRetrievalType retrievalType) {
 	GetOptions * pGoImp = new GetOptions(java_cast<GetOptions>(
 		((GetOptions*)pImpl)->retrievalType(*pRt)
 	)); 
+    return new SKGetOptions(pGoImp);
+    /*
     delete ((GetOptions*)pImpl);
     pImpl = pGoImp;
     delete pRt;
     return this;
+    */
 }
 
 SKGetOptions * SKGetOptions::versionConstraint(SKVersionConstraint * versionConstraint) {
@@ -98,10 +101,13 @@ SKGetOptions * SKGetOptions::versionConstraint(SKVersionConstraint * versionCons
 	GetOptions * pGoImp = new GetOptions(java_cast<GetOptions>(
 		((GetOptions*)pImpl)->versionConstraint(*pVc)
 	)); 
+    return new SKGetOptions(pGoImp);
+    /*
     delete ((GetOptions*)pImpl);
     pImpl = pGoImp;
     delete pVc;
     return this;
+    */
 }
 
 SKGetOptions * SKGetOptions::nonExistenceResponse(SKNonExistenceResponse::SKNonExistenceResponse nonExistenceResponse){
@@ -109,10 +115,13 @@ SKGetOptions * SKGetOptions::nonExistenceResponse(SKNonExistenceResponse::SKNonE
 	GetOptions * p = new GetOptions(java_cast<GetOptions>(
 		((GetOptions*)pImpl)->nonExistenceResponse(*pNer)
 	)); 
+    return new SKGetOptions(p);
+    /*
 	delete pNer;
     delete ((GetOptions*)pImpl);
     pImpl = p;
     return this;
+    */
 }
 
 SKGetOptions * SKGetOptions::verifyChecksums(bool verifyChecksums)

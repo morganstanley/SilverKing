@@ -393,6 +393,8 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 			            Log.warningAsync("New ring: ", ring);
 			        }
 			        try {
+				        CentralConvergenceController.RequestedSyncMode	syncMode;
+				        
 						// Stop old convergence
 						if (targetConvergenceController != null) {
 					        if (enableLogging) {
@@ -409,8 +411,15 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 				            Log.warningAsync("New targetRing: ", targetRing);
 				        }
 				        
+				        if (mode == Mode.ManualNoSync) {
+				        	syncMode = CentralConvergenceController.RequestedSyncMode.SetStateOnly;
+				        } else {
+				        	syncMode = CentralConvergenceController.RequestedSyncMode.SyncAndSetStateUnlessSubset;
+				        }
+			        	// MAKE syncUnchangedOnwers CONFIGURABLE
+				        
 						try {
-							targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, currentCP, targetCP, readExclusions(ring), mgBase, syncUnchangedOwners, mode == Mode.ManualNoSync ? CentralConvergenceController.SyncMode.SetStateOnly : CentralConvergenceController.SyncMode.SyncAndSetState);
+							targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, currentCP, targetCP, readExclusions(ring), mgBase, syncUnchangedOwners, syncMode);
 							convergenceControllers.put(targetConvergenceController.getUUID(), targetConvergenceController);
 						} catch (IOException ioe) {
 							Log.logErrorWarning(ioe, "Unable to start convergence");
@@ -462,7 +471,12 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     	}
     }
     
-    public void syncData(Quadruple<UUIDBase,Quadruple<String,Long,Long,Long>,Quadruple<String,Long,Long,Long>,SyncTargets> idAndRings) {
+    private boolean ringIsSubset(Triple<String, Long, Long> superRing, Triple<String, Long, Long> subRing) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public void syncData(Quadruple<UUIDBase,Quadruple<String,Long,Long,Long>,Quadruple<String,Long,Long,Long>,SyncTargets> idAndRings) {
     	UUIDBase							uuid;
     	Quadruple<String,Long,Long,Long>	sourceRing;
     	Quadruple<String,Long,Long,Long>	targetRing;
@@ -496,7 +510,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 					_sourceCP = new ConvergencePoint(dhtConfig.getVersion(), RingIDAndVersionPair.fromRingNameAndVersionPair(sourceRing.getTripleAt1()), sourceRing.getV4());
 					_targetCP = new ConvergencePoint(dhtConfig.getVersion(), RingIDAndVersionPair.fromRingNameAndVersionPair(targetRing.getTripleAt1()), targetRing.getV4());
 					try {
-						targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, _sourceCP, _targetCP, readExclusions(targetRing), mgBase, syncUnchangedOwners, CentralConvergenceController.SyncMode.SyncOnly);
+						targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, _sourceCP, _targetCP, readExclusions(targetRing), mgBase, syncUnchangedOwners, CentralConvergenceController.RequestedSyncMode.SyncOnly);
 						convergenceControllers.put(targetConvergenceController.getUUID(), targetConvergenceController);
 					} catch (IOException ioe) {
 						Log.logErrorWarning(ioe, "Unable to start sync");
@@ -807,7 +821,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
                 
     	        LWTPoolProvider.createDefaultWorkPools();                
                 
-                dhtRingMaster = new DHTRingMaster(new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs()), 
+                dhtRingMaster = new DHTRingMaster(gc.getClientDHTConfiguration().getZKConfig(), 
                 									gc.getClientDHTConfiguration().getName(), intervalMillis, options.mode);
                 Log.warningAsync("DHTRingMaster created");
                 dhtRingMaster.start();
@@ -816,11 +830,12 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+	            System.exit(-1);
             }        	
         } catch (Exception e) {
             e.printStackTrace();
             Log.logErrorSevere(e, DHTRingMaster.class.getName(), "main");
+            System.exit(-1);
         }
     }
     

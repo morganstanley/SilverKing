@@ -139,7 +139,7 @@ public class StorageModule implements LinkCreationListener {
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
         baseDir = new File(DHTNodeConfiguration.dataBasePath, dhtName);
-        clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig.getEnsemble());
+        clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
         nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
         //spGroup = createTestPolicy();
         spGroup = null;
@@ -198,8 +198,8 @@ public class StorageModule implements LinkCreationListener {
         //timer.scheduleAtFixedRate(new Reaper(), reapInitialDelayMillis, reapPeriodMillis);        
     }
     
-    public void initialReap() {
-    	reap();
+    public void initialReap(boolean leaveTrash) {
+    	reap(leaveTrash);
     }
     
     private void createMetaNSStore() {
@@ -497,14 +497,14 @@ public class StorageModule implements LinkCreationListener {
         }
     }
     
-    public void reap() {
+    public void reap(boolean leaveTrash) {
     	Stopwatch	sw;
     	
     	Log.warning("Reap");
     	sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
         	if (!ns.isDynamic()) {
-        		ns.reap();
+        		ns.reap(leaveTrash);
         	}
         }
     	sw.stop();
@@ -691,12 +691,15 @@ public class StorageModule implements LinkCreationListener {
     /////////////////////////////////
     
     class Reaper extends TimerTask {
-        Reaper() {
+    	private final boolean	leaveTrash;
+    	
+        Reaper(boolean leaveTrash) {
+        	this.leaveTrash = leaveTrash;
         }
         
         @Override
         public void run() {
-            reap();
+            reap(leaveTrash);
         }
     }
     

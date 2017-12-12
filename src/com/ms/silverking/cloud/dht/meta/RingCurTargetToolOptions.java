@@ -7,7 +7,7 @@ public class RingCurTargetToolOptions {
     public String gridConfig;
     @Option(name="-m", usage="mode {Read,Write}", required=true)
     public RingCurTargetTool.Mode	mode;
-    @Option(name="-o", usage="object {Current,Target}", required=true)
+    @Option(name="-o", usage="object {Current,Target,Master}", required=true)
     public DHTRingCurTargetZK.NodeType	nodeType;
     @Option(name="-v", usage="versionPair)", required=false)
     public String	versionPair;

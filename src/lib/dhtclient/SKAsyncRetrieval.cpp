@@ -120,6 +120,26 @@ SKMap<string,SKStoredValue * > *  SKAsyncRetrieval::getStoredValues(void) {
 }
 
 SKStoredValue *  SKAsyncRetrieval::getStoredValue(string& key) {
+    SKStoredValue   *sv = NULL;
+    
+    try {
+	    AsyncRetrieval *pAsync = (AsyncRetrieval*)getPImpl();
+        StoredValue _sv = pAsync->getStoredValue( String(key) );
+        if (_sv.isNull()) {
+            sv = NULL;
+        } else {
+            StoredValue *storedValue = new StoredValue(java_cast<StoredValue>(_sv));
+            sv = new SKStoredValue(storedValue);
+        }
+	}  catch( Throwable &t ) {
+		//throw SKClientException( &t, __FILE__, __LINE__ );
+		repackException(__FILE__, __LINE__ );
+    }
+    return sv;
+}
+
+/*
+SKStoredValue *  SKAsyncRetrieval::getStoredValue(string& key) {
     SKStoredValue * sv = NULL;
     try {
 	    AsyncRetrieval * pAsync = (AsyncRetrieval*)getPImpl();
@@ -131,5 +151,6 @@ SKStoredValue *  SKAsyncRetrieval::getStoredValue(string& key) {
     }
     return sv;
 }
+*/
 
 

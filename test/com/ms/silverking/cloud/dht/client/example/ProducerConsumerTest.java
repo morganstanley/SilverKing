@@ -15,6 +15,8 @@ import com.ms.silverking.testing.annotations.SkLarge;
 @SkLarge
 public class ProducerConsumerTest {
 
+	public static final int TIMEOUT_MILLIS = 10_000;
+	
 	private abstract class WorkerThread extends Thread {
 		
 		protected final ProducerConsumer pc;
@@ -28,14 +30,10 @@ public class ProducerConsumerTest {
 		}
 		
 	    public void run() {
-	        try {
-				doWork();
-			} catch (RetrievalException|PutException e) {
-				e.printStackTrace();
-			}
+			doWork();
 	    }
 		
-		abstract void doWork() throws RetrievalException, PutException;
+		abstract void doWork();
 	}
 
 	private class ConsumerThread extends WorkerThread {
@@ -45,8 +43,12 @@ public class ProducerConsumerTest {
 		}
 		
 		@Override
-	    public void doWork() throws RetrievalException {
-			pc.consumer(startKey, endKey);
+	    public void doWork() {
+			try {
+				pc.consumer(startKey, endKey);
+			} catch (RetrievalException e) {
+				throw new RuntimeException(e);
+			}
 	    }
 	}
 	
@@ -56,8 +58,12 @@ public class ProducerConsumerTest {
 			super(pc, startKey, endKey);
 		}
 		
-	    public void doWork() throws PutException {
-			pc.producer(startKey, endKey);
+	    public void doWork() {
+			try {
+				pc.producer(startKey, endKey);
+			} catch (PutException e) {
+				throw new RuntimeException(e);
+			}
 	    }
 	}
 
@@ -69,32 +75,35 @@ public class ProducerConsumerTest {
 	}
 	
 	@Test
-	public void testProduce_PutAValue() throws ClientException, IOException {
-		pc.producer(1, 1);
-	}
-
-	@Test(timeout=10_000)
-	public void testProducerConsumer_threadedConsumerBeforeProducer() throws RetrievalException, InterruptedException {
-		ConsumerThread ct = new ConsumerThread(pc, 3, 1000);
-		ProducerThread pt = new ProducerThread(pc, 3, 1000);
-
-		ct.start();
-		pt.start();
-		
-		ct.join();
-		pt.join();
+	public void testProducerAndConsumer() throws PutException, RetrievalException {
+		int startKey = 1;
+		int   endKey = startKey;
+		pc.producer(startKey, endKey);
+		pc.consumer(startKey, endKey);
 	}
 	
-	@Test(timeout=10_000)
-	public void testProducerConsumer_threadedProducerBeforeConsumer() throws RetrievalException, InterruptedException {
-		ProducerThread pt = new ProducerThread(pc, 1_001, 10_000);
-		ConsumerThread ct = new ConsumerThread(pc, 1_001, 10_000);
+	@Test(timeout=TIMEOUT_MILLIS)
+	public void testProducerConsumer_threadedProducerBeforeConsumer() throws InterruptedException {
+		ProducerThread pt = new ProducerThread(pc, 2, 9_000);
+		ConsumerThread ct = new ConsumerThread(pc, 2, 9_000);
 		
 		pt.start();
 		ct.start();
 		
 		pt.join();
 		ct.join();
+	}
+
+	@Test(timeout=TIMEOUT_MILLIS)
+	public void testProducerConsumer_threadedConsumerBeforeProducer() throws InterruptedException {
+		ConsumerThread ct = new ConsumerThread(pc, 9_001, 10_000);
+		ProducerThread pt = new ProducerThread(pc, 9_001, 10_000);
+
+		ct.start();
+		pt.start();
+		
+		ct.join();
+		pt.join();
 	}
 	
 	public static void main(String[] args) {

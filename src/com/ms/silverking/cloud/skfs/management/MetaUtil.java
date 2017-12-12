@@ -12,7 +12,6 @@ import com.ms.silverking.cloud.skfs.meta.MetaPaths;
 import com.ms.silverking.cloud.skfs.meta.SKFSConfiguration;
 import com.ms.silverking.cloud.skfs.meta.SKFSConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.net.HostAndPort;
 
 public class MetaUtil {
     private final ZooKeeperConfig    zkConfig;
@@ -21,7 +20,7 @@ public class MetaUtil {
     private static final boolean     debug = false;
     
     public MetaUtil(String skfsConfigName, String zkString) throws KeeperException,  IOException {
-        zkConfig = new ZooKeeperConfig(HostAndPort.parseMultiple(zkString));
+        zkConfig = new ZooKeeperConfig(zkString);
         mc = new MetaClient(skfsConfigName, zkConfig);
         this.skfsConfigName = skfsConfigName;
     }
@@ -112,7 +111,7 @@ public class MetaUtil {
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+    			System.exit(-1);
             }
             
             if (options.gridConfigName == null) {
@@ -127,6 +126,7 @@ public class MetaUtil {
             mu.run(options);
         } catch (Exception e){
             e.printStackTrace();
+			System.exit(-1);
         }
     }
     

@@ -75,6 +75,7 @@ CacheStoreResult ar_store_attr_in_cache_static(char *path, FileAttr *fa, int rep
 ActiveOp *ar_create_active_op(void *_ar, void *_nfsPath, uint64_t minModificationTimeMicros);
 int ar_is_no_link_cache_path(AttrReader *ar, char *path);
 AttrCache *ar_get_attrCache(AttrReader *ar);
+void ar_ensure_path_fid_associated(AttrReader *ar, char * path, FileID *fid);
 
 void ar_translate_path(AttrReader *ar, char *nfsPath, const char *path);
 void ar_display_stats(AttrReader *ar, int detailedStats);

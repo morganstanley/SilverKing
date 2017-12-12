@@ -6,23 +6,9 @@ function f_sourceGlobalVars {
 	source lib/sk.global.vars
 }
 
-function f_configureClasspath {
-	f_exitIfUndefined "bin_dir" $bin_dir
-	
+function f_configureClasspath {	
 	if [[ -z $skGlobalCodebase ]]; then  
-		cd ../lib
-		typeset cpBase=`pwd`
-		typeset cp=""
-		typeset count=1;
-		for f in `ls $cpBase/*.jar`; do
-			if [[ $count -ne 1 ]] ; then
-				cp+=":"
-			fi
-			cp+=$f
-			((count++))
-		done
-		classpath=$cp
-		cd $bin_dir
+		classpath=$(f_getClasspath "../lib" "$bin_dir")
 	else    
 		echo "Using skGlobalCodebase"
 	
@@ -32,6 +18,28 @@ function f_configureClasspath {
 		classpath=$skGlobalCodebase
 		   skJava=${skDevJavaHome}/bin/java
 	fi
+}
+
+function f_getClasspath {
+	typeset libDir=$1
+	typeset binDir=$2
+	
+	f_exitIfUndefined "bin_dir" $binDir
+	
+	cd $libDir
+	typeset cpBase=`pwd`
+	typeset cp=""
+	typeset count=1;
+	for f in `ls $cpBase/*.jar`; do
+		if [[ $count -ne 1 ]] ; then
+			cp+=":"
+		fi
+		cp+=$f
+		((count++))
+	done
+	
+	cd $binDir
+	echo $cp
 }
 
 function f_exitIfUndefined {
@@ -98,6 +106,20 @@ function f_countHelper {
 	else
 		echo "`echo -e \"$1\" | wc -l`"
 	fi 
+}
+
+function f_exit {
+	typeset exitCode=$1
+	
+	f_printExitCode "$exitCode"
+	exit $exitCode
+}
+
+function f_printExitCode {
+	typeset exitCode=$1
+	
+	typeset basename=`basename $0`
+	echo "$basename exitCode=$exitCode"
 }
 
 function f_printSection {

@@ -71,7 +71,7 @@ public class ProducerConsumer {
         System.out.println(sw);
     }
     
-    private void consume(int i) throws RetrievalException {
+    void consume(int i) throws RetrievalException {
         StoredValue<String> sv;
         
         if (i % displayUnit == 0) {
@@ -84,7 +84,7 @@ public class ProducerConsumer {
         }
     }
 
-    private void produce(int i) throws PutException {
+    void produce(int i) throws PutException {
         if (i % displayUnit == 0) {
             System.out.print("Producing: "+ i);
         }

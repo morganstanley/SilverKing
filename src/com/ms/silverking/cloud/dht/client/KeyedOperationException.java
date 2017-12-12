@@ -4,12 +4,14 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
 
 /**
  * Thrown when a keyed client-initiated operation fails. OperationState is provided
  * on a key-by-key basis, but may be incomplete. At least one key will have error 
  * information available.
  */
+@NonVirtual
 public abstract class KeyedOperationException extends OperationException {
 	private final Map<Object, OperationState>	operationState;
 	private final Map<Object, FailureCause>		failureCause;

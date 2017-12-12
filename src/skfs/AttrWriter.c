@@ -183,7 +183,7 @@ static void aw_process_dht_batch(void **requests, int numRequests, int curThread
         }
         //m_pVal points to awr's member, which is deleted below
         ppval->m_len = 0; ppval->m_pVal = NULL;
-        sk_destroy_val( &ppval );
+        //sk_destroy_val( &ppval ); // FIXME - native file relay is requiring this to be c/o
 		// unlike AttrReader (which uses ActiveOp to perform the deletion), we must delete the requests
 		awr_delete(&awr);
 	}

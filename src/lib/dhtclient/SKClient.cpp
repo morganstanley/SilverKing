@@ -241,7 +241,7 @@ static void addJvmDebugOpts(OptionList& list, const string &hprofName) {
 		////list.push_back( jace::CustomOption( "-agentlib:jdwp=transport=dt_socket,address=127.0.0.1:9009,server=y,suspend=n" ) );
 	}
 	list.push_back( jace::CustomOption( "-XX:+TraceClassUnloading") );
-	list.push_back( jace::CustomOption( string("-XX:HeapDumpPath=") + hprofName + string(".heapdump") ) );
+	list.push_back( jace::CustomOption( string("-XX:HeapDumpPath=") + hprofName + string(".heap") ) );
 	list.push_back( jace::CustomOption( "-XX:-AllowUserSignalHandlers") );
 
 	list.push_back( jace::CustomOption( "-XX:+PrintGC") );

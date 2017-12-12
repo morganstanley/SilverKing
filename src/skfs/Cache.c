@@ -605,9 +605,9 @@ static CacheStoreResult cache_store_entry(Cache *cache, CacheEntry *entry, int a
 	if (!alreadyLocked) {
 		pthread_rwlock_wrlock(&cache->rwLock);
 	}
-	pthread_spin_lock(&cache->statLock);
+	//pthread_spin_lock(&cache->statLock);
 	cache->stats.writes++;
-	pthread_spin_unlock(&cache->statLock);
+	//pthread_spin_unlock(&cache->statLock);
 	//oldEntry = (CacheEntry *)hashtable_remove(cache->ht, entry->key);
 	// can't remove here since we might need to leave it in and
 	// the hashtable destroys keys upon removal

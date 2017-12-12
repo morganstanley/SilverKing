@@ -69,7 +69,7 @@ public class NamespaceOptionsClient {
     
     public NamespaceOptionsClient(DHTSession session, ClientDHTConfiguration dhtConfig, 
     							SessionEstablishmentTimeoutController seTimeoutController) {
-        this(session, new ZooKeeperConfig(dhtConfig.getZkLocs()), dhtConfig.getName(), seTimeoutController);
+        this(session, dhtConfig.getZKConfig(), dhtConfig.getName(), seTimeoutController);
     }
 
     public void createNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceCreationException {

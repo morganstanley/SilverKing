@@ -53,12 +53,26 @@ public class IozoneTest {
 		String[][] outputArray = outputToArray(output);
 		assertEquals("num items == 36", 36, outputArray.length);
 		
-		for (String[] values : outputArray) {
+		for (int i = 0; i < outputArray.length; i++) {
+			String[] values = outputArray[i];
 			String key   = values[0];
 			String value = values[1];
-			double expectedVal = 300;
+			double expectedVal = 1_280;
 			double actualVal   = Double.parseDouble(value);
-			assertTrue("value is > " + expectedVal + " actual:" + key + " -> " + value, actualVal > expectedVal);
+			
+			if (i == 14 || i == 17) {
+				expectedVal = 256;
+//				Children see throughput for 24 readers          =  373534.84 KB/sec
+//				Parent sees throughput for 24 readers           =  179136.56 KB/sec
+//				Min throughput per process                      =       0.00 KB/sec
+//				Max throughput per process                      =  226925.39 KB/sec
+//				Avg throughput per process                      =   15563.95 KB/sec
+//				Min xfer                                        =       0.00 KB
+				assertTrue("value is >= " + expectedVal + " or == 0 (actual: " + key + " -> " + value + ")", actualVal >= expectedVal || actualVal == 0);
+			}
+			else {
+				assertTrue("value is >= " + expectedVal + " (actual: " + key + " -> " + value + ")", actualVal >= expectedVal);
+			}
 		}
 	}
 	

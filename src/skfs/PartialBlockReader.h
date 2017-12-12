@@ -10,6 +10,7 @@
 #include "FileAttr.h"
 #include "FileBlockReader.h"
 #include "G2TaskOutputReader.h"
+#include "SKFSOpenFile.h"
 
 
 //////////
@@ -27,7 +28,7 @@ typedef struct PartialBlockReader {
 
 PartialBlockReader *pbr_new(AttrReader *ar, FileBlockReader *fbr, G2TaskOutputReader *g2tor);
 void pbr_delete(PartialBlockReader **pbr);
-int pbr_read(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset);
-int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset, FileAttr *fa, int maxBlocksReadAhead = 131072);
+int pbr_read(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset, SKFSOpenFile *sof);
+int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset, FileAttr *fa, int presumeBlocksInDHT, int maxBlocksReadAhead = 131072, int useNFSReadAhead = FALSE);
 
 #endif

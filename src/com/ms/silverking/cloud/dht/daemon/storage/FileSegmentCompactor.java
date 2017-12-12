@@ -166,20 +166,23 @@ public class FileSegmentCompactor {
         Log.warning("Done deleting segment: ", segmentNumber);
 	}    
     
-    public static void emptyTrash(File nsDir) {
+    public static void emptyTrashAndCompaction(File nsDir) {
     	try {
-	    	File	trashDir;
-	    	File[]	trashFiles;
-	    	
-	    	trashDir = getTrashDir(nsDir);
-	    	trashFiles = trashDir.listFiles();
-	    	for (File file : trashFiles) {
-	    		if (!file.delete()) {
-	    			Log.warning("Failed to delete", file);
-	    		}
-	    	}
+    		emptyDir(getTrashDir(nsDir));
+    		emptyDir(getCompactionDir(nsDir));
     	} catch (IOException ioe) {
     		Log.logErrorWarning(ioe);
+    	}
+    }
+    
+    private static void emptyDir(File dir) {
+    	File[]	files;
+    	
+    	files = dir.listFiles();
+    	for (File file : files) {
+    		if (!file.delete()) {
+    			Log.warning("Failed to delete", file);
+    		}
     	}
     }
     

@@ -58,6 +58,10 @@ static Cache *ac_sub_cache(AttrCache *aCache, char *path) {
 	return aCache->attrCaches[stringHash(path) % aCache->numSubCaches];
 }
 
+void ac_remove(AttrCache *aCache, char *path) {
+    cache_remove(ac_sub_cache(aCache, path), path, FALSE);
+}
+
 CacheReadResult ac_read(AttrCache *aCache, char *path, FileAttr *fa, ActiveOpRef **activeOpRef, void *attrReader, uint64_t minModificationTimeMicros) {
 	return cache_read(ac_sub_cache(aCache, path), path, strlen(path) + 1, (unsigned char *)fa, 0, sizeof(FileAttr), activeOpRef, NULL, 
 						ar_create_active_op, attrReader, minModificationTimeMicros);

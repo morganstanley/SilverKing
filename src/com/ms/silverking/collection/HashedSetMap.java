@@ -20,6 +20,7 @@ public final class HashedSetMap<K,V> {
 	private final MissingKeyMode    missingKeyMode;
 	private final Random			random;
 	private final boolean			useConcurrentSets;
+	private final ConcurrencyMode	concurrencyMode;
 	
 	public enum MissingKeyMode {NULL, EMPTY_SET, PUT_EMPTY_SET};
 	public enum ConcurrencyMode {NONE, SETS, ALL};
@@ -42,7 +43,16 @@ public final class HashedSetMap<K,V> {
 			throw new RuntimeException("panic");
 		}
 		this.missingKeyMode = missingKeyMode;
+		this.concurrencyMode = concurrencyMode;
 		random = new Random();
+	}
+	
+	public HashedSetMap<K,V> clone() {
+		HashedSetMap<K,V>	h;
+		
+		h = new HashedSetMap<>(missingKeyMode, concurrencyMode);
+		h.addAll(this);
+		return h;
 	}
 	
 	public HashedSetMap(MissingKeyMode missingKeyMode) {

@@ -5,7 +5,10 @@ import static com.ms.silverking.testing.Util.createToString;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import static com.ms.silverking.testing.Assert.assertPass;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,16 +40,17 @@ public class FileWriterTest {
 		setupAndCheckTestsDirectory(fileWriterDir);
 	}
 	
-	@Test(timeout=45000)
-	public void testReadWrite() {
+	@Test(timeout=45_000)
+	public void testWriteRead() {
 		long size = _5_GB;
 		FileWriter fw = new FileWriter(new File(fileWriterDir, "fw.out"), size);
 		
 		try {
 			fw.write();
-			System.out.println("done write");
+			assertPass("Write completed");
+
 			List<byte[]> readBuffers = fw.read();
-			System.out.println("done read");
+			assertPass("Read completed");
 
 			long expectedSize = size / fw.getBufferSize();
 			if (size % fw.getBufferSize() != 0)
@@ -58,7 +62,7 @@ public class FileWriterTest {
 				byte[] expected = new byte[length];
 				FileWriter.fillBuffer(expected);
 
-//				if (Arrays.hashCode(expected) != Arrays.hashCode(readBuffer)) {	// for speed. actually hurts speed. compare Arrays.deepHashCode and expected.hashCode()
+//				if (Arrays.hashCode(expected) != Arrays.hashCode(readBuffer)) {	// for speed. actually hurts speed. compare to Arrays.deepHashCode and expected.hashCode()
 					assertArrayEquals(expected, readBuffer);
 //					String expectedStr = createToString(expected);
 //					String actual      = createToString(readBuffer);

@@ -26,7 +26,7 @@ import com.ms.silverking.cloud.dht.net.ForwardingMode;
  * construct options from the options hierarchy. Some code, however, needs to
  * conveniently construct from scratch. Other code was written before the
  * hierarchy was in place. This class moves this code out of the options classes
- * themsleves so that this is hidden from end users.
+ * themselves so that this is hidden from end users.
  */
 public class OptionsHelper {
 

@@ -17,4 +17,14 @@ public class AddrAndPortUtil {
         }
         return sb.toString();
     }
+
+	public static int hashCode(AddrAndPort[] ensemble) {
+		int	hashCode;
+		
+		hashCode = 0;
+    	for (AddrAndPort member : ensemble) {
+    		hashCode = hashCode ^ member.hashCode();
+    	}
+    	return hashCode;
+	}
 }

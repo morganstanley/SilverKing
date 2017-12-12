@@ -19,6 +19,7 @@ mainClass=com.ms.silverking.cloud.dht.management.SKAdmin
 cmd="${skAdminJavaCommandHeader} ${skJava} -cp ${classpath} ${mainClass} ${allArgs}"
 echo ${cmd}
 ${cmd} 2>&1 | tee -a /tmp/SKAdmin.$$.stdout
-echo $?
+javaExitCode=${PIPESTATUS[0]}
 
 cd $old_dir
+f_exit "$javaExitCode"

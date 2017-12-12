@@ -17,6 +17,8 @@
 ////////////
 // defines
 
+#define FA_NATIVE_LINK_MAGIC 127
+#define FA_NATIVE_LINK_NORMAL 1
 
 //////////
 // types

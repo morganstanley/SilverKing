@@ -49,7 +49,7 @@ public class ComputeRingStats {
 		this.gc = gc;
 		this.out = System.out;
 		
-		metaUtil = new MetaUtil(gc.getClientDHTConfiguration().getName(), gc.getClientDHTConfiguration().getZkLocs(), MetaUtilOptions.dhtVersionUnspecified);
+		metaUtil = new MetaUtil(gc.getClientDHTConfiguration().getName(), gc.getClientDHTConfiguration().getZKConfig(), MetaUtilOptions.dhtVersionUnspecified);
 		dhtMC = metaUtil.getDHTMC();
 		ringParentName = metaUtil.getRingConfiguration().getRingParentName();
 		

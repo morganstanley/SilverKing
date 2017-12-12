@@ -35,8 +35,6 @@ import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.io.IOUtil;
-import com.ms.silverking.net.AddrAndPort;
-import com.ms.silverking.net.HostAndPort;
 
 /*
  * Given a DHT name, this utility can provide:
@@ -52,7 +50,6 @@ public class MetaUtil {
     private final String      dhtRingName;
     private final DHTConfiguration    dhtConfig;
     private final DHTConfigurationZK  dhtConfZk;
-    private final ZooKeeperConfig     zkConfig;
     private final ZooKeeperExtended   zk;
     private final ExclusionSet exclusions;
     private final PassiveNodeSet passiveNodes;
@@ -71,7 +68,7 @@ public class MetaUtil {
     
     private static final boolean    debug = true;
     
-    public MetaUtil(String dhtName, AddrAndPort[] zkLocs, long dhtVersion, File target) throws KeeperException,  IOException {
+    public MetaUtil(String dhtName, ZooKeeperConfig zkConfig, long dhtVersion, File target) throws KeeperException,  IOException {
         String  dhtVersionPath;
         long    cloudConfigVersion;
         long    exclusionsVersion;
@@ -79,7 +76,6 @@ public class MetaUtil {
         MetaClient  _mc;
         NamedDHTConfiguration   namedDHTConfig;
         
-        zkConfig = new ZooKeeperConfig(zkLocs);
         _mc = new MetaClient(dhtName, zkConfig);
         zk = _mc.getZooKeeper();
         
@@ -162,13 +158,13 @@ public class MetaUtil {
     }
     
     public MetaUtil(String dhtName, String zkString, long dhtVersion, File target) throws KeeperException,  IOException {
-    	this(dhtName, HostAndPort.parseMultiple(zkString), dhtVersion, target);
+    	this(dhtName, new ZooKeeperConfig(zkString), dhtVersion, target);
     }
     
-    public MetaUtil(String name, AddrAndPort[] zkLocs, long dhtVersion) throws KeeperException, IOException {
-		this(name, zkLocs, dhtVersion, null);
-	}
-
+    public MetaUtil(String name, ZooKeeperConfig zkConfig, long dhtVersion) throws KeeperException, IOException {
+    	this(name, zkConfig, dhtVersion, null);
+    }
+    
 	public DHTConfiguration getDHTConfiguration() {
     	return dhtConfig;
     }
@@ -366,7 +362,7 @@ public class MetaUtil {
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+	            System.exit(-1);
             }
             
             mu = new MetaUtil(options.dhtName, options.zkEnsemble, options.dhtVersion, 
@@ -374,6 +370,7 @@ public class MetaUtil {
             mu.runCommand(options);
         } catch (Exception e){
             e.printStackTrace();
+            System.exit(-1);
         }
     }
 }

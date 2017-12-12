@@ -74,6 +74,7 @@ PutGet::put(string k, string v) {
   }
 
   try {
+    Util::HighResolutionClock log("PutGet-put-sync");
     snsp->put(&k, pval);
   } catch (SKPutException & pe ){
     fprintf(stdout, "SKPutException in PutGet : %s" , pe.what() );
@@ -93,6 +94,7 @@ PutGet::put(string k, string v, SKPutOptions* pPutOpts) {
   }
 
   try {
+    Util::HighResolutionClock log("PutGet-put-sync-putOpts");
     snsp->put(&k, pval, pPutOpts);
   } catch (SKPutException & pe ){
     fprintf(stdout, "SKPutException in put(key, value, pPutOpts) : %s" , pe.what() );
@@ -109,6 +111,7 @@ PutGet::get(string k) {
   SKVal* pval = NULL;
   string val;
   try {
+    Util::HighResolutionClock log("PutGet-get-sync");
     pval = snsp->get(&k);
   } catch (SKClientException & ce ){
     exhandler( "caught in get", __FILE__, __LINE__, ns.c_str() );
@@ -142,6 +145,7 @@ PutGet::get(string k, SKGetOptions* getOpts) {
   SKStoredValue* pStoredVal = NULL;
   string val;
   try {
+    Util::HighResolutionClock log("PutGet-get-sync-getOpts");
     pStoredVal = snsp->get(&k, getOpts);
   } catch (SKClientException & ce ){
     exhandler( "caught in get", __FILE__, __LINE__, ns.c_str() );

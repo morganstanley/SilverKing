@@ -28,6 +28,7 @@ typedef struct AttrCache {
 
 AttrCache *ac_new(int numSubCaches = 1, int size = CACHE_UNLIMITED_SIZE, int evictionBatchSize = 0);
 void ac_delete(AttrCache **fCache);
+void ac_remove(AttrCache *aCache, char *path);
 CacheReadResult ac_read(AttrCache *aCache, char *path, FileAttr *fa, ActiveOpRef **activeOpRef, void *attrReader, uint64_t minModificationTimeMicros = 0);
 CacheReadResult ac_read_no_op_creation(AttrCache *aCache, char *path, FileAttr *fa);
 //void ac_store_dht_value(AttrCache *aCache, char *path, SKVal *pRVal);

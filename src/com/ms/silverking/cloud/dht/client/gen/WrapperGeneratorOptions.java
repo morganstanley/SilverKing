@@ -23,4 +23,10 @@ class WrapperGeneratorOptions {
 	
 	@Option(name="-ed", usage="endDelimiter")
 	String	endDelimiter = "}}";
+	
+	@Option(name="-tm", usage="typeMappingFile")
+	String	typeMappingFile;
+	
+	@Option(name="-d", usage="addDependencies")
+	boolean	addDependencies;
 }

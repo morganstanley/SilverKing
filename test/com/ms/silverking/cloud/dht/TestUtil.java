@@ -4,7 +4,6 @@ import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardVe
 
 import java.util.HashSet;
 
-import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType;
 import com.ms.silverking.cloud.dht.VersionConstraint.Mode;
 import com.ms.silverking.cloud.dht.client.AbsMillisVersionProvider;
@@ -16,9 +15,11 @@ import com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController;
 import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.time.ConstantAbsMillisTimeSource;
 
+@OmitGeneration
 public class TestUtil {
 	
 	// *Copy: copies the values of nspOptions (copies the object values, rather than re-using the same object from defaultNspOptions, important for comparing reference vs value, i.e. hashCode and equals)

@@ -1,5 +1,8 @@
 package com.ms.silverking.cloud.dht.client;
 
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
+
+@NonVirtual
 public class NamespaceLinkException extends OperationException {
     public NamespaceLinkException() {
         super();

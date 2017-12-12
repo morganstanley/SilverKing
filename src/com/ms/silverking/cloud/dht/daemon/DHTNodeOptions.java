@@ -13,4 +13,6 @@ public class DHTNodeOptions {
     public int inactiveNodeTimeoutSeconds = defaultInactiveNodeTimeoutSeconds;
     @Option(name="-r", usage="disableReap", required=false)
     public boolean disableReap = false;
+    @Option(name="-leaveTrash", usage="leaveTrash", required=false)
+    public boolean leaveTrash = false;
 }

@@ -4,6 +4,7 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,6 @@ import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.cloud.dht.net.ProtoMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
-import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.ConcurrentSingleMap;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
@@ -320,16 +320,8 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
     
     @Override
     public Map<K, ? extends StoredValue<V>> getLatestStoredValues() throws RetrievalException {
-        //Set<DHTKey> latestStoredReturned;
         Map<K, StoredValue<V>>  storedValueMap;
         
-        /*
-        latestStoredReturned = latestStoredReturnedRef.get();
-        if (latestStoredReturned == null) {
-            latestStoredReturnedRef.compareAndSet(null, new HashSet<DHTKey>());
-            latestStoredReturned = latestStoredReturnedRef.get();
-        } 
-        */       
         storedValueMap = new HashMap<>(retrievalOperation.size() - latestStoredReturned.size());
         for (Map.Entry<K, RetrievalResultBase<V>> resultEntry : results.entrySet()) {
             K       key;
@@ -500,6 +492,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         }
         // FUTURE THINK ABOUT WHETHER WE NEED THIS
         */
+        checkForUpdates();
     }
 
     public void reassembledResultReceived(DHTKey dhtKey, 
@@ -598,12 +591,34 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
 
     @Override
     public Map<K, V> getLatestValues() throws RetrievalException {
-        throw new RuntimeException("not yet implemented");
+        Map<K, V>	valueMap;
+        
+        valueMap = new HashMap<>(retrievalOperation.size() - latestStoredReturned.size());
+        for (Map.Entry<K, RetrievalResultBase<V>> resultEntry : results.entrySet()) {
+            K       key;
+            DHTKey  dhtKey;
+            
+            key = resultEntry.getKey();
+            dhtKey = keyToDHTKey.get(key);
+            if (!latestStoredReturned.contains(dhtKey)) {
+                RetrievalResultBase<V>  value;
+                
+                latestStoredReturned.add(dhtKey);
+                value = resultEntry.getValue(); 
+                if (value.getOpResult() == OpResult.SUCCEEDED) {
+                    valueMap.put(resultEntry.getKey(), value.getValue());
+                }
+            }
+        }
+        return valueMap;
     }
 
     @Override
     public StoredValue<V> getStoredValue() throws RetrievalException {
-        return getStoredValue(results.keySet().iterator().next());
+    	Iterator<K>	iterator;
+    	
+    	iterator = results.keySet().iterator();
+    	return iterator.hasNext() ? getStoredValue(iterator.next()) : null;
         // FUTURE - THINK ABOUT SPEEDING THIS UP
         // plan is for the single op case to use a custom map, could switch implementation then
     }

@@ -4,7 +4,6 @@ import java.util.List;
 
 import com.google.common.base.Preconditions;
 import com.ms.silverking.cloud.storagepolicy.ReplicationType;
-import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.net.IPAndPort;
 
 class RetrievalEntrySingleState extends BaseRetrievalEntryState {
@@ -12,6 +11,7 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
     private final List<IPAndPort>   secondaryReplicas;
     private RetrievalState  state;
     private short           replicaIndex;
+    private short           prevReplicaIndex;
         // 0...(secondaryReplicas.size() - 1) ==> secondary
         // secondaryReplicas.size()...((secondaryReplicas.size() + (primaryReplicas.size() - 1))) ==> primary
     
@@ -26,6 +26,7 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
         this.secondaryReplicas = secondaryReplicas;
         state = RetrievalState.INITIAL;
         replicaIndex = -1;
+        prevReplicaIndex = -1;
     }
     
     public List<IPAndPort> getSecondaryReplicas() {
@@ -71,6 +72,11 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
 	    	}
         }
     }
+
+	@Override
+	public boolean prevReplicaSameAsCurrent() {
+		return prevReplicaIndex == replicaIndex;
+	}
     
     @Override
     public IPAndPort currentReplica() {
@@ -88,6 +94,7 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
         // Replicas with index 
         // secondaryReplicas.size()...primaryReplicas.size() + secondaryReplicas.size() - 1 are primary replicas
         
+    	prevReplicaIndex = replicaIndex;
         if (replicaIndex < 0) {
             incrementReplicaTimeout();
             replicaIndex = 0;

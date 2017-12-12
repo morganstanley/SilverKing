@@ -14,5 +14,5 @@ f_copy        "$OUT_JAVADOC_DIR" "../$DOC_FOLDER_NAME" # copy javadoc to doc
 f_copyVerbose "$INSTALL_ARCH_BIN_DIR/*" "../$BIN_FOLDER_NAME" # copy silverking_install/arch_output_area/bin to bin	
 f_copyVerbose "$INSTALL_ARCH_LIB_DIR/*" "../$LIB_FOLDER_NAME" # copy silverking_install/arch_output_area/lib to lib
 
-f_copy		  "$INSTALL_INC_DIR"        "../$INCLUDE_FOLDER_NAME"
+f_copy		  "$INSTALL_COMMON_INC_DIR" "../$INCLUDE_FOLDER_NAME"
 f_remove      "../$INCLUDE_FOLDER_NAME/jace"

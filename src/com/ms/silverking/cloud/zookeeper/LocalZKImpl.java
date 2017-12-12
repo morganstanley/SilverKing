@@ -112,12 +112,12 @@ public class LocalZKImpl {
 		} catch (CmdLineException cle) {
 			System.err.println(cle.getMessage());
 			parser.printUsage(System.err);
-			return;
+            System.exit(-1);
 		}
 		
 		if (options.dataDir == null) {
 			parser.printUsage(System.err);
-			return;
+            System.exit(-1);
 		}
 		
 		System.out.printf("ZK started %s\n", startLocalZK(options.port, options.dataDir));

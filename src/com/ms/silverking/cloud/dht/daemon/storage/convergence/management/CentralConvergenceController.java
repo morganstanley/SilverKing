@@ -29,7 +29,6 @@ import com.ms.silverking.cloud.ring.IntersectionResult;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingEntry;
-import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
@@ -67,7 +66,21 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
 		}
 	}
 	
-	public enum SyncMode {
+	public enum RequestedSyncMode	{
+		SyncAndSetState, SyncAndSetStateUnlessSubset, SetStateOnly, SyncOnly;
+
+		public SyncMode getSyncMode() {
+			switch (this) {
+			case SyncAndSetState: return SyncMode.SyncAndSetState;
+			case SyncAndSetStateUnlessSubset: throw new RuntimeException("Can't get SyncMode for SyncAndSetStateUnlessSubset");
+			case SetStateOnly: return SyncMode.SetStateOnly;
+			case SyncOnly: return SyncMode.SyncOnly;
+			default: throw new RuntimeException("panic");
+			}
+		}
+	};
+	
+	private enum SyncMode {
 		SyncAndSetState, SetStateOnly, SyncOnly;
 		
 		public boolean setsState() {
@@ -120,13 +133,12 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
 	
 	public CentralConvergenceController(UUIDBase uuid, DHTMetaReader dhtMetaReader, ConvergencePoint curCP, ConvergencePoint targetCP, 
 										ExclusionSet exclusionSet, MessageGroupBase	mgBase, boolean syncUnchangedOwners,
-										SyncMode mode) throws KeeperException, IOException {
+										RequestedSyncMode requestedSyncMode) throws KeeperException, IOException {
 		super(uuid, dhtMetaReader, targetCP, exclusionSet, mgBase);
 		assert curCP != null;
 		assert curCP.getRingIDAndVersionPair() != null;
 		this.curCP = curCP;
 		this.syncUnchangedOwners = syncUnchangedOwners;
-		this.mode = mode;
 		curRingName = getRingNameFromCP(curCP);
 		curRing = dhtMetaReader.readRing(curRingName, curCP.getRingIDAndVersionPair().getRingVersionPair());
 		
@@ -134,7 +146,6 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
 		
 		syncController = new SyncController(mgBase, curCP, targetCP, SystemTimeUtil.systemTimeSource);
 		
-        NamedRingConfiguration namedRingConfig;
 		RingConfigurationZK	ringConfigZK;
 		
 		ringConfigZK = new RingConfigurationZK(ringMC);
@@ -143,6 +154,16 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
 		Log.warningAsync("Current ring configuration: ", currentRingConfig);
 
 		curMap = getResolvedReplicaMap(curRing, currentRingConfig);
+		
+		if (requestedSyncMode == RequestedSyncMode.SyncAndSetStateUnlessSubset) {
+			if (curMap.isSubset(targetReplicaMap)) {
+				mode = SyncMode.SetStateOnly;
+			} else {
+				mode = SyncMode.SyncAndSetState;
+			}
+		} else {
+			mode = requestedSyncMode.getSyncMode();
+		}
 		
 		/*
 		Log.warningAsync("*****************************");
@@ -416,6 +437,9 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
     }
     
     public void converge(SyncTargets syncTargets) throws ConvergenceException {
+    	boolean	succeeded;
+    	
+    	succeeded = false;
     	try {
 	    	Set<Long>	namespaces;
 	    	
@@ -444,6 +468,7 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
 		    	setNodesState(RingState.CLOSED);
 	    	}
 	    	Log.warningAsync("Convergence complete", targetRing.getRingIDAndVersionPair());
+	    	succeeded = true;
     	} catch (ConvergenceException ce) {
     		boolean	abandonSetAll;
     		
@@ -461,7 +486,7 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
     		}
     		throw ce;
     	} finally {
-    		setComplete();
+    		setComplete(succeeded);
     	}
     }
     

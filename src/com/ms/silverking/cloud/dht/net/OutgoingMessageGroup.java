@@ -81,6 +81,8 @@ public class OutgoingMessageGroup extends OutgoingData {
         leadingBuffer.put(MessageGroupGlobals.protocolVersion);
         leadingBuffer.putInt(mgBuffers.length);
         leadingBuffer.put((byte)messageGroup.getMessageType().ordinal());
+        leadingBuffer.put((byte)messageGroup.getOptions()); // only use low byte of options for now
+        leadingBuffer.putShort((short)0); // ignore two bytes of options for now
         leadingBuffer.putLong(messageGroup.getUUID().getMostSignificantBits());
         leadingBuffer.putLong(messageGroup.getUUID().getLeastSignificantBits());
         leadingBuffer.putLong(messageGroup.getContext());

@@ -856,12 +856,12 @@ public class SilverKingClient {
     		} catch (CmdLineException cle) {
     			System.err.println(cle.getMessage());
     			parser.printUsage(System.err);
-    			return;
+    			System.exit(-1);
     		}
     		if (options.gridConfig == null && options.clientDHTConfiguration == null && !SessionOptions.isReservedServerName(options.server)) {
     			System.err.println("Neither gridConfig nor clientDHTConfiguration provided, but server name is not reserved");
     			parser.printUsage(System.err);
-    			return;
+    			System.exit(-1);
     		}
     		Log.setLevel(options.logLevel);
     		Log.fine(options);
@@ -898,6 +898,7 @@ public class SilverKingClient {
     		System.exit(0);
     	} catch (Exception e) {
     		e.printStackTrace();
+			System.exit(-1);
     	}
     }
 	

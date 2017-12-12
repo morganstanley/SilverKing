@@ -813,7 +813,7 @@ function f_runMakeCmd {
 
 # normally would have have that same command minus the eval statement 
 #    i.e. env -i $variables $command
-# but if variables has a name with multiple values
+# but if variables have a name with multiple values
 #    i.e. BLAH=\"123 123\"
 # then it won't work right without the eval, you will get:
 #    env: 123": No such file or directory
@@ -950,9 +950,26 @@ function f_getSkClasspath {
 	echo "$SILVERKING_JAR:$all_lib_jars"
 }
 
+function f_startAll {
+	f_startSilverking
+	f_startSkfs
+}
+
+function f_stopAll {
+	f_stopSkfs
+	f_stopSilverking
+}
+
 function f_startSilverking {
 	f_printSection "STARTING Silverking"
 	
+	f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known-state"
+	f_stopAll
+	
+	f_startSilverking_Helper
+}
+
+function f_startSilverking_Helper {
 	f_printSubSection "StaticInstanceCreator"
 	
 	typeset vars=$(f_getBinScriptVars)
@@ -963,16 +980,54 @@ function f_startSilverking {
 	f_listSkProcesses
 }
 
-# for StaticInstanceCreator
-# for SKAdmin
-function f_getBinScriptVars {
-	typeset skClasspath=$(f_getSkClasspath)
+function f_stopSilverking {
+	f_printSection "STOPPING Silverking"
 	
-	# formatted this way (newlines in vars), for when looking at the output file
-	echo "
-		skGlobalCodebase=$skClasspath
-		   skDevJavaHome=$JAVA_8_HOME
-	"
+	f_runSkAdmin "StopNodes,ClearData"
+	
+	f_userProcessCheck "SK" "0"
+}
+
+function f_startSkfs {
+	f_printSection "STARTING SKFS"
+	
+	f_symlinkVerbose "$BIN_SKFS_DIR/$SKFS_EXEC_NAME" "$SKFS_D"
+	f_startSkfs_Helper
+}
+
+function f_startSkfs_Helper {
+	f_runSkAdmin "CreateSKFSns,CheckSKFS"
+	
+	f_userProcessCheck "skfs" "1" "15"
+	f_listSkfsProcesses
+	
+	f_mountAccessibleCheck "0" "15"
+}
+
+function f_stopSkfs {
+	f_printSection "STOPPING SKFS"
+	
+	f_stopSkfs_Helper
+	f_removeBinSkfsD
+}
+
+function f_stopSkfs_Helper {
+	f_runSkAdmin "StopSKFS"
+	
+	f_userProcessCheck "skfs" "0" "15"
+	
+	f_mountAccessibleCheck "2" "15"
+}
+
+function f_runSkAdmin {
+	typeset command=$1
+	
+	f_printSubSection "SKAdmin"
+	# currently failing on kerberos issue, if i pass in kerberos ticket it will "wait for nodes" and loop forever
+	#typeset vars=$(f_getBinScriptVars)
+	#f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
+	f_exportSilverkingCodebaseVars
+	f_runCmd "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
 }
 
 function f_exportSilverkingCodebaseVars {
@@ -985,48 +1040,16 @@ function f_exportSilverkingCodebaseVars {
 	#export     SK_JACE_HOME=$JACE_HOME
 }
 
-function f_startSkfs {
-	# create symlink
-	f_symlinkVerbose "$BIN_SKFS_DIR/$SKFS_EXEC_NAME" "$SKFS_D"
+# for StaticInstanceCreator
+# for SKAdmin
+function f_getBinScriptVars {
+	typeset skClasspath=$(f_getSkClasspath)
 	
-	f_runSkAdmin "CreateSKFSns,CheckSKFS"
-	
-	f_userProcessCheck "skfs" "1" "15"
-	f_listSkfsProcesses
-	
-	f_mountAccessibleCheck "0" "15"
-}
-
-function f_stopSkfs {
-	f_printSection "STOPPING SKFS"
-	
-	f_runSkAdmin "ClearData,StopSKFS"
-	
-	f_userProcessCheck "skfs" "0" "15"
-	
-	f_mountAccessibleCheck "2" "15"
-	
-	# remove symlink
-	f_removeBinSkfsD
-}
-
-function f_stopSilverking {
-	f_printSection "STOPPING Silverking"
-	
-	f_runSkAdmin "StopNodes"
-	
-	f_userProcessCheck "SK" "0"
-}
-
-function f_runSkAdmin {
-	typeset command=$1
-	
-	f_printSubSection "SKAdmin"
-	# currently failing on kerberos issue, if i pass in kerberos ticket it will "wait for nodes" and loop forever
-	#typeset vars=$(f_getBinScriptVars)
-	#f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
-	f_exportSilverkingCodebaseVars
-	f_runCmd "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
+	# formatted this way (newlines in vars), for when looking at the output file
+	echo "
+		skGlobalCodebase=$skClasspath
+		   skDevJavaHome=$JAVA_8_HOME
+	"
 }
 
 function f_removeBinSkfsD {
@@ -1049,7 +1072,7 @@ function f_getAllProcesses {
 }
 
 function f_getProcesses {
-	echo "`pgrep -f $1 | while read x; do ps ${2}ux | grep -P "^\w+\s+$x\s+"; done`"
+	echo "`pgrep -f $1 | while read x; do ps ${2}ux | grep -P "^\S+\s+$x\s+"; done`"
 }
 
 function f_getProcessCount {

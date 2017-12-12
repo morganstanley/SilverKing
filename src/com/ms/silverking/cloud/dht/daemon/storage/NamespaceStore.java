@@ -299,6 +299,12 @@ public class NamespaceStore {
         this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals);
     }
     
+    private void initRAMSegments() {
+        headSegment = RAMSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
+                nsOptions.getSegmentSize(), nsOptions);
+        ramSegments.put(headSegment.getSegmentNumber(), (RAMSegment)headSegment);
+    }
+    
     public void startWatches(ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {        
         if (parent == null && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION 
                            && nsOptions.getAllowLinks()) {
@@ -1672,17 +1678,32 @@ public class NamespaceStore {
 	                    System.out.printf("tpc %s\n", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
 	                            CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0))));
 	                }
+	                // FUTURE - this is a temporary workaround until the versioned storage is overhauled
 	                if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
 	                                               MetaDataUtil.getStorageState(result, 0))) {
-	                	long	newMaxVersion;
-	                	
 	                    //System.out.printf("key %s storage state: %d\n", KeyUtil.keyToString(key), 
 	                    //        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
-	                    newMaxVersion = MetaDataUtil.getVersion(result, 0) - 1;
-	                    if (newMaxVersion < versionConstraint.getMin()) {
-	                    	return null;
-	                    }
-	                    versionConstraint = versionConstraint.max(newMaxVersion);
+	                	switch (versionConstraint.getMode()) {
+	                	case GREATEST:
+		                	long	newMaxVersion;
+		                	
+		                    newMaxVersion = MetaDataUtil.getVersion(result, 0) - 1;
+		                    if (newMaxVersion < versionConstraint.getMin()) {
+		                    	return null;
+		                    }
+		                    versionConstraint = versionConstraint.max(newMaxVersion);
+		                    break;
+	                	case LEAST:
+		                	long	newMinVersion;
+		                	
+		                	newMinVersion = MetaDataUtil.getVersion(result, 0) + 1;
+		                    if (newMinVersion > versionConstraint.getMax()) {
+		                    	return null;
+		                    }
+		                    versionConstraint = versionConstraint.min(newMinVersion);
+	                		break;
+	                	default: throw new RuntimeException("Panic");
+	                	}
 	                    options = options.versionConstraint(versionConstraint);
 	                } else {
 	                	return result;
@@ -2229,6 +2250,8 @@ public class NamespaceStore {
 	            // FUTURE - If full, then do full recovery?
 	            nsStore.setHeadSegment(fsr.recoverPartialSegment(headSegmentNumber, nsStore));
 	        }
+        } else {
+        	nsStore.initRAMSegments();
         }
         return nsStore;
     }
@@ -2534,13 +2557,15 @@ public class NamespaceStore {
     ////////////////////
     // Retention
     
-    public void reap() {
+    public void reap(boolean leaveTrash) {
     	ValueRetentionPolicy	vrp;
     	
     	vrp = nsOptions.getValueRetentionPolicy();
-    	Log.warningAsyncf("reap ns %x %s", ns, vrp);
+    	Log.warningAsyncf("reap ns %x %s %s", ns, vrp, leaveTrash);
     	if (vrp != null) {
-    		FileSegmentCompactor.emptyTrash(nsDir);
+    		if (!leaveTrash) {
+    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    		}
 	    	writeLock.lock();
 	    	metaWriteLock.lock();
 	    	try {
@@ -2559,6 +2584,9 @@ public class NamespaceStore {
 		    	metaWriteLock.unlock();
 		    	writeLock.unlock();
 	    	}
+    		if (!leaveTrash) {
+    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    		}
     	}
     }
     

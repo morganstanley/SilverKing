@@ -28,7 +28,7 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     }
     
     public MetaClient(ClientDHTConfiguration clientDHTConfig) throws IOException, KeeperException {
-    	this(clientDHTConfig.getName(), new ZooKeeperConfig(clientDHTConfig.getZkLocs()));
+    	this(clientDHTConfig.getName(), clientDHTConfig.getZKConfig());
     }
 
     public MetaClient(SKGridConfiguration skGridConfig) throws IOException, KeeperException {

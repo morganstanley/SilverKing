@@ -67,6 +67,7 @@ FileBlockReader *fbr_new(FileIDToPathMap *f2p,
 	fbr->f2p = f2p;
 	fbr->fbwCompress = fbwCompress;
 	fbr->fbwRaw = fbwRaw;
+    fbr->nft = nft_new("NativeFileTable");
 	fbr->sd = sd;
     
 	fbr->fileBlockCache = fbc;
@@ -530,9 +531,12 @@ static int fbr_get_block_file(char *blockFile, char *path, FileBlockReadRequest 
 }
 
 static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, char *path, int *openOK) {
-	int	fd;
+	NativeFileReference *nfr;
+    int fd;
 
-	fd = open(path, O_RDONLY | O_NOFOLLOW);
+    nfr = nft_open(fbrr->fileBlockReader->nft, path);
+    fd = nfr_get_fd(nfr);
+	//fd = open(path, O_RDONLY | O_NOFOLLOW);
 	*openOK = fd != -1;
 	if (fd != -1) {
 		void	*blockData;
@@ -543,7 +547,7 @@ static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, 
 		off_t	offset;
 		int		result;
 		int		zeroReadRetries;
-
+    
 		offset  = fbid_block_offset(fbrr->fbid);
 		blockSize = fbid_block_size(fbrr->fbid);
 		//srfsLog(LOG_FINE, "offset %ld blockSize %ld", offset, blockSize);
@@ -565,7 +569,11 @@ static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, 
 				srfsLog(LOG_WARNING, "fbid %s", key);
 				srfsLog(LOG_WARNING, "numRead %lu totalRead %lu dest %llx blockData %llx blockSize %lu totalRead %lu blockSize - totalRead %lu offset %lu", 
 										numRead, totalRead, dest, blockData, blockSize, totalRead, blockSize - totalRead, offset);
-				close(fd);
+                if (nfr != NULL) {
+                    nfr_delete(&nfr);
+                } else {
+                    close(fd);
+                }
 				if (numRead < 0 || zeroReadRetries > maxZeroReadRetries) {
 					srfsLog(LOG_ERROR, "Giving up on read");
 					mem_free(&blockData);
@@ -584,7 +592,11 @@ static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, 
 				}
 			}
 		}
-		result = close(fd);
+        if (nfr != NULL) {
+            result = nfr_delete(&nfr);
+        } else {
+            result = close(fd);
+        }
 		if (result == -1) {
 			srfsLog(LOG_WARNING, "Ignoring error closing %s", path);
 		}
@@ -606,7 +618,7 @@ static void *fbr_read_block(FileBlockReadRequest *fbrr, size_t *_blockSize, int 
 	fid = fbid_get_id(fbrr->fbid);
 	pathListEntry = f2p_get(fbrr->fileBlockReader->f2p, fid);
 	if (pathListEntry == NULL) {
-		srfsLog(LOG_WARNING, "Can't find path for fbid");
+		srfsLog(LOG_WARNING, "Can't find path for fid");
 		return NULL;
 	} else {
 		while (pathListEntry != NULL) {
@@ -619,6 +631,7 @@ static void *fbr_read_block(FileBlockReadRequest *fbrr, size_t *_blockSize, int 
 				fatalError("Unexpected NULL path", __FILE__, __LINE__);
 			}
 
+            srfsLog(LOG_FINE, "calling fbr_read_block_raw %s", path);
 			blockData = fbr_read_block_raw(fbrr, _blockSize, path, &openOK);
 			if (openOK) {
 				pthread_spin_lock(&fbrr->fileBlockReader->statLock);
@@ -749,7 +762,9 @@ static void fbr_cp_rVal_to_pbrr(PartialBlockReadRequest *pbrr, ActiveOpRef *aor,
 
 // Main FileBlockReader function. Handles a group of partial block read requests.
 int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numRequests,
-								   PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead) {
+								   PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead,
+                                   int presumeBlocksInDHT,
+                                   int useNFSReadAhead) {
     AOResult        aoResults[numRequests];
 	CacheReadResult	results[numRequests];
 	ActiveOpRef		*activeOpRefs[numRequests];
@@ -818,15 +833,38 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
                                     _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
 		if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
 			int	added;
+            //char	fbid[SRFS_FBID_KEY_SIZE];
+
+            //fbid_to_string(pbrrsReadAhead[i]->fbid, fbid);
 
 			// Not found in cache. Issue the read ahead, but don't hold on to the ref
 			// since we don't need the result.
-			srfsLog(LOG_FINE, "Ahead: CRR_ACTIVE_OP_CREATED %llx", pbrrsReadAhead[i]->fbid);
-			srfsLog(LOG_FINE, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
-			added = qp_add(fbr->dhtFileBlockQueueProcessor, aor);
+			//srfsLog(LOG_WARNING, "Ahead: CRR_ACTIVE_OP_CREATED %s", fbid);
+			//srfsLog(LOG_WARNING, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
+            if (!useNFSReadAhead) {
+                added = qp_add(fbr->dhtFileBlockQueueProcessor, aor);
+            } else {
+                srfsLog(LOG_FINE, "adding request %d to nfs q", i);
+                added = qp_add(fbr->nfsFileBlockQueueProcessor, aor);
+            }
 			if (!added) {
 				aor_delete(&aor);
-			}
+			} else {
+                // FUTURE - consider making this optional
+                // to date haven't found a benefit
+                /*
+                    ActiveOpRef *aor2;
+                    int	added2;
+
+                    aor2 = NULL;
+                    srfsLog(LOG_FINE, "adding request %d to nfs q", i);
+                    aor2 = aor_new(aor->ao, __FILE__, __LINE__);
+                    added2 = qp_add(fbr->nfsFileBlockQueueProcessor, aor2);
+                    if (!added2) {
+                        aor_delete(&aor2);
+                    }
+                */
+            }
 		} else {
             if (aor != NULL) {
 				aor_delete(&aor);
@@ -835,7 +873,11 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 	}
 
     // Now wait for kvs request completion, and begin native fs requests for any missing values.
-	timeout = sd_get_dht_timeout(fbr->sd, fbr->rtsDHT, fbr->rtsNFS, numRequests);
+    if (presumeBlocksInDHT) {
+        timeout = sd_get_dht_timeout(fbr->sd, fbr->rtsDHT, fbr->rtsNFS, numRequests);
+    } else {
+        timeout = 0;
+    }
 	srfsLog(LOG_FINE, "stage timeout %u", timeout);
 	for (i = 0; i < numRequests; i++) {
         if (aoResults[i] != AOResult_Success) {
@@ -939,30 +981,31 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 	// consider adding back in eventually
 	// nfs read-ahead should be disabled when nfs delays are > a threshold
 #if 0
-	// handle speculative read ahead requests
-	srfsLog(LOG_FINE, "read ahead");
-	for (i = 0; i < numRequestsReadAhead; i++) {
-		CacheReadResult	cacheReadResult;
-		ActiveOpRef		*aor;
+        // handle speculative read ahead requests
+        srfsLog(LOG_FINE, "nfs read ahead %d", numRequestsReadAhead);
+        for (i = 0; i < numRequestsReadAhead; i++) {
+            CacheReadResult	cacheReadResult;
+            ActiveOpRef		*aor;
 
-		aor = NULL;
-		cacheReadResult = fbc_read(fbr->fileBlockCache, pbrrsReadAhead[i]->fbid, NULL, 
-									0, 0, &aor, NULL, fbr, 
-                                    pbrrsReadAhead[i]->minModificationTimeMicros,
-                                    _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
-		if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
-			int	added;
+            aor = NULL;
+            cacheReadResult = fbc_read(fbr->fileBlockCache, pbrrsReadAhead[i]->fbid, NULL, 
+                                        0, 0, &aor, NULL, fbr, 
+                                        pbrrsReadAhead[i]->minModificationTimeMicros,
+                                        _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
+            srfsLog(LOG_FINE, "nfs read ahead crr %d", (int)cacheReadResult);
+            if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
+                int	added;
 
-			// not found in cache, issue the read ahead, but don't hold on to the ref
-			// since we don't need the result
-			srfsLog(LOG_FINE, "Ahead: CRR_ACTIVE_OP_CREATED %llx", pbrrsReadAhead[i]->fbid);
-			srfsLog(LOG_FINE, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
-			added = qp_add(fbr->nfsFileBlockQueueProcessor, aor);
-			if (!added) {
-				aor_delete(&aor);
-			}
-		}
-	}
+                // not found in cache, issue the read ahead, but don't hold on to the ref
+                // since we don't need the result
+                srfsLog(LOG_FINE, "Ahead: CRR_ACTIVE_OP_CREATED %llx", pbrrsReadAhead[i]->fbid);
+                srfsLog(LOG_FINE, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
+                added = qp_add(fbr->nfsFileBlockQueueProcessor, aor);
+                if (!added) {
+                    aor_delete(&aor);
+                }
+            }
+        }
 #endif
 	srfsLog(LOG_FINE, "out fbr_read");
 	return returnCode;
@@ -975,7 +1018,7 @@ int fbr_read_test(FileBlockReader *fbr, FileBlockID *fbid, void *dest, size_t re
 
 	pbrr = pbrr_new(fbid, dest, readOffset, readSize, 0);
 	pbrrs = &pbrr;
-	result = fbr_read(fbr, pbrrs, 1, NULL, 0);
+	result = fbr_read(fbr, pbrrs, 1, NULL, 0, TRUE, FALSE);
 	pbrr_delete(&pbrr);
 	pbrrs = NULL;
 	return result;

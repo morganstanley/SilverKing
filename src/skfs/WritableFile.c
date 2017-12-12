@@ -11,6 +11,7 @@
 
 #include "AttrReader.h"
 #include "FileBlockWriter.h"
+#include "SKFSOpenFile.h"
 #include "WritableFile.h"
 #include "WritableFileBlock.h"
 #include "Util.h"
@@ -46,6 +47,11 @@ typedef struct WF_BlockWrite {
 } WF_BlockWrite;
 
 
+/////////////////
+// private data
+
+static int wf_syncDirUpdates;
+
 ///////////////////////
 // private prototypes
 
@@ -68,6 +74,11 @@ static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fb
 
 ///////////////////
 // implementation
+
+void wf_set_sync_dir_updates(int syncDirUpdates) {
+    srfsLog(LOG_INFO, "wf_set_sync_dir_updates %d", syncDirUpdates);
+    wf_syncDirUpdates = syncDirUpdates;
+}
 
 static WF_BlockWrite *wfbw_new(WritableFileBlock *wfb, FBW_ActiveDirectPut *adp) {
 	WF_BlockWrite	*bw;
@@ -226,7 +237,7 @@ static int wf_init_cur_block(WritableFile *wf, PartialBlockReader *pbr) {
         blockBuf = (char *)mem_alloc(curBlockLength, 1);
         readResult = pbr_read_given_attr(pbr, wf->path, blockBuf, 
                                          curBlockLength, wf_cur_block_index(wf) * SRFS_BLOCK_SIZE, 
-                                         &wf->fa, 0);
+                                         &wf->fa, TRUE, 0);
         
         if (readResult != (int)curBlockLength) {
             mem_free((void **)&blockBuf);
@@ -263,6 +274,15 @@ void wf_delete(WritableFile **wf) {
 	} else {
 		fatalError("bad ptr in wf_delete");
 	}
+}
+
+void wf_set_parent_dir(WritableFile *wf, OpenDir *parentDir, uint64_t parentDirUpdateTimeMillis) {
+    pthread_mutex_lock(&wf->lock);    
+    if (wf->parentDir == NULL) {
+        wf->parentDir = parentDir;
+        wf->parentDirUpdateTimeMillis = parentDirUpdateTimeMillis;
+    }
+    pthread_mutex_unlock(&wf->lock);    
 }
 
 WritableFileReference *wf_add_reference(WritableFile *wf, char *file, int line) {
@@ -338,7 +358,7 @@ static size_t wf_rewrite_past_blocks(WritableFile *wf, const char *src, size_t p
     numBlocks = lastPastBlockIndex - firstBlockIndex + 1;
     rewriteBufSize = numBlocks * SRFS_BLOCK_SIZE;
     rewriteBuf = (char *)mem_alloc(rewriteBufSize, 1);
-    readResult = pbr_read_given_attr(pbr, wf->path, rewriteBuf, rewriteBufSize, firstBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, 0);
+    readResult = pbr_read_given_attr(pbr, wf->path, rewriteBuf, rewriteBufSize, firstBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, TRUE, 0);
     
     // Rewrite
     firstBlockOffset = writeOffset % SRFS_BLOCK_SIZE;
@@ -534,7 +554,7 @@ static int _wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, Part
             // Even though we might not actually care about all of it
             blockBuf = (char *)mem_alloc(SRFS_BLOCK_SIZE, 1);
             readResult = pbr_read_given_attr(pbr, wf->path, blockBuf, 
-                                             SRFS_BLOCK_SIZE, newCurBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, 0);
+                                             SRFS_BLOCK_SIZE, newCurBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, TRUE, 0);
             if (readResult != 0) {
                 return -EIO;
             }
@@ -609,6 +629,13 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
         //if (wf->kvAttrStale) {
             result = wf_update_attr(wf, aw, ac, FALSE);
         //}
+        if (wf_syncDirUpdates && wf->parentDir != NULL) {
+            srfsLog(LOG_INFO, "_wf_flush %s od_waitForWrite parentDir %s", wf->path, wf->parentDir->path);
+            od_waitForWrite(wf->parentDir, wf->parentDirUpdateTimeMillis);
+            srfsLog(LOG_INFO, "_wf_flush %s od_waitForWrite parentDir %s complete", wf->path, wf->parentDir->path);
+        } else {
+            srfsLog(LOG_INFO, "No parentDir set %s", wf->path);
+        }
     } else {
         if (WF_TRUNCATE_ON_FLUSH_ERROR) {
             off_t   okBytes;
@@ -744,17 +771,25 @@ static void wf_write_block(WritableFile *wf, WritableFileBlock *wfb, uint64_t bl
 }
 
 WritableFile *wf_fuse_fi_fh_to_wf(struct fuse_file_info *fi) {
-    WritableFileReference   *wf_ref;
-	WritableFile	        *wf;
+    SKFSOpenFile    *sof;
+    WritableFile    *wf;
 	
-    wf_ref = (WritableFileReference *)fi->fh;
-	wf = wfr_get_wf(wf_ref);
-	if (wf != NULL) {
-		if (wf->magic != WF_MAGIC) {
-			srfsLog(LOG_ERROR, "Bogus fi->fh. wf->magic is %x", wf->magic);			
-			wf = NULL;
-		}
-	}
+    sof = (SKFSOpenFile*)fi->fh;
+    if (!sof_is_valid(sof)) {
+        srfsLog(LOG_ERROR, "Bogus fi->fh");
+        wf = NULL;
+    } else {
+        WritableFileReference   *wf_ref;
+        
+        wf_ref = (WritableFileReference *)sof->wf_ref;
+        wf = wfr_get_wf(wf_ref);
+        if (wf != NULL) {
+            if (wf->magic != WF_MAGIC) {
+                srfsLog(LOG_ERROR, "Bogus wfr in sof. wf->magic is %x", wf->magic);			
+                wf = NULL;
+            }
+        }
+    }
 	return wf;
 }
 

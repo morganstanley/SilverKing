@@ -3,7 +3,7 @@ package com.ms.silverking.cloud.dht.daemon.storage.convergence.management;
 import java.io.Serializable;
 
 public class SimpleRequestStatus implements RequestStatus, Serializable {
-	private final RequestState	requestState;;
+	private final RequestState	requestState;
 	private final String		statusString;
 	
 	private static final long serialVersionUID = -9154548957915879684L;

@@ -13,7 +13,7 @@ public class DHTRingCurTargetZK {
     private final MetaClient        mc;
     private final DHTConfiguration  dhtConfig;
     
-	public enum NodeType {Current, Target};
+	public enum NodeType {Current, Target, Master};
     
     private static final int    retries = 4;
     private static final int    retrySleepMS = 2 * 1000;
@@ -41,6 +41,7 @@ public class DHTRingCurTargetZK {
     	switch (nodeType) {
     	case Current: setCurRingAndVersionPair(ringName, version); break;
     	case Target: setTargetRingAndVersionPair(ringName, version); break;
+    	case Master: setMasterRingAndVersionPair(ringName, version); break;
     	default: throw new RuntimeException("Panic");
     	}
     }
@@ -49,6 +50,7 @@ public class DHTRingCurTargetZK {
     	switch (nodeType) {
     	case Current: return getCurRingAndVersionPair();
     	case Target: return getTargetRingAndVersionPair();
+    	case Master: return getMasterRingAndVersionPair();
     	default: throw new RuntimeException("Panic");
     	}
     }
@@ -80,6 +82,19 @@ public class DHTRingCurTargetZK {
     public Triple<String,Long,Long> getTargetRingAndVersionPair() throws KeeperException {
         return getRingAndVersion(mc.getMetaPaths().getInstanceTargetRingAndVersionPairPath(mc.getDHTName()));
     }
+
+    public void setMasterRingAndVersionPair(String ringName, Pair<Long,Long> version) throws KeeperException {
+    	setMasterRingAndVersionPair(ringName, version.getV1(), version.getV2());
+    }
+    
+    public void setMasterRingAndVersionPair(String ringName, long ringConfigVersion, long configInstanceVersion) throws KeeperException {
+        setRingAndVersionPair(ringName, ringConfigVersion, configInstanceVersion, mc.getMetaPaths().getInstanceMasterRingAndVersionPairPath(mc.getDHTName()));
+    }
+    
+    public Triple<String,Long,Long> getMasterRingAndVersionPair() throws KeeperException {
+        return getRingAndVersion(mc.getMetaPaths().getInstanceMasterRingAndVersionPairPath(mc.getDHTName()));
+    }
+    
     
     private void setRingAndVersionPair(String ringName, long ringConfigVersion, long configInstanceVersion, String path) throws KeeperException {
         int     attemptIndex;
@@ -90,7 +105,10 @@ public class DHTRingCurTargetZK {
         while (!complete) {
             try {
             	Stat	stat;
-            	
+
+            	if (!mc.getZooKeeper().exists(path)) {
+            		mc.getZooKeeper().create(path);
+            	}
                 stat = mc.getZooKeeper().set(path, nameAndVersionToBytes(ringName, ringConfigVersion, configInstanceVersion));
                 if (debug) {
                 	Log.warning(path);

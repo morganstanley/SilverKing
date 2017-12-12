@@ -22,6 +22,8 @@ import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
 class ProtoRegionList {
     private final List<ProtoRegion> protoRegions;
     
+    private static final int	minPrimaryUnderFailure = 1; // FIXME - temporarily hardcoded until minPrimaryUnderFailure code is complete
+    
     private static final boolean debug = true;
     
     private ProtoRegionList(List<ProtoRegion> protoRegions) {
@@ -93,7 +95,7 @@ class ProtoRegionList {
         List<ProtoRegion>   protoRegions;
         
         protoRegions = new ArrayList<>();
-        protoRegions.add(new ProtoRegion(RingRegion.allRingspace));
+        protoRegions.add(new ProtoRegion(RingRegion.allRingspace, minPrimaryUnderFailure));
         return new ProtoRegionList(protoRegions);
     }
     
@@ -105,7 +107,7 @@ class ProtoRegionList {
         sourceRegions = sourceRing.getRegionsSorted();
         protoRegions = new ArrayList<>(sourceRegions.size());
         for (RingRegion sourceRegion : sourceRegions) {
-            protoRegions.add(new ProtoRegion(sourceRegion));
+            protoRegions.add(new ProtoRegion(sourceRegion, minPrimaryUnderFailure));
         }
         return new ProtoRegionList(protoRegions);
     }
@@ -124,7 +126,7 @@ class ProtoRegionList {
         protoRegions = new ArrayList<>();
         regions = RingRegion.allRingspace.divide(weightSpecs.getWeights(nodes));
         for (RingRegion region : regions) {
-            protoRegions.add(new ProtoRegion(region));
+            protoRegions.add(new ProtoRegion(region, minPrimaryUnderFailure));
         }
         return new ProtoRegionList(protoRegions);
     }    
@@ -248,7 +250,7 @@ class ProtoRegionList {
                         protoRegions.remove(0);
                     }
                 }
-                merged = new ProtoRegion(r0.getRegion().merge(r1.getRegion()), r1.getOwners());
+                merged = new ProtoRegion(r0.getRegion().merge(r1.getRegion()), r1.getOwners(), minPrimaryUnderFailure);
                 protoRegions.add(insertionIndex, merged);
             }
             i--;
@@ -273,8 +275,8 @@ class ProtoRegionList {
                 oldProtoRegion = protoRegions.get(index);
                 splitRegions = oldProtoRegion.getRegion().split(splitSize);
                 protoRegions.remove(index);
-                protoRegions.add(index, new ProtoRegion(splitRegions[0], oldProtoRegion.getOwners().duplicate()));
-                protoRegions.add(index + 1, new ProtoRegion(splitRegions[1], oldProtoRegion.getOwners().duplicate()));
+                protoRegions.add(index, new ProtoRegion(splitRegions[0], oldProtoRegion.getOwners().duplicate(), minPrimaryUnderFailure));
+                protoRegions.add(index + 1, new ProtoRegion(splitRegions[1], oldProtoRegion.getOwners().duplicate(), minPrimaryUnderFailure));
             }
         }
     }
@@ -354,7 +356,7 @@ class ProtoRegionList {
         
         ring = new SingleRing(nodeClass, 0, recipe.storagePolicy.getName()); // FIXME - version of zero here
         for (ProtoRegion pr : getRegionList()) {
-            ring.put(pr.getRegion().getEnd(), new RingEntry(pr.getPrimaryOwners(), pr.getSecondaryOwners(), pr.getRegion()));
+            ring.put(pr.getRegion().getEnd(), new RingEntry(pr.getPrimaryOwners(), pr.getSecondaryOwners(), pr.getRegion(), minPrimaryUnderFailure));
         }
         ring.freeze(recipe.weightSpecs);
         RingEntry.ensureEntryRegionsDisjoint(ring.getMembers());

@@ -1,0 +1,68 @@
+
+source lib/common.lib
+source lib/build_sk_client.vars
+
+function f_generateCppWrapper {
+	f_printSection "Generating C++ Wrappers from Java classes"
+
+	f_cleanOrMakeDirectory "$PROXY_SRC_DIR2_GEN"
+	
+	typeset skClasspath=$(f_getSkClasspath)
+	$JAVA_8 -cp $skClasspath com.ms.silverking.cloud.dht.client.gen.WrapperGenerator -c $OUT_CLASSES_SRC_DIR -i com.ms.silverking.cloud.dht.client.DHTClient,com.ms.silverking.cloud.dht.ValueCreator -f $GENERATED_SRC/CPPTemplate.txt -tm $GENERATED_SRC/CPPTypeMap.txt -o $PROXY_SRC_DIR2_GEN
+}
+
+function f_compileAndLinkProxiesIntoLib {
+	# params
+	typeset cc=$1
+	typeset cc_opts=$2
+	typeset inc_opts=$3
+	typeset ld=$4
+	typeset ld_opts=$5
+	typeset lib_opts=$6
+	
+	f_printSection "Compiling and linking proxies into lib"
+	
+	typeset buildObjDir=$SILVERKING_BUILD_ARCH_DIR/proxyLib2
+	f_cleanOrMakeDirectory "$buildObjDir"
+	f_cleanOrMakeDirectory "${buildObjDir}_2"
+	
+	# build
+	typeset id="-I${JAVA_INC} -I${JAVA_OS_INC} -I${BOOST_INC}"
+	typeset ld2="-L${JAVA_8_HOME}/jre/lib/amd64 -L${BOOST_LIB}"
+
+	cp $GENERATED_SRC/Object.h        $PROXY_SRC_DIR2/
+	cp $GENERATED_SRC/Object.cpp      $PROXY_SRC_DIR2/
+	cp $GENERATED_SRC/InitializeSK.h  $PROXY_SRC_DIR2/
+	cp $GENERATED_SRC/SKJNIBase.h     $PROXY_SRC_DIR2/
+	cp $GENERATED_SRC/SKJNIBase.cpp   $PROXY_SRC_DIR2/
+	cp $GENERATED_SRC/SKJNITest.cpp   $PROXY_SRC_DIR2/
+
+	typeset dependencies="$PROXY_SRC_DIR2/Object.cpp $PROXY_SRC_DIR2_GEN/InitializeSK.cpp $PROXY_SRC_DIR2_GEN/DHTClient.cpp $PROXY_SRC_DIR2_GEN/ValueCreator.cpp"
+	f_compileAssembleLink "$dependencies $PROXY_SRC_DIR2/SKJNIBase.cpp $PROXY_SRC_DIR2/SKJNITest.cpp" "$buildObjDir/SkJniTest" "$cc" "$ld2" "$id" "-L${JAVA_LIB} -ljvm"
+	
+	# run
+	export LD_LIBRARY_PATH=$JAVA_LIB
+	$buildObjDir/SkJniTest
+	
+	echo
+	echo ---------------------------------------
+	echo
+	
+	f_compileAssembleDirectoryTree "$PROXY_SRC_DIR2" "${buildObjDir}_2" "$cc" "$cc_opts" "$id"
+	f_createStaticLibrary "clickMe"       "$INSTALL_ARCH_LIB_DIR" "${buildObjDir}_2/$ALL_DOT_O_FILES" ""
+	f_createSharedLibrary "clickMe"       "$INSTALL_ARCH_LIB_DIR" "${buildObjDir}_2/$ALL_DOT_O_FILES" "$ld" "$ld2" "-L${JAVA_LIB} -ljvm"
+	
+	f_testEquals "${buildObjDir}_2" "$ALL_DOT_O_FILES" "6"
+	f_testEquals "$INSTALL_ARCH_LIB_DIR" "libclickMe.a" "1"
+	f_testEquals "$INSTALL_ARCH_LIB_DIR" "libclickMe.so" "1"
+	
+	$cc -Wall -L${INSTALL_ARCH_LIB_DIR} -lclickMe -o ${buildObjDir}_2/executable-name
+	
+	export LD_LIBRARY_PATH=$JAVA_LIB:$INSTALL_ARCH_LIB_DIR
+	${buildObjDir}_2/executable-name
+	
+	
+	f_createSharedLibrary "clickMe_rpath" "$INSTALL_ARCH_LIB_DIR" "${buildObjDir}_2/$ALL_DOT_O_FILES" "$ld" "$ld2" "-L${JAVA_LIB} -ljvm -Wl,--rpath,${JAVA_LIB} -Wl,--rpath,${INSTALL_ARCH_LIB_DIR}"
+	$cc -Wall -L${INSTALL_ARCH_LIB_DIR} -lclickMe_rpath -o ${buildObjDir}_2/executable-name-2
+	${buildObjDir}_2/executable-name-2
+}

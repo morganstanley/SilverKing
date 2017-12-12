@@ -1,13 +1,26 @@
 package com.ms.silverking.cloud.dht.net;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.collect.ImmutableMap;
 import com.ms.silverking.cloud.dht.ValueCreator;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.HostAndPort;
 import com.ms.silverking.net.IPAddrUtil;
@@ -26,6 +39,8 @@ public class MessageGroupBase {
     private final AbsMillisTimeSource   deadlineTimeSource;
     private final ValueCreator  myID;
     private final MessageGroupReceiver messageGroupReceiver; // TEMP
+    private final Map<AddrAndPort,AddrAndPort[]>	addrAliases;
+    private final AtomicInteger	aliasIndex; 
     
     private static final boolean    debug = false;
     
@@ -54,6 +69,8 @@ public class MessageGroupBase {
         myHostAndPort = new HostAndPort(myIP, port);
         myID = SimpleValueCreator.forLocalProcess();
         this.messageGroupReceiver = messageGroupReceiver;
+        aliasIndex = new AtomicInteger();
+        addrAliases = readAliases(port);
     }
     
     public MessageGroupBase(int port, 
@@ -64,6 +81,18 @@ public class MessageGroupBase {
             int numSelectorControllers, String controllerClass) throws IOException {
     	this(port, PersistentAsyncServer.useDefaultBacklog, messageGroupReceiver, deadlineTimeSource, 
     		limitListener, queueLimit, numSelectorControllers, controllerClass, null, null);
+    }
+    
+    private Map<AddrAndPort,AddrAndPort[]> readAliases(int port) {
+    	String	aliasMapFile;
+    	
+		aliasMapFile = DHTConstants.defaultDefaultClassVars.getVarMap().get(DHTConstants.ipAliasMapFileVar);
+		Log.warningf("%s=%s", DHTConstants.ipAliasMapFileVar, aliasMapFile);
+    	if (aliasMapFile != null && aliasMapFile.trim().length() > 0) {
+    		return readAliasMap(aliasMapFile, port);
+    	} else {
+    		return null;
+    	}
     }
     
     public void enable() {
@@ -121,13 +150,33 @@ public class MessageGroupBase {
             messageGroupReceiver.receive(MessageGroup.clone(mg), null);
         } else {
             try {
-                paServer.sendAsynchronous(dest.toInetSocketAddress(), mg, null, null, mg.getDeadlineAbsMillis(deadlineTimeSource));
+            	AddrAndPort	_dest;
+            	
+            	if (addrAliases != null) {
+            		AddrAndPort[]	aliases;
+            		
+            		aliases = addrAliases.get(dest);
+            		if (aliases != null) {
+            			//_dest = aliases[ThreadLocalRandom.current().nextInt(aliases.length)];
+            			_dest = aliases[aliasIndex.getAndIncrement() % aliases.length];
+            			//System.out.printf("%s ==> %s\n", dest, _dest);
+            		} else {
+            			_dest = dest;
+            		}
+            	} else {
+            		_dest = dest;
+            	}
+                paServer.sendAsynchronous(_dest.toInetSocketAddress(), mg, null, null, mg.getDeadlineAbsMillis(deadlineTimeSource));
             } catch (UnknownHostException uhe) {
                 throw new RuntimeException(uhe);
             }
         }
     }
     
+	public MessageGroupConnection getConnection(AddrAndPort dest, long deadline) throws ConnectException {
+		return (MessageGroupConnection)paServer.getConnection(dest, deadline);
+	}
+	
     public void removeAndCloseConnection(MessageGroupConnection connection) {
         paServer.removeAndCloseConnection(connection);
     }
@@ -151,5 +200,54 @@ public class MessageGroupBase {
 
     public void setPeerHealthMonitor(PeerHealthMonitor peerHealthMonitor) {
         paServer.setSuspectAddressListener(peerHealthMonitor);
+    }
+    
+    private Map<AddrAndPort,AddrAndPort[]> readAliasMap(String f, int port) {
+    	try {
+    		return readAliasMap(new File(f), port);
+    	} catch (IOException ioe) {
+    		Log.logErrorWarning(ioe, "Unable to read ip alias map: "+ f);
+    		return null;
+    	}
+    }
+    
+    private Map<AddrAndPort,AddrAndPort[]> readAliasMap(File f, int port) throws IOException {
+    	return readAliasMap(new FileInputStream(f), port);
+    }
+    
+    private Map<AddrAndPort,AddrAndPort[]> readAliasMap(InputStream in, int port) throws IOException {
+    	BufferedReader	reader;
+    	String			line;
+    	HashMap<AddrAndPort,AddrAndPort[]>	map;
+    	
+    	map = new HashMap<>();
+    	reader = new BufferedReader(new InputStreamReader(in));
+    	do {
+        	line = reader.readLine();
+        	if (line != null) {
+        		Pair<AddrAndPort,AddrAndPort[]>	entry;
+        		
+        		entry = readAliasMapEntry(line, port);
+        		map.put(entry.getV1(), entry.getV2());
+        	}
+    	} while (line != null);
+    	reader.close();
+    	return ImmutableMap.copyOf(map);
+    }
+    
+    private Pair<AddrAndPort,AddrAndPort[]> readAliasMapEntry(String s, int port) {
+    	String[]		toks;
+    	
+    	toks = s.trim().split("\\s+");
+    	if (toks.length != 2) {
+    		throw new RuntimeException("Invalid map entry: "+ s);
+    	} else {
+        	AddrAndPort		addr;
+        	AddrAndPort[]	aliases;
+        	
+        	addr = new IPAndPort(toks[0], port);
+        	aliases = IPAndPort.parseToArray(toks[1], port);
+        	return new Pair<>(addr, aliases);
+    	}
     }
 }

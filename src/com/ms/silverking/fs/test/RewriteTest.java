@@ -16,6 +16,7 @@ public class RewriteTest {
 	private static final byte[][]	buf = new byte[26][blockSize];
 	private static final byte[]	buf1 = new byte[blockSize];
 	private static final byte[]	buf2 = new byte[blockSize];
+	private static final byte[] buf3 = {'1', '2', '3', '4', '5', '6'};
 	
 	private enum Test {Current, Past, CurrentAndPast, CurrentAndPastAndExtension, Random, Last, LastExtension};
 	enum Mode {Write, Verify};
@@ -83,6 +84,22 @@ public class RewriteTest {
 		raf.write(buf1, 0, 128);
 		raf.seek(blockSize + 64);
 		raf.write(buf2, 0, 256);
+		raf.close();
+	}
+	
+	public void testBlockBorderOneByteEachSide() throws IOException {
+		raf.write(buf1, 0, blockSize);
+		raf.write(buf2, 0, blockSize);
+		raf.seek(blockSize-1);
+		raf.write(buf3, 0, 2);
+		raf.close();
+	}
+	
+	public void testBlockBorder() throws IOException {
+		raf.write(buf1, 0, blockSize);
+		raf.write(buf2, 0, blockSize);
+		raf.seek(blockSize-(buf3.length/2));
+		raf.write(buf3, 0, buf3.length);
 		raf.close();
 	}
 	

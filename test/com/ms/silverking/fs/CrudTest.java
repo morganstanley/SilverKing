@@ -15,9 +15,20 @@ import static com.ms.silverking.process.ProcessExecutor.*;
 import com.ms.silverking.testing.Util;
 import com.ms.silverking.testing.annotations.SkfsSmall;
 
+import static com.ms.silverking.fs.CrudTest.LoopType.*;
+
 @SkfsSmall
 public class CrudTest {
 
+	public enum LoopType { 
+		RENAME_DIR,
+		RENAME_FILE,
+		DOUBLE_RENAME_DIR,
+		DOUBLE_RENAME_FILE,
+	}
+	
+	private static final int NUMBER_OF_TIMES_TO_RENAME = 400;
+	
 	private static String testsDirPath;
 	
 	static {
@@ -82,6 +93,10 @@ public class CrudTest {
 		TestUtil.createAndCheckFile(parentFile);
 	}
 	
+	private void deleteAndCheckFile() {
+		TestUtil.deleteAndCheck(parentFile);
+	}
+	
 	private void checkRead(String contents) {
 		TestUtil.checkRead( parentFile, contents);
 	}
@@ -143,10 +158,6 @@ public class CrudTest {
 		assertEquals(parentFileName, parentFile.getName());
 	}
 	
-	private void deleteAndCheckFile() {
-		TestUtil.deleteAndCheck(parentFile);
-	}
-	
 	@Test
 	public void testRead() {
 //		printName("testRead");
@@ -174,20 +185,35 @@ public class CrudTest {
 	@Test
 	public void testRename_Directory() {
 //		printName("testRename_Directory");
+		rename_PreChecks_Directory();
+		checkRename(parentDir, parentDirRename);
+		rename_PostChecks_Directory(parentDirRename);
+	}
+	
+	private void rename_PreChecks_Directory() {
+		checkDirIsEmpty(crudDir);
+		checkDoesntExist(parentDir);
+		checkDoesntExist(parentDirRename);
+		
 		createAndCheckDir();
-		assertFalse(parentDir.renameTo(parentDirRename));	// currently operation not supported in SKFS, so assertingFalse
-		deleteAndCheckDir();
+	}
+	
+	private void rename_PostChecks_Directory(File renamed) {
+		deleteAndCheck(renamed);
+		
+		checkDoesntExist(parentDir);
+		checkDoesntExist(parentDirRename);
 	}
 	
 	@Test
 	public void testRename_File() {
 //		printName("testRename_File");
-		renamePreChecks();
+		rename_PreChecks_File();
 		checkRename(parentFile, parentFileRename);
-		renamePostChecks(parentFileRename);
+		rename_PostChecks_File(parentFileRename);
 	}
 	
-	private void renamePreChecks() {
+	private void rename_PreChecks_File() {
 		checkDirIsEmpty(crudDir);
 		checkDoesntExist(parentFile);
 		checkDoesntExist(parentFileRename);
@@ -195,7 +221,7 @@ public class CrudTest {
 		createAndCheckFile();
 	}
 	
-	private void renamePostChecks(File renamed) {
+	private void rename_PostChecks_File(File renamed) {
 		deleteAndCheck(renamed);
 		
 		checkDoesntExist(parentFile);
@@ -203,26 +229,53 @@ public class CrudTest {
 	}
 	
 //	@Test
+	public void testRenameLoop_Directory() {
+		testLoop(RENAME_DIR);
+	}
+	
+//	@Test
 	public void testRenameLoop_File() {
-		for (int i = 0; i < 400; i++) {
-			testRename_File();
-		}
+		testLoop(RENAME_FILE);
+	}
+	
+	@Test
+	public void testDoubleRename_Directory() {
+//		printName("testDoubleRename_Directory");
+		rename_PreChecks_Directory();
+		checkRename(parentDir,       parentDirRename);
+		checkRename(parentDirRename, parentDir);
+		rename_PostChecks_Directory(parentDir);
 	}
 	
 	@Test
 	public void testDoubleRename_File() {
 //		printName("testDoubleRename_File");
-		renamePreChecks();
+		rename_PreChecks_File();
 		checkRename(parentFile,       parentFileRename);
 		checkRename(parentFileRename, parentFile);
-		renamePostChecks(parentFile);
+		rename_PostChecks_File(parentFile);
+	}
+	
+//	@Test
+	public void testDoubleRenameLoop_Directory() {
+		testLoop(DOUBLE_RENAME_DIR);
 	}
 	
 //	@Test
 	public void testDoubleRenameLoop_File() {
-		for (int i = 0; i < 400; i++) {
-			testDoubleRename_File();
-		}
+		testLoop(DOUBLE_RENAME_FILE);
+	}
+	
+	private void testLoop(LoopType lt) {
+		for (int i = 0; i < NUMBER_OF_TIMES_TO_RENAME; i++)
+			if (lt == RENAME_DIR)
+				testRename_Directory();
+			else if (lt == RENAME_FILE)
+				testRename_File();
+			else if (lt == DOUBLE_RENAME_DIR)
+				testDoubleRename_Directory();
+			else if (lt == DOUBLE_RENAME_FILE)
+				testDoubleRenameLoop_File();
 	}
 	
 	@Test

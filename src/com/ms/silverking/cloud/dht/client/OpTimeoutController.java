@@ -1,9 +1,12 @@
 package com.ms.silverking.cloud.dht.client;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+
 /**
  * Controls timeout and retry behavior for operations. AsyncOperation is used here since
  * all operations are asynchronous internally. 
  */
+@OmitGeneration
 public interface OpTimeoutController {
     /**
      * Return the maximum number of times that this operation should be attempted.

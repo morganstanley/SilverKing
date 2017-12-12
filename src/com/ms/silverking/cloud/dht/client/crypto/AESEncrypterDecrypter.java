@@ -41,20 +41,18 @@ public class AESEncrypterDecrypter implements EncrypterDecrypter {
 		//}
 
 		try {
-			byte[] salt;
-			char[] password;
-			String keyFile;
+//			byte[] salt;
+//			char[] password;
+//			String keyFile;
 			SecureRandom secureRandom;
-
 			secureRandom = new SecureRandom();
 			iv = new IvParameterSpec(secureRandom.generateSeed(16));
-
-			salt = new byte[saltLength];
-			secureRandom.nextBytes(salt);
-			SecretKeyFactory factory = SecretKeyFactory
-					.getInstance("PBKDF2WithHmacSHA256");
-			password = new String(StreamUtil.readToBytes(new ByteArrayInputStream(key), true)).toCharArray();
-			KeySpec spec = new PBEKeySpec(password, salt, 65536, 128);
+//			salt = new byte[saltLength];
+//			secureRandom.nextBytes(salt);
+//			SecretKeyFactory factory = SecretKeyFactory
+//					.getInstance("PBKDF2WithHmacSHA256");
+//			password = new String(StreamUtil.readToBytes(new ByteArrayInputStream(key), true)).toCharArray();
+//			KeySpec spec = new PBEKeySpec(password, salt, 65536, 128);
 			secretKey = generateKey();
 		} catch (Exception e) {
 			throw new RuntimeException(e);

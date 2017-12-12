@@ -76,6 +76,9 @@
 #define ODW_RETRY_QUEUE_SIZE 131072
 #define ODW_RETRY_THREADS	1
 #define ODW_RETRY_MAX_BATCH_SIZE	1024
+#define ODW_DEF_MIN_WRITE_INTERVAL_MILLIS   2
+#define DEF_SYNC_DIR_UPDATES 1
+
 
 #define DDR_DHT_THREADS	4
 #define DDR_DHT_QUEUE_SIZE	128
@@ -88,9 +91,10 @@
 
 #define FBR_NFS_THREADS	16
 #define FBR_NFS_QUEUE_SIZE	32
-//#define FBR_DHT_THREADS	2
+
 #define FBR_DHT_THREADS	8
 #define FBR_DHT_QUEUE_SIZE	1024
+
 // zero for permanent cache signals no capacity limit
 #define FBR_PERMANENT_CACHE_SIZE 0
 //#define FBR_TRANSIENT_CACHE_SIZE 8000

@@ -102,10 +102,13 @@ SKPutOptions * SKPutOptions::compression(SKCompression::SKCompression compressio
 	PutOptions * pPutOptImp = new PutOptions(java_cast<PutOptions>(
 		((PutOptions*)pImpl)->compression(*pCompr)
 	)); 
+    return new SKPutOptions(pPutOptImp);
+    /*
 	delete pCompr;
     delete ((PutOptions*)pImpl);
     pImpl = pPutOptImp;
     return this;
+    */
 }
 
 SKPutOptions * SKPutOptions::checksumType(SKChecksumType::SKChecksumType checksumType){
@@ -116,10 +119,13 @@ SKPutOptions * SKPutOptions::checksumType(SKChecksumType::SKChecksumType checksu
 	if(!pPutOptImp || pPutOptImp->isNull()) {
 		cout << "Failed to update SKPutOptions" <<endl;
 	}
+    return new SKPutOptions(pPutOptImp);
+    /*
 	delete ((NamespacePerspectiveOptions*)pImpl);
 	pImpl = pPutOptImp;
 	delete pChecksumType;
     return this;
+    */
 }
 
 SKPutOptions * SKPutOptions::checksumCompressedValues(bool checksumCompressedValues ){

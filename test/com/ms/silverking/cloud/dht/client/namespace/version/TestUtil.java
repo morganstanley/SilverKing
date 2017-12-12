@@ -39,7 +39,14 @@ public class TestUtil {
 	static final String k6 = "k6";
 	static final String k7 = "k7";
 	static final String k8 = "k8";
+	static final String k9 = "k9";
+	static final String k10 = "k10";
 
+	static final int version1 = 1;
+	static final int version2 = 2;
+	static final int version3 = 3;
+	static final int version5 = 5;
+	
 	public static DHTSession createSession() throws ClientException, IOException {
 		return new DHTClient().openSession( Util.getTestGridConfig() );
 	}

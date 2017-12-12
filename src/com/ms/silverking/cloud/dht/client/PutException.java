@@ -2,6 +2,8 @@ package com.ms.silverking.cloud.dht.client;
 
 import java.util.Map;
 
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
+
 /**
  * Thrown when a put fails. See KeyedOperationException for details on partial
  * results.
@@ -9,6 +11,7 @@ import java.util.Map;
  * @see KeyedOperationException
  *
  */
+@NonVirtual
 public abstract class PutException extends KeyedOperationException {
 	protected PutException(Map<Object, OperationState> operationState,
 			Map<Object, FailureCause> failureCause) {

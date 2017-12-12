@@ -8,9 +8,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static com.ms.silverking.cloud.dht.NamespaceVersionMode.*;
-
 import static com.ms.silverking.cloud.dht.RevisionMode.*;
-
 import com.ms.silverking.cloud.dht.client.ClientException;
 import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
@@ -18,62 +16,62 @@ import com.ms.silverking.cloud.dht.client.PutException;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.testing.Util;
-
 import com.ms.silverking.testing.annotations.SkLarge;
 
 @SkLarge
 public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 
 	private static SynchronousNamespacePerspective<String, String> syncNsp;
-	
-	private static final String namespaceName = "ClientSpecifiedUnrestrictedRevisionsTest";
 
-	private static final int version1 = 1;
-	private static final int version2 = 2;
-	private static final int version3 = 3;
-	private static final int version5 = 5;
+	private static final String namespaceName = ClientSpecifiedVersionUnrestrictedRevisionsTest.class.getSimpleName();
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws ClientException, IOException {
 		DHTSession session = createSession();
-        Namespace ns       = createNamespace(session, namespaceName+"bennnn", CLIENT_SPECIFIED, UNRESTRICTED_REVISIONS); 
+        Namespace ns       = createNamespace(session, namespaceName, CLIENT_SPECIFIED, UNRESTRICTED_REVISIONS); 
         syncNsp            = ns.openSyncPerspective(String.class, String.class);
 	}
 
 	@Test
+	public void test_Put() throws PutException, RetrievalException {
+        _put(     k1, v1);
+        _checkGet(k1, v1);
+	}
+
+	@Test
+	public void test_Put_WithVersion() throws PutException {
+        _putVersion(k2, v1, version1);
+	}
+	
+	@Test
 	public void test_PutKeyTwice_SameValue() throws PutException, RetrievalException {
-		_put(k1, v1);
-		_put(k1, v1);
-		checkGets(k1, v1, v1);
+		_put(     k3, v1);
+		_put(     k3, v1);
+		checkGets(k3, v1, v1);
 	}
 
 	// failing
 	@Test
 	public void test_PutKeyTwice_DiffValue() throws PutException, RetrievalException {
-		_put(k2, v1);
-        _put(k2, v2);
-        checkGets(k2, v1, v2);
-	}
-	
-	private void checkGets(String k, String valueLeast, String valueGreatest) throws RetrievalException {
-        _checkGet(        k, valueGreatest);
-        _checkGetLeast(   k, valueLeast);
-        _checkGetGreatest(k, valueGreatest);
+		_put(     k4, v1);
+        _put(     k4, v2);
+        checkGets(k4, v1, v2);
 	}
 
 	// failing b/c of version
 	@Test
 	public void test_PutKeyTwice_SameValue_WithVersion() throws PutException, RetrievalException {
-		_put(               k3, v1);
-		_putVersion(        k3, v1, version1);
-		checkGetsWithVersion(k3, v1, v1, version1);
+		_put(                k5, v1);
+		_putVersion(         k5, v1, version1);
+		checkGetsWithVersion(k5, v1, v1, version1);
 	}
 
+	// failing on version
 	@Test
 	public void test_PutKeyTwice_DiffValue_WithVersion() throws PutException, RetrievalException {
-		_put(                k4, v1);
-		_putVersion(         k4, v2, version2);
-		checkGetsWithVersion(k4, v2, v1, version2);
+		_put(                k6, v1);
+		_putVersion(         k6, v2, version2);
+		checkGetsWithVersion(k6, v2, v1, version2);
 	}
 
 	private void checkGetsWithVersion(String k, String valueLeast, String valueGreatest, int version) throws RetrievalException {
@@ -84,18 +82,26 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 		_checkGetExactMatchVersion(k, version);
 	}
 	
-	@Test
-	public void test_PutKeyTwice_DiffValue_WithVersion_Increasing_Linear() throws PutException, RetrievalException {
-		_putVersion(        k5, v1, version1);
-		_putVersion(        k5, v2, version2);
-		checkGets_Twice_Linear(k5);
+	private void checkGets(String k, String valueLeast, String valueGreatest) throws RetrievalException {
+        _checkGet(        k, valueGreatest);
+        _checkGetLeast(   k, valueLeast);
+        _checkGetGreatest(k, valueGreatest);
 	}
 
+	// failing on version
+	@Test
+	public void test_PutKeyTwice_DiffValue_WithVersion_Increasing_Linear() throws PutException, RetrievalException {
+		_putVersion(k7, v1, version1);
+		_putVersion(k7, v2, version2);
+		checkGets_Twice_Linear(k7);
+	}
+
+	// failing on version
 	@Test
 	public void test_PutKeyTwice_DiffValue_WithVersion_Decreasing_Linear() throws PutException, RetrievalException {
-		_putVersion(k6, v2, version2);
-		_putVersion(k6, v1, version1);
-		checkGets_Twice_Linear(k6);
+		_putVersion(k8, v2, version2);
+		_putVersion(k8, v1, version1);
+		checkGets_Twice_Linear(k8);
 	}
 	
 	private void checkGets_Twice_Linear(String k) throws RetrievalException {
@@ -108,20 +114,22 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 		_checkGetExactMatchVersion(k, version2);
 	}
 
+	// failing on version
 	@Test
 	public void test_PutKeyThrice_DiffValue_WithVersion_Increasing_Skipping() throws PutException, RetrievalException {
-		_putVersion(k7, v1, version1);
-		_putVersion(k7, v3, version3);
-		_putVersion(k7, v5, version5);
-		checkGets_Thrice_Skipping(k7);
+		_putVersion(k9, v1, version1);
+		_putVersion(k9, v3, version3);
+		_putVersion(k9, v5, version5);
+		checkGets_Thrice_Skipping(k9);
 	}
 
+	// failing on version
 	@Test
 	public void test_PutKeyThrice_DiffValue_WithVersion_Decreasing_Skipping() throws PutException, RetrievalException {
-		_putVersion(k8, v5, version5);
-		_putVersion(k8, v3, version3);
-		_putVersion(k8, v1, version1);
-		checkGets_Thrice_Skipping(k8);
+		_putVersion(k10, v5, version5);
+		_putVersion(k10, v3, version3);
+		_putVersion(k10, v1, version1);
+		checkGets_Thrice_Skipping(k10);
 	}
 	
 	private void checkGets_Thrice_Skipping(String k) throws RetrievalException {

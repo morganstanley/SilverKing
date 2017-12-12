@@ -39,8 +39,8 @@ public class Assert {
 		assertEquals(testMessage, expected, ex.getClass());
 	}
 
-	public static void pass() {
-		assertTrue(true);
+	public static void assertPass(String msg) {
+		assertTrue(msg, true);
 	}
 	
 	public static void assertZero(int actualSize) {

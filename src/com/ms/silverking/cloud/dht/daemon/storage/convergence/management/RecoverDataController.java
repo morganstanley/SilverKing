@@ -97,6 +97,9 @@ public class RecoverDataController extends ConvergenceControllerBase implements 
     }
     
     public void recover() throws ConvergenceException {
+    	boolean	succeeded;
+    	
+    	succeeded = false;
     	try {
 	    	Set<Long>	namespaces;
 	    	
@@ -104,11 +107,12 @@ public class RecoverDataController extends ConvergenceControllerBase implements 
 	    	namespaces = getAllNamespaces();
 	    	recoverAll(namespaces);
 	    	Log.warningAsync("Recovery complete", targetRing.getRingIDAndVersionPair());
+	    	succeeded = true;
     	} catch (ConvergenceException ce) {
     		Log.logErrorWarning(ce, "Recovery failed"+ targetRing.getRingIDAndVersionPair());
     		throw ce;
     	} finally {
-    		setComplete();
+    		setComplete(succeeded);
     	}
     }
     

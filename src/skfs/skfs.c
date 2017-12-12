@@ -34,9 +34,11 @@
 
 #include <string>
 #include <set>
+#include <vector>
 
 #include "AttrReader.h"
 #include "AttrWriter.h"
+#include "BlockReader.h"
 #include "FileBlockReader.h"
 #include "FileBlockWriter.h"
 #include "FileIDToPathMap.h"
@@ -47,6 +49,7 @@
 #include "ReconciliationSet.h"
 #include "ResponseTimeStats.h"
 #include "skfs.h"
+#include "SKFSOpenFile.h"
 #include "SRFSConstants.h"
 #include "SRFSDHT.h"
 #include "Util.h"
@@ -88,6 +91,14 @@
 #define SO_ENTRY_TIMEOUT_SECS 'E'
 #define SO_ATTR_TIMEOUT_SECS 'A'
 #define SO_NEGATIVE_TIMEOUT_SECS 'N'
+#define SO_DHT_OP_MIN_TIMEOUT_MS 'x'
+#define SO_DHT_OP_MAX_TIMEOUT_MS 'X'
+#define SO_NATIVE_FILE_MODE 'F'
+#define SO_REMOTE_ADDRESS_FILE 'R'
+#define SO_BLOCK_READER_PORT 'P'
+#define SO_RECONCILIATION_SLEEP 'L'
+#define SO_ODW_MIN_WRITE_INTERVAL_MILLIS 'I'
+#define SO_SYNC_DIR_UPDATES 'U'
 
 #define LO_VERBOSE "verbose"
 #define LO_HOST "host"
@@ -116,7 +127,16 @@
 #define LO_ENTRY_TIMEOUT_SECS "entryTimeoutSecs"
 #define LO_ATTR_TIMEOUT_SECS "attrTimeoutSecs"
 #define LO_NEGATIVE_TIMEOUT_SECS "negativeTimeoutSecs"
-#
+#define LO_DHT_OP_MIN_TIMEOUT_MS "dhtOpMinTimeoutMS"
+#define LO_DHT_OP_MAX_TIMEOUT_MS "dhtOpMaxTimeoutMS"
+#define LO_NATIVE_FILE_MODE "nativeFileMode"
+#define LO_REMOTE_ADDRESS_FILE "brRemoteAddressFile"
+#define LO_BLOCK_READER_PORT "brPort"
+#define LO_RECONCILIATION_SLEEP "reconciliationSleep"
+#define LO_ODW_MIN_WRITE_INTERVAL_MILLIS "odwMinWriteIntervalMillis"
+#define LO_SYNC_DIR_UPDATES "syncDirUpdates"
+
+
 #define OPEN_MODE_FLAG_MASK 0x3
 
 #define ODT_NAME "OpenDirTable"
@@ -131,8 +151,10 @@
 #define _rn_retry_limit 20
 #define _rn_retry_interval_ms 10
 
-//////////
-// types
+#define _NUM_NATIVE_FILE_MODES 3
+#define _DEFAULT_NATIVE_FILE_MODE nf_readRelay_localPreread
+#define _PREREAD_SIZE 1
+
 
 ///////////////////////
 // private prototypes
@@ -152,7 +174,11 @@ static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t 
 static void skfs_destroy(void* private_data);
 static void init_util_sk();
 static uint64_t _get_sk_system_uint64(const char *stat);
+static NativeFileMode parseNativeFileMode(char *s);
 
+static int skfs_rename_directory(char *oldPath, char *newPath, time_t curEpochTimeSeconds, long curTimeNanos, std::vector<char *> *unlinkList);
+static int skfs_rename_file(char *oldPath, char *newPath, time_t curEpochTimeSeconds, long curTimeNanos, std::vector<char *> *unlinkList);
+static int skfs_unlink_list(std::vector<char *> *unlinkList);
 
 ////////////
 // globals
@@ -183,10 +209,19 @@ static struct argp_option options[] = {
 	   {LO_JVM_OPTIONS,         SO_JVM_OPTIONS,          LO_JVM_OPTIONS,              0, "comma-separated jvmOptions", 0},
        {LO_BIGWRITES,           SO_BIGWRITES,            LO_BIGWRITES,           OPTION_ARG_OPTIONAL,  "enable big_writes", 0 },
        {LO_ENTRY_TIMEOUT_SECS, SO_ENTRY_TIMEOUT_SECS,    LO_ENTRY_TIMEOUT_SECS,  0,  "entry timeout seconds", 0 },
-       {LO_ATTR_TIMEOUT_SECS, SO_ATTR_TIMEOUT_SECS,    LO_ATTR_TIMEOUT_SECS,  0,  "attr timeout seconds", 0 },       
-       {LO_NEGATIVE_TIMEOUT_SECS, SO_NEGATIVE_TIMEOUT_SECS,    LO_NEGATIVE_TIMEOUT_SECS,  0,  "negative timeout seconds", 0 },       
+       {LO_ATTR_TIMEOUT_SECS, SO_ATTR_TIMEOUT_SECS,    LO_ATTR_TIMEOUT_SECS,  0,  "attr timeout seconds", 0 },
+       {LO_NEGATIVE_TIMEOUT_SECS, SO_NEGATIVE_TIMEOUT_SECS,    LO_NEGATIVE_TIMEOUT_SECS,  0,  "negative timeout seconds", 0 },
+       {LO_DHT_OP_MIN_TIMEOUT_MS, SO_DHT_OP_MIN_TIMEOUT_MS,    LO_DHT_OP_MIN_TIMEOUT_MS,  0,  "min dht timeout ms", 0 },
+       {LO_DHT_OP_MAX_TIMEOUT_MS, SO_DHT_OP_MAX_TIMEOUT_MS,    LO_DHT_OP_MAX_TIMEOUT_MS,  0,  "max dht timeout ms", 0 },
+       {LO_NATIVE_FILE_MODE, SO_NATIVE_FILE_MODE, LO_NATIVE_FILE_MODE,  0, "nativeFileMode", 0 },
+       {LO_REMOTE_ADDRESS_FILE, SO_REMOTE_ADDRESS_FILE, LO_REMOTE_ADDRESS_FILE,  0, "brRemoteAddressFile", 0 },
+       {LO_BLOCK_READER_PORT, SO_BLOCK_READER_PORT, LO_BLOCK_READER_PORT, 0, "brPort", 0 },
+       {LO_RECONCILIATION_SLEEP, SO_RECONCILIATION_SLEEP, LO_RECONCILIATION_SLEEP, 0, "reconciliationSleep", 0 },
+       {LO_ODW_MIN_WRITE_INTERVAL_MILLIS, SO_ODW_MIN_WRITE_INTERVAL_MILLIS, LO_ODW_MIN_WRITE_INTERVAL_MILLIS, 0, "odwMinWriteIntervalMillis", 0 },
+       {LO_SYNC_DIR_UPDATES, SO_SYNC_DIR_UPDATES, LO_SYNC_DIR_UPDATES, 0, "syncDirUpdates", 0 },
        { 0, 0, 0, 0, 0, 0 }
 };
+static char *nativeFileModes[] = {"nf_blockReadOnly", "nf_readRelay_localPreread", "nf_readRelay_distributedPreread"};
 
 static char doc[] = "skfs";
 static char args_doc[] = "";
@@ -217,6 +252,7 @@ static ResponseTimeStats	*rtsFBR_NFS;
 static ResponseTimeStats	*rtsODT;
 static PathGroup volatile	*fsNativeOnlyPaths;
 static char			*fsNativeOnlyFile;
+static BlockReader  *br;
 
 static int			statsIntervalSeconds = 20;
 static int			statsDetailIntervalSeconds = 300;
@@ -262,6 +298,25 @@ static int parseTimeout(char *arg) {
     return val;
 }
 
+static NativeFileMode parseNativeFileMode(char *s) {
+    int i;
+    
+    for (i = 0; i < _NUM_NATIVE_FILE_MODES; i++) {
+        if (!strcmp(s, nativeFileModes[i])) {
+            return (NativeFileMode)i;
+        }
+    }
+    return _DEFAULT_NATIVE_FILE_MODE;
+}
+
+static int parseBoolean(char *arg) {
+    if (!strcmp(arg, "NO") || !strcmp(arg, "FALSE") || !strcmp(arg, "no") || !strcmp(arg, "false") || !strcmp(arg, "0")) { 
+        return 0;
+    } else { 
+        return 1;
+    }
+}
+
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         /* Get the input argument from argp_parse, which we
            know is a pointer to our CmdArgs structure. */
@@ -302,7 +357,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                         arguments->noFBWPaths = arg;
                         break;
                 case SO_FBW_RELIABLE_QUEUE:
-                        arguments->fbwReliableQueue = !strcmp(arg, "TRUE") || !strcmp(arg, "true");
+                        arguments->fbwReliableQueue = parseBoolean(arg);
                         break;
                 case SO_TASK_OUTPUT_PATHS:
                         arguments->taskOutputPaths = arg;
@@ -348,7 +403,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 						if(arguments->cacheConcurrency == 0) arguments->cacheConcurrency = 1;
 						break;
                 case SO_VERBOSE:
-                        arguments->verbose = !strcmp(arg, "TRUE") || !strcmp(arg, "true");
+                        arguments->verbose = parseBoolean(arg);
                         break;
                 case ARGP_KEY_ARG:
                         // if (state->arg_num >= 2) {
@@ -376,14 +431,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 						arguments->jvmOptions = arg;
 						break;
                 case SO_BIGWRITES:
-                    {
-						if (strcmp(arg, "NO") || strcmp(arg, "FALSE") || strcmp(arg, "no") || strcmp(arg, "false") || strcmp(arg, "0")) { 
-                            arguments->enableBigWrites = 0;
-						} else { 
-							arguments->enableBigWrites = 1;
-						}
+                        arguments->enableBigWrites = parseBoolean(arg);
 						break;
-					}
 				case SO_ENTRY_TIMEOUT_SECS:
 						arguments->entryTimeoutSecs = parseTimeout(arg);
 						break;
@@ -392,6 +441,30 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 						break;
 				case SO_NEGATIVE_TIMEOUT_SECS:
 						arguments->negativeTimeoutSecs = parseTimeout(arg);
+						break;
+				case SO_DHT_OP_MIN_TIMEOUT_MS:
+						arguments->dhtOpMinTimeoutMS = sd_parse_timeout(arg, SRFS_DHT_OP_MIN_TIMEOUT_MS);
+						break;
+				case SO_DHT_OP_MAX_TIMEOUT_MS:
+						arguments->dhtOpMaxTimeoutMS = sd_parse_timeout(arg, SRFS_DHT_OP_MAX_TIMEOUT_MS);
+						break;
+				case SO_NATIVE_FILE_MODE:
+						arguments->nativeFileMode = parseNativeFileMode(arg);
+						break;
+				case SO_REMOTE_ADDRESS_FILE:
+						arguments->brRemoteAddressFile = arg;
+						break;
+				case SO_BLOCK_READER_PORT:
+						arguments->brPort = atoi(arg);
+						break;
+				case SO_RECONCILIATION_SLEEP:
+						arguments->reconciliationSleep = arg;
+						break;
+				case SO_ODW_MIN_WRITE_INTERVAL_MILLIS:
+						arguments->odwMinWriteIntervalMillis = atoi(arg);
+						break;
+				case SO_SYNC_DIR_UPDATES:
+						arguments->syncDirUpdates = parseBoolean(arg);
 						break;
                 default:
 			//printf("Adding %d %s\n", state->arg_num, state->argv[state->arg_num]); fflush(stdout);
@@ -431,6 +504,14 @@ void initDefaults(CmdArgs *arguments) {
     arguments->entryTimeoutSecs = -1;
     arguments->attrTimeoutSecs = -1;
     arguments->negativeTimeoutSecs = -1;
+    arguments->dhtOpMinTimeoutMS = SRFS_DHT_OP_MIN_TIMEOUT_MS;
+    arguments->dhtOpMaxTimeoutMS = SRFS_DHT_OP_MAX_TIMEOUT_MS;
+    arguments->nativeFileMode = _DEFAULT_NATIVE_FILE_MODE;
+    arguments->brRemoteAddressFile = NULL;
+    arguments->brPort = -1;
+    arguments->reconciliationSleep = NULL;
+    arguments->odwMinWriteIntervalMillis = ODW_DEF_MIN_WRITE_INTERVAL_MILLIS;
+    arguments->syncDirUpdates = DEF_SYNC_DIR_UPDATES;
 }
 
 static void displayArguments(CmdArgs *arguments) {
@@ -450,6 +531,14 @@ static void displayArguments(CmdArgs *arguments) {
 	printf("entryTimeoutSecs %d\n", arguments->entryTimeoutSecs);
 	printf("attrTimeoutSecs %d\n", arguments->attrTimeoutSecs);
 	printf("negativeTimeoutSecs %d\n", arguments->negativeTimeoutSecs);
+	printf("dhtOpMinTimeoutMS %ld\n", arguments->dhtOpMinTimeoutMS);
+	printf("dhtOpMaxTimeoutMS %ld\n", arguments->dhtOpMaxTimeoutMS);
+	printf("nativeFileMode %s\n", nativeFileModes[arguments->nativeFileMode]);
+	printf("brRemoteAddressFile %s\n", arguments->brRemoteAddressFile);
+	printf("brPort %d\n", arguments->brPort);
+	printf("reconciliationSleep %d\n", arguments->reconciliationSleep);
+	printf("odwMinWriteIntervalMillis %d\n", arguments->odwMinWriteIntervalMillis);
+	printf("syncDirUpdates %d\n", arguments->syncDirUpdates);
 }
 
 // FUSE interface
@@ -540,8 +629,8 @@ static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t 
         //    srfsLog(LOG_ERROR, "Can't %s writable file", fnName);
         //    return -EIO;
         if (wft_contains(wft, path)) {
-            // delay to make sure that there is a chance to release
-            usleep(5 * 1000);
+            // delay to make sure that there is a chance to release - update: removed this delay
+            //usleep(5 * 1000);
             wf_ref = wft_get(wft, path);
          } else {
             wf_ref = NULL;
@@ -654,7 +743,7 @@ static int skfs_truncate(const char *path, off_t size) {
 
 static int skfs_utimens(const char *path, const struct timespec ts[2]) {
 	srfsLogAsync(LOG_OPS, "_ut %s", path);
-	return 0;
+    return 0;
 }
 
 static int skfs_access(const char *path, int mask) {
@@ -664,8 +753,11 @@ static int skfs_access(const char *path, int mask) {
 	srfsLogAsync(LOG_OPS, "_a %s", path);
 	memset(&stbuf, 0, sizeof(struct stat));
 	result = ar_get_attr_stat(ar, (char *)path, &stbuf);
-	// for now we ignore the mask and just return success
-	// if we could stat it
+    if (result == 0 && mask != F_OK) {
+        // for now we ignore the mask and just return success
+        // if we could stat it
+        // FUTURE - handle mask values
+    }
 	return -result;
 }
 
@@ -686,7 +778,7 @@ static int skfs_readlink(const char *path, char *buf, size_t size) {
 		fallbackToNFS = TRUE;
 	} else {
 		if (!ar_is_no_link_cache_path(ar, (char *)path)) {
-			numRead = pbr_read(pbr, path, linkPath, SRFS_MAX_PATH_LENGTH, 0);
+			numRead = pbr_read(pbr, path, linkPath, SRFS_MAX_PATH_LENGTH, 0, NULL);
 
 			if (numRead > 0 && numRead < SRFS_MAX_PATH_LENGTH) {
 				char	appendBuf[SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1];
@@ -882,10 +974,15 @@ static int skfs_rename(const char *oldpath, const char *newpath) {
             */
             
             if (S_ISDIR(fa.stat.st_mode)) {
-                return -ENOTSUP;
-            } else {
-                SKOperationState::SKOperationState  writeResult;
+                std::vector<char *>  unlinkList;
+                int             dirRenameResult;
                 
+                dirRenameResult = skfs_rename_directory((char *)oldpath, (char *)newpath, curEpochTimeSeconds, curTimeNanos, &unlinkList);
+                if (dirRenameResult == 0) {
+                    dirRenameResult = skfs_unlink_list(&unlinkList);
+                }
+                return dirRenameResult;
+            } else {
                 // FUTURE - below is best-effort. enforce
                 if (!ensure_not_writable((char *)oldpath, (char *)newpath)) {
                     WritableFileReference   *wfr;
@@ -905,6 +1002,8 @@ static int skfs_rename(const char *oldpath, const char *newpath) {
                         return -EIO;
                     }
                 } else {
+                    SKOperationState::SKOperationState  writeResult;
+                
                     fa.stat.st_ctime = curEpochTimeSeconds;
                     fa.stat.st_ctim.tv_nsec = curTimeNanos;
                     // Link the new file to the old file blocks
@@ -928,12 +1027,171 @@ static int skfs_rename(const char *oldpath, const char *newpath) {
     }
 }
 
+
+/////////////////////////
+// begin directory rename
+
+// Directory renaming is accomplished by copying metadata, but leaving file blocks alone.
+// This works in two phases: 1 - Copy file and directory metadata to the new locations; 2 - Unlink the old files and directories.
+
+static int skfs_rename_directory(char *oldPath, char *newPath, time_t curEpochTimeSeconds, long curTimeNanos, std::vector<char *> *unlinkList) {
+    DirData *dd;
+    int     result;
+    
+    srfsLog(LOG_INFO, "skfs_rename_directory %s %s", oldPath, newPath);
+    result = 0;
+    dd = odt_get_DirData(odt, oldPath);
+    if (dd == NULL) {
+        srfsLog(LOG_WARNING, "odt_get_DirData failed %s %s %d", oldPath, __FILE__, __LINE__);
+        result = -EIO;
+    } else {
+        int         rc;
+        struct stat oldDirStat;
+        
+        rc = 0;        
+        memset(&oldDirStat, 0, sizeof(struct stat));
+        rc = ar_get_attr_stat(ar, oldPath, &oldDirStat);
+        if (rc == 0) {
+            // Create the new directory
+            result = odt_mkdir(odt, (char *)newPath, oldDirStat.st_mode);
+            if (result == 0) {
+                uint32_t    index;
+                
+                for (index = 0; index < dd->numEntries && result == 0; index++) {
+                    DirEntry    *de;
+                    
+                    de = dd_get_entry(dd, index);
+                    if (de != NULL && !de_is_deleted(de)) {
+                        struct stat st;
+                        char    oldChildPath[SRFS_MAX_PATH_LENGTH];
+                        char    newChildPath[SRFS_MAX_PATH_LENGTH];
+                    
+                        memset(oldChildPath, 0, SRFS_MAX_PATH_LENGTH);
+                        memset(newChildPath, 0, SRFS_MAX_PATH_LENGTH);
+                        sprintf(oldChildPath, "%s/%s", oldPath, de_get_name(de));
+                        sprintf(newChildPath, "%s/%s", newPath, de_get_name(de));
+                        memset(&st, 0, sizeof(struct stat));
+                        rc = ar_get_attr_stat(ar, oldChildPath, &st);
+                        if (rc != 0) {
+                            srfsLog(LOG_WARNING, "ar_get_attr_stat failed %s %d %s %d", oldChildPath, rc, __FILE__, __LINE__);
+                            result = -rc;
+                        } else {
+                            if (S_ISDIR(st.st_mode)) {
+                                result = skfs_rename_directory(oldChildPath, newChildPath, curEpochTimeSeconds, curTimeNanos, unlinkList);
+                            } else {
+                                result = skfs_rename_file(oldChildPath, newChildPath, curEpochTimeSeconds, curTimeNanos, unlinkList);
+                            }
+                        }
+                    }
+                }
+                dd_delete(&dd);
+                
+                if (result == 0) {
+                    unlinkList->push_back(strdup(oldPath));
+                }
+            }
+        } else {
+            srfsLog(LOG_WARNING, "ar_get_attr_stat failed %s %d %s %d", oldPath, rc, __FILE__, __LINE__);
+            result = -EIO;
+        }
+    }
+    srfsLog(LOG_INFO, "out skfs_rename_directory %s %s %d", oldPath, newPath, result);
+     return result;
+}
+
+static int skfs_unlink_list(std::vector<char *> *unlinkList) {
+    int result;
+    
+    result = 0;
+    for (unsigned i = 0; i < unlinkList->size(); i++) {
+        char    *oldPath;
+        
+        oldPath = unlinkList->at(i);
+        if (oldPath != NULL) {
+            int _result;
+            
+            srfsLog(LOG_INFO, "unlinking for rename %s", oldPath);
+            _result = _skfs_unlink(oldPath, FALSE);
+            if (_result != 0) {
+                srfsLog(LOG_WARNING, "_skfs_unlink failed %s %d %s %d", oldPath, result, __FILE__, __LINE__);
+                result = _result;
+            }
+            mem_free((void**)&oldPath);
+        }
+    }
+    return result;
+}
+
+static int skfs_rename_file(char *oldPath, char *newPath, time_t curEpochTimeSeconds, long curTimeNanos, std::vector<char *> *unlinkList) {
+    int result;
+    
+    srfsLog(LOG_INFO, "skfs_rename_file %s %s", oldPath, newPath);
+    // FUTURE - below is best-effort. enforce
+    if (!ensure_not_writable((char *)oldPath, (char *)newPath)) {
+        WritableFileReference   *wfr;
+
+        wfr = wft_get(wft, oldPath);
+        if (wfr != NULL) {
+            WritableFile    *wf;
+            
+            wf = wfr_get_wf(wfr);
+            wf_set_pending_rename(wf, newPath);
+            wfr_delete(&wfr, aw, fbwSKFS, ar->attrCache);
+            result = 0;
+            //srfsLog(LOG_ERROR, "Can't rename writable file");
+            //return -EIO;
+        } else {
+            srfsLog(LOG_ERROR, "Unexpected NULL wfr %s %d", __FILE__, __LINE__);
+            result = -EIO;
+        }
+    } else {
+        SKOperationState::SKOperationState  writeResult;
+        FileAttr	fa;
+
+        memset(&fa, 0, sizeof(FileAttr));
+        result = ar_get_attr(ar, (char *)oldPath, &fa);
+        if (result == 0) {
+            fa.stat.st_ctime = curEpochTimeSeconds;
+            fa.stat.st_ctim.tv_nsec = curTimeNanos;
+            // Link the new file to the old file blocks
+            writeResult = aw_write_attr_direct(aw, newPath, &fa, ar->attrCache);
+            if (writeResult != SKOperationState::SUCCEEDED) {
+                srfsLog(LOG_ERROR, "aw_write_attr_direct failed in skfs_rename %s %s %d", newPath, __FILE__, __LINE__);
+                result = -EIO;
+            } else {
+                // Create a directory entry for the new file
+                if (odt_add_entry_to_parent_dir(odt, (char *)newPath)) {
+                    srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s %s %d", newPath, __FILE__, __LINE__);
+                    result = -EIO;
+                } else {
+                    unlinkList->push_back(strdup(oldPath));
+                }
+            }
+        } else {
+            srfsLog(LOG_WARNING, "ar_get_attr failed %s %d %s %d", oldPath, result, __FILE__, __LINE__);
+        }
+    }
+    srfsLog(LOG_INFO, "out skfs_rename_file %s %s %d", oldPath, newPath, result);
+    return result;
+}
+
+// end directory rename
+///////////////////////
+
+
+
 static int skfs_associate_new_file(const char *path, struct fuse_file_info *fi, WritableFileReference *wf_ref) {
 	if (wf_ref == NULL) {
         srfsLog(LOG_FINE, "skfs_associate_new_file %s NULL ref", path);
         return -ENOENT;
 	} else {
-		fi->fh = (uint64_t)wf_ref;
+        SKFSOpenFile    *sof;
+        
+        sof = (SKFSOpenFile*)fi->fh;
+        if (sof->type != OFT_WritableFile_Write) {
+            fatalError("Unexpected sof->type != OFT_WritableFile_Write", __FILE__, __LINE__);
+        }
+		sof->wf_ref = wf_ref;
         if (srfsLogLevelMet(LOG_FINE)) {
             srfsLog(LOG_FINE, "skfs_associate_new_file %s %llx %llx", path, wf_ref, wfr_get_wf(wf_ref));
         }
@@ -942,6 +1200,8 @@ static int skfs_associate_new_file(const char *path, struct fuse_file_info *fi, 
 }
 
 static int skfs_open(const char *path, struct fuse_file_info *fi) {
+    SKFSOpenFile    *sof;
+    
     // Below line is LOG_INFO as we don't want to log this for r/o files
 	srfsLogAsync(LOG_INFO, "_O %s %x %s%s%s", path, fi->flags,
         ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY ? "R" : ""),
@@ -952,7 +1212,54 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
         ((fi->flags & O_TRUNC) ? "t" : "")
         );
     
-	if (!is_writable_path(path)) {
+    sof = sof_new();
+    fi->fh = (uint64_t)sof;
+    
+	if (!is_writable_path(path)) {        
+        int nativeRelay;
+        
+        nativeRelay = FALSE;
+        if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
+            nativeRelay = TRUE;
+        } else {
+            int         result;
+            FileAttr    *fa;
+            
+            fa = (FileAttr*)mem_alloc(1,sizeof(FileAttr));
+            result = ar_get_attr(ar, (char *)path, fa);
+            if (result != 0) {
+                if (!is_writable_path(path)) {
+                    srfsLog(LOG_WARNING, "Error reading %s result %d", path, result);
+                    fatalError("readFromFile() failed", __FILE__, __LINE__);
+                } else {
+                    sof_delete(&sof);
+                    return -ENOENT;
+                }
+            }
+            nativeRelay = fa->stat.st_nlink == FA_NATIVE_LINK_MAGIC;
+            if (!nativeRelay) {
+                sof->attr = fa;
+            } else {
+                sof->attr = fa;
+                //fa_delete(&fa);
+            }
+        }
+        if (nativeRelay) {
+            char nativePath[SRFS_MAX_PATH_LENGTH];
+            
+            sof->type = OFT_NativeRelay;
+            ar_translate_path(ar, nativePath, path);
+            srfsLog(LOG_FINE, "%s -> %s", path, nativePath);
+            sof->fd = open(nativePath, O_RDONLY);
+            if (sof->fd < 0) {
+                sof_delete(&sof);
+                return -errno;
+            }
+            sof->nativePath = strdup(nativePath);
+        } else {
+            sof->type = OFT_NativeStandard;
+        }
+        
         /*
         // eventually use this check, but stricter than prev code, so need to test
         if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY) {
@@ -964,18 +1271,39 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
         return 0;
     } else {
         if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY) {
-            fi->fh = (uint64_t)NULL;
+            FileAttr	*fa;
+            int         statResult;
+            
+            sof->wf_ref = (uint64_t)NULL;
+            sof->type = OFT_WritableFile_Read;
             // for already open writable files, we ignore the ongoing write
             // and use what exists in the key-value store
-            return 0;
+            
+            // Read attribute which should have already been created
+            fa = (FileAttr*)mem_alloc(1, sizeof(FileAttr));
+            statResult = ar_get_attr(ar, (char *)path, fa);
+            if (!statResult) {
+                sof->attr = fa;
+                return 0;
+            } else {
+                // Can't read attribute which should exist => fail
+                fa_delete(&fa);
+                sof_delete(&sof);
+                return -EIO;
+            }
         } else if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_WRONLY
                     || (fi->flags & OPEN_MODE_FLAG_MASK) == O_RDWR) {
             int	result;
             WritableFileReference    *existing_wf_ref;
+            OpenDir *parentDir;
+            uint64_t    parentDirUpdateTimeMillis;
             
             srfsLogAsync(LOG_OPS, "_o %s %x", path, fi->flags);
+            sof->type = OFT_WritableFile_Write;
             // FIXME - do we need this in mknod also, or can we remove it there?
-            if (odt_add_entry_to_parent_dir(odt, (char *)path)) {
+            parentDir = NULL;
+            parentDirUpdateTimeMillis = curTimeMillis();
+            if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
                 srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
             }
             existing_wf_ref = wft_get(wft, path);
@@ -995,14 +1323,17 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                         statResult = ar_get_attr(ar, (char *)path, &fa);
                         if (!statResult) {
                             // Exclusive creation requested, but file already exists => fail
+                            sof_delete(&sof);
                             return -EEXIST;
                         }
                     }
                     wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666);
                     if (wf_ref != NULL) {
+                        wf_set_parent_dir(wfr_get_wf(wf_ref), parentDir, parentDirUpdateTimeMillis);
                         result = skfs_associate_new_file(path, fi, wf_ref);
                     } else {
                         srfsLog(LOG_ERROR, "EIO from %s %d", __FILE__, __LINE__);
+                        sof_delete(&sof);
                         return -EIO;
                     }
                 } else {
@@ -1017,12 +1348,14 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                     if (statResult != 0 && statResult != ENOENT) {
                         // Error checking for existing attr => fail
                         srfsLog(LOG_ERROR, "statResult %d caused EIO from %s %d", statResult, __FILE__, __LINE__);
+                        sof_delete(&sof);
                         return -EIO;
                     } else {
                         if (statResult != ENOENT) {
                             // File exists
                             if (((fi->flags & O_CREAT) != 0) && ((fi->flags & O_EXCL) != 0)) {
                                 // Exclusive creation requested, but file already exists => fail
+                                sof_delete(&sof);
                                 return -EEXIST;
                             } else {
                                 WritableFileReference    *wf_ref;
@@ -1031,6 +1364,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                                 if (wf_ref != NULL) {
                                     result = skfs_associate_new_file(path, fi, wf_ref);
                                 } else {
+                                    sof_delete(&sof);
                                     return -EIO;
                                 }
                             }
@@ -1043,6 +1377,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                                 result = skfs_associate_new_file(path, fi, wf_ref);
                             } else {
                                 srfsLog(LOG_ERROR, "EIO from %s %d", __FILE__, __LINE__);
+                                sof_delete(&sof);
                                 return -EIO;
                             }
                         }
@@ -1054,15 +1389,17 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                 if (((fi->flags & O_CREAT) != 0) && ((fi->flags & O_EXCL) != 0)) {
                     // Exclusive creation requested, but file already exists => fail
                     wfr_delete(&existing_wf_ref, aw, fbwSKFS, ar->attrCache);
-                    fi->fh = (uint64_t)NULL;
+                    sof->wf_ref = (uint64_t)NULL;
                     srfsLog(LOG_ERROR, "EEXIST from %s %d", __FILE__, __LINE__);
+                    sof_delete(&sof);
                     return -EEXIST;
                 }
                 if ((fi->flags & O_TRUNC) != 0) {
                     // Can't open an already open file with O_TRUNC
                     wfr_delete(&existing_wf_ref, aw, fbwSKFS, ar->attrCache);
-                    fi->fh = (uint64_t)NULL;
+                    sof->wf_ref = (uint64_t)NULL;
                     srfsLog(LOG_ERROR, "EIO from %s %d", __FILE__, __LINE__);
+                    sof_delete(&sof);
                     return -EIO;
                 }
                 result = skfs_associate_new_file(path, fi, existing_wf_ref);
@@ -1070,6 +1407,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
             return result;
         } else {
             srfsLog(LOG_ERROR, "EACCES from %s %d", __FILE__, __LINE__);
+            sof_delete(&sof);
             return -EACCES;
         }
     }
@@ -1081,9 +1419,15 @@ static int skfs_mknod(const char *path, mode_t mode, dev_t rdev) {
     srfsLogAsync(LOG_OPS, "_mn %s %x %x", path, mode, rdev);
 	wf_ref = wft_create_new_file(wft, path, mode);
 	if (wf_ref != NULL) {
-		if (odt_add_entry_to_parent_dir(odt, (char *)path)) {
+        OpenDir *parentDir;
+        uint64_t    parentDirUpdateTimeMillis;
+        
+        parentDir = NULL;
+        parentDirUpdateTimeMillis = curTimeMillis();            
+		if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
 			srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
 		}
+        wf_set_parent_dir(wfr_get_wf(wf_ref), parentDir, parentDirUpdateTimeMillis);
         wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
 		return 0;
 	} else {
@@ -1154,30 +1498,100 @@ static void md5ErrorDebug(const char *path, SKVal *pRVal) {
 static int skfs_read(const char *path, char *dest, size_t readSize, off_t readOffset,
                     struct fuse_file_info *fi) {
 	int	totalRead;
+    SKFSOpenFile    *sof;
 	
 	srfsLogAsync(LOG_OPS, "_r %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
-	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
-		char nativePath[SRFS_MAX_PATH_LENGTH];
-
-		srfsLogAsync(LOG_OPS, "native read");
-		ar_translate_path(ar, nativePath, path);
-		srfsLog(LOG_FINE, "%s -> %s", path, nativePath);
-		return file_read_partial(nativePath, dest, readSize, readOffset);
-	} else {
-        if (fi->fh != (uint64_t)NULL) {
-            // We currently do not support reading of files opened r/w
-            return -EIO;
+    sof = (SKFSOpenFile*)fi->fh;
+    if (!sof_is_valid(sof)) {
+        srfsLog(LOG_WARNING, "invalid sof %llx", sof);
+        return -EIO;
+    } else {
+        if (sof->type == OFT_NativeRelay && args->nativeFileMode != nf_blockReadOnly) {
+            off_t    block;
+            
+            srfsLogAsync(LOG_INFO, "native read relay");
+            srfsLog(LOG_FINE, "%s", path);
+            block = readOffset / SRFS_BLOCK_SIZE;
+            if (block >= sof->nextPrereadBlock) {
+                if (args->nativeFileMode == nf_readRelay_localPreread) {
+                    pbr_read_given_attr(pbr, path, NULL, readSize, readOffset, sof->attr, FALSE, _PREREAD_SIZE - 1, TRUE);
+                } else {
+                    br_request_remote_read(br, sof->nativePath, sof->attr, readSize, readOffset, _PREREAD_SIZE - 1);
+                }
+                sof->nextPrereadBlock = block + _PREREAD_SIZE; // Consider making threadsafe; a hint for now
+            }
+            totalRead = pread(sof->fd, dest, readSize, readOffset);
         } else {
-            totalRead = pbr_read(pbr, path, dest, readSize, readOffset);
+            if (sof->type == OFT_WritableFile_Write) {
+                // We currently do not support reading of files opened r/w
+                return -EIO;
+            } else {
+                //srfsLogAsync(LOG_WARNING, "pbr read");
+                totalRead = pbr_read(pbr, path, dest, readSize, readOffset, sof);
 #if 0
-            srfsLog(LOG_WARNING, "\nFile read stats");
-            ac_display_stats(ar->attrCache);
-            fbc_display_stats(fbr->fileBlockCache);
+                srfsLog(LOG_WARNING, "\nFile read stats");
+                ac_display_stats(ar->attrCache);
+                fbc_display_stats(fbr->fileBlockCache);
 #endif
+            }
         }
-	}
-	return totalRead;
+        return totalRead;
+    }
 }
+
+#if FUSE_VERSION >= 29
+static int skfs_read_buf(const char *path, struct fuse_bufvec **bufp,
+                         size_t readSize, off_t readOffset, struct fuse_file_info *fi) {
+    size_t	size;
+    char	*buf;
+    int	rVal;
+    size_t	totalRead;
+
+	srfsLogAsync(LOG_OPS, "_R %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
+    {
+        struct fuse_bufvec *src;
+        char    *dest;
+        int     result;
+        
+        src = (struct fuse_bufvec *)mem_alloc_no_dbg(1, sizeof(struct fuse_bufvec));
+        *src = FUSE_BUFVEC_INIT(readSize);
+        src->buf[0].flags = (enum fuse_buf_flags)(FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
+        src->buf[0].fd = fi->fh;
+        src->buf[0].pos = readOffset;
+        *bufp = src;
+        return 0;
+    }
+                         
+#if 0
+    struct fuse_bufvec *src;
+    char    *dest;
+    int     result;
+    
+	srfsLogAsync(LOG_OPS, "_R %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
+    // This is a proof-of-concept implementation
+    // A real implementation will probably want to allow
+    // native files to be passed back via fd/offset
+    src = (struct fuse_bufvec *)mem_alloc_no_dbg(1, sizeof(struct fuse_bufvec));
+    dest = (char *)mem_alloc_no_dbg(readSize, 1);
+    result = skfs_read(path, dest, readSize, readOffset, fi);
+    if (result < 0) {
+        return result;
+    } else {
+        *src = FUSE_BUFVEC_INIT(readSize);
+        /*
+        src->buf[0].flags = FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK;
+        src->buf[0].fd = fi->fh;
+        src->buf[0].pos = offset;
+        */
+        //src->buf[0].flags = 0;
+        src->buf[0].mem = dest;
+        *bufp = src;
+        //srfsLog(LOG_WARNING, "_R returning 0");
+        return 0;
+    }
+#endif    
+}
+#endif
 
 int skfs_write(const char *path, const char *src, size_t writeSize, off_t writeOffset, 
           struct fuse_file_info *fi) {
@@ -1196,10 +1610,40 @@ int skfs_write(const char *path, const char *src, size_t writeSize, off_t writeO
 
 int skfs_release(const char *path, struct fuse_file_info *fi) {
     WritableFileReference *wf_ref;
+    SKFSOpenFile    *sof;
+    
+    sof = (SKFSOpenFile*)fi->fh;
+    fi->fh = NULL;
+    if (!sof_is_valid(sof)) {
+        wf_ref = NULL;
+    } else {
+        switch (sof->type)  {
+            case OFT_WritableFile_Write:
+                wf_ref = sof->wf_ref;
+                break;
+            case OFT_WritableFile_Read:
+                wf_ref = NULL;
+                break;
+            case OFT_NativeRelay:
+                FileAttr    fa;
 
-    wf_ref = (WritableFileReference *)fi->fh;
+                // Undo FA_NATIVE_LINK_MAGIC for this attribute
+                ar_get_attr(ar, (char *)path, &fa, stat_mtime_micros(&sof->attr->stat) + 1);
+                close(sof->fd);
+                sof->fd = 0;
+                wf_ref = NULL;
+                break;
+            case OFT_NativeStandard:
+                wf_ref = NULL;
+                break;
+            default:
+                fatalError("Invalid SKFSOpenFile type", __FILE__, __LINE__);
+        }
+        sof_delete(&sof);
+    }
+    
 	if (wf_ref == NULL) {
-		srfsLog(LOG_FINE, "skfs_release. Ignoring. No valid fi->fh found for %s", path);
+		srfsLog(LOG_FINE, "skfs_release. Ignoring. No valid wf_ref found for %s", path);
 		return 0;
 	} else {
         WritableFile    *wf;
@@ -1659,6 +2103,9 @@ static void * nativefile_watcher_thread(void * unused) {
 void initFuse() {
     skfs_oper.getattr = skfs_getattr;
     skfs_oper.read = skfs_read;
+#if FUSE_VERSION >= 29
+//    skfs_oper.read_buf = skfs_read_buf;
+#endif
     skfs_oper.readlink = skfs_readlink;
     skfs_oper.readdir = skfs_readdir;
     skfs_oper.flush = skfs_flush;
@@ -1802,7 +2249,7 @@ void initReaders() {
     FileBlockCache  *fbc;
 
 	sd = sd_new((char *)args->host, (char *)args->gcname, NULL, args->compression, 
-				SRFS_DHT_OP_MIN_TIMEOUT_MS, SRFS_DHT_OP_MAX_TIMEOUT_MS, 
+				args->dhtOpMinTimeoutMS, args->dhtOpMaxTimeoutMS, 
 				SRFS_DHT_OP_DEV_WEIGHT, SRFS_DHT_OP_DHT_WEIGHT);
 
 	f2p = f2p_new();
@@ -1828,6 +2275,21 @@ void initReaders() {
 	fbr = fbr_new(f2p, fbwCompress, fbwRaw, sd, rtsFBR_DHT, rtsFBR_NFS, fbc);
 	pbr = pbr_new(ar, fbr, NULL);
 
+    if (args->nativeFileMode == nf_readRelay_distributedPreread) {
+        int _port;
+            
+        if (args->brPort >= 0) {
+            _port = args->brPort;
+        } else {
+            _port = BR_DEFAULT_PORT;
+        }
+        br = br_new(_port, pbr, ar);
+        if (args->brRemoteAddressFile != NULL) {
+            br_read_addresses(br, args->brRemoteAddressFile);
+        }
+    } else {
+        br = NULL;
+    }
 #if 0
     wft = wft_new("WritableFileTable");
 #endif
@@ -1836,13 +2298,14 @@ void initReaders() {
 // Initialization writable directory structure
 void initDirs() {
 	rcst_init();
-	odt = odt_new(ODT_NAME, sd, aw, ar, rtsODT);
+	odt = odt_new(ODT_NAME, sd, aw, ar, rtsODT, args->reconciliationSleep, args->odwMinWriteIntervalMillis);
 	if (odt_mkdir_base(odt)) {
 		fatalError("odt_mkdir_base skfs failed", __FILE__, __LINE__);
 	}
 	if (odt_opendir(odt, SKFS_WRITE_BASE, NULL) != 0) {
 		fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
 	}
+    wf_set_sync_dir_updates(args->syncDirUpdates);
 }
 
 void destroyReaders(){
@@ -1865,7 +2328,16 @@ void destroyReaders(){
 }
 
 static void initLogging() {
-	sprintf(logFileName, "%s/logs/fuse.log.%d", SRFS_HOME, getpid());
+    char	logPath[SRFS_MAX_PATH_LENGTH];
+    char	*lastSlash;
+    
+    strcpy(logPath, args->mountPath);
+    lastSlash = strrchr(logPath, '/');
+    if (lastSlash != NULL) {
+        *lastSlash = '\0';
+    }
+    
+	sprintf(logFileName, "%s/logs/fuse.log.%d", logPath, getpid());
 	srfsLogSetFile(logFileName);
 	srfsLog(LOG_WARNING, "skfs block size %d", SRFS_BLOCK_SIZE);
 	if (args->logLevel != NULL) {
@@ -1930,6 +2402,7 @@ static void add_fuse_option(char *option) {
 
 #ifndef UNIT_TESTS
 int main(int argc, char *argv[]) {        
+    printf("skfsd %s %s\n", __DATE__, __TIME__);
     umask(022);
     pClient = NULL; pGlobalSession = NULL;
 
@@ -1965,6 +2438,7 @@ int main(int argc, char *argv[]) {
 	} else {
 	    srfsLog(LOG_WARNING, "No %s", FUSE_CONF_FILE);
 	}
+	add_fuse_option("-odefault_permissions");
 	
 	if (args->enableBigWrites) {
         srfsLog(LOG_WARNING, "Enabling big writes");
@@ -1976,6 +2450,7 @@ int main(int argc, char *argv[]) {
 	add_fuse_option("-ononempty");
     add_fuse_option("-ouse_ino");
     add_fuse_option("-oauto_cache");
+    //add_fuse_option("-owriteback_cache");
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
 	sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs);
@@ -1986,7 +2461,8 @@ int main(int argc, char *argv[]) {
 	addEnvToFuseArg("SKFS_ATTR_TIMEOUT", "-oattr_timeout=", fuseAttrOption);
 	addEnvToFuseArg("SKFS_AC_ATTR_TIMEOUT", "-oac_attr_timeout=", fuseACAttrOption);
 	addEnvToFuseArg("SKFS_NEGATIVE_TIMEOUT", "-onegative_timeout=", fuseNegativeOption);
-	addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=1048576");
+	//addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=1048576");
+	addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=5242880");
     
 	//fuse_opt_add_arg(&fuseArgs, "-osubtype=SKFS");
 	srfsLog(LOG_WARNING, "Calling fuse_main");

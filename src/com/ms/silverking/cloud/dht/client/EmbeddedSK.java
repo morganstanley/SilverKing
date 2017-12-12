@@ -104,7 +104,7 @@ public class EmbeddedSK {
 			} else {
 				dhtPort = skPort;
 			}
-			clientDHTConfig = new ClientDHTConfiguration(dhtName, dhtPort, zkConfig.getEnsemble());
+			clientDHTConfig = new ClientDHTConfiguration(dhtName, dhtPort, zkConfig);
 			dhtMC = new MetaClient(clientDHTConfig);
 			dhtConfigZK = new DHTConfigurationZK(dhtMC);
 			dhtConfig = DHTConfiguration.emptyTemplate.ringName(ringName).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>());
@@ -122,7 +122,7 @@ public class EmbeddedSK {
 			
 			// 4) Start DHTNode
 			Log.warning("Starting DHTNode");
-			new DHTNode(dhtName, zkConfig, 0, false);
+			new DHTNode(dhtName, zkConfig, 0, false, false);
 			Log.warning("DHTNode started");
 			
 			// 5) Return the configuration to the caller

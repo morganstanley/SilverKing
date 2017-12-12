@@ -78,6 +78,10 @@ public class FileUtil {
 		return buf;
 	}
 	
+	public static String readFileAsString(String file) throws IOException {
+		return readFileAsString(new File(file));
+	}
+	
 	public static String readFileAsString(File file) throws IOException {
 		return new String(readFileAsBytes(file));
 	}
@@ -100,11 +104,13 @@ public class FileUtil {
     	File[]	files;
     	
     	files = path.listFiles();
-    	for (File file : files) {
-    		list.add(file);
-    		if (file.isDirectory()) {
-    			listFilesRecursively(file, list);
-    		}
+    	if (files != null) {
+	    	for (File file : files) {
+	    		list.add(file);
+	    		if (file.isDirectory()) {
+	    			listFilesRecursively(file, list);
+	    		}
+	    	}
     	}
     }
 	

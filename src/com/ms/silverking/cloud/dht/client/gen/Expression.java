@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.client.gen;
 
+import com.ms.silverking.collection.Pair;
+
 public interface Expression extends Statement {
-	public String evaluate(Context context);
+	public Pair<Context,String> evaluate(Context context);
 }

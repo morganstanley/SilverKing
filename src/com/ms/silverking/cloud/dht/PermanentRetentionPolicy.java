@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.text.ObjectDefParser2;
 
@@ -10,6 +11,7 @@ public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueReten
         ObjectDefParser2.addParser(template);
     }
 	
+	@OmitGeneration
 	public PermanentRetentionPolicy() {
 	}
 	

@@ -33,9 +33,9 @@ public class TestUtil {
 		assertEquals(expected, actual);
 	}
 	
-	public static void checkEncryptDecrypt(byte[] testCase, EncrypterDecrypter ec) {
-		byte[] encrypted = ec.encrypt(testCase);
+	public static void checkEncryptDecrypt(byte[] expected, EncrypterDecrypter ec) {
+		byte[] encrypted = ec.encrypt(expected);
 		byte[] decrypted = ec.decrypt(encrypted, 0, encrypted.length);
-		assertArrayEquals( getTestMessage("encryptDecrypt", ec, createToString(testCase), createToString(decrypted)), testCase, decrypted);
+		assertArrayEquals( getTestMessage("encryptDecrypt", ec, createToString(expected), createToString(decrypted)), expected, decrypted);
 	}
 }

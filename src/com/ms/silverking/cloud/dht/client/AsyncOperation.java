@@ -33,4 +33,40 @@ public interface AsyncOperation {
 	 * this reference.
 	 */
 	public void close();
+	/**
+	 * Adds a completion listener. If the operation is already complete, the callback will be 
+	 * immediately executed, possibly in the calling thread.
+	 * Equivalent to addListener(listener, OperationState.SUCCEEDED, OperationState.FAILED)
+	 * This operation will notify this listener at most once.
+	 * @param listener	completion listener
+	 */
+	public void addListener(AsyncOperationListener listener);
+	/**
+	 * Adds an operation listener. If the operation is already complete, the callback will be 
+	 * immediately executed, possibly in the calling thread.
+	 * If OperationState.INCOMPLETE is in listenStates, the listener may be notified multiple times,
+	 * and the listener must be prepared for this. If INCOMPLETE is not specified, then 
+	 * this operation will notify the listener at most once.
+	 * @param listener	update listener
+	 * @param listenStates	states to generate updates for
+	 */
+	public void addListener(AsyncOperationListener listener, OperationState... listenStates);
+	/**
+	 * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
+	 * immediately executed, possibly in the calling thread.
+	 * Equivalent to addListeners(listeners, OperationState.SUCCEEDED, OperationState.FAILED)
+	 * This operation will notify this listener at most once.
+	 * @param listeners	update listeners
+	 */
+	public void addListeners(Iterable<AsyncOperationListener> listeners);
+	/**
+	 * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
+	 * immediately executed, possibly in the calling thread.
+	 * If OperationState.INCOMPLETE is in listenStates, the listener may be notified multiple times,
+	 * and the listener must be prepared for this. If INCOMPLETE is not specified, then 
+	 * this operation will notify the listener at most once.
+	 * @param listeners	update listeners
+	 * @param listenStates	states to generate updates for
+	 */
+	public void addListeners(Iterable<AsyncOperationListener> listeners, OperationState... listenStates);
 }

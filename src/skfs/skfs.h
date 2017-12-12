@@ -10,6 +10,8 @@
 //////////
 // types
 
+typedef enum NativeFileMode {nf_blockReadOnly, nf_readRelay_localPreread, nf_readRelay_distributedPreread} NativeFileMode;
+
 typedef struct CmdArgs {
 		const char *mountPath;
         int	    verbose;
@@ -38,6 +40,14 @@ typedef struct CmdArgs {
         int entryTimeoutSecs;
         int attrTimeoutSecs;
         int negativeTimeoutSecs;
+        uint64_t dhtOpMinTimeoutMS;
+        uint64_t dhtOpMaxTimeoutMS;
+        NativeFileMode  nativeFileMode;
+        char *brRemoteAddressFile;
+        int brPort;
+        char *reconciliationSleep;
+        uint64_t    odwMinWriteIntervalMillis;
+        int syncDirUpdates;
 } CmdArgs;
 
 extern CmdArgs *args;

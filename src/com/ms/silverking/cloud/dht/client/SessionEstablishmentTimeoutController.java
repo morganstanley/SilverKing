@@ -1,10 +1,12 @@
 package com.ms.silverking.cloud.dht.client;
 
 import com.ms.silverking.cloud.dht.SessionOptions;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 
 /**
  * Controls timeout and retry behavior for session establishment. 
  */
+@OmitGeneration
 public interface SessionEstablishmentTimeoutController {
     /**
      * Return the maximum number of times that this session establishment should be attempted.

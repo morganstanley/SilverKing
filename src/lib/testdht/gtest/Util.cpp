@@ -368,3 +368,18 @@ Util::getStrMap(StrSVMap* svMap, SKRetrievalType retrievalType) {
   }
   return strMap;
 }
+
+void Util::logElapsedTime(const time_point beginTime_, const std::string & dhtOp_, const std::string & ns_, const std::string & key_) {
+	const auto & endTime = high_resolution_clock::now();
+	const auto & elapsedMs = duration_cast<milliseconds>(endTime - beginTime_);
+	std::stringstream msg;
+	msg << dhtOp_ << " took " << elapsedMs.count() << " milliseconds";
+
+	if ( ! ns_.empty() )
+	msg << " for ns " << ns_;
+
+	if ( ! key_.empty() )
+	msg << " and key " << key_;
+
+	cout << msg.str() << endl;
+}

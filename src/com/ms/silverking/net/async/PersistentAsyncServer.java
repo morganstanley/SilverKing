@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.async.time.RandomBackoff;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
@@ -170,6 +172,8 @@ public class PersistentAsyncServer<T extends Connection>
 				newConnectionSendAsynchronous(dest, data, uuid, listener, deadline);
 			}
 		} catch (IOException ioe) {
+			ioe.printStackTrace();
+			Log.logErrorWarning(ioe);
 			Log.warning("send failed: ", uuid +" "+ dest);
 			if (listener != null && uuid != null) {
 				listener.failed(uuid);
@@ -241,6 +245,14 @@ public class PersistentAsyncServer<T extends Connection>
 	
 	private Connection getEstablishedConnection(InetSocketAddress dest) throws ConnectException {
 		return connections.get(dest);
+	}
+	
+	public Connection getConnection(AddrAndPort dest, long deadline) throws ConnectException {
+		try {
+			return getConnectionFast(dest.toInetSocketAddress(), deadline);
+		} catch (UnknownHostException uhe) {
+			throw new RuntimeException(uhe);
+		}
 	}
 	
 	private Connection getConnectionFast(InetSocketAddress dest, long deadline) throws ConnectException {

@@ -34,8 +34,14 @@ public class RewriteTestTest {
 	private final static File rewriteDir = new File(testsDirPath, rewriteDirName);
 
 	private RewriteTest rt;
-	private byte A = (byte)'A';
-	private byte B = (byte)'B';
+	private byte byte_A = (byte)'A';
+	private byte byte_B = (byte)'B';
+	private byte byte_1 = (byte)'1';
+	private byte byte_2 = (byte)'2';
+	private byte byte_3 = (byte)'3';
+	private byte byte_4 = (byte)'4';
+	private byte byte_5 = (byte)'5';
+	private byte byte_6 = (byte)'6';
 	private Mode[] testCases = new Mode[]{Write, Verify};
 	
 	@BeforeClass
@@ -55,9 +61,9 @@ public class RewriteTestTest {
 		int lastStart = 64+32;
 		int lastLength = size -lastStart;
 		byte[] buf = new byte[128];
-		fillBuf(buf,         0,         64, A);
-		fillBuf(buf,        64,         32, B);
-		fillBuf(buf, lastStart, lastLength, A);
+		fillBuf(buf,         0,         64, byte_A);
+		fillBuf(buf,        64,         32, byte_B);
+		fillBuf(buf, lastStart, lastLength, byte_A);
 		checkRead(buf);
 	}
 	
@@ -73,9 +79,9 @@ public class RewriteTestTest {
 		int lastStart = 64+blockSize;
 		int lastLength = size -lastStart;
 		byte[] buf = new byte[size];
-		fillBuf(buf,         0,         64, A);
-		fillBuf(buf,        64,  blockSize, B);
-		fillBuf(buf, lastStart, lastLength, A);
+		fillBuf(buf,         0,         64, byte_A);
+		fillBuf(buf,        64,  blockSize, byte_B);
+		fillBuf(buf, lastStart, lastLength, byte_A);
 		checkRead(buf);
 	}
 	
@@ -91,9 +97,9 @@ public class RewriteTestTest {
 		int lastStart = 64+blockSize;
 		int lastLength = size -lastStart;
 		byte[] buf = new byte[size];
-		fillBuf(buf,         0,         64, A);
-		fillBuf(buf,        64,  blockSize, B);
-		fillBuf(buf, lastStart, lastLength, A);
+		fillBuf(buf,         0,         64, byte_A);
+		fillBuf(buf,        64,  blockSize, byte_B);
+		fillBuf(buf, lastStart, lastLength, byte_A);
 		checkRead(buf);
 	}
 	
@@ -107,8 +113,8 @@ public class RewriteTestTest {
 		rt = createRewrite(testName, Verify);
 		int size = blockSize+128;
 		byte[] buf = new byte[size];
-		fillBuf(buf,         0,        128, A);
-		fillBuf(buf,       128,  blockSize, B);
+		fillBuf(buf,         0,        128, byte_A);
+		fillBuf(buf,       128,  blockSize, byte_B);
 		checkRead(buf);
 	}
 	
@@ -122,8 +128,8 @@ public class RewriteTestTest {
 		rt = createRewrite(testName, Verify);
 		int size = blockSize+128;
 		byte[] buf = new byte[size];
-		fillBuf(buf,            0,   blockSize+64, A);
-		fillBuf(buf, blockSize+64,             64, B);
+		fillBuf(buf,            0,   blockSize+64, byte_A);
+		fillBuf(buf, blockSize+64,             64, byte_B);
 		checkRead(buf);
 	}
 	
@@ -137,9 +143,45 @@ public class RewriteTestTest {
 		rt = createRewrite(testName, Verify);
 		int size = blockSize+64+256;
 		byte[] buf = new byte[size];
-		fillBuf(buf,            0,   blockSize+64, A);
-		fillBuf(buf, blockSize+64,            256, B);
+		fillBuf(buf,            0,   blockSize+64, byte_A);
+		fillBuf(buf, blockSize+64,            256, byte_B);
 		checkRead(buf);
+	}
+	
+	@Test
+	public void testBlockBorderOneByteEachSide() throws IOException {
+		String testName = "BlockBorderOneByteEachSide";
+		rt = createRewrite(testName, Write);
+		rt.testBlockBorderOneByteEachSide();
+		
+		rt = createRewrite(testName, Verify);
+		int size = blockSize*2;
+		byte[] buf = new byte[size];
+		fillBuf(buf,           0, blockSize-1, byte_A);
+		fillBuf(buf, blockSize-1,           1, byte_1);
+		fillBuf(buf,   blockSize,           1, byte_2);
+		fillBuf(buf, blockSize+1, blockSize-1, byte_B);
+		checkRead(buf); 
+	}
+	
+	@Test
+	public void testBlockBorder() throws IOException {
+		String testName = "BlockBorder";
+		rt = createRewrite(testName, Write);
+		rt.testBlockBorder();
+		
+		rt = createRewrite(testName, Verify);
+		int size = blockSize*2;
+		byte[] buf = new byte[size];
+		fillBuf(buf,           0, blockSize-3, byte_A);
+		fillBuf(buf, blockSize-3,           1, byte_1);
+		fillBuf(buf, blockSize-2,           1, byte_2);
+		fillBuf(buf, blockSize-1,           1, byte_3);
+		fillBuf(buf,   blockSize,           1, byte_4);
+		fillBuf(buf, blockSize+1,           1, byte_5);
+		fillBuf(buf, blockSize+2,           1, byte_6);
+		fillBuf(buf, blockSize+3, blockSize-3, byte_B);
+		checkRead(buf); 
 	}
 	
 	@Test

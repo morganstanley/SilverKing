@@ -39,7 +39,7 @@ public class TruncateTest {
 		server2     = Util.getServer2();
 	}
 	
-	@Test
+//	@Test
 	public void testTruncate() {
 		String fileName = "f1";
 		String cdToDir="cd " + truncateDir.getAbsolutePath();

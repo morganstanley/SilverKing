@@ -273,7 +273,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
 		                }
 		            }
 		            
-		            // FIXME - We need to check if the newActiveNodes are either in the current or target ring. If so, we 
+		            // FIXME - We need to check if the newActiveNodes are either in the current or target ring. If so, we
 		            // remove them so that they are not activated.
 		            // We can't allow them to become active as this could result in data loss. 
 		            
@@ -491,7 +491,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             	convictionLimits = ConvictionLimits.parse(options.convictionLimits);
                 LogStreamConfig.configureLogStreams(gc, logFileName);
                 healthMonitor = new HealthMonitor(gc, 
-                                                  new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs()), 
+                                                  gc.getClientDHTConfiguration().getZKConfig(), 
                                                   options.watchIntervalSeconds,
                                                   options.guiltThreshold,
                                                   options.doctorRoundIntervalSeconds,
@@ -503,10 +503,11 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+	            System.exit(-1);
             }
         } catch (Exception e) {
             e.printStackTrace();
+            System.exit(-1);
         }
     }
 }

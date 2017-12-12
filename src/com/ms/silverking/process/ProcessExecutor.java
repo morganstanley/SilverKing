@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.zookeeper.Shell.ShellCommandExecutor;
@@ -116,7 +115,11 @@ public class ProcessExecutor {
 		output = new StringBuffer();
 		Runtime rt = Runtime.getRuntime();
 		try {
-			Process p = rt.exec(commands);
+			Process p;
+			if (commands.length == 1)
+				p = rt.exec(commands[0]);
+			else
+				p = rt.exec(commands);
 			
 			if (captureOutput) {
 				BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -138,6 +141,8 @@ public class ProcessExecutor {
 	}
 	
 	public static String[] getSshCommands(String server, String commands) {
-		return new String[]{"ssh", "-x", "-o", "StrictHostKeyChecking=no", server, "/bin/bash", "-c", "'" + commands + "'"};	// quotes are important around commands
+//		return new String[]{"ssh -v -x -o StrictHostKeyChecking=no " + server + " \"/bin/bash -c '" + commands + "'\""};	// quotes are important around commands
+//		return new String[]{"ssh", "-v", "-x", "-o", "StrictHostKeyChecking=no", server, "/bin/bash", "-c", "'" + commands + "'"};	// quotes are important around commands
+		return new String[]{"ssh", "-v", "-x", "-o", "StrictHostKeyChecking=no", server, "/bin/bash -c '" + commands + "'", " > /tmp/ssh.out"};	// quotes are important around commands
 	}
 }

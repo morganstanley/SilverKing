@@ -55,6 +55,7 @@ public class DHTConstants {
     public static final int                    defaultSecondaryReplicaUpdateTimeoutMillis = 2 * 60 * 1000;
     public static final SegmentIndexLocation   defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
     public static final int					   defaultNSPrereadGB = 0;
+    public static final int					   defaultMinPrimaryUnderFailure = 1;
     
     public static final int noCapacityLimit = -1;
     public static final int defaultFileSegmentCacheCapacity = noCapacityLimit;
@@ -75,6 +76,8 @@ public class DHTConstants {
 	public static final String	initialHeapSizeVar = "initialHeapSize";
 	public static final String	maxHeapSizeVar = "maxHeapSize";
 	public static final String	dataBaseVar = "dataBase";
+	public static final String	ipAliasMapFileVar = "skIPAliasMapFile";
+	public static final String	ipAliasMapFileEnvVar = "skIPAliasMapFile";
 	public static final String	dataBasePathProperty = daemonPackageBase +".DataBasePath";
 	public static final String	skInstanceLogBaseVar = "skInstanceLogBase";
 	public static final String	skDaemonJavaCommandHeaderVar = "skDaemonJavaCommandHeader";
@@ -110,6 +113,7 @@ public class DHTConstants {
 		defMap = new HashMap<>();
 		defMap.put(initialHeapSizeVar, "1024");
 		defMap.put(maxHeapSizeVar, "1024");
+		defMap.put(ipAliasMapFileVar, PropertiesHelper.envHelper.getString(ipAliasMapFileEnvVar, ""));
 		defMap.put(dataBaseVar, "/var/tmp/silverking/data");
 		defMap.put(skInstanceLogBaseVar, "/tmp/silverking");
 		defMap.put(skDaemonJavaCommandHeaderVar, PropertiesHelper.envHelper.getString(skDaemonJavaCommandHeaderEnvVar, ""));

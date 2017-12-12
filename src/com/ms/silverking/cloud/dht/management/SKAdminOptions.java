@@ -6,6 +6,11 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeOptions;
 
 class SKAdminOptions {
+	static String	exclusionsTarget = "exclusions";
+	static String	activeDaemonsTarget = "activeDaemons";
+	
+	static final int	skfsTimeoutNotSet = -1;
+	
 	SKAdminOptions() {
 	}
 	
@@ -24,10 +29,12 @@ class SKAdminOptions {
 	@Option(name="-t", usage="target(s)", required=false)
 	String	targets;
 	
-	static String	exclusionsTarget = "exclusions";
-	
 	boolean targetsEqualsExclusionsTarget() {
 		return targets != null && targets.equalsIgnoreCase(exclusionsTarget);
+	}
+	
+	boolean targetsEqualsActiveDaemonsTarget() {
+		return targets != null && targets.equalsIgnoreCase(activeDaemonsTarget);
 	}
 	
 	@Option(name="-e", usage="includeExcludedHosts", required=false)
@@ -84,15 +91,33 @@ class SKAdminOptions {
 	@Option(name="-destructive", usage="destructive", required=false)
 	boolean	destructive = false;
 	
+	@Option(name="-leaveTrash", usage="leaveTrash", required=false)
+	boolean leaveTrash = false;
+	
 	@Option(name="-opTimeoutController", usage="opTimeoutController", required=false)
 	public String opTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=5,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
 
 	@Option(name="-dirNSPutTimeoutController", usage="dirNSPutTimeoutController", required=false)
 	public String dirNSPutTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=12,constantTime_ms=60000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
 	
+	@Option(name="-fileBlockNSValueRetentionPolicy", usage="fileBlockNSValueRetentionPolicy", required=false)
+	public String fileBlockNSValueRetentionPolicy;
+	
 	@Option(name="-defaultClassVars", usage="defaultClassVars", required=false)
 	public String defaultClassVars;
 	
 	@Option(name="-ps", usage="PreferredServer", required=false)
 	public String preferredServer;	
+	
+	@Option(name="-skfsEntryTimeoutSecs", usage="skfsEntryTimeoutSecs", required=false)
+	public int	skfsEntryTimeoutSecs = skfsTimeoutNotSet;	
+	
+	@Option(name="-skfsAttrTimeoutSecs", usage="skfsAttrTimeoutSecs", required=false)
+	public int	skfsAttrTimeoutSecs = skfsTimeoutNotSet;	
+	
+	@Option(name="-skfsNegativeTimeoutSecs", usage="skfsNegativeTimeoutSecs", required=false)
+	public int	skfsNegativeTimeoutSecs = skfsTimeoutNotSet;
+	
+	@Option(name="-pinToNICLocalCPUs", usage="pinToNICLocalCPUs", required=false)
+	public String pinToNICLocalCPUs;
 }

@@ -408,12 +408,22 @@ void str_free_array(char ***a, int r) {
 // pthread helpers
 
 void mutex_init(pthread_mutex_t *mutex, pthread_mutex_t **mutexPtr) {
-	pthread_mutex_init(mutex, NULL);
+    int rc;
+    
+	rc = pthread_mutex_init(mutex, NULL);
+    if (rc != 0) {
+        fatalError("pthread_mutex_init() failed", __FILE__, __LINE__);
+    }
 	*mutexPtr = mutex;
 }
 
 void cv_init(pthread_cond_t *cv, pthread_cond_t **cvPtr) {
-	pthread_cond_init(cv, NULL);
+    int rc;
+    
+	rc = pthread_cond_init(cv, NULL);
+    if (rc != 0) {
+        fatalError("pthread_cond_init() failed", __FILE__, __LINE__);
+    }
 	*cvPtr = cv;
 }
 
@@ -851,6 +861,10 @@ void stat_display(struct stat *s, FILE *f) {
 
 uint64_t stat_mtime_micros(struct stat *s) {
     return s->st_mtime * 1000000 + (s->st_mtim.tv_nsec / 1000);
+}
+
+uint64_t stat_mtime_millis(struct stat *s) {
+    return s->st_mtime * 1000 + (s->st_mtim.tv_nsec / 1000000);
 }
 
 // misc

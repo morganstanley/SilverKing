@@ -61,6 +61,7 @@ public abstract class ConvergenceControllerBase implements RequestController {
 	protected final RingConfigurationZK	ringConfigZK;
 	
     private boolean	abandoned;
+    private boolean	failed;
     protected boolean	complete;
     private final Lock	completionLock;
     private final Condition	completionCV;
@@ -249,7 +250,7 @@ public abstract class ConvergenceControllerBase implements RequestController {
     }
     
     public RequestState getRequestState() {
-    	if (abandoned) {
+    	if (abandoned || failed) {
     		return RequestState.FAILED;
     	} else {
     		return complete ? RequestState.SUCCEEDED : RequestState.INCOMPLETE;
@@ -268,9 +269,10 @@ public abstract class ConvergenceControllerBase implements RequestController {
     	}
     }
     
-    protected void setComplete() {
+    protected void setComplete(boolean succeeded) {
     	completionLock.lock();
     	try {
+    		failed = !succeeded;
     		complete = true;
     		completionCV.signalAll();
     	} finally {

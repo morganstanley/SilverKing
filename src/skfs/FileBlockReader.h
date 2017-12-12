@@ -9,6 +9,7 @@
 #include "FileBlockCache.h"
 #include "FileBlockWriter.h"
 #include "FileIDToPathMap.h"
+#include "NativeFileTable.h"
 #include "PartialBlockReadRequest.h"
 #include "PathGroup.h"
 #include "QueueProcessor.h"
@@ -33,6 +34,7 @@ typedef struct FileBlockReader {
 	QueueProcessor	*nfsFileBlockQueueProcessor;
 	FileBlockWriter	*fbwCompress;
 	FileBlockWriter	*fbwRaw;
+    NativeFileTable *nft;
 	SRFSDHT			*sd;
 	ResponseTimeStats *rtsDHT;
 	ResponseTimeStats *rtsNFS;
@@ -58,7 +60,8 @@ FileBlockReader *fbr_new(FileIDToPathMap *f2p,
                          FileBlockCache *fbc);
 void fbr_delete(FileBlockReader **fbr);
 int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrr, int numRequests,
-			PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead);
+			PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead,
+            int presumeBlocksInDHT, int useNFSReadAhead);
 int fbr_read_test(FileBlockReader *fbr, FileBlockID *fbid, void *dest, size_t readOffset, size_t readSize);
 ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMicros);
 void fbr_parse_permanent_suffixes(FileBlockReader *fbReader, char *permanentSuffixes);

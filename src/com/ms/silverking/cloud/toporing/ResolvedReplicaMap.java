@@ -182,6 +182,42 @@ public class ResolvedReplicaMap {
         return replicas;
     }
     
+    public boolean isSubset(ResolvedReplicaMap o) {
+    	for (RingEntry subEntry : o.getEntries()) {
+    		RingEntry	superEntry;
+    		
+    		superEntry = entryMap.get(subEntry.getRegion().getStart());
+    		if (superEntry == null) {
+    			return false;
+    		} else {
+    			if (!superEntry.isSubset(subEntry)) {
+    				return false;
+    			}
+    		}
+    	}
+    	return true;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+    	ResolvedReplicaMap o;
+    	
+    	o = (ResolvedReplicaMap)obj;
+    	for (RingEntry subEntry : o.getEntries()) {
+    		RingEntry	superEntry;
+    		
+    		superEntry = entryMap.get(subEntry.getRegion().getStart());
+    		if (superEntry == null) {
+    			return false;
+    		} else {
+    			if (!superEntry.equals(subEntry)) {
+    				return false;
+    			}
+    		}
+    	}
+    	return true;
+    }
+    
     private class MapEntry {
         private final IPAndPort[][]     replicas;
         private final Set<IPAndPort>[]  replicaSets;
