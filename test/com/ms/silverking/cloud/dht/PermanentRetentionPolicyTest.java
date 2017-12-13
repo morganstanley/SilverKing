@@ -1,17 +1,13 @@
 package com.ms.silverking.cloud.dht;
 
 import static com.ms.silverking.cloud.dht.TestUtil.getImplementationType;
-import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
-import static com.ms.silverking.testing.AssertFunction.test_EqualsOrNotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_Getters;
-import static org.junit.Assert.assertEquals;
+import static com.ms.silverking.testing.AssertFunction.*;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType;
-import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 
-@OmitGeneration
 public class PermanentRetentionPolicyTest {
 
 	private static final PermanentRetentionPolicy defaultPolicy = PermanentRetentionPolicy.template;

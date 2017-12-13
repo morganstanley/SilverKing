@@ -320,6 +320,11 @@ function f_getBuildSk_RunOutputFilename {
 	echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_NAME")
 }
 
+function f_getBuildJace_RunOutputFilename {
+	typeset newName=$(f_getRunOutputFilenameConcat_Helper "$BUILD_JACE_NAME" "$1")
+	echo $(f_getRunOutputFilename_Helper "$newName")
+}
+
 function f_getBuildSkClient_RunOutputFilename {
 	typeset newName=$(f_getRunOutputFilenameConcat_Helper "$BUILD_SILVERKING_CLIENT_NAME" "$1")
 	echo $(f_getRunOutputFilename_Helper "$newName")

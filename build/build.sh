@@ -25,8 +25,8 @@ output_filename=$(f_getBuild_RunOutputFilename)
 	f_printStep "2" "Build Silverking client"
 	GCC_R_LIB=$GCC_RHEL6_LIB
 	   SK_VER=""
-	 #CC_FLAGS="-g -O2"
-	 CC_FLAGS="-g"
+	 CC_FLAGS="-g -O2"
+	# ./$BUILD_JACE_SCRIPT_NAME "$CC" "$CC_FLAGS"
 	./$BUILD_SILVERKING_CLIENT_SCRIPT_NAME "$CC" "$GCC_R_LIB" "$SK_VER" "$CC_FLAGS"
 	./$TEST_SILVERKING_CLIENT_SCRIPT_NAME
 	

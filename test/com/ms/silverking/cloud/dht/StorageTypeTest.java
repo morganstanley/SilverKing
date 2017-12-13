@@ -1,15 +1,11 @@
 package com.ms.silverking.cloud.dht;
 
-import static com.ms.silverking.cloud.dht.StorageType.FILE;
-import static com.ms.silverking.cloud.dht.StorageType.FILE_SYNC;
-import static com.ms.silverking.cloud.dht.StorageType.RAM;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+import static com.ms.silverking.cloud.dht.StorageType.*;
 
-@OmitGeneration
 public class StorageTypeTest {
 
 	@Test

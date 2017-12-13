@@ -59,6 +59,8 @@ public class IozoneTest {
 			String value = values[1];
 			double expectedVal = 1_280;
 			double actualVal   = Double.parseDouble(value);
+			String msgString = "value is >= " + expectedVal;
+			String valuesString = "(actual: " + key + " -> " + value + ", index: " + i + ")";
 			
 			if (i == 14 || i == 17) {
 				expectedVal = 256;
@@ -68,10 +70,10 @@ public class IozoneTest {
 //				Max throughput per process                      =  226925.39 KB/sec
 //				Avg throughput per process                      =   15563.95 KB/sec
 //				Min xfer                                        =       0.00 KB
-				assertTrue("value is >= " + expectedVal + " or == 0 (actual: " + key + " -> " + value + ")", actualVal >= expectedVal || actualVal == 0);
+				assertTrue(msgString + " or == 0 " + valuesString, actualVal >= expectedVal || actualVal == 0);
 			}
 			else {
-				assertTrue("value is >= " + expectedVal + " (actual: " + key + " -> " + value + ")", actualVal >= expectedVal);
+				assertTrue(msgString + " " + valuesString, actualVal >= expectedVal);
 			}
 		}
 	}

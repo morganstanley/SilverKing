@@ -1,4 +1,5 @@
 
+# order is important, build_sk_client.vars actually calls a function in common.lib...
 source lib/common.lib
 source lib/build_sk_client.vars
 
@@ -190,7 +191,7 @@ function f_buildGtestFramework {
 	
 	typeset vars="
      	                   CC=\"$cc\"
-	                  CC_OPTS=\"$cc_opts -std=c++11\"
+	                  CC_OPTS=\"$cc_opts\"
 	                 INC_OPTS=\"$inc_opts\"
 	                       LD=\"$ld\"
 	                  LD_OPTS=\"$ld_opts\"

@@ -1,7 +1,6 @@
 package com.ms.silverking.cloud.dht;
 
 import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardKeyDigestType;
-import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardVersionProvider;
 import static com.ms.silverking.cloud.dht.TestUtil.edCopy;
 import static com.ms.silverking.cloud.dht.TestUtil.edDiff;
 import static com.ms.silverking.cloud.dht.TestUtil.goCopy;
@@ -25,13 +24,7 @@ import static com.ms.silverking.cloud.dht.common.DHTConstants.standardGetOptions
 import static com.ms.silverking.cloud.dht.common.DHTConstants.standardInvalidationOptions;
 import static com.ms.silverking.cloud.dht.common.DHTConstants.standardPutOptions;
 import static com.ms.silverking.cloud.dht.common.DHTConstants.standardWaitOptions;
-import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
-import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_SecondNotEqualsThird;
-import static com.ms.silverking.testing.AssertFunction.test_Getters;
-import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_SetterExceptions;
-import static com.ms.silverking.testing.AssertFunction.test_Setters;
+import static com.ms.silverking.testing.AssertFunction.*;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -39,10 +32,9 @@ import org.junit.Test;
 import com.ms.silverking.cloud.dht.client.KeyDigestType;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
-import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.testing.Util.ExceptionChecker;
+import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardVersionProvider;
 
-@OmitGeneration
 public class NamespacePerspectiveOptionsTest {
 
 	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptions                     = NamespacePerspectiveOptions.templateOptions;
