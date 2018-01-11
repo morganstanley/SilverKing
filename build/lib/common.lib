@@ -298,9 +298,9 @@ $extraVars
 
 function f_printSummary_BuildFlow {
 	f_printSummary_BuildFlow_FirstHalf_HeaderAndBuildAndBuildSk $(f_getBuild_RunOutputFilename)
-	f_printSummary     $(f_getBuildSkClient_RunOutputFilename "$GPP_RHEL6")
+	f_printSummary     $(f_getBuildSkClient_RunOutputFilename "$GPP")
 	f_printTestSummary $(f_getTestSkClient_RunOutputFilename)
-	f_printSummary     $(f_getBuildSkfs_RunOutputFilename "$GPP_RHEL6")
+	f_printSummary     $(f_getBuildSkfs_RunOutputFilename "$GPP")
 	f_printTestSummary $(f_getTestSkfs_RunOutputFilename)
 }
 
@@ -832,11 +832,11 @@ function f_runCmdInEvalEnv {
 }
 
 function f_checkoutOss {
-	f_checkoutRepo $OSS_REPO_NAME
+	f_checkoutRepo $OSS_REPO_URL $OSS_REPO_NAME
 }
 
 function f_checkoutRepo {
-	$GIT clone ${OSS_REPO_URL}${1}.git
+	$GIT clone ${1}${2}.git
 }
 
 # surrounding double "" is important

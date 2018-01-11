@@ -5,7 +5,7 @@ source lib/common_test.lib
 f_clearOutEnvVariables
 f_checkAndSetBuildTimestamp
 
-output_filename=$(f_getTestSkfs_RunOutputFilename)
+typeset output_filename=$(f_getTestSkfs_RunOutputFilename)
 {
 	f_startLocalTimer;
 	date;

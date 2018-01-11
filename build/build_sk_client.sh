@@ -8,70 +8,69 @@ f_checkAndSetBuildTimestamp
 function f_checkParams {
 	f_printHeader "PARAM CHECK"
 	  
-	echo "        cc=$CC"
-	echo " gcc_r_lib=$GCC_R_LIB"
-	echo "sk_version=$SK_VER"
-	echo "  cc_flags=$CC_FLAGS"
-	echo " rpath_dir=$RPATH_DIR"
-	echo "debug_flag=$DEBUG_FLAG"
+	echo "        cc=$cc"
+	echo " gcc_r_lib=$gcc_r_lib"
+	echo "  cc_flags=$cc_flags"
+	echo " rpath_dir=$rpath_dir"
+	echo "debug_flag=$debug_flag"
 	  
-	if [[ -z $CC || -z $GCC_R_LIB ]] ; then
+	if [[ -z $cc || -z $gcc_r_lib ]] ; then
 		echo "Need to pass in a C compiler and lib"
 		exit 1
 	fi
 	  
-	if [[ -z $CC_FLAGS ]] ; then
+	if [[ -z $cc_flags ]] ; then
 		# By default, debug, not optimized
-		CC_FLAGS="-g"
-		echo "Set CC_FLAGS=$CC_FLAGS"
+		cc_flags="-g"
+		echo "Set cc_flags=$cc_flags"
 	fi
 
-	if [[ -z $RPATH_DIR ]] ; then
-		RPATH_DIR=$INSTALL_ARCH_LIB_DIR
-		echo "Set RPATH_DIR=$RPATH_DIR"
+	if [[ -z $rpath_dir ]] ; then
+		rpath_dir=$INSTALL_ARCH_LIB_DIR
+		echo "Set rpath_dir=$rpath_dir"
 	fi
 }
 
 ## params
-	     CC=$1
-output_filename=$(f_getBuildSkClient_RunOutputFilename "$CC")
+typeset             cc=$1
+typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
 {
-  GCC_R_LIB=$2     
-     SK_VER=$3
-   CC_FLAGS=$4
-  RPATH_DIR=$5
- DEBUG_FLAG=$6
-f_checkParams;
+	typeset  gcc_r_lib=$2  
+	typeset   cc_flags=$3
+	typeset  rpath_dir=$4
+	typeset debug_flag=$5
+	f_checkParams;
 
-		 LD=$CC
-    SWIG_CC=$CC
-    SWIG_LD=$CC
+	typeset      ld=$cc
+    typeset swig_cc=$cc
+    typeset swig_ld=$cc
 
-	USE_DEBUG_D=""
-	if [[ $DEBUG_FLAG == "-d" ]] ; then 
-		USE_DEBUG_D="-D_DEBUG -finstrument-functions -finstrument-functions-exclude-file-list=/bits/stl,include/sys"
-		LD_OPTS=" ${LD_OPTS} -pg " 
+	typeset use_debug_d=""
+	typeset ld_opts="$LD_OPTS"
+	if [[ $debug_flag == "-d" ]] ; then 
+		use_debug_d="-D_DEBUG -finstrument-functions -finstrument-functions-exclude-file-list=/bits/stl,include/sys"
+		ld_opts="$ld_opts -pg" 
 	fi
 
-	USE_JACE_DL_D="";
+	typeset use_jace_dl_d="";
 	if [[ $JACE_DYNAMIC_LOADER != "" ]] ; then
-		USE_JACE_DL_D="-DJACE_WANT_DYNAMIC_LOAD";
+		use_jace_dl_d="-DJACE_WANT_DYNAMIC_LOAD";
 	fi
 
-	CC_OPTS="$CC_FLAGS -std=c++11 $LD_OPTS -enable-threads=posix -pipe -frecord-gcc-switches -Wall -Wno-unused-local-typedefs $USE_DEBUG_D -DBOOST_NAMESPACE_OVERRIDE=$BOOST_NAMESPACE_OVERRIDE -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DBOOST_SPIRIT_THREADSAFE -D_REENTRANT -DJACE_EXPORTS -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS $USE_JACE_DL_D"
-	INC_OPTS_WITH_PROXY="$INC_OPTS -I${PROXY_INC}"
-	LIB_OPTS_1="$LIB_OPTS $LD_LIB_OPTS"
-	LIB_OPTS_2=""
+	typeset cc_opts="$cc_flags $ld_opts -std=c++11 -frecord-gcc-switches -Wno-unused-local-typedefs $use_debug_d -DBOOST_NAMESPACE_OVERRIDE=$BOOST_NAMESPACE_OVERRIDE $CC_OPTS $use_jace_dl_d"
+	typeset inc_opts_with_proxy="$INC_OPTS -I${PROXY_INC}"
+	typeset lib_opts_1="$LIB_OPTS $LD_LIB_OPTS"
+	typeset lib_opts_2=""
 	if [[ $JACE_DYNAMIC_LOADER != "" ]] ; then
-		LIB_OPTS_2="$LIB_OPTS_1 -Wl,--rpath -Wl,$RPATH_DIR"
+		lib_opts_2="$lib_opts_1 -Wl,--rpath -Wl,$rpath_dir"
 	else
-		LIB_OPTS_2=$LIB_OPTS 
+		lib_opts_2=$LIB_OPTS 
 	fi
 	# doesn't need -lpthread actually
-	LIB_OPTS_3="$LIB_OPTS $LD_LIB_OPTS -Wl,--rpath -Wl,$RPATH_DIR -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
+	typeset lib_opts_3="$LIB_OPTS $LD_LIB_OPTS -Wl,--rpath -Wl,$rpath_dir -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
 	# doesn't need -lpthread actually
-	LIB_OPTS_4="$LIB_OPTS_3 -L${INSTALL_ARCH_LIB_DIR} -l${SK_LIB_NAME}"
-	LIB_OPTS_5="$LIB_OPTS $LD_LIB_OPTS -lboost_system -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_RT_LIB}"
+	typeset lib_opts_4="$lib_opts_3 -L${INSTALL_ARCH_LIB_DIR} -l${SK_LIB_NAME}"
+	typeset lib_opts_5="$lib_opts_1 -lboost_system -Wl,--rpath -Wl,${JACE_LIB}"
 	
 	f_startLocalTimer;
 	date;
@@ -84,15 +83,15 @@ f_checkParams;
 	[[ -d $SILVERKING_INSTALL_DIR ]]  || f_abort "install dir $SILVERKING_INSTALL_DIR does not exist";
 	
 	f_generateProxies;
-	f_compileAndLinkProxiesIntoLib "$CC" "$CC_OPTS" "$INC_OPTS_WITH_PROXY" "$LD" "$LD_OPTS" "$LIB_OPTS_1";
-	f_buildMainLib "$CC" "$CC_OPTS" "$INC_OPTS_WITH_PROXY" "$LD" "$LD_OPTS" "$LIB_OPTS_2" "$SK_VER";
+	f_compileAndLinkProxiesIntoLib "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_1";
+	f_buildMainLib "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_2";
 	f_installHeaderFiles;
-	f_buildTestApp        "$CC" "$CC_OPTS" "$INC_OPTS_WITH_PROXY" "$LD" "$LD_OPTS" "$LIB_OPTS_3" "testdht";
-	f_buildGtestFramework "$CC" "$CC_OPTS" "$INC_OPTS_WITH_PROXY" "$LD" "$LD_OPTS" "$LIB_OPTS_3" "testdht" "gtest"
-	f_buildKdbQ  "$CC" "$LD_OPTS" "$LIB_OPTS_4" "$RPATH_DIR";
-	f_buildKdbQ3 "$CC" "$LD_OPTS" "$LIB_OPTS_4" "$RPATH_DIR";
-	f_buildPerlClient "$SWIG_CC" "$INC_OPTS_WITH_PROXY" "$SWIG_LD" "$LIB_OPTS_4" "$GCC_R_LIB";
-	f_buildWrapperApps "$CC" "$CC_OPTS" "$INC_OPTS" "$LD" "$LD_OPTS" "$LIB_OPTS_5";
+	f_buildTestApp        "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_3" "testdht";
+	f_buildGtestFramework "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_3" "testdht" "gtest"
+	f_buildKdbQ  "$cc" "$ld_opts" "$lib_opts_4" "$rpath_dir";
+	f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_4" "$rpath_dir";
+	f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_4" "$gcc_r_lib";
+	f_buildWrapperApps "$cc" "$cc_opts" "$INC_OPTS" "$ld" "$ld_opts" "$lib_opts_5";
 	f_printSummary "$output_filename";
 	f_printLocalElapsed;
 } 2>&1 | tee $output_filename

@@ -85,7 +85,7 @@ public class SKAdminShell implements Watcher {
         this.in = new BufferedReader(new InputStreamReader(in));
         this.out = out;
         this.err = err;
-        rmc = (RingMasterControl)Naming.lookup("rmi://"+ server +":"+ port +"/"+ RingMasterControl.registryName);
+        rmc = (RingMasterControl)Naming.lookup("rmi://"+ server +":"+ port +"/"+ RingMasterControl.getRegistryName(gc));
         sw = new SimpleStopwatch();
         rings = ImmutableList.of();
         

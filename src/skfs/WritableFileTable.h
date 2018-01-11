@@ -23,7 +23,7 @@
 ////////////
 // defines
 
-#define WFT_NUM_HT	32
+#define WFT_NUM_HT	256
 
 
 //////////

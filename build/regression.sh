@@ -5,7 +5,7 @@ source lib/common_regression.lib
 
 function f_copyBuildConfig {
 	cd $OSS_REPO_NAME/$BUILD_NAME
-	cp $BUILD_AREA/$BUILD_CONFIG_FILE .
+	cp $build_area/$BUILD_CONFIG_FILE .
 }
 
 function f_run {
@@ -13,22 +13,22 @@ function f_run {
 	./$BUILD_SCRIPT_NAME
 }
 
+# params
+typeset build_area=`pwd`
+typeset regression_area=$1
+typeset extra_options=$2
+typeset email_addresses=$3 
 
-     BUILD_AREA=`pwd`
-REGRESSION_AREA=$1
-  EXTRA_OPTIONS=$2
-EMAIL_ADDRESSES=$3 
-
-f_checkAndCdToRegressionArea $REGRESSION_AREA
+f_checkAndCdToRegressionArea $regression_area
 f_makeSetAndChangeToFolder
-f_setBuildTimestamp "$FOLDER_NAME" "REGRESSION_${EXTRA_OPTIONS}"
+f_setBuildTimestamp "$FOLDER_NAME" "REGRESSION_${extra_options}"
 
-output_filename=$(f_getRegression_RunOutputFilename) # needs to be after f_setBuildTimestamp or else filename won't be set right
+typeset output_filename=$(f_getRegression_RunOutputFilename) # needs to be after f_setBuildTimestamp or else filename won't be set right
 {
 	f_checkoutOss
 	f_copyBuildConfig
 	f_run
-	f_removeOldRegressions "$REGRESSION_AREA"
-	f_emailResults "$output_filename" "$EMAIL_ADDRESSES"	# this line is after remove regressions, because I want the removed regression list in the outputfile
+	f_removeOldRegressions "$regression_area"
+	f_emailResults "$output_filename" "$email_addresses"	# this line is after remove regressions, because I want the removed regression list in the outputfile
 	f_printFileOutputLine "$output_filename"
 } 2>&1 | tee $output_filename

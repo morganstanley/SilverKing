@@ -715,7 +715,7 @@ static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Attr
     
     // wf_flush() only updates the cached attribute. Update the the key-value store.
     // UPDATE: wf_flush() is now updating both the cached attribute and the key-value store
-    // Assumption: fuse is calling flush() after every user-level close() operation
+    // Assumption: fuse is calling flush() after every OS close() operation
 	//result = wf_update_attr(wf, aw, NULL);
     wfb_delete(&wf->curBlock);
     
@@ -890,8 +890,10 @@ static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fb
 	return wf->fa.stat.st_size;
 }
 
-int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid) {
+int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid, 
+                    const struct timespec *last_access_tp, const struct timespec *last_modification_tp, const struct timespec *last_change_tp) {
     // FUTURE - check on semantics of allowing all
+    pthread_mutex_lock(&wf->lock);
     if (mode != NULL) {
         wf->fa.stat.st_mode = *mode;
     }
@@ -901,6 +903,21 @@ int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid) {
     if (gid != NULL) {
         wf->fa.stat.st_gid = *gid;
     }
+
+    if (last_access_tp != NULL) {
+        wf->fa.stat.st_atime = last_access_tp->tv_sec;
+        wf->fa.stat.st_atim.tv_nsec = last_access_tp->tv_nsec;
+    }    
+    if (last_modification_tp != NULL) {
+        wf->fa.stat.st_mtime = last_modification_tp->tv_sec;
+        wf->fa.stat.st_mtim.tv_nsec = last_modification_tp->tv_nsec;
+    }    
+    if (last_change_tp != NULL) {
+        wf->fa.stat.st_ctime = last_change_tp->tv_sec;
+        wf->fa.stat.st_ctim.tv_nsec = last_change_tp->tv_nsec;
+    }    
+    pthread_mutex_unlock(&wf->lock);
+    
     return 0;
 }
 
@@ -1019,10 +1036,12 @@ static int wf_check_for_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter 
                                 wf->htl->ht, wf->path, _wf, wf);
             fatalError("_wf != wf", __FILE__, __LINE__);
         }
-        // wf_flush() and wf_close() may cause remote I/O. We must drop the table lock
-        // (must drop before releasing wf lock; release order inversion is ok)
-        pthread_rwlock_unlock(&wf->htl->rwLock);
+        // We would like to drop the table lock here to avoid holding it during remote i/o
+        // We cannot, however, as this can introduce inconsistency.
+        // (Mitigating this with many table partitions to minimize extraneous locking)
         rc_f = _wf_flush(wf, aw, fbw, ac);
+        // Now we may drop the table lock safely.
+        pthread_rwlock_unlock(&wf->htl->rwLock);
         // we removed wf from the table, so we no longer need a lock
         // hold it to here just to meet the documented lock contract of _wf_flush()
         pthread_mutex_unlock(&wf->lock);

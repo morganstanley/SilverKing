@@ -311,6 +311,18 @@ public class WrapperGenerator {
 							}
 						}
 						break;
+					case NonEmptyConstructors:
+						for (Constructor constructor : c.getClass_().getConstructors()) {
+							if (Modifier.isPublic(constructor.getModifiers()) && !JNIUtil.omitted(constructor) && referenceFinder.allReferencesPresent(constructor)) {
+								if (constructor.getParameterCount() > 0) {
+									Context	constructorContext;
+									
+									constructorContext = _c.constructor(constructor);
+									generate(constructorContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
+								}
+							}
+						}
+						break;
 					case Parameters:
 						_c = c.loopElements(c.getActiveParameters().length);
 						for (Parameter p : c.getActiveParameters()) {
@@ -466,6 +478,7 @@ public class WrapperGenerator {
 				return target == LoopElement.Target.Classes;
 			case Classes:
 				return target == LoopElement.Target.Methods
+						|| target == LoopElement.Target.NonEmptyConstructors
 						|| target == LoopElement.Target.Constructors
 						|| target == LoopElement.Target.StaticMethods
 						|| target == LoopElement.Target.StaticFields
@@ -479,6 +492,8 @@ public class WrapperGenerator {
 			case StaticMethods:
 				return target == LoopElement.Target.Parameters;
 			case Constructors:
+				return  target == LoopElement.Target.Parameters;
+			case NonEmptyConstructors:
 				return  target == LoopElement.Target.Parameters;
 			case Parameters:
 				return false;

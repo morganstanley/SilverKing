@@ -145,6 +145,10 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
         this(zkConfig, dhtName, intervalMillis, mode, true);
     }
     
+    public String getDHTName() {
+    	return mc.getDHTName();
+    }
+    
     public void setMode(Mode mode) {
 		convergenceLock.lock();
     	try {

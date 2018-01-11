@@ -8,35 +8,35 @@ f_checkAndSetBuildTimestamp
 function f_checkParams {
 	f_printHeader "PARAM CHECK"
 	  
-	echo "                            cc=$CC"
-	echo "                  fuse_inc_dir=$FUSE_INC_DIR"
-	echo "                  fuse_lib_dir=$FUSE_LIB_DIR"
-	echo "                       sk_root=$SK_ROOT"
-	echo " install_arch_area_folder_name=$INSTALL_ARCH_AREA_FOLDER_NAME"
+	echo "                            cc=$cc"
+	echo "                  fuse_inc_dir=$fuse_inc_dir"
+	echo "                  fuse_lib_dir=$fuse_lib_dir"
+	echo "                       sk_root=$sk_root"
+	echo " install_arch_area_folder_name=$install_arch_area_folder_name"
 	  
-	if [[ -z $CC ]] ; then
+	if [[ -z $cc ]] ; then
 		echo "Need to pass in a C compiler"
 		exit 1
 	fi
 	  
-	if [[ -z $FUSE_INC_DIR ]] ; then
+	if [[ -z $fuse_inc_dir ]] ; then
 		echo "Need to pass in a fuse_inc_dir"
 		exit 1
 	fi
 	  
-	if [[ -z $FUSE_LIB_DIR ]] ; then
+	if [[ -z $fuse_lib_dir ]] ; then
 		echo "Need to pass in a fuse_lib_dir"
 		exit 1
 	fi
 	
-	if [[ -z $SK_ROOT ]] ; then
-		SK_ROOT=$SILVERKING_INSTALL_DIR
-		echo "Set SK_ROOT=$SK_ROOT"
+	if [[ -z $sk_root ]] ; then
+		sk_root=$SILVERKING_INSTALL_DIR
+		echo "Set sk_root=$sk_root"
 	fi
 	
-	if [[ -z $INSTALL_ARCH_AREA_FOLDER_NAME ]] ; then
-		INSTALL_ARCH_AREA_FOLDER_NAME=$INSTALL_ARCH_AREA_NAME
-		echo "Set INSTALL_ARCH_AREA_FOLDER_NAME=$INSTALL_ARCH_AREA_FOLDER_NAME"
+	if [[ -z $install_arch_area_folder_name ]] ; then
+		install_arch_area_folder_name=$INSTALL_ARCH_AREA_NAME
+		echo "Set install_arch_area_folder_name=$install_arch_area_folder_name"
 	fi
 }
 
@@ -51,10 +51,10 @@ function f_compileAndLink {
 	done
 	
 	f_printSubSection "Compiling and Assembling ($fileCount in $SKFS_SRC_DIR)"
-	f_compileAssembleFilesUsingMake "c" "$resolvedAbsFilenames" "$fileCount" "$SKFS_BUILD_ARCH_DIR" "$CC" "$CC_OPTS -W -Wall -Wno-unused -Wno-strict-aliasing" "$INC_OPTS -I${SKFS_SRC_DIR}"
+	f_compileAssembleFilesUsingMake "c" "$resolvedAbsFilenames" "$fileCount" "$SKFS_BUILD_ARCH_DIR" "$cc" "$cc_opts -W -Wall -Wno-unused -Wno-strict-aliasing" "$inc_opts -I${SKFS_SRC_DIR}"
 	
 	SKFS_EXEC=$SKFS_INSTALL_ARCH_DIR/$SKFS_EXEC_NAME
-	f_link "$SKFS_EXEC" "$SKFS_BUILD_ARCH_DIR/$ALL_DOT_O_FILES" "$CC" "$CC_OPTS -W -Wall -Wno-unused" "$LIB_OPTS"
+	f_link "$SKFS_EXEC" "$SKFS_BUILD_ARCH_DIR/$ALL_DOT_O_FILES" "$cc" "$cc_opts -W -Wall -Wno-unused" "$lib_opts"
 	
 	f_runBuildChecks
 	#echo "compile UnitTest"
@@ -62,14 +62,14 @@ function f_compileAndLink {
 	#SKFS_EXEC="${SKFS_INSTALL_ARCH_DIR}/unitTest"
 	#cFiles="skfs UnitTest"
 	#for i in $cFiles ; do
-	#  echo $CC -I$SKFS_SRC_DIR -W -Wno-unused -DUNIT_TESTS $CC_OPTS $INC_OPTS  -c $SKFS_SRC_DIR/$i.c -o $SKFS_BUILD_ARCH_DIR/$i.o
-	#  $CC -I$SKFS_SRC_DIR -W -Wno-unused -DUNIT_TESTS $CC_OPTS  $INC_OPTS  -c $SKFS_SRC_DIR/$i.c -o $SKFS_BUILD_ARCH_DIR/$i.o 
+	#  echo $cc -I$SKFS_SRC_DIR -W -Wno-unused -DUNIT_TESTS $cc_opts $inc_opts  -c $SKFS_SRC_DIR/$i.c -o $SKFS_BUILD_ARCH_DIR/$i.o
+	#  $cc -I$SKFS_SRC_DIR -W -Wno-unused -DUNIT_TESTS $cc_opts  $inc_opts  -c $SKFS_SRC_DIR/$i.c -o $SKFS_BUILD_ARCH_DIR/$i.o 
 	#done
 
 	#echo
 	#echo "link $SKFS_EXEC"
-	#echo "$CC -DUNIT_TESTS $CC_OPTS -W -Wall -Wno-unused -o $SKFS_EXEC $SKFS_BUILD_ARCH_DIR/$ALL_DOT_O_FILES $LIB_OPTS" 
-	#$CC -DUNIT_TESTS $CC_OPTS -W -Wall -Wno-unused -o $SKFS_EXEC $SKFS_BUILD_ARCH_DIR/$ALL_DOT_O_FILES $LIB_OPTS 
+	#echo "$cc -DUNIT_TESTS $cc_opts -W -Wall -Wno-unused -o $SKFS_EXEC $SKFS_BUILD_ARCH_DIR/$ALL_DOT_O_FILES $lib_opts" 
+	#$cc -DUNIT_TESTS $cc_opts -W -Wall -Wno-unused -o $SKFS_EXEC $SKFS_BUILD_ARCH_DIR/$ALL_DOT_O_FILES $lib_opts 
 }
 
 function f_runBuildChecks {
@@ -82,35 +82,30 @@ function f_runBuildChecks {
 
 function f_printVariables {
 	echo
-	echo " sk_inc_dir=$SK_INC_DIR"
-	echo " sk_lib_dir=$SK_LIB_DIR"
+	echo " sk_inc_dir=$sk_inc_dir"
+	echo " sk_lib_dir=$sk_lib_dir"
 	echo
 }
 
-							CC=$1
-output_filename=$(f_getBuildSkfs_RunOutputFilename "$CC")
+# params
+typeset 							   cc=$1
+typeset output_filename=$(f_getBuildSkfs_RunOutputFilename "$cc")
 {
-	# params
-				  FUSE_INC_DIR=$2
-				  FUSE_LIB_DIR=$3
-					   SK_ROOT=$4
- INSTALL_ARCH_AREA_FOLDER_NAME=$5
-					   
+	typeset 				 fuse_inc_dir=$2
+	typeset 				 fuse_lib_dir=$3	
+	typeset                    cc_d_flags=$4
+	typeset 					  sk_root=$5
+	typeset install_arch_area_folder_name=$6
 	f_checkParams
 
-			   SK_INC_DIR=$SK_ROOT/$COMMON_INCLUDE_FOLDER_NAME
-			   SK_LIB_DIR=$SK_ROOT/$INSTALL_ARCH_AREA_FOLDER_NAME/$LIB_FOLDER_NAME
+	typeset sk_inc_dir=$sk_root/$COMMON_INCLUDE_FOLDER_NAME
+	typeset sk_lib_dir=$sk_root/$install_arch_area_folder_name/$LIB_FOLDER_NAME
 
-	if [[ $CC == $GPP_RHEL6 ]] ; then
-		CC_D_FLAGS='-DFUSE_USE_VERSION=28 -DUSE_QSORT_R'
-	fi
-
-	#C_FLAGS="-g -O2"
-	C_FLAGS="-g"
-	LD_OPTS="-fPIC -pthread -rdynamic"
-	CC_OPTS="$C_FLAGS $LD_OPTS -pipe -Wno-write-strings -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT $CC_D_FLAGS -DJACE_WANT_DYNAMIC_LOAD"
-	INC_OPTS="-I${FUSE_INC_DIR} -I${SK_INC_DIR} -I${ZLIB_INC} -I${VALGRIND_INC} -I${BOOST_INC} "
-	LIB_OPTS="-L${FUSE_LIB_DIR} -lfuse -L${SK_LIB_DIR} -lsilverking -L${JACE_LIB} -ljace -L${BOOST_LIB} -lboost_system -L${JAVA_LIB} -ljvm -lrt -lpthread -L${ZLIB_LIB} -lz -Wl,--rpath -Wl,${FUSE_LIB_DIR} -Wl,--rpath -Wl,${SK_LIB_DIR} -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${BOOST_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
+	typeset c_flags="-g -O2"
+	typeset ld_opts="-fPIC -pthread -rdynamic"
+	typeset cc_opts="$c_flags $ld_opts -pipe -Wno-write-strings -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT $cc_d_flags -DJACE_WANT_DYNAMIC_LOAD"
+	typeset inc_opts="-I${fuse_inc_dir} -I${sk_inc_dir} -I${ZLIB_INC} -I${VALGRIND_INC} -I${BOOST_INC}"
+	typeset lib_opts="-L${fuse_lib_dir} -lfuse -L${sk_lib_dir} -lsilverking -L${JACE_LIB} -ljace -L${BOOST_LIB} -lboost_system -L${JAVA_LIB} -ljvm -lrt -lpthread -L${ZLIB_LIB} -lz -Wl,--rpath -Wl,${fuse_lib_dir} -Wl,--rpath -Wl,${sk_lib_dir} -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${BOOST_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
 
 	f_startLocalTimer;
 	date;

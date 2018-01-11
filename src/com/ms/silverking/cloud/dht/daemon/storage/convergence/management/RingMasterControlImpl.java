@@ -23,7 +23,7 @@ public class RingMasterControlImpl extends UnicastRemoteObject implements RingMa
 		super();
 		this.rm = rm;
 		registry = LocateRegistry.createRegistry(port);		
-		registry.rebind(RingMasterControl.registryName, this);
+		registry.rebind(RingMasterControl.getRegistryName(rm.getDHTName()), this);
 	}
 	
 	protected RingMasterControlImpl(DHTRingMaster rm) throws RemoteException, AlreadyBoundException {

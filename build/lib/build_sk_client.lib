@@ -91,14 +91,13 @@ function f_buildMainLib {
 	typeset ld=$4
 	typeset ld_opts=$5
 	typeset lib_opts=$6
-	typeset sk_ver=$7
 	
 	f_printSection "Building Main lib"
 	
 	typeset buildObjDir=$SILVERKING_BUILD_ARCH_DIR/mainLib
 	f_cleanOrMakeDirectory "$buildObjDir"
 	
-	f_compileAssembleDirectory "$DHT_CLIENT_SRC_DIR" "$buildObjDir" "$cc" "$cc_opts -DSKVER=$sk_ver" "$inc_opts"
+	f_compileAssembleDirectory "$DHT_CLIENT_SRC_DIR" "$buildObjDir" "$cc" "$cc_opts" "$inc_opts"
 	if [[ $CREATE_STATIC_LIBS == $TRUE ]]; then
 		f_createStaticLibrary "$SK_LIB_NAME" "$INSTALL_ARCH_LIB_DIR" "$buildObjDir/$ALL_DOT_O_FILES" "$J_SK_LIB"
 	fi
@@ -223,7 +222,7 @@ function f_buildKdbQ {
 	typeset lib_opts=$3
 	typeset rpath_dir=$4
 	
-	f_buildKdbHelper "$cc" "$ld_opts" "$lib_opts" "$rpath_dir" "kdb" "$KDB_DIR" "" ""
+	f_buildKdbHelper "$cc" "$ld_opts" "$lib_opts" "$rpath_dir" "kdb" "$KDB_INC" "" ""
 }
 
 function f_buildKdbQ3 {
@@ -232,7 +231,7 @@ function f_buildKdbQ3 {
 	typeset lib_opts=$3
 	typeset rpath_dir=$4
 	
-	f_buildKdbHelper "$cc" "$ld_opts" "$lib_opts" "$rpath_dir" "kdb3" "$KDB3_DIR" "-DKXVER=3" "q3"
+	f_buildKdbHelper "$cc" "$ld_opts" "$lib_opts" "$rpath_dir" "kdb3" "$KDB3_INC" "-DKXVER=3" "q3"
 }
 
 function f_buildKdbHelper {
@@ -242,7 +241,7 @@ function f_buildKdbHelper {
 	typeset lib_opts=$3
 	typeset rpath_dir=$4
 	typeset kdb_folder_name=$5
-	typeset kdb_dir_name=$6
+	typeset kdb_inc_dir=$6
 	typeset d_kx_ver=$7
 	typeset prefix=$8
 	
@@ -261,10 +260,10 @@ function f_buildKdbHelper {
 		typeset testdht_q_name=testdht.q
 		f_printSubSection "Building q lib: $q_lib_shared"
 		echo
-		f_compileAssembleLink "$q_app_dir/$qdht_name.c" "$q_lib_shared" "$cc" "$ld_opts -Wno-write-strings -shared -D__STDC_LIMIT_MACROS $d_kx_ver" "-I${BOOST_INC} -I${q_app_dir} -I${INSTALL_COMMON_INC_DIR} -I${kdb_dir_name}/include" "$lib_opts" 
+		f_compileAssembleLink "$q_app_dir/$qdht_name.c" "$q_lib_shared" "$cc" "$ld_opts -Wno-write-strings -shared -D__STDC_LIMIT_MACROS $d_kx_ver" "-I${BOOST_INC} -I${q_app_dir} -I${INSTALL_COMMON_INC_DIR} -I${kdb_inc_dir}" "$lib_opts" 
 		## -Wno-write-strings, as krr("error-such-and-such") expects char* , not const, and new versions of gcc give warnings
-		#echo $cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I$q_app_dir -I$INSTALL_COMMON_INC_DIR -I$kdb_dir_name/include -I${BOOST_INC} $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
-		#$cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I${BOOST_INC} -I$q_app_dir -I$INSTALL_COMMON_INC_DIR -I$kdb_dir_name/include $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
+		#echo $cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I$q_app_dir -I$INSTALL_COMMON_INC_DIR -I$kdb_inc_dir -I${BOOST_INC} $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
+		#$cc -Wno-write-strings -shared $ld_opts -D__STDC_LIMIT_MACROS $d_kx_ver -I${BOOST_INC} -I$q_app_dir -I$INSTALL_COMMON_INC_DIR -I$kdb_inc_dir $q_app_dir/$qdht_name.c -o $q_lib_shared $lib_opts -L $INSTALL_ARCH_LIB_DIR 
 
 		typeset full_testdht_q_name=${prefix}${testdht_q_name}
 		$CAT $q_app_dir/$qdht_q_name    | $SED "s#$DHT_LIB_PATH_PLACEHOLDER#$q_path_dir#" > $q_lib_install_dir/$qdht_q_name
@@ -308,7 +307,7 @@ function f_buildPerlClient {
 		typeset  obj=$buildObjDir/${wrapName}.o
 
 		f_printSubSection "swigging $SK_LIB_NAME lib"
-		f_runCmd "$SWIG -c++ -perl5 -cpperraswarn -I${INSTALL_COMMON_INC_DIR} -I${SWIG_INC_DIR} -o $wrap $perl_app_dir/dht.i" #-debug-tmsearch -debug-tmused -Wall
+		f_runCmd "$SWIG -c++ -perl5 -cpperraswarn -I${INSTALL_COMMON_INC_DIR} -I${SWIG_INC} -o $wrap $perl_app_dir/dht.i" #-debug-tmsearch -debug-tmused -Wall
 
 		typeset perl_opts=`${PERL_5_8//5.8/$ver} -MExtUtils::Embed -e ccopts | $SED s/-Wdeclaration-after-statement//`
 		echo
@@ -333,7 +332,7 @@ function f_buildPerlClient {
 	echo
 	f_printSubSection "copying Perl script(s) to $INSTALL_ARCH_BIN_DIR"
 	f_copyPerlScript "$perl_app_dir/testdht.pl" "$PERL_5_5"
-	f_copyPerlScript "$perl_app_dir/kill_process_and_children.pl" "$PERL_5_8"
+	f_copyPerlScript "$perl_app_dir/$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME" "$PERL_5_8"
 }
 
 function f_copyPerlScript {
@@ -343,12 +342,12 @@ function f_copyPerlScript {
 function f_copyPerlScript_Helper {
 	typeset filename=$1
 	typeset replacement_value=$2
-	typeset out_directory=$3
+	typeset dest_directory=$3
 	
-	typeset pathToOutFile=$out_directory/`$BASENAME $filename`
+	typeset destFilePath=$dest_directory/`$BASENAME $filename`
 	
-	$CAT $filename | $DOS_2_UNIX | $SED "s#$PERL_PATH_PLACEHOLDER#$replacement_value#" > $pathToOutFile
-	$CHMOD 755 $pathToOutFile
+	$CAT $filename | $DOS_2_UNIX | $SED "s#$PERL_PATH_PLACEHOLDER#$replacement_value#" > $destFilePath
+	$CHMOD 755 $destFilePath
 }
 
 function f_buildWrapperApps {

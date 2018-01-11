@@ -76,7 +76,8 @@ int wf_write(WritableFile *wf, const char *src, size_t writeSize, off_t writeOff
 int wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, PartialBlockReader *pbr);
 int wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
 void wf_sanityCheckNumBlocks(WritableFile *wf, char *file, int line);
-int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid);
+int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid,
+    const struct timespec *last_access_tp = NULL, const struct timespec *last_modification_tp = NULL, const struct timespec *last_change_tp = NULL);
 WritableFile *wf_fuse_fi_fh_to_wf(struct fuse_file_info *fi);
 int wf_create_ref(WritableFile *wf);
 int wf_delete_ref(WritableFile *wf, int ref, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);

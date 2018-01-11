@@ -10,18 +10,18 @@ f_checkAndSetBuildTimestamp
 function f_checkParams {
 	f_printHeader "PARAM CHECK"
 	  
-	echo "       cc=$CC"
-	echo " cc_flags=$CC_FLAGS"
+	echo "       cc=$cc"
+	echo " cc_flags=$cc_flags"
 	  
-	if [[ -z $CC ]] ; then
+	if [[ -z $cc ]] ; then
 		echo "Need to pass in a C compiler"
 		exit 1
 	fi
 	  
-	if [[ -z $CC_FLAGS ]] ; then
+	if [[ -z $cc_flags ]] ; then
 		# By default, debug, not optimized
-		CC_FLAGS="-g"
-		echo "Set CC_FLAGS=$CC_FLAGS"
+		cc_flags="-g"
+		echo "Set cc_flags=$cc_flags"
 	fi
 }
 
@@ -50,9 +50,9 @@ function f_compileAndLinkProxiesIntoLib {
 	f_cleanOrMakeDirectory "$libDirStaticLoad"
 	f_cleanOrMakeDirectory "$libDirDynamicLoad"
 	
-	PROXY_SRC="../src/jace/source"
+	typeset proxy_src="../src/jace/source"
 	### STATIC LOAD
-	f_compileAssembleDirectoryTree "$PROXY_SRC" "$objDirStatic" "$cc" "$cc_opts" "$inc_opts"
+	f_compileAssembleDirectoryTree "$proxy_src" "$objDirStatic" "$cc" "$cc_opts" "$inc_opts"
 	# if [[ $CREATE_STATIC_LIBS == $TRUE ]]; then
 		f_createStaticLibrary "$JACE_LIB_NAME" "$libDirStaticLoad" "$objDirStatic/$ALL_DOT_O_FILES" ""
 	# fi
@@ -66,7 +66,7 @@ function f_compileAndLinkProxiesIntoLib {
 	f_testEquals "$libDirStaticLoad" "$JACE_LIB_SHARED_NAME" "1"
 	
 	### DYNAMIC LOAD
-	f_compileAssembleDirectoryTree "$PROXY_SRC" "$objDirDynamic" "$cc" "$cc_opts -DJACE_WANT_DYNAMIC_LOAD" "$inc_opts"
+	f_compileAssembleDirectoryTree "$proxy_src" "$objDirDynamic" "$cc" "$cc_opts -DJACE_WANT_DYNAMIC_LOAD" "$inc_opts"
 	# if [[ $CREATE_STATIC_LIBS == $TRUE ]]; then
 		f_createStaticLibrary "$JACE_LIB_NAME" "$libDirDynamicLoad" "$objDirDynamic/$ALL_DOT_O_FILES" ""
 	# fi
@@ -80,21 +80,19 @@ function f_compileAndLinkProxiesIntoLib {
 }
 
 ## params
-	     CC=$1
-output_filename=$(f_getBuildJace_RunOutputFilename "$CC")
+typeset           cc=$1
+typeset output_filename=$(f_getBuildJace_RunOutputFilename "$cc")
 {
-	CC_FLAGS=$2
+	typeset cc_flags=$2
 	f_checkParams;
 
-	LD=$CC
-	
-	CC_OPTS="$CC_FLAGS $LD_OPTS -enable-threads=posix -pipe -Wall ${BOOST_NS} -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DBOOST_SPIRIT_THREADSAFE -D_REENTRANT -DJACE_EXPORTS -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS"
-	PROXY_INC="../src/jace/include"
-	# LIB_OPTS=" -L${BOOST_LIB} -l${BOOST_LIB_THREAD} -l${BOOST_LIB_DT} -Wl,--rpath -Wl,${BOOST_LIB} -L${JAVA_LIB} -lrt -lpthread -ljvm -Wl,--rpath -Wl,${JAVA_LIB}"  ##works
+	typeset ld=$cc
+	typeset cc_opts="$cc_flags $LD_OPTS $CC_OPTS"
+	typeset proxy_inc="../src/jace/include"
 	f_startLocalTimer;
 	date;
 	
-	f_compileAndLinkProxiesIntoLib "$CC" "$CC_FLAGS $LD_OPTS" "$INC_OPTS_NO_JACE -I${PROXY_INC}" "$LD" "$LD_OPTS" "$LIB_OPTS_NO_JACE";
+	f_compileAndLinkProxiesIntoLib "$cc" "$cc_opts" "$INC_OPTS_NO_JACE -I${proxy_inc}" "$ld" "$LD_OPTS" "$LIB_OPTS_NO_JACE";
 	f_printSummary "$output_filename"
 	f_printLocalElapsed;
 } 2>&1 | tee $output_filename

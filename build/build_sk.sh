@@ -8,7 +8,7 @@ f_checkAndSetBuildTimestamp
 # ANT_PATH=$(f_getExecutablePath ant);
 # $(f_getExecutablePath java);
 
-output_filename=$(f_getBuildSk_RunOutputFilename)
+typeset output_filename=$(f_getBuildSk_RunOutputFilename)
 {
 	f_startLocalTimer;
 	date;

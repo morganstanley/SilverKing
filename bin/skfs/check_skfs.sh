@@ -205,8 +205,7 @@ echo "curDir: $curDir"
 jaceLibs=${SK_JACE_HOME}/lib/jace-core.jar:${SK_JACE_HOME}/lib/jace-runtime.jar
 if [[ -z "${skGlobalCodebase}" ]]; then 
 	typeset cp=$(f_getClasspath "../../lib" "$curDir")
-	export CLASSPATH=$cp:${jaceLibs}:${SK_JAVA_HOME}/jre/lib/rt.jar:${UtilClassPath};
-	#export CLASSPATH=$SK_CLASSPATH:${jaceLibs}:${SK_JAVA_HOME}/jre/lib/rt.jar:${UtilClassPath};
+	export CLASSPATH=$cp:${jaceLibs}:${SK_JAVA_HOME}/jre/lib/rt.jar;
 	export SK_CLASSPATH=${CLASSPATH}
 else
 	export CLASSPATH=${skGlobalCodebase}:${jaceLibs}
@@ -226,7 +225,7 @@ utilCmd="${SK_JAVA_HOME}/bin/java ${UTIL_CLASS} -c GetFromZK -d ${GCName} -z ${z
 echo ${utilCmd}
 ${utilCmd}
 if [[ $? != 0 ]] ; then
-	echo "MetaUtil failed to get $GCName configuration from $zkEnsemble into $tmpfile, exiting" ;
+	echo "MetaUtil failed to get '$GCName' configuration from '$zkEnsemble' into '$tmpfile', exiting" ;
 	f_printFail
 	exit 1 ;
 fi
@@ -267,7 +266,6 @@ f_printSection "TEARING DOWN OLD SKFS"
 f_printSubSection "Unmounting FUSE"
 # Must be set in conf:
 #useBigWrites="";
-#fusePath
 #fuseLib
 #fuseBin
 #fuseLibKO
@@ -339,12 +337,10 @@ else
 	touch ${nativeFSOnlyFile}
 fi
 
-boost=""
-export LD_LIBRARY_PATH=${gccPath}:${boost}:$curDir/fuse/libs:${fuseLibKO}:${SK_JACE_HOME}/lib/dynamic:${JAVA_LIB_HOME}/jre/lib/amd64/server:${fuseLib}
-echo
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH=${gccPath}:${fuseLibKO}:${fuseLib}:${SK_JACE_HOME}/lib/dynamic:${SK_JAVA_HOME}/jre/lib/amd64/server
+echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
-echo "Core limit: ${coreLimit}"
+echo "Core limit:      $coreLimit"
 ulimit -c ${coreLimit}
 
 f_printSubSection "Configuring path to skfsd"
@@ -359,9 +355,13 @@ if [[ -z "${skLocalSys}" ]]; then
 		
 		if [[ ! -e $skLocalSys ]]; then
 			typeset rhVersion=`echo $skLocalSys | grep -P -o "el\d"`
-			echo "Trying to use '$skLocalSys', but no folder exists. So trying to find a similar rh${rhVersion} version"
+			echo "Trying to use '$skLocalSys', but no folder exists. So trying to find a similar rh${rhVersion} version."
 			skLocalSys=`ls | grep $rhVersion`
-			echo "Found $skLocalSys, will try that"
+			if [[ -n $skLocalSys ]]; then
+				echo "Found '$skLocalSys', will try that"
+			else 
+				echo "None found, will use default path to skfsd"
+			fi
 		fi
     fi
 fi

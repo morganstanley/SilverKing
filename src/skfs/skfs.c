@@ -171,6 +171,8 @@ static int _skfs_unlink(const char *path, int deleteBlocks = TRUE);
 static void add_fuse_option(char *option);
 static int ensure_not_writable(char *path1, char *path2 = NULL);
 static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid);
+static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid, 
+                            const struct timespec *last_access_tp, const struct timespec *last_modification_tp, const struct timespec *last_change_tp);
 static void skfs_destroy(void* private_data);
 static void init_util_sk();
 static uint64_t _get_sk_system_uint64(const char *stat);
@@ -610,20 +612,28 @@ static int ensure_not_writable(char *path1, char *path2) {
 }
 
 static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid) {
+    struct timespec last_access_tp;
+    struct timespec last_modification_tp;
+    struct timespec last_change_tp;
+    time_t  curEpochTimeSeconds;
+    long    curTimeNanos;
+    
+    // get time outside of the critical section
+    if (clock_gettime(CLOCK_REALTIME, &last_access_tp)) {
+        fatalError("clock_gettime failed", __FILE__, __LINE__);
+    }
+    last_modification_tp = last_access_tp;
+    last_change_tp = last_access_tp;
+    return _modify_file_attr(path, fnName, mode, uid, gid, &last_access_tp, &last_modification_tp, &last_change_tp);
+}
+
+static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid, 
+                            const struct timespec *last_access_tp, const struct timespec *last_modification_tp, const struct timespec *last_change_tp) {
 	if (!is_writable_path(path)) {
 		return -EIO;
     } else {    
         WritableFileReference    *wf_ref;
-        struct timespec tp;
-        time_t  curEpochTimeSeconds;
-        long    curTimeNanos;
         
-        // get time outside of the critical section
-        if (clock_gettime(CLOCK_REALTIME, &tp)) {
-            fatalError("clock_gettime failed", __FILE__, __LINE__);
-        }    
-        curEpochTimeSeconds = tp.tv_sec;
-        curTimeNanos = tp.tv_nsec;
         // FUTURE - best effort consistency; future, make rigorous
         //if (!ensure_not_writable((char *)path)) {
         //    srfsLog(LOG_ERROR, "Can't %s writable file", fnName);
@@ -641,7 +651,7 @@ static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t 
             int rc;
             
             wf = wfr_get_wf(wf_ref);
-            rc = wf_modify_attr(wf, mode, uid, gid);
+            rc = wf_modify_attr(wf, mode, uid, gid, last_access_tp, last_modification_tp, last_change_tp);
             wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
             return rc;
         } else {
@@ -655,8 +665,18 @@ static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t 
             } else {
                 SKOperationState::SKOperationState  writeResult;
             
-                fa.stat.st_ctime = curEpochTimeSeconds;
-                fa.stat.st_ctim.tv_nsec = curTimeNanos;
+                if (last_access_tp != NULL) {
+                    fa.stat.st_atime = last_access_tp->tv_sec;
+                    fa.stat.st_atim.tv_nsec = last_access_tp->tv_nsec;
+                }
+                if (last_modification_tp != NULL) {
+                    fa.stat.st_mtime = last_modification_tp->tv_sec;
+                    fa.stat.st_mtim.tv_nsec = last_modification_tp->tv_nsec;
+                }
+                if (last_change_tp != NULL) {
+                    fa.stat.st_ctime = last_change_tp->tv_sec;
+                    fa.stat.st_ctim.tv_nsec = last_change_tp->tv_nsec;
+                }
                 if (mode != NULL) {
                     fa.stat.st_mode = *mode;
                 }
@@ -685,7 +705,7 @@ static int skfs_chmod(const char *path, mode_t mode) {
 
 static int skfs_chown(const char *path, uid_t uid, gid_t gid) {
 	srfsLogAsync(LOG_OPS, "_co %s %d %d", path, uid, gid);
-    return modify_file_attr(path, "chmod", NULL, &uid, &gid);
+    return modify_file_attr(path, "chown", NULL, &uid, &gid);
 }
 
 static int skfs_truncate(const char *path, off_t size) {
@@ -742,8 +762,14 @@ static int skfs_truncate(const char *path, off_t size) {
 }
 
 static int skfs_utimens(const char *path, const struct timespec ts[2]) {
+    struct timespec last_change_tp;
+    
 	srfsLogAsync(LOG_OPS, "_ut %s", path);
-    return 0;
+    // get time outside of the critical section
+    if (clock_gettime(CLOCK_REALTIME, &last_change_tp)) {
+        fatalError("clock_gettime failed", __FILE__, __LINE__);
+    }
+    return _modify_file_attr(path, "utimens", NULL, NULL, NULL, &ts[0], &ts[1], &last_change_tp);
 }
 
 static int skfs_access(const char *path, int mask) {

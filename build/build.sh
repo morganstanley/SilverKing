@@ -4,7 +4,7 @@ source lib/common.lib
 
 f_checkAndSetBuildTimestamp "$1"
 
-output_filename=$(f_getBuild_RunOutputFilename)
+typeset output_filename=$(f_getBuild_RunOutputFilename)
 {
 	date
 	echo
@@ -21,19 +21,15 @@ output_filename=$(f_getBuild_RunOutputFilename)
 	f_startSilverking
 	./$TEST_SILVERKING_SCRIPT_NAME
 
-	CC=$GPP_RHEL6 
+	typeset cc=$GPP
 	f_printStep "2" "Build Silverking client"
-	GCC_R_LIB=$GCC_RHEL6_LIB
-	   SK_VER=""
-	 CC_FLAGS="-g -O2"
-	# ./$BUILD_JACE_SCRIPT_NAME "$CC" "$CC_FLAGS"
-	./$BUILD_SILVERKING_CLIENT_SCRIPT_NAME "$CC" "$GCC_R_LIB" "$SK_VER" "$CC_FLAGS"
+	typeset   cc_flags="-g -O2"
+	# ./$BUILD_JACE_SCRIPT_NAME "$cc" "$cc_flags"
+	./$BUILD_SILVERKING_CLIENT_SCRIPT_NAME "$cc" "$GCC_LIB" "$cc_flags"
 	./$TEST_SILVERKING_CLIENT_SCRIPT_NAME
 	
 	f_printStep "3" "Build Silverking FS"
-	FUSE_INC_DIR=$FUSE_RHEL6_INC_DIR
-	FUSE_LIB_DIR=$FUSE_RHEL6_LIB_DIR
-	./$BUILD_SILVERKING_FS_SCRIPT_NAME "$CC" "$FUSE_INC_DIR" "$FUSE_LIB_DIR"
+	./$BUILD_SILVERKING_FS_SCRIPT_NAME "$cc" "$FUSE_INC" "$FUSE_LIB"
 	f_startSkfs
 	./$TEST_SILVERKING_FS_SCRIPT_NAME
 

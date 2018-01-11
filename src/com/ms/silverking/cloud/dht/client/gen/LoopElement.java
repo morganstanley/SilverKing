@@ -8,7 +8,7 @@ public class LoopElement implements Statement {
 	private static final String	loopString = "ForAll";
 	
 	public static enum Position {Start, End};
-	public static enum Target {Packages, Classes, Methods, StaticMethods, Parameters, Constructors, ReferencedClasses, StaticFields, Enums, EnumValues, Interfaces, InheritedClasses};
+	public static enum Target {Packages, Classes, Methods, StaticMethods, Parameters, Constructors, NonEmptyConstructors, ReferencedClasses, StaticFields, Enums, EnumValues, Interfaces, InheritedClasses};
 	
 	public LoopElement(Target target, Position position) {
 		this.target = target;

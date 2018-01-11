@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.client.gen;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -29,6 +30,7 @@ public class Variable implements Expression {
 	
 	private enum VariableType {Class, Package, MethodName, LoopIndex, LoopElements,
 								ClassMD5,
+								ClassHasEmptyConstructor,
 								MethodReturnType, MethodReturnTypeSimple, MethodReturnTypeWrapper, MethodReturnTypeRaw, MethodReturnTypePackage, 
 								MethodSignature, ConstructorSignature, StaticFieldSignature,
 								StaticFieldName, StaticFieldType, StaticFieldTypeSimple, StaticFieldTypeRaw,
@@ -37,7 +39,7 @@ public class Variable implements Expression {
 								ReferencedClassSimple,
 								InheritedClass, InheritedClassPackage,
 								ImplementsInterfaces, NonVirtual,
-								ParameterName, ParameterNameWrapped, ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive, ParameterIsObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive,
+								ParameterName, ParameterNameWrapped, ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive, ParameterIsObject, ParameterIsUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive,
 								SuperClass, SuperClassPackage, EmptyString, JNICallType};
 	private enum CaseType {alllowercase, ALLUPPERCASE, camelCase, CamelCase, unalteredCase};
 	
@@ -158,6 +160,7 @@ public class Variable implements Expression {
 	private String _evaluate(Context c) {
 		switch(type) {
 		case Class: return c.getClass_().getSimpleName();
+		case ClassHasEmptyConstructor: return hasEmptyConstructor(c.getClass_()) ? "true" : "false";
 		case ClassMD5: return StringUtil.trimLength(StringUtil.md5(c.getClass_().getSimpleName()).replace(':', '_'), classMD5Length);
 		case Package: return c.getPackage_().getName();
 		case MethodName: return c.getMethod().getName();
@@ -178,6 +181,7 @@ public class Variable implements Expression {
 		case ParameterIsPrimitiveOrEnum: return c.getParameter() != null && (c.getParameter().getType().isPrimitive() || c.getParameter().getType().isEnum()) ? "true" : "false"; 
 		case ParameterIsPrimitive: return c.getParameter() != null && (c.getParameter().getType().isPrimitive()) ? "true" : "false"; 
 		case ParameterIsObject: return isObject(c.getParameter()) ? "true" : "false"; 
+		case ParameterIsUserObject: return isUserObject(c.getParameter()) ? "true" : "false"; 
 		case ReturnTypeIsPrimitive: return c.getMethod() != null && c.getMethod().getReturnType() != null && (c.getMethod().getReturnType().isPrimitive()) ? "true" : "false"; 
 		case StaticFieldTypeIsPrimitive: return c.getField().getType() != null && (c.getField().getType().isPrimitive()) ? "true" : "false";
 		case StaticFieldSignature: return JNIUtil.getJNISignature(c.getField());
@@ -202,11 +206,24 @@ public class Variable implements Expression {
 		}
 	}
 	
+	private boolean hasEmptyConstructor(Class class_) {
+		for (Constructor c : class_.getConstructors()) {
+			if (c.getParameterCount() == 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private boolean isObject(Parameter p) {
 		return p != null && (!p.getType().isPrimitive()) && (!p.getType().isArray())
 				&& (!p.getType().isEnum()) && (!p.getType().getPackage().getName().startsWith("java"));
 	}
 
+	private boolean isUserObject(Parameter p) {
+		return isObject(p) && !p.getType().equals(java.lang.String.class);
+	}
+	
 	private String getSuperclassPackage(Class c) {
 		return getSuperclass(c).getPackage().getName();
 	}
