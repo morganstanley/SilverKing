@@ -831,11 +831,11 @@ function f_runCmdInEvalEnv {
 	f_runCmd "eval env -i $variables $command"
 }
 
-function f_checkoutOss {
-	f_checkoutRepo $OSS_REPO_URL $OSS_REPO_NAME
+function f_checkoutRepo {
+	f_checkoutRepoHelper $REPO_URL $REPO_NAME
 }
 
-function f_checkoutRepo {
+function f_checkoutRepoHelper {
 	$GIT clone ${1}${2}.git
 }
 

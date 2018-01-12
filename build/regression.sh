@@ -4,12 +4,12 @@ source lib/common.lib
 source lib/common_regression.lib
 
 function f_copyBuildConfig {
-	cd $OSS_REPO_NAME/$BUILD_NAME
+	cd $REPO_NAME/$BUILD_NAME
 	cp $build_area/$BUILD_CONFIG_FILE .
 }
 
 function f_run {
-	#cd $OSS_REPO_NAME/$BUILD_NAME already cd'ing when we copy dependencies
+	#cd $REPO_NAME/$BUILD_NAME already cd'ing when we copy dependencies
 	./$BUILD_SCRIPT_NAME
 }
 
@@ -25,7 +25,7 @@ f_setBuildTimestamp "$FOLDER_NAME" "REGRESSION_${extra_options}"
 
 typeset output_filename=$(f_getRegression_RunOutputFilename) # needs to be after f_setBuildTimestamp or else filename won't be set right
 {
-	f_checkoutOss
+	f_checkoutRepo
 	f_copyBuildConfig
 	f_run
 	f_removeOldRegressions "$regression_area"
