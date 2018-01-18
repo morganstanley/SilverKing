@@ -75,8 +75,6 @@ usage()
   exit 1
 }
 
-fuseVersion=2.6.3
-
 export PATH=$PATH:/usr/bin
 
 old_dir=`pwd`
