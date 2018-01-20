@@ -882,6 +882,7 @@ static int _ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int cr
 			added = qp_add(ddr->dirDataQueueProcessor, aor);
 			if (!added) {
 				aor_delete(&aor);
+                return EAGAIN;
 			}
 		}
 		
