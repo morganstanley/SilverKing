@@ -11,11 +11,11 @@ import com.ms.silverking.id.UUIDBase;
 public interface RingMasterControl extends Remote {
 	public static final String	baseRegistryName = RingMasterControl.class.getName();
 	
-	public static String getRegistryName(String dhtName) {
+	public static String getRegistryName(String dhtName) throws RemoteException {
 		return RingMasterControl.class.getName() +"."+ dhtName;
 	}
 	
-	public static String getRegistryName(SKGridConfiguration gc) {
+	public static String getRegistryName(SKGridConfiguration gc) throws RemoteException {
 		return getRegistryName(gc.getClientDHTConfiguration().getName());
 	}
 	
