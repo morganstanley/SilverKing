@@ -933,7 +933,8 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
             try {
                 create(path.substring(0, index));
             } catch (KeeperException ke) {
-                if (ke.code() != Code.NODEEXISTS) {
+                if (ke.code() != Code.NODEEXISTS && ke.code() != Code.AUTHFAILED && ke.code() != Code.NOAUTH) {
+                	Log.logErrorWarning(ke, "Error in create("+ path.substring(0, index) +")");
                     throw ke;
                 }
             }
