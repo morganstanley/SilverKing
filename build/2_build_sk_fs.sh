@@ -85,20 +85,20 @@ output_filename=$(f_getBuildSkfs_RunOutputFilename "$CC")
 					   
 	f_checkParams
 
-			   SK_INC_DIR=$SK_ROOT/$COMMON_INCLUDE_FOLDER_NAME
+			   SK_INC_DIR=$SK_ROOT/${COMMON_INCLUDE_FOLDER_NAME}_2
 			   SK_LIB_DIR=$SK_ROOT/$INSTALL_ARCH_AREA_FOLDER_NAME/$LIB_FOLDER_NAME
 
-	if [[ $CC == $GPP_RHEL6 ]] ; then
+	if [[ $CC == $GPP ]] ; then
 		CC_D_FLAGS='-DFUSE_USE_VERSION=28 -DUSE_QSORT_R'
 	fi
 
-	C_FLAGS="-g -O2"
+	C_FLAGS="-g -O2 -std=gnu++11"
 	LD_OPTS="-fPIC -pthread -rdynamic"
 	CC_OPTS="$C_FLAGS $LD_OPTS -pipe -Wno-write-strings -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT $CC_D_FLAGS -W -Wall -Wno-unused "
-	INC_OPTS="-I${FUSE_INC_DIR} -I${SK_INC_DIR} -I${ZLIB_INC} -I${VALGRIND_INC} -I${BOOST_INC} "
-	LIB_OPTS="-L${FUSE_LIB_DIR} -lfuse -L${SK_LIB_DIR} -lsilverking -L${BOOST_LIB} -lboost_system -L${JAVA_LIB} -ljvm -lrt -lpthread -L${ZLIB_LIB} -lz      -Wl,--rpath=${FUSE_LIB_DIR} -Wl,--rpath=${SK_LIB_DIR} -Wl,--rpath=${BOOST_LIB} -Wl,--rpath=${JAVA_LIB} "
+	INC_OPTS="-I${FUSE_INC_DIR} -I${SK_INC_DIR} -I${SK_INC_DIR}/gen -I${ZLIB_INC} -I${VALGRIND_INC} -I${BOOST_INC} -I${JAVA_8_HOME}/.exec/x86_64.linux.2.6.glibc.2.5/include/ -I${JAVA_8_HOME}/.exec/x86_64.linux.2.6.glibc.2.5/include/linux/"
+	LIB_OPTS="-L${FUSE_LIB_DIR} -lfuse -L${SK_LIB_DIR} -lclickMe -L${BOOST_LIB} -lboost_system -L${JAVA_LIB} -ljvm -lrt -lpthread -L${ZLIB_LIB} -lz      -Wl,--rpath=${FUSE_LIB_DIR} -Wl,--rpath=${SK_LIB_DIR} -Wl,--rpath=${BOOST_LIB} -Wl,--rpath=${JAVA_LIB} "
 
-	f_startLocalTimer;
+	f_startLocalTimer;	
 	date;
 	f_printVariables
 	f_cleanOrMakeDirectory $SKFS_BUILD_ARCH_DIR

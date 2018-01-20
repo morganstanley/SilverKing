@@ -17,25 +17,22 @@ output_filename=$(f_getBuild_RunOutputFilename)
 	f_startGlobalTimer
 
 	f_printStep "1" "Build Silverking"
-	./$BUILD_SILVERKING_SCRIPT_NAME
+	#./$BUILD_SILVERKING_SCRIPT_NAME
 	#f_startSilverking
 	#./$TEST_SILVERKING_SCRIPT_NAME
 
-	CC=$GPP_RHEL6 
+	CC=$GPP 
 	f_printStep "2" "Build Silverking client"
 	./2_$BUILD_SILVERKING_CLIENT_SCRIPT_NAME "$CC"
-	exit
-	./$TEST_SILVERKING_CLIENT_SCRIPT_NAME
+	# ./$TEST_SILVERKING_CLIENT_SCRIPT_NAME
 	
 	f_printStep "3" "Build Silverking FS"
-	FUSE_INC_DIR=$FUSE_RHEL6_INC_DIR
-	FUSE_LIB_DIR=$FUSE_RHEL6_LIB_DIR
-	./2_$BUILD_SILVERKING_FS_SCRIPT_NAME "$CC" "$FUSE_INC_DIR" "$FUSE_LIB_DIR"
-	f_startSkfs
-	./$TEST_SILVERKING_FS_SCRIPT_NAME
+	./2_$BUILD_SILVERKING_FS_SCRIPT_NAME "$CC" "$FUSE_INC" "$FUSE_LIB"
+	# f_startSkfs
+	# ./$TEST_SILVERKING_FS_SCRIPT_NAME
 
-	f_stopSkfs
-	f_stopSilverking
+	# f_stopSkfs
+	# f_stopSilverking
 	
 	f_printSummary_BuildFlow
 
