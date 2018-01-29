@@ -34,14 +34,14 @@ public class RewriteTestTest {
 	private final static File rewriteDir = new File(testsDirPath, rewriteDirName);
 
 	private RewriteTest rt;
-	private byte byte_A = (byte)'A';
-	private byte byte_B = (byte)'B';
-	private byte byte_1 = (byte)'1';
-	private byte byte_2 = (byte)'2';
-	private byte byte_3 = (byte)'3';
-	private byte byte_4 = (byte)'4';
-	private byte byte_5 = (byte)'5';
-	private byte byte_6 = (byte)'6';
+	private byte byte_A = 'A';
+	private byte byte_B = 'B';
+	private byte byte_1 = '1';
+	private byte byte_2 = '2';
+	private byte byte_3 = '3';
+	private byte byte_4 = '4';
+	private byte byte_5 = '5';
+	private byte byte_6 = '6';
 	private Mode[] testCases = new Mode[]{Write, Verify};
 	
 	@BeforeClass
