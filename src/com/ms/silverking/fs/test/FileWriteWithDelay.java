@@ -19,6 +19,7 @@ public class FileWriteWithDelay {
 	private static final byte[]	buffer;
 	private static final byte[]	buffer2;
 	private static final double	displayIntervalSeconds = 1.0;
+	static final byte buffer2byteValue = 'A';
 	
 	static {
 		buffer = new byte[bufferSize];
@@ -26,7 +27,7 @@ public class FileWriteWithDelay {
 
 		buffer2 = new byte[bufferSize];
 		for (int i = 0; i < buffer2.length; i++) {
-			buffer2[i] = (byte)'A';
+			buffer2[i] = buffer2byteValue;
 		}
 	}
 	

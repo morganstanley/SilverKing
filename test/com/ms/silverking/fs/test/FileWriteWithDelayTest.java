@@ -57,7 +57,9 @@ public class FileWriteWithDelayTest {
 		
 		Thread.sleep(5_000);
 		
-		checkContentsEquals(f, size, (byte)'A');
+		// Strictly speaking, the result is undefined
+		// Practically speaking, I think that we will get what writer 2 wrote unless there is something going on to slow down writer 2's writes (rare; something like an overloaded server)
+		checkContentsEquals(f, size, FileWriteWithDelay.buffer2byteValue);
 	}
 	
 	private void checkContentsEquals(File f, int size, byte expected) {
