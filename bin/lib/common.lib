@@ -18,6 +18,9 @@ function f_configureClasspath {
 		classpath=$skGlobalCodebase
 		   skJava=${skDevJavaHome}/bin/java
 	fi
+	
+	echo "cp=$classpath"
+	echo
 }
 
 function f_getClasspath {
