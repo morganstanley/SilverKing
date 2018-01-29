@@ -377,6 +377,12 @@ fi
 FS_EXEC="${curDir}${skLocalSysPath}/skfsd"
 echo "skfsd path: $FS_EXEC"
 
+if [[ ! -e $FS_EXEC ]]; then
+	echo "'$FS_EXEC' doesn't exist. How am I supposed to start skfs w/o a valid binary? Quitting..."
+	f_printFail
+	exit
+fi
+
 SKFS_MOUNT=$skfsMount
 SKFS_LOG_DIR=$skfsLogs
 
