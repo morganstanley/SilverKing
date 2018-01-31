@@ -1,4 +1,4 @@
 // there are some mistakes in here
  GC_SK_NAME=sk
-export GC_SK_ZK_LOC = spgnydev1:9981
+export GC_SK_ZK_LOC = machineName:9981
 export GC_SK_PORT=8889
