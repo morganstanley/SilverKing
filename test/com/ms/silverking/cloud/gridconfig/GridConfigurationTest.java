@@ -40,7 +40,7 @@ public class GridConfigurationTest {
 		
 		gcGoodMap = new HashMap<>();
 		gcGoodMap.put("GC_SK_NAME",   "sk");
-		gcGoodMap.put("GC_SK_ZK_LOC", "machineName:9981");
+		gcGoodMap.put("GC_SK_ZK_LOC", "host:9981");
 		gcGoodMap.put("GC_SK_PORT",   "8889");
 	}
 
