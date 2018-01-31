@@ -1,31 +1,10 @@
 package com.ms.silverking.cloud.dht;
 
-import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardKeyDigestType;
-import static com.ms.silverking.cloud.dht.TestUtil.edCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.edDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.goCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.goDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.ioCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.ioDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.kcCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.kcDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.kdtCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.kdtDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.poCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.poDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.vcCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.vcDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.vpCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.vpDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.woCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.woDiff;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultEncrypterDecrypter;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardGetOptions;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardInvalidationOptions;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardPutOptions;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardWaitOptions;
+import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.*;
+import static com.ms.silverking.cloud.dht.TestUtil.*;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.*;
 import static com.ms.silverking.testing.AssertFunction.*;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -33,7 +12,6 @@ import com.ms.silverking.cloud.dht.client.KeyDigestType;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.testing.Util.ExceptionChecker;
-import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardVersionProvider;
 
 public class NamespacePerspectiveOptionsTest {
 

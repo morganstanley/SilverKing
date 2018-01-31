@@ -1,33 +1,11 @@
 package com.ms.silverking.cloud.dht;
 
-import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultAllowLinks;
-import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultRetentionPolicy;
-import static com.ms.silverking.cloud.dht.NamespaceOptions.maxSegmentSize;
-import static com.ms.silverking.cloud.dht.NamespaceOptions.minSegmentSize;
-import static com.ms.silverking.cloud.dht.TestUtil.goCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.goDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.ioCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.ioDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.poCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.poDiff;
-import static com.ms.silverking.cloud.dht.TestUtil.woCopy;
-import static com.ms.silverking.cloud.dht.TestUtil.woDiff;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultConsistencyProtocol;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultRevisionMode;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultSecondarySyncIntervalSeconds;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultSegmentSize;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultStorageType;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultVersionMode;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardGetOptions;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardInvalidationOptions;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardPutOptions;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.standardWaitOptions;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.*;
+import static com.ms.silverking.cloud.dht.TestUtil.*;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.*;
 import static com.ms.silverking.testing.AssertFunction.*;
-import static com.ms.silverking.testing.Util.int_maxVal;
-import static com.ms.silverking.testing.Util.int_minVal;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static com.ms.silverking.testing.Util.*;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -64,8 +42,8 @@ public class NamespaceOptionsTest {
 	private static ValueRetentionPolicy<?> vrpDiff     = new TimeAndVersionRetentionPolicy(Mode.mostRecentValue, 100, 1);
 
 	private static final NamespaceOptions defaultNsOptions     =     NamespaceOptions.templateOptions;
-	private static final NamespaceOptions defaultNsOptionsCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy, namespaceServerSideCode);
-	private static final NamespaceOptions defaultNsOptionsDiff = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, namespaceServerSideCode);
+	private static final NamespaceOptions defaultNsOptionsCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy, null);
+	private static final NamespaceOptions defaultNsOptionsDiff = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, null);
 	
 	private StorageType getStorageType(NamespaceOptions nsOptions) {
 		return nsOptions.getStorageType();
