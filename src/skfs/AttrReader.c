@@ -227,15 +227,19 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 	SKOperationState::SKOperationState   dhtMgetErr;
 	AttrReader		*ar;
 	int				i;
+	int				j;
 	ActiveOpRef		*refs[numRequests]; // Convenience cast of requests to ActiveOpRef*
 	uint64_t		t1;
 	uint64_t		t2;
     SKAsyncValueRetrieval *pValRetrieval;
     StrValMap       *pValues;
+    int             isDuplicate[numRequests];
 
 	srfsLog(LOG_FINE, "in ar_process_dht_batch %d", curThreadIndex);
 	ar = NULL;
     StrVector       requestGroup;  // sets of keys
+    
+    memset(isDuplicate, 0, sizeof(int) * numRequests);
 	
 	// First create a group of keys to request
 	for (int i = 0; i < numRequests; i++) {
@@ -341,6 +345,8 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 						}
 					}
 					if (pval != NULL) {
+                        // No need to check for duplicates here as this value
+                        // is created from SKRetrievalException on each iteration
 						sk_destroy_val(&pval);
 					}
 					delete pStoredVal;
@@ -420,8 +426,23 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
     } else {
         OpStateMap  *opStateMap;
         
+        // Check for duplicates
+        if (pValues->size() != numRequests) {
+            // Naive n^2 search for the duplicates that must exist
+            for (i = 0; i < numRequests; i++) {
+                for (j = i + 1; j < numRequests; j++) {
+                    AttrReadRequest    *arr_i = (AttrReadRequest *)ao_get_target(refs[i]->ao);
+                    AttrReadRequest    *arr_j = (AttrReadRequest *)ao_get_target(refs[j]->ao);
+
+                    if (!strcmp(arr_i->path, arr_j->path)) {
+                        isDuplicate[j] = TRUE;
+                    }
+                }
+            }
+        }
+        
         opStateMap = pValRetrieval->getOperationStateMap();
-        for (i = 0; i < numRequests; i++) {
+        for (i = numRequests - 1; i >= 0; i--) { // reverse order so that duplicates aren't deleted before we use them
             ActiveOp		*op;
             AttrReadRequest	*arr;
             int				successful;
@@ -504,7 +525,7 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 	            //ac_store_error(arr->attrReader->attrCache, arr->path, -1);
 				// FIXME - for skfs files, no result will cause the operation to hang
             }
-			if (ppval != NULL) {
+			if (!isDuplicate[i] && ppval != NULL) {
 				sk_destroy_val( &ppval );
 			}
 

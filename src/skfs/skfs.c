@@ -613,7 +613,7 @@ static int ensure_not_writable(char *path1, char *path2) {
 
 static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid) {
     struct timespec last_access_tp;
-    struct timespec last_modification_tp;
+    struct timespec *p_last_modification_tp;
     struct timespec last_change_tp;
     time_t  curEpochTimeSeconds;
     long    curTimeNanos;
@@ -622,9 +622,10 @@ static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t 
     if (clock_gettime(CLOCK_REALTIME, &last_access_tp)) {
         fatalError("clock_gettime failed", __FILE__, __LINE__);
     }
-    last_modification_tp = last_access_tp;
+    // modification time not updated
+    p_last_modification_tp = NULL;
     last_change_tp = last_access_tp;
-    return _modify_file_attr(path, fnName, mode, uid, gid, &last_access_tp, &last_modification_tp, &last_change_tp);
+    return _modify_file_attr(path, fnName, mode, uid, gid, &last_access_tp, p_last_modification_tp, &last_change_tp);
 }
 
 static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid, 
@@ -680,10 +681,10 @@ static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t
                 if (mode != NULL) {
                     fa.stat.st_mode = *mode;
                 }
-                if (uid != NULL) {
+                if (uid != NULL && *uid != (uid_t)-1) {
                     fa.stat.st_uid = *uid;
                 }
-                if (gid != NULL) {
+                if (gid != NULL && *gid != (gid_t)-1) {
                     fa.stat.st_gid = *gid;
                 }
                 writeResult = aw_write_attr_direct(aw, path, &fa, ar->attrCache);
@@ -2123,7 +2124,7 @@ static void * nativefile_watcher_thread(void * unused) {
 		( void ) close( fd );
 
   }  // end of main loop
-
+  return NULL;
 }
 
 void initFuse() {

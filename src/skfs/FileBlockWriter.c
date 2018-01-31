@@ -165,16 +165,19 @@ void fbw_write_file_block(FileBlockWriter *fbw, FileBlockID *fbid, size_t dataLe
 }
 
 static void fbw_process_dht_batch(void **requests, int numRequests, int curThreadIndex) {
-
 	SKOperationState::SKOperationState	dhtErr = SKOperationState::INCOMPLETE;
    	StrValMap           requestGroup;  // map of keys 
 	int					i;
+	int				    j;
 	FileBlockWriter		*fbw;
 	char				keys[numRequests][SRFS_FBID_KEY_SIZE];
+    int                 isDuplicate[numRequests];
 
 	srfsLog(LOG_FINE, "in fbw_process_dht_batch %d", curThreadIndex);
 	fbw = NULL;
     char * ns = NULL;
+    
+    memset(isDuplicate, 0, sizeof(int) * numRequests);
 
     // First, construct the requestGroup
 	for (i = 0; i < numRequests; i++) {
@@ -292,12 +295,23 @@ static void fbw_process_dht_batch(void **requests, int numRequests, int curThrea
 		//pPut->close();
 		delete pPut;
 	}
-	
-	for (i = 0; i < numRequests; i++) {
+    
+    // Check for duplicates
+    if (requestGroup.size() != numRequests) {
+        // Naive n^2 search for the duplicates that must exist
+        for (i = 0; i < numRequests; i++) {
+            for (j = i + 1; j < numRequests; j++) {
+                if (!strcmp(keys[i], keys[j])) {
+                    isDuplicate[j] = TRUE;
+                }
+            }
+        }
+    }
+    
+    for (i = numRequests - 1; i >= 0; i--) { // reverse order so that duplicates aren't deleted before we use them
 		SKVal   *ppval;
         
 		ppval = requestGroup.at(keys[i]);
-		//m_pVal points to fbwr's member, which is deleted below
 		if (ppval == NULL) {
 			srfsLog(LOG_WARNING, "fbw unexpected ppval == NULL %s %s\n", SKFS_FB_NS, keys[i]);
 		} else {
@@ -305,9 +319,12 @@ static void fbw_process_dht_batch(void **requests, int numRequests, int curThrea
                 srfsLog(LOG_WARNING, "fbw unexpected ppval->m_len == 0 %s %s\n", SKFS_FB_NS, keys[i]);
             }
         }
-		ppval->m_len = 0; 
-        ppval->m_pVal = NULL;
-		//sk_destroy_val( &ppval ); // FIXME - double free check
+        if (!isDuplicate[i]) {
+            ppval->m_len = 0; 
+            //m_pVal points to fbwr's member, which is deleted below
+            ppval->m_pVal = NULL;
+            sk_destroy_val( &ppval ); // FIXME - double free check, was commented out before fix
+        }
 	}
 	// like AttrWriter, and unlike the FileBlockReader/AttrReader, we must delete requests here
 	for (i = 0; i < numRequests; i++) {

@@ -185,6 +185,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 	SKOperationState::SKOperationState	dhtMgetErr = SKOperationState::FAILED;
 	FileBlockReader	*fbr;
 	int				i;
+    int             j;
 	ActiveOpRef		*refs[numRequests];
 	char			keys[numRequests][SRFS_FBID_KEY_SIZE];
 	uint64_t		t1;
@@ -192,11 +193,14 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
     int             hasSKFSRequests;
     SKAsyncValueRetrieval   *pValRetrieval;
    	StrVector       requestGroup;  // sets of keys 
+    int             isDuplicate[numRequests];
 
 	srfsLog(LOG_FINE, "in fbr_process_dht_batch %d", curThreadIndex);
 	fbr = NULL;
     pValRetrieval = NULL;
 
+    memset(isDuplicate, 0, sizeof(int) * numRequests);
+    
 	// Create requestGroup
     hasSKFSRequests = FALSE;
 	for (i = 0; i < numRequests; i++) {
@@ -236,6 +240,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 	    rts_add_sample(fbr->rtsDHT, t2 - t1, numRequests);
         dhtMgetErr = pValRetrieval->getState();
     } catch (SKRetrievalException & e ){
+        // No need to handle duplicates here as each ppval is created on each iteration
 		for (i = 0; i < numRequests; i++) {
 			ActiveOp		      *op;
 			FileBlockReadRequest  *fbrr;
@@ -267,7 +272,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 						srfsLog(LOG_WARNING, "fbr dhtErr no pval %llx %s : %s line %d", fbrr, SKFS_FB_NS, keys[i], __LINE__);
 					} else {
 						if ((ppval->m_len == 0) || (ppval->m_len > SRFS_BLOCK_SIZE)) {
-							srfsLog(LOG_WARNING, "ignoring block with bogus size fbid->block %d m_len %d", fbrr->fbid->block, ppval->m_len);
+							srfsLog(LOG_WARNING, "Ignoring block with bogus size fbid->block %d m_len %d %s %d", fbrr->fbid->block, ppval->m_len, __FILE__, __LINE__);
 						} else {
 							CacheStoreResult	result;
 								
@@ -369,7 +374,19 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
     StrValMap   *pValues = pValRetrieval->getValues();
 	OpStateMap  *opStateMap = pValRetrieval->getOperationStateMap();
 
-	for (i = 0; i < numRequests; i++) {
+    // Check for duplicates
+    if (pValues->size() != numRequests) {
+        // Naive n^2 search for the duplicates that must exist
+        for (i = 0; i < numRequests; i++) {
+            for (j = i + 1; j < numRequests; j++) {
+                if (!strcmp(keys[i], keys[j])) {
+                    isDuplicate[j] = TRUE;
+                }
+            }
+        }
+    }
+    
+    for (i = numRequests - 1; i >= 0; i--) { // reverse order so that duplicates aren't deleted before we use them
 		ActiveOp		      *op;
 		FileBlockReadRequest  *fbrr;
 		SKVal	              *val;
@@ -389,6 +406,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
             opState = SKOperationState::FAILED;
             srfsLog(LOG_INFO, "fbr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
         }
+
         if (opState == SKOperationState::SUCCEEDED) {
             SKVal   *ppval;
         
@@ -408,12 +426,19 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
     			if (ppval->m_len > SRFS_BLOCK_SIZE) {
     			//if ((ppval->m_len == 0) || (ppval->m_len > SRFS_BLOCK_SIZE)) {
 					//sd_op_failed(fbr->sd, opState);
-    				srfsLog(LOG_WARNING, "ignoring block with bogus size fbid->block %d m_len %d", fbrr->fbid->block, ppval->m_len);
+    				srfsLog(LOG_WARNING, "Ignoring block with bogus size fbid->block %d m_len %d %s %d", fbrr->fbid->block, ppval->m_len, __FILE__, __LINE__);
                 } else {
 					CacheStoreResult	result;
                     
                     if (ppval->m_len == 0) {
-                        sk_destroy_val(&ppval);
+                        if (!isDuplicate[i]) {
+                            if (ppval->m_pVal != NULL) {
+                                srfsLog(LOG_WARNING, "Ignoring bogus empty value %s %d", __FILE__, __LINE__);
+                            } else {
+                                // FIXME - temp potential crash workaround
+                                //sk_destroy_val(&ppval);
+                            }
+                        }
                         ppval = sk_create_val();
                         // FUTURE - Consider changing the below to remove a copy
                         // Would require a special check in cache data deletion to ensure that we don't delete
@@ -429,7 +454,11 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
                                                  ppval, fbrr->minModificationTimeMicros);
                     if (result != CACHE_STORE_SUCCESS) {
                         srfsLog(LOG_FINE, "Cache store rejected");
-                        sk_destroy_val(&ppval);
+                        if (!isDuplicate[i]) {
+                            sk_destroy_val(&ppval);
+                        } else {
+                            srfsLog(LOG_WARNING, "Ignoring cache rejection of duplicate");
+                        }
                     }
                 }
             }

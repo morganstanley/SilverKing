@@ -97,6 +97,7 @@ Cache *cache_new(char *name, int size, int evictionBatchSize, unsigned int (*has
     cache->ht = create_hashtable(size, hash, compare);
     pthread_rwlock_init(&cache->rwLock, 0); 
 	pthread_spin_init(&cache->statLock, 0);
+    srfsLog(LOG_WARNING, "faondf %d", _cache_fatal_error_on_double_free);
 	return cache;
 }
 

@@ -42,7 +42,6 @@ static uint64_t	_maxMaxReconciliationSleepMillis = 1 * 60 * 1000;
 static uint64_t _minReconciliationSleepMillis = 800;
 static uint64_t	_maxReconciliationSleepMillis = 1 * 1000;
 static unsigned int _reconciliationSeed;
-static uint64_t _lastVersion;
 
 
 ///////////////////////
@@ -56,7 +55,7 @@ static void *odt_od_reconciliation_run(void *_odt);
 static int odt_rm_entry(OpenDirTable *odt, char *path, char *child);
 static int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od = NULL);
 
-static uint64_t odt_getVersion();
+static uint64_t odt_getVersion(OpenDirTable *odt);
 
 
 ///////////////
@@ -85,6 +84,11 @@ OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader 
     srfsLog(LOG_WARNING, "odt->minReconciliationSleepMillis %lu odt->maxReconciliationSleepMillis %lu\n", 
             odt->minReconciliationSleepMillis, odt->maxReconciliationSleepMillis);
 	
+    odt->_lastVersion = 0;
+    if (pthread_spin_init(&odt->lvLock, PTHREAD_PROCESS_PRIVATE) != 0) {
+        fatalError("Unable to initialize lvLock in odt_new()");
+    }
+    
 	return odt;
 }
 
@@ -229,17 +233,25 @@ int odt_releasedir(OpenDirTable *odt, const char* path, struct fuse_file_info *f
 	return 0;
 }
 
-static uint64_t odt_getVersion() {
+static uint64_t odt_getVersion(OpenDirTable *odt) {
     uint64_t    v;
     
-    v = curTimeMillis();
-    // below is not thread-safe
-    // a simplistic attempt to reduce collisions without impacting speed
-    if (v == _lastVersion) {
-        _lastVersion++;
-        v++;
+    v = curTimeMicros();
+    // a simplistic attempt to reduce collisions without significantly impacting speed
+    if (pthread_spin_lock(&odt->lvLock) != 0) {
+        fatalError("Unable to lock lvLock in odt_getVersion()");
+    }
+    if (v <= odt->_lastVersion) {
+        odt->_lastVersion++;
+        v = odt->_lastVersion;
+        if (pthread_spin_unlock(&odt->lvLock) != 0) {
+            fatalError("Unable to unlock lvLock in odt_getVersion()");
+        }
     } else {
-        _lastVersion = v;
+        odt->_lastVersion = v;
+        if (pthread_spin_unlock(&odt->lvLock) != 0) {
+            fatalError("Unable to unlock lvLock in odt_getVersion()");
+        }
     }
     return v;
 }
@@ -249,7 +261,7 @@ static int odt_rm_entry(OpenDirTable *odt, char *path, char *child) {
 	OpenDir	*od;
     uint64_t    version;
 
-    version = odt_getVersion();
+    version = odt_getVersion(odt);
 	srfsLog(LOG_FINE, "odt_rm_entry %s %s", path, child);
 	result = ddr_get_OpenDir(odt->ddr, path, &od, DDR_NO_AUTO_CREATE);
 	if (result == 0) {
@@ -272,7 +284,7 @@ static int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_
 	OpenDir	*od;
     uint64_t    version;
 
-    version = odt_getVersion();
+    version = odt_getVersion(odt);
 	srfsLog(LOG_FINE, "odt_add_entry %s %s", path, child);
     od = NULL;
     // We auto-create below as a safety check. The parent

@@ -64,8 +64,8 @@ public class NamespaceOptionsTest {
 	private static ValueRetentionPolicy<?> vrpDiff     = new TimeAndVersionRetentionPolicy(Mode.mostRecentValue, 100, 1);
 
 	private static final NamespaceOptions defaultNsOptions     =     NamespaceOptions.templateOptions;
-	private static final NamespaceOptions defaultNsOptionsCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy);
-	private static final NamespaceOptions defaultNsOptionsDiff = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff);
+	private static final NamespaceOptions defaultNsOptionsCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy, namespaceServerSideCode);
+	private static final NamespaceOptions defaultNsOptionsDiff = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, namespaceServerSideCode);
 	
 	private StorageType getStorageType(NamespaceOptions nsOptions) {
 		return nsOptions.getStorageType();

@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht.common;
 import java.util.Timer;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
+import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.time.RelNanosAbsMillisTimeSource;
 import com.ms.silverking.time.SystemTimeSource;
@@ -24,6 +25,7 @@ public class DHTUtil {
     private static void initializeObjectParsers() {
         new SecondaryTarget(null, null);
         NamespaceOptions.init();
+        NamespaceServerSideCode.init();
     }
 
     public static long currentTimeMillis() {

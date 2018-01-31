@@ -125,126 +125,132 @@ public class DependencyWatcher implements VersionListener {
     }
     
     private void build(Map<String, Long> curBuild) {
-    	boolean	buildOK;
-        long    ringConfigVersion;
-    	
-        Log.warning("New build triggered");
-    	buildOK = false;
-    	ringConfigVersion = -1;
-        try {
-            if (TopoRingConstants.verbose) {
-                System.out.println("Building tree");
-            }
-            RingTreeRecipe  recipe;
-            Topology topology;
-            WeightSpecifications weightSpecs;
-            ExclusionSet exclusionSet;
-            ExclusionSet instanceExclusionSet;
-            StoragePolicyGroup  storagePolicyGroup;
-            long    topologyVersion;
-            long    weightsVersion;
-            long    exclusionVersion;
-            long    instanceExclusionVersion;
-            long    storagePolicyGroupVersion;
-            RingConfiguration   ringConfig;
-            ZooKeeperExtended   zk;
-            HostGroupTable  hostGroupTable;
-            long    hostGroupTableVersion;
-            ExclusionSet	mergedExclusionSet;
-            
-            zk = mc.getZooKeeper();
-            
-            topologyVersion = curBuild.get(mp.getTopologyPath());
-            weightsVersion = curBuild.get(mp.getWeightsPath());
-            exclusionVersion = curBuild.get(mp.getExclusionsPath());
-            instanceExclusionVersion = curBuild.get(dhtMC.getMetaPaths().getInstanceExclusionsPath());
-            storagePolicyGroupVersion = curBuild.get(mp.getStoragePolicyGroupPath());
-            ringConfigVersion = curBuild.get(mp.getConfigPath());
-            
-            topology = new TopologyZK(cloudMC).readFromZK(topologyVersion, null);
-            weightSpecs = new WeightsZK(mc).readFromZK(weightsVersion, null);
-            
-            exclusionSet = new ExclusionSet(new ServerSetExtensionZK(mc, mc.getMetaPaths().getExclusionsPath()).readFromZK(exclusionVersion, null));
-            try {
-            	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(mc, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(instanceExclusionVersion, null));
-            } catch (Exception e) {
-            	Log.warning("No instance ExclusionSet found");
-            	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
-            }
-            mergedExclusionSet = ExclusionSet.union(exclusionSet, instanceExclusionSet);
-            
-            storagePolicyGroup = new StoragePolicyGroupZK(mc).readFromZK(storagePolicyGroupVersion, null); 
-            ringConfig = new RingConfigurationZK(mc).readFromZK(ringConfigVersion, null);
-            
-            hostGroupTableVersion = zk.getLatestVersion( cloudMC.getMetaPaths().getHostGroupPath() );
-            hostGroupTable = new HostGroupTableZK(cloudMC).readFromZK(hostGroupTableVersion, null);
-            
-            try {
-                recipe = new RingTreeRecipe(topology, ringConfig.getRingParentName(), weightSpecs, mergedExclusionSet, 
-                        storagePolicyGroup, ringConfig.getStoragePolicyName(), hostGroupTable, 
-                        ringConfig.getHostGroups(),
-                        ringConfigVersion, 
-                        DHTUtil.currentTimeMillis());
-                Log.warning("Recipe.ringParent: "+ recipe.ringParent);
-            } catch (RuntimeException re) {
-            	re.printStackTrace(System.out);
-                Log.warning("ringConfig: ", ringConfig +" "+ re);
-                Log.logErrorWarning(re);
-                throw re;
-            }
-                        
-            RingTree    ringTree;
-            RingTree    prevRingTree;
-            long        configInstanceVersion;
-            String      newInstancePath; 
-
-            configInstanceVersion = mc.getLatestConfigInstanceVersion(ringConfigVersion);
-            if (configInstanceVersion >= 0 && !ignoreSource) {
-                prevRingTree = SingleRingZK.readTree(mc, ringConfigVersion, configInstanceVersion);
-            } else {
-                prevRingTree = null;
-            }
-            if (prevRingTree == null 
-                    || ignoreFeasibility 
-                    || RingTreeBuilder.convergenceFeasible(prevRingTree, 
-                                            storagePolicyGroup, ringConfig.getStoragePolicyName(),
-                                                                ringConfig.getRingParentName(), exclusionSet)) {
-                ringTree = RingTreeBuilder.create(recipe, prevRingTree);
-                //ringTree = RingTreeBuilder.create(recipe, null); // for testing without movement reduction
-                newInstancePath = mc.createConfigInstancePath(ringConfigVersion); 
-                SingleRingZK.writeTree(mc, topologyVersion, newInstancePath, ringTree);
-                
-                if (TopoRingConstants.verbose) {
-                    System.out.println(ringTree);
-                    System.out.println(ringConfigVersion);
-                    System.out.println(configInstanceVersion);
-                    System.out.println(topologyVersion);
-                    System.out.println(newInstancePath);
-                    System.out.println("Building complete");
-                }
-                buildOK = true;
-            } else {
-                Log.warning("Convergence is infeasible. A region in prevTree does not have a viable server.");
-            }
-        } catch (IOException ioe) {
-            Log.logErrorWarning(ioe);
-        } catch (KeeperException ke) {
-            Log.logErrorWarning(ke);
-        }
-        if (exitAfterBuild) {
-        	if (buildOK) {
-        		try {
-        			if (ringConfigVersion < 0) {
-        				throw new RuntimeException("ringConfigVersion < 0");
-        			}
-        			setRing(ringConfigVersion);
-        		} catch (KeeperException ke) {
-        			Log.logErrorWarning(ke);
-        			buildOK = false;
-        		}
-        	}
-        	System.exit(buildOK ? 0 : -1);
-        }
+    	try {
+	    	boolean	buildOK;
+	        long    ringConfigVersion;
+	    	
+	        Log.warning("New build triggered");
+	    	buildOK = false;
+	    	ringConfigVersion = -1;
+	        try {
+	            if (TopoRingConstants.verbose) {
+	                System.out.println("Building tree");
+	            }
+	            RingTreeRecipe  recipe;
+	            Topology topology;
+	            WeightSpecifications weightSpecs;
+	            ExclusionSet exclusionSet;
+	            ExclusionSet instanceExclusionSet;
+	            StoragePolicyGroup  storagePolicyGroup;
+	            long    topologyVersion;
+	            long    weightsVersion;
+	            long    exclusionVersion;
+	            long    instanceExclusionVersion;
+	            long    storagePolicyGroupVersion;
+	            RingConfiguration   ringConfig;
+	            ZooKeeperExtended   zk;
+	            HostGroupTable  hostGroupTable;
+	            long    hostGroupTableVersion;
+	            ExclusionSet	mergedExclusionSet;
+	            
+	            zk = mc.getZooKeeper();
+	            
+	            topologyVersion = curBuild.get(mp.getTopologyPath());
+	            weightsVersion = curBuild.get(mp.getWeightsPath());
+	            exclusionVersion = curBuild.get(mp.getExclusionsPath());
+	            instanceExclusionVersion = curBuild.get(dhtMC.getMetaPaths().getInstanceExclusionsPath());
+	            storagePolicyGroupVersion = curBuild.get(mp.getStoragePolicyGroupPath());
+	            ringConfigVersion = curBuild.get(mp.getConfigPath());
+	            
+	            topology = new TopologyZK(cloudMC).readFromZK(topologyVersion, null);
+	            weightSpecs = new WeightsZK(mc).readFromZK(weightsVersion, null);
+	            
+	            exclusionSet = new ExclusionSet(new ServerSetExtensionZK(mc, mc.getMetaPaths().getExclusionsPath()).readFromZK(exclusionVersion, null));
+	            try {
+	            	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(mc, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(instanceExclusionVersion, null));
+	            } catch (Exception e) {
+	            	Log.warning("No instance ExclusionSet found");
+	            	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+	            }
+	            mergedExclusionSet = ExclusionSet.union(exclusionSet, instanceExclusionSet);
+	            
+	            storagePolicyGroup = new StoragePolicyGroupZK(mc).readFromZK(storagePolicyGroupVersion, null); 
+	            ringConfig = new RingConfigurationZK(mc).readFromZK(ringConfigVersion, null);
+	            
+	            hostGroupTableVersion = zk.getLatestVersion( cloudMC.getMetaPaths().getHostGroupPath() );
+	            hostGroupTable = new HostGroupTableZK(cloudMC).readFromZK(hostGroupTableVersion, null);
+	            
+	            try {
+	                recipe = new RingTreeRecipe(topology, ringConfig.getRingParentName(), weightSpecs, mergedExclusionSet, 
+	                        storagePolicyGroup, ringConfig.getStoragePolicyName(), hostGroupTable, 
+	                        ringConfig.getHostGroups(),
+	                        ringConfigVersion, 
+	                        DHTUtil.currentTimeMillis());
+	                Log.warning("Recipe.ringParent: "+ recipe.ringParent);
+	            } catch (RuntimeException re) {
+	            	re.printStackTrace(System.out);
+	                Log.warning("ringConfig: ", ringConfig +" "+ re);
+	                Log.logErrorWarning(re);
+	                throw re;
+	            }
+	                        
+	            RingTree    ringTree;
+	            RingTree    prevRingTree;
+	            long        configInstanceVersion;
+	            String      newInstancePath; 
+	
+	            configInstanceVersion = mc.getLatestConfigInstanceVersion(ringConfigVersion);
+	            if (configInstanceVersion >= 0 && !ignoreSource) {
+	                prevRingTree = SingleRingZK.readTree(mc, ringConfigVersion, configInstanceVersion);
+	            } else {
+	                prevRingTree = null;
+	            }
+	            if (prevRingTree == null 
+	                    || ignoreFeasibility 
+	                    || RingTreeBuilder.convergenceFeasible(prevRingTree, 
+	                                            storagePolicyGroup, ringConfig.getStoragePolicyName(),
+	                                                                ringConfig.getRingParentName(), exclusionSet)) {
+	                ringTree = RingTreeBuilder.create(recipe, prevRingTree);
+	                //ringTree = RingTreeBuilder.create(recipe, null); // for testing without movement reduction
+	                newInstancePath = mc.createConfigInstancePath(ringConfigVersion); 
+	                SingleRingZK.writeTree(mc, topologyVersion, newInstancePath, ringTree);
+	                
+	                if (TopoRingConstants.verbose) {
+	                    System.out.println(ringTree);
+	                    System.out.println(ringConfigVersion);
+	                    System.out.println(configInstanceVersion);
+	                    System.out.println(topologyVersion);
+	                    System.out.println(newInstancePath);
+	                    System.out.println("Building complete");
+	                }
+	                buildOK = true;
+	            } else {
+	                Log.warning("Convergence is infeasible. A region in prevTree does not have a viable server.");
+	            }
+	        } catch (IOException ioe) {
+	            Log.logErrorWarning(ioe);
+	        } catch (KeeperException ke) {
+	            Log.logErrorWarning(ke);
+	        }
+	        if (exitAfterBuild) {
+	        	if (buildOK) {
+	        		try {
+	        			if (ringConfigVersion < 0) {
+	        				throw new RuntimeException("ringConfigVersion < 0");
+	        			}
+	        			setRing(ringConfigVersion);
+	        		} catch (KeeperException ke) {
+	        			Log.logErrorWarning(ke);
+	        			buildOK = false;
+	        		}
+	        	}
+	        	System.exit(buildOK ? 0 : -1);
+	        }
+    	} catch (RuntimeException re) {
+    		re.printStackTrace();
+    	} finally {
+    		Log.warning("Leaving build");
+    	}
     }
     
     private Map<String, Long> createBuildMap(ZooKeeperExtended zk) throws KeeperException {

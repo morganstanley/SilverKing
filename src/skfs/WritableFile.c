@@ -897,10 +897,10 @@ int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid,
     if (mode != NULL) {
         wf->fa.stat.st_mode = *mode;
     }
-    if (uid != NULL) {
+    if (uid != NULL && *uid != (gid_t)-1) {
         wf->fa.stat.st_uid = *uid;
     }
-    if (gid != NULL) {
+    if (gid != NULL && *gid != (gid_t)-1) {
         wf->fa.stat.st_gid = *gid;
     }
 

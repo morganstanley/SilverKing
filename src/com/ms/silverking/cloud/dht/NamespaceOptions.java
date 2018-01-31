@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht;
 import com.google.common.base.Preconditions;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.code.Constraint;
+import com.ms.silverking.object.ObjectUtil;
 import com.ms.silverking.text.ObjectDefParser2;
 
 
@@ -23,6 +24,7 @@ public class NamespaceOptions {
     private final int                   segmentSize;
     private final boolean               allowLinks;
     private final ValueRetentionPolicy	valueRetentionPolicy;
+    private final NamespaceServerSideCode	namespaceServerSideCode;
     
     /*
      * To Add:
@@ -64,7 +66,7 @@ public class NamespaceOptions {
      * @param storageType StorageType for this namespace
      * @param consistencyProtocol ConsistencyProtocol for this namespace
      * @param versionMode VersionMode for this namespace
-	 * @param revisionMode RevisionMode for this namespace
+     * @param revisionMode RevisionMode for this namespace
      * @param defaultPutOptions the default PutOptions to use for this namespace
      * @param defaultInvalidationOptions the default InvalidationOptions to use for this namespace
      * @param defaultGetOptions the default GetOptions to use for this namespace
@@ -72,13 +74,14 @@ public class NamespaceOptions {
      * @param secondarySyncIntervalSeconds interval at which secondary replicas will sync data 
      * @param segmentSize the segment size to use for this namespace
      * @param allowLinks Avoid use. For backwards compatibility to SilverRails only. 
+     * @param namespaceServerSideCode TODO
      */
     public NamespaceOptions(StorageType storageType, ConsistencyProtocol consistencyProtocol,
             NamespaceVersionMode versionMode, RevisionMode revisionMode, 
             PutOptions defaultPutOptions, InvalidationOptions defaultInvalidationOptions, 
             GetOptions defaultGetOptions, WaitOptions defaultWaitOptions, 
             int secondarySyncIntervalSeconds, int segmentSize, boolean allowLinks,
-            ValueRetentionPolicy valueRetentionPolicy) {
+            ValueRetentionPolicy valueRetentionPolicy, NamespaceServerSideCode namespaceServerSideCode) {
         Preconditions.checkNotNull(storageType);
         Preconditions.checkNotNull(consistencyProtocol);
         Preconditions.checkNotNull(versionMode);
@@ -102,6 +105,7 @@ public class NamespaceOptions {
         this.segmentSize = segmentSize;
         this.allowLinks = allowLinks;
         this.valueRetentionPolicy = valueRetentionPolicy;
+        this.namespaceServerSideCode = namespaceServerSideCode;
     }
     
     /**
@@ -114,7 +118,7 @@ public class NamespaceOptions {
             int secondarySyncIntervalSeconds, int segmentSize, boolean allowLinks) {
     	this(storageType, consistencyProtocol, versionMode, revisionMode, defaultPutOptions, 
     			defaultInvalidationOptions, defaultGetOptions, defaultWaitOptions, 
-    			secondarySyncIntervalSeconds, segmentSize, allowLinks, defaultRetentionPolicy);
+    			secondarySyncIntervalSeconds, segmentSize, allowLinks, defaultRetentionPolicy, null);
     }
     
     private NamespaceOptions() {
@@ -124,7 +128,7 @@ public class NamespaceOptions {
                 DHTConstants.standardGetOptions, DHTConstants.standardWaitOptions,
                 DHTConstants.defaultSecondarySyncIntervalSeconds, 
                 DHTConstants.defaultSegmentSize, defaultAllowLinks, 
-                defaultRetentionPolicy);
+                defaultRetentionPolicy, null);
     }
     
     /**
@@ -223,6 +227,10 @@ public class NamespaceOptions {
     	return valueRetentionPolicy;
     }
     
+    public NamespaceServerSideCode getNamespaceServerSideCode() {
+    	return namespaceServerSideCode;
+    }
+    
     /**
      * Returns true iff these options specify "write once" semantics: a NamespaceVersionMode of SINGLE_VERSION
      * and a RevisionMode of NO_REVISIONS.
@@ -242,7 +250,7 @@ public class NamespaceOptions {
                 NamespaceVersionMode.SINGLE_VERSION, RevisionMode.NO_REVISIONS, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -254,7 +262,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -266,7 +274,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -278,7 +286,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -290,7 +298,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     private void checkTimeoutControllerForValidity(OperationOptions operationOptions) {
@@ -313,7 +321,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -325,7 +333,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -337,7 +345,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -349,7 +357,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -361,7 +369,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -373,7 +381,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
             defaultPutOptions, defaultInvalidationOptions, 
             defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-            segmentSize, allowLinks, valueRetentionPolicy);
+            segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -385,7 +393,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -397,7 +405,19 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy);
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+    }
+    
+    /**
+     * Return a copy of this instance with a new namespaceServerSideCode
+     * @param namespaceServerSideCode namespaceServerSideCode for new instance
+     * @return copy of this instance with a new namespaceServerSideCode
+     */
+    public NamespaceOptions namespaceServerSideCode(NamespaceServerSideCode namespaceServerSideCode) {
+        return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
+                defaultPutOptions, defaultInvalidationOptions, 
+                defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
+                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     @Override
@@ -413,7 +433,8 @@ public class NamespaceOptions {
                 ^ secondarySyncIntervalSeconds 
                 ^ segmentSize
                 ^ Boolean.hashCode(allowLinks)
-                ^ valueRetentionPolicy.hashCode();
+                ^ valueRetentionPolicy.hashCode()
+                ^ ObjectUtil.hashCode(namespaceServerSideCode);
     }
     
     @Override
@@ -440,7 +461,8 @@ public class NamespaceOptions {
                 && secondarySyncIntervalSeconds == other.secondarySyncIntervalSeconds 
                 && segmentSize == other.segmentSize
                 && allowLinks == other.allowLinks
-                && valueRetentionPolicy.equals(other.valueRetentionPolicy);
+                && valueRetentionPolicy.equals(other.valueRetentionPolicy)
+                && ObjectUtil.equal(namespaceServerSideCode, other.namespaceServerSideCode);
     }
     
     public void debugEquality(Object o) {

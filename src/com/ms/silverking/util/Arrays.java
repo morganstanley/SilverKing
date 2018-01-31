@@ -44,6 +44,24 @@ public class Arrays {
         return -1;
     }
     
+    public static int indexOf(byte[] a1, byte v) {
+        for (int i = 0; i < a1.length; i++) {
+            if (a1[i] == v) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    public static int lastIndexOf(byte[] a1, byte v) {
+        for (int i = a1.length - 1; i >= 0; i--) {
+            if (a1[i] == v) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
     public static <T> boolean contains(T[] a1, T v) {
     	return indexOf(a1, v) >= 0;
     }

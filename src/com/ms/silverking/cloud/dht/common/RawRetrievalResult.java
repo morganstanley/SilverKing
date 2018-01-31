@@ -11,9 +11,9 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.MetaData;
 import com.ms.silverking.cloud.dht.client.StoredValue;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
-import com.ms.silverking.cloud.dht.client.impl.CodecProvider;
 import com.ms.silverking.cloud.dht.client.impl.MetaDataTextUtil;
 import com.ms.silverking.cloud.dht.client.impl.SegmentationUtil;
+import com.ms.silverking.compression.CodecProvider;
 import com.ms.silverking.compression.Decompressor;
 import com.ms.silverking.log.Log;
 

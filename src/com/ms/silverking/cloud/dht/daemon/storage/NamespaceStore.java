@@ -25,6 +25,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
+import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
@@ -76,10 +77,16 @@ import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyOrdinalEntry;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
+import com.ms.silverking.cloud.dht.serverside.PutTrigger;
+import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
+import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
+import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
+import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.HashedSetMap;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.SKImmutableList;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
@@ -92,7 +99,7 @@ import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.util.PropertiesHelper;
 
-public class NamespaceStore {
+public class NamespaceStore implements SSNamespaceStore {
     private final long ns;
     private NamespaceStore  parent;
     private final File nsDir;
@@ -133,6 +140,8 @@ public class NamespaceStore {
     private long lastConvergenceTotalKeys;
     protected final SystemTimeSource   systemTimeSource;
     private final Set<Integer>	deletedSegments;
+    private final PutTrigger	putTrigger;
+    private final RetrieveTrigger	retrieveTrigger;
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>	activeRegionSyncs;    
     
@@ -291,6 +300,36 @@ public class NamespaceStore {
         systemTimeSource = SystemTimeUtil.systemTimeSource;
         nsStats = new NamespaceStats();
         deletedSegments = new HashSet<>();
+        
+    	Pair<PutTrigger,RetrieveTrigger>	triggers;    	
+    	triggers = instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
+    	putTrigger = triggers.getV1();
+    	retrieveTrigger = triggers.getV2();
+    }
+    
+    private static final Pair<PutTrigger,RetrieveTrigger> instantiateServerSideCode(NamespaceServerSideCode	ssCode) {
+        PutTrigger		putTrigger;
+        RetrieveTrigger	retrieveTrigger;
+        
+		putTrigger = null;
+		retrieveTrigger = null;
+        if (ssCode != null) {
+	    	if (ssCode.getUrl() != null && ssCode.getUrl().trim().length() != 0) {
+	    		Log.warningf("Ignoring server side code %s. Remote code not currently supported", ssCode.getUrl());
+	    	} else {
+				try {
+		    		putTrigger = (PutTrigger)Class.forName(ssCode.getPutTrigger()).newInstance();
+		    		if (ssCode.getPutTrigger().equals(ssCode.getRetrieveTrigger())) {
+		    			retrieveTrigger = (RetrieveTrigger)putTrigger;
+		    		} else {
+		        		retrieveTrigger = (RetrieveTrigger)Class.forName(ssCode.getRetrieveTrigger()).newInstance();
+		    		}
+				} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+					Log.logErrorWarning(e, "Unable to instantiate server side code: "+ ssCode);
+				}
+	    	}
+        }
+		return new Pair<>(putTrigger, retrieveTrigger);
     }
     
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
@@ -589,7 +628,11 @@ public class NamespaceStore {
             for (StorageValueAndParameters value : values) {
                 OpResult storageResult;
 
-                storageResult = _put(value.getKey(), value.getValue(), value, userData, nsVersionMode);
+                if (putTrigger != null) {
+                	storageResult = putTrigger.put(this, value.getKey(), value.getValue(), value, userData, nsVersionMode);
+                } else {
+                	storageResult = _put(value.getKey(), value.getValue(), value, userData, nsVersionMode);
+                }
                 //if (storageResult != OpResult.SUCCEEDED) Log.warningf("fail _put %s %s %d", KeyUtil.keyToString(value.getKey()), storageResult, value.getVersion()); // for debugging
                 resultListener.sendResult(value.getKey(), storageResult);
                 if (storageResult == OpResult.SUCCEEDED) {
@@ -1077,6 +1120,14 @@ public class NamespaceStore {
     }
     
     private OpResult _putUpdate(DHTKey key, long version, byte storageState) {
+    	if (putTrigger != null) {
+    		return putTrigger.putUpdate(key, version, storageState);
+    	} else {
+    		return __putUpdate(key, version, storageState);
+    	}
+    }
+    
+    private OpResult __putUpdate(DHTKey key, long version, byte storageState) {
         OpResult result;
         int segmentNumber;
 
@@ -1160,83 +1211,87 @@ public class NamespaceStore {
     private static final AtomicInteger  totalKeys = new AtomicInteger();
     
     public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
-        DHTKey[]  		_keys;
-        ByteBuffer[]	_results;
-        
-        if (debugVersion) {
-            System.out.printf("retrieve internal options: %s\n", options);
-        }        
-        _keys = new DHTKey[keys.size()];
-        for (int i = 0; i < _keys.length; i++) {
-        	_keys[i] = keys.get(i);
-        }
-        
-        if (_keys.length > 1) {
-        	_results = _retrieve(_keys, options);
-        } else {
-        	// special case single retrieval
-        	_results = new ByteBuffer[1];
-        	_results[0] = _retrieve(_keys[0], options);
-        }
-        
-        for (int i = 0; i < _results.length; i++) {
-            if (parent != null) {
-                VersionConstraint   vc;
-                
-                if (debugParent) {
-                    Log.warning("parent != null");
-                }
-                vc = options.getVersionConstraint();
-                
-                // We look in parent if the vc could possibly be answered by the parent
-                // in a way that would override what we have from this namespace.
-                
-                if (_results[i] == null) {
-                    if (debugParent) {
-                        Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
-                    }
-                    // If result from this ns is null, look in the parent.
-                    _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
-                    if (debugParent) {
-                        if (_results[i] != null) {
-                            Log.warning("Found result in parent");
-                        }
-                    }
-                } else {
-                    // If we have a non-null value from this ns, and the vc mode is GREATEST
-                    // then the value that we already have is the best.
-                    // Otherwise for the LEAST case, look in the parent to see if it has a better result.
-                    if (vc.getMode() == VersionConstraint.Mode.LEAST) {
-                        ByteBuffer parentResult;
-
-                        if (debugParent) {
-                            Log.warning("Non-null result, but mode LEAST. checking parent");
-                        }
-                        parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
-                        if (parentResult != null) {
-                            // if the parent had any valid result, then - by virtue of the fact
-                            // that all parent versions are < child versions - the parent
-                            // result is preferred
-                        	_results[i] = parentResult;
-                            if (_results[i] != null) {
-                                Log.warning("Found result in parent");
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR
-                    && options.getVersionConstraint().getMax() > curSnapshot) {
-                // Note that since we hold the readLock, a write cannot come
-                // in while we add the pending wait for.
-                addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
-            }
-            if (options.getVerifyIntegrity()) {
-            	_results[i] = verifyIntegrity(_keys[i], _results[i]);
-            }
-        }
-        return SKImmutableList.copyOf(_results);
+    	if (retrieveTrigger == null) {
+	        DHTKey[]  		_keys;
+	        ByteBuffer[]	_results;
+	        
+	        if (debugVersion) {
+	            System.out.printf("retrieve internal options: %s\n", options);
+	        }        
+	        _keys = new DHTKey[keys.size()];
+	        for (int i = 0; i < _keys.length; i++) {
+	        	_keys[i] = keys.get(i);
+	        }
+	        
+	        if (_keys.length > 1) {
+	        	_results = _retrieve(_keys, options);
+	        } else {
+	        	// special case single retrieval
+	        	_results = new ByteBuffer[1];
+	        	_results[0] = _retrieve(_keys[0], options);
+	        }
+	        
+	        for (int i = 0; i < _results.length; i++) {
+	            if (parent != null) {
+	                VersionConstraint   vc;
+	                
+	                if (debugParent) {
+	                    Log.warning("parent != null");
+	                }
+	                vc = options.getVersionConstraint();
+	                
+	                // We look in parent if the vc could possibly be answered by the parent
+	                // in a way that would override what we have from this namespace.
+	                
+	                if (_results[i] == null) {
+	                    if (debugParent) {
+	                        Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
+	                    }
+	                    // If result from this ns is null, look in the parent.
+	                    _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+	                    if (debugParent) {
+	                        if (_results[i] != null) {
+	                            Log.warning("Found result in parent");
+	                        }
+	                    }
+	                } else {
+	                    // If we have a non-null value from this ns, and the vc mode is GREATEST
+	                    // then the value that we already have is the best.
+	                    // Otherwise for the LEAST case, look in the parent to see if it has a better result.
+	                    if (vc.getMode() == VersionConstraint.Mode.LEAST) {
+	                        ByteBuffer parentResult;
+	
+	                        if (debugParent) {
+	                            Log.warning("Non-null result, but mode LEAST. checking parent");
+	                        }
+	                        parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+	                        if (parentResult != null) {
+	                            // if the parent had any valid result, then - by virtue of the fact
+	                            // that all parent versions are < child versions - the parent
+	                            // result is preferred
+	                        	_results[i] = parentResult;
+	                            if (_results[i] != null) {
+	                                Log.warning("Found result in parent");
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	            
+	            if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR
+	                    && options.getVersionConstraint().getMax() > curSnapshot) {
+	                // Note that since we hold the readLock, a write cannot come
+	                // in while we add the pending wait for.
+	                addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
+	            }
+	            if (options.getVerifyIntegrity()) {
+	            	_results[i] = verifyIntegrity(_keys[i], _results[i]);
+	            }
+	        }
+	        return SKImmutableList.copyOf(_results);
+    	} else {
+    		return retrieve_nongroupedImpl(keys, options, opUUID);
+    	}
     }
     
     public List<ByteBuffer> retrieve_nongroupedImpl(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
@@ -1320,7 +1375,11 @@ public class NamespaceStore {
                     result = null;
                 }
                 */
-                result = _retrieve(key, options);
+                if (retrieveTrigger != null) {
+                	result = retrieveTrigger.retrieve(this, key, options);
+                } else {
+                	result = _retrieve(key, options);
+                }
                 
                 if (parent != null) {
                     VersionConstraint   vc;
@@ -2714,5 +2773,28 @@ public class NamespaceStore {
                 }
             }    		
     	}
+	}
+    
+    ////////////////////////////////////
+    // SSNamespaceStore implementation
+
+	@Override
+	public long getNamespaceHash() {
+		return ns;
+	}
+
+	@Override
+	public boolean isNamespace(String ns) {
+		return NamespaceUtil.nameToLong(ns) == this.ns;
+	}
+
+	@Override
+	public OpResult put(DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData, NamespaceVersionMode nsVersionMode) {
+	    return _put(key, value, StorageParameters.fromSSStorageParameters(storageParams), userData, nsVersionMode);
+	}
+
+	@Override
+	public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options) {
+	    return _retrieve(key, InternalRetrievalOptions.fromSSRetrievalOptions(options));
 	}
 }

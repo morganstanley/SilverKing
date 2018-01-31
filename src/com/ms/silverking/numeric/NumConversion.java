@@ -63,6 +63,14 @@ public class NumConversion {
     public static short bytesToShort(byte[] b, int offset) {
         return bytesToShort(b[offset + 0], b[offset + 1]);
     }
+
+    public static short bytesToShortLittleEndian(byte[] b) {
+        return bytesToShortLittleEndian(b, 0);
+    }
+    
+    public static short bytesToShortLittleEndian(byte[] b, int offset) {
+        return bytesToShort(b[offset + 1], b[offset + 0]);
+    }
     
     public static byte[] shortToBytes(short value) {
         byte[]  b;
@@ -167,6 +175,13 @@ public class NumConversion {
     	intToBytes(value, b);
     	return b;
     }
+    
+    public static int intSwapEndian(int value) {
+		return bytesToInt((byte)(value >>> 24),
+						(byte)(value >> 16 & 0xff),
+						(byte)(value >> 8 & 0xff),
+						(byte)(value & 0xff));
+    }    
     
     /**
      * Return a byte to an integer in the range [0, 255]

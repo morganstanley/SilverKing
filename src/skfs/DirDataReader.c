@@ -31,6 +31,8 @@
 // defines
 
 #define DDR_UPDATE_INTERVAL_MILLIS	(1 * 1000)
+#define _DDR_UPDATE_OP_TIMEOUT_MS (5 * 60 * 1000)
+#define _DDR_READ_OP_TIMEOUT_MS (20 * 60 * 1000)
 
 
 ///////////////////////
@@ -791,7 +793,7 @@ void ddr_update_OpenDir(DirDataReader *ddr, OpenDir *od) {
 		// op deletion handled automatically as always
 		srfsLog(LOG_FINE, "ddr OpenDir DirData update failed for %s", path);
 	} else {
-		aor_wait_for_completion(aor);
+		aor_wait_for_stage_timed(aor, AO_STAGE_COMPLETE, _DDR_UPDATE_OP_TIMEOUT_MS);
 		srfsLog(LOG_FINE, "ddr OpenDir DirData update complete for %s", path);
 	}
 	aor_delete(&aor);
@@ -848,7 +850,7 @@ static int _ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int cr
 			// Copy the data out (done below at end)
 			// No fallback to native here since the initial operation will do that
 			srfsLog(LOG_FINE, "waiting for existing op completion %s", path);
-			aor_wait_for_completion(activeOpRef);
+            aor_wait_for_stage_timed(activeOpRef, AO_STAGE_COMPLETE, _DDR_READ_OP_TIMEOUT_MS);
 			aor_delete(&activeOpRef);
 			//rs_opWait_inc(ddr->rs);
 		} else if (result == CRR_ERROR_CODE) {
@@ -887,7 +889,7 @@ static int _ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int cr
 		}
 		
 		srfsLog(LOG_FINE, "Waiting for dht op completion %s", path);
-		aor_wait_for_completion(activeOpRef);
+		aor_wait_for_stage_timed(activeOpRef, AO_STAGE_COMPLETE, _DDR_READ_OP_TIMEOUT_MS);
 		srfsLog(LOG_FINE, "op dht stage complete %s", path);
 		result = odc_read_no_op_creation(ddr->openDirCache, path, od);
 		srfsLog(LOG_FINE, "cache result %d %s", result, crr_strings[result]);

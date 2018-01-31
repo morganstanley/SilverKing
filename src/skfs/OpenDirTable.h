@@ -31,6 +31,8 @@ typedef struct OpenDirTable {
 	pthread_t		reconciliationThread;
     uint64_t        minReconciliationSleepMillis;
     uint64_t        maxReconciliationSleepMillis;
+    uint64_t        _lastVersion;
+    pthread_spinlock_t  lvLock;
 } OpenDirTable;
 
 
