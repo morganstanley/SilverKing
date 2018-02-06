@@ -1,51 +1,71 @@
 #!/bin/ksh
 
 function f_printSkfsCheckWithResult {
-	f_printSkfs_Helper "PASS|FAIL"
+	typeset id=$(f_getSkfsPid)
+	if [[ -n "$id" ]]; then
+		f_printSkfsFound
+		f_printPass
+		
+		# leave this script running until skfs exits; currently being used by treadmill
+		if [[ -n $waitForSkfsdBeforeExiting ]]; then
+			while [[ -e /proc/$id ]]; do
+				echo `date +"%H:%M:%S"`": skfsd $id alive"
+				sleep 5;
+			done
+		fi
+		
+		exit
+	else
+		f_printSkfsNotFound
+		f_printFail
+		exit -1
+	fi
 }
 
-function f_printSkfsCheckWithResultIfFound {
-	f_printSkfs_Helper "PASS"
+function f_printSkfsCheckWithResultOnlyIfFound {
+	typeset id=$(f_getSkfsPid)
+	if [[ -n "$id" ]]; then
+		f_printSkfsFound
+		f_printPass
+		exit
+	fi
 }
 
 function f_printSkfsCheck {
-	f_printSkfs_Helper "" "$1"
-}
-
-function f_printSkfs_Helper {
-	typeset printResult=$1
-	typeset extraComment=$2
+	typeset extraComment=$1
 	
 	typeset id=$(f_getSkfsPid)
 	if [[ -n "$id" ]]; then
-		echo "FOUND - skfsd ${id}${extraComment}";
-		if [[ $printResult =~ "PASS" ]]; then
-			f_printPass
-			exit
-		fi
+		f_printSkfsFound "$extraComment"
 	else
-		echo "NOT FOUND - skfsd"
-		if [[ $printResult =~ "FAIL" ]]; then
-			f_printFail
-		fi
+		f_printSkfsNotFound
 	fi
 }
 
 function f_printSkfsStopWithResult {
 	typeset id=$(f_getSkfsPid)
 	if [[ -n "$id" ]]; then
-		echo "FOUND - skfsd ${id}";
+		f_printSkfsFound
 		f_printFail
+		exit -1
 	else
-		echo "NOT FOUND - skfsd"
+		f_printSkfsNotFound
 		f_printPass
+		exit
 	fi
-	
-	exit
 }
 
 function f_getSkfsPid {
 	echo `pgrep -f $SKFSD_PATTERN`
+}
+
+function f_printSkfsFound {
+	typeset id=$(f_getSkfsPid)
+	echo "FOUND - skfsd '$GCName' ${id}${1}";
+}
+
+function f_printSkfsNotFound {
+	echo "NOT FOUND - skfsd '$GCName'"
 }
 
 function f_printPass {
@@ -70,8 +90,9 @@ usage()
   echo "    Compression     : skfs compression {LZ4, SNAPPY, ZIP, BZIP2, NOCOMPRESSION}"
   echo "    skGlobalCodebase: skGlobalCodebase override"
   echo "    logLevel        : logLevel {FINE,OPS} default: OPS"
-  echo "    nativeFSOnlyFile: fsNativeOnlyFile file  with csv filelist [/rel/path:y,...]"
+  echo "    nativeFSOnlyFile: fsNativeOnlyFile file with csv filelist [/rel/path:y,...]"
   echo "    coreLimit       : ulimit -c <coreLimit>"
+  echo "    -w              : waits for skfsd to exit"
   exit 1
 }
 
@@ -98,8 +119,9 @@ fi
 
 coreLimit="unlimited"
 forceSKFSDirCreation="false"
+waitForSkfsdBeforeExiting=""
 
-while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:" opt; do
+while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:w" opt; do
     case $opt in
     c) nodeControlCommand="$OPTARG";;
     z) zkEnsemble="$OPTARG" ;;
@@ -114,6 +136,7 @@ while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:" opt; do
 	A) _skfsAttrTimeoutSecs="$OPTARG" ;;
 	N) _skfsNegativeTimeoutSecs="$OPTARG" ;;
 	T) _transientCacheSizeKB="$OPTARG" ;;
+	w) waitForSkfsdBeforeExiting="true" ;;
     *) usage
     esac
 done
@@ -121,10 +144,11 @@ shift $(($OPTIND - 1))
 
 source ../lib/common.lib
 f_printSection "BASIC ARGUMENTS PARSED"
-echo "GCName:               $GCName"
-echo "nodeControlCommand:   $nodeControlCommand"
-echo "zkEnsemble:           $zkEnsemble"
-echo "forceSKFSDirCreation: $forceSKFSDirCreation"
+echo "GCName:                    $GCName"
+echo "nodeControlCommand:        $nodeControlCommand"
+echo "zkEnsemble:                $zkEnsemble"
+echo "forceSKFSDirCreation:      $forceSKFSDirCreation"
+echo "waitForSkfsdBeforeExiting: $waitForSkfsdBeforeExiting"
 
 SKFSD_PATTERN="skfsd.*${GCName}"
    
@@ -160,13 +184,13 @@ f_printSection "PRE-EXISTING CHECKS"
 f_printSubSection "Checking for skfs"
 id=$(f_getSkfsPid)
 if [[ -n "$id" ]]; then
-    echo "FOUND - skfsd '$GCName' $id"
+    f_printSkfsFound
 	if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
 		f_printPass
 		exit
 	fi
 else
-    echo "NOT FOUND - skfsd '$GCName'"
+	f_printSkfsNotFound
 fi
 
 f_printSubSection "Checking GC File"
@@ -483,16 +507,14 @@ chmod +x $tmpFile
 
 # possible sanity check against concurrent CheckSKFS processes
 f_printSubSection "Checking for skfs"
-f_printSkfsCheckWithResultIfFound
+f_printSkfsCheckWithResultOnlyIfFound
 
 f_printSubSection "Starting fuse"
 cat $tmpFile
 $tmpFile &
 sleep 1
 
-f_printSubSection "Checking for skfs again"
-f_printSkfsCheckWithResult
-
 cd $old_dir
 
-exit 0
+f_printSubSection "Checking for skfs again"
+f_printSkfsCheckWithResult
