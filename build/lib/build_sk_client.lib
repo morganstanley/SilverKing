@@ -346,7 +346,7 @@ function f_copyPerlScript_Helper {
 	
 	typeset destFilePath=$dest_directory/`$BASENAME $filename`
 	
-	$CAT $filename | $DOS_2_UNIX | $SED "s#$PERL_PATH_PLACEHOLDER#$replacement_value#" > $destFilePath
+	$CAT $filename | $DOS2UNIX | $SED "s#$PERL_PATH_PLACEHOLDER#$replacement_value#" > $destFilePath
 	$CHMOD 755 $destFilePath
 }
 

@@ -770,7 +770,7 @@ function f_createStaticLibrary {
 	typeset static_lib=$out_dir/$static_lib_name
 	
 	f_printSubSection "creating static lib: $static_lib"
-	f_runCmd "$AR $static_lib $obj_files $lib_files"
+	f_runCmd "$AR rcs $static_lib $obj_files $lib_files"
 }
 
 function f_createSharedLibrary {
