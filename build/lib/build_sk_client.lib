@@ -255,8 +255,8 @@ function f_buildKdbHelper {
 
 		typeset lib_name=q${SK_LIB_NAME}.so
 		typeset q_lib_shared=$q_lib_install_dir/$lib_name
-		typeset qdht_name=qdht
-		typeset qdht_q_name=qdht.q
+		typeset      qdht_name=qdht
+		typeset    qdht_q_name=qdht.q
 		typeset testdht_q_name=testdht.q
 		f_printSubSection "Building q lib: $q_lib_shared"
 		echo
@@ -331,22 +331,21 @@ function f_buildPerlClient {
 	f_makeWithParents $INSTALL_ARCH_BIN_DIR
 	echo
 	f_printSubSection "copying Perl script(s) to $INSTALL_ARCH_BIN_DIR"
-	f_copyPerlScript "$perl_app_dir/testdht.pl" "$PERL_5_5"
-	f_copyPerlScript "$perl_app_dir/$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME" "$PERL_5_8"
+	f_copyPerlScript "$perl_app_dir/testdht.pl"
+	f_copyPerlScript "$perl_app_dir/$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME"
 }
 
 function f_copyPerlScript {
-	f_copyPerlScript_Helper "$1" "$2" "$INSTALL_ARCH_BIN_DIR"
+	f_copyPerlScript_Helper "$1" "$INSTALL_ARCH_BIN_DIR"
 }
 
 function f_copyPerlScript_Helper {
 	typeset filename=$1
-	typeset replacement_value=$2
-	typeset dest_directory=$3
+	typeset dest_directory=$2
 	
 	typeset destFilePath=$dest_directory/`$BASENAME $filename`
 	
-	$CAT $filename | $SED "s#$PERL_PATH_PLACEHOLDER#$replacement_value#" > $destFilePath
+	$CAT $filename | $SED "s#$PERL_PATH_PLACEHOLDER#$PERL_5_8#" > $destFilePath
 	$CHMOD 755 $destFilePath
 }
 
