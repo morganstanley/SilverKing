@@ -286,8 +286,8 @@ function f_buildPerlClient {
 	
 	typeset perl_app_dir=$APP_SRC_DIR/perl
 	
-	if [[ ! -d $perl_app_dir ]] ; then
-		echo "$perl_app_dir is not a directory, can't build perl clients..."
+	if [[ ! -d $PERL_APP_DIR ]] ; then
+		echo "$PERL_APP_DIR is not a directory, can't build perl clients..."
 		return
 	fi
 	
@@ -307,7 +307,7 @@ function f_buildPerlClient {
 		typeset  obj=$buildObjDir/${wrapName}.o
 
 		f_printSubSection "swigging $SK_LIB_NAME lib"
-		f_runCmd "$SWIG -c++ -perl5 -cpperraswarn -I${INSTALL_COMMON_INC_DIR} -I${SWIG_INC} -o $wrap $perl_app_dir/dht.i" #-debug-tmsearch -debug-tmused -Wall
+		f_runCmd "$SWIG -c++ -perl5 -cpperraswarn -I${INSTALL_COMMON_INC_DIR} -I${SWIG_INC} -o $wrap $PERL_APP_DIR/dht.i" #-debug-tmsearch -debug-tmused -Wall
 
 		typeset perl_opts=`${PERL_5_8//5.8/$ver} -MExtUtils::Embed -e ccopts | $SED s/-Wdeclaration-after-statement//`
 		echo
@@ -318,7 +318,7 @@ function f_buildPerlClient {
 		f_link "$perl_lib" "$obj" "$ld" "-D__STDC_LIMIT_MACROS -shared -Wl,--rpath -Wl,${gcc_r_lib}" "$lib_opts"
 
 		f_printSubSection "copying Perl module(s) to $actual_perl_version_lib_install"
-		##$CP $perl_app_dir/*.pm $buildObjDir/*.pm $actual_perl_version_lib_install
+		##$CP $PERL_APP_DIR/*.pm $buildObjDir/*.pm $actual_perl_version_lib_install
 		$CP $buildObjDir/*.pm $actual_perl_version_lib_install
 
 		f_testEquals "$buildObjDir" "$wrapName.*" "2"
@@ -331,8 +331,8 @@ function f_buildPerlClient {
 	f_makeWithParents $INSTALL_ARCH_BIN_DIR
 	echo
 	f_printSubSection "copying Perl script(s) to $INSTALL_ARCH_BIN_DIR"
-	f_copyPerlScript "$perl_app_dir/testdht.pl"
-	f_copyPerlScript "$perl_app_dir/$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME"
+	f_copyPerlScript "$testdht.pl"
+	f_copyPerlScript "$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME"
 }
 
 function f_copyPerlScript {
@@ -343,9 +343,10 @@ function f_copyPerlScript_Helper {
 	typeset filename=$1
 	typeset dest_directory=$2
 	
-	typeset destFilePath=$dest_directory/`$BASENAME $filename`
+	typeset  srcFilePath=$PERL_APP_DIR/$filename
+	typeset destFilePath=$dest_directory/$filename
 	
-	$CAT $filename | $SED "s#$PERL_PATH_PLACEHOLDER#$PERL_5_8#" > $destFilePath
+	$CAT $srcFilePath | $SED "s#$PERL_PATH_PLACEHOLDER#$PERL_5_8#" > $destFilePath
 	$CHMOD 755 $destFilePath
 }
 
