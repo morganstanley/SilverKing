@@ -8,12 +8,19 @@ function f_printSkfsCheckWithResult {
 		
 		# leave this script running until skfs exits; currently being used by treadmill
 		if [[ -n $waitForSkfsdBeforeExiting ]]; then
+			typeset count=0
+			typeset secondsToSleep=10
+			typeset twoMinuteIntervals=$((120 / $secondsToSleep))
 			while [[ -e /proc/$id ]]; do
-				echo `date +"%H:%M:%S"`": skfsd $id alive"
-				sleep 5;
+				((count++))
+				if [[ $count -eq $twoMinuteIntervals ]]; then
+					f_printSkfsdStatus "$id" "alive"
+					count=0;
+				fi
+				sleep $secondsToSleep;
 			done
-		fi
-		
+			
+			f_printSkfsdStatus "$id" "dead"
 		exit
 	else
 		f_printSkfsNotFound
@@ -57,6 +64,10 @@ function f_printSkfsStopWithResult {
 
 function f_getSkfsPid {
 	echo `pgrep -f $SKFSD_PATTERN`
+}
+
+function f_printSkfsdStatus {
+	echo `date +"%H:%M:%S"`": skfsd $1 $2"
 }
 
 function f_printSkfsFound {
