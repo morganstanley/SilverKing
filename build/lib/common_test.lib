@@ -107,7 +107,7 @@ function f_runGTests {
 	typeset skClasspath=$(f_getSkClasspath)
 	typeset vars="
 		GC_DEFAULT_BASE=$SK_GRID_CONFIG_DIR
-		LD_LIBRARY_PATH=$install_arch_bin_dir/../lib:$G_TEST/lib
+		LD_LIBRARY_PATH=$install_arch_bin_dir/../lib:$G_TEST_LIB
 		   SK_CLASSPATH=$JACE_JAR_LIB/jace-runtime.jar:$skClasspath
 		   SK_JAVA_HOME=$JAVA_8_HOME
 		   SK_JACE_HOME=$JACE_HOME

@@ -15,12 +15,13 @@ function f_printSkfsCheckWithResult {
 				((count++))
 				if [[ $count -eq $twoMinuteIntervals ]]; then
 					f_printSkfsdStatus "$id" "alive"
-					count=0;
+					count=0
 				fi
-				sleep $secondsToSleep;
+				sleep $secondsToSleep
 			done
-			
-			f_printSkfsdStatus "$id" "dead"
+		fi
+		
+		f_printSkfsdStatus "$id" "dead"
 		exit
 	else
 		f_printSkfsNotFound

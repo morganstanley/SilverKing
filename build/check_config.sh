@@ -3,29 +3,31 @@
 source lib/common.lib	# really only wanted build.config, but we are using some variables from common.vars like TRUE/FALSE
 
 function f_check_AR {
-	f_check_defined_and_which ${!AR}
+	f_check_defined_and_which_and_ends_with ${!AR} "/bin/ar"
 }
 function f_check_CAT {
-	f_check_defined_and_which ${!CAT}
+	f_check_defined_and_which_and_ends_with ${!CAT} "/bin/cat"
 }
 function f_check_SED {
-	f_check_defined_and_which ${!SED}
+	f_check_defined_and_which_and_ends_with ${!SED} "/bin/sed"
 }
 function f_check_CHMOD {
-	f_check_defined_and_which ${!CHMOD}
+	f_check_defined_and_which_and_ends_with ${!CHMOD} "/bin/chmod"
 }
 function f_check_CP {
-	f_check_defined_and_which ${!CP}
+	f_check_defined_and_which_and_ends_with ${!CP} "/bin/cp"
 }
 function f_check_BASENAME {
-	f_check_defined_and_which ${!BASENAME}
+	f_check_defined_and_which_and_ends_with ${!BASENAME} "/bin/basename"
 }
 function f_check_DIRNAME {
-	f_check_defined_and_which ${!DIRNAME}
+	f_check_defined_and_which_and_ends_with ${!DIRNAME} "/bin/dirname"
 }
 function f_check_ANT_9_HOME {
 	typeset varName=${!ANT_9_HOME}
-	f_check_defined $varName "bin"
+	f_check_defined $varName 
+	f_check_dir_exists $varName
+	f_check_which $varName "bin/ant"
 	f_printResult $varName
 }
 
@@ -38,12 +40,12 @@ function f_check_CREATE_STATIC_LIBS {
 function f_check_MAKE_JOBS {
 	typeset varName=${!MAKE_JOBS}
 	f_check_defined $varName
-	f_check_range $varName
+	f_check_range $varName 1 16
 	f_printResult $varName
 }
 
 function f_check_GPP {
-	f_check_defined_and_which ${!GPP}
+	f_check_defined_and_which_and_ends_with ${!GPP} "/bin/g++"
 }
 function f_check_GCC_LIB {
 	typeset varName=${!GCC_LIB}
@@ -79,11 +81,7 @@ function f_check_java_home_helper {
 	f_printResult $varName
 }
 function f_check_java_helper {
-	typeset varName=$1
-	f_check_defined $varName
-	f_check_which $varName
-	f_check_ends_with $varName "/bin/java"
-	f_printResult $varName
+	f_check_defined_and_which_and_ends_with $1 "/bin/java"
 }
 
 function f_check_JAVA_INC {
@@ -119,10 +117,7 @@ function f_check_JAVA_LIB {
 }
 
 function f_check_JACE_HOME {
-	typeset varName=${!JACE_HOME}
-	f_check_defined $varName
-	f_check_dir_exists $varName
-	f_printResult $varName
+	f_check_defined_and_dir_exists ${!JACE_HOME}
 }
 function f_check_JACE_INC {
 	typeset varName=${!JACE_INC}
@@ -152,10 +147,7 @@ function f_check_JACE_LIB {
 }
 
 function f_check_BOOST_HOME {
-	typeset varName=${!BOOST_HOME}
-	f_check_defined $varName
-	f_check_dir_exists $varName
-	f_printResult $varName
+	f_check_defined_and_dir_exists ${!BOOST_HOME}
 }
 function f_check_BOOST_INC {
 	typeset varName=${!BOOST_INC}
@@ -193,13 +185,10 @@ function f_check_kdb_helper {
 
 
 function f_check_SWIG_HOME {
-	typeset varName=${!SWIG_HOME}
-	f_check_defined $varName
-	f_check_dir_exists $varName
-	f_printResult $varName
+	f_check_defined_and_dir_exists ${!SWIG_HOME}
 }
 function f_check_SWIG {
-	f_check_defined_and_which ${!SWIG}
+	f_check_defined_and_which_and_ends_with ${!SWIG} "/bin/swig"
 }
 function f_check_SWIG_INC {
 	typeset varName=${!SWIG_INC}
@@ -219,7 +208,7 @@ function f_check_SWIG_INC {
 	f_printResult $varName
 }
 function f_check_PERL_5_8 {
-	f_check_defined_and_which ${!PERL_5_8}
+	f_check_defined_and_which_and_ends_with ${!PERL_5_8} "/bin/perl"
 }	
 
 function f_check_FUSE_INC {
@@ -247,10 +236,7 @@ function f_check_FUSE_LIB {
 }
 
 function f_check_ZLIB_HOME {
-	typeset varName=${!ZLIB_HOME}
-	f_check_defined $varName
-	f_check_dir_exists $varName
-	f_printResult $varName
+	f_check_defined_and_dir_exists ${!ZLIB_HOME}
 }
 function f_check_ZLIB_INC {
 	typeset varName=${!ZLIB_INC}
@@ -283,70 +269,120 @@ function f_check_VALGRIND_INC {
 }
 
 function f_check_GIT {
-	f_check_defined_and_which ${!GIT}
+	f_check_defined_and_which_and_ends_with ${!GIT} "/bin/git"
 }
 function f_check_MUTT {
-	f_check_defined_and_which ${!MUTT}
+	f_check_defined_and_which_and_ends_with ${!MUTT} "/bin/mutt"
 }
 function f_check_REPO_NAME {
-	f_check_defined_and_which ${!REPO_NAME}
+	f_check_defined_and_equals ${!REPO_NAME} "SilverKing"
 }
 function f_check_REPO_URL {
-	f_check_defined_and_which ${!REPO_URL}
+	f_check_defined_and_equals ${!REPO_URL} "https://github.com/Morgan-Stanley/"
 }
 
-function f_check_G_TEST {
-	f_check_defined_and_which ${!G_TEST}
+function f_check_G_TEST_HOME {
+	f_check_defined_and_dir_exists ${!G_TEST_HOME}
 }
 function f_check_G_TEST_INC {
-	f_check_defined_and_which ${!G_TEST_INC}
+	typeset varName=${!G_TEST_INC}
+	f_check_defined $varName
+	f_check_ends_with $varName "/include"
+	f_check_dir_exists $varName
+	f_check_dir_exists $varName "gtest"
+	f_check_file_exists $varName "gtest/gtest.h"
+	f_check_file_exists $varName "gtest/gtest_prod.h"
+	f_printResult $varName
 }
 function f_check_G_TEST_LIB {
-	f_check_defined_and_which ${!G_TEST_LIB}
+	typeset varName=${!G_TEST_LIB}
+	f_check_defined $varName
+	f_check_ends_with $varName "/lib"
+	f_check_dir_exists $varName
+	f_check_file_exists $varName "libgtest.so"
+	f_check_file_exists $varName "libgtest_main.so"
+	f_printResult $varName
 }
 
 function f_check_SK_GRID_CONFIG_DIR {
-	f_check_defined_and_which ${!SK_GRID_CONFIG_DIR}
+	f_check_defined_and_dir_exists ${!SK_GRID_CONFIG_DIR}
 }
 function f_check_SK_GRID_CONFIG_NAME {
-	f_check_defined_and_which ${!SK_GRID_CONFIG_NAME}
+	typeset varName=${!SK_GRID_CONFIG_NAME}
+	f_check_defined $varName
+	f_printResult $varName
 }
 function f_check_SK_DHT_NAME {
-	f_check_defined_and_which ${!SK_DHT_NAME}
+	typeset varName=${!SK_DHT_NAME}
+	f_check_defined $varName
+	f_printResult $varName
 }
 function f_check_SK_SERVERS {
-	f_check_defined_and_which ${!SK_SERVERS}
+	typeset varName=${!SK_SERVERS}
+	f_check_defined $varName
+	f_printResult $varName
 }
 function f_check_SK_REPLICATION {
-	f_check_defined_and_which ${!SK_REPLICATION}
+	typeset varName=${!SK_REPLICATION}
+	f_check_defined $varName
+	f_check_range $varName 1 4
+	f_printResult $varName
 }
 function f_check_SK_ZK_ENSEMBLE {
-	f_check_defined_and_which ${!SK_ZK_ENSEMBLE}
+	typeset varName=${!SK_ZK_ENSEMBLE}
+	f_check_defined $varName
+	f_printResult $varName
 }
 function f_check_SK_FOLDER_NAME {
-	f_check_defined_and_which ${!SK_FOLDER_NAME}
+	typeset varName=${!SK_FOLDER_NAME}
+	f_check_defined $varName
+	f_printResult $varName
 }
 function f_check_SK_DATA_HOME {
-	f_check_defined_and_which ${!SK_DATA_HOME}
+	typeset varName=${!SK_DATA_HOME}
+	f_check_defined $varName
+	f_printResult $varName
 }
 function f_check_SK_LOG_HOME {
-	f_check_defined_and_which ${!SK_LOG_HOME}
+	typeset varName=${!SK_LOG_HOME}
+	f_check_defined $varName
+	f_printResult $varName
 }
 function f_check_SK_SKFS_CONFIG_FILE {
-	f_check_defined_and_which ${!SK_SKFS_CONFIG_FILE}
+	typeset varName=${!SK_SKFS_CONFIG_FILE}
+	f_check_defined $varName
+	f_check_ends_with $varName "GC_SKFS.vars"
+	f_check_file_exists $varName
+	f_printResult $varName
 }
 
 function f_check_IOZONE_BIN {
-	f_check_defined_and_which ${!IOZONE_BIN}
+	f_check_defined_and_which_and_ends_with ${!IOZONE_BIN} "/bin/iozone"
 }
 function f_check_TRUNCATE_BIN {
-	f_check_defined_and_which ${!TRUNCATE_BIN}
+	f_check_defined_and_which ${!TRUNCATE_BIN} "/bin/truncate"
 }
 
 	
 function f_check_defined_and_which {
 	f_check_defined $1
-	f_check_which $1 $2
+	f_check_which $1
+	f_printResult $1
+}
+function f_check_defined_and_which_and_ends_with {
+	f_check_defined $1
+	f_check_which $1
+	f_check_ends_with $1 $2
+	f_printResult $1
+}
+function f_check_defined_and_dir_exists {
+	f_check_defined $1
+	f_check_dir_exists $1
+	f_printResult $1
+}
+function f_check_defined_and_equals {
+	f_check_defined $1
+	f_check_equals $1 $2
 	f_printResult $1
 }
 
@@ -370,6 +406,7 @@ function f_check_which {
 	if [[ -n $file ]]; then
 		variableValue+=/$file
 	fi
+	
 	which "$variableValue" 1>/dev/null 2>/dev/null	# important to have no other statements between this line and the if statement, like a "typeset var" or "echo blah.." b/c those will then override the $? and we will lose the value from 'which'
 	if [[ $? != 0 ]]; then
 		fails+=("which: no '$variableValue'")
@@ -385,20 +422,10 @@ function f_check_boolean {
 
 function f_check_range {
 	typeset variableValue=$(f_getVariableValue "$1")	
-	typeset min=1
-	typeset max=16
+	typeset min=$2
+	typeset max=$3
 	if [[ $variableValue -lt $min || $variableValue -gt $max ]]; then
 		fails+=("range: '$variableValue' isn't [$min,$max]")
-	fi
-}
-
-function f_check_file_exists {
-	typeset variableValue=$(f_getVariableValue "$1")
-	typeset file=$2
-	typeset pathToFile=$variableValue/$file
-	
-	if [[ ! -f $pathToFile ]]; then
-		fails+=("file exists: no '$pathToFile'")
 	fi
 }
 
@@ -412,12 +439,33 @@ function f_check_dir_exists {
 	fi
 }
 
+function f_check_file_exists {
+	typeset variableValue=$(f_getVariableValue "$1")
+	typeset file=$2
+	if [[ -n $file ]]; then
+		variableValue+=/$file
+	fi
+	
+	if [[ ! -f $variableValue ]]; then
+		fails+=("file exists: no '$variableValue'")
+	fi
+}
+
 function f_check_ends_with {
 	typeset variableValue=$(f_getVariableValue "$1")
 	typeset end=$2
 	
 	if [[ ! $variableValue =~ "${end}$" ]] ; then
 		fails+=("ends with: '$variableValue' doesn't end with '$end'")
+	fi
+}
+
+function f_check_equals {
+	typeset variableValue=$(f_getVariableValue "$1")
+	typeset expectedValue=$2
+	
+	if [[ $variableValue != $expectedValue ]] ; then
+		fails+=("equals: '$variableValue' != '$expectedValue'")
 	fi
 }
 
@@ -444,7 +492,7 @@ function f_printResult {
 		done
 	fi
 	
-	printf "%s %s %4s\n" $1 "${padder:${#1}}" $result
+	printf "%3s %s %s %4s\n" $((VARIABLE_ID++)) $1 "${padder:${#1}}" $result
 	if [[ -n $failOutput ]]; then
 		echo -e $failOutput
 	fi
@@ -452,6 +500,8 @@ function f_printResult {
 
 typeset padder="............................"
 set -a fails
+VARIABLE_ID=1
+
 typeset count=`grep -P "\w+=" lib/build.config | wc -l`
 echo "Checking $count variables:"
 f_check_AR
@@ -504,26 +554,26 @@ f_check_ZLIB_INC
 f_check_ZLIB_LIB
 f_check_VALGRIND_INC
 	  
-# f_check_GIT
-# f_check_MUTT
-# f_check_REPO_NAME
-# f_check_REPO_URL
+f_check_GIT
+f_check_MUTT
+f_check_REPO_NAME
+f_check_REPO_URL
 
-# f_check_G_TEST
-# f_check_G_TEST_INC
-# f_check_G_TEST_LIB
+f_check_G_TEST_HOME
+f_check_G_TEST_INC
+f_check_G_TEST_LIB
 	
-# f_check_SK_GRID_CONFIG_DIR
-# f_check_SK_GRID_CONFIG_NAME
-# f_check_SK_DHT_NAME
-# f_check_SK_SERVERS
-# f_check_SK_REPLICATION
-# f_check_SK_ZK_ENSEMBLE
-# f_check_SK_FOLDER_NAME
-# f_check_SK_DATA_HOME
-# f_check_SK_LOG_HOME
-# f_check_SK_SKFS_CONFIG_FILE
+f_check_SK_GRID_CONFIG_DIR
+f_check_SK_GRID_CONFIG_NAME
+f_check_SK_DHT_NAME
+f_check_SK_SERVERS
+f_check_SK_REPLICATION
+f_check_SK_ZK_ENSEMBLE
+f_check_SK_FOLDER_NAME
+f_check_SK_DATA_HOME
+f_check_SK_LOG_HOME
+f_check_SK_SKFS_CONFIG_FILE
 	
-# f_check_IOZONE_BIN
-# f_check_TRUNCATE_BIN
+f_check_IOZONE_BIN
+f_check_TRUNCATE_BIN
    
