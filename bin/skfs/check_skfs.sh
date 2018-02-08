@@ -68,7 +68,7 @@ function f_getSkfsPid {
 }
 
 function f_printSkfsdStatus {
-	echo `date +"%H:%M:%S"`": skfsd $1 $2"
+	echo `date +"%Y-%m-%d %H:%M:%S"`": skfsd $1 $2"
 }
 
 function f_printSkfsFound {
