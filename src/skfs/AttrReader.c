@@ -442,108 +442,112 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
         }
         
         opStateMap = pValRetrieval->getOperationStateMap();
-        for (i = numRequests - 1; i >= 0; i--) { // reverse order so that duplicates aren't deleted before we use them
-            ActiveOp		*op;
-            AttrReadRequest	*arr;
-            int				successful;
-            SKVal           *ppval;
-            SKOperationState::SKOperationState opState;
-            int             errorCode;
-            
-            errorCode = 0;
-            successful = FALSE;
-            op = refs[i]->ao;
-            arr = (AttrReadRequest *)ao_get_target(op);
-            try {
-                ppval = pValues->at(arr->path);
-            } catch(std::exception& emap) { 
-                ppval = NULL;
-                srfsLog(LOG_INFO, "ar std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
-            }
-            try {
-                opState = opStateMap->at(arr->path);
-            } catch(std::exception& emap) { 
-                opState = SKOperationState::FAILED;
-                srfsLog(LOG_INFO, "ar std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
-            }
-            if (opState == SKOperationState::SUCCEEDED) {
-                if (ppval == NULL ){
-	                srfsLog(LOG_FINE, "ar dhtErr no val %s %d line %d", arr->path, opState,  __LINE__);
-                } else if (ppval->m_len == sizeof(FileAttr) ){
-                    uint64_t	attrTimeoutMillis;
+        for (i = 0; i < numRequests; i++) {
+            if (!isDuplicate[i]) {
+                ActiveOp		*op;
+                AttrReadRequest	*arr;
+                int				successful;
+                SKVal           *ppval;
+                SKOperationState::SKOperationState opState;
+                int             errorCode;
                 
-                    attrTimeoutMillis = is_writable_path(arr->path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
-		            if (memcmp(ppval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
-			            // a normal data item, store in cache
-                        ao_set_complete(op, AOResult_Success, ppval->m_pVal, sizeof(FileAttr));
-			            ar_store_attr_in_cache(arr, (FileAttr *)ppval->m_pVal, attrTimeoutMillis);
-			            successful = TRUE;
-		            } else {
-			            if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
-				            // non-existence, store as an error
-							srfsLog(LOG_FINE, "%s not found in DHT. Storing ENOENT. %s %d", arr->path, __FILE__, __LINE__);
-                            ao_set_complete_error(op, ENOENT);
-				            ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, arr->minModificationTimeMicros, attrTimeoutMillis);
-				            successful = TRUE;
-			            } else {
-				            srfsLog(LOG_FINE, "!SRFS_ENABLE_DHT_ENOENT_CACHING. Ignoring ENOENT found in DHT.");
-			            }
-		            }
-	            } else {
-		            srfsLog(LOG_WARNING, "val->size() != sizeof(FileAttr) %s %d", __FILE__, __LINE__);
-					ppval = NULL; // temp workaround the problem - FUTURE - improve
-	            }
-            } else if (opState == SKOperationState::INCOMPLETE) {
-                sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
-	            srfsLog(LOG_WARNING, "%s not found in kvs. Incomplete operation state.", arr->path);
-                errorCode = EIO;
-            } else {  //SKOperationState::FAILED
-                SKFailureCause::SKFailureCause cause = SKFailureCause::ERROR;
-				try {
-					cause = pValRetrieval->getFailureCause();
-					if (cause == SKFailureCause::MULTIPLE) {
-                        errorCode = EIO;
-						sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
-						srfsLog(LOG_WARNING, "ar dhtErr %s %d %d %d/%d line %d", arr->path, opState, cause, i, numRequests, __LINE__);
-					} else if (cause != SKFailureCause::NO_SUCH_VALUE) {
-						sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
-						srfsLog(LOG_WARNING, "ar dhtErr %s %d %d %d/%d line %d", arr->path, opState, cause, i, numRequests, __LINE__);
-                        errorCode = EIO;
-					} else { 
-						srfsLog(LOG_FINE, "ar dhtErr %s %d %d %d/%d line %d", arr->path, opState, cause, i, numRequests, __LINE__);
-                        errorCode = ENOENT;
-					}
-				} catch (SKClientException &e) { 
-					srfsLog(LOG_ERROR, "ar getFailureCause at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
-					sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
-				} catch (std::exception &e) { 
-					srfsLog(LOG_ERROR, "ar getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
-					sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
-				}
-	            // for r/o paths, errors are stored permanently also
-	            // for errors other than ENOENT, the calling code will retry to the file system
-	            //ac_store_error(arr->attrReader->attrCache, arr->path, -1);
-				// FIXME - for skfs files, no result will cause the operation to hang
-            }
-			if (!isDuplicate[i] && ppval != NULL) {
-				sk_destroy_val( &ppval );
-			}
-
-            if (successful) {
-                // set complete above; no need to set complete here
-            } else {
-				if (!is_writable_path(arr->path)) {
-					srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
-					ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
-				} else {
-                    srfsLog(LOG_FINE, "set op complete %llx %s %d", op, __FILE__, __LINE__);
-                    if (errorCode == 0) {
-                        errorCode = ENOENT;
-                    }
+                errorCode = 0;
+                successful = FALSE;
+                op = refs[i]->ao;
+                arr = (AttrReadRequest *)ao_get_target(op);
+                try {
+                    ppval = pValues->at(arr->path);
+                } catch(std::exception& emap) { 
+                    ppval = NULL;
+                    srfsLog(LOG_INFO, "ar std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
+                }
+                try {
+                    opState = opStateMap->at(arr->path);
+                } catch(std::exception& emap) { 
+                    opState = SKOperationState::FAILED;
+                    srfsLog(LOG_INFO, "ar std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
+                }
+                if (opState == SKOperationState::SUCCEEDED) {
+                    if (ppval == NULL ){
+                        srfsLog(LOG_FINE, "ar dhtErr no val %s %d line %d", arr->path, opState,  __LINE__);
+                    } else if (ppval->m_len == sizeof(FileAttr) ){
+                        uint64_t	attrTimeoutMillis;
                     
-                    ac_remove_active_op(arr->attrReader->attrCache, arr->path);
-                    ao_set_complete_error(op, errorCode);
-				}
+                        attrTimeoutMillis = is_writable_path(arr->path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
+                        if (memcmp(ppval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
+                            // a normal data item, store in cache
+                            ao_set_complete(op, AOResult_Success, ppval->m_pVal, sizeof(FileAttr));
+                            ar_store_attr_in_cache(arr, (FileAttr *)ppval->m_pVal, attrTimeoutMillis);
+                            successful = TRUE;
+                        } else {
+                            if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
+                                // non-existence, store as an error
+                                srfsLog(LOG_FINE, "%s not found in DHT. Storing ENOENT. %s %d", arr->path, __FILE__, __LINE__);
+                                ao_set_complete_error(op, ENOENT);
+                                ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, arr->minModificationTimeMicros, attrTimeoutMillis);
+                                successful = TRUE;
+                            } else {
+                                srfsLog(LOG_FINE, "!SRFS_ENABLE_DHT_ENOENT_CACHING. Ignoring ENOENT found in DHT.");
+                            }
+                        }
+                    } else {
+                        srfsLog(LOG_WARNING, "val->size() != sizeof(FileAttr) %s %d", __FILE__, __LINE__);
+                        ppval = NULL; // temp workaround the problem - FUTURE - improve
+                    }
+                } else if (opState == SKOperationState::INCOMPLETE) {
+                    sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
+                    srfsLog(LOG_WARNING, "%s not found in kvs. Incomplete operation state.", arr->path);
+                    errorCode = EIO;
+                } else {  //SKOperationState::FAILED
+                    SKFailureCause::SKFailureCause cause = SKFailureCause::ERROR;
+                    try {
+                        cause = pValRetrieval->getFailureCause();
+                        if (cause == SKFailureCause::MULTIPLE) {
+                            errorCode = EIO;
+                            sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
+                            srfsLog(LOG_WARNING, "ar dhtErr %s %d %d %d/%d line %d", arr->path, opState, cause, i, numRequests, __LINE__);
+                        } else if (cause != SKFailureCause::NO_SUCH_VALUE) {
+                            sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
+                            srfsLog(LOG_WARNING, "ar dhtErr %s %d %d %d/%d line %d", arr->path, opState, cause, i, numRequests, __LINE__);
+                            errorCode = EIO;
+                        } else { 
+                            srfsLog(LOG_FINE, "ar dhtErr %s %d %d %d/%d line %d", arr->path, opState, cause, i, numRequests, __LINE__);
+                            errorCode = ENOENT;
+                        }
+                    } catch (SKClientException &e) { 
+                        srfsLog(LOG_ERROR, "ar getFailureCause at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
+                        sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
+                    } catch (std::exception &e) { 
+                        srfsLog(LOG_ERROR, "ar getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
+                        sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
+                    }
+                    // for r/o paths, errors are stored permanently also
+                    // for errors other than ENOENT, the calling code will retry to the file system
+                    //ac_store_error(arr->attrReader->attrCache, arr->path, -1);
+                    // FIXME - for skfs files, no result will cause the operation to hang
+                }
+                if (ppval != NULL) {
+                    sk_destroy_val( &ppval );
+                }
+
+                if (successful) {
+                    // set complete above; no need to set complete here
+                } else {
+                    if (!is_writable_path(arr->path)) {
+                        srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
+                        ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
+                    } else {
+                        srfsLog(LOG_FINE, "set op complete %llx %s %d", op, __FILE__, __LINE__);
+                        if (errorCode == 0) {
+                            errorCode = ENOENT;
+                        }
+                        
+                        ac_remove_active_op(arr->attrReader->attrCache, arr->path);
+                        ao_set_complete_error(op, errorCode);
+                    }
+                }
+            } else {
+                // No duplicate-specific action required
             }
             aor_delete(&refs[i]);
         }
