@@ -225,7 +225,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
         }
 		fbid_to_string(fbrr->fbid, keys[i]);
 		srfsLog(LOG_FINE, "fbr adding to group %llx %s", keys[i], keys[i]);
-        requestGroup.push_back( keys[i] );
+        requestGroup.push_back(keys[i]);
 	}
 	
 	// Retrieve from kvs
@@ -373,6 +373,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 
     StrValMap   *pValues = pValRetrieval->getValues();
 	OpStateMap  *opStateMap = pValRetrieval->getOperationStateMap();
+    int foundDuplicate = FALSE;
 
     // Check for duplicates
     if (pValues->size() != numRequests) {
@@ -381,129 +382,133 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
             for (j = i + 1; j < numRequests; j++) {
                 if (!strcmp(keys[i], keys[j])) {
                     isDuplicate[j] = TRUE;
+                    foundDuplicate = TRUE;
                 }
             }
         }
     }
     
-    for (i = numRequests - 1; i >= 0; i--) { // reverse order so that duplicates aren't deleted before we use them
-		ActiveOp		      *op;
-		FileBlockReadRequest  *fbrr;
-		SKVal	              *val;
-		int				successful;
-        SKOperationState::SKOperationState  opState;
+    for (i = 0; i < numRequests; i++) {
+        if (!isDuplicate[i]) {
+            ActiveOp		      *op;
+            FileBlockReadRequest  *fbrr;
+            SKVal	              *val;
+            int				successful;
+            SKOperationState::SKOperationState  opState;
 
-		op   = NULL;
-		fbrr = NULL;
-		val  = NULL;
-		successful = FALSE;
-		op = refs[i]->ao;
-		fbrr = (FileBlockReadRequest *)ao_get_target(op);
-            
-        try {
-            opState = opStateMap->at(keys[i]);
-        } catch(std::exception &emap) { 
-            opState = SKOperationState::FAILED;
-            srfsLog(LOG_INFO, "fbr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
-        }
-
-        if (opState == SKOperationState::SUCCEEDED) {
-            SKVal   *ppval;
-        
+            op   = NULL;
+            fbrr = NULL;
+            val  = NULL;
+            successful = FALSE;
+            op = refs[i]->ao;
+            fbrr = (FileBlockReadRequest *)ao_get_target(op);
+                
             try {
-                ppval = pValues->at(keys[i]);
-            } catch (std::exception &emap) { 
-                ppval = NULL;
+                opState = opStateMap->at(keys[i]);
+            } catch(std::exception &emap) { 
+                opState = SKOperationState::FAILED;
                 srfsLog(LOG_INFO, "fbr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
             }
-            if (ppval == NULL ) {  
-				//sd_op_failed(fbr->sd, opState, __FILE__, __LINE__);
-                //srfsLog(LOG_WARNING, "fbr dhtErr val not found %llx %s : %s line %d", fbrr, SKFS_FB_NS, keys[i], __LINE__);
-                // used to treat this as an error, but with new OpResult fix, we reach here for blocks that aren't found
-				srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
-				ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
-            } else {
-    			if (ppval->m_len > SRFS_BLOCK_SIZE) {
-    			//if ((ppval->m_len == 0) || (ppval->m_len > SRFS_BLOCK_SIZE)) {
-					//sd_op_failed(fbr->sd, opState);
-    				srfsLog(LOG_WARNING, "Ignoring block with bogus size fbid->block %d m_len %d %s %d", fbrr->fbid->block, ppval->m_len, __FILE__, __LINE__);
+
+            if (opState == SKOperationState::SUCCEEDED) {
+                SKVal   *ppval;
+            
+                try {
+                    ppval = pValues->at(keys[i]);
+                } catch (std::exception &emap) { 
+                    ppval = NULL;
+                    srfsLog(LOG_INFO, "fbr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
+                }
+                if (ppval == NULL ) {  
+                    //sd_op_failed(fbr->sd, opState, __FILE__, __LINE__);
+                    //srfsLog(LOG_WARNING, "fbr dhtErr val not found %llx %s : %s line %d", fbrr, SKFS_FB_NS, keys[i], __LINE__);
+                    // used to treat this as an error, but with new OpResult fix, we reach here for blocks that aren't found
+                    srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
+                    ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
                 } else {
-					CacheStoreResult	result;
-                    
-                    if (ppval->m_len == 0) {
-                        if (!isDuplicate[i]) {
+                    if (ppval->m_len > SRFS_BLOCK_SIZE) {
+                        int ki;
+                    //if ((ppval->m_len == 0) || (ppval->m_len > SRFS_BLOCK_SIZE)) {
+                        //sd_op_failed(fbr->sd, opState);
+                        srfsLog(LOG_WARNING, "Ignoring block with bogus size keys[i] %s fbid->block %d m_len %d dup %d %s %d", 
+                            keys[i], fbrr->fbid->block, ppval->m_len, foundDuplicate, __FILE__, __LINE__);
+                        for (ki = 0; ki < numRequests; ki++) {
+                            srfsLog(LOG_WARNING, "keys[%d] %s", ki, keys[ki]);
+                        }
+                    } else {
+                        CacheStoreResult	result;
+                        
+                        if (ppval->m_len == 0) {
                             if (ppval->m_pVal != NULL) {
                                 srfsLog(LOG_WARNING, "Ignoring bogus empty value %s %d", __FILE__, __LINE__);
                             } else {
                                 // FIXME - temp potential crash workaround
                                 //sk_destroy_val(&ppval);
                             }
+                            ppval = sk_create_val();
+                            // FUTURE - Consider changing the below to remove a copy
+                            // Would require a special check in cache data deletion to ensure that we don't delete
+                            // the shared data. Maybe add support for no delete entries.
+                            // Below will create a copy of the zero block for now.
+                            sk_set_val(ppval, SRFS_BLOCK_SIZE, (void *)zeroBlock);
                         }
-                        ppval = sk_create_val();
-                        // FUTURE - Consider changing the below to remove a copy
-                        // Would require a special check in cache data deletion to ensure that we don't delete
-                        // the shared data. Maybe add support for no delete entries.
-                        // Below will create a copy of the zero block for now.
-                        sk_set_val(ppval, SRFS_BLOCK_SIZE, (void *)zeroBlock);
-                    }
-                    srfsLog(LOG_FINE, "set op complete %llx %s %d", op, __FILE__, __LINE__);
-                    ao_set_complete(op, AOResult_Success, ppval->m_pVal, ppval->m_len);
-                    successful = TRUE;
-                    srfsLog(LOG_FINE, "Storing block cache");
-                    result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid,
-                                                 ppval, fbrr->minModificationTimeMicros);
-                    if (result != CACHE_STORE_SUCCESS) {
-                        srfsLog(LOG_FINE, "Cache store rejected");
-                        if (!isDuplicate[i]) {
+                        srfsLog(LOG_FINE, "set op complete %llx %s %d", op, __FILE__, __LINE__);
+                        ao_set_complete(op, AOResult_Success, ppval->m_pVal, ppval->m_len);
+                        successful = TRUE;
+                        srfsLog(LOG_FINE, "Storing block cache");
+                        result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid,
+                                                     ppval, fbrr->minModificationTimeMicros);
+                        if (result != CACHE_STORE_SUCCESS) {
+                            srfsLog(LOG_FINE, "Cache store rejected");
                             sk_destroy_val(&ppval);
-                        } else {
-                            srfsLog(LOG_WARNING, "Ignoring cache rejection of duplicate");
                         }
                     }
                 }
-            }
-        } //opState == SKOperationState::SUCCEEDED
-         else { //SKOperationState::INCOMPLETE or SKOperationState::FAILED 
-            SKFailureCause::SKFailureCause cause = SKFailureCause::ERROR;
-            
-            if (opState == SKOperationState::FAILED){
-                try {
-                    cause = pValRetrieval->getFailureCause();
-				} catch(SKClientException &e) { 
-                    srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
-                } catch(std::exception &e) { 
-                    srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
-                } catch (...) {
-                    srfsLog(LOG_WARNING, "exception fbr failed to query FailureCause"); 
+            } //opState == SKOperationState::SUCCEEDED
+             else { //SKOperationState::INCOMPLETE or SKOperationState::FAILED 
+                SKFailureCause::SKFailureCause cause = SKFailureCause::ERROR;
+                
+                if (opState == SKOperationState::FAILED){
+                    try {
+                        cause = pValRetrieval->getFailureCause();
+                    } catch(SKClientException &e) { 
+                        srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
+                    } catch(std::exception &e) { 
+                        srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
+                    } catch (...) {
+                        srfsLog(LOG_WARNING, "exception fbr failed to query FailureCause"); 
+                    }
                 }
-            }
-            //mark all except SKFailureCause::NO_SUCH_VALUE
-            if (cause != SKFailureCause::NO_SUCH_VALUE) {
-			    sd_op_failed(fbr->sd, dhtMgetErr, __FILE__, __LINE__);
-            }
-                        
-            if (!fid_is_native_fs(fbid_get_id(fbrr->fbid))) {
-                fbc_remove_active_op(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid);
-                if (cause == SKFailureCause::NO_SUCH_VALUE) {
-                    ao_set_complete_error(op, ENOENT);                    
-                } else {
-                    ao_set_complete_error(op, EIO);
+                //mark all except SKFailureCause::NO_SUCH_VALUE
+                if (cause != SKFailureCause::NO_SUCH_VALUE) {
+                    sd_op_failed(fbr->sd, dhtMgetErr, __FILE__, __LINE__);
                 }
-                successful = TRUE; // FUTURE - change the name
-                                  // this is a notification that we don't need to update the operation
-            }            
-            
-            srfsLog(LOG_FINE, "fbr m_rc %llx %d %d %s : %s  %d", fbrr, opState, cause, SKFS_FB_NS, keys[i], __LINE__);
-        }
+                            
+                if (!fid_is_native_fs(fbid_get_id(fbrr->fbid))) {
+                    fbc_remove_active_op(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid);
+                    if (cause == SKFailureCause::NO_SUCH_VALUE) {
+                        ao_set_complete_error(op, ENOENT);                    
+                    } else {
+                        ao_set_complete_error(op, EIO);
+                    }
+                    successful = TRUE; // FUTURE - change the name
+                                      // this is a notification that we don't need to update the operation
+                }            
+                
+                srfsLog(LOG_FINE, "fbr m_rc %llx %d %d %s : %s  %d", fbrr, opState, cause, SKFS_FB_NS, keys[i], __LINE__);
+            }
 
-		if (successful) {
-            // No need to set op complete. Taken care of above
-		} else {
-			srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
-			ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
-		}
-		aor_delete(&refs[i]);
-	}
+            if (successful) {
+                // No need to set op complete. Taken care of above
+            } else {
+                srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
+                ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
+            }
+        } else {
+            // No duplicate-specific action required
+        }
+        aor_delete(&refs[i]);
+    }
     delete opStateMap;
     delete pValues;
     pValRetrieval->close();
