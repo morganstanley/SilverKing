@@ -30,12 +30,6 @@
 -->
 	<path id="classpath">
 		<fileset dir="${lib.dir}" includes="**/*.jar" />
-		<!--
-		<fileset dir="${src.dir}" includes="**/com/ms/silverking/cloud/dht/collection/oldpkc/*.java" />
-		<fileset dir="${src.dir}/com/ms/silverking/cloud/dht/collection/oldpkc/">
-			<exclude name="*.java" />
-		</fileset>
-		-->
 	</path>
 	<path id="classpath.test">
 		<path refid="classpath"/>
@@ -88,11 +82,10 @@
 			<compilerarg line="-Xmaxerrs 1000" />
 			<compilerarg line="-Xmaxwarns 100" />
 			<compilerarg line="-XDignore.symbol.file" />
-			<!-- <exclude name="com/ms/gpcg/grid/dht2/test/MD5Test.java" /> -->
-			<!-- <exclude name="com/ms/silverking/cloud/dht/collection/oldpkc/*.java" /> -->
-			<exclude name="**/oldpkc/*.java" />
+			<!-- important to have these or you will get something like: '[javac] .........../lib/dhtclient/SKStopwatchBase.cpp skipped - don't know how to handle it' -->
 			<exclude name="**/*.html" />
 			<exclude name="lib/**" />
+			<exclude name="jace/**" />
 			<exclude name="skfs/*" />
 		</javac>
 		<copy todir="${classes.test.dir}">
@@ -100,6 +93,7 @@
 			<fileset dir="${test.dir}" includes="com/ms/silverking/cloud/gridconfig/**/*.txt" />
 		</copy>
 		<javac srcdir="${test.dir}" destdir="${classes.test.dir}" classpathref="classpath.test" encoding="utf-8">
+			<exclude name="**/*.txt" />
 		</javac>
 	</target>
 
