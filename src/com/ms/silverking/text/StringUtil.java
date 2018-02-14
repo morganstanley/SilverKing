@@ -34,6 +34,14 @@ public class StringUtil {
     
     private static final String	defaultNullString = "<null>";
     
+    public static boolean isNullOrEmpty(String s) {
+    	return s == null || s.length() == 0;
+    }
+    
+    public static boolean isNullOrEmptyTrimmed(String s) {
+    	return s == null || s.trim().length() == 0;
+    }
+    
 	public static String[] splitAndTrim(String source, String regex) {
 		String[]	splitSource;
 		
