@@ -136,7 +136,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
             result = results.get(i);
             if (debug) {
                 Log.warning("localRetrieval: ", entry);
-                System.out.printf("result %s\n", StringUtil.byteBufferToHexString(result));
+                System.out.printf("result %s %s\n", result, StringUtil.byteBufferToHexString(result));
             }
             
             // FUTURE - THIS NEEDS TO GO THROUGH THE PROTOCOL
