@@ -112,7 +112,7 @@ public class KeyUtil {
         return String.format("%x:%x", key.getMSL(), key.getLSL());
     }
     
-    public static DHTKey stringToKey(String def) {
+    public static DHTKey keyStringToKey(String def) {
     	String[]	s;
     	
     	s = def.split(":");
@@ -155,7 +155,7 @@ public class KeyUtil {
         	DHTKey	k2;
         	
         	k1 = SimpleKey.randomKey();
-        	k2 = stringToKey(keyToString(k1));
+        	k2 = keyStringToKey(keyToString(k1));
         	System.out.printf("%s\t%s\n", k1, k2);
         } catch (Exception e) {
             e.printStackTrace();
