@@ -10,7 +10,7 @@ import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
 
-class StorageFormat {
+public class StorageFormat {
     private static final boolean    debug = false;
     
     static final int    writeFailedOffset = -1;
@@ -64,7 +64,7 @@ class StorageFormat {
         checksumLength = storageParams.getChecksum().length;
         storedLength = MetaDataUtil.computeStoredLength(compressedLength, checksumLength, userData.length); 
         
-        writeSize = storedLength + DHTKey.BYTES_PER_KEY;
+        writeSize = storedLength + (key != null ? DHTKey.BYTES_PER_KEY : 0);
         //System.out.println("writeSize: "+ writeSize);
         offset = nextFree.getAndAdd(writeSize);
         Log.fine("offset: ", offset);
@@ -76,8 +76,10 @@ class StorageFormat {
             // FUTURE - think about reducing redundancy in stored/compressed/userdata lengths
             
             //System.out.println("WRITING:\n"+ buf);
-            buf.putLong(key.getMSL());
-            buf.putLong(key.getLSL());
+            if (key != null) {
+	            buf.putLong(key.getMSL());
+	            buf.putLong(key.getLSL());
+            }
             
             buf.putInt(storedLength); // storedLength
             if (debug) {

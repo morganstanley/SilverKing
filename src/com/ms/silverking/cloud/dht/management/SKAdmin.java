@@ -168,6 +168,7 @@ public class SKAdmin {
 		String	dirNSOpOptions;
 		String	dirNSValueRetentionPolicy;
 		String	fileBlockNSValueRetentionPolicy;
+		String	dirNSSSOptions;
 		
 		commonNSOptions = "revisionMode=NO_REVISIONS,storageType=FILE,consistencyProtocol="+ ConsistencyProtocol.TWO_PHASE_COMMIT;
 		opTimeoutController = "opTimeoutController="+ options.opTimeoutController;
@@ -178,12 +179,16 @@ public class SKAdmin {
 		dirNSOpOptions = "defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,"+ dirNSPutTimeoutController +"},"
 				   +"defaultInvalidationOptions={"+ opTimeoutController +"},"
 				   +"defaultGetOptions={nonExistenceResponse=NULL_VALUE,"+ opTimeoutController +"}";
+		dirNSSSOptions = ",namespaceServerSideCode={putTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer,retrieveTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer}";
+		//dirNSSSOptions = "";
+
 		dirNSValueRetentionPolicy = "valueRetentionPolicy=<TimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=1,timeSpanSeconds=86400}";
 		fileBlockNSValueRetentionPolicy = options.fileBlockNSValueRetentionPolicy != null ? ","+ options.fileBlockNSValueRetentionPolicy : "";
 		skfsNSOptions = NamespaceOptions.parse("versionMode=SINGLE_VERSION,"+ commonNSOptions +","+ opOptions);
 		skfsMutableNSOptions =                   NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions);
 		skfsFileBlockNSOptions =                 NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions + fileBlockNSValueRetentionPolicy);
-		skfsDirNSOptions =                 		NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ dirNSOpOptions +","+ dirNSValueRetentionPolicy);
+		System.out.println(skfsFileBlockNSOptions);
+		skfsDirNSOptions =                 		NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ dirNSOpOptions +","+ dirNSValueRetentionPolicy + dirNSSSOptions);
 		skGlobalCodebase = PropertiesHelper.envHelper.getString("skGlobalCodebase", UndefinedAction.ZeroOnUndefined);
 		
 	}

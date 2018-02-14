@@ -9,6 +9,7 @@ import com.ms.silverking.cloud.dht.common.OpResult;
 public interface SSNamespaceStore {
 	public long getNamespaceHash();
 	public boolean isNamespace(String ns);
-    public OpResult put(DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData, NamespaceVersionMode nsVersionMode);    
+    public OpResult put(DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData, NamespaceVersionMode nsVersionMode);
+	public OpResult putUpdate(DHTKey key, long version, byte storageState);
     public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options);
 }

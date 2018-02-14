@@ -24,8 +24,8 @@ public class DHTUtil {
     
     private static void initializeObjectParsers() {
         new SecondaryTarget(null, null);
-        NamespaceOptions.init();
         NamespaceServerSideCode.init();
+        NamespaceOptions.init();
     }
 
     public static long currentTimeMillis() {

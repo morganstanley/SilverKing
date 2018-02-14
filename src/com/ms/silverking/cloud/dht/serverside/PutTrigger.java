@@ -8,5 +8,5 @@ import com.ms.silverking.cloud.dht.common.OpResult;
 
 public interface PutTrigger {
     public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData, NamespaceVersionMode nsVersionMode);
-	public OpResult putUpdate(DHTKey key, long version, byte storageState);
+	public OpResult putUpdate(SSNamespaceStore nsStore, DHTKey key, long version, byte storageState);
 }

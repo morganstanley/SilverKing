@@ -418,7 +418,7 @@ public class StorageModule implements LinkCreationListener {
         
         nsStore = getNamespaceStore(ns, NSCreationMode.DoNotCreate);
         if (nsStore != null) {
-            return nsStore.putUpdate(key, version, storageState);
+            return nsStore.putUpdate_(key, version, storageState);
         } else {
             return OpResult.NO_SUCH_VALUE;
         }

@@ -93,6 +93,7 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
@@ -307,13 +308,25 @@ public class NamespaceStore implements SSNamespaceStore {
     	retrieveTrigger = triggers.getV2();
     }
     
+    private static final boolean isNonBlankNonDefaultSSCode(NamespaceServerSideCode	ssCode) {
+    	if (ssCode == null) {
+    		return false;
+    	} else {
+    		if (StringUtil.isNullOrEmptyTrimmed(ssCode.getUrl()) && StringUtil.isNullOrEmptyTrimmed(ssCode.getPutTrigger()) && StringUtil.isNullOrEmptyTrimmed(ssCode.getRetrieveTrigger())) {
+    			return false;
+    		} else {
+    			return true;
+    		}
+    	}
+    }
+    
     private static final Pair<PutTrigger,RetrieveTrigger> instantiateServerSideCode(NamespaceServerSideCode	ssCode) {
         PutTrigger		putTrigger;
         RetrieveTrigger	retrieveTrigger;
         
 		putTrigger = null;
 		retrieveTrigger = null;
-        if (ssCode != null) {
+        if (isNonBlankNonDefaultSSCode(ssCode)) {
 	    	if (ssCode.getUrl() != null && ssCode.getUrl().trim().length() != 0) {
 	    		Log.warningf("Ignoring server side code %s. Remote code not currently supported", ssCode.getUrl());
 	    	} else {
@@ -629,7 +642,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 OpResult storageResult;
 
                 if (putTrigger != null) {
-                	storageResult = putTrigger.put(this, value.getKey(), value.getValue(), value, userData, nsVersionMode);
+                	storageResult = putTrigger.put(this, value.getKey(), value.getValue(), new SSStorageParametersImpl(value, value.getValue().remaining()), userData, nsVersionMode);
                 } else {
                 	storageResult = _put(value.getKey(), value.getValue(), value, userData, nsVersionMode);
                 }
@@ -1093,7 +1106,7 @@ public class NamespaceStore implements SSNamespaceStore {
         return results;
     }
     
-    public OpResult putUpdate(DHTKey key, long version, byte storageState) {
+    public OpResult putUpdate_(DHTKey key, long version, byte storageState) {
         OpResult    result;
         Set<Waiter> triggeredWaitFors;
         
@@ -1121,10 +1134,15 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private OpResult _putUpdate(DHTKey key, long version, byte storageState) {
     	if (putTrigger != null) {
-    		return putTrigger.putUpdate(key, version, storageState);
+    		return putTrigger.putUpdate(this, key, version, storageState);
     	} else {
     		return __putUpdate(key, version, storageState);
     	}
+    }
+    
+    @Override
+    public OpResult putUpdate(DHTKey key, long version, byte storageState) {
+    	return __putUpdate(key, version, storageState);
     }
     
     private OpResult __putUpdate(DHTKey key, long version, byte storageState) {

@@ -46,18 +46,32 @@ public class NamespaceServerSideCode {
     public static NamespaceServerSideCode parse(String def) {
         return ObjectDefParser2.parse(NamespaceServerSideCode.class, def);
     }
-    
+    /*
     public static void main(String[] args) {
     	try {
     		NamespaceServerSideCode	o1;
     		NamespaceServerSideCode	o2;
+    		NamespaceServerSideCode	o3;
     		
     		o1 = new NamespaceServerSideCode("url", "putTrigger", "retrieveTrigger");
     		System.out.println(o1);
     		o2 = parse(o1.toString());
     		System.out.println(o2);
+    		
+    		o3 = parse("putTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer,retrieveTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer");
+    		System.out.println(o3);
+    		
+    		NamespaceOptions	no1;
+    		NamespaceOptions	no2;
+    		
+    		no1 = new NamespaceOptions();
+    		System.out.println(no1);
+    		no2 = NamespaceOptions.parse(no1.toString());
+    		System.out.println(no2);
+    		
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
     }
+    */
 }
