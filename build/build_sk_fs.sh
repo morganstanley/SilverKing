@@ -1,6 +1,8 @@
 #!/bin/ksh
 
+# order is important, build_sk_client.vars actually calls a function in common.lib...
 source lib/common.lib
+source lib/build_sk_client.vars	# for SK_LIB_NAME and JACE_LIB_NAME
 
 f_clearOutEnvVariables
 f_checkAndSetBuildTimestamp
@@ -105,7 +107,7 @@ typeset output_filename=$(f_getBuildSkfs_RunOutputFilename "$cc")
 	typeset ld_opts="-fPIC -pthread -rdynamic"
 	typeset cc_opts="$c_flags $ld_opts -pipe -Wno-write-strings -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT $cc_d_flags -DJACE_WANT_DYNAMIC_LOAD"
 	typeset inc_opts="-I${fuse_inc_dir} -I${sk_inc_dir} -I${ZLIB_INC} -I${VALGRIND_INC} -I${BOOST_INC}"
-	typeset lib_opts="-L${fuse_lib_dir} -lfuse -L${sk_lib_dir} -lsilverking -L${JACE_LIB} -ljace -L${BOOST_LIB} -lboost_system -L${JAVA_LIB} -ljvm -lrt -lpthread -L${ZLIB_LIB} -lz -Wl,--rpath -Wl,${fuse_lib_dir} -Wl,--rpath -Wl,${sk_lib_dir} -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${BOOST_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
+	typeset lib_opts="-L${fuse_lib_dir} -lfuse -L${sk_lib_dir} -l${SK_LIB_NAME} -L${JACE_LIB} -l${JACE_LIB_NAME} -L${BOOST_LIB} -lboost_system -L${JAVA_LIB} -ljvm -lrt -lpthread -L${ZLIB_LIB} -lz -Wl,--rpath -Wl,${fuse_lib_dir} -Wl,--rpath -Wl,${sk_lib_dir} -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${BOOST_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
 
 	f_startLocalTimer;
 	date;
