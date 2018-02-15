@@ -10,19 +10,12 @@ function f_checkParams {
 	  
 	echo "        cc=$cc"
 	echo " gcc_r_lib=$gcc_r_lib"
-	echo "  cc_flags=$cc_flags"
 	echo " rpath_dir=$rpath_dir"
 	echo "debug_flag=$debug_flag"
 	  
 	if [[ -z $cc || -z $gcc_r_lib ]] ; then
 		echo "Need to pass in a C compiler and lib"
 		exit 1
-	fi
-	  
-	if [[ -z $cc_flags ]] ; then
-		# By default, debug, not optimized
-		cc_flags="-g"
-		echo "Set cc_flags=$cc_flags"
 	fi
 
 	if [[ -z $rpath_dir ]] ; then
@@ -35,10 +28,9 @@ function f_checkParams {
 typeset             cc=$1
 typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
 {
-	typeset  gcc_r_lib=$2  
-	typeset   cc_flags=$3
-	typeset  rpath_dir=$4
-	typeset debug_flag=$5
+	typeset  gcc_r_lib=$2
+	typeset  rpath_dir=$3
+	typeset debug_flag=$4
 	f_checkParams;
 
 	typeset      ld=$cc
@@ -57,7 +49,8 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
 		use_jace_dl_d="-DJACE_WANT_DYNAMIC_LOAD";
 	fi
 
-	typeset cc_opts="$cc_flags $ld_opts -std=c++11 -frecord-gcc-switches -Wno-unused-local-typedefs $use_debug_d -DBOOST_NAMESPACE_OVERRIDE=$BOOST_NAMESPACE_OVERRIDE $CC_OPTS $use_jace_dl_d"
+	typeset cc_flags="-g -O2" 
+	typeset  cc_opts="$cc_flags $ld_opts -std=c++11 -frecord-gcc-switches -Wno-unused-local-typedefs $use_debug_d -DBOOST_NAMESPACE_OVERRIDE=$BOOST_NAMESPACE_OVERRIDE $CC_OPTS $use_jace_dl_d"
 	typeset inc_opts_with_proxy="$INC_OPTS -I${PROXY_INC}"
 	typeset lib_opts_1="$LIB_OPTS $LD_LIB_OPTS"
 	typeset lib_opts_2=""
@@ -70,7 +63,7 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
 	typeset lib_opts_3="$LIB_OPTS $LD_LIB_OPTS -Wl,--rpath -Wl,$rpath_dir -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
 	# doesn't need -lpthread actually
 	typeset lib_opts_4="$lib_opts_3 -L${INSTALL_ARCH_LIB_DIR} -l${SK_LIB_NAME}"
-	typeset lib_opts_5="$lib_opts_1 -lboost_system -Wl,--rpath -Wl,${JACE_LIB}"
+	typeset lib_opts_5="$lib_opts_1 -l${BOOST_SYSTEM_LIB} -Wl,--rpath -Wl,${JACE_LIB}"
 	
 	f_startLocalTimer;
 	date;

@@ -23,9 +23,8 @@ typeset output_filename=$(f_getBuild_RunOutputFilename)
 
 	typeset cc=$GPP
 	f_printStep "2" "Build Silverking client"
-	typeset   cc_flags="-g -O2"
-	# ./$BUILD_JACE_SCRIPT_NAME "$cc" "$cc_flags"
-	./$BUILD_SILVERKING_CLIENT_SCRIPT_NAME "$cc" "$GCC_LIB" "$cc_flags"
+	# ./$BUILD_JACE_SCRIPT_NAME "$cc"
+	./$BUILD_SILVERKING_CLIENT_SCRIPT_NAME "$cc" "$GCC_LIB"
 	./$TEST_SILVERKING_CLIENT_SCRIPT_NAME
 	
 	f_printStep "3" "Build Silverking FS"
