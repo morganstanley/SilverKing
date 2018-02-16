@@ -47,7 +47,7 @@ function f_check_MAKE_JOBS {
 }
 
 function f_check_GPP {
-	f_check_defined_and_which_and_ends_with ${!GPP} "/bin/g++"
+	f_check_defined_and_which_and_ends_with ${!GPP} "/bin/g\\+\\+"
 }
 function f_check_GCC_LIB {
 	typeset varName=${!GCC_LIB}
@@ -476,7 +476,7 @@ function f_check_ends_with {
 	typeset variableValue=$(f_getVariableValue "$1")
 	typeset end=$2
 	
-	if [[ ! $variableValue =~ "${end}$" ]] ; then
+	if [[ ! $variableValue =~ ${end}$ ]] ; then	# no quotes around "${end}$" is important!, if you put quotes, then endings like .../g++ will fail. something with the '+' screws it up b/c it has multiple meanings depending on the context (literal, regex, etc..)
 		fails+=("ends with: '$variableValue' doesn't end with '$end'")
 	fi
 }
