@@ -53,11 +53,9 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
 	typeset  cc_opts="$cc_flags $ld_opts -std=c++11 -frecord-gcc-switches -Wno-unused-local-typedefs $use_debug_d -DBOOST_NAMESPACE_OVERRIDE=$BOOST_NAMESPACE_OVERRIDE $CC_OPTS $use_jace_dl_d"
 	typeset inc_opts_with_proxy="$INC_OPTS -I${PROXY_INC}"
 	typeset lib_opts_1="$LIB_OPTS $LD_LIB_OPTS"
-	typeset lib_opts_2=""
+	typeset lib_opts_2=$LIB_OPTS
 	if [[ $JACE_DYNAMIC_LOADER != "" ]] ; then
 		lib_opts_2="$lib_opts_1 -Wl,--rpath -Wl,$rpath_dir"
-	else
-		lib_opts_2=$LIB_OPTS 
 	fi
 	# doesn't need -lpthread actually
 	typeset lib_opts_3="$LIB_OPTS $LD_LIB_OPTS -Wl,--rpath -Wl,$rpath_dir -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
