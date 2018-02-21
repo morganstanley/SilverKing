@@ -8,7 +8,6 @@ import java.util.Map;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.crypto.MD5KeyDigest;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
@@ -34,14 +33,15 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		md5KeyDigest = new MD5KeyDigest();
 	}
 	
+	/*
+	 * Note: DirectoryServer presently accepts all first stage put operations as valid, and eagerly merges in
+	 * the changes observed. As a result, putUpdate() is a nop.
+	 */
+	
 	public DirectoryServer() {
 		directories = new HashMap<>();
 	}
 	
-	private String stringToKeyString(String s) {
-		return KeyUtil.keyToString(md5KeyDigest.computeKey(s));
-	}
-
 	@Override
 	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData,
 			NamespaceVersionMode nsVersionMode) {
@@ -49,7 +49,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		int					bufOffset;
 		int					bufLimit;
 		
-		Log.warningf("DirectoryServer.put() %s %s %s  %s %s", KeyUtil.keyToString(key), stringToKeyString("/"), stringToKeyString("/skfs"), value.hasArray(), storageParams.getCompression());
+		//Log.warningf("DirectoryServer.put() %s %s %s  %s %s", KeyUtil.keyToString(key), stringToKeyString("/"), stringToKeyString("/skfs"), value.hasArray(), storageParams.getCompression());
 		//Log.warningf("compressedSize %d uncompressedSize %d", storageParams.getCompressedSize(), storageParams.getUncompressedSize());
 
 		//System.out.printf("p checksumType %s checksum.length %d\n", storageParams.getChecksumType(), storageParams.getChecksum().length);
@@ -110,20 +110,15 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 
 	@Override
 	public OpResult putUpdate(SSNamespaceStore nsStore, DHTKey key, long version, byte storageState) {
-		//return nsStore.putUpdate(key, version, storageState);
-		// FIXME - this needs to actually commit the update...
 		return OpResult.SUCCEEDED;
 	}
 	
 	@Override
 	public ByteBuffer retrieve(SSNamespaceStore nsStore, DHTKey key, SSRetrievalOptions options) {
+		DirectoryInMemorySS	existingDir;
 		ByteBuffer	rVal;
 		
-		//return nsStore.retrieve(key, options);
-		DirectoryInMemorySS	existingDir;
-		
-		System.out.printf("retrieve %s\n", KeyUtil.keyToString(key));
-		
+		//System.out.printf("retrieve %s\n", KeyUtil.keyToString(key));		
 		existingDir = directories.get(key);
 		if (existingDir != null) {
 			byte[]	serializedDir;
