@@ -53,7 +53,7 @@ public class TwoLevelParallelSSHWorker implements Runnable {
         myHost = InetAddress.getLocalHost().getCanonicalHostName();
 
         sshMaster = findMaster(masterURL);
-        sshBase = new ParallelSSHBase(null, sshMaster.getSSHCmdMap());
+        sshBase = new ParallelSSHBase(sshMaster.getSSHCmd(), sshMaster.getSSHCmdMap());
 
         if (sshMaster == null) {
             throw new RuntimeException("Master not found: " + masterURL);

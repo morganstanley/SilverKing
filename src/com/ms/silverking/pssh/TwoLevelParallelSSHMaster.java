@@ -91,6 +91,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
                         boolean terminateUponCompletion) throws IOException {
         Registry    registry;
         int         registryPort;
+        String		envCmd;
         
         numWorkerThreads = Math.min(numWorkerThreads, maxWorkerThreads);
         
@@ -222,6 +223,11 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     //////////////////////////////////////////////////////////////////////
 
 
+	@Override
+	public String getSSHCmd() throws RemoteException {
+		return workerSSH.getSSHCmd();
+	}
+	
 	@Override
 	public Map<String, String> getSSHCmdMap() throws RemoteException {
 		return workerSSH.getSSHCmdMap();

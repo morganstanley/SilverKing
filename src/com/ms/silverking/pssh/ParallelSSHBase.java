@@ -72,6 +72,10 @@ public class ParallelSSHBase {
     	this(globalSSHCmd, globalSSHCmdMap);
     }
     
+    public String getSSHCmd() {
+    	return sshCmd;
+    }
+    
     public Map<String,String> getSSHCmdMap() {
     	return sshCmdMap;
     }

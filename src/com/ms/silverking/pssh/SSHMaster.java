@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 import java.util.Map;
 
 public interface SSHMaster extends Remote {
+    public String getSSHCmd() throws RemoteException;
     public Map<String,String> getSSHCmdMap() throws RemoteException;
     public HostAndCommand getHostAndCommand() throws RemoteException;
     public void setHostResult(HostAndCommand hostAndCommand, HostResult result) throws RemoteException;
