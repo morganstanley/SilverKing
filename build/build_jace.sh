@@ -11,17 +11,10 @@ function f_checkParams {
 	f_printHeader "PARAM CHECK"
 	  
 	echo "       cc=$cc"
-	echo " cc_flags=$cc_flags"
 	  
 	if [[ -z $cc ]] ; then
 		echo "Need to pass in a C compiler"
 		exit 1
-	fi
-	  
-	if [[ -z $cc_flags ]] ; then
-		# By default, debug, not optimized
-		cc_flags="-g"
-		echo "Set cc_flags=$cc_flags"
 	fi
 }
 
@@ -83,9 +76,9 @@ function f_compileAndLinkProxiesIntoLib {
 typeset           cc=$1
 typeset output_filename=$(f_getBuildJace_RunOutputFilename "$cc")
 {
-	typeset cc_flags=$2
 	f_checkParams;
 
+	typeset cc_flags="-g -O2" 
 	typeset ld=$cc
 	typeset cc_opts="$cc_flags $LD_OPTS $CC_OPTS"
 	typeset proxy_inc="../src/jace/include"

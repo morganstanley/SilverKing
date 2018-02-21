@@ -47,7 +47,7 @@ function f_check_MAKE_JOBS {
 }
 
 function f_check_GPP {
-	f_check_defined_and_which_and_ends_with ${!GPP} "/bin/g++"
+	f_check_defined_and_which_and_ends_with ${!GPP} "/bin/g\\+\\+"
 }
 function f_check_GCC_LIB {
 	typeset varName=${!GCC_LIB}
@@ -70,6 +70,13 @@ function f_check_JAVA_7_HOME {
 }
 function f_check_JAVA_7 {
 	f_check_java_helper ${!JAVA_7}
+}
+function f_check_JAVA_7_RT_JAR {
+	typeset varName=${!JAVA_7_RT_JAR}
+	f_check_defined $varName
+	f_check_ends_with $varName "jre/lib/rt.jar"
+	f_check_file_exists $varName
+	f_printResult $varName
 }
 function f_check_java_home_helper {
 	typeset varName=$1
@@ -134,8 +141,6 @@ function f_check_JACE_JAR_LIB {
 	f_check_defined $varName
 	f_check_ends_with $varName "/lib"
 	f_check_dir_exists $varName
-	f_check_file_exists $varName "jace-core.jar"
-	f_check_file_exists $varName "jace-runtime.jar"
 	f_printResult $varName
 }
 function f_check_JACE_LIB {
@@ -145,6 +150,20 @@ function f_check_JACE_LIB {
 	f_check_dir_exists $varName
 	f_check_file_exists $varName "libjace.a"
 	f_check_file_exists $varName "libjace.so"
+	f_printResult $varName
+}
+function f_check_JACE_CORE_JAR {
+	typeset varName=${!JACE_CORE_JAR}
+	f_check_defined $varName
+	f_check_ends_with $varName "/jace-core.jar"
+	f_check_file_exists $varName
+	f_printResult $varName
+}
+function f_check_JACE_RUNTIME_JAR {
+	typeset varName=${!JACE_RUNTIME_JAR}
+	f_check_defined $varName
+	f_check_ends_with $varName "/jace-runtime.jar"
+	f_check_file_exists $varName
 	f_printResult $varName
 }
 
@@ -263,10 +282,10 @@ function f_check_VALGRIND_INC {
 	f_check_ends_with $varName "/include"
 	f_check_dir_exists $varName
 	f_check_dir_exists $varName "valgrind"
-	f_check_file_exists $varName "valgrind/callgrind.h"
-	f_check_file_exists $varName "valgrind/config.h"
-	f_check_file_exists $varName "valgrind/memcheck.h"
-	f_check_file_exists $varName "valgrind/valgrind.h"
+	# f_check_file_exists $varName "valgrind/callgrind.h"
+	# f_check_file_exists $varName "valgrind/config.h"
+	# f_check_file_exists $varName "valgrind/memcheck.h"
+	f_check_file_exists $varName "valgrind/valgrind.h"	# i think this is all we need
 	f_printResult $varName
 }
 
@@ -457,7 +476,7 @@ function f_check_ends_with {
 	typeset variableValue=$(f_getVariableValue "$1")
 	typeset end=$2
 	
-	if [[ ! $variableValue =~ "${end}$" ]] ; then
+	if [[ ! $variableValue =~ ${end}$ ]] ; then	# no quotes around "${end}$" is important!, if you put quotes, then endings like .../g++ will fail. something with the '+' screws it up b/c it has multiple meanings depending on the context (literal, regex, etc..)
 		fails+=("ends with: '$variableValue' doesn't end with '$end'")
 	fi
 }
@@ -526,6 +545,7 @@ f_check_JAVA_8_HOME
 f_check_JAVA_8
 f_check_JAVA_7_HOME
 f_check_JAVA_7
+f_check_JAVA_7_RT_JAR
 
 f_check_JAVA_INC
 f_check_JAVA_OS_INC
@@ -535,6 +555,8 @@ f_check_JACE_HOME
 f_check_JACE_INC
 f_check_JACE_JAR_LIB
 f_check_JACE_LIB
+f_check_JACE_CORE_JAR
+f_check_JACE_RUNTIME_JAR
 		
 f_check_BOOST_HOME
 f_check_BOOST_INC
