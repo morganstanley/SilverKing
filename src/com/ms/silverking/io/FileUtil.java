@@ -13,9 +13,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.io.Files;
+import com.ms.silverking.log.Log;
 
 
 public class FileUtil {
@@ -23,9 +25,25 @@ public class FileUtil {
 		FileOutputStream	out;
 		
 		out = new FileOutputStream(file);
-		out.write(value);
-		out.close();
+		try {
+			out.write(value);
+		} finally {
+			out.close();
+		}
 	}		
+	
+	public static void writeToFile(File file, byte[] ... values) throws IOException {
+		FileOutputStream	out;
+		
+		out = new FileOutputStream(file);
+		try {
+			for (byte[] value : values) {
+				out.write(value);
+			}
+		} finally {
+			out.close();
+		}
+	}
 	
 	public static void writeToFile(String fileName, String text) throws IOException {
 		writeToFile(new File(fileName), text);
@@ -133,5 +151,24 @@ public class FileUtil {
 				}
 			}
 		}
+	}
+	
+	public static List<Long> numericFilesInDirAsSortedList(File dir) {
+        List<Long> fileNumbers;
+		String[]	files;
+		
+        fileNumbers = new ArrayList<>();
+	    files = dir.list();
+        if (files != null) {
+            for (String file : files) {
+                try {
+                    fileNumbers.add(Long.parseLong(file));
+                } catch (NumberFormatException nfe) {
+                    Log.info("Ignoring non-numeric file: ", file);
+                }
+            }
+            Collections.sort(fileNumbers);
+        }
+        return fileNumbers;
 	}
 }

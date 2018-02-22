@@ -104,6 +104,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final long ns;
     private NamespaceStore  parent;
     private final File nsDir;
+    private final File ssDir;
     private final NamespaceProperties nsProperties;
     private final NamespaceOptions nsOptions;
     private final boolean	verifyStorageState;
@@ -209,6 +210,7 @@ public class NamespaceStore implements SSNamespaceStore {
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
         this.ns = ns;
         this.nsDir = nsDir;
+        ssDir = new File(nsDir, DHTConstants.ssSubDirName);
         activeRegionSyncs = new ConcurrentHashMap<>();
         this.nsOptions = nsProperties.getOptions();
         verifyStorageState = StorageProtocolUtil.requiresStorageStateVerification(nsOptions.getConsistencyProtocol());
@@ -306,6 +308,12 @@ public class NamespaceStore implements SSNamespaceStore {
     	triggers = instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
     	putTrigger = triggers.getV1();
     	retrieveTrigger = triggers.getV2();
+    	if (putTrigger != null) {
+    		putTrigger.initialize(this);
+    	}
+    	if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
+    		retrieveTrigger.initialize(this);
+    	}
     }
     
     private static final boolean isNonBlankNonDefaultSSCode(NamespaceServerSideCode	ssCode) {
@@ -2277,7 +2285,7 @@ public class NamespaceStore implements SSNamespaceStore {
 	                        Log.warning("Ignoring bad segment number: ", segmentNumber);
 	                    }
 	                } catch (NumberFormatException nfe) {
-	                    Log.warning("Recovery ignoring bad segment number: ", segmentFile);
+	                    Log.info("Recovery ignoring bad segment number: ", segmentFile);
 	                }
 	            }
 	            Collections.sort(segmentNumbers);
@@ -2814,5 +2822,16 @@ public class NamespaceStore implements SSNamespaceStore {
 	@Override
 	public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options) {
 	    return _retrieve(key, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+	}
+
+	@Override
+	public File getNamespaceSSDir() {
+		synchronized (ssDir) {
+			if (!ssDir.exists() && !ssDir.mkdir()) {
+				throw new RuntimeException("Unable to create: "+ ssDir);
+			} else {
+				return ssDir;
+			}
+		}
 	}
 }

@@ -14,12 +14,14 @@ public class DirectoryInMemory extends DirectoryBase {
 		int	numEntries;
 		
 		entries = new TreeMap<>();
-		numEntries = d.getNumEntries();
-		for (int i = 0; i < numEntries; i++) {
-			DirectoryEntryInPlace	entry;
-			
-			entry = (DirectoryEntryInPlace)d.getEntry(i);
-			addEntry(entry.getName(), entry);
+		if (d != null) {
+			numEntries = d.getNumEntries();
+			for (int i = 0; i < numEntries; i++) {
+				DirectoryEntryInPlace	entry;
+				
+				entry = (DirectoryEntryInPlace)d.getEntry(i);
+				addEntry(entry.getName(), entry);
+			}
 		}
 	}
 	

@@ -98,6 +98,8 @@ public class DHTConstants {
 	public static final String	nsPrereadGBVar = "nsPrereadGB";
 	public static final String	nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";
 	
+	public static final String	ssSubDirName = "ss";
+	
 	
 	public static final String classpathEnv = "SK_CLASSPATH";
 	public static final String classpathProperty = "java.class.path";

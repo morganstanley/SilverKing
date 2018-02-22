@@ -50,5 +50,18 @@ public abstract class DirectoryBase implements Directory {
 		}
 		bytesWritten += indexOffsets.length * DEI_ENTRY_SIZE;
 		return bytesWritten;
-	}	
+	}
+	
+	public void display() {
+		int	numEntries;
+		
+		numEntries = getNumEntries();
+		System.out.printf("numEntries %s\n", numEntries);
+		for (int i = 0; i < numEntries; i++) {
+			DirectoryEntry	entry;
+			
+			entry = getEntry(i);
+			System.out.printf("%d\t%s\n", i, entry.toString());
+		}
+	}
 }

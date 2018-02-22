@@ -1,36 +1,32 @@
 package com.ms.silverking.cloud.skfs.dir.serverside;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.OpResult;
-import com.ms.silverking.cloud.dht.crypto.MD5KeyDigest;
-import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
-import com.ms.silverking.cloud.dht.serverside.SSUtil;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.compression.CompressionUtil;
 import com.ms.silverking.log.Log;
 
 public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	private final Map<DHTKey, DirectoryInMemorySS>	directories;
-	
-	private static final MD5KeyDigest	md5KeyDigest;
-	
-	private static final byte[]	emptyUserData = new byte[0];
+	private File	logDir;
 	
 	static {
 		Log.warning("Initialized DirectoryServer class");
-		md5KeyDigest = new MD5KeyDigest();
 	}
 	
 	/*
@@ -43,50 +39,51 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	}
 	
 	@Override
+	public void initialize(SSNamespaceStore nsStore) {
+		this.logDir = nsStore.getNamespaceSSDir();
+		recover(nsStore.getNamespaceOptions());
+	}
+	
+	private void recover(NamespaceOptions nsOptions) {
+		String[]	sDirs;
+		
+		Log.warning("DirectoryServer.recover()");
+		sDirs = logDir.list();
+		for (String sDir : sDirs) {
+			DirectoryInMemorySS	newDir;
+			DHTKey	key;
+			
+			Log.warningf("DirectoryServer.recover() recovering %s", sDir);
+			key = KeyUtil.keyStringToKey(sDir);
+			newDir = new DirectoryInMemorySS(key, null, null, new File(logDir, sDir), nsOptions);
+			directories.put(key, newDir);
+		}
+		Log.warning("DirectoryServer.recover() complete");
+	}
+	
+	@Override
 	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData,
 			NamespaceVersionMode nsVersionMode) {
 		byte[]				buf;
 		int					bufOffset;
 		int					bufLimit;
-		
-		//Log.warningf("DirectoryServer.put() %s %s %s  %s %s", KeyUtil.keyToString(key), stringToKeyString("/"), stringToKeyString("/skfs"), value.hasArray(), storageParams.getCompression());
-		//Log.warningf("compressedSize %d uncompressedSize %d", storageParams.getCompressedSize(), storageParams.getUncompressedSize());
-
-		//System.out.printf("p checksumType %s checksum.length %d\n", storageParams.getChecksumType(), storageParams.getChecksum().length);
-		
-		//System.out.println();
-		//System.out.printf("%s\n", StringUtil.byteBufferToHexString(value));
-		buf = value.array();
-		bufOffset = value.arrayOffset();
-		bufLimit = bufOffset + value.limit();
-		//System.out.printf("%s\n", value);
-		//System.out.printf("%s\n", StringUtil.byteArrayToHexString(buf, bufOffset, bufLimit));
-		//System.out.println();
-		
 		DirectoryInMemorySS	existingDir;
 		DirectoryInPlace	updateDir;
 		
+		//Log.warningf("DirectoryServer.put() %s %s %s  %s %s", KeyUtil.keyToString(key), stringToKeyString("/"), stringToKeyString("/skfs"), value.hasArray(), storageParams.getCompression());
+
+		buf = value.array();
+		bufOffset = value.arrayOffset();
+		bufLimit = bufOffset + value.limit();
 		if (storageParams.getCompression() == Compression.NONE) {
 			//System.out.printf("No compression\n");
-			/*
-			buf = value.array();
-			bufOffset = value.arrayOffset();
-			bufLimit = bufOffset + value.limit();
-			System.out.printf("%s\n", value);
-			System.out.printf("%s\n", StringUtil.byteArrayToHexString(buf, bufOffset, bufLimit));
-			*/
 		} else {
 			try {
 				int	dataOffset;
 				
 				//System.out.printf("Compression\n");
-	            //dataOffset = MetaDataUtil.getDataOffset(value.array(), value.arrayOffset());
 				dataOffset = value.position();
-				//System.out.printf("%s\n", storageParams);
-				//System.out.printf("%s\n", value.toString());
-				//System.out.printf("%s\n", StringUtil.byteBufferToHexString(value));
 				buf = CompressionUtil.decompress(storageParams.getCompression(), value.array(), dataOffset, storageParams.getCompressedSize(), storageParams.getUncompressedSize());
-				//System.out.printf("%s\n", StringUtil.byteArrayToHexString(buf));
 				bufOffset = 0;
 				bufLimit = buf.length;
 			} catch (IOException ioe) {
@@ -99,7 +96,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		if (existingDir == null) {
 			DirectoryInMemorySS	newDir;
 			
-			newDir = new DirectoryInMemorySS(updateDir, storageParams);
+			newDir = new DirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
 			directories.put(key, newDir);
 		} else {
 			existingDir.update(updateDir, storageParams);
@@ -116,28 +113,14 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	@Override
 	public ByteBuffer retrieve(SSNamespaceStore nsStore, DHTKey key, SSRetrievalOptions options) {
 		DirectoryInMemorySS	existingDir;
-		ByteBuffer	rVal;
 		
-		//System.out.printf("retrieve %s\n", KeyUtil.keyToString(key));		
+		//Log.warningf("retrieve %s", KeyUtil.keyToString(key));
 		existingDir = directories.get(key);
 		if (existingDir != null) {
-			byte[]	serializedDir;
-			StorageParameters	storageParams;
-			
-			serializedDir = existingDir.serialize();
-			//Log.warningf("DirectoryServer.retrieve()"+ buf.hasArray());
-			//System.out.printf("%s\n", StringUtil.byteArrayToHexString(serializedDir));
-			
-			storageParams = StorageParameters.fromSSStorageParameters(existingDir.getStorageParameters(), serializedDir.length, serializedDir.length, Compression.NONE);
-			
-			rVal = SSUtil.retrievalResultBufferFromValue(serializedDir, storageParams);
-
-			//System.out.printf("r checksumType %s checksum.length %d\n", storageParams.getChecksumType(), storageParams.getChecksum().length);
-			//System.out.printf("uc %d\nc  %d\nl  %d\n%s\n", storageParams.getUncompressedSize(), storageParams.getCompressedSize(), serializedDir.length, storageParams.getCompression());
-			//System.out.printf("### %s\n", rVal);
-			//System.out.printf("rVal %s\n", StringUtil.byteBufferToHexString(rVal));
-			return rVal;
+			//Log.warning("existingDir found");
+			return existingDir.retrieve(options);
 		} else {
+			//Log.warning("existingDir not found");
 			return null;
 		}
 	}

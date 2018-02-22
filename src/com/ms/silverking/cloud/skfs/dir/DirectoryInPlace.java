@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.skfs.dir;
 
 import com.ms.silverking.collection.Pair;
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 
@@ -13,6 +14,10 @@ public class DirectoryInPlace extends DirectoryBase {
 		this.buf = buf;
 		this.offset = offset;
 		this.limit = limit;
+	}
+	
+	public Triple<byte[],Integer,Integer> getBufferOffsetLimit() {
+		return new Triple<>(buf, offset, limit);
 	}
 
 	@Override
