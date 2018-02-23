@@ -45,8 +45,11 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 	private SSStorageParameters	latestUpdateSP;
 	private final Timer			reapTimer;
 	
-	private static final int	reapIntervalMinutes = 60;
+	private static final int	reapIntervalMinutes = 10;
 	private static final int	reapMinVersions = 1;
+	private static final int	reapMaxVersions = 32;
+	
+	private static final FileDeletionWorker	fileDeletionWorker = new FileDeletionWorker();
 
 	public DirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
 		super(d);
@@ -160,7 +163,7 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 		sd = serializeDir();
 		persist(sd.getV1(), sd.getV2());
 		serializedVersions.put(sp.getVersion(), new SerializedDirectory(sd));
-		if (reapTimer.hasExpired()) {
+		if (reapTimer.hasExpired() || serializedVersions.size() > reapMaxVersions) {
 			reap();
 			reapTimer.reset();
 		}
@@ -175,12 +178,7 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 	}
 	
 	private void removeFromDisk(long version) {
-		File	f;
-		
-		f = fileForVersion(version);
-		if (f.exists() && !f.delete()) {
-			Log.warningf("Unable to delete %s", f.getAbsolutePath());
-		}
+		fileDeletionWorker.delete(fileForVersion(version));
 	}
 	
 	private void writeToDisk(SSStorageParameters sp, byte[] serializedDirData) throws IOException {
