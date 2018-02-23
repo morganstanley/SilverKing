@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht;
 
+import com.ms.silverking.object.ObjectUtil;
 import com.ms.silverking.text.ObjectDefParser2;
 
 public class NamespaceServerSideCode {
@@ -45,6 +46,19 @@ public class NamespaceServerSideCode {
 
     public static NamespaceServerSideCode parse(String def) {
         return ObjectDefParser2.parse(NamespaceServerSideCode.class, def);
+    }
+    
+    @Override
+    public int hashCode() {
+    	return ObjectUtil.hashCode(url) ^ ObjectUtil.hashCode(putTrigger) ^ ObjectUtil.hashCode(retrieveTrigger);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+    	NamespaceServerSideCode	other;
+    	
+    	other = (NamespaceServerSideCode)o;
+    	return ObjectUtil.equal(url, other.url) && ObjectUtil.equal(putTrigger, other.putTrigger) && ObjectUtil.equal(retrieveTrigger, other.retrieveTrigger);
     }
     /*
     public static void main(String[] args) {

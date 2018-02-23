@@ -113,15 +113,17 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	@Override
 	public ByteBuffer retrieve(SSNamespaceStore nsStore, DHTKey key, SSRetrievalOptions options) {
 		DirectoryInMemorySS	existingDir;
+		ByteBuffer	rVal;
 		
 		//Log.warningf("retrieve %s", KeyUtil.keyToString(key));
 		existingDir = directories.get(key);
 		if (existingDir != null) {
 			//Log.warning("existingDir found");
-			return existingDir.retrieve(options);
+			rVal = existingDir.retrieve(options);
 		} else {
 			//Log.warning("existingDir not found");
-			return null;
+			rVal = null;
 		}
+		return rVal;
 	}
 }

@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -90,6 +89,7 @@ import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.SKImmutableList;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
+import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
@@ -257,29 +257,7 @@ public class NamespaceStore implements SSNamespaceStore {
         default: throw new RuntimeException("Panic");
         }
         if (!isRecovery) {
-            FileSegment.SyncMode    syncMode;
-            
-            syncMode = FileSegment.SyncMode.NoSync;
-            switch (nsOptions.getStorageType()) {
-            case FILE_SYNC:
-                syncMode = FileSegment.SyncMode.Sync;
-                // fall through
-            case FILE:
-                try {
-                    headSegment = FileSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
-                                                     nsOptions.getSegmentSize(), syncMode, nsOptions);
-                } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                }
-                break;
-            case RAM:
-                headSegment = RAMSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
-                                                nsOptions.getSegmentSize(), nsOptions);
-                ramSegments.put(headSegment.getSegmentNumber(), (RAMSegment)headSegment);
-                break;
-            default:
-                throw new RuntimeException("panic");
-            }
+        	createInitialHeadSegment();
         }
         //headCreationLock = new ReentrantLock();
         // valueSegments = new ConcurrentHashMap<>();
@@ -314,6 +292,36 @@ public class NamespaceStore implements SSNamespaceStore {
     	if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
     		retrieveTrigger.initialize(this);
     	}
+    }
+    
+    private void createInitialHeadSegment() {
+        FileSegment.SyncMode    syncMode;
+        
+        if (nextSegmentID.get() != 0) {
+        	throw new RuntimeException("nextSegmentID.get() != 0");
+        }
+        Log.warning("Creating initial head segment");
+        syncMode = FileSegment.SyncMode.NoSync;
+        switch (nsOptions.getStorageType()) {
+        case FILE_SYNC:
+            syncMode = FileSegment.SyncMode.Sync;
+            // fall through
+        case FILE:
+            try {
+                headSegment = FileSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
+                                                 nsOptions.getSegmentSize(), syncMode, nsOptions);
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+            break;
+        case RAM:
+            headSegment = RAMSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
+                                            nsOptions.getSegmentSize(), nsOptions);
+            ramSegments.put(headSegment.getSegmentNumber(), (RAMSegment)headSegment);
+            break;
+        default:
+            throw new RuntimeException("panic");
+        }
     }
     
     private static final boolean isNonBlankNonDefaultSSCode(NamespaceServerSideCode	ssCode) {
@@ -2264,38 +2272,19 @@ public class NamespaceStore implements SSNamespaceStore {
         nsStore = new NamespaceStore(ns, nsDir, NamespaceStore.DirCreationMode.DoNotCreateNSDir, 
                                      nsProperties, parent, mgBase, ringMaster, true, activeRetrievals);
         if (nsProperties.getOptions().getStorageType() != StorageType.RAM) {
-            String[] segmentFiles;
-            
-	        segmentFiles = nsDir.list();
-	        if (segmentFiles != null) {
+            List<Integer> segmentNumbers;
+        	
+        	segmentNumbers = FileUtil.numericFilesInDirAsSortedIntegerList(nsDir);
+        	if (segmentNumbers.size() > 0) {
 	            FileSegmentRecoverer fsr;
-	            List<Integer> segmentNumbers;
 	            int headSegmentNumber;
+	            int headSegmentNumberIndex;
 	
 	            fsr = new FileSegmentRecoverer(nsDir);
-	            segmentNumbers = new ArrayList<>();
-	            for (String segmentFile : segmentFiles) {
-	                try {
-	                    int segmentNumber;
-	
-	                    segmentNumber = Integer.parseInt(segmentFile);
-	                    if (segmentNumber >= 0) {
-	                        segmentNumbers.add(segmentNumber);
-	                    } else {
-	                        Log.warning("Ignoring bad segment number: ", segmentNumber);
-	                    }
-	                } catch (NumberFormatException nfe) {
-	                    Log.info("Recovery ignoring bad segment number: ", segmentFile);
-	                }
-	            }
-	            Collections.sort(segmentNumbers);
-	            {
-		            int headSegmentNumberIndex;
-		            
-		            headSegmentNumberIndex = segmentNumbers.size() - 1;
-		            headSegmentNumber = segmentNumbers.get(headSegmentNumberIndex); 
-		            segmentNumbers.remove(headSegmentNumberIndex);
-	            }
+	            
+	            headSegmentNumberIndex = segmentNumbers.size() - 1;
+	            headSegmentNumber = segmentNumbers.get(headSegmentNumberIndex); 
+	            segmentNumbers.remove(headSegmentNumberIndex);
 	            
 	            numSegmentsToPreread = (int)((long)nsPrereadGB * (1024L * 1024L * 1024L) / (long)(nsProperties.getOptions().getSegmentSize()));
 	            numSegmentsToSkipPreread = segmentNumbers.size() - numSegmentsToPreread; 
@@ -2334,7 +2323,9 @@ public class NamespaceStore implements SSNamespaceStore {
 	            // FUTURE - Check for corruption
 	            // FUTURE - If full, then do full recovery?
 	            nsStore.setHeadSegment(fsr.recoverPartialSegment(headSegmentNumber, nsStore));
-	        }
+        	} else {
+        		nsStore.createInitialHeadSegment();
+        	}
         } else {
         	nsStore.initRAMSegments();
         }

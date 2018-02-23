@@ -51,7 +51,7 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 	
 	private static final FileDeletionWorker	fileDeletionWorker = new FileDeletionWorker();
 
-	public DirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
+	DirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
 		super(d);
 		
 		boolean	dirCreated;
@@ -70,18 +70,22 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 		this.sDir = sDir;
 		this.nsOptions = nsOptions;
 		serializedVersions = new TreeMap<>();
-		if (!dirCreated) {
+		if (!dirCreated && reap) {
 			recover();
 			reap();
 		}
 		reapTimer = new SimpleTimer(TimeUnit.MINUTES, reapIntervalMinutes);
 	}
 	
+	public DirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
+		this(dirKey, d, storageParams, sDir, nsOptions, true);
+	}
+	
 	private void recover() {
 		List<Long>		versions;
 		
 		Log.warningf("Recovering directory from %s", sDir);
-		versions = FileUtil.numericFilesInDirAsSortedList(sDir);
+		versions = FileUtil.numericFilesInDirAsSortedLongList(sDir);
 		for (long version : versions) {
 			try {
 				Pair<SSStorageParameters, byte[]>	sd;
@@ -185,7 +189,7 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 		FileUtil.writeToFile(fileForVersion(sp), StorageParameterSerializer.serialize(sp), serializedDirData);
 	}
 	
-	private Pair<SSStorageParameters, byte[]> readFromDisk(long version) throws IOException {
+	Pair<SSStorageParameters, byte[]> readFromDisk(long version) throws IOException {
 		byte[]	b;
 		SSStorageParameters	sp;
 		byte[]	serializedDir;
