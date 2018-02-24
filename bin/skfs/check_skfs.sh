@@ -19,9 +19,10 @@ function f_printSkfsCheckWithResult {
 				fi
 				sleep $secondsToSleep
 			done
+			
+			f_printSkfsdStatus "$id" "dead"
 		fi
 		
-		f_printSkfsdStatus "$id" "dead"
 		exit
 	else
 		f_printSkfsNotFound
