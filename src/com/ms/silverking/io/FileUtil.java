@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +40,30 @@ public class FileUtil {
 		try {
 			for (byte[] value : values) {
 				out.write(value);
+			}
+		} finally {
+			out.close();
+		}
+	}
+	
+	public static void writeToFile(File file, ByteBuffer value) throws IOException {
+		FileOutputStream	out;
+		
+		out = new FileOutputStream(file);
+		try {
+			out.getChannel().write(value);
+		} finally {
+			out.close();
+		}
+	}
+	
+	public static void writeToFile(File file, ByteBuffer ... values) throws IOException {
+		FileOutputStream	out;
+		
+		out = new FileOutputStream(file);
+		try {
+			for (ByteBuffer value : values) {
+				out.getChannel().write(value);
 			}
 		} finally {
 			out.close();
@@ -153,7 +178,7 @@ public class FileUtil {
 		}
 	}
 	
-	public static List<Long> numericFilesInDirAsSortedList(File dir) {
+	public static List<Long> numericFilesInDirAsSortedLongList(File dir) {
         List<Long> fileNumbers;
 		String[]	files;
 		
@@ -163,6 +188,25 @@ public class FileUtil {
             for (String file : files) {
                 try {
                     fileNumbers.add(Long.parseLong(file));
+                } catch (NumberFormatException nfe) {
+                    Log.info("Ignoring non-numeric file: ", file);
+                }
+            }
+            Collections.sort(fileNumbers);
+        }
+        return fileNumbers;
+	}
+	
+	public static List<Integer> numericFilesInDirAsSortedIntegerList(File dir) {
+        List<Integer> fileNumbers;
+		String[]	files;
+		
+        fileNumbers = new ArrayList<>();
+	    files = dir.list();
+        if (files != null) {
+            for (String file : files) {
+                try {
+                    fileNumbers.add(Integer.parseInt(file));
                 } catch (NumberFormatException nfe) {
                     Log.info("Ignoring non-numeric file: ", file);
                 }

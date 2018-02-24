@@ -482,6 +482,7 @@ public class NamespaceOptions {
         System.out.printf("segmentSize == oNamespaceOptions.segmentSize %s\n", segmentSize == oNamespaceOptions.segmentSize);
         System.out.printf("allowLinks == oNamespaceOptions.allowLinks %s\n", allowLinks == oNamespaceOptions.allowLinks);
         System.out.printf("valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy); %s\n", valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy));
+        System.out.printf("namespaceServerSideCode.equals(oNamespaceOptions.namespaceServerSideCode); %s\n", namespaceServerSideCode.equals(oNamespaceOptions.namespaceServerSideCode));
     }
     
     @Override
