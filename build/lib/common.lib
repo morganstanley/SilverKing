@@ -968,7 +968,7 @@ function f_stopAll {
 function f_startSilverking {
 	f_printSection "STARTING Silverking"
 	
-	f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known-state"
+	f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known state"
 	f_stopAll
 	
 	f_startSilverking_Helper
