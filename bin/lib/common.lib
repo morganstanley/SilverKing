@@ -3,7 +3,7 @@
 function f_sourceGlobalVars {
 	f_exitIfUndefined "bin_dir" $bin_dir
 	cd $bin_dir
-	source lib/sk.global.vars
+	source lib/sk.config
 }
 
 function f_configureClasspath {	

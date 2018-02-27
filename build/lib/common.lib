@@ -185,12 +185,17 @@ function f_findAndRemove {
 }
 
 function f_copyVerbose {
-	cp -rv $1 $2
+	f_copyHelper $1 $2 "-rv"
 }
 
 function f_copy {
 	echo "Copying $1 => $2"
-	cp -r $1 $2
+	f_copyHelper $1 $2 "-r"
+}
+
+function f_copyHelper {
+	typeset flags=$3
+	cp $flags $1 $2
 }
 
 function f_rsyncCopy {

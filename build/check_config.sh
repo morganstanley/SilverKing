@@ -325,8 +325,8 @@ function f_check_G_TEST_LIB {
 	f_printResult $varName
 }
 
-function f_check_SK_HOME {
-	typeset varName=${!SK_HOME}
+function f_check_SK_REPO_HOME {
+	typeset varName=${!SK_REPO_HOME}
 	f_check_defined $varName
 	f_check_dir_exists $varName
 	f_check_dir_exists $varName "bin"
@@ -393,7 +393,7 @@ function f_check_SK_LOG_HOME {
 function f_check_SK_SKFS_CONFIG_FILE {
 	typeset varName=${!SK_SKFS_CONFIG_FILE}
 	f_check_defined $varName
-	f_check_ends_with $varName "GC_SKFS.vars"
+	f_check_ends_with $varName "skfs.config"
 	f_check_file_exists $varName
 	f_printResult $varName
 }
@@ -553,7 +553,7 @@ typeset padder="............................"
 set -a fails
 VARIABLE_ID=1
 
-typeset count=`grep -P "\w+=" lib/build.config | wc -l`
+typeset count=`grep -P "\w+=" $BUILD_CONFIG_FILE | wc -l`
 echo "Checking $count variables:"
 f_check_AR
 f_check_CAT
@@ -617,7 +617,7 @@ f_check_G_TEST_HOME
 f_check_G_TEST_INC
 f_check_G_TEST_LIB
 	
-f_check_SK_HOME
+f_check_SK_REPO_HOME
 f_check_SK_GRID_CONFIG_DIR
 f_check_SK_GRID_CONFIG_NAME
 f_check_SK_DHT_NAME
