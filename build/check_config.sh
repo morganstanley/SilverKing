@@ -1,6 +1,7 @@
 #!/bin/ksh
 
-source lib/common.lib	# really only wanted build.config, but we are using some variables from common.vars like TRUE/FALSE
+source lib/build.config	# must be before common.vars b/c common.vars uses $DIRNAME
+source lib/common.vars	# really only wanted build.config, but we are using some variables like TRUE/FALSE
 
 function f_check_AR {
 	f_check_defined_and_which_and_ends_with ${!AR} "/bin/ar"
