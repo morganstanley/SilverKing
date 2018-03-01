@@ -93,9 +93,13 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
         
         _zk = mc.getZooKeeper();
         version = _zk.getLatestVersion(exclusionsPath);
-        vBase = getVBase(version);
-        stat = new Stat();
-        return new ExclusionSet(readNodesAsSet(vBase, stat), version, stat.getMzxid());
+        if (version >= 0) {
+	        vBase = getVBase(version);
+	        stat = new Stat();
+	        return new ExclusionSet(readNodesAsSet(vBase, stat), version, stat.getMzxid());
+        } else {
+        	return ExclusionSet.emptyExclusionSet(0);
+        }
     }
     
     @Override
