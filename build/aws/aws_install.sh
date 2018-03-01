@@ -4,7 +4,9 @@ cd ..
 source lib/common.vars
 
 function f_fillInBuildConfigVariable {
+    cd ~/Silverking/build 	
     f_fillInVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
+    cd ~
 }
 
 function f_fillInVariable_Helper {
@@ -44,13 +46,11 @@ dataDir=/var/tmp/zookeeper
 clientPort=2181" > zoo.cfg
 
 cd ~
-
 cd .ssh
 ssh-keygen
 cat id_rsa.pub >> authorized_keys
 
 f_fillInBuildConfigVariable "SK_REPO_HOME"  "~/$REPO_HOME"
-
 
 cd SilverKing/
 cp src/lib/perl/kill_process_and_children.pl bin/
