@@ -37,8 +37,8 @@ f_fillInBuildConfigVariable "ANT_9_HOME"  "~/$ant_version"
 f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java_version"
 
 echo "installing zk"
-zk_tar=zookeeper-3.4.11.tar.gz
-wget http://apache.claz.org/zookeeper/zookeeper-3.4.11/$zk_tar
+zk_tar=zookeeper-3.4.9.tar.gz
+wget http://archive.apache.org/dist/zookeeper/zookeeper-3.4.9/$zk_tar
 tar -xvf $zk_tar
 
 cd zookeeper-3.4.11/conf
