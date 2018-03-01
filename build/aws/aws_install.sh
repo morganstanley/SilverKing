@@ -5,7 +5,7 @@ source lib/common.vars
 cd -
 
 function f_fillInBuildConfigVariable {
-    cd ~/Silverking/build 	
+    cd ~/SilverKing/build 	
     f_fillInVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
     cd ~
 }
@@ -31,7 +31,7 @@ tar -xvf $ant_tar
 
 echo "installing java"
 java_version=java-1.8.0-openjdk
-sudo yum install $java_version-devel.x86_64 # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
+sudo yum -y install $java_version-devel.x86_64 # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
 
 f_fillInBuildConfigVariable "ANT_9_HOME"  "~/$ant_version"
 f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java_version"
