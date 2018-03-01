@@ -1,5 +1,4 @@
 
-source lib/build.config	# must be before common.vars b/c common.vars uses $DIRNAME
 source lib/common.vars
 
 ### common/shared

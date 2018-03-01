@@ -2,6 +2,7 @@
 
 cd ..
 source lib/common.vars
+cd -
 
 function f_fillInBuildConfigVariable {
     cd ~/Silverking/build 	

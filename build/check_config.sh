@@ -1,6 +1,5 @@
 #!/bin/ksh
 
-source lib/build.config	# must be before common.vars b/c common.vars uses $DIRNAME
 source lib/common.vars	# really only wanted build.config, but we are using some variables like TRUE/FALSE
 
 function f_check_AR {
@@ -554,7 +553,7 @@ typeset padder="............................"
 set -a fails
 VARIABLE_ID=1
 
-typeset count=`grep -P "\w+=" $BUILD_CONFIG_FILE | wc -l`
+typeset count=`grep -P "\w+=" $BUILD_CONFIG_FILE_NAME | wc -l`
 echo "Checking $count variables:"
 f_check_AR
 f_check_CAT
