@@ -46,14 +46,13 @@ echo "tickTime=2000
 dataDir=/var/tmp/zookeeper
 clientPort=2181" > zoo.cfg
 
-cd ~
-cd .ssh
-ssh-keygen
+cd ~/.ssh
+ssh-keygen -f id_rsa -N '' # flags are to bypass prompt
 cat id_rsa.pub >> authorized_keys
 
 f_fillInBuildConfigVariable "SK_REPO_HOME"  "~/$REPO_HOME"
 
 cd SilverKing/
 cp src/lib/perl/kill_process_and_children.pl bin/
-sed "s#XXX_PERL_PATH_XXX#/usr/bin/perl#" bin/kill_process_and_children.pl
+sed -i "s#XXX_PERL_PATH_XXX#/usr/bin/perl#" bin/kill_process_and_children.pl
 
