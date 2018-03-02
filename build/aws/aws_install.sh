@@ -18,6 +18,19 @@ function f_fillInVariable_Helper {
     sed -ri "s#(${variable}=)#\1$value#" $filename
 }
 
+function f_overrideBuildConfigVariable {
+    f_overrideVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
+
+}
+
+function f_overrideVariable_Helper {
+    typeset filename=$1
+    typeset variable=$2
+    typeset value=$3
+
+    sed -ri "s#(${variable}=)(\S+\s*.*)(\#)?#\1${value}\3#" $filename
+}
+
 ### BUILD
 cd ~
 echo "installing ant"
@@ -76,8 +89,8 @@ ln -s /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
 ln -s /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
 ln -s /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
 
-f_fillInBuildConfigVariable	"BOOST_INC" "~/$boost_version"
-f_fillInBuildConfigVariable "BOOST_LIB" "~/$boost_lib"
+f_overrideBuildConfigVariable "BOOST_INC" "~/$boost_version"
+f_overrideBuildConfigVariable "BOOST_LIB" "~/$boost_lib"
 
 curl -O search.maven.org/remotecontent?filepath=com/googlecode/jace/jace-core-runtime/1.2.22/jace-core-runtime-1.2.22.jar
 curl -O search.maven.org/remotecontent?filepath=com/googlecode/jace/jace-core-java/1.2.22/jace-core-java-1.2.22.jar 
