@@ -101,7 +101,6 @@ curl -O search.maven.org/remotecontent?filepath=com/googlecode/jace/jace-core-ja
 sudo yum -y install gcc-c++ # for g++
 cd ~/SilverKing/build
 ./build_jace.sh /usr/bin/g++ 
-# sed -i "/Xms/c\return -Xms10M -Xmx\"\+ heapLimits.getV2\(\);" ./src/com/ms/silverking/cloud/dht/management/SKAdmin.java
 
 cd ~
 jace_lib=libs/jace
@@ -115,4 +114,47 @@ ln -s ../../../jace-core-java-1.2.22.jar jace-core.jar
 mv ../../../SilverKing/build/silverking-build/silverking-install/arch-output-area/lib/jace/dynamic .
 f_fillInBuildConfigVariable "JACE_HOME" "~/$jace_lib"
 
+echo "BUILD CLIENT"
 cd ~
+f_fillInBuildConfigVariable "GPP"         "/usr/bin/g++"
+f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
+f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
+
+
+echo "BUILD SKFS"
+sudo yum install fuse #(/bin/fusermount, /etc/fuse.conf, etc.)
+sudo yum install fuse-devel #(.h files, .so)
+f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
+f_fillInBuildConfigVariable "FUSE_LIB"  "/lib64"
+
+sudo yum install zlib
+sudo yum install zlib-devel
+f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
+f_overideBuildConfigVariable  "ZLIB_LIB" "/usr/lib64"
+
+sudo yum install valgrind #(not sure this is necessary)
+sudo yum install valgrind-devel #(/usr/include/valgrind/valgrind.h)
+f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
+
+# build
+sed -i "/Xms/c\return -Xms10M -Xmx\"\+ heapLimits.getV2\(\);" ./src/com/ms/silverking/cloud/dht/management/SKAdmin.java
+
+# build sk
+Remove 2 usages of "-exportsymbols" usage
+In f_runProxyGenerator function, line with $JAVA_7
+In f_generateProxies function, line f_runAutoProxy
+
+# build skfs
+edit skfs.config
+    silverkingBase, etc..
+sudo vi /etc/fuse.conf
+    change user_allow
+
+# skc
+edit sk.config
+    SK_JACE_HOME or skJavaHome 
+cd ~/SilverKing/lib
+ln -s ../build/silverking-build/jar/silverking.jar
+
+cd ~/SilverKing/build
+./build.sh
