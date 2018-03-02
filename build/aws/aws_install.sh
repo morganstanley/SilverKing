@@ -50,6 +50,7 @@ f_fillInBuildConfigVariable "ANT_9_HOME"  "~/$ant_version"
 f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java_version"
 
 echo "installing zk"
+cd ~
 zk_version=zookeeper-3.4.11
 zk_tar=$zk_version.tar.gz
 wget http://apache.claz.org/zookeeper/$zk_version/$zk_tar
@@ -77,6 +78,7 @@ echo "BUILDING JACE"
 sudo yum -y install boost
 boost_version=boost_1_61_0
 boost_tar=$boost_version.tar.gz
+cd ~
 wget https://versaweb.dl.sourceforge.net/project/boost/boost/1.61.0/$boost_tar
 tar xvf $boost_tar
 rm $boost_tar
@@ -92,6 +94,7 @@ ln -s /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
 f_overrideBuildConfigVariable "BOOST_INC" "~/$boost_version"
 f_overrideBuildConfigVariable "BOOST_LIB" "~/$boost_lib"
 
+cd ~
 curl -O search.maven.org/remotecontent?filepath=com/googlecode/jace/jace-core-runtime/1.2.22/jace-core-runtime-1.2.22.jar
 curl -O search.maven.org/remotecontent?filepath=com/googlecode/jace/jace-core-java/1.2.22/jace-core-java-1.2.22.jar 
 
