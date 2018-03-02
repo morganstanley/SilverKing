@@ -1151,3 +1151,29 @@ function f_mountAccessibleCheck {
 	
 	f_printResult "$result" "$mountDir $expectingText accessible, expectedErrorCode is $expectedErrorCode" "$actualCode";
 }
+
+function f_fillInBuildConfigVariable {
+    f_fillInVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
+}
+
+function f_overrideBuildConfigVariable {
+	f_overrideVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
+}
+
+function f_fillInVariable_Helper {
+	typeset filename=$1
+	typeset variable=$2
+	typeset value=$3
+	
+	sed -ri "s#(${variable}=)#\1$value#" $filename	# double quotes important so the variable will be expanded
+}
+
+function f_overrideVariable_Helper {
+	typeset filename=$1
+	typeset variable=$2
+	typeset value=$3
+	
+	# we pretty much want to override everything after the '=' up until there is a possible comment starting with '#'
+	# FIXME: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
+	sed -ri "s#(${variable}=)(\S+\s*.*)(\#)?#\1${value}\3#" $filename	# double quotes important so the variable will be expanded
+}
