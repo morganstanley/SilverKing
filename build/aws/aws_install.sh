@@ -83,7 +83,7 @@ rm $boost_tar
 
 cd ~
 boost_lib=libs/boost
-mkdir $boost_lib
+mkdir -p $boost_lib
 cd $boost_lib
 ln -s /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
 ln -s /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
@@ -102,7 +102,7 @@ cd ~/SilverKing/build
 
 cd ~
 jace_lib=libs/jace
-mkdir $jace_lib
+mkdir -p $jace_lib
 cd $jace_lib
 ln -s ../../SilverKing/src/jace/include include
 mkdir lib
