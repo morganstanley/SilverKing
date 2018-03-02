@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-source lib/common.lib	# really only wanted build.config, but we are using some variables from common.vars like TRUE/FALSE
+source lib/common.vars	# really only wanted build.config, but we are using some variables like TRUE/FALSE
 
 function f_check_AR {
 	f_check_defined_and_which_and_ends_with ${!AR} "/bin/ar"
@@ -325,17 +325,35 @@ function f_check_G_TEST_LIB {
 	f_printResult $varName
 }
 
+function f_check_SK_REPO_HOME {
+	typeset varName=${!SK_REPO_HOME}
+	f_check_defined $varName
+	f_check_dir_exists $varName
+	f_check_dir_exists $varName "bin"
+	f_check_dir_exists $varName "build"
+	f_check_dir_exists $varName "doc"
+	f_check_dir_exists $varName "lib"
+	f_check_dir_exists $varName "src"
+	f_check_dir_exists $varName "test"
+	f_printResult $varName
+}
 function f_check_SK_GRID_CONFIG_DIR {
-	f_check_defined_and_dir_exists ${!SK_GRID_CONFIG_DIR}
+	typeset varName=${!SK_GRID_CONFIG_DIR}
+	f_check_defined $varName
+	f_check_ends_with $varName "/build/testing"
+	f_check_dir_exists $varName
+	f_printResult $varName
 }
 function f_check_SK_GRID_CONFIG_NAME {
 	typeset varName=${!SK_GRID_CONFIG_NAME}
 	f_check_defined $varName
+	f_check_begins_with $varName "GC_SK_"
 	f_printResult $varName
 }
 function f_check_SK_DHT_NAME {
 	typeset varName=${!SK_DHT_NAME}
 	f_check_defined $varName
+	f_check_begins_with $varName "SK_"
 	f_printResult $varName
 }
 function f_check_SK_SERVERS {
@@ -357,22 +375,25 @@ function f_check_SK_ZK_ENSEMBLE {
 function f_check_SK_FOLDER_NAME {
 	typeset varName=${!SK_FOLDER_NAME}
 	f_check_defined $varName
+	f_check_begins_with $varName "silverking"
 	f_printResult $varName
 }
 function f_check_SK_DATA_HOME {
 	typeset varName=${!SK_DATA_HOME}
 	f_check_defined $varName
+	f_check_begins_with $varName "/var/tmp/silverking"
 	f_printResult $varName
 }
 function f_check_SK_LOG_HOME {
 	typeset varName=${!SK_LOG_HOME}
 	f_check_defined $varName
+	f_check_begins_with $varName "/tmp/silverking"
 	f_printResult $varName
 }
 function f_check_SK_SKFS_CONFIG_FILE {
 	typeset varName=${!SK_SKFS_CONFIG_FILE}
 	f_check_defined $varName
-	f_check_ends_with $varName "GC_SKFS.vars"
+	f_check_ends_with $varName "skfs.config"
 	f_check_file_exists $varName
 	f_printResult $varName
 }
@@ -472,6 +493,15 @@ function f_check_file_exists {
 	fi
 }
 
+function f_check_begins_with {
+	typeset variableValue=$(f_getVariableValue "$1")
+	typeset begin=$2
+	
+	if [[ ! $variableValue =~ ^${begin} ]] ; then	# no quotes around "${begin}$" is important!, if you put quotes, then beginnings like g++/... will fail. something with the '+' screws it up b/c it has multiple meanings depending on the context (literal, regex, etc..)
+		fails+=("starts with: '$variableValue' doesn't begin with '$begin'")
+	fi
+}
+
 function f_check_ends_with {
 	typeset variableValue=$(f_getVariableValue "$1")
 	typeset end=$2
@@ -523,7 +553,7 @@ typeset padder="............................"
 set -a fails
 VARIABLE_ID=1
 
-typeset count=`grep -P "\w+=" lib/build.config | wc -l`
+typeset count=`grep -P "\w+=" $BUILD_CONFIG_FILE_NAME | wc -l`
 echo "Checking $count variables:"
 f_check_AR
 f_check_CAT
@@ -587,6 +617,7 @@ f_check_G_TEST_HOME
 f_check_G_TEST_INC
 f_check_G_TEST_LIB
 	
+f_check_SK_REPO_HOME
 f_check_SK_GRID_CONFIG_DIR
 f_check_SK_GRID_CONFIG_NAME
 f_check_SK_DHT_NAME

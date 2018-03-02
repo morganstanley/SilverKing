@@ -19,9 +19,10 @@ function f_printSkfsCheckWithResult {
 				fi
 				sleep $secondsToSleep
 			done
+			
+			f_printSkfsdStatus "$id" "dead"
 		fi
 		
-		f_printSkfsdStatus "$id" "dead"
 		exit
 	else
 		f_printSkfsNotFound
@@ -384,17 +385,22 @@ if [[ -z "${skLocalSys}" ]]; then
     # Otherwise, check to see if we're running in a dev env
     # If not running in dev env, just use path without any system component
     if [[ -n "${skGlobalCodebase}" ]]; then
-        # In a dev environment, use uname -r
+        # In a dev environment, use 'uname -r'
         skLocalSys=`uname -r`
 		
 		if [[ ! -e $skLocalSys ]]; then
+			echo "Trying to use '$skLocalSys', but no folder exists."
 			typeset rhVersion=`echo $skLocalSys | grep -P -o "el\d"`
-			echo "Trying to use '$skLocalSys', but no folder exists. So trying to find a similar rh${rhVersion} version."
-			skLocalSys=`ls | grep $rhVersion`
-			if [[ -n $skLocalSys ]]; then
-				echo "Found '$skLocalSys', will try that"
-			else 
-				echo "None found, will use default path to skfsd"
+			if [[ -n $rhVersion ]]; then
+				echo "So trying to find a similar rh${rhVersion} version."
+				skLocalSys=`ls | grep $rhVersion`
+				if [[ -n $skLocalSys ]]; then
+					echo "Found '$skLocalSys', will try that"
+				else 
+					echo "None found, will use default path to skfsd"
+				fi
+			else
+				echo "Using default path to skfsd"
 			fi
 		fi
     fi

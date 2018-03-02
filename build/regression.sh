@@ -5,7 +5,7 @@ source lib/common_regression.lib
 
 function f_copyBuildConfig {
 	cd $REPO_NAME/$BUILD_NAME
-	cp $build_area/$BUILD_CONFIG_FILE .
+	cp $build_area/$BUILD_CONFIG_FILE_NAME .
 }
 
 function f_run {

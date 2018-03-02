@@ -1,5 +1,4 @@
 
-source lib/build.config
 source lib/common.vars
 
 ### common/shared
@@ -185,12 +184,17 @@ function f_findAndRemove {
 }
 
 function f_copyVerbose {
-	cp -rv $1 $2
+	f_copyHelper $1 $2 "-rv"
 }
 
 function f_copy {
 	echo "Copying $1 => $2"
-	cp -r $1 $2
+	f_copyHelper $1 $2 "-r"
+}
+
+function f_copyHelper {
+	typeset flags=$3
+	cp $flags $1 $2
 }
 
 function f_rsyncCopy {
@@ -968,7 +972,7 @@ function f_stopAll {
 function f_startSilverking {
 	f_printSection "STARTING Silverking"
 	
-	f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known-state"
+	f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known state"
 	f_stopAll
 	
 	f_startSilverking_Helper
