@@ -26,6 +26,7 @@ import org.kohsuke.args4j.CmdLineParser;
 
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.SKConstants;
+import com.ms.silverking.cloud.config.HostGroupTable;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.LightLinkedBlockingQueue;
@@ -193,13 +194,13 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         return workers;
     }
     
-    public void startWorkers() {
-        startWorkers(workers, numWorkers);        
+    public void startWorkers(HostGroupTable hostGroups) {
+        startWorkers(workers, numWorkers, hostGroups);        
     }
 
-    private void startWorkers(Set<String> workers, int numWorkers) {
+    private void startWorkers(Set<String> workers, int numWorkers, HostGroupTable hostGroups) {
         workerSSH = new ParallelSSH(workers, workerCommand, 
-                numWorkers, workerTimeoutSeconds);
+                numWorkers, workerTimeoutSeconds, hostGroups);
     }
     
     public boolean waitForWorkerCompletion() {
@@ -225,12 +226,21 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
 
 	@Override
 	public String getSSHCmd() throws RemoteException {
-		return workerSSH.getSSHCmd();
+		if (workerSSH.sshCmdIsDefault()) {
+			return null;
+		} else {
+			return workerSSH.getSSHCmd();
+		}
 	}
 	
 	@Override
 	public Map<String, String> getSSHCmdMap() throws RemoteException {
 		return workerSSH.getSSHCmdMap();
+	}
+	
+	@Override
+	public HostGroupTable getHostGroups() throws RemoteException {
+		return workerSSH.getHostGroups();
 	}
     
     @Override
@@ -375,7 +385,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     	
     	workersComplete = false;
         while (!workersComplete) {
-            startWorkers();
+            startWorkers(null);
             workersComplete = waitForWorkerCompletion();
         }
         if (terminateUponCompletion) {

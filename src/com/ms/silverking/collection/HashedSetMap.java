@@ -2,6 +2,7 @@
 package com.ms.silverking.collection;
 
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -9,22 +10,23 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ThreadLocalRandom;
 
 
-public final class HashedSetMap<K,V> {
+public final class HashedSetMap<K,V> implements Serializable {
 	private final Map<K,Set<V>>		map;
 	private final MissingKeyMode    missingKeyMode;
-	private final Random			random;
 	private final boolean			useConcurrentSets;
 	private final ConcurrencyMode	concurrencyMode;
 	
 	public enum MissingKeyMode {NULL, EMPTY_SET, PUT_EMPTY_SET};
 	public enum ConcurrencyMode {NONE, SETS, ALL};
 
+	private static final long serialVersionUID = 7891997492240035542L;
+	
 	public HashedSetMap(MissingKeyMode missingKeyMode, ConcurrencyMode concurrencyMode) {
 		switch (concurrencyMode) {
 		case NONE:
@@ -44,7 +46,6 @@ public final class HashedSetMap<K,V> {
 		}
 		this.missingKeyMode = missingKeyMode;
 		this.concurrencyMode = concurrencyMode;
-		random = new Random();
 	}
 	
 	public HashedSetMap<K,V> clone() {
@@ -143,7 +144,7 @@ public final class HashedSetMap<K,V> {
         if (set == null) {
             return null;
         } else {
-            rndIndex = random.nextInt( set.size() );
+        	rndIndex = ThreadLocalRandom.current().nextInt( set.size() );
             i = 0;
             for (V item : set) {
                 if (i++ == rndIndex) return item;

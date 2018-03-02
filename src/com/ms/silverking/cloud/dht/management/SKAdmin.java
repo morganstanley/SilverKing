@@ -906,7 +906,7 @@ public class SKAdmin {
 												activeHostGroupNames, passiveNodeHostGroupNames);
 			displayCommandMap(serverCommands);
 			if (!options.displayOnly) {
-				_result = execCommandMap(serverCommands, validActiveServers.size() > 0 ? validActiveServers : validPassiveServers);
+				_result = execCommandMap(serverCommands, validActiveServers.size() > 0 ? validActiveServers : validPassiveServers, hostGroupTable);
 				result = result && _result;
 				if (!result) {
 					break;
@@ -982,14 +982,14 @@ public class SKAdmin {
 		return ImmutableSet.copyOf(newServers);
 	}
 
-	private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts) throws IOException {
+	private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts, HostGroupTable hostGroups) throws IOException {
 		TwoLevelParallelSSHMaster	sshMaster;
 		boolean	result;
 		
 		Log.warningf("serverCommands.size() %d", serverCommands.size());
 		sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
 		Log.warning("Starting workers");
-		sshMaster.startWorkers();
+		sshMaster.startWorkers(hostGroups);
 		Log.warning("Waiting for workers");
 		result = sshMaster.waitForWorkerCompletion();
 		sshMaster.terminate();
