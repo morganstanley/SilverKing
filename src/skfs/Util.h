@@ -145,5 +145,6 @@ void sleep_random_millis(uint64_t minMillis, uint64_t maxMillis, unsigned int *s
 uint64_t offsetToBlock(off_t offset);
 
 int is_writable_path(const char *path);
+int is_base_path(const char *path);
 
 #endif

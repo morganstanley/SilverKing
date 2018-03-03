@@ -55,13 +55,15 @@ public class ParallelSSHBase {
     		globalSSHCmdIsDefault = globalSSHCmd.equals(defaultSSHCmdRH5);
     	}
     	mapFile = PropertiesHelper.envHelper.getString(sshMapEnvVar, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
-    	if (mapFile != null) {
+    	if (mapFile != null && mapFile.trim().length() != 0) {
+    		Log.warningf("mapFile %s", mapFile);
     		try {
 				globalSSHCmdMap = MapUtil.parseStringMap(new FileInputStream(mapFile), mapDelimiter, MapUtil.NoDelimiterAction.Ignore);
 			} catch (IOException ioe) {
 				throw new RuntimeException(ioe);
 			}
     	} else {
+    		Log.warningf("mapFile null or empty");
     		globalSSHCmdMap = ImmutableMap.of();
     	}
     }

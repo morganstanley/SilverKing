@@ -915,7 +915,7 @@ static int nfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 static int skfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                        off_t offset, struct fuse_file_info *fi) {
 	srfsLogAsync(LOG_OPS, "_rd %s %ld", path, offset);
-	if (!is_writable_path(path)) {
+	if (!is_writable_path(path) && !is_base_path(path)) {
 		if (path[1] != '\0') {
 			return nfs_readdir(path, buf, filler, offset, fi);
 		} else {
@@ -928,7 +928,7 @@ static int skfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int skfs_opendir(const char* path, struct fuse_file_info* fi) {
 	srfsLogAsync(LOG_OPS, "_od %s", path);
-	if (!is_writable_path(path)) {
+	if (!is_writable_path(path) && !is_base_path(path)) {
 		return 0;
 	} else {
 		return odt_opendir(odt, path, fi);
@@ -2255,6 +2255,7 @@ void initPaths() {
 	fbr_parse_no_fbw_paths(fbr, (char *)args->noFBWPaths);
 	fbr_parse_permanent_suffixes(fbr, (char *)args->permanentSuffixes);
 	//Namespaces for SKFS must be created by external scripts ; 
+    ar_create_alias_dirs(ar, odt);
 }
 
 void destroyPaths() {
@@ -2294,6 +2295,7 @@ void initReaders() {
 	rtsFBR_NFS = rts_new(SRFS_RTS_NFS_ALPHA, SRFS_RTS_NFS_OP_TIME_INITIALIZER);
 	rtsODT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
 	ar = ar_new(f2p, sd, aw, rtsAR_DHT, rtsAR_NFS, args->cacheConcurrency, args->attrTimeoutSecs * 1000);
+	ar_store_dir_attribs(ar, SKFS_BASE, 0555);
 	ar_store_dir_attribs(ar, SKFS_WRITE_BASE, 0777);
 	int taskOutputPort = -1;
 	//PathGroup * pg = initTaskOutputPaths(&taskOutputPort);
@@ -2329,9 +2331,16 @@ void initDirs() {
 	if (odt_mkdir_base(odt)) {
 		fatalError("odt_mkdir_base skfs failed", __FILE__, __LINE__);
 	}
-	if (odt_opendir(odt, SKFS_WRITE_BASE, NULL) != 0) {
+	if (odt_opendir(odt, SKFS_BASE, NULL) != 0) {
 		fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
 	}
+	if (odt_opendir(odt, SKFS_WRITE_BASE, NULL) != 0) {
+		fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
+	}    
+    if (odt_add_entry(odt, SKFS_BASE, SKFS_WRITE_BASE_NO_SLASH)) {
+        srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", SKFS_WRITE_BASE_NO_SLASH);
+        fatalError("Couldn't create dir", __FILE__, __LINE__);
+    }
     wf_set_sync_dir_updates(args->syncDirUpdates);
 }
 

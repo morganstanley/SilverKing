@@ -1042,3 +1042,7 @@ void bytesToString(char *dest, unsigned char *src, int length) {
 int is_writable_path(const char *path) {
 	return !strncmp(path, SKFS_WRITE_BASE, SKFS_WRITE_BASE_LENGTH);
 }
+
+int is_base_path(const char *path) {
+	return !strcmp(path, SKFS_BASE);
+}
