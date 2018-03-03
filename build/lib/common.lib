@@ -1197,6 +1197,5 @@ function f_overrideVariable_Helper {
 }
 
 function f_copySkfsConfig {
-echo "skfs fig file: $SKFS_CONFIG_FILE"
 	f_copyHelper "$SKFS_CONFIG_FILE" "$BIN_DIR/$LIB_FOLDER_NAME"
 }
