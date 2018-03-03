@@ -553,7 +553,7 @@ typeset padder="............................"
 set -a fails
 VARIABLE_ID=1
 
-typeset count=`grep -P "\w+=" $BUILD_CONFIG_FILE_NAME | wc -l`
+typeset count=`grep -P "\w+=" $BUILD_CONFIG_FILE | wc -l`
 echo "Checking $count variables:"
 f_check_AR
 f_check_CAT

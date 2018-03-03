@@ -1195,3 +1195,7 @@ function f_overrideVariable_Helper {
 	# FIXME: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
 	sed -ri "s#(${variable}=)(\S+\s*.*)(\#)?#\1${value}\3#" $filename	# double quotes important so the variable will be expanded
 }
+
+function f_copySkfsConfig {
+	f_copyHelper "$SKFS_CONFIG_FILE" "$BIN_DIR/$LIB_FOLDER_NAME"
+}

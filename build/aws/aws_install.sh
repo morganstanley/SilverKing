@@ -65,9 +65,7 @@ cat id_rsa.pub >> authorized_keys
 
 sk_repo_home=~/$REPO_NAME
 f_fillInBuildConfigVariable "SK_REPO_HOME" '~/$REPO_NAME' # single quotes, so REPO_HOME isn't interpreted
-
-f_fillInBuildConfigVariable "PERL_5_8" "/usr/bin/perl"
-f_copyKillProcessAndChildrenScript	
+f_fillInBuildConfigVariable "PERL_5_8"     "/usr/bin/perl"
 
 echo "BUILDING JACE"
 f_yumInstall "boost"
@@ -132,20 +130,19 @@ f_yumInstall "valgrind"	#(not sure this is necessary)
 f_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
 f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 
-# build
-cd $sk_repo_home
-f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
+source $BUILD_CONFIG_FILE
 
-# build sk
-
-# build skfs
 f_fillInSkfsConfig
 f_fillInSkfsConfigVariable "fuseLib" "$FUSE_LIB"
 f_fillInSkfsConfigVariable "fuseBin" "/bin"
-cd $sk_repo_home
+f_fillInSkConfig
+
+cd $SK_REPO_HOME
+f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
 f_replaceLine "export jvmOptions" 'export jvmOptions="-Xms10M,-Xmx8G,-XX:+HeapDumpOnOutOfMemoryError,-XX:HeapDumpPath=/${GCName}.heap.dump"' $SKFS_CONFIG_FILE
 sudo `f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf"`
-f_fillInSkConfig
+f_copySkfsConfig
+f_copyKillProcessAndChildrenScript	
 
 # skc
 cd $LIB_DIR
