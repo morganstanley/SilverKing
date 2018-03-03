@@ -24,6 +24,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+struct OpenDirTable;
+
 
 //////////
 // types
@@ -67,6 +69,7 @@ void ar_parse_no_error_cache_paths(AttrReader *ar, char *paths);
 void ar_parse_no_link_cache_paths(AttrReader *ar, char *paths);
 void ar_parse_snapshot_only_paths(AttrReader *ar, char *paths);
 void ar_parse_native_aliases(AttrReader *ar, char *nfsMapping);
+void ar_create_alias_dirs(AttrReader *ar, OpenDirTable *odt);
 void ar_store_dir_attribs(AttrReader *ar, char *path, uint16_t mode = 0755);
 int ar_get_attr_stat(AttrReader *ar, char *path, struct stat *st);
 int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, uint64_t minModificationTimeMicros = 0);

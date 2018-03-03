@@ -53,10 +53,9 @@ static void odt_fetch_all_attr(OpenDirTable *odt, OpenDir *od);
 static void *odt_od_reconciliation_run(void *_odt);
 
 static int odt_rm_entry(OpenDirTable *odt, char *path, char *child);
-static int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od = NULL);
 
 static uint64_t odt_getVersion(OpenDirTable *odt);
-
+int _odt_mkdir_base(OpenDirTable *odt, char *path, mode_t mode);
 
 ///////////////
 // implementation
@@ -188,6 +187,7 @@ int odt_readdir(OpenDirTable *odt, const char *path, void *buf, fuse_fill_dir_t 
                        off_t offset, struct fuse_file_info *fi) {
 	DirData	*dd;
 	
+    srfsLog(LOG_FINE, "odt_readdir %s %d", path, offset);
 	dd = dd_fuse_fi_fh_to_dd(fi);
 	if (dd == NULL) {
 		srfsLog(LOG_ERROR, "dr_readdir ignoring bogus fi->fh");
@@ -210,6 +210,7 @@ int odt_readdir(OpenDirTable *odt, const char *path, void *buf, fuse_fill_dir_t 
 			}
 			srfsLog(LOG_FINE, "de %llx deNext %llx curOffset %d nextOffset %llx %d", de, deNext, (uint64_t)de - (uint64_t)dd->data, nextOffset, nextOffset);
 			//if (filler(buf, de_get_name(de), NULL, nextOffset)) {
+            //srfsLog(LOG_WARNING, "de_get_name(de) %s %d", de_get_name(de), de_is_deleted(de));
             if (!de_is_deleted(de)) {
                 if (filler(buf, de_get_name(de), NULL, 0)) { // ignore offsets for now
                     return 0;
@@ -279,7 +280,7 @@ static int odt_rm_entry(OpenDirTable *odt, char *path, char *child) {
 	return result;
 }
 
-static int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od) {
+int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od) {
 	int	result;
 	OpenDir	*od;
     uint64_t    version;
@@ -354,16 +355,22 @@ int odt_rm_entry_from_parent_dir(OpenDirTable *odt, char *path) {
 }
 
 int odt_mkdir_base(OpenDirTable *odt) {
+    int result;
+    
+    result = _odt_mkdir_base(odt, SKFS_BASE, 0555);
+    if (result != 0) {
+        return result;
+    }
+    result = _odt_mkdir_base(odt, SKFS_WRITE_BASE, 0777);
+    return result;
+}
+
+int _odt_mkdir_base(OpenDirTable *odt, char *path, mode_t mode) {
 	int	result;
 	FileAttr	fa;
 	time_t	curEpochTimeSeconds;
 	SKOperationState::SKOperationState	awResult;
 	struct fuse_context	*fuseContext;	
-	char *path;
-	mode_t mode;
-	
-	path = SKFS_WRITE_BASE;
-	mode = 0777;
 	
 	fuseContext = fuse_get_context();
 	

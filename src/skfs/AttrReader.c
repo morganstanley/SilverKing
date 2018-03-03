@@ -10,6 +10,7 @@
 #include "FileID.h"
 #include "G2OutputDir.h"
 #include "G2TaskOutputReader.h"
+#include "OpenDirTable.h"
 #include "SRFSConstants.h"
 #include "Util.h"
 
@@ -54,6 +55,9 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
 
 static FileAttr		_attr_does_not_exist;
 static AttrReader	*_global_ar; // FUTURE - allow for multiple
+
+// FUTURE - AttrReader contains nfs alias mapping code that should move elsewhere in the future
+
 
 ///////////////////
 // implementation
@@ -779,6 +783,19 @@ static int ar_is_valid_path(AttrReader *ar, const char *path) {
 		}
 		return FALSE;
 	}
+}
+
+void ar_create_alias_dirs(AttrReader *ar, OpenDirTable *odt) {
+	int	i;
+
+    srfsLog(LOG_INFO, "ar_create_alias_dirs");
+    for (i = 0; i < ar->numNFSAliases; i++) {
+        srfsLog(LOG_INFO, "create alis dir %s", ar->nfsLocalAliases[i]);
+        if (odt_add_entry(odt, SKFS_BASE, (ar->nfsLocalAliases[i] + 1))) { // +1 is to skip the leading slash, which entries do not contain
+            srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", ar->nfsLocalAliases[i]);
+            fatalError("Couldn't create dir", __FILE__, __LINE__);
+        }
+    }
 }
 
 

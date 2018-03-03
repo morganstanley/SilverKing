@@ -48,6 +48,7 @@ int odt_releasedir(OpenDirTable *odt, const char* path, struct fuse_file_info *f
 DirData *odt_get_DirData(OpenDirTable *odt, char *path);
 int odt_rm_entry_from_parent_dir(OpenDirTable *odt, char *path);
 int odt_add_entry_to_parent_dir(OpenDirTable *odt, char *path, OpenDir **od = NULL);
+int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od = NULL);
 int odt_mkdir(OpenDirTable *odt, char *path, mode_t mode);
 int odt_mkdir_base(OpenDirTable *odt);
 int odt_rmdir(OpenDirTable *odt, char *path);
