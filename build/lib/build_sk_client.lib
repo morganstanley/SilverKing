@@ -8,10 +8,9 @@ function f_runAutoProxy {
 	typeset src=$1
 	typeset destHeader=$2
 	typeset destSource=$3
-	typeset options=$4
 	
-	echo "java -Xms32m -Xmx256m -classpath $CLASSPATH7 org.jace.proxy.AutoProxy $src $src $destHeader $destSource $CLASSPATH7 -mindep $options"
-	$JAVA_7 -Xms32m -Xmx256m -classpath $CLASSPATH7 org.jace.proxy.AutoProxy $src $src $destHeader $destSource $CLASSPATH7 -mindep $options
+	echo "java -Xms32m -Xmx256m -classpath $CLASSPATH7 org.jace.proxy.AutoProxy $src $src $destHeader $destSource $CLASSPATH7 -mindep"
+	$JAVA_7 -Xms32m -Xmx256m -classpath $CLASSPATH7 org.jace.proxy.AutoProxy $src $src $destHeader $destSource $CLASSPATH7 -mindep
 }
 
 function f_runProxyGenerator {
@@ -21,7 +20,7 @@ function f_runProxyGenerator {
 	typeset proxyFolder=$3
 	typeset ext=$4
 	
-	$JAVA_7 -Xms32m -Xmx256m -classpath $CLASSPATH7:$OUT_CLASSES_SRC_DIR org.jace.proxy.ProxyGenerator $OUT_CLASSES_SRC_DIR/com/ms/silverking/cloud/dht/$className.class $type -private -exportsymbols >${proxyFolder}/jace/proxy/com/ms/silverking/cloud/dht/$className.$ext
+	$JAVA_7 -Xms32m -Xmx256m -classpath $CLASSPATH7:$OUT_CLASSES_SRC_DIR org.jace.proxy.ProxyGenerator $OUT_CLASSES_SRC_DIR/com/ms/silverking/cloud/dht/$className.class $type -private >${proxyFolder}/jace/proxy/com/ms/silverking/cloud/dht/$className.$ext
 }
 
 function f_runProxyGenerator_Header {
@@ -39,7 +38,7 @@ function f_generateProxies {
 	rm -rf "$PROXY_INC/*"
 	rm -rf "$PROXY_SRC/*"
 	
-	f_runAutoProxy "$DHT_CLIENT_SRC" "$PROXY_INC" "$PROXY_SRC" "-exportsymbols";
+	f_runAutoProxy "$DHT_CLIENT_SRC" "$PROXY_INC" "$PROXY_SRC";
 
 	f_runProxyGenerator_Header "client/KeyedOperationException";
 	f_runProxyGenerator_Source "client/KeyedOperationException";
@@ -339,6 +338,10 @@ function f_copyPerlScript {
 	f_copyPerlScript_Helper "$1" "$INSTALL_ARCH_BIN_DIR"
 }
 
+function f_copyKillProcessAndChildrenScript {
+	f_copyPerlScript_Helper "$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME" "$BIN_DIR"
+}
+
 function f_copyPerlScript_Helper {
 	typeset filename=$1
 	typeset dest_directory=$2
@@ -377,7 +380,7 @@ function f_buildWrapperApps {
 
 		f_cleanOrMakeDirectory $BUILD_DIR/$app_proxy_inc
 		f_cleanOrMakeDirectory $BUILD_DIR/$app_proxy_src
-		f_runAutoProxy "$wrapper_app_src_dir" "$app_proxy_inc" "$app_proxy_src" "";
+		f_runAutoProxy "$wrapper_app_src_dir" "$app_proxy_inc" "$app_proxy_src";
 		
 		inc_opts="$inc_opts -I${app_proxy_inc} -I${DHT_CLIENT_SRC_DIR}"
 		f_compileAssembleDirectory     "$wrapper_app_src_dir" "$buildObjDir" "$cc" "$cc_opts" "$inc_opts"
