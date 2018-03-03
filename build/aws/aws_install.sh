@@ -63,7 +63,8 @@ cd ~/.ssh
 ssh-keygen -f id_rsa -N '' # flags (f, N) are to bypass prompt
 cat id_rsa.pub >> authorized_keys
 
-f_fillInBuildConfigVariable "SK_REPO_HOME"  '~/$REPO_HOME' # single quotes, so REPO_HOME isn't interpreted
+sk_repo_home=~/$REPO_NAME
+f_fillInBuildConfigVariable "SK_REPO_HOME" '~/$REPO_NAME' # single quotes, so REPO_HOME isn't interpreted
 
 f_fillInBuildConfigVariable "PERL_5_8" "/usr/bin/perl"
 f_copyKillProcessAndChildrenScript	
@@ -103,7 +104,7 @@ cd $lib_root
 jace_lib=libs/jace
 mkdir -p $jace_lib
 cd $jace_lib
-ln -s $SK_REPO_HOME/src/jace/include include
+ln -s $sk_repo_home/src/jace/include include
 mkdir lib
 cd lib
 ln -s ../../../$jace_runtime_jar jace-runtime.jar
@@ -125,14 +126,14 @@ f_fillInBuildConfigVariable "FUSE_LIB"  "/lib64"
 f_yumInstall "zlib"
 f_yumInstall "zlib-devel"
 f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
-f_overideBuildConfigVariable  "ZLIB_LIB" "/usr/lib64"
+f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib64"
 
 f_yumInstall "valgrind"	#(not sure this is necessary)
 f_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
 f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 
 # build
-cd $SK_REPO_HOME
+cd $sk_repo_home
 f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
 
 # build sk
@@ -141,8 +142,9 @@ f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silv
 f_fillInSkfsConfig
 f_fillInSkfsConfigVariable "fuseLib" "$FUSE_LIB"
 f_fillInSkfsConfigVariable "fuseBin" "/bin"
-f_replaceLine "export jvmOptions" 'export jvmOptions="-Xms10M,-Xmx8G,-XX:+HeapDumpOnOutOfMemoryError,-XX:HeapDumpPath=/${GCName}.heap.dump"' 
-sudo f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf"
+cd $sk_repo_home
+f_replaceLine "export jvmOptions" 'export jvmOptions="-Xms10M,-Xmx8G,-XX:+HeapDumpOnOutOfMemoryError,-XX:HeapDumpPath=/${GCName}.heap.dump"' $SKFS_CONFIG_FILE
+sudo `f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf"`
 f_fillInSkConfig
 
 # skc

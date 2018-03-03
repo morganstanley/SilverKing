@@ -1166,7 +1166,7 @@ function f_fillInSkfsConfig {
 }
 
 function f_fillInSkfsConfigVariable {
-	f_fillInVariable_Helper "$SK_SKFS_CONFIG_FILE" "$1" "$2"
+	f_fillInVariable_Helper "$SKFS_CONFIG_FILE" "$1" "$2"
 }
 
 function f_fillInSkConfig {
