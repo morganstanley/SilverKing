@@ -20,12 +20,13 @@ function f_downloadJar {
 	curl -O $url
 }
 
-function f_replaceLIne {
+function f_replaceLine {
 	typeset oldLine=$1
 	typeset newLine=$2
 	typeset filename=$3
+	typeset admin=$4
 	
-	sed -i "/${oldLine}/c\${newLine}" $filename
+	$admin sed -i "/${oldLine}/c${newLine}" $filename
 }
 
 cd ..
@@ -138,9 +139,9 @@ f_fillInSkfsConfigVariable "fuseBin" "/bin"
 f_fillInSkConfig
 
 cd $SK_REPO_HOME
-f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
+f_replaceLine "Xms" 'return "-Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
 f_replaceLine "export jvmOptions" 'export jvmOptions="-Xms10M,-Xmx8G,-XX:+HeapDumpOnOutOfMemoryError,-XX:HeapDumpPath=/${GCName}.heap.dump"' $SKFS_CONFIG_FILE
-sudo `f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf"`
+f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf" "sudo"
 f_copySkfsConfig
 f_copyKillProcessAndChildrenScript	
 
