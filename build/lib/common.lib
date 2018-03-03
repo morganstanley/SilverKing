@@ -1160,6 +1160,24 @@ function f_overrideBuildConfigVariable {
 	f_overrideVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
 }
 
+function f_fillInSkfsConfig {
+	f_fillInSkfsConfigVariable "silverkingBase" "$SK_DATA_HOME"
+	f_fillInSkfsConfigVariable "HeapDumpPath"   "$SK_LOG_HOME"
+}
+
+function f_fillInSkfsConfigVariable {
+	f_fillInVariable_Helper "$SK_SKFS_CONFIG_FILE" "$1" "$2"
+}
+
+function f_fillInSkConfig {
+	f_fillInSkConfigVariable "skJavaHome"   "$JAVA_8_HOME"
+	f_fillInSkConfigVariable "SK_JACE_HOME" "$JACE_HOME"
+}
+
+function f_fillInSkConfigVariable {
+	f_fillInVariable_Helper "$SK_CONFIG_FILE" "$1" "$2"
+}
+
 function f_fillInVariable_Helper {
 	typeset filename=$1
 	typeset variable=$2

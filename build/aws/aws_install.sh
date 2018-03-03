@@ -132,19 +132,20 @@ f_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
 f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 
 # build
-f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "./src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
+cd $SK_REPO_HOME
+f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
 
 # build sk
 
 # build skfs
-edit skfs.config
-    silverkingBase, etc..
-sudo vi /etc/fuse.conf
-    change user_allow
+f_fillInSkfsConfig
+f_fillInSkfsConfigVariable "fuseLib" "$FUSE_LIB"
+f_fillInSkfsConfigVariable "fuseBin" "/bin"
+f_replaceLine "export jvmOptions" 'export jvmOptions="-Xms10M,-Xmx8G,-XX:+HeapDumpOnOutOfMemoryError,-XX:HeapDumpPath=/${GCName}.heap.dump"' 
+sudo f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf"
+f_fillInSkConfig
 
 # skc
-edit sk.config
-    SK_JACE_HOME or skJavaHome 
 cd $LIB_DIR
 ln -s $SILVERKING_JAR
 
