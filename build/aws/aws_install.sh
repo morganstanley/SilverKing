@@ -45,10 +45,10 @@ ant_tar=$ant_version-bin.tar.bz2
 f_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
 
 echo "installing java"
-java8=java-1.8.0-openjdk
-java7=java-1.7.0-openjdk
-f_yumInstall "$java8-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
-f_yumInstall "$java7-devel.x86_64" 
+java8=java-1.8.0
+java7=java-1.7.0
+f_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
+f_yumInstall "$java7-openjdk-devel.x86_64" 
 f_fillInBuildConfigVariable "ANT_9_HOME"  "$lib_root/$ant_version"
 f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java8"
 f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
@@ -118,7 +118,6 @@ f_fillInBuildConfigVariable "JACE_HOME" "$lib_root/$jace_lib"
 echo "BUILD CLIENT"
 f_fillInBuildConfigVariable "GPP"         "$gpp_path"
 f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
-f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
 
 echo "BUILD SKFS"
 f_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
