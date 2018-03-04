@@ -94,7 +94,7 @@ jace_runtime="jace-core-runtime"
    jace_core="jace-core-java"
 jace_runtime_jar=$jace_runtime-1.2.22.jar
 jace_core_jar=$jace_core-1.2.22.jar
-jar_url="search.maven.org/remotecontent?filepath=com/googlecode/jace/"
+jar_url="search.maven.org/remotecontent?filepath=com/googlecode/jace"
 f_downloadJar "$jar_url/$jace_runtime/1.2.22/$jace_runtime_jar"
 f_downloadJar "$jar_url/$jace_core/1.2.22/$jace_core_jar"
 
