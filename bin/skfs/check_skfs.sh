@@ -398,9 +398,11 @@ if [[ -z "${skLocalSys}" ]]; then
 					echo "Found '$skLocalSys', will try that"
 				else 
 					echo "None found, will use default path to skfsd"
+					skLocalSys=""
 				fi
 			else
 				echo "Using default path to skfsd"
+				skLocalSys=""
 			fi
 		fi
     fi
