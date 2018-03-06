@@ -85,8 +85,7 @@ function f_runGTests {
 	typeset namespace=$4
 	typeset output_filename=$5
 
-	typeset gtest_folder="gtest"
-	typeset gtest_dir=$TESTING_OUTPUT_DIR/$gtest_folder
+	typeset gtest_dir=$TESTING_OUTPUT_DIR/$GTEST_FOLDER_NAME
 	typeset tests_report=$gtest_dir/SK_Gtests_Report.xml
 	
 	f_cleanOrMakeDirectory "$gtest_dir"
@@ -113,7 +112,7 @@ function f_runGTests {
 		   SK_JACE_HOME=$JACE_HOME
 	"
 	
-	typeset gtest_bin_dir=$install_arch_bin_dir/$gtest_folder
+	typeset gtest_bin_dir=$install_arch_bin_dir/$GTEST_FOLDER_NAME
 	cd $gtest_bin_dir
 	for testName in *Test; do
 		typeset ns;
