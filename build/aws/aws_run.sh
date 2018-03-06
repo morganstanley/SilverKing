@@ -3,6 +3,7 @@
 source lib/common.lib
 
 f_generatePrivateKey
+cd $BUILD_DIR/aws
 ./aws_zk.sh start
-cd ~/SilverKing/build/testing
+cd $TESTING_OUTPUT_DIR
 ./start_daemons.sh
