@@ -1,0 +1,6 @@
+
+function f_generatePrivateKey {
+	cd ~/.ssh
+	ssh-keygen -f id_rsa -N '' # flags (f, N) are to bypass prompt
+	cat id_rsa.pub >> authorized_keys
+}

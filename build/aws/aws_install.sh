@@ -34,6 +34,8 @@ source lib/common.lib
 source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
 cd -
 
+source common.lib
+
 lib_root=~
 
 echo "BUILD"
@@ -64,9 +66,7 @@ echo "tickTime=2000
 dataDir=/var/tmp/zookeeper
 clientPort=2181" > zoo.cfg
 
-cd ~/.ssh
-ssh-keygen -f id_rsa -N '' # flags (f, N) are to bypass prompt
-cat id_rsa.pub >> authorized_keys
+f_generatePrivateKey
 
 sk_repo_home=~/$REPO_NAME
 f_fillInBuildConfigVariable "SK_REPO_HOME" '~/$REPO_NAME' # single quotes, so REPO_HOME isn't interpreted
