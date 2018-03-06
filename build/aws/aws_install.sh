@@ -34,7 +34,7 @@ source lib/common.lib
 source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
 cd -
 
-source common.lib
+source lib/common.lib
 
 lib_root=~
 

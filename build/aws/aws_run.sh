@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-source common.lib
+source lib/common.lib
 
 f_generatePrivateKey
 ./aws_zk.sh start
