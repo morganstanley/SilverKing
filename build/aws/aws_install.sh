@@ -152,7 +152,9 @@ f_copyKillProcessAndChildrenScript
 cd $LIB_DIR
 ln -s $SILVERKING_JAR
 
-cd $BUILD_DIR
-aws/aws_zk.sh "start"
-./$BUILD_SCRIPT_NAME
-aws/aws_zk.sh "stop"
+cd $BUILD_DIR/aws
+./aws_zk.sh "start"
+cd ..
+$BUILD_SCRIPT_NAME
+cd aws
+./aws_zk.sh "stop"
