@@ -1,5 +1,9 @@
 #!/bin/ksh
 
+cd ..
+source lib/common.lib
+cd -
+
 source lib/common.lib
 
 f_generatePrivateKey
