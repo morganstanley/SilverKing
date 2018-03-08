@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
@@ -45,6 +46,7 @@ import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
 public class TopologyRingCreator {
 	private final long	magnitudeTolerance;
     private final long	residualRegionThreshold;
+    private final Random	random;
 
     private static final boolean debug = false;
     
@@ -63,6 +65,7 @@ public class TopologyRingCreator {
     public TopologyRingCreator(long magnitudeTolerance) {
     	this.magnitudeTolerance = magnitudeTolerance;
         residualRegionThreshold = magnitudeTolerance * 10;
+        random = new Random(0);
     }
 
     public TopologyRingCreator() {
@@ -1027,7 +1030,7 @@ public class TopologyRingCreator {
         	attemptIndex = 0;
         	successful = false;
         	while (!successful && attemptIndex++ < maxShuffleAttempts) {
-	            Collections.shuffle(shuffle);
+	            Collections.shuffle(shuffle, random);
 	        	try {
 		            for (int _nodeIndex = 0; _nodeIndex < nodes.size(); _nodeIndex++) {
 		                Node	node;
