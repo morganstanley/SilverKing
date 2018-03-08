@@ -150,6 +150,6 @@ ln -s $SILVERKING_JAR
 cd $BUILD_DIR/aws
 ./aws_zk.sh "start"
 cd ..
-$BUILD_SCRIPT_NAME
+./$BUILD_SCRIPT_NAME
 cd aws
 ./aws_zk.sh "stop"
