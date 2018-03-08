@@ -1,7 +1,5 @@
 #!/bin/ksh
 
-# order is important, build_sk_client.vars actually calls a function in common.lib...
-source lib/common.lib
 source lib/build_sk_client.vars
 
 f_clearOutEnvVariables

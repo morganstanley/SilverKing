@@ -982,7 +982,7 @@ function f_startSilverking_Helper {
 	f_printSubSection "StaticInstanceCreator"
 	
 	typeset vars=$(f_getBinScriptVars)
-	f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE"
+	f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE"
 	f_runSkAdmin "StartNodes"
 	
 	f_userProcessCheck "SK" "1"
@@ -1161,12 +1161,16 @@ function f_overrideBuildConfigVariable {
 }
 
 function f_fillInSkfsConfig {
-	f_fillInSkfsConfigVariable "silverkingBase" "$SK_DATA_HOME"
-	f_fillInSkfsConfigVariable "HeapDumpPath"   "$SK_LOG_HOME"
+	f_overrideSkfsConfigVariable "silverkingBase" "$SK_DATA_HOME"
+	f_overrideSkfsConfigVariable "heapDumpBase"   "$SK_LOG_HOME"
 }
 
 function f_fillInSkfsConfigVariable {
 	f_fillInVariable_Helper "$SKFS_CONFIG_FILE" "$1" "$2"
+}
+
+function f_overrideSkfsConfigVariable {
+	f_overrideVariable_Helper "$SKFS_CONFIG_FILE" "$1" "$2"
 }
 
 function f_fillInSkConfig {
