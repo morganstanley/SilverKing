@@ -102,7 +102,7 @@ public class Doctor {
 	public void startNodes(Set<String> nodes) {
 		String	args;
 		
-		args = "-g "+ gc.getName() +" -c StartNodes -to "+ nodeStartupTimeoutSeconds +" "
+		args = "-g "+ gc.getName() +" -c StartNodes -to "+ nodeStartupTimeoutSeconds +" -r "
 		+ (forceInclusionOfUnsafeExcludedServers ? "-forceUnsafe " :"") +"-e -t "+ CollectionUtil.toString(nodes, ','); 
 		Log.warningf("args: {%s} ", args);
 		try {
