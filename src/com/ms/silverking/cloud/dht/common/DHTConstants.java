@@ -204,10 +204,14 @@ public class DHTConstants {
     public static final long    nanoOriginTimeInMillis;
     
     static {
+    	/*
         Calendar    c;
         
         c = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
         c.set(2000, 0, 1, 0, 0, 0);
         nanoOriginTimeInMillis = c.getTimeInMillis();
+        */
+    	// Above code has error. Below removes this error and ensures no skew across runs/instances
+    	nanoOriginTimeInMillis = 946684800000L;
     }   
 }

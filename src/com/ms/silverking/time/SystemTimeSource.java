@@ -5,12 +5,12 @@ package com.ms.silverking.time;
  *
  */
 public final class SystemTimeSource implements RelNanosAbsMillisTimeSource, AbsNanosTimeSource {
-	private final SafeAbsNanosTimeSource	absNanosTimeSource;
+	private final TimerDrivenAbsNanosTimeSource	absNanosTimeSource;
     
     public static final SystemTimeSource  instance = new SystemTimeSource();
     
 	private SystemTimeSource(long nanoOriginInMillis) {
-		absNanosTimeSource = new SafeAbsNanosTimeSource(nanoOriginInMillis);
+		absNanosTimeSource = new TimerDrivenAbsNanosTimeSource(nanoOriginInMillis);
 	}
 
     public SystemTimeSource() {
