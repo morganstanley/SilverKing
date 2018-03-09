@@ -1,6 +1,4 @@
 
-# order is important, build_sk_client.vars actually calls a function in common.lib...
-source lib/common.lib
 source lib/build_sk_client.vars
 
 function f_runAutoProxy {
@@ -327,19 +325,14 @@ function f_buildPerlClient {
 	
 	f_symlinkVerbose "$perl_lib_install_dir" "perl$ver"
 	
-	f_makeWithParents $INSTALL_ARCH_BIN_DIR
 	echo
-	f_printSubSection "copying Perl script(s) to $INSTALL_ARCH_BIN_DIR"
-	f_copyPerlScript "$testdht.pl"
+	f_printSubSection "copying Perl script(s) to $BIN_DIR"
+	f_copyPerlScript "$TESTDHT_SCRIPT_NAME"
 	f_copyPerlScript "$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME"
 }
 
 function f_copyPerlScript {
-	f_copyPerlScript_Helper "$1" "$INSTALL_ARCH_BIN_DIR"
-}
-
-function f_copyKillProcessAndChildrenScript {
-	f_copyPerlScript_Helper "$KILL_PROCESS_AND_CHILDREN_SCRIPT_NAME" "$BIN_DIR"
+	f_copyPerlScript_Helper "$1" "$BIN_DIR"
 }
 
 function f_copyPerlScript_Helper {

@@ -20,18 +20,21 @@ function f_downloadJar {
 	curl -O $url
 }
 
-function f_replaceLIne {
+function f_replaceLine {
 	typeset oldLine=$1
 	typeset newLine=$2
 	typeset filename=$3
+	typeset admin=$4
 	
-	sed -i "/${oldLine}/c\${newLine}" $filename
+	$admin sed -i "/${oldLine}/c${newLine}" $filename
 }
 
 cd ..
 source lib/common.lib
 source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
 cd -
+
+source lib/common.lib
 
 lib_root=~
 
@@ -44,10 +47,14 @@ ant_tar=$ant_version-bin.tar.bz2
 f_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
 
 echo "installing java"
-java_version=java-1.8.0-openjdk
-f_yumInstall "$java_version-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
+java8=java-1.8.0
+java7=java-1.7.0
+f_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
+f_yumInstall "$java7-openjdk-devel.x86_64" 
 f_fillInBuildConfigVariable "ANT_9_HOME"  "$lib_root/$ant_version"
-f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java_version"
+f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java8"
+f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
+
 
 echo "installing zk"
 zk_version=zookeeper-3.4.11
@@ -59,15 +66,11 @@ echo "tickTime=2000
 dataDir=/var/tmp/zookeeper
 clientPort=2181" > zoo.cfg
 
-cd ~/.ssh
-ssh-keygen -f id_rsa -N '' # flags (f, N) are to bypass prompt
-cat id_rsa.pub >> authorized_keys
+f_generatePrivateKey
 
 sk_repo_home=~/$REPO_NAME
 f_fillInBuildConfigVariable "SK_REPO_HOME" '~/$REPO_NAME' # single quotes, so REPO_HOME isn't interpreted
-
-f_fillInBuildConfigVariable "PERL_5_8" "/usr/bin/perl"
-f_copyKillProcessAndChildrenScript	
+f_fillInBuildConfigVariable "PERL_5_8"     "/usr/bin/perl"
 
 echo "BUILDING JACE"
 f_yumInstall "boost"
@@ -91,7 +94,7 @@ jace_runtime="jace-core-runtime"
    jace_core="jace-core-java"
 jace_runtime_jar=$jace_runtime-1.2.22.jar
 jace_core_jar=$jace_core-1.2.22.jar
-jar_url="search.maven.org/remotecontent?filepath=com/googlecode/jace/"
+jar_url="search.maven.org/remotecontent?filepath=com/googlecode/jace"
 f_downloadJar "$jar_url/$jace_runtime/1.2.22/$jace_runtime_jar"
 f_downloadJar "$jar_url/$jace_core/1.2.22/$jace_core_jar"
 
@@ -115,7 +118,6 @@ f_fillInBuildConfigVariable "JACE_HOME" "$lib_root/$jace_lib"
 echo "BUILD CLIENT"
 f_fillInBuildConfigVariable "GPP"         "$gpp_path"
 f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
-f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
 
 echo "BUILD SKFS"
 f_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
@@ -132,24 +134,20 @@ f_yumInstall "valgrind"	#(not sure this is necessary)
 f_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
 f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 
-# build
-cd $sk_repo_home
-f_replaceLine "Xms" 'return -Xms10M -Xmx"+ heapLimits.getV2();' "src/com/ms/silverking/cloud/dht/management/SKAdmin.java"
-
-# build sk
-
-# build skfs
-f_fillInSkfsConfig
-f_fillInSkfsConfigVariable "fuseLib" "$FUSE_LIB"
-f_fillInSkfsConfigVariable "fuseBin" "/bin"
-cd $sk_repo_home
-f_replaceLine "export jvmOptions" 'export jvmOptions="-Xms10M,-Xmx8G,-XX:+HeapDumpOnOutOfMemoryError,-XX:HeapDumpPath=/${GCName}.heap.dump"' $SKFS_CONFIG_FILE
-sudo `f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf"`
+source $BUILD_CONFIG_FILE
+f_fillInSkfsConfigVariable   "fuseLib" "$FUSE_LIB"
+f_fillInSkfsConfigVariable   "fuseBin" "/bin"
 f_fillInSkConfig
+
+f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf" "sudo"
 
 # skc
 cd $LIB_DIR
 ln -s $SILVERKING_JAR
 
-cd $BUILD_DIR
+cd $BUILD_DIR/aws
+./aws_zk.sh "start"
+cd ..
 ./$BUILD_SCRIPT_NAME
+cd aws
+./aws_zk.sh "stop"

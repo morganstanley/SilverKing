@@ -78,7 +78,7 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
 	f_buildMainLib "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_2";
 	f_installHeaderFiles;
 	f_buildTestApp        "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_3" "testdht";
-	f_buildGtestFramework "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_3" "testdht" "gtest"
+	f_buildGtestFramework "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_3" "testdht" "$GTEST_FOLDER_NAME"
 	f_buildKdbQ  "$cc" "$ld_opts" "$lib_opts_4" "$rpath_dir";
 	f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_4" "$rpath_dir";
 	f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_4" "$gcc_r_lib";

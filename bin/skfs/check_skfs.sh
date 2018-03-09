@@ -401,6 +401,7 @@ if [[ -z "${skLocalSys}" ]]; then
 				fi
 			else
 				echo "Using default path to skfsd"
+				skLocalSys=""
 			fi
 		fi
     fi
