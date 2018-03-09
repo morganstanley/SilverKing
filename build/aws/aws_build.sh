@@ -138,8 +138,6 @@ source $BUILD_CONFIG_FILE
 f_fillInSkfsConfigVariable   "fuseLib" "$FUSE_LIB"
 f_fillInSkfsConfigVariable   "fuseBin" "/bin"
 f_fillInSkConfig
-f_copyKillProcessAndChildrenScript	
-f_copySkfsConfig
 
 f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf" "sudo"
 

@@ -972,8 +972,10 @@ function f_stopAll {
 function f_startSilverking {
 	f_printSection "STARTING Silverking"
 	
-	f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known state"
-	f_stopAll
+	if [[ -e $SK_GRID_CONFIG_DIR/${SK_GRID_CONFIG_NAME}.env ]]; then
+		f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known state"
+		f_stopAll
+	fi
 	
 	f_startSilverking_Helper
 }

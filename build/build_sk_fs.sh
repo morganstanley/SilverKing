@@ -112,6 +112,7 @@ typeset output_filename=$(f_getBuildSkfs_RunOutputFilename "$cc")
 	f_cleanOrMakeDirectory $SKFS_BUILD_ARCH_DIR
 	f_cleanOrMakeDirectory $SKFS_INSTALL_ARCH_DIR
 	f_compileAndLink
+	f_copySkfsConfig	# important to copy and not to symlink b/c build/ doesn't exist in dist code, so bin/ would have a dead symlink pointing to build/
 	f_printSummary "$output_filename"
 	f_printLocalElapsed;
 } 2>&1 | tee $output_filename
