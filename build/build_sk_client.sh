@@ -83,6 +83,8 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
 	f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_4" "$rpath_dir";
 	f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_4" "$gcc_r_lib";
 	f_buildWrapperApps "$cc" "$cc_opts" "$INC_OPTS" "$ld" "$ld_opts" "$lib_opts_5";
+	f_copySkfsConfig	# important to copy and not to symlink b/c build/ doesn't exist in dist code, so bin/ would have a dead symlink pointing to build/
+						# also in here and not build_skfs b/c we need it to be in silverking dist bin/ and not skfs bin/
 	f_printSummary "$output_filename";
 	f_printLocalElapsed;
 } 2>&1 | tee $output_filename
