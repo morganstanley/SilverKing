@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -35,6 +36,7 @@ import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.io.IOUtil;
+import com.ms.silverking.log.Log;
 
 /*
  * Given a DHT name, this utility can provide:
@@ -130,9 +132,17 @@ public class MetaUtil {
                 new ServerSetExtensionZK(ringMC, ringMC.getMetaPaths().getExclusionsPath()).readFromZK(exclusionsVersion, null) );
         
         if (dhtConfig.hasPassiveNodeHostGroups()) {
-	        passiveNodesVersion = getVersionPriorTo_floored(mc.getMetaPaths().getPassiveNodesPath(), dhtConfZkId);
-	        passiveNodes = new PassiveNodeSet( 
-	                new ServerSetExtensionZK(mc, mc.getMetaPaths().getPassiveNodesPath()).readFromZK(passiveNodesVersion, null) );
+        	PassiveNodeSet	_passiveNodes;
+        	
+        	try {
+		        passiveNodesVersion = getVersionPriorTo_floored(mc.getMetaPaths().getPassiveNodesPath(), dhtConfZkId);
+		        _passiveNodes = new PassiveNodeSet( 
+		                new ServerSetExtensionZK(mc, mc.getMetaPaths().getPassiveNodesPath()).readFromZK(passiveNodesVersion, null) );
+        	} catch (NoNodeException nne) {
+        		Log.logErrorWarning(nne);
+            	_passiveNodes = PassiveNodeSet.emptySet();
+        	}
+        	passiveNodes = _passiveNodes;
         } else {
         	passiveNodes = PassiveNodeSet.emptySet();
         }
