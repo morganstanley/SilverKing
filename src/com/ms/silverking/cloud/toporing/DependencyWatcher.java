@@ -45,6 +45,7 @@ import com.ms.silverking.thread.ThreadUtil;
  * Watches ring dependencies and builds a new ring if any changes are detected.
  */
 public class DependencyWatcher implements VersionListener {
+	private final DependencyWatcherOptions	options;
     private final MetaClient    mc;
     private final com.ms.silverking.cloud.dht.meta.MetaClient	dhtMC;
     private final com.ms.silverking.cloud.meta.MetaClient    cloudMC;
@@ -57,6 +58,7 @@ public class DependencyWatcher implements VersionListener {
     private Map<String,Long>	lastBuild;
     private final BlockingQueue<Map<String,Long>>	buildQueue;
     private final int	consecutiveUpdateGuardSeconds;
+    private final int	_requiredInitialUpdates;
     
     private static final int    buildDelayMillis = 2 * 1000;
     private static final int    invalidTopologyDelayMillis = 2 * 1000;
@@ -69,6 +71,7 @@ public class DependencyWatcher implements VersionListener {
         ZooKeeperConfig			zkConfig;
         long	intervalMillis;
         
+        this.options = options;
         this.gridConfig = gridConfig;
         exitAfterBuild = options.exitAfterBuild;
         intervalMillis = options.watchIntervalSeconds * 1000;
@@ -77,6 +80,8 @@ public class DependencyWatcher implements VersionListener {
         dhtMC = new com.ms.silverking.cloud.dht.meta.MetaClient(gridConfig);
         zkConfig = dhtMC.getZooKeeper().getZKConfig();
         consecutiveUpdateGuardSeconds = options.exitAfterBuild ? 0 : options.consecutiveUpdateGuardSeconds;
+        
+        _requiredInitialUpdates = options.ignoreInstanceExclusions ? requiredInitialUpdates - 1 : requiredInitialUpdates;
         
         lastBuild = new HashMap<>();
         buildQueue = new LinkedBlockingQueue<>();
@@ -99,7 +104,9 @@ public class DependencyWatcher implements VersionListener {
         new VersionWatcher(mc, mp.getWeightsPath(), this, intervalMillis);
         new VersionWatcher(mc, mp.getStoragePolicyGroupPath(), this, intervalMillis);
         new VersionWatcher(mc, mp.getConfigPath(), this, intervalMillis);
-        new VersionWatcher(mc, dhtMC.getMetaPaths().getInstanceExclusionsPath(), this, intervalMillis);        
+        if (!options.ignoreInstanceExclusions) {
+        	new VersionWatcher(mc, dhtMC.getMetaPaths().getInstanceExclusionsPath(), this, intervalMillis);
+        }
     }
     
     @Override
@@ -108,7 +115,7 @@ public class DependencyWatcher implements VersionListener {
             System .out.println("newVersion "+ basePath +" "+ version);
         }
         updatesReceived.add(basePath);
-        if (updatesReceived.size() == requiredInitialUpdates) {
+        if (updatesReceived.size() == _requiredInitialUpdates) {
             triggerBuild();
         }
     }
@@ -166,16 +173,22 @@ public class DependencyWatcher implements VersionListener {
 	            weightSpecs = new WeightsZK(mc).readFromZK(weightsVersion, null);
 	            
 	            exclusionSet = new ExclusionSet(new ServerSetExtensionZK(mc, mc.getMetaPaths().getExclusionsPath()).readFromZK(exclusionVersion, null));
-	            try {
-	            	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(mc, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(instanceExclusionVersion, null));
-	            } catch (Exception e) {
-	            	Log.warning("No instance ExclusionSet found");
+	            if (options.ignoreInstanceExclusions) {
 	            	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+	            } else {
+		            try {
+		            	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(mc, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(instanceExclusionVersion, null));
+		            } catch (Exception e) {
+		            	Log.warning("No instance ExclusionSet found");
+		            	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+		            }
 	            }
 	            mergedExclusionSet = ExclusionSet.union(exclusionSet, instanceExclusionSet);
 	            
 	            storagePolicyGroup = new StoragePolicyGroupZK(mc).readFromZK(storagePolicyGroupVersion, null); 
 	            ringConfig = new RingConfigurationZK(mc).readFromZK(ringConfigVersion, null);
+	            
+	            Log.warningf("ringConfiguration %s", ringConfig);
 	            
 	            hostGroupTableVersion = zk.getLatestVersion( cloudMC.getMetaPaths().getHostGroupPath() );
 	            hostGroupTable = new HostGroupTableZK(cloudMC).readFromZK(hostGroupTableVersion, null);
