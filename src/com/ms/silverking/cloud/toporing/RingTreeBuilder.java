@@ -19,6 +19,7 @@ import com.ms.silverking.cloud.topology.NodeClass;
 import com.ms.silverking.cloud.topology.Topology;
 import com.ms.silverking.cloud.topology.TopologyParser;
 import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
+import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 
 public class RingTreeBuilder {
@@ -40,9 +41,11 @@ public class RingTreeBuilder {
     }
     
     private static void buildMaps(Map<String,TopologyRing> maps, Node node, RingTreeRecipe recipe, RingTree sourceTree) {
+    	Log.warningf("buildMaps %s", node.getIDString());
         if (node.getChildren().size() > 0 && recipe.hasDescendantInHostGroups(node)) {
             buildNodeMap(maps, node, recipe, sourceTree);
             for (Node child : node.getChildren()) {
+            	Log.warningf("Child of %s is %s", node.getIDString(), child.getIDString());
                 if (child.getNodeClass() != NodeClass.server) {
                     for (String subPolicyName : recipe.storagePolicy.getSubPolicyNamesForNodeClass(child.getNodeClass(), child)) {
                         RingTreeRecipe  _recipe;
@@ -101,6 +104,7 @@ public class RingTreeBuilder {
     private static void buildMaps(Map<String,TopologyRing> maps, Node node, RingTreeRecipe recipe) {
         if (node.getChildren().size() > 0 && recipe.hasDescendantInHostGroups(node)) {
             buildNodeMap(maps, node, recipe);
+            System.out.printf("node %s children %s\n", node.getIDString(), CollectionUtil.toString(node.getChildren()));
             for (Node child : node.getChildren()) {
                 if (child.getNodeClass() != NodeClass.server) {
                     for (String subPolicyName : recipe.storagePolicy.getSubPolicyNamesForNodeClass(child.getNodeClass(), child)) {
@@ -112,6 +116,10 @@ public class RingTreeBuilder {
                     }
                 }
             }
+        } else {
+        	if (!recipe.hasDescendantInHostGroups(node)) {
+        		System.out.printf("%s has no descendant in host groups %s\n", node.getIDString(), CollectionUtil.toString(recipe.hostGroups));
+        	}
         }
     }
 
