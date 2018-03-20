@@ -252,6 +252,7 @@ public class RingTree {
         displayForDebug(projectedEntryList, "projectedEntryList");
         cleanedEntryList = cleanupList(parentRegion, projectedEntryList);
         displayForDebug(cleanedEntryList, "cleanedEntryList");
+        RingEntry.ensureMinPrimaryUnderFailureMet(entryList);
         return cleanedEntryList;
     }
     

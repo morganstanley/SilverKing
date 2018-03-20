@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.Topology;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
 /**
@@ -274,7 +275,11 @@ public class RingEntry {
         if (splitS.length > 0) {
             return parseOwnersString(topology, splitS[0]);
         } else {
-            throw new RuntimeException("Unexpected bad primary owners string: "+ s);
+            //throw new RuntimeException("Unexpected bad primary owners string: "+ s);
+        	// Master mode ring creation may create empty entries at some levels of the topology
+        	// we allow this. This requires verifying the projected ring to ensure that no 
+        	// projected entries are without primary owners.
+        	return emptyNodeList;
         }
     }
     
@@ -369,8 +374,32 @@ public class RingEntry {
             return true;
         }
     }
+    
+	public static void ensureMinPrimaryUnderFailureMet(Collection<RingEntry> entries) {
+        if (!minPrimaryUnderFailureMet(entries)) {
+            throw new RuntimeException("minPrimaryUnderFailure not met");
+        }
+	}    
 
-    public static String toString(List<RingEntry> entries) {
+	private static boolean minPrimaryUnderFailureMet(Collection<RingEntry> entries) {
+		boolean	met;
+		
+		met = true;
+		for (RingEntry entry : entries) {
+			if (!entry.minPrimaryUnderFailureMet()) {
+				// Note that we check all even if we find a single bad
+				met = false;
+				Log.warningf("minPrimaryUnderFailureNotMet: %s", entry);
+			}
+		}
+		return met;
+	}
+	
+    private boolean minPrimaryUnderFailureMet() {
+    	return primaryOwners.size() >= minPrimaryUnderFailure;
+	}
+
+	public static String toString(List<RingEntry> entries) {
         return toString(entries, null);
     }
     
@@ -497,5 +526,5 @@ public class RingEntry {
 
     public RingEntry shiftTo(long newStart) {
         return replaceRegion(region.shiftTo(newStart));
-    }    
+    }
 }
