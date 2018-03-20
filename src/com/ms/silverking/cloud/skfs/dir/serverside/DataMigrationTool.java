@@ -24,6 +24,8 @@ import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.util.BufferUtil;
 
 public class DataMigrationTool {
+	private static final boolean	displayDirs = false;
+	
 	public DataMigrationTool() {
 	}
 	
@@ -34,7 +36,13 @@ public class DataMigrationTool {
 		for (long segment : segments) {
 			walk(sourceDir, destDir, (int)segment);
 		}
+
+		saveOldSegments(sourceDir, savedSegmentsDir, segments);
 		
+		modifyProperties(sourceDir);
+	}
+	
+	private void saveOldSegments(File sourceDir, File savedSegmentsDir, List<Long> segments) {
 		for (long segment : segments) {
 			File	segmentFile;
 			File	savedSegmentFile;
@@ -45,8 +53,6 @@ public class DataMigrationTool {
 				throw new RuntimeException("Failed to rename "+ segmentFile.getAbsolutePath() +" to "+ savedSegmentFile.getAbsolutePath());
 			}
 		}
-		
-		modifyProperties(sourceDir);
 	}
 	
 	private void modifyProperties(File sourceDir) throws IOException {
@@ -107,16 +113,18 @@ public class DataMigrationTool {
 		destFile = new File(dirDir, Long.toString(entry.getVersion()));
 		FileUtil.writeToFile(destFile, StorageParameterSerializer.serialize(newSP), value);
 		
-		DirectoryInMemorySS	dim;
-		Pair<SSStorageParameters, byte[]>	p;
-		DirectoryInPlace	dip;
-		
-		dim = new DirectoryInMemorySS(entry.getKey(), null, entry.getStorageParameters(), new File(ssDir, KeyUtil.keyToString(entry.getKey())), null, false);
-		p = dim.readFromDisk(entry.getStorageParameters().getVersion());
-		System.out.println(p.getV1());
-		//System.out.println(StringUtil.byteArrayToHexString(p.getV2()));
-		dip = new DirectoryInPlace(p.getV2(), 0, p.getV2().length);
-		dip.display();
+		if (displayDirs) {
+			DirectoryInMemorySS	dim;
+			Pair<SSStorageParameters, byte[]>	p;
+			DirectoryInPlace	dip;
+			
+			dim = new DirectoryInMemorySS(entry.getKey(), null, entry.getStorageParameters(), new File(ssDir, KeyUtil.keyToString(entry.getKey())), null, false);
+			p = dim.readFromDisk(entry.getStorageParameters().getVersion());
+			System.out.println(p.getV1());
+			//System.out.println(StringUtil.byteArrayToHexString(p.getV2()));
+			dip = new DirectoryInPlace(p.getV2(), 0, p.getV2().length);
+			dip.display();
+		}
 	}
 
 	public static void main(String[] args) {
