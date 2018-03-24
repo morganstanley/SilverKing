@@ -8,12 +8,11 @@ source lib/common.lib
 
 allArgs="$@"
 
-f_sourceGlobalVars
-f_configureClasspath 
+f_sourceSkConfigAndConfigureClasspath
 
-toolClass=${__SK_TOOL_EXEC_TOOL_CLASS}
-cmd="${skJava} -ea -cp ${classpath} ${toolClass} ${allArgs}"
-${cmd}
+toolClass=$__SK_TOOL_EXEC_TOOL_CLASS
+cmd="$skJavaHome/bin/java -ea -cp $classpath $toolClass $allArgs"
+$cmd
 javaExitCode=$?
 
 cd $old_dir

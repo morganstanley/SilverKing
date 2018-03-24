@@ -1035,8 +1035,8 @@ function f_runSkAdmin {
 	
 	f_printSubSection "SKAdmin"
 	# currently failing on kerberos issue, if i pass in kerberos ticket it will "wait for nodes" and loop forever
-	#typeset vars=$(f_getBinScriptVars)
-	#f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
+	# typeset vars=$(f_getBinScriptVars)
+	# f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
 	f_exportSilverkingCodebaseVars
 	f_runCmd "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
 }
@@ -1044,11 +1044,11 @@ function f_runSkAdmin {
 function f_exportSilverkingCodebaseVars {
 	typeset skClasspath=$(f_getSkClasspath)
 	
+	# if you set skGlobalCodebase you need to set skDevJavaHome as well. this is used when calling any script in bin/
 	export skGlobalCodebase=$skClasspath:lt-srfs
-	export    skDevJavaHome=$JAVA_8_HOME
-	# apparently not necessary
-	#export     SK_JAVA_HOME=$JAVA_8_HOME
-	#export     SK_JACE_HOME=$JACE_HOME
+	export    skDevJavaHome=$JAVA_8_HOME	
+	export     SK_JACE_HOME=$JACE_HOME	# only necessary for skfs (starting/stopping), sk doesn't need this set
+	unset SK_JAVA_HOME					# if not set, SKAdmin.java will set default for us. unsetting just to be sure, if user has theirs set in dev env
 }
 
 # for StaticInstanceCreator
@@ -1056,9 +1056,12 @@ function f_exportSilverkingCodebaseVars {
 function f_getBinScriptVars {
 	typeset skClasspath=$(f_getSkClasspath)
 	
+	# add SK_JACE_HOME to the echo below, when we remove f_exportSilverkingCodebaseVars. SK_JAVA_HOME doesn't need to be set. it's optional. if not set, SKAdmin.java will set default for us 
+		# SK_JACE_HOME=$JACE_HOME	# only necessary for skfs (starting/stopping), sk doesn't need this set
+	# if you set skGlobalCodebase you need to set skDevJavaHome as well. skDevJavaHome is used to launch all the scripts in bin/
 	# formatted this way (newlines in vars), for when looking at the output file
 	echo "
-		skGlobalCodebase=$skClasspath
+		skGlobalCodebase=$skClasspath:lt-srfs
 		   skDevJavaHome=$JAVA_8_HOME
 	"
 }
@@ -1177,7 +1180,6 @@ function f_overrideSkfsConfigVariable {
 
 function f_fillInSkConfig {
 	f_fillInSkConfigVariable "skJavaHome"   "$JAVA_8_HOME"
-	f_fillInSkConfigVariable "SK_JACE_HOME" "$JACE_HOME"
 }
 
 function f_fillInSkConfigVariable {
