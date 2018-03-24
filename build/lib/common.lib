@@ -1047,7 +1047,7 @@ function f_exportSilverkingCodebaseVars {
 	# if you set skGlobalCodebase you need to set skDevJavaHome as well. this is used when calling any script in bin/
 	export skGlobalCodebase=$skClasspath:lt-srfs
 	export    skDevJavaHome=$JAVA_8_HOME	
-	export     SK_JACE_HOME=$JACE_HOME	# only necessary for skfs (starting/stopping), sk doesn't need this set
+	# export     SK_JACE_HOME=$JACE_HOME	# getting set already in bin/lib/sk.config
 	unset SK_JAVA_HOME					# if not set, SKAdmin.java will set default for us. unsetting just to be sure, if user has theirs set in dev env
 }
 
@@ -1056,9 +1056,9 @@ function f_exportSilverkingCodebaseVars {
 function f_getBinScriptVars {
 	typeset skClasspath=$(f_getSkClasspath)
 	
-	# add SK_JACE_HOME to the echo below, when we remove f_exportSilverkingCodebaseVars. SK_JAVA_HOME doesn't need to be set. it's optional. if not set, SKAdmin.java will set default for us 
-		# SK_JACE_HOME=$JACE_HOME	# only necessary for skfs (starting/stopping), sk doesn't need this set
 	# if you set skGlobalCodebase you need to set skDevJavaHome as well. skDevJavaHome is used to launch all the scripts in bin/
+	# SK_JACE_HOME needs to be set, but it's getting set and picked up automatically in bin/lib/sk.config
+	# SK_JAVA_HOME doesn't need to be set. it's optional. if not set, SKAdmin.java will set default for us 
 	# formatted this way (newlines in vars), for when looking at the output file
 	echo "
 		skGlobalCodebase=$skClasspath:lt-srfs
@@ -1180,6 +1180,7 @@ function f_overrideSkfsConfigVariable {
 
 function f_fillInSkConfig {
 	f_fillInSkConfigVariable "skJavaHome"   "$JAVA_8_HOME"
+	f_fillInSkConfigVariable "SK_JACE_HOME" "$JACE_HOME"
 }
 
 function f_fillInSkConfigVariable {
