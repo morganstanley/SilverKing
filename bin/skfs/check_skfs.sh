@@ -246,7 +246,7 @@ f_exitIfUndefined "SK_JACE_HOME" $SK_JACE_HOME
 
 echo "curDir: $curDir"
 if [[ -z $skGlobalCodebase ]]; then
-	cp=$(f_getClasspath "../../lib" "$curDir"):${SK_JAVA_HOME}/jre/lib/rt.jar;
+	cp=$(f_getClasspath "../../lib" "$curDir")
 else
 	cp=$skGlobalCodebase
 fi
@@ -374,7 +374,6 @@ if [[ ! -e $skfsMount ]] ; then
 fi
 
 echo
-echo "checksum:         $checksum"
 echo "skGlobalCodebase: $skGlobalCodebase"
 
 ##nativeFSOnlyFile - file with csv files/dirs list that will be accessed only from native FS
