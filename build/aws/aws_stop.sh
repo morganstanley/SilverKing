@@ -7,6 +7,6 @@ cd -
 source lib/common.lib
 
 cd $TESTING_OUTPUT_DIR
-./stop_daemons.sh
+./stop_instance.sh
 cd $BUILD_DIR/aws
 ./aws_zk.sh stop
