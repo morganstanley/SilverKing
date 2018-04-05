@@ -305,6 +305,21 @@ public class SilverKingClient {
         return keyValues;
     }
     
+    private void doCopy(String[] args) throws OperationException, IOException {
+    	String	src;
+    	String	dest;
+    	byte[]	value;
+    	
+    	if (args.length != 2) {
+    		throw new RuntimeException("Bad args");
+    	}
+    	src = args[0];
+    	dest = args[1];
+    	out.printf("Copying %s => %s\n", src, dest);
+    	value = syncNSP.get(src);
+    	syncNSP.put(dest, value);
+    }
+    
     private void doPutRandom(String[] args) throws OperationException, IOException {
         Map<String,byte[]>  map;
         ImmutableMap.Builder<String,byte[]>    builder;
@@ -745,6 +760,7 @@ public class SilverKingClient {
         case WaitFor: doRetrieve(args, valueFormat.getRetrievalType(), WaitMode.WAIT_FOR); break;
         case Get: doRetrieve(args, valueFormat.getRetrievalType(), WaitMode.GET); break;
         case Retrieve: doRetrieve(args, valueFormat.getRetrievalType()); break;
+        case Copy: doCopy(args); break;
         case GetMeta: doRetrieve(args, RetrievalType.META_DATA, WaitMode.GET); break;
         case GetAllValuesForKey: doRetrieveAllValuesForKey(args); break;
         case CreateNamespace: 
