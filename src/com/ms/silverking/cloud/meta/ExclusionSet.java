@@ -71,8 +71,18 @@ public class ExclusionSet extends ServerSetExtension implements ZKVersionedDefin
     	return ImmutableSet.copyOf(s);
     }
     
-    public ExclusionSet remove(Set<String> newIncludedEntities) {
-        return new ExclusionSet(serverSet.remove(newIncludedEntities));
+    public ExclusionSet remove(Set<String> newExcludedEntities) {
+        return new ExclusionSet(serverSet.remove(newExcludedEntities));
+    }
+    
+    public ExclusionSet removeByIPAndPort(Set<IPAndPort> newExcludedEntities) {
+    	Set<String>	s;
+    	
+    	s = new HashSet<>();
+    	for (IPAndPort e : newExcludedEntities) {
+    		s.add(e.getIPAsString());
+    	}
+    	return remove(s);
     }
     
     public List<Node> filter(List<Node> raw) {
