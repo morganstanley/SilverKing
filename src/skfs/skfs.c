@@ -181,6 +181,9 @@ static NativeFileMode parseNativeFileMode(char *s);
 static int skfs_rename_directory(char *oldPath, char *newPath, time_t curEpochTimeSeconds, long curTimeNanos, std::vector<char *> *unlinkList);
 static int skfs_rename_file(char *oldPath, char *newPath, time_t curEpochTimeSeconds, long curTimeNanos, std::vector<char *> *unlinkList);
 static int skfs_unlink_list(std::vector<char *> *unlinkList);
+static long envToLong(const char *envVarName, long defaultVal);
+static bool envToBool(const char *envVarName, bool defaultVal);
+
 
 ////////////
 // globals
@@ -278,6 +281,7 @@ static pthread_spinlock_t	*destroyLock = &destroyLockInstance;
 
 static SKSession    *pUtilSession;
 static SKSyncNSPerspective *systemNSP;
+static bool direct_io_enabled = false;
 
 
 ///////////////////
@@ -538,8 +542,8 @@ static void displayArguments(CmdArgs *arguments) {
 	printf("nativeFileMode %s\n", nativeFileModes[arguments->nativeFileMode]);
 	printf("brRemoteAddressFile %s\n", arguments->brRemoteAddressFile);
 	printf("brPort %d\n", arguments->brPort);
-	printf("reconciliationSleep %d\n", arguments->reconciliationSleep);
-	printf("odwMinWriteIntervalMillis %d\n", arguments->odwMinWriteIntervalMillis);
+	printf("reconciliationSleep %s\n", arguments->reconciliationSleep);
+	printf("odwMinWriteIntervalMillis %ld\n", arguments->odwMinWriteIntervalMillis);
 	printf("syncDirUpdates %d\n", arguments->syncDirUpdates);
 }
 
@@ -1325,6 +1329,10 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
             OpenDir *parentDir;
             uint64_t    parentDirUpdateTimeMillis;
             
+            if (direct_io_enabled) {
+                fi->direct_io = 1;
+            }
+            
             srfsLogAsync(LOG_OPS, "_o %s %x", path, fi->flags);
             sof->type = OFT_WritableFile_Write;
             // FIXME - do we need this in mknod also, or can we remove it there?
@@ -1573,7 +1581,7 @@ static int skfs_read_buf(const char *path, struct fuse_bufvec **bufp,
     char	*buf;
     int	rVal;
     size_t	totalRead;
-
+#if 0
 	srfsLogAsync(LOG_OPS, "_R %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
     {
         struct fuse_bufvec *src;
@@ -1588,8 +1596,8 @@ static int skfs_read_buf(const char *path, struct fuse_bufvec **bufp,
         *bufp = src;
         return 0;
     }
-                         
-#if 0
+#endif
+//#if 0
     struct fuse_bufvec *src;
     char    *dest;
     int     result;
@@ -1616,7 +1624,7 @@ static int skfs_read_buf(const char *path, struct fuse_bufvec **bufp,
         //srfsLog(LOG_WARNING, "_R returning 0");
         return 0;
     }
-#endif    
+//#endif    
 }
 #endif
 
@@ -1640,7 +1648,7 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
     SKFSOpenFile    *sof;
     
     sof = (SKFSOpenFile*)fi->fh;
-    fi->fh = NULL;
+    fi->fh = (uint64_t)NULL;
     if (!sof_is_valid(sof)) {
         wf_ref = NULL;
     } else {
@@ -1924,8 +1932,8 @@ static void *skfs_init(struct fuse_conn_info *conn) {
 	initDHT();
 	fid_module_init();
 	initReaders();
-	initDirs();
     init_util_sk();
+	initDirs();
 	wft = wft_new("WritableFileTable", aw, ar->attrCache, ar, fbwSKFS);
 	initPaths();
 	pthread_create(&statsThread, NULL, stats_thread, NULL);
@@ -2324,10 +2332,49 @@ void initReaders() {
 #endif
 }
 
+int getMergeMode() {
+    SKNamespace *dirNS;
+    int mergeMode;
+    bool    forceClientSide;
+    
+    mergeMode = DDR_MM_CLIENT_SIDE;
+    forceClientSide = envToBool("SKFS_FORCE_MM_CLIENT_SIDE", false);
+    if (!forceClientSide) {
+        dirNS = pUtilSession->getNamespace(SKFS_DIR_NS);
+        if (dirNS != NULL) {
+            SKNamespaceOptions  *dirNSOptions;
+            
+            dirNSOptions = dirNS->getOptions();
+            if (dirNSOptions != NULL) {
+                char    *s;
+                
+                s = dirNSOptions->toString();
+                if (s != NULL) {
+                    if (strstr(s, "DirectoryServer") != NULL) {
+                        mergeMode = DDR_MM_SERVER_SIDE;
+                    } else {
+                        srfsLog(LOG_WARNING, "getMergeMode() dirNS options; couldn't find DirectoryServer");
+                    }
+                } else {
+                    srfsLog(LOG_WARNING, "getMergeMode() dirNS options string null");
+                }
+            } else {
+                srfsLog(LOG_WARNING, "getMergeMode() dirNS options null");
+            }
+        } else {
+            srfsLog(LOG_WARNING, "getMergeMode() couldn't get dirNS");
+        }
+    } else {
+        srfsLog(LOG_WARNING, "Found SKFS_FORCE_MM_CLIENT_SIDE");
+    }
+    srfsLog(LOG_WARNING, "mergeMode %s", mergeMode ? "server" : "client");
+    return mergeMode;
+}
+
 // Initialization writable directory structure
 void initDirs() {
 	rcst_init();
-	odt = odt_new(ODT_NAME, sd, aw, ar, rtsODT, args->reconciliationSleep, args->odwMinWriteIntervalMillis);
+	odt = odt_new(ODT_NAME, sd, aw, ar, rtsODT, args->reconciliationSleep, args->odwMinWriteIntervalMillis, getMergeMode());
 	if (odt_mkdir_base(odt)) {
 		fatalError("odt_mkdir_base skfs failed", __FILE__, __LINE__);
 	}
@@ -2392,6 +2439,65 @@ static void initLogging() {
 	srfsLog(LOG_FINE, "LOG_FINE check");
 	srfsLog(LOG_OPS, "LOG_OPS check");
 	srfsLog(LOG_WARNING, "LOG_WARNING check");
+}
+
+static bool envToBool(const char *envVarName, bool defaultVal) {
+	char    *pEnd = NULL;
+	bool    envBool;
+	const char  *pEnvStr;
+
+    pEnvStr = getenv(envVarName);
+	if (pEnvStr) {
+        if (!strcmp(pEnvStr, "false")) {
+            envBool = false;
+        } else if (!strcmp(pEnvStr, "False")) {
+            envBool = false;
+        } else if (!strcmp(pEnvStr, "FALSE")) {
+            envBool = false;
+        } else if (!strcmp(pEnvStr, "no")) {
+            envBool = false;
+        } else if (!strcmp(pEnvStr, "NO")) {
+            envBool = false;
+        } else if (!strcmp(pEnvStr, "0")) {
+            envBool = false;
+        } else if (!strcmp(pEnvStr, "true")) {
+            envBool = true;
+        } else if (!strcmp(pEnvStr, "True")) {
+            envBool = true;
+        } else if (!strcmp(pEnvStr, "TRUE")) {
+            envBool = true;
+        } else if (!strcmp(pEnvStr, "yes")) {
+            envBool = true;
+        } else if (!strcmp(pEnvStr, "YES")) {
+            envBool = true;
+        } else if (!strcmp(pEnvStr, "1")) {
+            envBool = true;
+        } else {
+            envBool = defaultVal;
+        }
+    } else {
+        envBool = defaultVal;
+    }
+	srfsLog(LOG_WARNING, "%s %s", envVarName, envBool ? "true" : "false");
+	return envBool;
+}
+
+static long envToLong(const char *envVarName, long defaultVal) {
+	char    *pEnd = NULL;
+	long    envLong;
+	const char  *pEnvStr;
+
+    pEnvStr = getenv(envVarName);
+	if (pEnvStr) {
+		envLong = strtol(pEnvStr, &pEnd, 10);
+        if (envLong < 0 || envLong == LONG_MAX ) {
+            envLong = defaultVal;
+        }
+    } else {
+        envLong = defaultVal;
+    }
+	srfsLog(LOG_WARNING, "%s %d", envVarName, envLong);
+	return envLong;
 }
 
 bool addEnvToFuseArg(const char * envVarName, const char * fuseOpt, const char *defaultFuseOpt) {
@@ -2499,6 +2605,8 @@ int main(int argc, char *argv[]) {
 	addEnvToFuseArg("SKFS_NEGATIVE_TIMEOUT", "-onegative_timeout=", fuseNegativeOption);
 	//addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=1048576");
 	addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=5242880");
+	addEnvToFuseArg("SKFS_MAX_WRITE", "-omax_write=", "-omax_write=262144");
+    direct_io_enabled = envToBool("SKFS_WRITE_DIRECT_IO", false);
     
 	//fuse_opt_add_arg(&fuseArgs, "-osubtype=SKFS");
 	srfsLog(LOG_WARNING, "Calling fuse_main");

@@ -39,7 +39,7 @@ extern OpenDirWriter	*od_odw;
 //static uint64_t	_maxReconciliationSleepMillis = 8 * 1000;
 static uint64_t _minMinReconciliationSleepMillis = 1;
 static uint64_t	_maxMaxReconciliationSleepMillis = 1 * 60 * 1000;
-static uint64_t _minReconciliationSleepMillis = 800;
+static uint64_t _minReconciliationSleepMillis = 10;
 static uint64_t	_maxReconciliationSleepMillis = 1 * 1000;
 static unsigned int _reconciliationSeed;
 
@@ -60,7 +60,7 @@ int _odt_mkdir_base(OpenDirTable *odt, char *path, mode_t mode);
 ///////////////
 // implementation
 
-OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader *ar, ResponseTimeStats *rtsDirData, char *reconciliationSleep, uint64_t odwMinWriteIntervalMillis) {
+OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader *ar, ResponseTimeStats *rtsDirData, char *reconciliationSleep, uint64_t odwMinWriteIntervalMillis, int ddrMergeMode) {
 	OpenDirTable	*odt;
 	int	i;
 	CacheStoreResult	result;
@@ -69,7 +69,7 @@ OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader 
     srfsLog(LOG_FINE, "odt_new:\t%s\n", name);
     odt->name = name;
 	odt->odc = odc_new(ODT_ODC_NAME, ODT_ODC_CACHE_SIZE, ODT_ODC_CACHE_EVICTION_BATCH, ODT_ODC_SUB_CACHES);
-	odt->ddr = ddr_new(sd, rtsDirData, odt->odc);
+	odt->ddr = ddr_new(sd, rtsDirData, odt->odc, ddrMergeMode);
 	odt->odw = odw_new(sd/*, odt->ddr*/, odwMinWriteIntervalMillis);
 	odt->aw = aw;
 	odt->ar = ar;

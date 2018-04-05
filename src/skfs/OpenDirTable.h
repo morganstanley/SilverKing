@@ -39,7 +39,7 @@ typedef struct OpenDirTable {
 //////////////////////
 // public prototypes
 
-OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader *ar, ResponseTimeStats *rtsDirData, char *reconciliationSleep, uint64_t odwMinWriteIntervalMillis);
+OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader *ar, ResponseTimeStats *rtsDirData, char *reconciliationSleep, uint64_t odwMinWriteIntervalMillis, int ddrMergeMode);
 void odt_delete(OpenDirTable **odt);
 int odt_opendir(OpenDirTable *odt, const char* path, struct fuse_file_info* fi);
 int odt_readdir(OpenDirTable *odt, const char *path, void *buf, fuse_fill_dir_t filler,

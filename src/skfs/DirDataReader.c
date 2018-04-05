@@ -59,7 +59,7 @@ extern OpenDirWriter	*od_odw;
 ///////////////////
 // implementation
 
-DirDataReader *ddr_new(SRFSDHT *sd, ResponseTimeStats *rtsDirData, OpenDirCache *openDirCache) {
+DirDataReader *ddr_new(SRFSDHT *sd, ResponseTimeStats *rtsDirData, OpenDirCache *openDirCache, int mergeMode) {
 	DirDataReader *ddr;
 
 	ddr = (DirDataReader*)mem_alloc(1, sizeof(DirDataReader));
@@ -68,6 +68,7 @@ DirDataReader *ddr_new(SRFSDHT *sd, ResponseTimeStats *rtsDirData, OpenDirCache 
 	ddr->sd = sd;
 	ddr->rtsDirData = rtsDirData;
 	ddr->openDirCache = openDirCache;
+    ddr->mergeMode = mergeMode;
 	try {
 		SKNamespacePerspectiveOptions *nspOptions;
         SKNamespace	*ns;
@@ -388,81 +389,126 @@ static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRe
             
             latestKVSVersion = metaData->getVersion();
             if (_od->lastMergedVersion < latestKVSVersion) { 
-                uint64_t    curMaxVersion;
-                int         scanning;
-                uint64_t    scanLimit;
-            
-                if (_od->lastMergedVersion == 0) {
-                    scanLimit = ddr_get_least_version(ddr, curThreadIndex, ddrr->path);
-                } else {
-                    scanLimit = _od->lastMergedVersion;
-                }
-                curMaxVersion = latestKVSVersion;
-                scanning = TRUE;
-                while (scanning) {
+                if (ddr->mergeMode == DDR_MM_SERVER_SIDE) {
                     SKStoredValue   *ppval;
                     
-                    if (srfsLogLevelMet(LOG_INFO)) {
-                        srfsLog(LOG_INFO, "ddrr->path %s _od->lastMergedVersion %lu curMaxVersion %lu", 
-                                       ddrr->path, _od->lastMergedVersion, curMaxVersion);
-                    }
-                    //ppval = retrieve val with greatest version <= upperMergeLimit
-                    ppval = ddr_retrieve_specific_dir_version(ddr, curThreadIndex, ddrr->path, curMaxVersion);
+                    ppval = ddr_retrieve_specific_dir_version(ddr, curThreadIndex, ddrr->path, latestKVSVersion);                    
                     if (ppval != NULL) {
                         SKMetaData      *storedValMetaData;
                         
                         storedValMetaData = ppval->getMetaData();
                         if (storedValMetaData != NULL) {
-                            if (storedValMetaData->getVersion() > _od->lastMergedVersion) { // ensure scan is active
-                                SKVal	*p;
-                                
-                                p = ppval->getValue();
-                                if (p != NULL) {
-                                    DirData *dd; // deleted by the pval
-                                    int _updateKVSWithLocal;
-                                        
-                                    _updateKVSWithLocal = FALSE;
-                                    //merge storedVal
-                                    dd = (DirData *)p->m_pVal;
-                                    if (dd != NULL) {
-                                        _updateKVSWithLocal = od_add_DirData(_od, dd, metaData);
-                                        // Only update kvs if the value retrieved is the most recent value in the
-                                        // kvs, and if the local DirData has updates with respect to it
-                                        if (_updateKVSWithLocal && (storedValMetaData->getVersion() == latestKVSVersion)) {
-                                            updateKVSWithLocal = TRUE;
-                                        }
-                                    } else {
-                                        srfsLog(LOG_WARNING, "Unexpected NULL dd %s %d", __FILE__, __LINE__);
+                            SKVal	*p;
+                            
+                            p = ppval->getValue();
+                            if (p != NULL) {
+                                DirData *dd; // deleted by the pval
+                                int _updateKVSWithLocal;
+                                    
+                                _updateKVSWithLocal = FALSE;
+                                //merge storedVal
+                                dd = (DirData *)p->m_pVal;
+                                if (dd != NULL) {
+                                    _updateKVSWithLocal = od_add_DirData(_od, dd, metaData);
+                                    // Only update kvs if the value retrieved is the most recent value in the
+                                    // kvs, and if the local DirData has updates with respect to it
+                                    if (_updateKVSWithLocal && (storedValMetaData->getVersion() == latestKVSVersion)) {
+                                        updateKVSWithLocal = TRUE;
                                     }
-                                    if (srfsLogLevelMet(LOG_INFO)) {
-                                        srfsLog(LOG_INFO, "ddrr->path %s storedValMetaData->getVersion() %lu", ddrr->path, storedValMetaData->getVersion());
-                                        srfsLog(LOG_INFO, "ddrr->path %s _updateKVSWithLocal %d updateKVSWithLocal %d", ddrr->path, _updateKVSWithLocal, updateKVSWithLocal);
-                                    }
-                                    sk_destroy_val(&p);
                                 } else {
-                                    srfsLog(LOG_WARNING, "Unexpected NULL p %s %d", __FILE__, __LINE__);
+                                    srfsLog(LOG_WARNING, "Unexpected NULL dd %s %d", __FILE__, __LINE__);
                                 }
-                                curMaxVersion = storedValMetaData->getVersion() - 1;
-                                if (storedValMetaData->getVersion() == scanLimit) {
-                                    if (srfsLogLevelMet(LOG_INFO)) {
-                                        srfsLog(LOG_INFO, "Reached merged version scan limit %s %lu", ddrr->path, storedValMetaData->getVersion());
-                                    }
-                                    scanning = FALSE;
-                                }
-                            } else { // end of scan found
                                 if (srfsLogLevelMet(LOG_INFO)) {
-                                    srfsLog(LOG_INFO, "Found already merged version %s %lu", ddrr->path, storedValMetaData->getVersion());
+                                    srfsLog(LOG_INFO, "ddrr->path %s storedValMetaData->getVersion() %lu", ddrr->path, storedValMetaData->getVersion());
+                                    srfsLog(LOG_INFO, "ddrr->path %s _updateKVSWithLocal %d updateKVSWithLocal %d", ddrr->path, _updateKVSWithLocal, updateKVSWithLocal);
                                 }
-                                scanning = FALSE;
+                                sk_destroy_val(&p);
+                            } else {
+                                srfsLog(LOG_WARNING, "Unexpected NULL p %s %d", __FILE__, __LINE__);
                             }
                             delete storedValMetaData;
                         } else {
                             srfsLog(LOG_WARNING, "Unexpected NULL storedValMetaData %s %d", __FILE__, __LINE__);
                         }
                         delete ppval;
+                    }
+                } else { // DDR_MM_CLIENT_SIDE
+                    uint64_t    curMaxVersion;
+                    int         scanning;
+                    uint64_t    scanLimit;
+                
+                    if (_od->lastMergedVersion == 0) {
+                        scanLimit = ddr_get_least_version(ddr, curThreadIndex, ddrr->path);
                     } else {
-                        srfsLog(LOG_WARNING, "null val for %s %lu", ddrr->path, curMaxVersion);
-                        scanning = FALSE;
+                        scanLimit = _od->lastMergedVersion;
+                    }
+                    curMaxVersion = latestKVSVersion;
+                    scanning = TRUE;
+                    while (scanning) {
+                        SKStoredValue   *ppval;
+                        
+                        if (srfsLogLevelMet(LOG_INFO)) {
+                            srfsLog(LOG_INFO, "ddrr->path %s _od->lastMergedVersion %lu curMaxVersion %lu", 
+                                           ddrr->path, _od->lastMergedVersion, curMaxVersion);
+                        }
+                        //ppval = retrieve val with greatest version <= upperMergeLimit
+                        ppval = ddr_retrieve_specific_dir_version(ddr, curThreadIndex, ddrr->path, curMaxVersion);
+                        if (ppval != NULL) {
+                            SKMetaData      *storedValMetaData;
+                            
+                            storedValMetaData = ppval->getMetaData();
+                            if (storedValMetaData != NULL) {
+                                if (storedValMetaData->getVersion() > _od->lastMergedVersion) { // ensure scan is active
+                                    SKVal	*p;
+                                    
+                                    p = ppval->getValue();
+                                    if (p != NULL) {
+                                        DirData *dd; // deleted by the pval
+                                        int _updateKVSWithLocal;
+                                            
+                                        _updateKVSWithLocal = FALSE;
+                                        //merge storedVal
+                                        dd = (DirData *)p->m_pVal;
+                                        if (dd != NULL) {
+                                            _updateKVSWithLocal = od_add_DirData(_od, dd, metaData);
+                                            // Only update kvs if the value retrieved is the most recent value in the
+                                            // kvs, and if the local DirData has updates with respect to it
+                                            if (_updateKVSWithLocal && (storedValMetaData->getVersion() == latestKVSVersion)) {
+                                                updateKVSWithLocal = TRUE;
+                                            }
+                                        } else {
+                                            srfsLog(LOG_WARNING, "Unexpected NULL dd %s %d", __FILE__, __LINE__);
+                                        }
+                                        if (srfsLogLevelMet(LOG_INFO)) {
+                                            srfsLog(LOG_INFO, "ddrr->path %s storedValMetaData->getVersion() %lu", ddrr->path, storedValMetaData->getVersion());
+                                            srfsLog(LOG_INFO, "ddrr->path %s _updateKVSWithLocal %d updateKVSWithLocal %d", ddrr->path, _updateKVSWithLocal, updateKVSWithLocal);
+                                        }
+                                        sk_destroy_val(&p);
+                                    } else {
+                                        srfsLog(LOG_WARNING, "Unexpected NULL p %s %d", __FILE__, __LINE__);
+                                    }
+                                    curMaxVersion = storedValMetaData->getVersion() - 1;
+                                    if (storedValMetaData->getVersion() == scanLimit) {
+                                        if (srfsLogLevelMet(LOG_INFO)) {
+                                            srfsLog(LOG_INFO, "Reached merged version scan limit %s %lu", ddrr->path, storedValMetaData->getVersion());
+                                        }
+                                        scanning = FALSE;
+                                    }
+                                } else { // end of scan found
+                                    if (srfsLogLevelMet(LOG_INFO)) {
+                                        srfsLog(LOG_INFO, "Found already merged version %s %lu", ddrr->path, storedValMetaData->getVersion());
+                                    }
+                                    scanning = FALSE;
+                                }
+                                delete storedValMetaData;
+                            } else {
+                                srfsLog(LOG_WARNING, "Unexpected NULL storedValMetaData %s %d", __FILE__, __LINE__);
+                            }
+                            delete ppval;
+                        } else {
+                            srfsLog(LOG_WARNING, "null val for %s %lu", ddrr->path, curMaxVersion);
+                            scanning = FALSE;
+                        }
                     }
                 }
                 if (!updateKVSWithLocal) {
