@@ -2,9 +2,12 @@ package com.ms.silverking.cloud.skfs.dir;
 
 import java.io.IOException;
 
+import com.ms.silverking.cloud.dht.GetOptions;
+import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.client.ClientException;
 import com.ms.silverking.cloud.dht.client.DHTClient;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
+import com.ms.silverking.cloud.dht.client.StoredValue;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.text.StringUtil;
@@ -21,20 +24,28 @@ public class DirReader {
 		dirNSP = dhtClient.openSession(gc).openSyncNamespacePerspective(dirNamespaceName);
 	}
 	
-	public byte[] readDir(String dirName) {
+	public byte[] readDir(String dirName, long maxVersion) {
 		try {
-			return dirNSP.get(dirName);
+			GetOptions	getOptions;
+			StoredValue<byte[]>	sv;
+			
+			getOptions = dirNSP.getOptions().getDefaultGetOptions();
+			if (maxVersion > 0) {
+				getOptions = getOptions.versionConstraint(VersionConstraint.maxBelowOrEqual(maxVersion));
+			}
+			sv = dirNSP.get(dirName, getOptions);
+			return sv.getValue();
 		} catch (RetrievalException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
 	
-	public void displayDir(String dirName) {
+	public void displayDir(String dirName, long maxVersion) {
 		byte[]		rawDir;
 		Directory	dir;
 		
-		rawDir = readDir(dirName);
+		rawDir = readDir(dirName, maxVersion);
 		System.out.printf("%s\t%d\n\n", dirName, rawDir.length);
 		
 		dir = new DirectoryInPlace(rawDir, 0, rawDir.length);		
@@ -64,18 +75,24 @@ public class DirReader {
 	}
 
 	public static void main(String[] args) {
-		if (args.length != 2) {
-			System.out.println("<gridConfig> <dir>");
+		if (args.length != 2 && args.length != 3) {
+			System.out.println("<gridConfig> <dir> [maxVersion]");
 		} else {
 			try {
 				DirReader			dirReader;
 				SKGridConfiguration	gc;
 				String				dirName;
+				long				maxVersion;
 				
 				gc = SKGridConfiguration.parseFile(args[0]);
 				dirName = args[1];
 				dirReader = new DirReader(gc);
-				dirReader.displayDir(dirName);
+				if (args.length == 3) {
+					maxVersion = Long.parseLong(args[2]);
+				} else {
+					maxVersion = 0;
+				}
+				dirReader.displayDir(dirName, maxVersion);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
