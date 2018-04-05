@@ -2,7 +2,7 @@ package com.ms.silverking.cloud.dht.management;
 
 public enum SKAdminCommand {
 	StartNodes, StopNodes, ClearData, LockInstance, UnlockInstance, CheckSKFS, StartSKFS, StopSKFS, CreateSKFSns, 
-	ClearInstanceExclusions, SetInstanceExclusions, GetInstanceExclusions,
+	ClearInstanceExclusions, SetInstanceExclusions, GetInstanceExclusions, AddToInstanceExclusions, RemoveFromInstanceExclusions,
 	ClearInstanceExclusionsData,
 	GetActiveDaemons, EnsureNoActiveDaemons;
 	
@@ -24,6 +24,8 @@ public enum SKAdminCommand {
 		case ClearInstanceExclusions:
 		case SetInstanceExclusions:
 		case GetInstanceExclusions:
+		case AddToInstanceExclusions:
+		case RemoveFromInstanceExclusions:
 		case GetActiveDaemons:
 		case EnsureNoActiveDaemons:
 			return false;

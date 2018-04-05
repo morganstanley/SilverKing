@@ -628,6 +628,12 @@ public class SKAdmin {
 				case SetInstanceExclusions:
 					_result = setInstanceExclusions();
 					break;
+				case AddToInstanceExclusions:
+					_result = addToInstanceExclusions();
+					break;
+				case RemoveFromInstanceExclusions:
+					_result = removeFromInstanceExclusions();
+					break;
 				case GetInstanceExclusions:
 					_result = displayInstanceExclusions();
 					break;
@@ -682,18 +688,36 @@ public class SKAdmin {
 		return exclusions;
 	}
 	
-	private void addToInstanceExclusions(Set<IPAndPort> serversToAdd) throws KeeperException, IOException {
+	private void changeInstanceExclusions(Set<IPAndPort> serversToChange, SKAdminCommand command) throws KeeperException, IOException {
 		ExclusionSet	exclusionSet;
 		ExclusionSet	newExclusionSet;
 		
 		exclusionSet = getInstanceExclusions();
-		newExclusionSet = exclusionSet.addByIPAndPort(serversToAdd);
+		if (command == SKAdminCommand.RemoveFromInstanceExclusions) {
+			newExclusionSet = exclusionSet.removeByIPAndPort(serversToChange);
+		} else {
+			newExclusionSet = exclusionSet.addByIPAndPort(serversToChange);
+		}
 		setInstanceExclusions(newExclusionSet);
 		System.out.println("............................");
 		System.out.println(newExclusionSet);
 		System.out.println("----------------------------");
 		displayInstanceExclusions();
 		System.out.println("============================");
+	}
+	
+	private boolean addToInstanceExclusions() throws KeeperException, IOException {
+		if (options.targets != null) {
+			changeInstanceExclusions(ExclusionSet.parse(options.targets).asIPAndPortSet(gc.getClientDHTConfiguration().getPort()), SKAdminCommand.AddToInstanceExclusions);			
+		}
+		return true;
+	}
+	
+	private boolean removeFromInstanceExclusions() throws KeeperException, IOException {
+		if (options.targets != null) {
+			changeInstanceExclusions(ExclusionSet.parse(options.targets).asIPAndPortSet(gc.getClientDHTConfiguration().getPort()), SKAdminCommand.RemoveFromInstanceExclusions);			
+		}
+		return true;
 	}
 	
 	private Pair<Boolean,Set<IPAndPort>> _getActiveDaemons() {
@@ -942,7 +966,7 @@ public class SKAdmin {
 							if (options.excludeInstanceExclusions) {
 								exclusionSet = exclusionSet.addByIPAndPort(failedServers);
 							}
-							addToInstanceExclusions(failedServers);
+							changeInstanceExclusions(failedServers, SKAdminCommand.AddToInstanceExclusions);
 							validActiveServers = removeServers(validActiveServers, failedServers);
 						}
 					}
