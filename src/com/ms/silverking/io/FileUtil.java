@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import com.ms.silverking.log.Log;
 
@@ -129,6 +130,15 @@ public class FileUtil {
 		return new String(readFileAsBytes(file));
 	}
 
+	public static List<String> readFileAsLineList(File file) throws IOException {
+		String	s;
+		String[]	lines;
+		
+		s = readFileAsString(file);
+		lines = s.split("\\r?\\n");
+		return ImmutableList.copyOf(lines);
+	}
+	
     public static void cleanDirectory(File dir) {
         for (File file : dir.listFiles()) {
             file.delete();
