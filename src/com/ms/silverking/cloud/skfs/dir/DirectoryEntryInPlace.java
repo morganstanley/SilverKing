@@ -84,7 +84,7 @@ public class DirectoryEntryInPlace extends DirectoryEntryBase {
 
 	@Override
 	public String getName() {
-		return new String(getNameAsBytes());
+		return new String(buf, getNameOffset(), getNameLength());
 	}
 
 	@Override
