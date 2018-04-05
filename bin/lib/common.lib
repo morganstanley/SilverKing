@@ -1,25 +1,26 @@
 #!/bin/bash
 
-function f_sourceGlobalVars {
+function f_sourceSkConfigAndConfigureClasspath {
 	f_exitIfUndefined "bin_dir" $bin_dir
 	cd $bin_dir
 	source lib/sk.config
-}
-
-function f_configureClasspath {	
+	
 	if [[ -z $skGlobalCodebase ]]; then  
 		classpath=$(f_getClasspath "../lib" "$bin_dir")
 	else    
-		echo "Using skGlobalCodebase"
-	
+		echo "Using skGlobalCodebase"		
+		
 		f_exitIfUndefined "skGlobalCodebase" $skGlobalCodebase
 		f_exitIfUndefined "skDevJavaHome"    $skDevJavaHome
 		
 		classpath=$skGlobalCodebase
-		   skJava=${skDevJavaHome}/bin/java
+		skJavaHome=$skDevJavaHome
 	fi
 	
+	f_exitIfUndefined "skJavaHome" $skJavaHome
+	
 	echo "cp=$classpath"
+	echo "skJavaHome=$skJavaHome"
 	echo
 }
 

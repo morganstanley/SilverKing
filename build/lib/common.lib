@@ -1035,8 +1035,8 @@ function f_runSkAdmin {
 	
 	f_printSubSection "SKAdmin"
 	# currently failing on kerberos issue, if i pass in kerberos ticket it will "wait for nodes" and loop forever
-	#typeset vars=$(f_getBinScriptVars)
-	#f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
+	# typeset vars=$(f_getBinScriptVars)
+	# f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
 	f_exportSilverkingCodebaseVars
 	f_runCmd "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
 }
@@ -1044,11 +1044,11 @@ function f_runSkAdmin {
 function f_exportSilverkingCodebaseVars {
 	typeset skClasspath=$(f_getSkClasspath)
 	
-	export skGlobalCodebase=$skClasspath:lt-srfs
-	export    skDevJavaHome=$JAVA_8_HOME
-	# apparently not necessary
-	#export     SK_JAVA_HOME=$JAVA_8_HOME
-	#export     SK_JACE_HOME=$JACE_HOME
+	# if you set skGlobalCodebase you need to set skDevJavaHome as well. this is used when calling any script in bin/
+	export skGlobalCodebase=$skClasspath
+	export    skDevJavaHome=$JAVA_8_HOME	
+	# export     SK_JACE_HOME=$JACE_HOME	# getting set already in bin/lib/sk.config
+	unset SK_JAVA_HOME					# if not set, SKAdmin.java will set default for us. unsetting just to be sure, if user has theirs set in dev env
 }
 
 # for StaticInstanceCreator
@@ -1056,6 +1056,9 @@ function f_exportSilverkingCodebaseVars {
 function f_getBinScriptVars {
 	typeset skClasspath=$(f_getSkClasspath)
 	
+	# if you set skGlobalCodebase you need to set skDevJavaHome as well. skDevJavaHome is used to launch all the scripts in bin/
+	# SK_JACE_HOME needs to be set, but it's getting set and picked up automatically in bin/lib/sk.config
+	# SK_JAVA_HOME doesn't need to be set. it's optional. if not set, SKAdmin.java will set default for us 
 	# formatted this way (newlines in vars), for when looking at the output file
 	echo "
 		skGlobalCodebase=$skClasspath
