@@ -3,9 +3,13 @@ package com.ms.silverking.cloud.skfs.dir.serverside;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.client.Compression;
@@ -23,6 +27,7 @@ import com.ms.silverking.log.Log;
 
 public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	private final ConcurrentMap<DHTKey, DirectoryInMemorySS>	directories;
+	private Set<DHTKey>	directoriesOnDiskAtBoot;
 	private File	logDir;
 	private NamespaceOptions nsOptions;
 	
@@ -43,8 +48,23 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	public void initialize(SSNamespaceStore nsStore) {
 		this.logDir = nsStore.getNamespaceSSDir();
 		this.nsOptions = nsStore.getNamespaceOptions();
+		directoriesOnDiskAtBoot = getDirectoriesOnDiskAtBoot();
 	}
 	
+	private Set<DHTKey> getDirectoriesOnDiskAtBoot() {
+		Set<DHTKey>	dirs;
+		
+		dirs = new HashSet<>();
+		for (String s : logDir.list()) {
+			try {
+				dirs.add(KeyUtil.keyStringToKey(s));
+			} catch (Exception e) {
+				Log.warningf("DirectoryServer.getDirectoriesOnDiskAtBoot() skipping %s", s);
+			}
+		}
+		return ImmutableSet.copyOf(dirs);
+	}
+
 	@Override
 	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData,
 			NamespaceVersionMode nsVersionMode) {
@@ -54,11 +74,13 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		DirectoryInMemorySS	existingDir;
 		DirectoryInPlace	updateDir;
 		
-		//Log.warningf("DirectoryServer.put() %s %s %s  %s %s", KeyUtil.keyToString(key), stringToKeyString("/"), stringToKeyString("/skfs"), value.hasArray(), storageParams.getCompression());
+		//Log.warningf("DirectoryServer.put() %s %s %s", KeyUtil.keyToString(key), value.hasArray(), storageParams.getCompression());
 
 		buf = value.array();
-		bufOffset = value.arrayOffset();
-		bufLimit = bufOffset + value.limit();
+		bufOffset = value.arrayOffset() + value.position();
+		bufLimit = value.limit();
+		//System.out.printf("%s\n", value);
+		//System.out.printf("%d %d %d\n", buf.length, bufOffset, bufLimit);
 		if (storageParams.getCompression() == Compression.NONE) {
 			//System.out.printf("No compression\n");
 		} else {
@@ -83,6 +105,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			DirectoryInMemorySS	newDir;
 			
 			newDir = new DirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
+			newDir.update(updateDir, storageParams);
 			directories.put(key, newDir);
 		} else {
 			existingDir.update(updateDir, storageParams);
@@ -143,5 +166,24 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			}
 		}
 		return existingDir;
+	}
+	
+	private Set<DHTKey> getUnionKeySet() {
+		Set<DHTKey>	keys;
+		
+		keys = new HashSet<>();
+		keys.addAll(directoriesOnDiskAtBoot);
+		keys.addAll(directories.keySet());
+		return ImmutableSet.copyOf(keys);
+	}
+
+	@Override
+	public Iterator<DHTKey> keyIterator() {
+		return getUnionKeySet().iterator();
+	}
+
+	@Override
+	public long getTotalKeys() {
+		return getUnionKeySet().size();
 	}
 }

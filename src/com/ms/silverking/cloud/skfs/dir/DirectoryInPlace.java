@@ -11,6 +11,7 @@ public class DirectoryInPlace extends DirectoryBase {
 	private final int		limit;
 	
 	public DirectoryInPlace(byte[] buf, int offset, int limit) {
+		//System.out.printf("DirectoryInPlace %d %d %d\n", buf.length, offset, limit);
 		this.buf = buf;
 		this.offset = offset;
 		this.limit = limit;

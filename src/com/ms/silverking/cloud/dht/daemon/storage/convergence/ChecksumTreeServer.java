@@ -214,7 +214,7 @@ public class ChecksumTreeServer {
                                                 long minVersion, long maxVersion, boolean allowRegionNotFound) {
         Log.info("computeChecksumTreeGroup w/ regions");
         if (debug) {
-            System.out.printf("computeChecksumTreeGroup w/ regions\n");
+            System.out.printf("computeChecksumTreeGroup w/ regions %x\n", ns);
         }
         if (regions != null) {
             nsStore.readLock();

@@ -406,7 +406,11 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     public long getTotalKeys() {
-        return nsStats.getTotalKeys();
+    	if (retrieveTrigger != null) {
+    		return retrieveTrigger.getTotalKeys();
+    	} else {
+    		return nsStats.getTotalKeys();
+    	}
     }
 
     public NamespaceOptions getNamespaceOptions() {
@@ -2467,7 +2471,17 @@ public class NamespaceStore implements SSNamespaceStore {
     
     /** readLock() must be held while this is in use and readUnlock() must be called when complete */
     public Iterator<KeyAndVersionChecksum> keyAndVersionChecksumIterator(long minVersion, long maxVersion) {
-        return new KeyAndVersionChecksumIterator(minVersion, maxVersion);
+    	if (retrieveTrigger == null) {
+    		if (debug) {
+    			System.out.printf("KeyAndVersionChecksumIterator\n");
+    		}
+    		return new KeyAndVersionChecksumIterator(minVersion, maxVersion);
+    	} else {
+    		if (debug) {
+    			System.out.printf("KeyAndVersionChecksumIteratorForTrigger\n");
+    		}
+    		return new KeyAndVersionChecksumIteratorForTrigger();
+    	}
     }
 
     private class KeyAndVersionChecksumIterator implements Iterator<KeyAndVersionChecksum> {
@@ -2564,59 +2578,94 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
     
+    // simplified - doesn't support multi version as multi-version convergence is not yet fully implemented
+    private class KeyAndVersionChecksumIteratorForTrigger implements Iterator<KeyAndVersionChecksum> {
+        private final Iterator<DHTKey>  keyIterator;
+
+        private KeyAndVersionChecksumIteratorForTrigger() {
+        	keyIterator = retrieveTrigger.keyIterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return keyIterator.hasNext();
+        }
+
+        @Override
+        public KeyAndVersionChecksum next() {
+        	DHTKey	key;
+        	
+        	key = keyIterator.next();        	
+        	if (key != null) {
+        		return new KeyAndVersionChecksum(key, 0);
+        	} else {
+        		return null;
+        	}
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
+    
     private MultiVersionChecksum getVersionChecksum(DHTKey key) {
-    	int		segmentNumber;
-    	
-    	segmentNumber = valueSegments.get(key);
-    	if (segmentNumber >= 0) {
-            MultiVersionChecksum	checksum;
-            WritableSegmentBase		segment;
-            long					latestVersion;
-            
-            try {
-            	segment = getSegment(segmentNumber, SegmentPrereadMode.Preread);
-            } catch (IOException ioe) {
-            	throw new RuntimeException(ioe);
-            }
-			try {
-				int	offset;
-				
-				offset = segment.getRawOffset(key);
-				if (offset < 0) {
-					throw new RuntimeException("Unexpected offset < 0: "+ key +" "+ offset +" "+ segmentNumber);
-				}
-				latestVersion = segment.getVersion(offset);
-    		} finally {
-                if (nsOptions.getStorageType() == StorageType.FILE) {
-                	if (segment != headSegment) {
-                		((FileSegment)segment).removeReference();
-                	}
-                }
-    		}
-            checksum = new MultiVersionChecksum();
-            checksum.addKey(key);
-            checksum.addVersionAndStorageTime(latestVersion, 0);
-            return checksum;
-    		//return MultiVersionChecksum.fromKey(key);            
+    	if (retrieveTrigger != null) {
+    		throw new RuntimeException("panic"); // Not for use with triggers 
     	} else {
-            OffsetList 			offsetList;
-            
-            offsetList = offsetListStore.getOffsetList(-segmentNumber);
-            //return offsetList.getMultiVersionChecksum();
-            // FIXME - TEMPORARY - ONLY CONSIDER THE MOST RECENT VALUE
-            // FOR CONVERGENCE
-            MultiVersionChecksum	checksum;
-            long					latestVersion;
-            
-            latestVersion = offsetList.getLatestVersion();
-            if (latestVersion >= 0) {
+	    	int		segmentNumber;
+	    	
+	    	segmentNumber = valueSegments.get(key);
+	    	if (segmentNumber >= 0) {
+	            MultiVersionChecksum	checksum;
+	            WritableSegmentBase		segment;
+	            long					latestVersion;
+	            
+	            try {
+	            	segment = getSegment(segmentNumber, SegmentPrereadMode.Preread);
+	            } catch (IOException ioe) {
+	            	throw new RuntimeException(ioe);
+	            }
+				try {
+					int	offset;
+					
+					offset = segment.getRawOffset(key);
+					if (offset < 0) {
+						throw new RuntimeException("Unexpected offset < 0: "+ key +" "+ offset +" "+ segmentNumber);
+					}
+					latestVersion = segment.getVersion(offset);
+	    		} finally {
+	                if (nsOptions.getStorageType() == StorageType.FILE) {
+	                	if (segment != headSegment) {
+	                		((FileSegment)segment).removeReference();
+	                	}
+	                }
+	    		}
 	            checksum = new MultiVersionChecksum();
 	            checksum.addKey(key);
 	            checksum.addVersionAndStorageTime(latestVersion, 0);
 	            return checksum;
-            } else {
-            	return null;
-            }
+	    		//return MultiVersionChecksum.fromKey(key);            
+	    	} else {
+	            OffsetList 			offsetList;
+	            
+	            offsetList = offsetListStore.getOffsetList(-segmentNumber);
+	            //return offsetList.getMultiVersionChecksum();
+	            // FIXME - TEMPORARY - ONLY CONSIDER THE MOST RECENT VALUE
+	            // FOR CONVERGENCE
+	            MultiVersionChecksum	checksum;
+	            long					latestVersion;
+	            
+	            latestVersion = offsetList.getLatestVersion();
+	            if (latestVersion >= 0) {
+		            checksum = new MultiVersionChecksum();
+		            checksum.addKey(key);
+		            checksum.addVersionAndStorageTime(latestVersion, 0);
+		            return checksum;
+	            } else {
+	            	return null;
+	            }
+	    	}
     	}
     }
     
