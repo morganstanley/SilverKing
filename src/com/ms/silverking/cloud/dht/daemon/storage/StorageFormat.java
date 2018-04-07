@@ -38,7 +38,7 @@ public class StorageFormat {
     }
     
     public static int writeToBuf(DHTKey key, ByteBuffer value, StorageParameters storageParams, byte[] userData, 
-                              ByteBuffer buf, AtomicInteger nextFree, int writeLimit) {
+                              ByteBuffer buf, AtomicInteger nextFree, int writeLimit, boolean includeValue) {
         int offset;
         int writeSize;
         int storedLength;
@@ -105,12 +105,16 @@ public class StorageFormat {
             }
             
             dataLength = value.remaining();
-            buf.put(value.array(), value.position(), dataLength);
-            
-            // FIXME - enforce userdata length limit
-            buf.put(userData, 0, userData.length);
-    
-            return offset;
+            if (includeValue) {
+	            buf.put(value.array(), value.position(), dataLength);
+	            
+	            // FIXME - enforce userdata length limit
+	            buf.put(userData, 0, userData.length);
+	    
+	            return offset;
+            } else {
+            	return offset - dataLength - userData.length;
+            }
         } else {
             return writeFailedOffset;
         }

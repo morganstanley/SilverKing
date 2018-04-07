@@ -33,7 +33,7 @@ public class RetrievalResult extends KeyedResult {
         
         totalResultLength = 0;
         for (RetrievalResult retrievalResult : results) {
-            //System.out.printf("%s\t%d\n", retrievalResult, retrievalResult.getCompressedLength());
+            //System.out.printf("%s\t%d\n", retrievalResult, retrievalResult.getResultLength());
             totalResultLength += retrievalResult.getResultLength();
         }        
         return totalResultLength;

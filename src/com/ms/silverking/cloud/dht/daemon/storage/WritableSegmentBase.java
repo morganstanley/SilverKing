@@ -143,7 +143,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         if (debugPut) {
             Log.warning("put: ", KeyUtil.keyToString(key) +"\t"+ storageParams);
         }
-        writeOffset = StorageFormat.writeToBuf(key, value, storageParams, userData, dataBuf, nextFree, dataSegmentSize);
+        writeOffset = StorageFormat.writeToBuf(key, value, storageParams, userData, dataBuf, nextFree, dataSegmentSize, true);
         if (writeOffset != StorageFormat.writeFailedOffset) {
             return _put(key, writeOffset, storageParams.getVersion(), storageParams.getValueCreator(), nsOptions);
         } else {

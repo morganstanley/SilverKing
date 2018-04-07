@@ -148,7 +148,7 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
         buf = ByteBuffer.allocate(writeSize);
         
         // FIXME - THINK ABOUT THE +1 BELOW AND THE CORRESPONDING ISSUE IN WritableSegmentBase
-        writeOffset = StorageFormat.writeToBuf(key, ByteBuffer.wrap(value), storageParams, dynamicUserData, buf, new AtomicInteger(), buf.limit() + 1);
+        writeOffset = StorageFormat.writeToBuf(key, ByteBuffer.wrap(value), storageParams, dynamicUserData, buf, new AtomicInteger(), buf.limit() + 1, true);
         if (writeOffset == StorageFormat.writeFailedOffset) {
             throw new RuntimeException("Unexpected failure in createDynamicValue()");
         }

@@ -275,7 +275,7 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 			try {
 				sdp = sd.readDir();
 				
-				rVal = SSUtil.retrievalResultBufferFromValue(sdp.getV2(), StorageParameters.fromSSStorageParameters(sdp.getV1()));
+				rVal = SSUtil.retrievalResultBufferFromValue(sdp.getV2(), StorageParameters.fromSSStorageParameters(sdp.getV1()), options);
 				return rVal;
 			} catch (IOException ioe) {
 				Log.logErrorWarning(ioe);
