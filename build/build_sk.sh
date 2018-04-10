@@ -5,14 +5,11 @@ source lib/build_sk.lib
 f_clearOutEnvVariables
 f_checkAndSetBuildTimestamp
 
-# ANT_PATH=$(f_getExecutablePath ant);
-# $(f_getExecutablePath java);
-
 typeset output_filename=$(f_getBuildSk_RunOutputFilename)
 {
 	f_startLocalTimer;
 	date;
-	f_checkForRequiredExecutables;
+	# f_checkForRequiredExecutables;    currently not working how I want it to. Need to check them from build.config
 	f_cleanOrMakeBuildDirectory;
 	f_cleanOrMakeInstallDirectory;
 	f_runBuildAntScript;
