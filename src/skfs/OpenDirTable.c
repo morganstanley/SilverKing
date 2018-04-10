@@ -39,7 +39,7 @@ extern OpenDirWriter	*od_odw;
 //static uint64_t	_maxReconciliationSleepMillis = 8 * 1000;
 static uint64_t _minMinReconciliationSleepMillis = 1;
 static uint64_t	_maxMaxReconciliationSleepMillis = 1 * 60 * 1000;
-static uint64_t _minReconciliationSleepMillis = 10;
+static uint64_t _minReconciliationSleepMillis = 100;
 static uint64_t	_maxReconciliationSleepMillis = 1 * 1000;
 static unsigned int _reconciliationSeed;
 
