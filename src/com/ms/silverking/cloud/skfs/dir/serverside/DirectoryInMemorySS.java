@@ -10,6 +10,7 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy;
@@ -44,10 +45,13 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 	private final NamespaceOptions	nsOptions;
 	private SSStorageParameters	latestUpdateSP;
 	private final Timer			reapTimer;
+	private long			lastPersistenceCheckMillis;
 	
 	private static final int	reapIntervalMinutes = 10;
 	private static final int	reapMinVersions = 1;
-	private static final int	reapMaxVersions = 32;
+	private static final int	reapMaxVersions = 128;
+	
+	private static final long	minPersistenceIntervalMillis = 5 * 1000;
 	
 	private static final FileDeletionWorker	fileDeletionWorker = new FileDeletionWorker();
 
@@ -93,7 +97,7 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 				DirectoryInPlace	recoveredDir;
 				
 				sd = readFromDisk(version);
-				_sd = new SerializedDirectory(sd);
+				_sd = new SerializedDirectory(sd, true);
 				serializedVersions.put(version, _sd);
 				latestUpdateSP = _sd.getStorageParameters();
 				recoveredDir = new DirectoryInPlace(sd.getV2(), 0, sd.getV2().length);
@@ -110,8 +114,12 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 		if (serializedVersions.size() > reapMinVersions) {
 			ValueRetentionPolicy	vrp;
 			Set<Long>				versionsToRemove;
+			long					greatestVersion;
 			
-			Log.warningf("Reap DirectoryInMemorySS %s", KeyUtil.keyToString(dirKey));
+			greatestVersion = Long.MIN_VALUE;
+			if (Log.levelMet(Level.INFO)) {
+				Log.infof("Reap DirectoryInMemorySS %s", KeyUtil.keyToString(dirKey));
+			}
 			versionsToRemove = new HashSet<>();
 			vrp = nsOptions.getValueRetentionPolicy();
 			if (vrp instanceof TimeAndVersionRetentionPolicy) {
@@ -121,6 +129,9 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 				rs = new TimeAndVersionRetentionState();
 				curTimeNanos = SystemTimeSource.instance.absTimeNanos();
 				for (long version : serializedVersions.descendingKeySet()) {
+					if (greatestVersion == Long.MIN_VALUE) {
+						greatestVersion = version;
+					}
 					if (!vrp.retains(dirKey, version, curTimeNanos, false, rs, curTimeNanos)) {
 						versionsToRemove.add(version);
 					}
@@ -128,15 +139,33 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 			} else {
 				Log.warning("Unexpected retention policy: "+ vrp);
 			}
+			if (greatestVersion != Long.MIN_VALUE) {
+				ensurePersisted(greatestVersion);
+			}
 			remove(versionsToRemove);
+		}
+	}
+	
+	private void ensurePersisted(long version) {
+		SerializedDirectory	sd;
+		
+		sd = serializedVersions.get(version);
+		if (sd != null && !sd.isPersisted()) {
+			persist(sd);
 		}
 	}
 	
 	private void remove(Set<Long> versionsToRemove) {
 		for (long version : versionsToRemove) {
+			SerializedDirectory	sd;
+			
 			//Log.warningf("Removing %s %d", dirKey, version);
-			serializedVersions.remove(version);
-			removeFromDisk(version);
+			sd = serializedVersions.remove(version);
+			if (sd != null) {
+				if (sd.isPersisted()) {
+					removeFromDisk(version);
+				}
+			}
 		}
 	}
 
@@ -165,12 +194,53 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 		this.latestUpdateSP = sp;
 		update(update);
 		sd = serializeDir();
-		persist(sd.getV1(), sd.getV2());
-		serializedVersions.put(sp.getVersion(), new SerializedDirectory(sd));
+		//persist(sd.getV1(), sd.getV2());
+		serializedVersions.put(sp.getVersion(), new SerializedDirectory(sd, false));
 		if (reapTimer.hasExpired() || serializedVersions.size() > reapMaxVersions) {
 			reap();
 			reapTimer.reset();
 		}
+	}
+	
+	public void checkForPersistence(long checkTimeMillis) {
+		if (Log.levelMet(Level.INFO)) {
+			Log.infof("checkForPersistence %s", KeyUtil.keyToString(dirKey));
+		}
+		if (checkTimeMillis - lastPersistenceCheckMillis > minPersistenceIntervalMillis) {
+			persistLatestIfNecessary();
+		}
+		lastPersistenceCheckMillis = checkTimeMillis;
+		if (Log.levelMet(Level.INFO)) {
+			Log.infof("out checkForPersistence %s", KeyUtil.keyToString(dirKey));
+		}
+	}
+	
+	private final void persistLatestIfNecessary() {
+		Map.Entry<Long, SerializedDirectory>	entry;
+		
+		if (Log.levelMet(Level.INFO)) {
+			Log.infof("persistLatestIfNecessary() %s", KeyUtil.keyToString(dirKey));
+		}
+		entry = serializedVersions.lastEntry();
+		if (entry != null) {
+			SerializedDirectory	sd;
+			
+			if (Log.levelMet(Level.INFO)) {
+				Log.infof("persistLatestIfNecessary() found entry %s", KeyUtil.keyToString(dirKey));
+			}
+			sd = entry.getValue();
+			if (Log.levelMet(Level.INFO)) {
+				Log.infof("persistLatestIfNecessary() entry persisted %s %s", KeyUtil.keyToString(dirKey), sd.isPersisted());
+			}
+			if (!sd.isPersisted()) {
+				persist(sd);
+			}
+		}
+	}
+	
+	private final void persist(SerializedDirectory sd) {
+		persist(sd.getStorageParameters(), sd.getSerializedDir());
+		sd.setPersisted();
 	}
 	
 	private final void persist(SSStorageParameters sp, byte[] serializedDirData) {
@@ -186,6 +256,9 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 	}
 	
 	private void writeToDisk(SSStorageParameters sp, byte[] serializedDirData) throws IOException {
+		if (Log.levelMet(Level.INFO)) {
+			Log.infof("persisting %s", fileForVersion(sp));
+		}
 		FileUtil.writeToFile(fileForVersion(sp), StorageParameterSerializer.serialize(sp), serializedDirData);
 	}
 	
@@ -214,18 +287,24 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 	class SerializedDirectory {
 		private final SSStorageParameters	sp;
 		private byte[]	serializedDir;
+		private boolean	isPersisted;
 		
-		public SerializedDirectory(SSStorageParameters sp, byte[] serializedDir) {
+		public SerializedDirectory(SSStorageParameters sp, byte[] serializedDir, boolean isPersisted) {
 			this.sp = sp;
 			this.serializedDir = serializedDir;
+			this.isPersisted = isPersisted;
 		}
 		
-		public SerializedDirectory(Pair<SSStorageParameters,byte[]> sd) {
-			this(sd.getV1(), sd.getV2());
+		public SerializedDirectory(Pair<SSStorageParameters,byte[]> sd, boolean isPersisted) {
+			this(sd.getV1(), sd.getV2(), isPersisted);
 		}
 		
 		public SSStorageParameters getStorageParameters() {
 			return sp;
+		}
+		
+		public byte[] getSerializedDir() {
+			return serializedDir;
 		}
 		
 		public void clearCachedData() {
@@ -238,6 +317,14 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 			} else {
 				return readFromDisk(sp.getVersion());
 			}
+		}
+		
+		public void setPersisted() {
+			this.isPersisted = true;
+		}
+		
+		public boolean isPersisted() {
+			return isPersisted;
 		}
 	}
 	

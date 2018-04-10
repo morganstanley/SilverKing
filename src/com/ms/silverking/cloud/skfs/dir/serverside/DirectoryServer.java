@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.OpResult;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
@@ -24,6 +25,8 @@ import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.compression.CompressionUtil;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.process.SafeThread;
+import com.ms.silverking.thread.ThreadUtil;
 
 public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	private final ConcurrentMap<DHTKey, DirectoryInMemorySS>	directories;
@@ -49,6 +52,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		this.logDir = nsStore.getNamespaceSSDir();
 		this.nsOptions = nsStore.getNamespaceOptions();
 		directoriesOnDiskAtBoot = getDirectoriesOnDiskAtBoot();
+		new Persister();
 	}
 	
 	private Set<DHTKey> getDirectoriesOnDiskAtBoot() {
@@ -185,5 +189,39 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	@Override
 	public long getTotalKeys() {
 		return getUnionKeySet().size();
+	}
+	
+	private class Persister implements Runnable {
+		private final Thread	pThread;
+		
+		private static final long	checkIntervalMillis = 1 * 1000;
+		
+		Persister() {
+			pThread = new SafeThread(this, "DirectoryServer.Persister", true);
+			pThread.start();
+		}
+		
+		public void run() {
+			while (true) {
+				try {
+					checkForPersistence();
+					ThreadUtil.sleep(checkIntervalMillis);
+				} catch (Exception e) {
+					Log.logErrorWarning(e, "Unexpected exception in DirectoryServer.Persister");
+					ThreadUtil.sleep(checkIntervalMillis);
+				}
+			}
+		}
+		
+		private void checkForPersistence() {
+			long	checkTimeMillis;
+			
+			Log.info("checkForPersistence()");
+			checkTimeMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
+			for (DirectoryInMemorySS dir : directories.values()) {
+				dir.checkForPersistence(checkTimeMillis);
+			}
+			Log.info("out checkForPersistence()");
+		}
 	}
 }
