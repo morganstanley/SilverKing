@@ -206,14 +206,14 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 	
 	public void checkForPersistence(long checkTimeMillis) {
 		if (Log.levelMet(Level.INFO)) {
-			Log.infof("checkForPersistence %s", KeyUtil.keyToString(dirKey));
+			Log.warningf("checkForPersistence %s", KeyUtil.keyToString(dirKey));
 		}
 		if (checkTimeMillis - lastPersistenceCheckMillis > minPersistenceIntervalMillis) {
+			lastPersistenceCheckMillis = checkTimeMillis;
 			persistLatestIfNecessary();
 		}
-		lastPersistenceCheckMillis = checkTimeMillis;
 		if (Log.levelMet(Level.INFO)) {
-			Log.infof("out checkForPersistence %s", KeyUtil.keyToString(dirKey));
+			Log.warningf("out checkForPersistence %s", KeyUtil.keyToString(dirKey));
 		}
 	}
 	
@@ -221,18 +221,18 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 		Map.Entry<Long, SerializedDirectory>	entry;
 		
 		if (Log.levelMet(Level.INFO)) {
-			Log.infof("persistLatestIfNecessary() %s", KeyUtil.keyToString(dirKey));
+			Log.warningf("persistLatestIfNecessary() %s", KeyUtil.keyToString(dirKey));
 		}
 		entry = serializedVersions.lastEntry();
 		if (entry != null) {
 			SerializedDirectory	sd;
 			
 			if (Log.levelMet(Level.INFO)) {
-				Log.infof("persistLatestIfNecessary() found entry %s", KeyUtil.keyToString(dirKey));
+				Log.warning("persistLatestIfNecessary() found entry %s", KeyUtil.keyToString(dirKey));
 			}
 			sd = entry.getValue();
 			if (Log.levelMet(Level.INFO)) {
-				Log.infof("persistLatestIfNecessary() entry persisted %s %s", KeyUtil.keyToString(dirKey), sd.isPersisted());
+				Log.warningf("persistLatestIfNecessary() entry persisted %s %s", KeyUtil.keyToString(dirKey), sd.isPersisted());
 			}
 			if (!sd.isPersisted()) {
 				persist(sd);
