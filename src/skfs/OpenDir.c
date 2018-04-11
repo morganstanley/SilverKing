@@ -35,6 +35,7 @@ OpenDirWriter	*od_odw;
 static void od_merge_DirData_pendingUpdates(OpenDir *od);
 static void od_clear_pending_updates(OpenDir *od);
 static void od_remove_from_reconciliation(OpenDir *od);
+static void od_set_server_update_DirData(OpenDir *od, DirData *su_dd);
 
 
 ///////////////
@@ -66,6 +67,7 @@ OpenDir *od_new(const char *path, DirData *dirData) {
 	od->lastUpdateMillis = 0;
 	od->needsReconciliation = TRUE;
 	rcst_add_to_reconciliation_set(od->path);
+    od->su_dd = NULL;
 	
 	return od;
 }
@@ -145,6 +147,29 @@ static void od_clear_pending_updates(OpenDir *od) {
         }
 		od->numPendingUpdates = 0;
 	}
+}
+
+DirData *od_get_server_update_DirData(OpenDir *od) {
+	DirData	*dd;
+	
+    pthread_mutex_lock(od->mutex);	
+    if (od->su_dd != NULL) {
+        dd = dd_dup(od->su_dd);
+        srfsLog(LOG_INFO, "od_get_server_update_DirData od->su_dd %d", dd->numEntries);
+    } else {
+        dd = dd_process_updates(od->dd, od->pendingUpdates, od->numPendingUpdates);	
+        srfsLog(LOG_INFO, "od_get_server_update_DirData od->dd %d", dd->numEntries);
+    }
+    pthread_mutex_unlock(od->mutex);	
+	return dd;
+}
+
+// lock must be held
+static void od_set_server_update_DirData(OpenDir *od, DirData *su_dd) {
+    if (od->su_dd != NULL) {
+        dd_delete(&od->su_dd);
+    }
+    od->su_dd = su_dd;
 }
 
 DirData *od_get_DirData(OpenDir *od, int clearPending) {
@@ -248,7 +273,16 @@ int od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 		MergeResult	mr;
 		
 		od_merge_DirData_pendingUpdates(od);
-		mr = dd_merge(od->dd, dd);
+		mr = dd_merge(od->dd, dd);        
+        srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "mr.ddForUpdate %llx", mr.ddForUpdate);
+        od_set_server_update_DirData(od, mr.ddForUpdate);
+
+		if (mr.dd0NotIn1) {
+            // make sure that we trigger a read to get the merged server version
+            rcst_add_to_reconciliation_set(od->path);
+			od->lastUpdateMillis = _curTimeMillis; // update time so that we don't leave the rcst
+        }
+        
 		//od->lastMergedVersion = metaDataVersion; // Moved below for now
         // if kvs data had no new data
 		if (!mr.dd1NotIn0) {

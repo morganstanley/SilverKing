@@ -72,49 +72,57 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	@Override
 	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData,
 			NamespaceVersionMode nsVersionMode) {
-		byte[]				buf;
-		int					bufOffset;
-		int					bufLimit;
-		DirectoryInMemorySS	existingDir;
-		DirectoryInPlace	updateDir;
+		//Stopwatch	sw;
 		
-		//Log.warningf("DirectoryServer.put() %s %s %s", KeyUtil.keyToString(key), value.hasArray(), storageParams.getCompression());
-
-		buf = value.array();
-		bufOffset = value.arrayOffset() + value.position();
-		bufLimit = value.limit();
-		//System.out.printf("%s\n", value);
-		//System.out.printf("%d %d %d\n", buf.length, bufOffset, bufLimit);
-		if (storageParams.getCompression() == Compression.NONE) {
-			//System.out.printf("No compression\n");
-		} else {
-			try {
-				int	dataOffset;
-				
-				//System.out.printf("Compression\n");
-				dataOffset = value.position();
-				buf = CompressionUtil.decompress(storageParams.getCompression(), value.array(), dataOffset, storageParams.getCompressedSize(), storageParams.getUncompressedSize());
-				bufOffset = 0;
-				bufLimit = buf.length;
-			} catch (IOException ioe) {
-				Log.logErrorWarning(ioe);
-				return OpResult.ERROR;
-			}
-		}
-		updateDir = new DirectoryInPlace(buf, bufOffset, bufLimit);
-		// put() holds a write lock so no concurrency needs to be handled. 
-		// We still, however, look for existing directories on disk
-		existingDir = getExistingDirectory(key);
-		if (existingDir == null) {
-			DirectoryInMemorySS	newDir;
+		//sw = new SimpleStopwatch();
+		//try {
+			byte[]				buf;
+			int					bufOffset;
+			int					bufLimit;
+			DirectoryInMemorySS	existingDir;
+			DirectoryInPlace	updateDir;
 			
-			newDir = new DirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
-			newDir.update(updateDir, storageParams);
-			directories.put(key, newDir);
-		} else {
-			existingDir.update(updateDir, storageParams);
-		}
-		return OpResult.SUCCEEDED;
+			//Log.warningf("DirectoryServer.put() %s %s %s", KeyUtil.keyToString(key), value.hasArray(), storageParams.getCompression());
+	
+			buf = value.array();
+			bufOffset = value.arrayOffset() + value.position();
+			bufLimit = value.limit();
+			//System.out.printf("%s\n", value);
+			//System.out.printf("%d %d %d\n", buf.length, bufOffset, bufLimit);
+			if (storageParams.getCompression() == Compression.NONE) {
+				//System.out.printf("No compression\n");
+			} else {
+				try {
+					int	dataOffset;
+					
+					//System.out.printf("Compression\n");
+					dataOffset = value.position();
+					buf = CompressionUtil.decompress(storageParams.getCompression(), value.array(), dataOffset, storageParams.getCompressedSize(), storageParams.getUncompressedSize());
+					bufOffset = 0;
+					bufLimit = buf.length;
+				} catch (IOException ioe) {
+					Log.logErrorWarning(ioe);
+					return OpResult.ERROR;
+				}
+			}
+			updateDir = new DirectoryInPlace(buf, bufOffset, bufLimit);
+			// put() holds a write lock so no concurrency needs to be handled. 
+			// We still, however, look for existing directories on disk
+			existingDir = getExistingDirectory(key, true);
+			if (existingDir == null) {
+				DirectoryInMemorySS	newDir;
+				
+				newDir = new DirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
+				newDir.update(updateDir, storageParams);
+				directories.put(key, newDir);
+			} else {
+				existingDir.update(updateDir, storageParams);
+			}
+			return OpResult.SUCCEEDED;
+		//} finally {
+		//	sw.stop();
+		//	Log.warningf("DirectoryServer.put()\t%f", sw.getElapsedSeconds());
+		//}
 	}
 	
 
@@ -129,7 +137,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		ByteBuffer	rVal;
 		
 		//Log.warningf("retrieve %s", KeyUtil.keyToString(key));
-		existingDir = getExistingDirectory(key);
+		existingDir = getExistingDirectory(key, false);
 		if (existingDir != null) {
 			//Log.warning("existingDir found");
 			rVal = existingDir.retrieve(options);
@@ -146,7 +154,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	 * @param key
 	 * @return the given DirectoryInMemorySS if it exists in memory or was found on disk
 	 */
-	public DirectoryInMemorySS getExistingDirectory(DHTKey key) {
+	public DirectoryInMemorySS getExistingDirectory(DHTKey key, boolean reapOnRecover) {
 		DirectoryInMemorySS	existingDir;
 		
 		existingDir = directories.get(key);
@@ -158,7 +166,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 				DirectoryInMemorySS	prev;
 				
 				Log.warningf("DirectoryServer.getExistingDirectory() recovering %s", KeyUtil.keyToString(key));
-				existingDir = new DirectoryInMemorySS(key, null, null, dir, nsOptions);
+				existingDir = new DirectoryInMemorySS(key, null, null, dir, nsOptions, reapOnRecover);
 				// This may be called by retrieve() which only holds a read lock.
 				// As a result, we need to worry about concurrency.
 				prev = directories.putIfAbsent(key, existingDir);

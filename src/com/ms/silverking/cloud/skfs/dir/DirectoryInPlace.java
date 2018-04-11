@@ -46,7 +46,7 @@ public class DirectoryInPlace extends DirectoryBase {
 	
 	private int getEntryOffset(int index) {
 		//System.out.printf("getEntryOffset(%d)\n", index);
-		//System.out.printf("%d %d %d %d\n", getIndexOffset() + indexFirstEntryOffset + index * DEI_ENTRY_SIZE, getIndexOffset(), indexFirstEntryOffset, index * DEI_ENTRY_SIZE);
+		//System.out.printf("%d %d %d %d %d\n", offset + getIndexOffset() + indexFirstEntryOffset + index * DEI_ENTRY_SIZE, offset, getIndexOffset(), indexFirstEntryOffset, index * DEI_ENTRY_SIZE);
 		return NumConversion.bytesToIntLittleEndian(buf, offset + getIndexOffset() + indexFirstEntryOffset + index * DEI_ENTRY_SIZE);
 	}
 
@@ -56,6 +56,7 @@ public class DirectoryInPlace extends DirectoryBase {
 		
 		offset = getEntryOffset(index);
 		if (offset >= 0) {
+			//System.out.printf("getEntry %d %d %s\n", index, offset, getEntryAtOffset(offset).getV1());
 			return getEntryAtOffset(offset).getV1();
 		} else {
 			Log.warning("Bad entry offset in DirectoryInPlace.getEntry()");

@@ -74,9 +74,11 @@ public class DirectoryInMemorySS extends DirectoryInMemory {
 		this.sDir = sDir;
 		this.nsOptions = nsOptions;
 		serializedVersions = new TreeMap<>();
-		if (!dirCreated && reap) {
+		if (!dirCreated) {
 			recover();
-			reap();
+			if (reap) {
+				reap();
+			}
 		}
 		reapTimer = new SimpleTimer(TimeUnit.MINUTES, reapIntervalMinutes);
 	}

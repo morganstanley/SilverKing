@@ -56,6 +56,7 @@ typedef struct MergeResult {
 		DirData	*dd;
 		int		dd0NotIn1;
 		int		dd1NotIn0;
+        DirData	*ddForUpdate;
 } MergeResult;
 
 

@@ -173,8 +173,7 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
 			SKVal	*pval;
 			
 			srfsLog(LOG_INFO, "OpenDirWriter adding to group %llx %llx %s", odwr, odwr->od, odwr->od->path );
-			dd = od_get_DirData(odwr->od, TRUE);
-			srfsLog(LOG_FINE, ":: %llx %llx", odwr->od->dd, dd);
+			dd = od_get_server_update_DirData(odwr->od);
 			pval = sk_create_val();
 			sk_set_val(pval, dd_length_with_header_and_index(dd), (void *)(dd) );
 			//if (srfsLogLevelMet(LOG_INFO)) {

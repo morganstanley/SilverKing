@@ -139,6 +139,25 @@ public class ArrayUtil<T> {
         return 0;
     }
     
+    public static int compare(byte[] a, int startA, int lengthA, byte[] b, int startB, int lengthB) {
+    	int	result;
+    	
+    	result = compare(a, startA, b, startB, Math.min(lengthA, lengthB));
+    	if (result != 0) {
+    		return result;
+    	} else {
+    		if (lengthA == lengthB) {
+    			return 0;
+    		} else {
+    			if (lengthA < lengthB) {
+    				return -1;
+    			} else {
+    				return 1;
+    			}
+    		}
+    	}
+    }
+    
     public static void display(byte[] array) {
         for (int i = 0; i < array.length; i++) {
             System.out.println(i +":\t"+ array[i]);

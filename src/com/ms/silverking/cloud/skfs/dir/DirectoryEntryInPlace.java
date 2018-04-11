@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.skfs.dir;
 
 import java.nio.ByteBuffer;
 
+import com.ms.silverking.cloud.skfs.dir.serverside.ByteString;
 import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.util.ArrayUtil;
@@ -85,6 +86,11 @@ public class DirectoryEntryInPlace extends DirectoryEntryBase {
 	@Override
 	public String getName() {
 		return new String(buf, getNameOffset(), getNameLength());
+	}
+	
+	public ByteString getNameAsByteString() {
+		return new ByteString(buf, getNameOffset(), getNameLength());
+		//return ByteString.copy(getNameAsBytes());
 	}
 
 	@Override

@@ -30,6 +30,7 @@
 typedef struct OpenDir {
 	char	path[SRFS_MAX_PATH_LENGTH];
 	DirData	*dd;
+	DirData	*su_dd;
 	int		queuedForWrite;
 	volatile int	numPendingUpdates;
 	OpenDirUpdate	*pendingUpdates;
@@ -59,6 +60,7 @@ void od_setLastWriteMillis(OpenDir *od, uint64_t lastWriteMillis);
 void od_waitForWrite(OpenDir *od, uint64_t writeTimeMillis);
 void od_mark_deleted(OpenDir *od);
 DirData *od_get_DirData(OpenDir *od, int clearPending = FALSE);
+DirData *od_get_server_update_DirData(OpenDir *od);
 void od_rm_entry(OpenDir *od, char *name, uint64_t version);
 void od_add_entry(OpenDir *od, char *name, uint64_t version);
 int od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData);
