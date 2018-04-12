@@ -37,13 +37,13 @@ public class InvalidatedRetentionPolicyTest {
 	
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		InvalidatedRetentionPolicy[][] testCases = {
 			{defaultPolicy,     defaultPolicy,     defaultPolicyDiff},
 			{defaultPolicyDiff, defaultPolicyDiff, defaultPolicy},
 			{defaultPolicyCopy, defaultPolicy,     defaultPolicyDiff},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{defaultPolicy,      PermanentRetentionPolicy.template},
 			{defaultPolicy, TimeAndVersionRetentionPolicy.template},

@@ -29,10 +29,12 @@ public class PermanentRetentionPolicyTest {
 	
 	@Test
 	public void testEqualsObject() {
-		test_EqualsOrNotEquals(new Object[][]{
-			{defaultPolicy,                          defaultPolicy,  true},
-			{defaultPolicy,    InvalidatedRetentionPolicy.template, false},
-			{defaultPolicy, TimeAndVersionRetentionPolicy.template, false},
+		test_Equals(new Object[][]{
+			{defaultPolicy, defaultPolicy},
+		});
+		test_NotEquals(new Object[][]{
+			{defaultPolicy,    InvalidatedRetentionPolicy.template},
+			{defaultPolicy, TimeAndVersionRetentionPolicy.template},
 		});
 	}
 

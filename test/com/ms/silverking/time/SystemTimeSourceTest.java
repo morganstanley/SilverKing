@@ -3,7 +3,7 @@ package com.ms.silverking.time;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_SecondNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 import static com.ms.silverking.time.TestUtil.*;
 import static com.ms.silverking.time.TestUtil.test_AbsTimeMillis;
 import static com.ms.silverking.time.TestUtil.test_RelMillisRemaining;
@@ -100,12 +100,12 @@ public class SystemTimeSourceTest {
 	
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		SystemTimeSource[][] testCases = {
 			{systemSource,     systemSource,     systemSourceDiff},
 			{systemSourceDiff, systemSourceDiff, systemSource},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{systemSource, TestUtil.constantSource},
 			{systemSource, TestUtil.timerSource},

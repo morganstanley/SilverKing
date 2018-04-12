@@ -154,7 +154,7 @@ public class NamespacePerspectiveOptionsTest {
 	
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		NamespacePerspectiveOptions<?,?>[][] testCases = {
 			{defaultNspOptions,     defaultNspOptions,                     defaultNspOptionsDiff},
 			{defaultNspOptionsDiff, defaultNspOptionsDiff,                 defaultNspOptions},
 			{defaultNspOptionsCopy, defaultNspOptions,                     defaultNspOptionsDiff},
@@ -169,7 +169,7 @@ public class NamespacePerspectiveOptionsTest {
 			{defaultNspOptions,     setEncrypterDecrypter(edCopy),         setEncrypterDecrypter(edDiff)},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{defaultNspOptions, NamespaceOptions.templateOptions},
 		});

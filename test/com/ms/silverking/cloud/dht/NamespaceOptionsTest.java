@@ -40,10 +40,16 @@ public class NamespaceOptionsTest {
 
 	private static ValueRetentionPolicy<?> vrpCopy     = new InvalidatedRetentionPolicy(60);
 	private static ValueRetentionPolicy<?> vrpDiff     = new TimeAndVersionRetentionPolicy(Mode.mostRecentValue, 100, 1);
+	
+	private static NamespaceServerSideCode nsscCopy    = new NamespaceServerSideCode("", "", "");
+	private static NamespaceServerSideCode nsscDiff    = new NamespaceServerSideCode("a", "b", "c");
+	private static NamespaceServerSideCode nsscNull    = null;
 
-	private static final NamespaceOptions defaultNsOptions     =     NamespaceOptions.templateOptions;
-	private static final NamespaceOptions defaultNsOptionsCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy, null);
-	private static final NamespaceOptions defaultNsOptionsDiff = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, null);
+	private static final NamespaceOptions defaultNsOptions          =     NamespaceOptions.templateOptions;
+	private static final NamespaceOptions defaultNsOptionsCopy      = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy, nsscCopy);
+	private static final NamespaceOptions defaultNsOptionsDiff      = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, nsscDiff);
+	private static final NamespaceOptions defaultNsOptionsNsscNull1 = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, nsscNull);
+	private static final NamespaceOptions defaultNsOptionsNsscNull2 = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, null);
 	
 	private StorageType getStorageType(NamespaceOptions nsOptions) {
 		return nsOptions.getStorageType();
@@ -91,6 +97,10 @@ public class NamespaceOptionsTest {
 
 	private ValueRetentionPolicy<?> getValueRetentionPolicy(NamespaceOptions nsOptions) {
 		return nsOptions.getValueRetentionPolicy();
+	}
+
+	private NamespaceServerSideCode getNamespaceServerSideCode(NamespaceOptions nsOptions) {
+		return nsOptions.getNamespaceServerSideCode();
 	}
 	
 	private NamespaceOptions setStorageType(StorageType st) {
@@ -141,6 +151,10 @@ public class NamespaceOptionsTest {
 		return defaultNsOptions.valueRetentionPolicy(vrp);
 	}
 	
+	private NamespaceOptions setNamespaceServerSideCode(NamespaceServerSideCode nssc) {
+		return defaultNsOptions.namespaceServerSideCode(nssc);
+	}
+	
 //	@Test
 //	public void testInit() {
 //		fail("Not yet implemented");
@@ -161,6 +175,7 @@ public class NamespaceOptionsTest {
 			{defaultSegmentSize,                  getSegmentSize(defaultNsOptions)},
 			{defaultAllowLinks,                   getAllowLinks(defaultNsOptions)},
 			{defaultRetentionPolicy,              getValueRetentionPolicy(defaultNsOptions)},
+			{defaultNamespaceServerSideCode,      getNamespaceServerSideCode(defaultNsOptions)},
 		};
 		
 		test_Getters(testCases);
@@ -182,6 +197,7 @@ public class NamespaceOptionsTest {
 			{"segmentSize = min-1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(minSegmentSize-1);                  } }, ConstraintViolationException.class},
 			{"segmentSize = max+1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(maxSegmentSize+1);                  } }, ConstraintViolationException.class},
 			{"valueRetentionPolicy = null",             new ExceptionChecker() { @Override public void check() { setValueRetentionPolicy(null);                     } },         NullPointerException.class},
+// null is allowed for backwards compatibility			{"namespaceServerSideCode = null",          new ExceptionChecker() { @Override public void check() { setNamespaceServerSideCode(null);                  } },         NullPointerException.class},
 		};
 		
 		test_SetterExceptions(testCases);
@@ -190,32 +206,35 @@ public class NamespaceOptionsTest {
 	@Test
 	public void testSetters() {
 		for (StorageType type : StorageType.values()) 
-			check_Getter(type, getStorageType( setStorageType(type) ) );	
+			check_Setter(type, getStorageType( setStorageType(type) ) );	
 		
 		for (ConsistencyProtocol protocol : ConsistencyProtocol.values())
-			check_Getter(protocol, getConsistencyProtocol( setConsistencyProtocol(protocol) ) );
+			check_Setter(protocol, getConsistencyProtocol( setConsistencyProtocol(protocol) ) );
 		
 		for (NamespaceVersionMode mode : NamespaceVersionMode.values())
-			check_Getter(mode, getVersionMode( setVersionMode(mode) ) );
+			check_Setter(mode, getVersionMode( setVersionMode(mode) ) );
 		
 		for (RevisionMode mode : RevisionMode.values())
-			check_Getter(mode, getRevisionMode( setRevisionMode(mode) ) );
+			check_Setter(mode, getRevisionMode( setRevisionMode(mode) ) );
 
 		for (int val : new int[]{int_minVal, -1, 0, 1, int_maxVal})
-			check_Getter(val, getSecondarySyncIntervalSeconds( setSecondarySyncIntervalSeconds(val) ) );
+			check_Setter(val, getSecondarySyncIntervalSeconds( setSecondarySyncIntervalSeconds(val) ) );
 
 		for (int size : new int[]{minSegmentSize, (minSegmentSize+maxSegmentSize)/2, maxSegmentSize})
-			check_Getter(size, getSegmentSize( setSegmentSize(size) ) );
+			check_Setter(size, getSegmentSize( setSegmentSize(size) ) );
 		
 		for (boolean val : new boolean[]{false, true})
-			check_Getter(val, getAllowLinks( setAllowLinks(val) ) );
+			check_Setter(val, getAllowLinks( setAllowLinks(val) ) );
 
+		for (NamespaceServerSideCode nssc : new NamespaceServerSideCode[]{nsscDiff, nsscNull})
+			check_Setter(nssc, getNamespaceServerSideCode( setNamespaceServerSideCode(nssc) ) );
+		
 		Object[][] testCases = {
-			{poDiff,  getDefaultPutOptions( setDefaultPutOptions(poDiff) )},
-			{ioDiff,  getDefaultInvalidationOptions( setDefaultInvalidationOptions(ioDiff) )},
-			{goDiff,  getDefaultGetOptions( setDefaultGetOptions(goDiff) )},
-			{woDiff,  getDefaultWaitOptions( setDefaultWaitOptions(woDiff) )},
-			{vrpDiff, getValueRetentionPolicy( setValueRetentionPolicy(vrpDiff) )},
+			{poDiff,   getDefaultPutOptions( setDefaultPutOptions(poDiff) )},
+			{ioDiff,   getDefaultInvalidationOptions( setDefaultInvalidationOptions(ioDiff) )},
+			{goDiff,   getDefaultGetOptions( setDefaultGetOptions(goDiff) )},
+			{woDiff,   getDefaultWaitOptions( setDefaultWaitOptions(woDiff) )},
+			{vrpDiff,  getValueRetentionPolicy( setValueRetentionPolicy(vrpDiff) )},
 		};
 
 		test_Setters(testCases);
@@ -238,29 +257,33 @@ public class NamespaceOptionsTest {
 		checkHashCodeEquals(   defaultNsOptions, defaultNsOptions);
 		checkHashCodeEquals(   defaultNsOptions, defaultNsOptionsCopy);
 		checkHashCodeNotEquals(defaultNsOptions, defaultNsOptionsDiff);
+		
+		checkHashCodeEquals(   defaultNsOptionsNsscNull1, defaultNsOptionsNsscNull2);
 	}
 
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
-			{defaultNsOptions,     defaultNsOptions,                          defaultNsOptionsDiff},
-			{defaultNsOptionsDiff, defaultNsOptionsDiff,                      defaultNsOptions},
-			{defaultNsOptionsCopy, defaultNsOptions,                          defaultNsOptionsDiff},
-			{defaultNsOptions,     setStorageType(stCopy),                    setStorageType(stDiff)},
-			{defaultNsOptions,     setConsistencyProtocol(cpCopy),            setConsistencyProtocol(cpDiff)},
-			{defaultNsOptions,     setVersionMode(nsvmCopy),                  setVersionMode(nsvmDiff)},
-			{defaultNsOptions,     setRevisionMode(rmCopy),                   setRevisionMode(rmDiff)},
-			{defaultNsOptions,     setDefaultPutOptions(poCopy),              setDefaultPutOptions(poDiff)},
-			{defaultNsOptions,     setDefaultInvalidationOptions(ioCopy),     setDefaultInvalidationOptions(ioDiff)},
-			{defaultNsOptions,     setDefaultGetOptions(goCopy),              setDefaultGetOptions(goDiff)},
-			{defaultNsOptions,     setDefaultWaitOptions(woCopy),             setDefaultWaitOptions(woDiff)},
-			{defaultNsOptions,     setSecondarySyncIntervalSeconds(ssisCopy), setSecondarySyncIntervalSeconds(ssisDiff)},
-			{defaultNsOptions,     setSegmentSize(ssCopy),                    setSegmentSize(ssDiff)},
-			{defaultNsOptions,     setAllowLinks(alCopy),                     setAllowLinks(alDiff)},
-			{defaultNsOptions,     setValueRetentionPolicy(vrpCopy),          setValueRetentionPolicy(vrpDiff)},
+		NamespaceOptions[][] testCases = {
+			{defaultNsOptions,          defaultNsOptions,                          defaultNsOptionsDiff},
+			{defaultNsOptionsDiff,      defaultNsOptionsDiff,                      defaultNsOptions},
+			{defaultNsOptionsNsscNull1, defaultNsOptionsNsscNull2,                 defaultNsOptions},
+			{defaultNsOptionsCopy,      defaultNsOptions,                          defaultNsOptionsDiff},
+			{defaultNsOptions,          setStorageType(stCopy),                    setStorageType(stDiff)},
+			{defaultNsOptions,          setConsistencyProtocol(cpCopy),            setConsistencyProtocol(cpDiff)},
+			{defaultNsOptions,          setVersionMode(nsvmCopy),                  setVersionMode(nsvmDiff)},
+			{defaultNsOptions,          setRevisionMode(rmCopy),                   setRevisionMode(rmDiff)},
+			{defaultNsOptions,          setDefaultPutOptions(poCopy),              setDefaultPutOptions(poDiff)},
+			{defaultNsOptions,          setDefaultInvalidationOptions(ioCopy),     setDefaultInvalidationOptions(ioDiff)},
+			{defaultNsOptions,          setDefaultGetOptions(goCopy),              setDefaultGetOptions(goDiff)},
+			{defaultNsOptions,          setDefaultWaitOptions(woCopy),             setDefaultWaitOptions(woDiff)},
+			{defaultNsOptions,          setSecondarySyncIntervalSeconds(ssisCopy), setSecondarySyncIntervalSeconds(ssisDiff)},
+			{defaultNsOptions,          setSegmentSize(ssCopy),                    setSegmentSize(ssDiff)},
+			{defaultNsOptions,          setAllowLinks(alCopy),                     setAllowLinks(alDiff)},
+			{defaultNsOptions,          setValueRetentionPolicy(vrpCopy),          setValueRetentionPolicy(vrpDiff)},
+			{defaultNsOptions,          setNamespaceServerSideCode(nsscCopy),      setNamespaceServerSideCode(nsscDiff)},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{defaultNsOptions, NamespacePerspectiveOptions.templateOptions},
 		});
@@ -277,6 +300,7 @@ public class NamespaceOptionsTest {
 			defaultNsOptions,
 			defaultNsOptionsCopy,
 			defaultNsOptionsDiff,
+			defaultNsOptionsNsscNull1,
 		};
 		
 		for (NamespaceOptions testCase : testCases)

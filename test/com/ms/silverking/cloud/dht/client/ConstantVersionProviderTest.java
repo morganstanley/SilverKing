@@ -9,7 +9,7 @@ import static com.ms.silverking.cloud.dht.client.TestUtil.v;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_SecondNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 
 import org.junit.Test;
 
@@ -41,13 +41,13 @@ public class ConstantVersionProviderTest {
 	
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		ConstantVersionProvider[][] testCases = {
 			{constantProvider,     constantProvider,     constantProviderDiff},
 			{constantProviderDiff, constantProviderDiff, constantProvider},
 			{constantProviderCopy, constantProvider,     constantProviderDiff},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{constantProvider, absMillisProvider},
 			{constantProvider, absNanosProvider},

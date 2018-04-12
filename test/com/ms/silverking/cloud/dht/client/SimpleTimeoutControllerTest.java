@@ -5,7 +5,7 @@ import static com.ms.silverking.cloud.dht.client.SimpleTimeoutController.default
 import static com.ms.silverking.cloud.dht.client.TestUtil.*;
 import static com.ms.silverking.testing.AssertFunction.*;
 import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_SecondNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 import static com.ms.silverking.testing.AssertFunction.test_Getters;
 import static com.ms.silverking.testing.AssertFunction.test_SetterExceptions;
 import static com.ms.silverking.testing.AssertFunction.test_Setters;
@@ -80,7 +80,7 @@ public class SimpleTimeoutControllerTest {
 	
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		SimpleTimeoutController[][] testCases = {
 			{defaultController,     defaultController,                 defaultControllerDiff},
 			{defaultControllerDiff, defaultControllerDiff,             defaultController},
 			{defaultControllerCopy, defaultController,                 defaultControllerDiff},
@@ -88,7 +88,7 @@ public class SimpleTimeoutControllerTest {
 			{defaultController,     setMaxRelTimeoutMillis(mrtomCopy), setMaxRelTimeoutMillis(mrtomDiff)},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{defaultController, OpSizeBasedTimeoutController.template},
 			{defaultController,     WaitForTimeoutController.template},

@@ -42,12 +42,19 @@ public class AssertFunction {
 		}                                                                                                                                                  
 	}
 	
-	public static void test_HashCode(Object[][] testCases) {
+	public static void test_HashCodeEquals(Object[][] testCases) {
 		for (Object[] testCase : testCases) {
-			Object first     =          testCase[0];
-			Object second    =          testCase[1];
-			boolean expected = (boolean)testCase[2];
-			test_HashCodeEqualsOrNotEquals("hashCode", first, second, expected);
+			Object first  = testCase[0];
+			Object second = testCase[1];
+			checkHashCodeEquals(first, second);
+		}
+	}
+	
+	public static void test_HashCodeNotEquals(Object[][] testCases) {
+		for (Object[] testCase : testCases) {
+			Object first  = testCase[0];
+			Object second = testCase[1];
+			checkHashCodeNotEquals(first, second);
 		}
 	}
 	
@@ -63,32 +70,39 @@ public class AssertFunction {
 		assertEquals( getTestMessage(msg, first, second, "expected = " + expected), expected, first.hashCode() == second.hashCode());
 	}
 
-	public static void test_NotEquals(Object[][] testCases) {
+	public static void test_Equals(Object[][] testCases) {
 		for (Object[] testCase : testCases) {
-			Object first     =          testCase[0];
-			Object second    =          testCase[1];
-			test_EqualsOrNotEquals("notEquals", first, second, false);
+			Object first  = testCase[0];
+			Object second = testCase[1];
+			test_Equals(first, second);
 		}
 	}
 
-	public static void test_EqualsOrNotEquals(Object[][] testCases) {
+	public static void test_NotEquals(Object[][] testCases) {
 		for (Object[] testCase : testCases) {
-			Object first     =          testCase[0];
-			Object second    =          testCase[1];
-			boolean expected = (boolean)testCase[2];
-			test_EqualsOrNotEquals("equalsOrNotEquals", first, second, expected);
+			Object first  = testCase[0];
+			Object second = testCase[1];
+			test_NotEquals(first, second);
 		}
 	}
 	
-	public static void test_FirstEqualsSecond_SecondNotEqualsThird(Object[][] testCases) {
+	public static void test_FirstEqualsSecond_FirstNotEqualsThird(Object[][] testCases) {
 		for (Object[] testCase : testCases) {
-			Object orig = testCase[0];
-			Object copy = testCase[1];
-			Object diff = testCase[2];
+			Object first  = testCase[0];
+			Object second = testCase[1];
+			Object third  = testCase[2];
 
-			test_EqualsOrNotEquals("firstEqualsSecond",    orig, copy, true);
-			test_EqualsOrNotEquals("secondNotEqualsThird", orig, diff, false);
+			test_EqualsOrNotEquals("firstEqualsSecond",   first, second, true);
+			test_EqualsOrNotEquals("firstNotEqualsThird", first, third, false);
 		}
+	}
+	
+	private static void test_Equals(Object first, Object second) {
+		test_EqualsOrNotEquals("Equals", first, second, true);
+	}
+	
+	private static void test_NotEquals(Object first, Object second) {
+		test_EqualsOrNotEquals("NotEquals", first, second, false);
 	}
 	
 	private static void test_EqualsOrNotEquals(String msg, Object first, Object second, boolean expected) {

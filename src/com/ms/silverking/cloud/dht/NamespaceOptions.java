@@ -47,7 +47,7 @@ public class NamespaceOptions {
     
     private static final long					defaultInvalidatedRetentionIntervalSeconds = 1 * 60;
     static final ValueRetentionPolicy<InvalidatedRetentionState>	defaultRetentionPolicy = new InvalidatedRetentionPolicy(defaultInvalidatedRetentionIntervalSeconds);
-    private static final NamespaceServerSideCode	defaultNamespaceServerSideCode = new NamespaceServerSideCode("", "", "");
+    static final NamespaceServerSideCode	defaultNamespaceServerSideCode = new NamespaceServerSideCode("", "", "");
 
     // for parsing only
     static final NamespaceOptions templateOptions = new NamespaceOptions();

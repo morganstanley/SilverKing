@@ -23,12 +23,12 @@ public class SafeAbsNanosTimeSourceTest {
 	
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		SafeAbsNanosTimeSource[][] testCases = {
 			{safeSource,     safeSource,     safeSourceDiff},
 			{safeSourceDiff, safeSourceDiff, safeSource},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{safeSource, TestUtil.systemSource},
 			{safeSource, safeSourceCopy},	// equals uses identity

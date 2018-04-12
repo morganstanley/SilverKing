@@ -1,8 +1,7 @@
 package com.ms.silverking.cloud.dht.client.crypto;
 
 import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.*;
-import static com.ms.silverking.testing.AssertFunction.test_EqualsOrNotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_HashCode;
+import static com.ms.silverking.testing.AssertFunction.*;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -20,18 +19,18 @@ public class AESEncrypterDecrypterTest {
 	private static final AESEncrypterDecrypter posOneAES     = createAES(posOne);
 	private static final AESEncrypterDecrypter m2mAES        = createAES(byte_minToMax);
 	
-	private static final Object[][] testCasesEqualsNotEquals = {
-		// equals
-//		{negOneAES, negOneAESCopy, true},
-		{emptyAES,  emptyAES,      true},
-		{posOneAES, posOneAES,     true},
-//		{m2mAES,    m2mAESCopy,    true},
-		// not equals
-		{negOneAES, emptyAES,   false},
-		{emptyAES,  posOneAES,  false},
-		{posOneAES, m2mAES,     false},
-		{m2mAES,    negOneAES,  false},
-		{m2mAES,    m2mXORCopy, false},	// aes vs xor
+	private static final AESEncrypterDecrypter[][] testCasesEquals = {
+//		{negOneAES, negOneAESCopy},
+		{emptyAES,  emptyAES},
+		{posOneAES, posOneAES},
+//		{m2mAES,    m2mAESCopy},
+	};
+	private static final EncrypterDecrypter[][] testCasesNotEquals = {
+		{negOneAES, emptyAES},
+		{emptyAES,  posOneAES},
+		{posOneAES, m2mAES},
+		{m2mAES,    negOneAES},
+		{m2mAES,    m2mXORCopy},	// aes vs xor
 	};
 	
 	@Test(expected=PropertyException.class)
@@ -57,7 +56,7 @@ public class AESEncrypterDecrypterTest {
 //			AESEncrypterDecrypter ec = createAES(testCase);
 //			checkEncryptDecrypt(testCase, ec);
 //		}
-		// use already create AES obj's to speed up test runtime
+		// use already created AES obj's to speed up test runtime
 		Object[][] testCases = {
 			{negOne,        negOneAES},
 			{empty,          emptyAES},
@@ -72,13 +71,15 @@ public class AESEncrypterDecrypterTest {
 	}
 	
 	@Test
-	public void testHashCode() throws IOException {
-		test_HashCode(testCasesEqualsNotEquals);
+	public void testHashCode() {
+		test_HashCodeEquals(   testCasesEquals);
+		test_HashCodeNotEquals(testCasesNotEquals);
 	}
 
 	@Test
 	public void testEquals() {
-		test_EqualsOrNotEquals(testCasesEqualsNotEquals);
+		test_Equals(   testCasesEquals);
+		test_NotEquals(testCasesNotEquals);
 	}
 	
 	public static void main(String[] args) throws IOException {

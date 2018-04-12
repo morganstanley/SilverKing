@@ -7,8 +7,7 @@ import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.negOne;
 import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.negOneCopy;
 import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.posOne;
 import static com.ms.silverking.cloud.dht.client.crypto.TestUtil.testCases;
-import static com.ms.silverking.testing.AssertFunction.test_EqualsOrNotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_HashCode;
+import static com.ms.silverking.testing.AssertFunction.*;
 
 import java.io.IOException;
 
@@ -24,18 +23,18 @@ public class XOREncrypterDecrypterTest {
 	private static final XOREncrypterDecrypter posOneXOR     = createXOR(posOne);
 	private static final XOREncrypterDecrypter m2mXOR        = createXOR(byte_minToMax);
 	
-	private static final Object[][] testCasesEqualsNotEquals = {
-		// equals
-		{negOneXOR, negOneXORCopy, true},
-		{emptyXOR,  emptyXOR,      true},
-		{posOneXOR, posOneXOR,     true},
-		{m2mXOR,    m2mXORCopy,    true},
-		// not equals
-		{negOneXOR, emptyXOR,   false},
-		{emptyXOR,  posOneXOR,  false},
-		{posOneXOR, m2mXOR,     false},
-		{m2mXOR,    negOneXOR,  false},
-		{m2mXOR,    m2mAESCopy, false},	// xor vs aes
+	private static final XOREncrypterDecrypter[][] testCasesEquals = {
+		{negOneXOR, negOneXORCopy},
+		{emptyXOR,  emptyXOR},
+		{posOneXOR, posOneXOR},
+		{m2mXOR,    m2mXORCopy},
+	};
+	private static final EncrypterDecrypter[][] testCasesNotEquals = {
+		{negOneXOR, emptyXOR},
+		{emptyXOR,  posOneXOR},
+		{posOneXOR, m2mXOR},
+		{m2mXOR,    negOneXOR},
+		{m2mXOR,    m2mAESCopy},	// xor vs aes
 	};
 
 	@Test(expected=PropertyException.class)
@@ -63,12 +62,14 @@ public class XOREncrypterDecrypterTest {
 	}
 	
 	@Test
-	public void testHashCode() throws IOException {
-		test_HashCode(testCasesEqualsNotEquals);
+	public void testHashCode() {
+		test_HashCodeEquals(   testCasesEquals);
+		test_HashCodeNotEquals(testCasesNotEquals);
 	}
 
 	@Test
 	public void testEquals() {
-		test_EqualsOrNotEquals(testCasesEqualsNotEquals);
+		test_Equals(   testCasesEquals);
+		test_NotEquals(testCasesNotEquals);
 	}
 }

@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
 
-public class TimeRetentionPolicyTest {
+public class TimeAndVersionRetentionPolicyTest {
 
 	private static final Mode mCopy = Mode.wallClock;
 	private static final Mode mDiff = Mode.mostRecentValue;
@@ -70,13 +70,13 @@ public class TimeRetentionPolicyTest {
 	
 	@Test
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		TimeAndVersionRetentionPolicy[][] testCases = {
 			{defaultPolicy,     defaultPolicy,     defaultPolicyDiff},
 			{defaultPolicyDiff, defaultPolicyDiff, defaultPolicy},
 			{defaultPolicyCopy, defaultPolicy,     defaultPolicyDiff},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{defaultPolicy, InvalidatedRetentionPolicy.template},
 			{defaultPolicy,   PermanentRetentionPolicy.template},

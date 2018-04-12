@@ -8,7 +8,7 @@ import static com.ms.silverking.cloud.dht.client.TestUtil.test_GetVersion;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_SecondNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 
 import org.junit.Test;
 
@@ -43,12 +43,12 @@ public class RelNanosVersionProviderTest {
 	}
 	
 	public void testEqualsObject() {
-		Object[][] testCases = {
+		RelNanosVersionProvider[][] testCases = {
 			{relNanosProvider,     relNanosProvider,     relNanosProviderDiff},
 			{relNanosProviderDiff, relNanosProviderDiff, relNanosProvider},
 		};
 		
-		test_FirstEqualsSecond_SecondNotEqualsThird(testCases);
+		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		test_NotEquals(new Object[][]{
 			{relNanosProvider, absMillisProvider},
 			{relNanosProvider, absNanosProvider},
