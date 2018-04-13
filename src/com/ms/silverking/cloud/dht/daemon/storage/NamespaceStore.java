@@ -1414,7 +1414,12 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
                 */
                 if (retrieveTrigger != null) {
-                	result = retrieveTrigger.retrieve(this, key, options);
+    	            readLock.lock();
+    	            try {
+    	            	result = retrieveTrigger.retrieve(this, key, options);
+    	            } finally {
+    	            	readLock.unlock();
+    	            }
                 } else {
                 	result = _retrieve(key, options);
                 }
