@@ -188,6 +188,6 @@ public class NamespacePerspectiveOptionsTest {
 	}
 	
 	private void checkStringAndParse(NamespacePerspectiveOptions<?, ?> nspOptions) {
-//		assertEquals(nspOptions, nspOptions.parse( nspOptions.toString() ));
+// not working, getting some error. need to look into it, commenting out for now		assertEquals(nspOptions, nspOptions.parse( nspOptions.toString() ));
 	}
 }

@@ -55,6 +55,14 @@ public class NamespaceServerSideCode {
     
     @Override
     public boolean equals(Object o) {
+    	if (this == o) {
+			return true;
+		}
+		
+		if (this.getClass() != o.getClass()) {
+			return false;
+		}
+		
     	NamespaceServerSideCode	other;
     	
     	other = (NamespaceServerSideCode)o;

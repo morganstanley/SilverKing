@@ -197,7 +197,7 @@ public class NamespaceOptionsTest {
 			{"segmentSize = min-1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(minSegmentSize-1);                  } }, ConstraintViolationException.class},
 			{"segmentSize = max+1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(maxSegmentSize+1);                  } }, ConstraintViolationException.class},
 			{"valueRetentionPolicy = null",             new ExceptionChecker() { @Override public void check() { setValueRetentionPolicy(null);                     } },         NullPointerException.class},
-// null is allowed for backwards compatibility			{"namespaceServerSideCode = null",          new ExceptionChecker() { @Override public void check() { setNamespaceServerSideCode(null);                  } },         NullPointerException.class},
+// null is allowed for backwards compatibility, so commenting this out			{"namespaceServerSideCode = null",          new ExceptionChecker() { @Override public void check() { setNamespaceServerSideCode(null);                  } },         NullPointerException.class},
 		};
 		
 		test_SetterExceptions(testCases);
@@ -265,9 +265,9 @@ public class NamespaceOptionsTest {
 	public void testEqualsObject() {
 		NamespaceOptions[][] testCases = {
 			{defaultNsOptions,          defaultNsOptions,                          defaultNsOptionsDiff},
+			{defaultNsOptionsCopy,      defaultNsOptions,                          defaultNsOptionsDiff},
 			{defaultNsOptionsDiff,      defaultNsOptionsDiff,                      defaultNsOptions},
 			{defaultNsOptionsNsscNull1, defaultNsOptionsNsscNull2,                 defaultNsOptions},
-			{defaultNsOptionsCopy,      defaultNsOptions,                          defaultNsOptionsDiff},
 			{defaultNsOptions,          setStorageType(stCopy),                    setStorageType(stDiff)},
 			{defaultNsOptions,          setConsistencyProtocol(cpCopy),            setConsistencyProtocol(cpDiff)},
 			{defaultNsOptions,          setVersionMode(nsvmCopy),                  setVersionMode(nsvmDiff)},
