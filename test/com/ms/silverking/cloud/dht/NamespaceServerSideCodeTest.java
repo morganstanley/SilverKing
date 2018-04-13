@@ -38,7 +38,6 @@ public class NamespaceServerSideCodeTest {
 		return nssc.getRetrieveTrigger();
 	}
 	
-	// this takes care of testing ctors as well
 	@Test
 	public void testGetters() {
 		String[][] testCases = {

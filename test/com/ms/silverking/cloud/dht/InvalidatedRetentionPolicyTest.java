@@ -17,7 +17,6 @@ public class InvalidatedRetentionPolicyTest {
 	private static final InvalidatedRetentionPolicy defaultPolicyCopy = new InvalidatedRetentionPolicy(irisCopy);
 	private static final InvalidatedRetentionPolicy defaultPolicyDiff = new InvalidatedRetentionPolicy(irisDiff);
 
-	// this takes care of testing ctors as well
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {

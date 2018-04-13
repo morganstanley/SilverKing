@@ -108,7 +108,7 @@ public class NamespacePerspectiveOptionsTest {
 		test_Getters(testCases);
 	}
 	
-	// this takes care of testing ctors as well
+	// this takes care of testing ctors as well b/c the class' setter functions implementation is calling the constructor - builder pattern
 	@Test
 	public void testSetters_Exceptions() {
 		Object[][] testCases = {

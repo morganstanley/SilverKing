@@ -12,7 +12,6 @@ public class PermanentRetentionPolicyTest {
 
 	private static final PermanentRetentionPolicy defaultPolicy = PermanentRetentionPolicy.template;
 
-	// this takes care of testing ctors as well
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
