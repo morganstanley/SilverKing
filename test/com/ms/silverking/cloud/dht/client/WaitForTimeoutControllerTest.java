@@ -44,11 +44,11 @@ public class WaitForTimeoutControllerTest {
 	public void testEqualsObject() {
 		WaitForTimeoutController[][] testCases = {
 			{defaultController,     defaultController,     defaultControllerDiff},
-			{defaultControllerDiff, defaultControllerDiff, defaultController},
 			{defaultControllerCopy, defaultController,     defaultControllerDiff},
+			{defaultControllerDiff, defaultControllerDiff, defaultController},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{defaultController, OpSizeBasedTimeoutController.template},
 			{defaultController,      SimpleTimeoutController.template},

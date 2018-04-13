@@ -104,8 +104,8 @@ public class SystemTimeSourceTest {
 			{systemSource,     systemSource,     systemSourceDiff},
 			{systemSourceDiff, systemSourceDiff, systemSource},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{systemSource, TestUtil.constantSource},
 			{systemSource, TestUtil.timerSource},

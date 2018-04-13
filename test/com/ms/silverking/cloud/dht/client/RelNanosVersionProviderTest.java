@@ -47,8 +47,8 @@ public class RelNanosVersionProviderTest {
 			{relNanosProvider,     relNanosProvider,     relNanosProviderDiff},
 			{relNanosProviderDiff, relNanosProviderDiff, relNanosProvider},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{relNanosProvider, absMillisProvider},
 			{relNanosProvider, absNanosProvider},

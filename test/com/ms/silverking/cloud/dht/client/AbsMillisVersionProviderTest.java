@@ -42,11 +42,11 @@ public class AbsMillisVersionProviderTest {
 	public void testEqualsObject() {
 		AbsMillisVersionProvider[][] testCases = {
 			{absMillisProvider,     absMillisProvider,     absMillisProviderDiff},
-			{absMillisProviderDiff, absMillisProviderDiff, absMillisProvider},
 			{absMillisProviderCopy, absMillisProvider,     absMillisProviderDiff},
+			{absMillisProviderDiff, absMillisProviderDiff, absMillisProvider},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{absMillisProvider, absNanosProvider},
 			{absMillisProvider, constantProvider},

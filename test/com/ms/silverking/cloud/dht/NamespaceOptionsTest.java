@@ -282,8 +282,8 @@ public class NamespaceOptionsTest {
 			{defaultNsOptions,          setValueRetentionPolicy(vrpCopy),          setValueRetentionPolicy(vrpDiff)},
 			{defaultNsOptions,          setNamespaceServerSideCode(nsscCopy),      setNamespaceServerSideCode(nsscDiff)},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{defaultNsOptions, NamespacePerspectiveOptions.templateOptions},
 		});

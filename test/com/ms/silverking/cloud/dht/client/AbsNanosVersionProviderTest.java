@@ -48,8 +48,8 @@ public class AbsNanosVersionProviderTest {
 			{absNanosProvider,     absNanosProvider,     absNanosProviderDiff},
 			{absNanosProviderDiff, absNanosProviderDiff, absNanosProvider},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{absNanosProvider, absMillisProvider},
 			{absNanosProvider, constantProvider},

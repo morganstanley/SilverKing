@@ -137,15 +137,15 @@ public class OpSizeBasedTimeoutControllerTest {
 	public void testEqualsObject() {
 		OpSizeBasedTimeoutController[][] testCases = {
 			{defaultController,     defaultController,                           defaultControllerDiff},
-			{defaultControllerDiff, defaultControllerDiff,                       defaultController},
 			{defaultControllerCopy, defaultController,                           defaultControllerDiff},
+			{defaultControllerDiff, defaultControllerDiff,                       defaultController},
 			{defaultController,     setMaxAttempts(maCopy),                      setMaxAttempts(maDiff)},
 			{defaultController,     setConstantTimeMillis(ctmCopy),              setConstantTimeMillis(ctmDiff)},
 			{defaultController,     setItemTimeMillis(itmCopy),                  setItemTimeMillis(itmDiff)},
 			{defaultController,     setNonKeyedOpMaxRelTimeoutMillis(mrtomCopy), setNonKeyedOpMaxRelTimeoutMillis(mrtomDiff)},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{defaultController,  SimpleTimeoutController.template},
 			{defaultController, WaitForTimeoutController.template},

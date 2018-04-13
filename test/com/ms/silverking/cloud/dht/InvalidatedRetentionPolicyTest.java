@@ -39,11 +39,11 @@ public class InvalidatedRetentionPolicyTest {
 	public void testEqualsObject() {
 		InvalidatedRetentionPolicy[][] testCases = {
 			{defaultPolicy,     defaultPolicy,     defaultPolicyDiff},
-			{defaultPolicyDiff, defaultPolicyDiff, defaultPolicy},
 			{defaultPolicyCopy, defaultPolicy,     defaultPolicyDiff},
+			{defaultPolicyDiff, defaultPolicyDiff, defaultPolicy},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{defaultPolicy,      PermanentRetentionPolicy.template},
 			{defaultPolicy, TimeAndVersionRetentionPolicy.template},
@@ -62,7 +62,7 @@ public class InvalidatedRetentionPolicyTest {
 			checkStringAndParse(testCase);
 	}
 	
-	private void checkStringAndParse(InvalidatedRetentionPolicy controller) {
-		assertEquals(controller, InvalidatedRetentionPolicy.parse( controller.toString() ));
+	private void checkStringAndParse(InvalidatedRetentionPolicy policy) {
+		assertEquals(policy, InvalidatedRetentionPolicy.parse( policy.toString() ));
 	}
 }

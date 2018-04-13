@@ -47,11 +47,11 @@ public class ConstantAbsMillisTimeSourceTest {
 	public void testEqualsObject() {
 		ConstantAbsMillisTimeSource[][] testCases = {
 			{constantSource,     constantSource,     constantSourceDiff},
-			{constantSourceDiff, constantSourceDiff, constantSource},
 			{constantSourceCopy, constantSource,     constantSourceDiff},
+			{constantSourceDiff, constantSourceDiff, constantSource},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{constantSource, TestUtil.systemSource},
 			{constantSource, TestUtil.timerSource},

@@ -43,11 +43,11 @@ public class ConstantVersionProviderTest {
 	public void testEqualsObject() {
 		ConstantVersionProvider[][] testCases = {
 			{constantProvider,     constantProvider,     constantProviderDiff},
-			{constantProviderDiff, constantProviderDiff, constantProvider},
 			{constantProviderCopy, constantProvider,     constantProviderDiff},
+			{constantProviderDiff, constantProviderDiff, constantProvider},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{constantProvider, absMillisProvider},
 			{constantProvider, absNanosProvider},

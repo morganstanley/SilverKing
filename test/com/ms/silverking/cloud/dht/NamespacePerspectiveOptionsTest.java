@@ -156,8 +156,8 @@ public class NamespacePerspectiveOptionsTest {
 	public void testEqualsObject() {
 		NamespacePerspectiveOptions<?,?>[][] testCases = {
 			{defaultNspOptions,     defaultNspOptions,                     defaultNspOptionsDiff},
-			{defaultNspOptionsDiff, defaultNspOptionsDiff,                 defaultNspOptions},
 			{defaultNspOptionsCopy, defaultNspOptions,                     defaultNspOptionsDiff},
+			{defaultNspOptionsDiff, defaultNspOptionsDiff,                 defaultNspOptions},
 			{defaultNspOptions,     setKeyClass(kcCopy),                   setKeyClass(kcDiff)},
 			{defaultNspOptions,     setValueClass(vcCopy),                 setValueClass(vcDiff)},
 			{defaultNspOptions,     setKeyDigestType(kdtCopy),             setKeyDigestType(kdtDiff)},
@@ -168,8 +168,8 @@ public class NamespacePerspectiveOptionsTest {
 			{defaultNspOptions,     setDefaultVersionProvider(vpCopy),     setDefaultVersionProvider(vpDiff)},
 			{defaultNspOptions,     setEncrypterDecrypter(edCopy),         setEncrypterDecrypter(edDiff)},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{defaultNspOptions, NamespaceOptions.templateOptions},
 		});

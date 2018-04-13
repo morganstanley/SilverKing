@@ -72,8 +72,8 @@ public class TimerDrivenTimeSourceTest {
 			{timerSource,     timerSource,     timerSourceDiff},
 			{timerSourceDiff, timerSourceDiff, timerSource},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{timerSource, TestUtil.constantSource},
 			{timerSource, TestUtil.systemSource},

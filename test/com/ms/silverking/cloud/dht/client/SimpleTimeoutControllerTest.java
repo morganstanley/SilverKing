@@ -82,13 +82,13 @@ public class SimpleTimeoutControllerTest {
 	public void testEqualsObject() {
 		SimpleTimeoutController[][] testCases = {
 			{defaultController,     defaultController,                 defaultControllerDiff},
-			{defaultControllerDiff, defaultControllerDiff,             defaultController},
 			{defaultControllerCopy, defaultController,                 defaultControllerDiff},
+			{defaultControllerDiff, defaultControllerDiff,             defaultController},
 			{defaultController,     setMaxAttempts(maCopy),            setMaxAttempts(maDiff)},
 			{defaultController,     setMaxRelTimeoutMillis(mrtomCopy), setMaxRelTimeoutMillis(mrtomDiff)},
 		};
-		
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+		
 		test_NotEquals(new Object[][]{
 			{defaultController, OpSizeBasedTimeoutController.template},
 			{defaultController,     WaitForTimeoutController.template},
