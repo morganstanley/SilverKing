@@ -72,8 +72,8 @@ class SyncController {
 	private static final boolean	verbose = true;
 	private static final boolean	debug = false;
 	
-	private static final int	maxConcurrentNewOwnerRequests = 8;
-	private static final int	maxConcurrentOldOwnerRequests = 4;
+	private static final int	maxConcurrentNewOwnerRequests = 16;
+	private static final int	maxConcurrentOldOwnerRequests = 1;
 	
 	static {
 		if (maxConcurrentNewOwnerRequests + maxConcurrentOldOwnerRequests > StorageModule.methodCallPoolMaxSize) {

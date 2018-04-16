@@ -1,8 +1,8 @@
 package com.ms.silverking.cloud.dht.daemon.storage.convergence;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +24,7 @@ import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.daemon.storage.KeyAndVersionChecksum;
+import com.ms.silverking.cloud.dht.daemon.storage.KeyAndVersionChecksumSegmentNumberComparator;
 import com.ms.silverking.cloud.dht.daemon.storage.KeyedOpResultListener;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceStore;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageValueAndParameters;
@@ -118,8 +119,8 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 	public void incomingChecksumTree(ConvergencePoint cp, ChecksumNode remoteTree, MessageGroupConnection connection) {
 		ChecksumNode localTree;
 		MatchResult matchResult;
-		Set<DHTKey> keysToFetch;
-		List<DHTKey> keysToFetchList;
+		Set<KeyAndVersionChecksum> keysToFetch;
+		List<KeyAndVersionChecksum> keysToFetchList;
 		boolean		initialSRRSent;
 
 		lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
@@ -172,18 +173,18 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 		if (debug) {
 			System.out.println(matchResult);
 		}
-		keysToFetch = new HashSet<>();
+		keysToFetch = new HashSet<>(matchResult.getDestNotInSource().size());
 		for (KeyAndVersionChecksum kvc : matchResult.getDestNotInSource()) {
 			if (debug) {
 				System.out.printf("Adding destNotInSource %s\n", kvc.getKey());
 			}
-			keysToFetch.add(kvc.getKey());
+			keysToFetch.add(kvc);
 		}
 		for (KeyAndVersionChecksum kvc : matchResult.getChecksumMismatch()) {
 			if (debug) {
 				System.out.printf("Adding checksumMismatch %s\n", kvc.getKey());
 			}
-			keysToFetch.add(kvc.getKey());
+			keysToFetch.add(kvc);
 		}
 		/*
 		 * Queue<DHTKey> keysToFetchQueue;
@@ -196,7 +197,8 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 		 * keysToFetchQueue = prev; } } keysToFetchQueue.addAll(keysToFetch);
 		 */
 		initialSRRSent = false;
-		keysToFetchList = new LinkedList<>(keysToFetch);
+		keysToFetchList = new ArrayList<>(keysToFetch);
+		Collections.sort(keysToFetchList, KeyAndVersionChecksumSegmentNumberComparator.descendingSort);
 		while (keysToFetchList.size() > 0) {
 			Set<DHTKey> batchKeys;
 			int batchSize;
@@ -209,7 +211,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 			batchKeys = new ConcurrentSkipListSet<DHTKey>();
 			batchSize = 0;
 			while (keysToFetchList.size() > 0 && batchSize < retrievalBatchSize) {
-				batchKeys.add(keysToFetchList.remove(0));
+				batchKeys.add(keysToFetchList.remove(0).getKey());
 				++batchSize;
 			}
 

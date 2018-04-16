@@ -233,7 +233,7 @@ public class RegionTreeBuilder {
             region = new RingRegion(regionStart, regionEnd);
             rtb = new RegionTreeBuilder(region, keysPerNode, numKeys);
             for (int i = 0; i < numKeys; i++) {
-                rtb.addChecksum(new KeyAndVersionChecksum(KeyUtil.randomRegionKey(region), i));
+                rtb.addChecksum(new KeyAndVersionChecksum(KeyUtil.randomRegionKey(region), i, 0));
             }
             System.out.println(rtb);
         }

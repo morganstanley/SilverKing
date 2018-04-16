@@ -1568,11 +1568,14 @@ public class NamespaceStore implements SSNamespaceStore {
         ByteBuffer[]	sortedResults;
         ByteBuffer[]	unsortedResults;
         
+        if (debugParent) {
+        	Log.warningAsyncf("_retrieve %x batch size %d", ns, keys.length);
+        }
         segmentNumbers = new int[keys.length];
         for (int i = 0; i < keys.length; i++) {
 	        segmentNumbers[i] = getSegmentNumber(keys[i], options.getVersionConstraint());
 	        if (debugParent) {
-	        	Log.warningf("_retrieve %x %s segmentNumber %d", ns, keys[i], segmentNumbers[i]);
+	        	Log.warningAsyncf("_retrieve %x %s segmentNumber %d", ns, KeyUtil.keyToString(keys[i]), segmentNumbers[i]);
 	        }
         }
         
@@ -1615,7 +1618,7 @@ public class NamespaceStore implements SSNamespaceStore {
 			int	c;
 			
 			c = order * Integer.compare(o1.getV2(), o2.getV2());
-			return c == 0 ? 0 : Integer.compare(o1.getV3(), o2.getV3()); 
+			return c == 0 ? Integer.compare(o1.getV3(), o2.getV3()) : c; 
 		}
     }
     
@@ -1824,6 +1827,9 @@ public class NamespaceStore implements SSNamespaceStore {
 
         results = new ByteBuffer[keysSegmentNumbersAndIndices.length];
         for (int i = 0; i < keysSegmentNumbersAndIndices.length; i++) {
+        	if (debugParent) {
+        		Log.warningAsyncf("\t%s %d %d", KeyUtil.keyToString(keysSegmentNumbersAndIndices[i].getV1()), keysSegmentNumbersAndIndices[i].getV2(), keysSegmentNumbersAndIndices[i].getV3());
+        	}
             if (debugVersion) {
                 System.out.println("retrieve:\t" + keysSegmentNumbersAndIndices[i].getV1());
                 System.out.println("RetrievalOptions:\t" + options);
@@ -2539,7 +2545,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 	}
                 }
                 if (validChecksum) {
-                	_next = new KeyAndVersionChecksum(vsEntry.getKey(), checksum);
+                	_next = new KeyAndVersionChecksum(vsEntry.getKey(), checksum, vsEntry.getValue());
                 }
                 /*
                 ByteBuffer result;
@@ -2602,7 +2608,7 @@ public class NamespaceStore implements SSNamespaceStore {
         	
         	key = keyIterator.next();        	
         	if (key != null) {
-        		return new KeyAndVersionChecksum(key, 0);
+        		return new KeyAndVersionChecksum(key, 0, 0);
         	} else {
         		return null;
         	}

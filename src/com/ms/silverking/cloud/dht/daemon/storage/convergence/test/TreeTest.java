@@ -25,7 +25,7 @@ public class TreeTest  {
         region = new RingRegion(1, 1000000);
         kvcList = new ArrayList<>();
         for (int i = 0; i < numKeys; i++) {
-            kvcList.add(new KeyAndVersionChecksum(KeyUtil.randomRegionKey(region), 0));          
+            kvcList.add(new KeyAndVersionChecksum(KeyUtil.randomRegionKey(region), 0, 0));          
         }
         Collections.sort(kvcList);
     }
@@ -65,7 +65,7 @@ public class TreeTest  {
         _kvcList4 = new ArrayList<>(kvcList);
         kvc1 = _kvcList4.remove(0);
         checksum2 = kvc1.getVersionChecksum() + 1;
-        kvc2 = new KeyAndVersionChecksum(kvc1.getKey(), checksum2);
+        kvc2 = new KeyAndVersionChecksum(kvc1.getKey(), checksum2, 0);
         _kvcList4.add(0, kvc2);
         tree4 = RegionTreeBuilder.build(region, entriesPerNode, numKeys, _kvcList4);
         

@@ -14,10 +14,13 @@ import com.ms.silverking.cloud.dht.common.SimpleKey;
 public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> {
     private final DHTKey    key;
     private final long      versionChecksum; // may need to expand this for multi-version
+    // note that we don't care about the segment number for equality; we simply carry this information for efficiency in retrieval
+    private final long		segmentNumber; // we only need 32 bits of this, but use the full long for now as that is expected by serialization
     
-    public KeyAndVersionChecksum(DHTKey key, long versionChecksum) {
+    public KeyAndVersionChecksum(DHTKey key, long versionChecksum, long segmentNumber) {
         this.key = new SimpleKey(key);
         this.versionChecksum = versionChecksum;
+        this.segmentNumber = segmentNumber;
     }
     
     public DHTKey getKey() {
@@ -28,9 +31,14 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
         return versionChecksum;
     }
     
+    public long getSegmentNumber() {
+    	return segmentNumber;
+    }
+    
     @Override 
     public int hashCode() {
         return key.hashCode() ^ (int)versionChecksum;
+        // do not include segment number
     }
     
     @Override
@@ -39,11 +47,12 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
         
         oKVC = (KeyAndVersionChecksum)other;
         return key.equals(oKVC.key) && (versionChecksum == oKVC.versionChecksum);
+        // do not include segment number
     }
 
     @Override
     public String toString() {
-        return key.toString() +" "+ Long.toHexString(versionChecksum); 
+        return key.toString() +" "+ Long.toHexString(versionChecksum) +" "+ segmentNumber; 
     }
 
     @Override
@@ -56,6 +65,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
         } else {
             return comp;
         }
+        // do not include segment number
     }
     
     ///////////////////////////////////////////////////////////////////////////
@@ -63,7 +73,8 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
     private static final int    mslOffset = 0;
     private static final int    lslOffset = 1;
     private static final int    checksumOffset = 2;
-    private static final int    serializedSizeLongs = 3;
+    private static final int    segmentNumberOffset = 3;
+    private static final int    serializedSizeLongs = 4;
     
     public static long[] listToArray(List<KeyAndVersionChecksum> kvcList) {
         long[]  kvcArray;
@@ -77,6 +88,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
             kvcArray[i + mslOffset] = kvc.getKey().getMSL();
             kvcArray[i + lslOffset] = kvc.getKey().getLSL();
             kvcArray[i + checksumOffset] = kvc.getVersionChecksum();
+            kvcArray[i + segmentNumberOffset] = kvc.getSegmentNumber();
             i += serializedSizeLongs;
         }
         return kvcArray;
@@ -89,7 +101,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
         // FUTURE - support full bitemporal convergence
         kvcList = new ArrayList<>(kvcArray.length / serializedSizeLongs);
         for (int i = 0; i < kvcArray.length; i += serializedSizeLongs) {
-            kvcList.add(new KeyAndVersionChecksum(new SimpleKey(kvcArray[i + mslOffset], kvcArray[i + lslOffset]), kvcArray[i + checksumOffset]));
+            kvcList.add(new KeyAndVersionChecksum(new SimpleKey(kvcArray[i + mslOffset], kvcArray[i + lslOffset]), kvcArray[i + checksumOffset], kvcArray[i + segmentNumberOffset]));
         }
         return kvcList;
     }
@@ -139,7 +151,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
         assert isValidKVCIndex(kvcArray, index);
         
         return new KeyAndVersionChecksum(new SimpleKey(kvcArray[index + mslOffset], 
-                kvcArray[index + lslOffset]), kvcArray[index + checksumOffset]);
+                kvcArray[index + lslOffset]), kvcArray[index + checksumOffset], kvcArray[index + segmentNumberOffset]);
     }
     
     /*
