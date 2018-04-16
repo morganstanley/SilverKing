@@ -190,6 +190,11 @@ public class SilverKingClient {
             StoredValue<byte[]>    storedValue;
 
             storedValue = storedValues.get(key);
+            if (verbose) {
+            	if (storedValue.getValue() != null) {
+            		out.printf("[Value returned with MetaData. Length %d]", storedValue.getValue().length);
+            	}
+            }
             out.printf("\n%s\n%s\n", key, storedValue != null ? MetaDataTextUtil.toMetaDataString(storedValue.getMetaData(), true) : noSuchValue);
         }
     }
