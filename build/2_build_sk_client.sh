@@ -16,17 +16,17 @@ function f_checkParams {
 	fi
 }
 
-## params
-	     CC=$1
-output_filename=$(f_getBuildSkClient_RunOutputFilename "$CC")
+output_filename=$(f_getBuildSkClient_RunOutputFilename)
 { 
-f_checkParams;
+    ## params
+    CC=$1
+    f_checkParams;
 
-   CC_FLAGS="-g -O2 -std=c++11 -fPIC -Wall"
-   #-g
-   #-O2
-   #-std
-   #-fPIC - for shared lib
+    CC_FLAGS="-g -O2 -std=c++11 -fPIC -Wall"
+    #-g
+    #-O2
+    #-std
+    #-fPIC - for shared lib
 		 LD=$CC
     SWIG_CC=$CC
     SWIG_LD=$CC

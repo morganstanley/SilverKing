@@ -87,10 +87,10 @@ function f_printVariables {
 	echo
 }
 
-# params
-typeset 							   cc=$1
-typeset output_filename=$(f_getBuildSkfs_RunOutputFilename "$cc")
+typeset output_filename=$(f_getBuildSkfs_RunOutputFilename)
 {
+    # params
+    typeset 						   cc=$1
 	typeset 				 fuse_inc_dir=$2
 	typeset 				 fuse_lib_dir=$3	
 	typeset                    cc_d_flags=$4

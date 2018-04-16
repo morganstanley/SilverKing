@@ -70,10 +70,10 @@ function f_compileAndLinkProxiesIntoLib {
 	f_testEquals "$libDirDynamicLoad" "$JACE_LIB_SHARED_NAME" "1"
 }
 
-## params
-typeset           cc=$1
-typeset output_filename=$(f_getBuildJace_RunOutputFilename "$cc")
+typeset output_filename=$(f_getBuildJace_RunOutputFilename)
 {
+    ## params
+    typeset cc=$1
 	f_checkParams;
 
 	typeset cc_flags="-g -O2" 

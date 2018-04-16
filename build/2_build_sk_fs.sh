@@ -74,10 +74,10 @@ function f_printVariables {
 	echo
 }
 
-							CC=$1
-output_filename=$(f_getBuildSkfs_RunOutputFilename "$CC")
+output_filename=$(f_getBuildSkfs_RunOutputFilename)
 {
 	# params
+							CC=$1
 				  FUSE_INC_DIR=$2
 				  FUSE_LIB_DIR=$3
 					   SK_ROOT=$4
