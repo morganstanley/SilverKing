@@ -302,9 +302,9 @@ $extraVars
 
 function f_printSummary_BuildFlow {
 	f_printSummary_BuildFlow_FirstHalf_HeaderAndBuildAndBuildSk $(f_getBuild_RunOutputFilename)
-	f_printSummary     $(f_getBuildSkClient_RunOutputFilename "$GPP")
+	f_printSummary     $(f_getBuildSkClient_RunOutputFilename)
 	f_printTestSummary $(f_getTestSkClient_RunOutputFilename)
-	f_printSummary     $(f_getBuildSkfs_RunOutputFilename "$GPP")
+	f_printSummary     $(f_getBuildSkfs_RunOutputFilename)
 	f_printTestSummary $(f_getTestSkfs_RunOutputFilename)
 }
 
@@ -325,18 +325,15 @@ function f_getBuildSk_RunOutputFilename {
 }
 
 function f_getBuildJace_RunOutputFilename {
-	typeset newName=$(f_getRunOutputFilenameConcat_Helper "$BUILD_JACE_NAME" "$1")
-	echo $(f_getRunOutputFilename_Helper "$newName")
+	echo $(f_getRunOutputFilename_Helper "$BUILD_JACE_NAME")
 }
 
 function f_getBuildSkClient_RunOutputFilename {
-	typeset newName=$(f_getRunOutputFilenameConcat_Helper "$BUILD_SILVERKING_CLIENT_NAME" "$1")
-	echo $(f_getRunOutputFilename_Helper "$newName")
+	echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_CLIENT_NAME")
 }
 
 function f_getBuildSkfs_RunOutputFilename {
-	typeset newName=$(f_getRunOutputFilenameConcat_Helper "$BUILD_SILVERKING_FS_NAME" "$1")
-	echo $(f_getRunOutputFilename_Helper "$newName")
+	echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_FS_NAME")
 }
 
 function f_getTestSk_RunOutputFilename {
@@ -365,14 +362,6 @@ function f_getRunOutputFilename_Helper {
 	
 	typeset sep=$FILENAME_SEGMENT_SEPARATOR
 	echo "${TMP_AREA}${USER}${sep}${BUILD_TIMESTAMP}${sep}${filename}.out"
-}
-
-function f_getRunOutputFilenameConcat_Helper {
-	typeset filename=$1
-	typeset cc=$2
-	
-	typeset new_cc=`echo $cc | $SED s#/#_#g`
-	echo "${filename}${new_cc}"
 }
 
 function f_printSummary {

@@ -24,10 +24,10 @@ function f_checkParams {
 	fi
 }
 
-## params
-typeset             cc=$1
-typeset output_filename=$(f_getBuildSkClient_RunOutputFilename "$cc")
+typeset output_filename=$(f_getBuildSkClient_RunOutputFilename)
 {
+    ## params
+    typeset         cc=$1
 	typeset  gcc_r_lib=$2
 	typeset  rpath_dir=$3
 	typeset debug_flag=$4
