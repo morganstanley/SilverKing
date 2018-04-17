@@ -58,9 +58,9 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename)
 		lib_opts_2="$lib_opts_1 -Wl,--rpath -Wl,$rpath_dir"
 	fi
 	# doesn't need -lpthread actually
-	typeset lib_opts_3="$LIB_OPTS $LD_LIB_OPTS -Wl,--rpath -Wl,$rpath_dir -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
+	typeset lib_opts_3="$LIB_OPTS $LD_LIB_OPTS -L${INSTALL_ARCH_LIB_DIR} -l${SK_LIB_NAME} -Wl,--rpath -Wl,$rpath_dir -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
 	# doesn't need -lpthread actually
-	typeset lib_opts_4="$lib_opts_3 -L${INSTALL_ARCH_LIB_DIR} -l${SK_LIB_NAME}"
+	typeset lib_opts_4="$lib_opts_3 -l${J_SK_LIB_NAME} -ldl"
 	typeset lib_opts_5="$lib_opts_1 -l${BOOST_SYSTEM_LIB} -Wl,--rpath -Wl,${JACE_LIB}"
 	
 	f_startLocalTimer;
@@ -75,13 +75,13 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename)
 	
 	f_generateProxies;
 	f_compileAndLinkProxiesIntoLib "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_1";
-	f_buildMainLib "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_2";
+	f_buildMainLib "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_2 -L${INSTALL_ARCH_LIB_DIR} -l${J_SK_LIB_NAME}";
 	f_installHeaderFiles;
-	f_buildTestApp        "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_3" "testdht";
-	f_buildGtestFramework "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_3" "testdht" "$GTEST_FOLDER_NAME"
-	f_buildKdbQ  "$cc" "$ld_opts" "$lib_opts_4" "$rpath_dir";
-	f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_4" "$rpath_dir";
-	f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_4" "$gcc_r_lib";
+	f_buildTestApp        "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_4" "testdht";
+	f_buildGtestFramework "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_4" "testdht" "$GTEST_FOLDER_NAME"
+	f_buildKdbQ  "$cc" "$ld_opts" "$lib_opts_3" "$rpath_dir";
+	f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_3" "$rpath_dir";
+	f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_3" "$gcc_r_lib";
 	f_buildWrapperApps "$cc" "$cc_opts" "$INC_OPTS" "$ld" "$ld_opts" "$lib_opts_5";
 	f_copySkfsConfig	# important to copy and not to symlink b/c build/ doesn't exist in dist code, so bin/ would have a dead symlink pointing to build/
 						# also in here and not build_skfs b/c we need it to be in silverking dist bin/ and not skfs bin/
