@@ -23,6 +23,10 @@ public class GridConfiguration implements Serializable  {
 	static final String	defaultBaseProperty = GridConfiguration.class.getCanonicalName() +".DefaultBase";
 	private static File	defaultBase;
 	
+	public static final String	defaultGCEnvVar = "GC_DEFAULT";
+	static final String	defaultGCProperty = GridConfiguration.class.getCanonicalName() +".DefaultGC";
+	private static String	defaultGC;
+	
 	public static final String	envSuffixEnvVar = "GC_ENV_SUFFIX";
 	static final String	envSuffixProperty = GridConfiguration.class.getCanonicalName() +".EnvSuffix";
 	public static String	envSuffix;
@@ -32,31 +36,34 @@ public class GridConfiguration implements Serializable  {
 		staticInit();
 	}
 	
+	static String getFromEnvOrProperty(String defaultEnvVar, String defaultProperty) {
+		String	val;
+		
+		val = PropertiesHelper.systemHelper.getString(defaultProperty, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
+		if (val == null) {
+			val = PropertiesHelper.envHelper.getString(defaultEnvVar, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
+			if (val == null) {
+			} else {
+				Log.info("GridConfiguration using val from environment variable "+ defaultEnvVar);
+			}
+		} else {
+			Log.info("GridConfiguration using val from property "+ defaultProperty);
+		}
+		return val;
+	}
+	
 	static void staticInit() {
 		String	defaultBaseVal;
 		String	envSuffixVal;
 		
-		defaultBaseVal = PropertiesHelper.systemHelper.getString(defaultBaseProperty, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
-		if (defaultBaseVal == null) {
-			defaultBaseVal = PropertiesHelper.envHelper.getString(defaultBaseEnvVar, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
-			if (defaultBaseVal == null) {
-				//System.err.printf("Property %s is undefined\n", defaultBaseProperty);
-				//System.err.printf("Environment variable %s is undefined\n", defaultBaseEnvVar);
-				//throw new RuntimeException("Unable to find GridConfig default base");
-			} else {
-				Log.info("GridConfiguration using defaultBase from environment variable");
-			}
-		} else {
-			Log.info("GridConfiguration using defaultBase from property");
-		}
-		//if (defaultBaseVal.trim().length() == 0) {
-			//throw new RuntimeException("GridConfiguration defaultBase is zero length");
-		//}
+		defaultBaseVal = getFromEnvOrProperty(defaultBaseEnvVar, defaultBaseProperty);
 		if (defaultBaseVal != null && defaultBaseVal.trim().length() > 0) {
 			defaultBase = new File(defaultBaseVal);
 		} else {
 			defaultBase = null;
 		}
+		
+		defaultGC = getFromEnvOrProperty(defaultGCEnvVar, defaultGCProperty);
 		
 		envSuffixVal = PropertiesHelper.systemHelper.getString(envSuffixProperty, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
 		if (envSuffixVal == null) {
@@ -75,6 +82,10 @@ public class GridConfiguration implements Serializable  {
 		}
 	}
 	
+	public static String getDefaultGC() {
+		return defaultGC;
+	}
+	
 	public GridConfiguration(String name, Map<String,String> envMap) {
 		this.name = name;
 		this.envMap = envMap;
@@ -82,6 +93,14 @@ public class GridConfiguration implements Serializable  {
 		
 	public static GridConfiguration parseFile(File gcBase, String gcName) throws IOException {
 		Map<String,String>	envMap;
+		
+		if (gcName == null) {
+			if (defaultGC != null) {
+				gcName = defaultGC;
+			} else {
+				throw new RuntimeException("No GC defined. Missing -g ?");
+			}
+		}
 		envMap = readEnvFile(new File(gcBase, gcName + envSuffix));
 		return new GridConfiguration(gcName, envMap);
 	}
