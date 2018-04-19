@@ -101,7 +101,7 @@ public class DHTMetaReader {
         
 //        configInstanceVersion = zk.getVersionPriorTo(ringMC.getMetaPaths().getConfigInstancePath(ringConfigVersion), zkidLimit);
         if (enableLogging) {
-            Log.warning("configInstanceVersion: "+ configInstanceVersion);
+            Log.warning("configInstanceVersion:: "+ configInstanceVersion);
         }
         if (configInstanceVersion < 0) {
         	throw new RuntimeException("Invalid configInstanceVersion: "+ configInstanceVersion);
