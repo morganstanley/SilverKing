@@ -40,6 +40,8 @@ import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.cloud.meta.ExclusionZK;
 import com.ms.silverking.cloud.meta.HostGroupTableZK;
 import com.ms.silverking.cloud.meta.VersionedDefinition;
+import com.ms.silverking.cloud.skfs.dir.serverside.BaseDirectoryInMemorySS;
+import com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer;
 import com.ms.silverking.cloud.skfs.management.SKFSNamespaceCreator;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.NodeClass;
@@ -312,7 +314,8 @@ public class SKAdmin {
 				+" "+ getJVMOptions(classVars)
 				+" "+ getProfilingOptions(options)
 				+" "+ getJVMMemoryOptions(classVars)
-				+" "+ getDHTOptions(options, classVars);
+				+" "+ getDHTOptions(options, classVars)
+				+" "+ getExtraOptions(options, classVars);
 	}
 	
 	private String getJVMOptions(ClassVars classVars) {
@@ -364,6 +367,20 @@ public class SKAdmin {
 				+" -D"+ DHTConstants.segmentIndexLocationProperty +"="+ getSegmentIndexLocation(classVars)
 				+" -D"+ DHTConstants.nsPrereadGBProperty +"="+ getNSPrereadGB(classVars)
 				;
+	}
+	
+	private String getExtraOptions(SKAdminOptions options, ClassVars classVars) {
+		String	s;
+		
+		// FUTURE - change to generic mechanism to pipe through properties
+		s = "";
+		if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
+			s += " -D"+ DirectoryServer.modeProperty +"="+ classVars.getVarMap().get(DirectoryServer.modeProperty);
+		}
+		if (classVars.getVarMap().containsKey(BaseDirectoryInMemorySS.compressionProperty)) {
+			s += " -D"+ BaseDirectoryInMemorySS.compressionProperty +"="+ classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty);
+		}
+		return s;
 	}
 	
 	private String createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
