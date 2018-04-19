@@ -1,9 +1,11 @@
 package com.ms.silverking.cloud.dht.meta;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
@@ -78,7 +80,7 @@ public class StaticDHTCreator {
         skfsConfigZk.writeToZK(skfsConfig, null);
     }
 	
-	public void createStaticDHT(UUIDBase uuid, int initialHeapSize, int maxHeapSize, String skInstanceLogBaseVar, String dataBaseVar, String skfsConfigurationFile) throws IOException, KeeperException {
+	public void createStaticDHT(UUIDBase uuid, int initialHeapSize, int maxHeapSize, String skInstanceLogBaseVar, String dataBaseVar, String skfsConfigurationFile, String classVarsFile) throws IOException, KeeperException {
 		String	ringName;
 		String	classVarsName;
 		RingCreationResults	rcResults;
@@ -96,7 +98,17 @@ public class StaticDHTCreator {
 		MetaToolOptions	mto;
 		
 		classVarsName = "classVars." + uuid.toString();
-		varsMap = new HashMap<>();
+		varsMap = new HashMap<>();		
+		if (classVarsFile != null) {
+			Properties	p;
+			
+			p = new Properties();
+			p.load(new FileInputStream(classVarsFile));
+			for (Map.Entry<Object,Object> e : p.entrySet()) {
+				varsMap.put((String)e.getKey(), (String)e.getValue());
+			}
+		}
+		
 		varsMap.put(DHTConstants.initialHeapSizeVar, Integer.toString(initialHeapSize));
 		varsMap.put(DHTConstants.maxHeapSizeVar,     Integer.toString(maxHeapSize));
 		if (skInstanceLogBaseVar != null) {
@@ -214,7 +226,7 @@ public class StaticDHTCreator {
 			
 			sdc = new StaticDHTCreator(new ZooKeeperConfig(options.zkEnsemble), servers, options.replication, dhtName, gcName, port, nsCreationOptions,
 					options.gridConfigDir);
-			sdc.createStaticDHT(uuid, options.initialHeapSize, options.maxHeapSize, options.skInstanceLogBaseVar, options.dataBaseVar, options.skfsConfigurationFile);
+			sdc.createStaticDHT(uuid, options.initialHeapSize, options.maxHeapSize, options.skInstanceLogBaseVar, options.dataBaseVar, options.skfsConfigurationFile, options.classVarsFile);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(-1);

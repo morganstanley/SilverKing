@@ -51,5 +51,8 @@ class StaticDHTCreatorOptions {
     boolean verbose;
     
 	@Option(name="-k", usage="skfsConfigurationFile", required=false)
-	String	skfsConfigurationFile;    
+	String	skfsConfigurationFile;
+	
+	@Option(name="-c", usage="classVarsFile", required=false)
+	String	classVarsFile;    
 }
