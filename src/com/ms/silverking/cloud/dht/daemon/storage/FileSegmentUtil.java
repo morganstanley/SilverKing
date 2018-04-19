@@ -21,7 +21,7 @@ public class FileSegmentUtil {
 	public FileSegmentUtil() {
 	}
 	
-	public void debugSegment(DHTKey key, File nsDir, int segmentNumber, NamespaceOptions nsOptions) throws IOException {
+	public void debugSegment(DHTKey key, File nsDir, int segmentNumber, NamespaceOptions nsOptions, boolean displayValues) throws IOException {
 		FileSegment	segment;
 		
 		System.out.printf("Segment %d\n", segmentNumber);
@@ -40,24 +40,30 @@ public class FileSegmentUtil {
 		                offsetList = segment.offsetListStore.getOffsetList(-offset);
 		                for (int listOffset : offsetList) {
 				        	System.out.printf("%s\t%d\n", entry.getKey(), listOffset);
-		                    //displayValue(segment.retrieveForDebug(key, listOffset));
+				        	if (displayValues) {
+				        		displayValue(segment.retrieveForDebug(key, listOffset));
+				        	}
 		                }
 		            } else {
 			        	System.out.printf("%s\t%d\n", entry.getKey(), offset);
-	                    //displayValue(segment.retrieveForDebug(key, offset));
+			        	if (displayValues) {
+			        		displayValue(segment.retrieveForDebug(key, offset));
+			        	}
 		            }
 	            } else {
 		        	System.out.printf("%s\t%d\n", KeyUtil.keyToString(key), offset);
-		            if (offset < 0) {
-		                OffsetList  offsetList;
-		                
-		                offsetList = segment.offsetListStore.getOffsetList(-offset);
-		                for (int listOffset : offsetList) {
-		                    displayValue(segment.retrieveForDebug(key, listOffset));
-		                }
-		            } else {
-	                    displayValue(segment.retrieveForDebug(key, offset));
-		            }
+		        	if (displayValues) {
+			            if (offset < 0) {
+			                OffsetList  offsetList;
+			                
+			                offsetList = segment.offsetListStore.getOffsetList(-offset);
+			                for (int listOffset : offsetList) {
+			                    displayValue(segment.retrieveForDebug(key, listOffset));
+			                }
+			            } else {
+		                    displayValue(segment.retrieveForDebug(key, offset));
+			            }
+		        	}
 	            }
         	}
         }	
@@ -86,13 +92,13 @@ public class FileSegmentUtil {
         }
 	}
 
-	public static void debugFiles(DHTKey key, File nsDir, int minSegment, int maxSegment) throws IOException {
+	public static void debugFiles(DHTKey key, File nsDir, int minSegment, int maxSegment, boolean displayValues) throws IOException {
 		NamespaceOptions nsOptions;
 		
 		nsOptions = readNamespaceOptions(nsDir);
 		for (int i = minSegment; i <= maxSegment; i++) {
 			try {
-				new FileSegmentUtil().debugSegment(key, nsDir, i, nsOptions);
+				new FileSegmentUtil().debugSegment(key, nsDir, i, nsOptions, displayValues);
 			} catch (FileNotFoundException fnfe) {
 				System.out.printf("Ignoring FileNotFoundException for segment %d\n", i);
 			} catch (Exception e) {
@@ -102,14 +108,15 @@ public class FileSegmentUtil {
 	}
 	
 	public static void main(String[] args) {
-		if (args.length != 4) {
-			System.err.println("args: <key> <nsDir> <minSegment> <maxSegment>");
+		if (args.length < 4 || args.length > 5) {
+			System.err.println("args: <key> <nsDir> <minSegment> <maxSegment> [displayValues]");
 		} else {
 			try {
 				DHTKey	key;
 				File	nsDir;
 				int		minSegment;
 				int		maxSegment;
+				boolean	displayValues;
 				
 				if (!args[0].equals("*")) {
 					key = new StringMD5KeyCreator().createKey(args[0]);
@@ -119,7 +126,12 @@ public class FileSegmentUtil {
 				nsDir = new File(args[1]);
 				minSegment = Integer.parseInt(args[2]);
 				maxSegment = Integer.parseInt(args[3]);
-				debugFiles(key, nsDir, minSegment, maxSegment);
+				if (args.length == 5) {
+					displayValues = Boolean.parseBoolean(args[4]);
+				} else {
+					displayValues = key != null;
+				}
+				debugFiles(key, nsDir, minSegment, maxSegment, displayValues);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
