@@ -14,7 +14,7 @@ class SKAdminOptions {
 	SKAdminOptions() {
 	}
 	
-	@Option(name="-g", usage="GridConfig", required=true)
+	@Option(name="-g", usage="GridConfig", required=false)
 	String	gridConfig;
 	
 	@Option(name="-G", usage="GridConfigBase", required=false)

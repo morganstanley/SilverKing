@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-import jline.console.ConsoleReader;
-
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -50,6 +48,7 @@ import com.ms.silverking.cloud.dht.client.impl.MetaDataTextUtil;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
+import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.os.OSUtil;
@@ -60,6 +59,8 @@ import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
+
+import jline.console.ConsoleReader;
 
 public class SilverKingClient {
     private final BufferedReader    in;
@@ -879,6 +880,11 @@ public class SilverKingClient {
     			parser.printUsage(System.err);
     			System.exit(-1);
     		}
+    		
+    		if (options.gridConfig == null) {
+    			options.gridConfig = GridConfiguration.getDefaultGC();
+    		}
+    		
     		if (options.gridConfig == null && options.clientDHTConfiguration == null && !SessionOptions.isReservedServerName(options.server)) {
     			System.err.println("Neither gridConfig nor clientDHTConfiguration provided, but server name is not reserved");
     			parser.printUsage(System.err);
