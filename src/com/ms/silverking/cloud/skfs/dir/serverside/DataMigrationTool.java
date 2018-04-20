@@ -146,11 +146,11 @@ public class DataMigrationTool {
 			latestVersions.put(keyString, destFile);
 			
 			if (displayDirs) {
-				DirectoryInMemorySS	dim;
+				EagerDirectoryInMemorySS	dim;
 				Pair<SSStorageParameters, byte[]>	p;
 				DirectoryInPlace	dip;
 				
-				dim = new DirectoryInMemorySS(entry.getKey(), null, entry.getStorageParameters(), new File(ssDir, KeyUtil.keyToString(entry.getKey())), null, false);
+				dim = new EagerDirectoryInMemorySS(entry.getKey(), null, entry.getStorageParameters(), new File(ssDir, KeyUtil.keyToString(entry.getKey())), null, false);
 				p = dim.readFromDisk(entry.getStorageParameters().getVersion());
 				System.out.println(p.getV1() +"\t"+ new Date(SystemTimeUtil.systemTimeNanosToEpochMillis(p.getV1().getCreationTime())));
 				//System.out.println(StringUtil.byteArrayToHexString(p.getV2()));

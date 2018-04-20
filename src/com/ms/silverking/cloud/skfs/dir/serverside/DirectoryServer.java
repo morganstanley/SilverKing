@@ -3,11 +3,14 @@ package com.ms.silverking.cloud.skfs.dir.serverside;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
@@ -27,15 +30,42 @@ import com.ms.silverking.compression.CompressionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
+import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
 public class DirectoryServer implements PutTrigger, RetrieveTrigger {
-	private final ConcurrentMap<DHTKey, DirectoryInMemorySS>	directories;
+	private SSNamespaceStore nsStore;
+	private final ConcurrentMap<DHTKey, BaseDirectoryInMemorySS>	directories;
 	private Set<DHTKey>	directoriesOnDiskAtBoot;
 	private File	logDir;
 	private NamespaceOptions nsOptions;
 	
+	private enum Mode {Eager, Lazy};
+	
+	public static String	modeProperty = DirectoryServer.class.getCanonicalName() +".Mode";
+	private static final Mode	defaultMode = Mode.Lazy;
+	private static final Mode	mode;
+	
+	static FileDeletionWorker	fileDeletionWorker = new FileDeletionWorker();
+	
 	static {
+		String	modeValue;
+		Mode	_mode;
+		
 		Log.warning("Initialized DirectoryServer class");
+		modeValue = PropertiesHelper.systemHelper.getString(modeProperty, UndefinedAction.ZeroOnUndefined);
+		if (modeValue == null) {
+			_mode = defaultMode;
+		} else {
+			try {
+				_mode = Mode.valueOf(modeValue);
+			} catch (Exception e) {
+				Log.logErrorWarning(e, "Using default mode "+ defaultMode);
+				_mode = defaultMode;
+			}
+		}
+		mode = _mode;
+		Log.warningf("DirectoryServer mode %s", mode);
 	}
 	
 	/*
@@ -49,6 +79,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	
 	@Override
 	public void initialize(SSNamespaceStore nsStore) {
+		this.nsStore = nsStore;
 		this.logDir = nsStore.getNamespaceSSDir();
 		this.nsOptions = nsStore.getNamespaceOptions();
 		directoriesOnDiskAtBoot = getDirectoriesOnDiskAtBoot();
@@ -68,6 +99,18 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		}
 		return ImmutableSet.copyOf(dirs);
 	}
+	
+	private BaseDirectoryInMemorySS newDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
+		return newDirectoryInMemorySS(dirKey, d, storageParams, sDir, nsOptions, true);
+	}
+	
+	private BaseDirectoryInMemorySS newDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
+		if (mode == Mode.Lazy) {
+			return new LazyDirectoryInMemorySS(dirKey, d, storageParams, sDir, nsOptions, reap);
+		} else {
+			return new EagerDirectoryInMemorySS(dirKey, d, storageParams, sDir, nsOptions, reap);
+		}
+	}
 
 	@Override
 	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData,
@@ -79,10 +122,12 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			byte[]				buf;
 			int					bufOffset;
 			int					bufLimit;
-			DirectoryInMemorySS	existingDir;
+			BaseDirectoryInMemorySS	existingDir;
 			DirectoryInPlace	updateDir;
 			
-			//Log.warningf("DirectoryServer.put() %s %s %s", KeyUtil.keyToString(key), value.hasArray(), storageParams.getCompression());
+			if (Log.levelMet(Level.INFO)) {
+				Log.warningf("DirectoryServer.put() %s %s %s", KeyUtil.keyToString(key), value.hasArray(), storageParams.getCompression());
+			}
 	
 			buf = value.array();
 			bufOffset = value.arrayOffset() + value.position();
@@ -110,9 +155,9 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			// We still, however, look for existing directories on disk
 			existingDir = getExistingDirectory(key, true);
 			if (existingDir == null) {
-				DirectoryInMemorySS	newDir;
+				BaseDirectoryInMemorySS	newDir;
 				
-				newDir = new DirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
+				newDir = newDirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
 				newDir.update(updateDir, storageParams);
 				directories.put(key, newDir);
 			} else {
@@ -133,10 +178,12 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	
 	@Override
 	public ByteBuffer retrieve(SSNamespaceStore nsStore, DHTKey key, SSRetrievalOptions options) {
-		DirectoryInMemorySS	existingDir;
+		BaseDirectoryInMemorySS	existingDir;
 		ByteBuffer	rVal;
 		
-		//Log.warningf("retrieve %s", KeyUtil.keyToString(key));
+		if (Log.levelMet(Level.INFO)) {
+			Log.warningf("retrieve %s", KeyUtil.keyToString(key));
+		}
 		existingDir = getExistingDirectory(key, false);
 		if (existingDir != null) {
 			//Log.warning("existingDir found");
@@ -154,8 +201,8 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	 * @param key
 	 * @return the given DirectoryInMemorySS if it exists in memory or was found on disk
 	 */
-	public DirectoryInMemorySS getExistingDirectory(DHTKey key, boolean reapOnRecover) {
-		DirectoryInMemorySS	existingDir;
+	public BaseDirectoryInMemorySS getExistingDirectory(DHTKey key, boolean reapOnRecover) {
+		BaseDirectoryInMemorySS	existingDir;
 		
 		existingDir = directories.get(key);
 		if (existingDir == null) {
@@ -163,10 +210,10 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			
 			dir = new File(logDir, KeyUtil.keyToString(key));
 			if (dir.exists()) {
-				DirectoryInMemorySS	prev;
+				BaseDirectoryInMemorySS	prev;
 				
-				Log.warningf("DirectoryServer.getExistingDirectory() recovering %s", KeyUtil.keyToString(key));
-				existingDir = new DirectoryInMemorySS(key, null, null, dir, nsOptions, reapOnRecover);
+				Log.warningAsyncf("DirectoryServer.getExistingDirectory() recovering %s", KeyUtil.keyToString(key));
+				existingDir = newDirectoryInMemorySS(key, null, null, dir, nsOptions, reapOnRecover);
 				// This may be called by retrieve() which only holds a read lock.
 				// As a result, we need to worry about concurrency.
 				prev = directories.putIfAbsent(key, existingDir);
@@ -223,13 +270,32 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		
 		private void checkForPersistence() {
 			long	checkTimeMillis;
+			List<File>	filesToRemove;
 			
 			Log.info("checkForPersistence()");
+			filesToRemove = new ArrayList<>();
 			checkTimeMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
-			for (DirectoryInMemorySS dir : directories.values()) {
-				dir.checkForPersistence(checkTimeMillis);
+			for (BaseDirectoryInMemorySS dir : directories.values()) {
+				List<File>	dirFilesToRemove;
+				
+				dirFilesToRemove = dir.checkForPersistence(checkTimeMillis);
+				filesToRemove.addAll(dirFilesToRemove);
 			}
+			deleteFiles(filesToRemove);
 			Log.info("out checkForPersistence()");
+		}
+		
+		private void deleteFiles(List<File>	filesToRemove) {
+			if (filesToRemove.size() > 0) {
+				// Write lock this namespace to ensure that no retrieval operations are ongoing
+				// (retrieval operations may laziy realize the directory in ram from the serialized file)
+				nsStore.getReadWriteLock().writeLock().lock();
+				try {
+					fileDeletionWorker.delete(filesToRemove);
+				} finally {
+					nsStore.getReadWriteLock().writeLock().unlock();
+				}
+			}
 		}
 	}
 }

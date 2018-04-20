@@ -106,16 +106,25 @@ public class DirectoryEntryInPlace extends DirectoryEntryBase {
 	public ByteBuffer getNameAsByteBuffer() {
 		return ByteBuffer.wrap(getNameAsBytes());
 	}
-	
-	public void update(DirectoryEntryInPlace update) {
+
+	/**
+	 * Update local state of this entry with the incoming update. 
+	 * @param update
+	 * @return true if the update resulted in a state change; false if it is redundant
+	 */
+	public boolean update(DirectoryEntryInPlace update) {
 		long	updateVersion;
 		
 		updateVersion = update.getVersion();
 		if (updateVersion > getVersion()) {
 			setVersion(updateVersion);
 			setStatus(update.getStatus());
+			//System.out.printf("fresh update\n");
+			return true;
 		} else {
+			//System.out.printf("stale update\n");
 			// Stale update; ignore
+			return false;
 		}
 	}
 

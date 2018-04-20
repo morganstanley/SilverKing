@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.skfs.dir.serverside;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 
 import com.ms.silverking.collection.LightLinkedBlockingQueue;
@@ -43,5 +44,11 @@ class FileDeletionWorker implements Runnable {
 			workQueue.put(f);
 		} catch (InterruptedException e) {
 		}
+	}
+	
+	public void delete(Collection<File> files) {
+			for (File f : files) {
+				delete(f);
+			}
 	}
 }

@@ -16,6 +16,8 @@ public class DirectoryInMemory extends DirectoryBase {
 	
 	private static final double	largeUpdateThreshold = 0.2;
 	
+	private static final boolean	debug = false;
+	
 	public DirectoryInMemory(DirectoryInPlace d) {
 		int	numEntries;
 		
@@ -75,23 +77,54 @@ public class DirectoryInMemory extends DirectoryBase {
 		entryBytes += entry.getLengthBytes();
 	}
 	
-	public void update(DirectoryInPlace update) {
+	/**
+	 * Update local state of this directory with the incoming update
+	 * @param update
+	 * @return true if the update resulted in a state change; false if it is redundant
+	 */
+	protected boolean update(DirectoryInPlace update) {
+		if (debug) {
+			System.out.printf("in update()\n");
+		}
 		//update.display();
-		//System.out.printf("%d %d %s\n", update.getNumEntries(), entries.size(), ((double)update.getNumEntries() / (double)entries.size() > largeUpdateThreshold));
-		if ((double)update.getNumEntries() / (double)entries.size() > largeUpdateThreshold) {
-			largeUpdate(update);
+		if (debug) {
+			System.out.printf("%d %d %s\n", update.getNumEntries(), entries.size(), ((double)update.getNumEntries() / (double)entries.size() > largeUpdateThreshold));
+		}
+		if ((double)update.getNumEntries() / ((double)entries.size() + 1) > largeUpdateThreshold) {
+			return largeUpdate(update);
 		} else {
-			smallUpdate(update);
+			return smallUpdate(update);
 		}
 	}
 	
-	private void smallUpdate(DirectoryInPlace update) {
+	/**
+	 * Update local state of this directory with the incoming update. 
+	 * Used when the incoming update is small with respect to this directory
+	 * @param update
+	 * @return true if the update resulted in a state change; false if it is redundant
+	 */
+	private boolean smallUpdate(DirectoryInPlace update) {
+		boolean	mutated;
+		
+		if (debug) {
+			System.out.printf("in smallUpdate()\n");
+		}
+		mutated = false;
 		for (int i = 0; i < update.getNumEntries(); i++) {
-			update((DirectoryEntryInPlace)update.getEntry(i));
+			mutated = update((DirectoryEntryInPlace)update.getEntry(i)) || mutated;
+			if (debug) {
+				System.out.printf("smallUpdate %s\n", mutated);
+			}
 		}
+		return mutated;
 	}
 	
-	public void update(DirectoryEntryInPlace update) {
+	/**
+	 * Update this directory entry with the incoming update. 
+	 * @param update
+	 * @return true if the update resulted in a state change; false if it is redundant
+	 */
+	private boolean update(DirectoryEntryInPlace update) {
 		DirectoryEntryInPlace	entry;
 		ByteString				name;
 		
@@ -99,19 +132,37 @@ public class DirectoryInMemory extends DirectoryBase {
 		entry = entries.get(name);
 		if (entry == null) {
 			addEntry(name, update);
+			if (debug) {
+				System.out.printf("update1 added\n");
+			}
+			return true;
 		} else {
-			entry.update(update);
+			if (debug) {
+				System.out.printf("update2\n");
+			}
+			return entry.update(update);
 		}
 	}
 	
-	private void largeUpdate(DirectoryInPlace update) {
+	/**
+	 * Update local state of this directory with the incoming update. 
+	 * Used when the incoming update is large with respect to this directory
+	 * @param update
+	 * @return true if the update resulted in a state change; false if it is redundant
+	 */
+	private boolean largeUpdate(DirectoryInPlace update) {
 		int	i1; // index into update
 		DirectoryEntryInPlace	e0; // entry in this object
 		DirectoryEntry			e1; // entry in update
 		Iterator<DirectoryEntryInPlace>	localEntries;
 		int	numUpdateEntries;
 		List<DirectoryEntryInPlace>	entriesToAdd;
+		boolean	mutated;
 		
+		if (debug) {
+			System.out.printf("in largeUpdate()");
+		}
+		mutated = false;
 		entriesToAdd = null;
 		localEntries = entries.values().iterator();
 		e0 = localEntries.hasNext() ? localEntries.next() : null;
@@ -122,7 +173,9 @@ public class DirectoryInMemory extends DirectoryBase {
 			
 			e1 = update.getEntry(i1);
 			comp = compareForUpdate(e0, e1);
-			//System.out.printf("##\t%s\t%d\t%s\t%d\n", e0, i1, e1, comp);
+			if (debug) {
+				System.out.printf("##\t%s\t%d\t%s\t%d\t%s\n", e0, i1, e1, comp, mutated);
+			}
 			if (comp < 0) {
 				e0 = localEntries.hasNext() ? localEntries.next() : null;
 			} else if (comp > 0) {
@@ -130,18 +183,27 @@ public class DirectoryInMemory extends DirectoryBase {
 					entriesToAdd = new ArrayList<>();
 				}
 				entriesToAdd.add((DirectoryEntryInPlace)e1);
+				// mutated set when adding the list entries below
 				i1++;
 			} else {
-				e0.update((DirectoryEntryInPlace)e1);
+				mutated = e0.update((DirectoryEntryInPlace)e1) || mutated;
+				if (debug) {
+					System.out.printf("largeUpdate mutated %s\n", mutated);
+				}
 				e0 = localEntries.hasNext() ? localEntries.next() : null;
 				i1++;
 			}
 		}
 		if (entriesToAdd != null) {
+			if (debug) {
+				System.out.printf("largeUpdate added entries\n");
+			}
+			mutated = true;
 			for (DirectoryEntryInPlace e : entriesToAdd) {
 				addEntry(e.getNameAsByteString(), e);
 			}
 		}
+		return mutated;
 	}
 	
 	private int compareForUpdate(DirectoryEntryInPlace e0, DirectoryEntry e1) {
@@ -170,7 +232,7 @@ public class DirectoryInMemory extends DirectoryBase {
 		}
 	}
 
-	private int computeSerializedSize() {
+	protected int computeSerializedSize() {
 		return headerSize + entryBytes + computeIndexSizeBytes(entries.size()); 
 	}
 	

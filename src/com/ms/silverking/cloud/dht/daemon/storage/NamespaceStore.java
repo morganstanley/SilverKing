@@ -2885,4 +2885,9 @@ public class NamespaceStore implements SSNamespaceStore {
 			}
 		}
 	}
+	
+	@Override 
+	public ReadWriteLock getReadWriteLock() {
+		return rwLock;
+	}
 }
