@@ -18,7 +18,7 @@ WaitOptsName       = WaitOpts
 common_lib_headers =               ${G_TEST_SRC_DIR}/${TestUtilName}.h 	             ${G_TEST_SRC_DIR}/${UtilName}.h 		       ${G_TEST_SRC_DIR}/${DhtActionName}.h               ${G_TEST_SRC_DIR}/${SyncNspName}.h               ${G_TEST_SRC_DIR}/${AsyncNspName}.h               ${G_TEST_SRC_DIR}/${PutOptsName}.h                ${G_TEST_SRC_DIR}/${GetOptsName}.h               ${G_TEST_SRC_DIR}/${WaitOptsName}.h               
 common_lib_objs    = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${TestUtilName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${UtilName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${DhtActionName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${SyncNspName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AsyncNspName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutOptsName}.o  ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${GetOptsName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${WaitOptsName}.o
 compile            = ${CC} ${CC_OPTS} ${INC_OPTS} -I${PROXY_INC} -I${INSTALL_COMMON_INC_DIR} -I${G_TEST_INC} -c
-link               = ${LD} ${LD_OPTS} -Wl,--rpath -Wl,${INSTALL_ARCH_LIB_DIR} ${LIB_OPTS} ${LD_LIB_OPTS} -Wl,--rpath -Wl,${RPATH_DIR} -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB} -L${INSTALL_ARCH_LIB_DIR} -L${G_TEST_LIB} -l${SK_LIB_NAME} -l${J_SK_LIB_NAME} -lgtest -lgtest_main -ldl -o
+link               = ${LD} ${LD_OPTS} -Wl,--rpath -Wl,${INSTALL_ARCH_LIB_DIR} ${LIB_OPTS} -L${G_TEST_LIB} -lgtest -lgtest_main -o
 
 PutGetName                = PutGet
 PutGetTestName            = PutGetTest
