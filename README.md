@@ -1,3 +1,5 @@
+https://travis-ci.org/bh-ms/SilverKing.svg?branch=master
+
 # SilverKing
 **Scalable, high-throughput storage and coordination**
 
