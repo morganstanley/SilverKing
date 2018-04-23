@@ -128,12 +128,18 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 				Pair<SSStorageParameters, byte[]>	sd;
 				SerializedDirectory	_sd;
 				DirectoryInPlace	recoveredDir;
+				byte[]	b;
 				
 				sd = readFromDisk(version);
 				_sd = new SerializedDirectory(sd, true);
 				serializedVersions.put(version, _sd);
-				latestUpdateSP = _sd.getStorageParameters();
-				recoveredDir = new DirectoryInPlace(sd.getV2(), 0, sd.getV2().length);
+				latestUpdateSP = _sd.getStorageParameters();				
+				if (sd.getV1().getCompression() != Compression.NONE) {
+					b = CompressionUtil.decompress(sd.getV1().getCompression(), sd.getV2(), 0, sd.getV2().length, sd.getV1().getUncompressedSize());
+				} else {
+					b = sd.getV2();
+				}
+				recoveredDir = new DirectoryInPlace(b, 0, b.length);
 				//recoveredDir.display();
 				super.update(recoveredDir);
 				//Log.warningf("Recovered version %d", version);

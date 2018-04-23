@@ -288,7 +288,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		private void deleteFiles(List<File>	filesToRemove) {
 			if (filesToRemove.size() > 0) {
 				// Write lock this namespace to ensure that no retrieval operations are ongoing
-				// (retrieval operations may laziy realize the directory in ram from the serialized file)
+				// (retrieval operations may lazily realize the directory in ram from the serialized file)
 				nsStore.getReadWriteLock().writeLock().lock();
 				try {
 					fileDeletionWorker.delete(filesToRemove);
