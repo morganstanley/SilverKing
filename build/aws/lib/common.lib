@@ -7,3 +7,5 @@ function f_generatePrivateKey {
 		cat $publicKeyFilename >> authorized_keys
 	fi
 }
+
+NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
