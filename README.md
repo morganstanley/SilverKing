@@ -1,4 +1,4 @@
-https://travis-ci.org/bh-ms/SilverKing.svg?branch=master
+[![Build Status](https://travis-ci.org/bh-ms/SilverKing.svg?branch=master)](https://travis-ci.org/bh-ms/SilverKing)
 
 # SilverKing
 **Scalable, high-throughput storage and coordination**
