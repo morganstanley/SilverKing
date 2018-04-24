@@ -4,4 +4,5 @@ before_install:
 install: true
 script: 
 - uname -a
+- ll ~/.ssh
 - cd build && ./build.sh 
