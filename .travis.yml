@@ -2,4 +2,6 @@ before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq ksh
 install: true
-script: cd build && ./build.sh 
+script: 
+- uname -a
+- cd build && ./build.sh 
