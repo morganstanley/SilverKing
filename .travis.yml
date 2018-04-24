@@ -2,4 +2,4 @@ before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq ksh
 install: true
-script: build/build.sh 
+script: cd build && build.sh 
