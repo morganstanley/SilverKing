@@ -32,9 +32,8 @@ public class AsyncMemoizedFibonacci {
     private static final String fibNamespace = "_AsyncMemoizedFibonacci";
     
     public AsyncMemoizedFibonacci(SKGridConfiguration gridConfig) throws ClientException, IOException {
-        
         ns = new DHTClient().openSession(gridConfig).getNamespace(fibNamespace);
-        asyncNSP  = ns.openAsyncPerspective(Integer.class, Integer.class);
+        asyncNSP = ns.openAsyncPerspective(Integer.class, Integer.class);
         syncNSP  = ns.openSyncPerspective(Integer.class, Integer.class);
         syncNSP.put(0, 0);
         syncNSP.put(1, 1);
@@ -75,7 +74,7 @@ public class AsyncMemoizedFibonacci {
                 SKGridConfiguration  gridConfig;
                 int                n;
                 int                fn;
-                
+
                 gridConfig = SKGridConfiguration.parseFile(args[0]);
                 n = Integer.parseInt(args[1]);
                 if (n < 1) {

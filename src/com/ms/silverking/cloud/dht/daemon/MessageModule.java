@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -224,7 +225,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         } else {
             maxDirectCallDepth = Integer.MAX_VALUE;
         }
-        worker.addWork(new MessageAndConnection(message, createProxyForConnection(connection)), maxDirectCallDepth, Integer.MAX_VALUE);
+        worker.addWork(new MessageAndConnection(message, createProxyForConnection(connection, message.getDeadlineAbsMillis(absMillisTimeSource), message.getPeer())), maxDirectCallDepth, Integer.MAX_VALUE);
     }
     
     /**
@@ -235,7 +236,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private void handleReceive(MessageGroup message, MessageGroupConnectionProxy connection) {
         try {
             if (debugReceivedMessages) {
-                Log.warning("\t*** Received: ", message);
+                Log.warningf("\t*** Received: %s\n%s", message, Thread.currentThread().getName());
                 message.displayForDebug(true);
             }
             if (debugShortTimeMessages) {
@@ -244,6 +245,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                     message.displayForDebug(true);
                 }
             }
+        	if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
+                if (debugReceivedMessages) {
+                	Log.warning("Setting message to peer: ", message.getMessageType());
+                }
+        		message.setPeer(true);
+        	}
             switch (message.getMessageType()) {
             case PUT:
                 handlePut(message, connection);
@@ -307,8 +314,16 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                  throw new RuntimeException("type not handled: "+ message.getMessageType());
             }
         } catch (RuntimeException re) {
-            re.printStackTrace();
-            Log.logErrorWarning(re, "Error processing connection: "+ connection.getConnectionID());
+			Throwable	t;
+			
+			Log.warning("************************************** "+ Thread.currentThread().getName());
+			t = re;
+			while (t != null) {
+				Log.logErrorWarning(t);
+				t = t.getCause();
+				Log.warning("......................................");
+			}
+            Log.logErrorWarning(re, "MessageModule error processing connection: "+ connection.getConnectionID());
         }
     }
     
@@ -324,12 +339,20 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         return ((MessageGroupConnectionProxyRemote)connection).getConnection();
     }
     
-    private MessageGroupConnectionProxy createProxyForConnection(MessageGroupConnection connection) {
+    private MessageGroupConnectionProxy createProxyForConnection(MessageGroupConnection connection, long deadline, boolean peer) {
         if (connection == null || connection.getRemoteIPAndPort().equals(myIPAndPort)) {
-        //if (connection.getRemoteIPAndPort().getIPAsInt() == myIPAndPort.getIPAsInt()) {
             return new MessageGroupConnectionProxyLocal(worker);
         } else {
-            return new MessageGroupConnectionProxyRemote(connection);
+        	if (!peer) {
+        		return new MessageGroupConnectionProxyRemote(connection);
+        	} else {
+	        	try {
+	        		return new MessageGroupConnectionProxyRemote(mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
+	        	} catch (ConnectException ce) {
+	        		Log.logErrorWarning(ce, "Reverting to incoming connection for outgoing messages for "+ connection);
+	                return new MessageGroupConnectionProxyRemote(connection);
+	        	}
+        	}
         }
     }
     
@@ -339,7 +362,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         
         nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.FetchRemotely);
         nsOptions = nsProperties.getOptions();
-        if (message.getForwardingMode() == ForwardingMode.FORWARD) {
+        if (message.getForwardingMode().forwards()) {
             new ActiveProxyPut(message, connection, this, getStorageProtocol(nsOptions), 
                     message.getDeadlineAbsMillis(absMillisTimeSource), false, nsOptions).startOperation();
         } else {
@@ -732,7 +755,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void handlePing(MessageGroup message, MessageGroupConnectionProxy connection) {
-        Log.finef("%s %s", message.getMessageType(), connection.getConnectionID());
+    	if (Log.levelMet(Level.FINE)) {
+    		Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
+    	}
         if (connection instanceof MessageGroupConnectionProxyRemote) {
         	MessageGroupConnectionProxyRemote	c;
         	ProtoPingAckMessageGroup	ack;
@@ -748,7 +773,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void handlePingAck(MessageGroup message, MessageGroupConnectionProxy connection) {
-        Log.finef("%s %s", message.getMessageType(), connection.getConnectionID());
+    	if (Log.levelMet(Level.FINE)) {
+    		Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
+    	}
         if (connection instanceof MessageGroupConnectionProxyRemote) {
         	MessageGroupConnectionProxyRemote	c;
         	
@@ -809,7 +836,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private static final int	workerPoolTargetSize = 2;
-    private static final int	workerPoolMaxSize = 4;
+    private static final int	workerPoolMaxSize = Runtime.getRuntime().availableProcessors();
     
     static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModuleNSPPool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
     

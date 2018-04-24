@@ -23,8 +23,9 @@ using std::exception;
 ////////////////////
 // private defines
 
-#define ODW_MIN_WRITE_INTERVAL_MILLIS 1000
+#define ODW_MIN_WRITE_INTERVAL_MILLIS 2
 #define ODW_REQUEUE_DELAY_MICROS 100
+
 
 ///////////////////////
 // private prototypes
@@ -45,7 +46,7 @@ static unsigned int _retrySeed;
 ///////////////////
 // implementation
 
-OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/) {
+OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/, uint64_t minWriteIntervalMillis) {
 	OpenDirWriter *odw;
 
 	odw = (OpenDirWriter*)mem_alloc(1, sizeof(OpenDirWriter));
@@ -53,6 +54,7 @@ OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/) {
 	odw->qp = qp_new_batch_processor(odw_process_dht_batch, __FILE__, __LINE__, ODW_DHT_QUEUE_SIZE, ABQ_FULL_BLOCK, ODW_DHT_THREADS, ODW_MAX_BATCH_SIZE);
 	//odw->retryQP = qp_new_batch_processor(odw_process_retry_batch, __FILE__, __LINE__, ODW_RETRY_QUEUE_SIZE, ABQ_FULL_DROP, ODW_RETRY_THREADS, ODW_RETRY_MAX_BATCH_SIZE);
 	odw->sd = sd;
+    odw->minWriteIntervalMillis = minWriteIntervalMillis;
 	odw->pSession = sd_new_session(odw->sd);
 	try {	
 		SKNamespace	*ns;
@@ -149,8 +151,19 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
 		odwr = (OpenDirWriteRequest *)requests[i];
 		okToWrite = od_set_queued_for_write(odwr->od, FALSE);
 		if (okToWrite) {
-            if (preWriteTimeMillis - odwr->od->lastWriteMillis < ODW_MIN_WRITE_INTERVAL_MILLIS) {
+			if (odw == NULL) {
+				odw = odwr->openDirWriter;
+			} else {
+				if (odwr->openDirWriter != odw) {
+					fatalError("Unexpected multiple OpenDirWriter in odw_process_dht_batch");
+				}
+			}
+            // We presently rate-limit updates to a single dir. This is to prevent
+            // updates from consuming too much disk space. Once that issue is resolved,
+            // this code may safely be removed.
+            if (preWriteTimeMillis - od_getLastWriteMillis(odwr->od) < odw->minWriteIntervalMillis) {
                 okToWrite = FALSE;
+                odw = NULL;
                 usleep(ODW_REQUEUE_DELAY_MICROS);
                 odw_write_dir(odwr->openDirWriter, odwr->od->path, odwr->od);
             }
@@ -159,16 +172,8 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
 			DirData	*dd;
 			SKVal	*pval;
 			
-			if (odw == NULL) {
-				odw = odwr->openDirWriter;
-			} else {
-				if (odwr->openDirWriter != odw) {
-					fatalError("Unexpected multiple OpenDirWriter in odw_process_dht_batch");
-				}
-			}
-			srfsLog(LOG_FINE, "OpenDirWriter adding to group %llx %llx %s", odwr, odwr->od, odwr->od->path );
-			dd = od_get_DirData(odwr->od, TRUE);
-			srfsLog(LOG_INFO, ":: %llx %llx", odwr->od->dd, dd);
+			srfsLog(LOG_INFO, "OpenDirWriter adding to group %llx %llx %s", odwr, odwr->od, odwr->od->path );
+			dd = od_get_server_update_DirData(odwr->od);
 			pval = sk_create_val();
 			sk_set_val(pval, dd_length_with_header_and_index(dd), (void *)(dd) );
 			//if (srfsLogLevelMet(LOG_INFO)) {
@@ -234,8 +239,13 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
                 delete pOpMap;
             }
         } catch (SKPutException &e) {
-            srfsLog(LOG_ERROR, "odw mput dhtErr at %s:%d\n%s\n", __FILE__, __LINE__, e.what());
-            srfsLog(LOG_WARNING, " %s\n",  e.getDetailedFailureMessage().c_str());
+            const char    *cause;
+            
+            cause = e.what();
+            if (cause == NULL || strstr(cause, "INVALID_VERSION") == NULL) {
+                srfsLog(LOG_ERROR, "odw mput dhtErr at %s:%d\n%s\n", __FILE__, __LINE__, cause);
+                srfsLog(LOG_WARNING, " %s\n",  e.getDetailedFailureMessage().c_str());
+            }
             /*
             Catching failed puts is deprecated for now in favor of the periodic reconciliation approach.
             {
@@ -286,7 +296,7 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
                     srfsLog(LOG_ERROR, "odw mput dhtErr Exception %s at %s %d", e.what(), __FILE__, __LINE__);
                     fatalError("Unexpected exception", __FILE__, __LINE__);
                 }
-                odwr->od->lastWriteMillis = postWriteTimeMillis;
+                od_setLastWriteMillis(odwr->od, postWriteTimeMillis);
                 odwr_delete(&odwr);
             }
         }

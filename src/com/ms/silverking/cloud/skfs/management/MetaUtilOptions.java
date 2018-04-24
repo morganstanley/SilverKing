@@ -13,7 +13,10 @@ public class MetaUtilOptions {
 
     static final int dhtVersionUnspecified = -1;
     
-    @Option(name="-d", usage="skfsConfigName", required=true)
+    @Option(name="-g", usage="gridConfigName", required=false)
+    String  gridConfigName;
+    
+    @Option(name="-d", usage="skfsConfigName", required=false)
     String  skfsConfigName;
     
     @Option(name="-v", usage="version", required=false)

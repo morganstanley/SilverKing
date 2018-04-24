@@ -14,7 +14,7 @@ import com.ms.silverking.id.UUIDBase;
 abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     protected final int   opSize;
     protected ByteBuffer  valueBuffer;
-    protected short       curMultiValueBufferIndex;
+    protected int      	  curMultiValueBufferIndex;
     protected int         totalValueBytes;
     
     // FIXME - valueBufferSize should be computed based on some
@@ -42,6 +42,7 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
         super(type, uuid, context, optionsByteBuffer, opSize, additionalBytesPerKey, originator, deadlineRelativeMillis, forward);
         this.opSize = opSize;
         bufferList.add(optionsByteBuffer);
+        /*
         if (opSize > 1) {
             if (valueBytes > 0) {
                 //valueBuffer = ByteBuffer.allocate(dedicatedBufferSizeThreshold);
@@ -57,6 +58,9 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
             valueBuffer = null;
             curMultiValueBufferIndex = -1;
         }
+        */
+        valueBuffer = null;
+        curMultiValueBufferIndex = -1;
     }
     
     public boolean canBeAdded(int valueSize) {
@@ -68,7 +72,7 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     }
     
     protected boolean addDedicatedBuffer(ByteBuffer buffer) {
-        if (bufferList.size() >= Short.MAX_VALUE) {
+        if (bufferList.size() >= Integer.MAX_VALUE) {
             return false;
         } else {
             bufferList.add(buffer);
@@ -77,10 +81,10 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     }
     
     protected boolean addMultiValueBuffer(ByteBuffer buffer) {
-        if (bufferList.size() >= Short.MAX_VALUE) {
+        if (bufferList.size() >= Integer.MAX_VALUE) {
             return false;
         } else {
-            curMultiValueBufferIndex = (short)bufferList.size(); 
+            curMultiValueBufferIndex = bufferList.size(); 
             bufferList.add(buffer);
             return true;
         }
@@ -88,7 +92,7 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     
     public void addErrorCode(DHTKey key) {
         addKey(key);
-        keyByteBuffer.putShort((short)-1);
+        keyByteBuffer.putInt(-1);
         keyByteBuffer.putInt(-1);
         keyByteBuffer.putInt(-1);
     }

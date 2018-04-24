@@ -27,6 +27,7 @@ import com.ms.silverking.numeric.NumConversion;
  * Header format <fieldName> (<number of bytes>):
  * 	numberOfBuffers	(4)
  *  messageType (1)
+ *  options		(3)
  *  uuid        (16)
  *  context     (8)
  * 
@@ -48,6 +49,7 @@ public final class IncomingMessageGroup implements IncomingData {
 	private int					lastNumRead;
 	private ReadState			readState;
 	private MessageType         messageType;
+	private int					options;
 	private UUIDBase            uuid;
 	private long                context;
 	private long                version; // FUTURE - unused
@@ -65,7 +67,7 @@ public final class IncomingMessageGroup implements IncomingData {
     private static final int   maxNumBuffers = 65536; 
     private static final int   minNumBuffers = 1;
     
-	private final boolean	debug = false;
+	private static final boolean	debug = false;
 	
 	public static void setClient() {
 		//isClient = true;
@@ -116,7 +118,7 @@ public final class IncomingMessageGroup implements IncomingData {
 	    for (ByteBuffer buffer : buffers) {
 	        buffer.flip();
 	    }
-	    return new MessageGroup(messageType, uuid, context, buffers, originator, deadlineRelativeMillis, forward);
+	    return new MessageGroup(messageType, options, uuid, context, buffers, originator, deadlineRelativeMillis, forward);
 	}
 	
 	public int getLastNumRead() {
@@ -199,6 +201,7 @@ public final class IncomingMessageGroup implements IncomingData {
                             }
                             allocateBufferLengthsBuffer(leadingBuffer.getInt(MessageFormat.lengthOffset));
                             messageType = EnumValues.messageType[leadingBuffer.get(MessageFormat.typeOffset)];
+                            options = leadingBuffer.get(MessageFormat.optionsOffset); // only support one byte of options presently; ignore the other 2
                             uuidMSL = leadingBuffer.getLong(MessageFormat.uuidMSLOffset);
                             uuidLSL = leadingBuffer.getLong(MessageFormat.uuidLSLOffset);
                             uuid = new UUIDBase(uuidMSL, uuidLSL);

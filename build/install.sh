@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-source lib_common.sh
+source lib/common.lib
 
 ./$INSTALL_SILVERKING_SCRIPT_NAME
 ./$INSTALL_SILVERKING_FS_SCRIPT_NAME

@@ -48,7 +48,7 @@ public class DebugKey {
 		keyCreator = new StringMD5KeyCreator();
 		this.out = System.out;
 		
-		metaUtil = new MetaUtil(gc.getClientDHTConfiguration().getName(), gc.getClientDHTConfiguration().getZkLocs(), MetaUtilOptions.dhtVersionUnspecified);
+		metaUtil = new MetaUtil(gc.getClientDHTConfiguration().getName(), gc.getClientDHTConfiguration().getZKConfig(), MetaUtilOptions.dhtVersionUnspecified);
 		dhtMC = metaUtil.getDHTMC();
 		ringParentName = metaUtil.getRingConfiguration().getRingParentName();
 		
@@ -89,7 +89,10 @@ public class DebugKey {
 		out.printf("%s\n", map.getRegion(dhtKey));
 		psIPLists = map.getReplicaListPair(dhtKey);
 		for (IPAndPort replica : psIPLists.getPrimaryOwners()) {
-			out.printf("%s\t%s\n", replica, replicaContainsKey(replica, key));
+			out.printf("P %s\t%s\n", replica, replicaContainsKey(replica, key));
+		}
+		for (IPAndPort replica : psIPLists.getSecondaryOwners()) {
+			out.printf("S %s\t%s\n", replica, replicaContainsKey(replica, key));
 		}
 	}
 

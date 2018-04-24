@@ -27,6 +27,8 @@
 
 #define DDR_NO_AUTO_CREATE	0
 #define DDR_AUTO_CREATE	1
+#define DDR_MM_CLIENT_SIDE 0
+#define DDR_MM_SERVER_SIDE 1
 
 
 //////////
@@ -39,13 +41,16 @@ typedef struct DirDataReader {
 	SKSession		*(pSession[DDR_DHT_THREADS]);
     SKAsyncNSPerspective *(ansp[DDR_DHT_THREADS]);
 	ResponseTimeStats	*rtsDirData;
+    SKGetOptions	*metaDataGetOptions;
+    SKGetOptions	*valueAndMetaDataGetOptions;    
+    int             mergeMode;
 } DirDataReader;
 
 
 ///////////////
 // prototypes
 
-DirDataReader *ddr_new(SRFSDHT *sd, ResponseTimeStats *rtsDirData, OpenDirCache *openDirCache);
+DirDataReader *ddr_new(SRFSDHT *sd, ResponseTimeStats *rtsDirData, OpenDirCache *openDirCache, int mergeMode);
 void ddr_delete(DirDataReader **ddr);
 ActiveOp *ddr_create_active_op(void *_ddr, void *_path, uint64_t noMinModificationTime);
 int ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int createIfNotFound);

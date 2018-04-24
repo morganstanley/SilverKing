@@ -18,12 +18,13 @@
 #define _cache_logging_in_critical_section 0
 #define _cache_debug_failed_evictions 0
 #define _cache_no_expiration	0xffffffffffffffffL
+#define _cache_fatal_error_on_double_free   0
 
 
 /////////////////
 // private types
 
-typedef enum {CACHE_RAW_DATA, CACHE_DHT_VALUE, CACHE_ACTIVE_OP, CACHE_ERROR_CODE} CacheEntryType;
+typedef enum {CACHE_RAW_DATA, CACHE_DHT_VALUE, CACHE_ACTIVE_OP, CACHE_ERROR_CODE, CACHE_DELETED_ENTRY} CacheEntryType;
 
 typedef enum {CRM_WARN, CRM_FATAL_ERROR, CRM_ALLOW} CacheReplacementMode;
 
@@ -54,6 +55,7 @@ static int cache_entry_is_data_type(CacheEntry *entry);
 static size_t cache_entry_get_data_size(CacheEntry *entry);
 static void cache_display(Cache *cache);
 static CacheEntry *cache_evict(Cache *cache, CacheEntry *entry);
+static CacheEntry	*_cache_remove(Cache *cache, void *key, int removeActiveOps = TRUE);
 
 
 ////////////////
@@ -95,6 +97,7 @@ Cache *cache_new(char *name, int size, int evictionBatchSize, unsigned int (*has
     cache->ht = create_hashtable(size, hash, compare);
     pthread_rwlock_init(&cache->rwLock, 0); 
 	pthread_spin_init(&cache->statLock, 0);
+    srfsLog(LOG_WARNING, "faondf %d", _cache_fatal_error_on_double_free);
 	return cache;
 }
 
@@ -189,7 +192,7 @@ void cache_delete(Cache **cache) {
 CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned char *buf, size_t sourceOffset, size_t size, 
 						   ActiveOpRef **activeOpRef, int *cacheNumRead, 
 						   ActiveOp *(*createOp)(void *, void *, uint64_t), void *createOpContext, 
-                           uint64_t minModificationTimeMillis, 
+                           uint64_t minModificationTimeMicros, 
                            uint64_t newOpTimeoutMillis) {
 	CacheEntry	*entry;
     SKVal		*pRVal;
@@ -229,15 +232,13 @@ CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned cha
 		}
 	} else {
         if (_cache_logging_in_critical_section) {
-            srfsLog(LOG_WARNING, "minModificationTimeMillis %u entry->modificationTime %u <= %d", minModificationTimeMillis, entry->modificationTime,
-                minModificationTimeMillis <= entry->modificationTime);
+            srfsLog(LOG_WARNING, "minModificationTimeMicros %u entry->modificationTime %u <= %d", minModificationTimeMicros, entry->modificationTime,
+                minModificationTimeMicros <= entry->modificationTime);
         }
 		_curTimeMillis = curTimeMillis();
-		if (    // could add check for active op as below, but shouldn't need it as
-                // times stores with ops should make it redundant
-                //entry->type != CACHE_ACTIVE_OP add this back in, but we shouldn't have needed it
-                _curTimeMillis <= entry->expirationTime
-                && minModificationTimeMillis <= entry->modificationTime) {
+		if (    entry->type != CACHE_ACTIVE_OP // Consider removing and using times to accomplish this
+                && _curTimeMillis <= entry->expirationTime
+                && minModificationTimeMicros <= entry->modificationTime) {
 			entry->lastAccess = _curTimeMillis; // safe since we are on 64-bit machines
 		} else {
 			// upgrade to write lock so that we can expire the entry
@@ -248,7 +249,7 @@ CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned cha
 			entry = (CacheEntry *)hashtable_search(cache->ht, (void *)key); 
 			if (entry != NULL) {
 				if (_curTimeMillis <= entry->expirationTime
-                        && minModificationTimeMillis <= entry->modificationTime) {
+                        && minModificationTimeMicros <= entry->modificationTime) {
 					// A new, non-expired entry slipped in
 					entry->lastAccess = _curTimeMillis; // safe since we are on 64-bit machines
 				} else {
@@ -359,7 +360,7 @@ CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned cha
 			if (_cache_logging_in_critical_section) {
 				srfsLog(LOG_FINE, "Creating op for missing cache entry %llx", key);
 			}
-			op = createOp(createOpContext, key, minModificationTimeMillis);
+			op = createOp(createOpContext, key, minModificationTimeMicros);
 			if (_cache_logging_in_critical_section) {
 				srfsLog(LOG_FINE, "Storing op in cache %llx", key);
 			}
@@ -605,9 +606,9 @@ static CacheStoreResult cache_store_entry(Cache *cache, CacheEntry *entry, int a
 	if (!alreadyLocked) {
 		pthread_rwlock_wrlock(&cache->rwLock);
 	}
-	pthread_spin_lock(&cache->statLock);
+	//pthread_spin_lock(&cache->statLock);
 	cache->stats.writes++;
-	pthread_spin_unlock(&cache->statLock);
+	//pthread_spin_unlock(&cache->statLock);
 	//oldEntry = (CacheEntry *)hashtable_remove(cache->ht, entry->key);
 	// can't remove here since we might need to leave it in and
 	// the hashtable destroys keys upon removal
@@ -726,13 +727,13 @@ static CacheStoreResult cache_store_entry(Cache *cache, CacheEntry *entry, int a
 }
 
 CacheStoreResult cache_store_dht_value(Cache *cache, void *key, int keySize, SKVal *pRVal, 
-                                        uint64_t modificationTimeMillis, uint64_t timeoutMillis) {
-	return cache_store_entry(cache, cache_entry_new(CACHE_DHT_VALUE, key, keySize, pRVal, sizeof(SKVal *), modificationTimeMillis, timeoutMillis));
+                                        uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
+	return cache_store_entry(cache, cache_entry_new(CACHE_DHT_VALUE, key, keySize, pRVal, sizeof(SKVal *), modificationTimeMicros, timeoutMillis));
 }
 
-CacheStoreResult cache_store_raw_data(Cache *cache, void *key, int keySize, void *data, size_t length, int replace, uint64_t modificationTimeMillis, uint64_t timeoutMillis) {
+CacheStoreResult cache_store_raw_data(Cache *cache, void *key, int keySize, void *data, size_t length, int replace, uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
 	return cache_store_entry(cache, cache_entry_new(CACHE_RAW_DATA, key, keySize, data, length, 
-                modificationTimeMillis, timeoutMillis), FALSE, FALSE, replace ? CRM_ALLOW : CRM_FATAL_ERROR);
+                modificationTimeMicros, timeoutMillis), FALSE, FALSE, replace ? CRM_ALLOW : CRM_FATAL_ERROR);
 }
 
 void cache_store_active_op(Cache *cache, void *key, int keySize, ActiveOp *op) {
@@ -749,36 +750,52 @@ void cache_store_active_op(Cache *cache, void *key, int keySize, ActiveOp *op) {
 }
 
 void cache_store_error(Cache *cache, void *key, int keySize, int errorCode, 
-                int notifyActiveOps_noStorage, uint64_t modificationTimeMillis, uint64_t timeoutMillis) {
+                int notifyActiveOps_noStorage, uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
 	int	*_errorCode;
 
 	_errorCode = int_dup(&errorCode);
 	srfsLog(LOG_FINE, "storing in cache error %d", errorCode);
 	cache_store_entry(cache, cache_entry_new(CACHE_ERROR_CODE, key, keySize, 
-        _errorCode, sizeof(int), modificationTimeMillis, timeoutMillis), FALSE,
+        _errorCode, sizeof(int), modificationTimeMicros, timeoutMillis), FALSE,
         notifyActiveOps_noStorage, CRM_WARN);
 }
 
-CacheEntry	*_cache_remove(Cache *cache, void *key) {
+static CacheEntry	*_cache_remove(Cache *cache, void *key, int removeActiveOps) {
 	CacheEntry	*entry;
+    int         removed;
 
     pthread_rwlock_wrlock(&cache->rwLock);
-	pthread_spin_lock(&cache->statLock);
-	cache->stats.removals++;
-	pthread_spin_unlock(&cache->statLock);
-	entry = (CacheEntry *)hashtable_remove(cache->ht, key);
+	if (!removeActiveOps) {
+		entry = (CacheEntry *)hashtable_search(cache->ht, key); 
+        if (entry != NULL && entry->type != CACHE_ACTIVE_OP) {
+            entry = (CacheEntry *)hashtable_remove(cache->ht, key);
+            removed = TRUE;
+        } else {
+            removed = FALSE;
+            entry = NULL;
+        }
+    } else {
+        entry = (CacheEntry *)hashtable_remove(cache->ht, key);
+        removed = TRUE;
+    }    
     pthread_rwlock_unlock(&cache->rwLock);
+    if (removed) {
+        pthread_spin_lock(&cache->statLock);
+        cache->stats.removals++;
+        pthread_spin_unlock(&cache->statLock);
+    }
 	return entry;
 }
 
-void cache_remove(Cache *cache, void *key) {
+void cache_remove(Cache *cache, void *key, int removeActiveOps) {
 	CacheEntry	*entry;
 
-	entry = _cache_remove(cache, key);
+	entry = _cache_remove(cache, key, removeActiveOps);
 	if (entry != NULL) {
 		cache_entry_delete(&entry);
 	} else {
-		srfsLog(LOG_WARNING, "attempted to delete non-existent entry %s", cache->name);
+		srfsLog(LOG_INFO, "Attempted to delete non-existent entry %s %s", 
+                            cache->name, removeActiveOps ? "or active op" : "");
 	}	
 }
 
@@ -865,8 +882,33 @@ static void cache_entry_delete(CacheEntry **entry, int deleteData, char *file, i
 			case CACHE_RAW_DATA:
 				mem_free(&(*entry)->data);
 				break;
+			case CACHE_DELETED_ENTRY:
+                if (_cache_fatal_error_on_double_free) {
+                    fatalError("Attempted to free CACHE_DELETED_ENTRY", file, line);
+                } else {
+                    srfsLog(LOG_WARNING, "Attempted to free CACHE_DELETED_ENTRY");
+                    return;
+                }
+                break;
 			case CACHE_DHT_VALUE:
+                {
+                SKVal   *pVal;
+                
+                pVal = (SKVal *)(*entry)->data;
+                if (pVal != NULL) {
+                    if (pVal->m_rc != SKOperationState::SUCCEEDED 
+                            && pVal->m_rc != SKOperationState::INCOMPLETE 
+                            && pVal->m_rc != SKOperationState::FAILED) {
+                        if (_cache_fatal_error_on_double_free) {
+                            fatalError("Bad m_rc in SKVal free. Possible double free", file, line);
+                        } else {
+                            srfsLog(LOG_WARNING, "Bad m_rc for SKVal free in cache_entry_delete. Possible double free");
+                            return;
+                        }
+                    }
+                }
 				sk_destroy_val((SKVal **)&(*entry)->data);
+                }
 				break;
 			case CACHE_ACTIVE_OP:
 				if ((*entry)->data != NULL) {
@@ -883,6 +925,7 @@ static void cache_entry_delete(CacheEntry **entry, int deleteData, char *file, i
 				break;
 			}
 		}
+        (*entry)->type = CACHE_DELETED_ENTRY;
 		mem_free((void **)entry, __FILE__, __LINE__);
 	} else {
 		fatalError("bad ptr in cache_entry_delete");

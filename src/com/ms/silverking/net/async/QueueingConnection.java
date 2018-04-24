@@ -397,7 +397,15 @@ public abstract class QueueingConnection<D extends OutgoingData,I extends Incomi
     @Override
 	public long getQueueLength() {
     	if (connected) {
-    		return outputQueue.size();
+    		long	size;
+    		
+    		size = outputQueue.size();
+    		if (size > 0) {
+    			// This is a temporary workaround
+    			// It seems under some situatiuons that writing can hang. This works around that
+    			enableWritesIfNotWriting();
+    		}
+    		return size;
     	} else {
     		return 0;
     	}

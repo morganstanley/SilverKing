@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -58,6 +59,16 @@ public class ResolvedReplicaMap {
             entriesBuilder.addAll(entryMap.valueSet());
         }
         return entriesBuilder.build();
+    }
+    
+    public Set<Set<IPAndPort>> getReplicaSets() {
+    	Set<Set<IPAndPort>>	replicaSets;
+    	
+    	replicaSets = new HashSet<>();
+    	for (MapEntry mapEntry : replicaMap.values()) {
+    		replicaSets.add(mapEntry.getReplicaSet(OwnerQueryMode.Primary));
+    	}
+    	return replicaSets;
     }
     
     public void addEntry(RingEntry entry) {
@@ -169,6 +180,42 @@ public class ResolvedReplicaMap {
             replicas[i] = new IPAndPort(replicaNodes.get(i).getIDString(), DHTNode.getServerPort());
         }
         return replicas;
+    }
+    
+    public boolean isSubset(ResolvedReplicaMap o) {
+    	for (RingEntry subEntry : o.getEntries()) {
+    		RingEntry	superEntry;
+    		
+    		superEntry = entryMap.get(subEntry.getRegion().getStart());
+    		if (superEntry == null) {
+    			return false;
+    		} else {
+    			if (!superEntry.isSubset(subEntry)) {
+    				return false;
+    			}
+    		}
+    	}
+    	return true;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+    	ResolvedReplicaMap o;
+    	
+    	o = (ResolvedReplicaMap)obj;
+    	for (RingEntry subEntry : o.getEntries()) {
+    		RingEntry	superEntry;
+    		
+    		superEntry = entryMap.get(subEntry.getRegion().getStart());
+    		if (superEntry == null) {
+    			return false;
+    		} else {
+    			if (!superEntry.equals(subEntry)) {
+    				return false;
+    			}
+    		}
+    	}
+    	return true;
     }
     
     private class MapEntry {
@@ -283,4 +330,24 @@ public class ResolvedReplicaMap {
     public Set<IPAndPort> allReplicas() {
         return allReplicas;
     }
+
+	public List<Set<IPAndPort>> getExcludedReplicaSets(Set<IPAndPort> exclusionSet) {
+		List<Set<IPAndPort>>	excludedReplicaSets;
+		
+		//System.out.printf("exclusionSet %s\n", exclusionSet);
+		excludedReplicaSets = new ArrayList<>();
+		for (MapEntry entry : replicaMap.values()) {
+			Set<IPAndPort>	replicaSet;
+			Set<IPAndPort>	_replicaSet;
+			
+			replicaSet = entry.getReplicaSet(OwnerQueryMode.Primary);
+			//System.out.printf("replicaSet %s\n", replicaSet);
+			_replicaSet = new HashSet<>(replicaSet);
+			_replicaSet.removeAll(exclusionSet);
+			if (_replicaSet.size() == 0) {
+				excludedReplicaSets.add(replicaSet);
+			}
+		}
+		return excludedReplicaSets;
+	}
 }

@@ -39,7 +39,6 @@ import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAddrUtil;
@@ -63,6 +62,9 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final NamespaceCreator  namespaceCreator;
     private final NamespaceOptionsClient    nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
+    
+    private static final Class<String>	defaultKeyClass = String.class;
+    private static final Class<byte[]>	defaultValueClass = byte[].class;
     
     /*
      * FUTURE - This class can be improved significantly. It contains remnants of the ActiveOperation* implementation.
@@ -175,7 +177,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 	            try {
                     MetaClient      mc;
     
-                    mc = new MetaClient(dhtConfig.getName(), new ZooKeeperConfig(dhtConfig.getZkLocs()));
+                    mc = new MetaClient(dhtConfig.getName(), dhtConfig.getZKConfig());
                     nsLinkMeta = new NamespaceLinkMeta(new NamespaceLinksZK(mc));
 	            } catch (Exception e) {
 	                throw new RuntimeException(e);
@@ -337,6 +339,11 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 	}
 
 	@Override
+	public AsynchronousNamespacePerspective<String,byte[]> openAsyncNamespacePerspective(String namespace) {
+		return openAsyncNamespacePerspective(namespace, defaultKeyClass, defaultValueClass);
+	}
+	
+	@Override
 	public <K, V> SynchronousNamespacePerspective<K, V> openSyncNamespacePerspective(String namespace, 
 	                                                                NamespacePerspectiveOptions<K,V> nspOptions) {
         return new SynchronousNamespacePerspectiveImpl<K, V>(getClientNamespace(namespace), namespace, 
@@ -352,7 +359,11 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         return new SynchronousNamespacePerspectiveImpl<K, V>(ns, namespace, 
                 new NamespacePerspectiveOptionsImpl<>(ns.getDefaultNSPOptions(keyClass, valueClass), serializationRegistry));
 	}
-
+	
+	@Override
+	public SynchronousNamespacePerspective<String,byte[]> openSyncNamespacePerspective(String namespace) {
+		return openSyncNamespacePerspective(namespace, defaultKeyClass, defaultValueClass);
+	}
 
 	@Override
 	public void close() {

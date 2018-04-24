@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht;
 
 import java.util.concurrent.TimeUnit;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -10,14 +11,15 @@ import com.ms.silverking.time.SystemTimeSource;
 public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<InvalidatedRetentionState> {
 	private final long	invalidatedRetentionIntervalSeconds;
 	
-	private static final InvalidatedRetentionPolicy	template = new InvalidatedRetentionPolicy(0);
+	static final InvalidatedRetentionPolicy	template = new InvalidatedRetentionPolicy(0);
 
 	static {
         ObjectDefParser2.addParser(template);
     }
 	
+	@OmitGeneration
 	public InvalidatedRetentionPolicy(long invalidatedRetentionIntervalSeconds) {
-		this.invalidatedRetentionIntervalSeconds = TimeUnit.SECONDS.convert(invalidatedRetentionIntervalSeconds, TimeUnit.SECONDS);
+		this.invalidatedRetentionIntervalSeconds = invalidatedRetentionIntervalSeconds;
 	}
 	
 	@Override
@@ -28,9 +30,6 @@ public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<Invalida
 	@Override
 	public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated, 
 						   InvalidatedRetentionState invalidatedRetentionState, long curTimeNanos) {
-		long	invalidatedRetentionIntervalNanos;
-		
-		invalidatedRetentionIntervalNanos = TimeUnit.NANOSECONDS.convert(invalidatedRetentionIntervalSeconds, TimeUnit.SECONDS);
 		if (!invalidated) {
 			if (invalidatedRetentionState.isInvalidated(key)) {
 				invalidated = true;
@@ -39,7 +38,10 @@ public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<Invalida
 			invalidatedRetentionState.setInvalidated(key);
 		}
 		if (invalidated) {
-			return creationTimeNanos > curTimeNanos - invalidatedRetentionIntervalNanos;
+			long	invalidatedRetentionIntervalNanos;
+			
+			invalidatedRetentionIntervalNanos = TimeUnit.NANOSECONDS.convert(invalidatedRetentionIntervalSeconds, TimeUnit.SECONDS);
+			return creationTimeNanos + invalidatedRetentionIntervalNanos > curTimeNanos;
 		} else {
 			return true;
 		}
@@ -57,6 +59,14 @@ public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<Invalida
 	
 	@Override
 	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		
+		if (this.getClass() != o.getClass()) {
+			return false;
+		}
+		
 		InvalidatedRetentionPolicy	other;
 		
 		other = (InvalidatedRetentionPolicy)o;
@@ -82,6 +92,8 @@ public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<Invalida
     	System.out.println(def);
     	irp2 = parse(def);
     	System.out.println(irp2);
+    	irp2 = parse("invalidatedRetentionIntervalSeconds=10");
+    	System.out.println(irp2);
     	
     	InvalidatedRetentionState	invalidatedRetentionState;
     	long	creationTimeNanos;
@@ -101,6 +113,6 @@ public class InvalidatedRetentionPolicy implements ValueRetentionPolicy<Invalida
     	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));
     	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
     	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));    	
-    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
+    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));    	
     }
 }

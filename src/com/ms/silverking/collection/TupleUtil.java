@@ -13,6 +13,10 @@ public class TupleUtil {
     	
     	def = def.trim();
     	rawList = ImmutableList.copyOf(def.split(pattern));
+    	if (typeNames.length != expectedLength) {
+    		Log.warningf("%d != %d", typeNames.length, expectedLength);
+    		throw new RuntimeException("Expected length typeNames not provided");
+    	}
     	if (rawList.size() != expectedLength) {
     		Log.warningf("%d != %d from %s", rawList.size(), expectedLength, def);
     		throw new RuntimeException("Expected length not met");
@@ -28,6 +32,8 @@ public class TupleUtil {
     			cookedList.add(Long.parseLong(rawList.get(i)));
     		} else if (typeName.equals(java.lang.Integer.class.getName())) {
     			cookedList.add(Integer.parseInt(rawList.get(i)));
+    		} else if (typeName.equals(java.lang.Double.class.getName())) {
+    			cookedList.add(Double.parseDouble(rawList.get(i)));
     		} else {
     			throw new RuntimeException("Unsupported type: "+ typeName);
     		}

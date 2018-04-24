@@ -45,7 +45,9 @@ public enum OpResult {
     			return true;
     		} else {
     			// For a context where NO_SUCH_VALUE may exist, the NonExistenceResponse version must be used
-    			throw new RuntimeException("Unexpected NO_SUCH_VALUE in hasFailed()"); 
+    			//throw new RuntimeException("Unexpected NO_SUCH_VALUE in hasFailed() ");
+    			// We allow this as setting the OpResult may occur after results are added, due to async access
+    			return false;
     		}
     	}
     }

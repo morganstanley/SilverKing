@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
@@ -21,11 +22,13 @@ import com.ms.silverking.cloud.meta.VersionedDefinition;
 import com.ms.silverking.collection.HashedSetMap;
 import com.ms.silverking.net.InetAddressComparator;
 
-public class HostGroupTable implements VersionedDefinition {
-    private final HashedSetMap<String, InetAddress> groupToServerMap;
+public class HostGroupTable implements VersionedDefinition, Serializable {
+	private final HashedSetMap<String, InetAddress> groupToServerMap;
 	private final HashedSetMap<String, String>	    groupToServerAddressMap;
     private final HashedSetMap<InetAddress, String> serverToGroupMap;
 	private final long                              version;
+	
+	private static final long serialVersionUID = 7151811840390960914L;
 	
 	public HostGroupTable(HashedSetMap<String, InetAddress> groupToServerMap, long version) {
 		this.groupToServerMap = groupToServerMap;

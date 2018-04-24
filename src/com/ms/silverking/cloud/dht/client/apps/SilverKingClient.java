@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-import jline.console.ConsoleReader;
-
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -50,6 +48,7 @@ import com.ms.silverking.cloud.dht.client.impl.MetaDataTextUtil;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
+import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.os.OSUtil;
@@ -60,6 +59,8 @@ import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
+
+import jline.console.ConsoleReader;
 
 public class SilverKingClient {
     private final BufferedReader    in;
@@ -189,7 +190,12 @@ public class SilverKingClient {
         for (String key : sortedList(keys)) {
             StoredValue<byte[]>    storedValue;
 
-            storedValue = storedValues.get(key); 
+            storedValue = storedValues.get(key);
+            if (verbose) {
+            	if (storedValue.getValue() != null) {
+            		out.printf("[Value returned with MetaData. Length %d]", storedValue.getValue().length);
+            	}
+            }
             out.printf("\n%s\n%s\n", key, storedValue != null ? MetaDataTextUtil.toMetaDataString(storedValue.getMetaData(), true) : noSuchValue);
         }
     }
@@ -305,6 +311,21 @@ public class SilverKingClient {
         return keyValues;
     }
     
+    private void doCopy(String[] args) throws OperationException, IOException {
+    	String	src;
+    	String	dest;
+    	byte[]	value;
+    	
+    	if (args.length != 2) {
+    		throw new RuntimeException("Bad args");
+    	}
+    	src = args[0];
+    	dest = args[1];
+    	out.printf("Copying %s => %s\n", src, dest);
+    	value = syncNSP.get(src);
+    	syncNSP.put(dest, value);
+    }
+    
     private void doPutRandom(String[] args) throws OperationException, IOException {
         Map<String,byte[]>  map;
         ImmutableMap.Builder<String,byte[]>    builder;
@@ -330,6 +351,27 @@ public class SilverKingClient {
     private void doPut(String[] args) throws OperationException, IOException {
         Map<String,byte[]>  map;
         ImmutableMap.Builder<String,byte[]>    builder;
+        PutOptions	putOptions;
+        
+        if (args[0].startsWith("{")) {
+            if (!args[0].endsWith("}")) {
+                err.printf("putOptions missing closing }\n");
+                return;
+            } else {
+                String[]    newArgs;
+                
+                newArgs = new String[args.length - 1];
+                System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+                putOptions = ((PutOptions)ObjectDefParser2.parse(PutOptions.class, 
+                                args[0].substring(1, args[0].length() - 1)));
+                if (verbose) {
+                    out.printf("putOptions: %s\n", putOptions);
+                }
+                args = newArgs;
+            }
+        } else {
+        	putOptions = syncNSP.getNamespace().getOptions().getDefaultPutOptions();
+        }
         
         builder = ImmutableMap.builder();
         for (int i = 0; i < args.length; i += 2) {
@@ -340,7 +382,7 @@ public class SilverKingClient {
         sw.reset();
         try {
             for (int i = 0; i < reps; i++) {
-                syncNSP.put(map);
+                syncNSP.put(map, putOptions);
             }
         } catch (PutException pe) {
             out.println(pe.getDetailedFailureMessage());
@@ -724,6 +766,7 @@ public class SilverKingClient {
         case WaitFor: doRetrieve(args, valueFormat.getRetrievalType(), WaitMode.WAIT_FOR); break;
         case Get: doRetrieve(args, valueFormat.getRetrievalType(), WaitMode.GET); break;
         case Retrieve: doRetrieve(args, valueFormat.getRetrievalType()); break;
+        case Copy: doCopy(args); break;
         case GetMeta: doRetrieve(args, RetrievalType.META_DATA, WaitMode.GET); break;
         case GetAllValuesForKey: doRetrieveAllValuesForKey(args); break;
         case CreateNamespace: 
@@ -835,20 +878,30 @@ public class SilverKingClient {
     		} catch (CmdLineException cle) {
     			System.err.println(cle.getMessage());
     			parser.printUsage(System.err);
-    			return;
+    			System.exit(-1);
     		}
+    		
+    		if (options.gridConfig == null) {
+    			options.gridConfig = GridConfiguration.getDefaultGC();
+    		}
+    		
     		if (options.gridConfig == null && options.clientDHTConfiguration == null && !SessionOptions.isReservedServerName(options.server)) {
     			System.err.println("Neither gridConfig nor clientDHTConfiguration provided, but server name is not reserved");
     			parser.printUsage(System.err);
-    			return;
+    			System.exit(-1);
     		}
     		Log.setLevel(options.logLevel);
     		Log.fine(options);
     		//if (options.verbose) {
     		//    Log.setLevelAll();
     		//}
+    		
     		if (options.gridConfig != null) {
-    			configProvider = SKGridConfiguration.parseFile(options.gridConfig);
+        		if (options.gridConfigBase != null) {
+        			configProvider = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
+        		} else {
+        			configProvider = SKGridConfiguration.parseFile(options.gridConfig);
+        		}
     		} else if (options.clientDHTConfiguration != null) {
     			configProvider = ClientDHTConfiguration.parse(options.clientDHTConfiguration);
     		} else {
@@ -872,6 +925,7 @@ public class SilverKingClient {
     		System.exit(0);
     	} catch (Exception e) {
     		e.printStackTrace();
+			System.exit(-1);
     	}
     }
 	
@@ -892,7 +946,7 @@ public class SilverKingClient {
 					commandArg = "";
 				}
 			} else {
-				if (arg.startsWith("-")) {
+				if (arg.startsWith("-") && arg.length() > 1 && !Character.isDigit(arg.charAt(1))) {
 					newArgs.add(commandArg);
 					newArgs.add(arg);
 					inCommand = false;

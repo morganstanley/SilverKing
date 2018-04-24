@@ -9,6 +9,7 @@ public abstract class MessageFormat {
     public static final int   protocolVersionSize = 1;
     public static final int   lengthSize = NumConversion.BYTES_PER_INT;
     public static final int   typeSize = 1;
+    public static final int   optionsSize = 3;
     public static final int   uuidMSLSize = NumConversion.BYTES_PER_LONG;
     public static final int   uuidLSLSize = NumConversion.BYTES_PER_LONG;
     public static final int   contextSize = NumConversion.BYTES_PER_LONG;
@@ -20,7 +21,8 @@ public abstract class MessageFormat {
     public static final int   protocolVersionOffset = preambleOffset + preambleSize;
     public static final int   lengthOffset = protocolVersionOffset + protocolVersionSize;
     public static final int   typeOffset = lengthOffset + lengthSize;
-    public static final int   uuidMSLOffset = typeOffset + typeSize;
+    public static final int   optionsOffset = typeOffset + typeSize;
+    public static final int   uuidMSLOffset = optionsOffset + optionsSize;
     public static final int   uuidLSLOffset = uuidMSLOffset + uuidMSLSize;
     public static final int   contextOffset = uuidLSLOffset + uuidLSLSize;
     public static final int   originatorOffset = contextOffset + contextSize;

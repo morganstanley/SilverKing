@@ -15,9 +15,9 @@ import com.ms.silverking.text.ObjectDefParser2;
 public class WaitForTimeoutController implements OpTimeoutController {
     private final int   internalRetryIntervalSeconds;
     
-    private static final int    defaultInternalRetryIntervalSeconds = 20;
+    static final int    defaultInternalRetryIntervalSeconds = 20;
     
-    private static final WaitForTimeoutController    template = new WaitForTimeoutController();
+    static final WaitForTimeoutController    template = new WaitForTimeoutController();
 
     static {
         ObjectDefParser2.addParser(template);
@@ -57,15 +57,36 @@ public class WaitForTimeoutController implements OpTimeoutController {
     }
     
     @Override
-    public boolean equals(Object obj) {
-    	WaitForTimeoutController	o;
+    public int hashCode() {
+    	return Integer.hashCode(internalRetryIntervalSeconds);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+    	if (this == o) {
+    		return true;
+    	}
     	
-    	o = (WaitForTimeoutController)obj;
-    	return internalRetryIntervalSeconds == o.internalRetryIntervalSeconds;
+    	if (this.getClass() != o.getClass()) {
+    		return false;
+    	}
+
+    	WaitForTimeoutController other;
+    	other = (WaitForTimeoutController)o;
+    	return internalRetryIntervalSeconds == other.internalRetryIntervalSeconds;
     }    
     
     @Override
     public String toString() {
         return ObjectDefParser2.objectToString(this);
+    }
+    
+    /**
+     * Parse a definition 
+     * @param def object definition 
+     * @return a parsed instance 
+     */
+    public static WaitForTimeoutController parse(String def) {
+        return ObjectDefParser2.parse(WaitForTimeoutController.class, def);
     }
 }

@@ -15,7 +15,7 @@ class SilverkingDBConstants {
 	private static final int	segmentSize = 67108864;
 	
     static final PutOptions putOptions = new PutOptions( new OpSizeBasedTimeoutController(),
-    										null, 
+    										DHTConstants.noSecondaryTargets, 
     										Compression.NONE,
                                             ChecksumType.NONE,
                                             false,

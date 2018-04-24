@@ -244,6 +244,12 @@ public final class Log {
         }
 	}	
 	
+	public static void infof(String f, Object... args) {
+		if (levelMet(Level.INFO)) {
+			info(String.format(f, args));
+		}
+	}
+	
 	public static void log(Object o) {
         if (Log.levelMet(Level.INFO)) {
     		if (o != null) {

@@ -8,7 +8,7 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel.MapMode;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
-import com.ms.silverking.cloud.dht.collection.HybridPartialKeyCuckoo;
+import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
 import com.ms.silverking.numeric.NumConversion;
 
 class RAMSegment extends WritableSegmentBase {
@@ -38,9 +38,10 @@ class RAMSegment extends WritableSegmentBase {
         super(nsDir, segmentNumber, dataBuf, StoreConfiguration.ramInitialCuckooConfig, dataSegmentSize, nsOptions);
     }
 
+    @Override
     public void persist() throws IOException {
         ByteBuffer  htBuf;
-        long[]      ht;
+        byte[]      ht;
         int         offsetStoreSize;
         int         htBufSize;
         long        mapSize;
@@ -50,19 +51,22 @@ class RAMSegment extends WritableSegmentBase {
         RandomAccessFile    raFile;
         
         raFile = new RandomAccessFile(fileForSegment(nsDir, segmentNumber), "rw");
-        
-        raFile.write(dataBuf.array());
-        
-        ht = ((HybridPartialKeyCuckoo)pkc).getHashTableArray();
-        htBufSize = ht.length * NumConversion.BYTES_PER_LONG;
-        mapSize = NumConversion.BYTES_PER_INT + htBufSize + offsetStoreSize;
-        htBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, mapSize).order(ByteOrder.nativeOrder());
-        htBuf.putInt(htBufSize);
-        //System.out.printf("\tpersist htBufSize: %d\tmapSize: %d\n", htBufSize, mapSize);
-        htBuf.asLongBuffer().put(ht);
-        htBuf.position(NumConversion.BYTES_PER_INT + htBufSize);
-        ((RAMOffsetListStore)offsetListStore).persist(htBuf);
-        //((sun.nio.ch.DirectBuffer)htBuf).cleaner().clean();
+        try {        
+	        raFile.write(dataBuf.array());
+	        
+	        ht = ((IntArrayCuckoo)keyToOffset).getAsBytes();
+	        htBufSize = ht.length;
+	        mapSize = NumConversion.BYTES_PER_INT + htBufSize + offsetStoreSize;
+	        htBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, mapSize).order(ByteOrder.nativeOrder());
+	        htBuf.putInt(htBufSize);
+	        //System.out.printf("\tpersist htBufSize: %d\tmapSize: %d\n", htBufSize, mapSize);
+	        htBuf.put(ht);
+	        htBuf.position(NumConversion.BYTES_PER_INT + htBufSize);
+	        ((RAMOffsetListStore)offsetListStore).persist(htBuf);
+	        //((sun.nio.ch.DirectBuffer)htBuf).cleaner().clean();
+        } finally {
+        	raFile.close();
+        }
         close();
     }
     

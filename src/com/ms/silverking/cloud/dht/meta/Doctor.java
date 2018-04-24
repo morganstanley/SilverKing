@@ -24,12 +24,18 @@ public class Doctor {
 	private final SKGridConfiguration	gc;
 	private final ConcurrentMap<String, Patient>			patients;
 	private final boolean	forceInclusionOfUnsafeExcludedServers;
+	private final int	nodeStartupTimeoutSeconds;
 	
 	private static final int	reachabilityTimeoutMillis = 20 * 1000;
 	
-	public Doctor(GridConfiguration gc, boolean forceInclusionOfUnsafeExcludedServers) {
+	static {
+		SKAdmin.exitOnCompletion = false;
+	}
+	
+	public Doctor(GridConfiguration gc, boolean forceInclusionOfUnsafeExcludedServers, int nodeStartupTimeoutSeconds) {
 		this.gc = new SKGridConfiguration(gc);
 		this.forceInclusionOfUnsafeExcludedServers = forceInclusionOfUnsafeExcludedServers;
+		this.nodeStartupTimeoutSeconds = nodeStartupTimeoutSeconds;
 		patients = new ConcurrentHashMap<>();
 	}
 	
@@ -96,9 +102,14 @@ public class Doctor {
 	public void startNodes(Set<String> nodes) {
 		String	args;
 		
-		args = "-g "+ gc.getName() +" -c StartNodes "+ (forceInclusionOfUnsafeExcludedServers ? "-forceUnsafe " :"") +"-e -H "+ CollectionUtil.toString(nodes, ','); 
+		args = "-g "+ gc.getName() +" -c StartNodes -to "+ nodeStartupTimeoutSeconds +" -r "
+		+ (forceInclusionOfUnsafeExcludedServers ? "-forceUnsafe " :"") +"-e -t "+ CollectionUtil.toString(nodes, ','); 
 		Log.warningf("args: {%s} ", args);
-		SKAdmin.main(args.split("\\s+"));
+		try {
+			SKAdmin.main(args.split("\\s+"));
+		} catch (IneligibleServerException ise) {
+			Log.warningf("Ignoring IneligibleServerException %s", ise.getMessage());
+		}
 	}
 	
 	public void makeRounds() {
@@ -149,7 +160,7 @@ public class Doctor {
 		try {
 			Doctor	doctor;
 			
-			doctor = new Doctor(GridConfiguration.parseFile(args[0]), false);
+			doctor = new Doctor(GridConfiguration.parseFile(args[0]), false, Integer.parseInt(args[1]));
 			for (int i = 1; i < args.length; i++) {
 				String	arg;
 				

@@ -13,6 +13,7 @@ import org.apache.zookeeper.data.Stat;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.io.IOUtil;
 
@@ -36,8 +37,10 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     
     public String getLatestZKPath() throws KeeperException {
         long            version;
-
-        version = zk.getLatestVersion(exclusionsPath);
+        ZooKeeperExtended   _zk;
+        
+        _zk = mc.getZooKeeper();
+        version = _zk.getLatestVersion(exclusionsPath);
         if (version < 0) {
         	return null;
         } else {
@@ -56,11 +59,16 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
         //List<String>    nodes;
         String[]        nodes;
         Stat			stat;
-
+        ZooKeeperExtended   _zk;
+        
+        _zk = mc.getZooKeeper();
+        if (version == VersionedDefinition.NO_VERSION) {
+        	version = _zk.getLatestVersion(base);
+        }
         vBase = getVBase(version);
         //nodes = zk.getChildren(vBase);
         stat = new Stat();
-        nodes = zk.getString(vBase, null, stat).split("\n");
+        nodes = _zk.getString(vBase, null, stat).split("\n");
         return new ExclusionSet(ImmutableSet.copyOf(nodes), version, stat.getMzxid());
     }
     
@@ -70,8 +78,10 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     
     private Set<String> readNodesAsSet(String path, Stat stat) throws KeeperException {
         String[]        nodes;
-
-        nodes = zk.getString(path, null, stat).split("\n");
+        ZooKeeperExtended   _zk;
+        
+        _zk = mc.getZooKeeper();
+        nodes = _zk.getString(path, null, stat).split("\n");
         return ImmutableSet.copyOf(nodes);
     }
     
@@ -79,11 +89,17 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
         String          vBase;
         long            version;
         Stat			stat;
-
-        version = zk.getLatestVersion(exclusionsPath);
-        vBase = getVBase(version);
-        stat = new Stat();
-        return new ExclusionSet(readNodesAsSet(vBase, stat), version, stat.getMzxid());
+        ZooKeeperExtended   _zk;
+        
+        _zk = mc.getZooKeeper();
+        version = _zk.getLatestVersion(exclusionsPath);
+        if (version >= 0) {
+	        vBase = getVBase(version);
+	        stat = new Stat();
+	        return new ExclusionSet(readNodesAsSet(vBase, stat), version, stat.getMzxid());
+        } else {
+        	return ExclusionSet.emptyExclusionSet(0);
+        }
     }
     
     @Override
@@ -99,9 +115,11 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     public String writeToZK(ExclusionSet exclusionSet, MetaToolOptions options) throws IOException, KeeperException {
         String  vBase;
         String  zkVal;
+        ZooKeeperExtended   _zk;
         
+        _zk = mc.getZooKeeper();
         zkVal = CollectionUtil.toString(exclusionSet.getServers(), "", "", delimiterChar, "");
-        vBase = zk.createString(base +"/" , zkVal, CreateMode.PERSISTENT_SEQUENTIAL);
+        vBase = _zk.createString(base +"/" , zkVal, CreateMode.PERSISTENT_SEQUENTIAL);
         /*
         vBase = zk.createString(base +"/" , "", CreateMode.PERSISTENT_SEQUENTIAL);
         for (String entity : exclusionList.getServers()) {
@@ -114,9 +132,11 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     
     public long getVersionMzxid(long version) throws KeeperException {
     	Stat	stat;
-    	
+        ZooKeeperExtended   _zk;
+        
+        _zk = mc.getZooKeeper();
     	stat = new Stat();
-        zk.getString(getVBase(version), null, stat);    	
+        _zk.getString(getVBase(version), null, stat);    	
     	return stat.getMzxid();
     }
     
@@ -124,10 +144,12 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     	Map<String,Long>	esStarts;
         long    latestExclusionSetVersion;
         Map<String,Set<String>> exclusionSets;
+        ZooKeeperExtended   _zk;
         
+        _zk = mc.getZooKeeper();
         esStarts = new HashMap<>();
         exclusionSets = new HashMap<>();
-        latestExclusionSetVersion = zk.getLatestVersion(exclusionsPath);
+        latestExclusionSetVersion = _zk.getLatestVersion(exclusionsPath);
         for (String server : servers) {
         	esStarts.put(server, getStartOfCurrentExclusion(server, latestExclusionSetVersion, exclusionSets));
         }

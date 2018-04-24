@@ -87,13 +87,13 @@ public class NamespaceMetaStore {
     }
     
     private String getNamespaceMetaDataReplicas(long ns) {
-        SynchronousNamespacePerspective<Long,String>  syncNSP;
+        SynchronousNamespacePerspective<String,String>  syncNSP;
         String  locations;
         
         syncNSP = session.getNamespace(Namespace.replicasName)
-                         .openSyncPerspective(Long.class, String.class);
+                         .openSyncPerspective(String.class, String.class);
         try {
-            locations = syncNSP.get(ns);
+            locations = syncNSP.get(Long.toString(ns));
             return locations;
         } catch (RetrievalException re2) {
             Log.warning(re2.getDetailedFailureMessage());

@@ -17,7 +17,9 @@ public class ConvergencePoint implements Comparable<ConvergencePoint> {
     private final long              dataVersion;
     
     public ConvergencePoint(long dhtConfigVersion, RingIDAndVersionPair ringIDAndVersion, long dataVersion) {
-        this.dhtConfigVersion = dhtConfigVersion;
+        //this.dhtConfigVersion = dhtConfigVersion;
+    								// dhtConfigVersion is to be deprecated
+        this.dhtConfigVersion = 16; // dhtConfigVersion hasn't proven to be useful as the remaining members are sufficient to describe a CP. 
         this.ringIDAndVersionPair = ringIDAndVersion;
         this.dataVersion = dataVersion;
     }

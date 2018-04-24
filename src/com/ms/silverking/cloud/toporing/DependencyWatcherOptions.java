@@ -18,6 +18,9 @@ public class DependencyWatcherOptions {
     @Option(name="-s", usage="ignoreSource", required=false)
     boolean	ignoreSource = false;
     
+    @Option(name="-I", usage="ignoreInstanceExclusions", required=false)
+    boolean	ignoreInstanceExclusions = false;
+    
     @Option(name="-x", usage="exitAfterBuild", required=false)
     boolean	exitAfterBuild = false;
     

@@ -26,4 +26,13 @@ public class SimpleNamespaceCreator implements NamespaceCreator {
             throw new RuntimeException("panic");
         }
     }
+    
+    public static void main(String[] args) {
+    	for (String arg : args) {
+    		Namespace	ns;
+    		
+    		ns = new SimpleNamespaceCreator().createNamespace(arg);
+    		System.out.printf("%s\t%x\t%d\n", arg, ns.contextAsLong(), ns.contextAsLong());
+    	}
+    }
 }

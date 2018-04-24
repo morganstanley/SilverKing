@@ -1,0 +1,92 @@
+
+source lib/build_sk_client.vars
+
+function f_generateCppWrapper {
+	f_printSection "Generating C++ Wrappers from Java classes"
+
+	f_cleanOrMakeDirectory "$PROXY_SRC_DIR2_GEN"
+	
+	typeset skClasspath=$(f_getSkClasspath)
+	$JAVA_8 -cp $skClasspath com.ms.silverking.cloud.dht.client.gen.WrapperGenerator -c $OUT_CLASSES_SRC_DIR -i com.ms.silverking.cloud.dht,com.ms.silverking.cloud.dht.client,com.ms.silverking.cloud.gridconfig,com.ms.silverking.cloud.dht.gridconfig -f $GENERATED_SRC/CPPTemplate.txt -tm $GENERATED_SRC/CPPTypeMap.txt -o $PROXY_SRC_DIR2_GEN -d																											    
+}
+
+function f_compileAndLinkProxiesIntoLib {
+	# params
+	typeset cc=$1
+	typeset cc_opts=$2
+	typeset inc_opts=$3
+	typeset ld=$4
+	typeset ld_opts=$5
+	typeset lib_opts=$6
+	
+	f_printSection "Compiling and linking proxies into lib"
+	
+	typeset buildObjDir=$SILVERKING_BUILD_ARCH_DIR/proxyLib2
+	f_cleanOrMakeDirectory "$buildObjDir"
+	f_cleanOrMakeDirectory "${buildObjDir}_2"
+	
+	# build
+	cp $GENERATED_SRC/SKJNIBase.h              $PROXY_SRC_DIR2/
+	cp $GENERATED_SRC/cpp_base/Object.h        $PROXY_SRC_DIR2_GEN/
+	cp $GENERATED_SRC/cpp_base/Object.cpp      $PROXY_SRC_DIR2_GEN/
+	cp $GENERATED_SRC/cpp_base/Enum.h          $PROXY_SRC_DIR2_GEN/
+	cp $GENERATED_SRC/cpp_base/Enum.cpp        $PROXY_SRC_DIR2_GEN/
+	cp $GENERATED_SRC/cpp_base/Exception.h     $PROXY_SRC_DIR2_GEN/
+	cp $GENERATED_SRC/cpp_base/Exception.cpp   $PROXY_SRC_DIR2_GEN/
+
+	# this has to be here! or else you will get weird characters at the end of your dependenciesLine grep result below and it'll screw up the compile
+	dos2unix $PROXY_SRC_DIR2_GEN/BuildSKLib.sh
+
+	typeset incDirs="-I${JAVA_INC} -I${JAVA_OS_INC} -I${BOOST_INC}"
+	typeset libDirs="-L${JAVA_8_HOME}/jre/lib/amd64 -L${BOOST_LIB}"
+
+	typeset dependenciesLine=`grep 'Dependencies=' $PROXY_SRC_DIR2_GEN/BuildSKLib.sh` 
+	typeset dependencies=`echo "$dependenciesLine" | sed "s#gen/#$PROXY_SRC_DIR2_GEN/#g" | sed s#Dependencies=## | sed s#\"##g`
+	
+	echo
+	echo "Compile/Run style1"
+	f_compileAssembleLink "$dependencies $PROXY_SRC_DIR2_GEN/Object.cpp $PROXY_SRC_DIR2_GEN/Enum.cpp $PROXY_SRC_DIR2_GEN/Exception.cpp $PROXY_SRC_DIR2_GEN/InitializeSK.cpp $GENERATED_SRC/SKJNIBase.cpp $GENERATED_SRC/SKJNITest.cpp" "$buildObjDir/SkJniTest" "$cc" "$cc_opts" "$incDirs" "$libDirs -L${JAVA_LIB} -ljvm"
+	
+	# run
+	export LD_LIBRARY_PATH=$JAVA_LIB
+	$buildObjDir/SkJniTest GC_SK_Test_holstben
+	
+	f_compileAssembleDirectoryTree "$PROXY_SRC_DIR2" "${buildObjDir}_2" "$cc" "$cc_opts" "$incDirs"
+	f_createStaticLibrary "clickMe"       "$INSTALL_ARCH_LIB_DIR" "${buildObjDir}_2/$ALL_DOT_O_FILES" ""
+	f_createSharedLibrary "clickMe"       "$INSTALL_ARCH_LIB_DIR" "${buildObjDir}_2/$ALL_DOT_O_FILES" "$ld" "" "$libDirs -L${JAVA_LIB} -ljvm"
+	
+	f_testEquals "${buildObjDir}_2" "$ALL_DOT_O_FILES" "96"
+	f_testEquals "$INSTALL_ARCH_LIB_DIR" "libclickMe.a" "1"
+	f_testEquals "$INSTALL_ARCH_LIB_DIR" "libclickMe.so" "1"
+	
+	echo
+	echo "Compile/Run style2"
+	$cc -Wall -L${INSTALL_ARCH_LIB_DIR} -lclickMe -o ${buildObjDir}_2/executable-name
+	
+	export LD_LIBRARY_PATH=$JAVA_LIB:$INSTALL_ARCH_LIB_DIR
+	${buildObjDir}_2/executable-name
+	
+	echo
+	echo "Compile/Run style3"
+	f_createSharedLibrary "clickMe_rpath" "$INSTALL_ARCH_LIB_DIR" "${buildObjDir}_2/$ALL_DOT_O_FILES" "$ld" "-Wl,--rpath,${JAVA_LIB} -Wl,--rpath,${INSTALL_ARCH_LIB_DIR}" "$libDirs -L${JAVA_LIB} -ljvm"
+	$cc -Wall -L${INSTALL_ARCH_LIB_DIR} -lclickMe_rpath -o ${buildObjDir}_2/executable-name-2
+	${buildObjDir}_2/executable-name-2
+}
+
+function f_installHeaderFiles {
+	f_printSection "Installing Header Files"
+	typeset iDir=${INSTALL_COMMON_INC_DIR}_2
+	f_makeWithParents $iDir
+	f_makeWithParents $iDir/gen
+	cp -fr $PROXY_SRC_DIR2/*.h $iDir/
+	
+	cp -f $DHT_CLIENT_SRC_DIR/sk*.h \
+	$DHT_CLIENT_SRC_DIR/SKValueCreator.h \
+	$DHT_CLIENT_SRC_DIR/SKClient.h \
+	$DHT_CLIENT_SRC_DIR/SKSession.h \
+	$DHT_CLIENT_SRC_DIR/SKNamespace.h \
+	$DHT_CLIENT_SRC_DIR/SKSyncNSPerspective.h \
+	$DHT_CLIENT_SRC_DIR/SKSyncReadableNSPerspective.h \
+	$DHT_CLIENT_SRC_DIR/SK*.h \
+	$iDir/gen
+}

@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 import org.apache.zookeeper.KeeperException;
 
@@ -34,7 +35,6 @@ import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingTree;
 import com.ms.silverking.cloud.toporing.RingTreeBuilder;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
-import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
@@ -80,7 +80,9 @@ public class RingMapState2 {
     private static final String ancestorClassSpec = "AncestorClass";
     
     private static final int    exclusionCheckInitialIntervalMillis = 0;    
-    private static final int    exclusionCheckIntervalMillis = 1 * 60 * 1000;    
+    private static final int    exclusionCheckIntervalMillis = 1 * 60 * 1000;
+    
+    private static final int	defaultIPDistanceMask = 0xffffff00;
     
     private static final boolean    verboseStateTransition = true;
     static final boolean    debug = true;
@@ -158,11 +160,13 @@ public class RingMapState2 {
 	        Log.logErrorWarning(e);
 	        throw new RuntimeException(e);
 	    }
-	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());            
+	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SimpleIPDistancePrioritizer(nodeID, defaultIPDistanceMask));
 	    ringTreeMinusExclusions = newRingTree;
 	    resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-	    System.out.println("\tResolved Map");
-	    resolvedReplicaMapMinusExclusions.display();
+	    if (Log.levelMet(Level.INFO)) {
+		    System.out.println("\tResolved Map");
+		    resolvedReplicaMapMinusExclusions.display();
+	    }
         
         Log.warning("RingMapState done reading initial exclusions");
     }
@@ -373,11 +377,13 @@ public class RingMapState2 {
 	                throw new RuntimeException(e);
 	            }
 	
-	            newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());            
+	            newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SimpleIPDistancePrioritizer(nodeID, defaultIPDistanceMask));            
 	            ringTreeMinusExclusions = newRingTree;
 	            resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-	            System.out.println("\tResolved Map");
-	            resolvedReplicaMapMinusExclusions.display();
+	    	    if (Log.levelMet(Level.INFO)) {
+		            System.out.println("\tResolved Map");
+		            resolvedReplicaMapMinusExclusions.display();
+	    	    }
         	} finally {
             	Log.warningf("Signaling exclusionSetInitialized: %s", ringIDAndVersionPair);
             	/*

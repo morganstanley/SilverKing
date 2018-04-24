@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
+import com.ms.silverking.numeric.NumConversion;
 
 /**
  * 
@@ -29,6 +30,30 @@ public class IntArrayCuckoo extends CuckooBase implements Iterable<DHTKeyIntEntr
                                         extraShiftPerTable[numSubTables] * i);
         }
         setSubTables(subTables);
+    }
+    
+    public int persistedSizeBytes() {
+    	int	total;
+    	
+    	// a bit pedantic since the subtables are identical, but leave for now
+    	total = 0;
+        for (int i = 0; i < subTables.length; i++) {
+        	total += subTables[i].persistedSizeBytes();
+        }
+        return total;
+    }
+    
+    public byte[] getAsBytes() {
+    	byte[]	b;
+    	int		curOffset;
+    	
+    	b = new byte[persistedSizeBytes()];
+    	curOffset = 0;
+        for (int i = 0; i < subTables.length; i++) {
+        	subTables[i].getAsBytes(b, curOffset);
+        	curOffset += subTables[i].persistedSizeBytes();
+        }
+        return b;
     }
     
     public int get(DHTKey key) {
@@ -112,6 +137,24 @@ public class IntArrayCuckoo extends CuckooBase implements Iterable<DHTKeyIntEntr
             //keyShift = NumUtil.log2OfPerfectPower(bufferCapacity) - 1 + extraShift;            
             clear();
         }
+        
+		int persistedSizeBytes() {
+        	return buf.length * Long.BYTES + values.length * Integer.BYTES;
+        }
+        
+        public void getAsBytes(byte[] b, int offset) {
+        	int	o;
+        	
+        	o = offset;
+            for (int i = 0; i < buf.length; i++) {
+                NumConversion.longToBytes(buf[i], b, o);
+                o += Long.BYTES;
+            }
+            for (int i = 0; i < values.length; i++) {
+                NumConversion.intToBytes(values[i], b, o);
+                o += Integer.BYTES;
+            }
+		}
         
         void clear() {
             for (int i = 0; i < bufferSizeLongs; i++) {

@@ -2,6 +2,10 @@ package com.ms.silverking.collection;
 
 import java.util.List;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+import com.ms.silverking.text.StringUtil;
+
+@OmitGeneration
 public class Pair<T1,T2> extends TupleBase {
 	private final T1    v1;
     private final T2    v2;
@@ -47,7 +51,7 @@ public class Pair<T1,T2> extends TupleBase {
     
     @Override 
     public String toString() {
-        return v1.toString() +":"+ v2.toString();
+    	return StringUtil.nullSafeToString(v1) + ":"+ StringUtil.nullSafeToString(v2);
     }
     
     
@@ -56,5 +60,5 @@ public class Pair<T1,T2> extends TupleBase {
     	
     	l = TupleUtil.parse(def, pattern, SIZE, typeNames);
     	return new Pair(l.get(0), l.get(1));
-    }    
+    }
 }

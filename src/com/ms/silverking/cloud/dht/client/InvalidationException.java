@@ -2,6 +2,9 @@ package com.ms.silverking.cloud.dht.client;
 
 import java.util.Map;
 
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
+
+@NonVirtual
 public class InvalidationException extends PutException {
 	public InvalidationException(Map<Object, OperationState> operationState,
 			Map<Object, FailureCause> failureCause) {

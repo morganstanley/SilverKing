@@ -66,6 +66,10 @@ public class NamespaceProperties {
     	return new NamespaceProperties(options, parent, minVersion, creationTime);
     }
     
+    public NamespaceProperties options(NamespaceOptions options) {
+    	return new NamespaceProperties(options, parent, minVersion, creationTime);
+    }
+    
     @Override
     public int hashCode() {
         return options.hashCode() ^ (parent == null ? 0 : parent.hashCode());

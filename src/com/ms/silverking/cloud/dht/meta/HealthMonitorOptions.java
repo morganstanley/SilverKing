@@ -17,6 +17,10 @@ public class HealthMonitorOptions {
     public int  doctorRoundIntervalSeconds = NO_DOCTOR;
 	@Option(name="-forceUnsafe", usage="forceInclusionOfUnsafeExcludedServers", required=false)
 	boolean	forceInclusionOfUnsafeExcludedServers = false;
+    @Option(name="-dto", usage="doctorNodeStartupTimeoutSeconds", required=false)
+    public int  doctorNodeStartupTimeoutSeconds = 5 * 60;
+    @Option(name="-da", usage="disableAddition", required=false)
+    public boolean  disableAddition;
     
     public boolean doctorRequested() {
     	return doctorRoundIntervalSeconds != NO_DOCTOR;

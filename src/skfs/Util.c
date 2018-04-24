@@ -74,6 +74,7 @@ static void log_process_batch(void **logEntries, int numLogEntries, int curThrea
 // globals
 
 char zeroBlock[SRFS_BLOCK_SIZE];
+uint64_t    myValueCreator;
 
 
 ///////////////////
@@ -147,7 +148,7 @@ void srfsLogSetFile(char *fileName) {
 	}
 
 	LogFile = stderr;
-	fatalError("failed to open log file, using stderr", __FILE__, __LINE__);
+	srfsLog(LOG_WARNING, "Failed to open log file %s. Using stderr", fileName);
 }
 
 void srfsRedirectStdio() {
@@ -248,6 +249,15 @@ uint64_t curTimeMillis() {
 	return rVal;
 }
 
+uint64_t curTimeMicros() {
+    struct timeval	tv;
+	uint64_t	rVal;
+
+	gettimeofday(&tv, NULL);
+	rVal = (uint64_t)tv.tv_sec * (uint64_t)1000000 + (uint64_t)tv.tv_usec;
+	return rVal;
+}
+
 // error handling
 
 void setFatalErrorWarnOnly(int warnOnly) {
@@ -284,6 +294,12 @@ void fatalError(char *msg, char *file, int line) {
 	} else {
 		srfsLog(LOG_ERROR, "Fatal error is set to warn only");
 	}
+}
+
+void dumpCoreAndContinue() {
+    if (!fork()) {
+        abort();
+    }
 }
 
 void *_mem__alloc(size_t nmemb, size_t size, char *file, int line) {
@@ -369,15 +385,45 @@ int strcntc(char *s, char c) {
 	return numC;
 }
 
+char **str_alloc_array(int r, size_t size) {
+    char    **a;
+    int     i;
+    
+    a = (char **)mem_alloc(r, sizeof(char *));
+    for (i = 0; i < r; i++) {
+        a[i] = (char *)mem_alloc(1, size);
+    }
+    return a;
+}
+
+void str_free_array(char ***a, int r) {
+    int i;
+    
+    for (i = 0; i < r; i++) {
+        mem_free((void **)&(*a)[i]);
+    }
+    mem_free((void **)a);
+}
+
 // pthread helpers
 
 void mutex_init(pthread_mutex_t *mutex, pthread_mutex_t **mutexPtr) {
-	pthread_mutex_init(mutex, NULL);
+    int rc;
+    
+	rc = pthread_mutex_init(mutex, NULL);
+    if (rc != 0) {
+        fatalError("pthread_mutex_init() failed", __FILE__, __LINE__);
+    }
 	*mutexPtr = mutex;
 }
 
 void cv_init(pthread_cond_t *cv, pthread_cond_t **cvPtr) {
-	pthread_cond_init(cv, NULL);
+    int rc;
+    
+	rc = pthread_cond_init(cv, NULL);
+    if (rc != 0) {
+        fatalError("pthread_cond_init() failed", __FILE__, __LINE__);
+    }
 	*cvPtr = cv;
 }
 
@@ -813,6 +859,14 @@ void stat_display(struct stat *s, FILE *f) {
 	//fprintf(f, "st_attr%x\n", s->st_attr);
 }
 
+uint64_t stat_mtime_micros(struct stat *s) {
+    return s->st_mtime * 1000000 + (s->st_mtim.tv_nsec / 1000);
+}
+
+uint64_t stat_mtime_millis(struct stat *s) {
+    return s->st_mtime * 1000 + (s->st_mtim.tv_nsec / 1000000);
+}
+
 // misc
 
 unsigned int mem_hash(void *m, int size) {
@@ -869,6 +923,24 @@ int get_num_cpus() {
 
 int get_pid() {
 	return (int)getpid();
+}
+
+uint64_t getValueCreatorAsUint64(SKValueCreator *vc) {
+    SKVal       *pVal;
+    uint64_t    v;
+    
+    pVal = vc->getBytes();
+    if (pVal == NULL) {
+        v = 0;
+    } else {
+        if (pVal->m_pVal == NULL) {
+            v = 0;
+        } else {
+            v = *((uint64_t *)pVal->m_pVal);
+        }
+        sk_destroy_val(&pVal);
+    }
+    return v;
 }
 
 int zlibBuffToBuffDecompress(char *dest, int *destLength, 
@@ -931,6 +1003,13 @@ gid_t get_gid() {
 	return context->gid;
 }
 
+pid_t get_caller_pid() {
+	struct fuse_context	*context;
+	
+	context = fuse_get_context();
+	return context->pid;
+}
+
 static int hexPad(char *dest, unsigned char x) {
 	char	*d;
 	
@@ -962,4 +1041,8 @@ void bytesToString(char *dest, unsigned char *src, int length) {
 // temporary
 int is_writable_path(const char *path) {
 	return !strncmp(path, SKFS_WRITE_BASE, SKFS_WRITE_BASE_LENGTH);
+}
+
+int is_base_path(const char *path) {
+	return !strcmp(path, SKFS_BASE);
 }

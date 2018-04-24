@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.async.time.RandomBackoff;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
@@ -46,12 +48,13 @@ public class PersistentAsyncServer<T extends Connection>
 								int numSelectorControllers,  
 								String controllerClass, 
 								ConnectionCreator<T> connectionCreator, 
-								LWTPool lwtPool, boolean enabled, boolean debug, 
-								MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
+								LWTPool lwtPool, int selectionThreadWorkLimit, boolean enabled, 
+								boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
 	    this.debug = debug;
 		asyncServer = new AsyncServer<T>(port, backlog, 
 		                                numSelectorControllers,  
-										controllerClass, connectionCreator, this, lwtPool, enabled, debug);
+										controllerClass, connectionCreator, this, lwtPool, 
+										selectionThreadWorkLimit, enabled, debug);
 		connections = new ConcurrentHashMap<InetSocketAddress,T>();
 		newConnectionLocks = new ConcurrentHashMap<InetSocketAddress,ReentrantLock>();	
 		asyncConnector = new AsyncConnector(lwtPool); 
@@ -64,21 +67,25 @@ public class PersistentAsyncServer<T extends Connection>
     public PersistentAsyncServer(int port, int backlog, int numSelectorControllers, 
             String controllerClass, ConnectionCreator<T> connectionCreator) throws IOException {
         this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, true, false, null, null);
+                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, 
+                SelectorController.defaultSelectionThreadWorkLimit, true, false, null, null);
     }
     
     public PersistentAsyncServer(int port, int backlog, int numSelectorControllers, 
             String controllerClass, ConnectionCreator<T> connectionCreator, 
+            int selectionThreadWorkLimit,
             MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
         this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, true, false, mqListener, mqUUID);
+                controllerClass, connectionCreator, LWTPoolProvider.defaultConcurrentWorkPool, 
+                selectionThreadWorkLimit, true, false, mqListener, mqUUID);
     }
     
     public PersistentAsyncServer(int port, int backlog, int numSelectorControllers,  
             	String controllerClass, 
             	ConnectionCreator<T> connectionCreator, LWTPool lwtPool, boolean debug) throws IOException {
         this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, lwtPool, true, debug, null, null);
+                controllerClass, connectionCreator, lwtPool, 
+                SelectorController.defaultSelectionThreadWorkLimit, true, debug, null, null);
     }
     
 	public PersistentAsyncServer(int port, ConnectionCreator<T> connectionCreator) throws IOException {
@@ -93,8 +100,10 @@ public class PersistentAsyncServer<T extends Connection>
     
     public PersistentAsyncServer(int port, ConnectionCreator<T> connectionCreator,
             int numSelectorControllers, String controllerClass,
-            MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
-    	this(port, useDefaultBacklog, numSelectorControllers, controllerClass, connectionCreator, mqListener, mqUUID);
+            MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID,
+            int selectionThreadWorkLimit) throws IOException {
+    	this(port, useDefaultBacklog, numSelectorControllers, controllerClass, connectionCreator, 
+    			selectionThreadWorkLimit, mqListener, mqUUID);
 }
     
     public PersistentAsyncServer(int port,  
@@ -163,6 +172,8 @@ public class PersistentAsyncServer<T extends Connection>
 				newConnectionSendAsynchronous(dest, data, uuid, listener, deadline);
 			}
 		} catch (IOException ioe) {
+			ioe.printStackTrace();
+			Log.logErrorWarning(ioe);
 			Log.warning("send failed: ", uuid +" "+ dest);
 			if (listener != null && uuid != null) {
 				listener.failed(uuid);
@@ -234,6 +245,14 @@ public class PersistentAsyncServer<T extends Connection>
 	
 	private Connection getEstablishedConnection(InetSocketAddress dest) throws ConnectException {
 		return connections.get(dest);
+	}
+	
+	public Connection getConnection(AddrAndPort dest, long deadline) throws ConnectException {
+		try {
+			return getConnectionFast(dest.toInetSocketAddress(), deadline);
+		} catch (UnknownHostException uhe) {
+			throw new RuntimeException(uhe);
+		}
 	}
 	
 	private Connection getConnectionFast(InetSocketAddress dest, long deadline) throws ConnectException {
@@ -331,7 +350,7 @@ public class PersistentAsyncServer<T extends Connection>
 					backoff.backoff();
 				} else {
 				    if (suspectAddressListener != null) {
-				        suspectAddressListener.addSuspect(dest, null);
+				        suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
 				    }
 					throw new ConnectException(ste.toString());
 				}

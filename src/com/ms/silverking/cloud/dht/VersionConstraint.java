@@ -50,7 +50,7 @@ public class VersionConstraint {
 	public VersionConstraint(long min, long max, Mode mode, long maxCreationTime) {
 		this.min = min;
         if (min != max && this.min != Long.MIN_VALUE &&
-                this.min > Long.MIN_VALUE + maxSpecialValues) {
+                this.min > Long.MIN_VALUE + maxSpecialValues && mode != Mode.LEAST) {
 		    throw new RuntimeException("nonmin not yet supported: "+ this.min);
 		}
 		this.max = max;

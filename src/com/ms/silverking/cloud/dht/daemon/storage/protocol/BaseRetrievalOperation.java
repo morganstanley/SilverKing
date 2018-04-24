@@ -50,7 +50,7 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
         // By "forwarding" them, they will be handled in bulk 
         
         entryState = initializeEntryState(key, primaryReplicas, secondaryReplicas);
-        if (forwardingMode == ForwardingMode.FORWARD) {
+        if (forwardingMode.forwards()) {
             //initializeEntryState(entry, primaryReplicas, secondaryReplicas);
             if (retrievalOperationContainer.containsLocalReplica(primaryReplicas) 
                     || retrievalOperationContainer.containsLocalReplica(secondaryReplicas)) {
@@ -110,7 +110,7 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
                     	IPAndPort	replica;
                     	
                     	replica = entryState.currentReplica();
-                    	if (replica != null) {
+                    	if (replica != null && !entryState.prevReplicaSameAsCurrent()) {
                     		Log.warning("Non-fatal replica timedOut "+ replica +" "+ this);
                     		timedOutReplicas.add(replica);
                     	}

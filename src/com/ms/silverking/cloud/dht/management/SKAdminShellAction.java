@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 enum SKAdminShellAction {
-    Mode, Target, Display, Help(false), Quit, ToggleVerbose("v", false), WaitForConvergence("w", false), TestTarget("tt", false);
+    Mode, SyncData("sd", false), Target, Display, Help(false), Quit, ToggleVerbose("v", false), WaitForConvergence("w", false), 
+    TestTarget("tt", false), RecoverData("rd", false), RequestChecksumTree("rct", false);
     
     public final String shortFormUpperCase;
     public final String shortFormLowerCase;

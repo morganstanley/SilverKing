@@ -1,5 +1,7 @@
 package com.ms.silverking.util;
 
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -27,6 +29,33 @@ public class Arrays {
     public static <T> int indexOf(T[] a1, T v) {
         for (int i = 0; i < a1.length; i++) {
             if (a1[i].equals(v)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    public static <T> int lastIndexOf(T[] a1, T v) {
+        for (int i = a1.length - 1; i >= 0; i--) {
+            if (a1[i].equals(v)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    public static int indexOf(byte[] a1, byte v) {
+        for (int i = 0; i < a1.length; i++) {
+            if (a1[i] == v) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    public static int lastIndexOf(byte[] a1, byte v) {
+        for (int i = a1.length - 1; i >= 0; i--) {
+            if (a1[i] == v) {
                 return i;
             }
         }
@@ -87,5 +116,37 @@ public class Arrays {
         Arrays.shuffleIntArray(x, random);
         return x;
     }    
+    
+    public static <T> Iterator<T> iterator(T[] a) {
+    	return new ArrayIterator(a);
+    }
+    
+    private static class ArrayIterator<T> implements Iterator<T> {
+    	private T[]	a;
+    	private int	i;
+    	
+    	ArrayIterator(T[] a) {
+    		this.a = a;
+    	}
+    	
+		@Override
+		public boolean hasNext() {
+			return i < a.length;
+		}
+
+		@Override
+		public T next() {
+			if (hasNext()) {
+				T	e;
+				
+				e = a[i];
+				i++;
+				return e;
+			} else {
+				throw new NoSuchElementException();
+			}
+		}
+    	
+    }
 }
 

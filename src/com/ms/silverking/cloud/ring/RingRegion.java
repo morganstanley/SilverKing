@@ -330,6 +330,14 @@ public class RingRegion {
 		return total;
 	}
 	
+	public static BigDecimal getTotalFractionBD(Collection<RingRegion> regions) {
+		return LongRingspace.longToFraction(getTotalSize(regions));
+	}
+	
+	public static double getTotalFraction(Collection<RingRegion> regions) {
+		return getTotalFractionBD(regions).doubleValue();
+	}
+	
 	public boolean contains(long point) {
 		if (end >= start) {
 			return point >= start && point <= end;

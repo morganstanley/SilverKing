@@ -1,10 +1,12 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
 import com.ms.silverking.cloud.dht.client.ChecksumType;
+import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
+import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 
 
-public class StorageParameters {
+public class StorageParameters implements SSStorageParameters {
     private final long          version;
     private final int           uncompressedSize;
     private final int           compressedSize;
@@ -30,7 +32,27 @@ public class StorageParameters {
         this.valueCreator = valueCreator;
         this.creationTime = creationTime;
     }
+    
+    public static StorageParameters fromSSStorageParameters(SSStorageParameters sp) {
+    	if (sp instanceof StorageParameters) {
+    		return (StorageParameters)sp;
+    	} else {
+    		return new StorageParameters(sp.getVersion(), sp.getUncompressedSize(), sp.getCompressedSize(), 
+					    			CCSSUtil.createCCSS(sp.getCompression(), sp.getChecksumType(), sp.getStorageState()), 
+					    			sp.getChecksum(), sp.getValueCreator(), sp.getCreationTime());
+    	}
+    }
         
+    public static StorageParameters fromSSStorageParameters(SSStorageParameters sp, int uncompressedSize, int compressedSize, Compression compression) {
+    	if (sp instanceof StorageParameters) {
+    		return (StorageParameters)sp;
+    	} else {
+    		return new StorageParameters(sp.getVersion(), uncompressedSize, compressedSize, 
+					    			CCSSUtil.createCCSS(compression, sp.getChecksumType(), sp.getStorageState()), 
+					    			sp.getChecksum(), sp.getValueCreator(), sp.getCreationTime());
+    	}
+    }
+    
     public long getVersion() {
         return version;
     }
@@ -50,6 +72,17 @@ public class StorageParameters {
     public short getCCSS() {
         return ccss;
     }
+    
+
+	@Override
+	public Compression getCompression() {
+		return Compression.values()[CCSSUtil.getCompression(getCCSS())];
+	}
+
+	@Override
+	public byte getStorageState() {
+		return CCSSUtil.getStorageState(getCCSS());
+	}
     
     public byte[] getChecksum() {
         return checksum;

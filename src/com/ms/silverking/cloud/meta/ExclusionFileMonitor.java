@@ -12,7 +12,6 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.management.LogStreamConfig;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfigurationUtil;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
@@ -34,7 +33,7 @@ public class ExclusionFileMonitor {
 
         ringConfig = NamedRingConfigurationUtil.fromGridConfiguration(gc);
         
-        mc = new MetaClient(ringConfig.getRingConfiguration().getCloudConfiguration(), new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs()));
+        mc = new MetaClient(ringConfig.getRingConfiguration().getCloudConfiguration(), gc.getClientDHTConfiguration().getZKConfig());
 
         exclusionZK = new ExclusionZK(mc);
     }
@@ -96,10 +95,11 @@ public class ExclusionFileMonitor {
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+	            System.exit(-1);
             }
         } catch (Exception e) {
             e.printStackTrace();
+            System.exit(-1);
         }
 	}
 }

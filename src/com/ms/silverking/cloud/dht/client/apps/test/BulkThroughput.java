@@ -20,6 +20,7 @@ import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.client.AsyncValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ClientException;
+import com.ms.silverking.cloud.dht.client.ConstantVersionProvider;
 import com.ms.silverking.cloud.dht.client.DHTClient;
 import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
@@ -84,8 +85,9 @@ public class BulkThroughput {
             if (options.nsVersionMode != null) {
                 _nsOptions = _nsOptions.versionMode(options.nsVersionMode);
             }
+            
             nsOptions = _nsOptions;
-            //System.out.println(nsOptions);
+//            System.out.println(nsOptions + "\n");
             try {
                 ns = session.getNamespace(nsName);
             } catch (RuntimeException nce) {
@@ -94,13 +96,17 @@ public class BulkThroughput {
             if (ns == null) {
                 ns = session.createNamespace(nsName, nsOptions);
             }
-            //System.out.println(nsName +"\n"+ ns.getOptions());;
+//            System.out.println(nsName +"\n"+ ns.getOptions() + "\n");
 		} catch (Exception e) {
 			throw new RuntimeException (e);
 		}
-    	
+
         _syncNSP = ns.openSyncPerspective(String.class, byte[].class);
         _asyncNSP = ns.openAsyncPerspective(String.class, byte[].class);
+        
+//        System.out.println(_syncNSP.getOptions() + "\n");
+//        _syncNSP.setDefaultVersionProvider(new ConstantVersionProvider(System.nanoTime()));
+//        System.out.println(_syncNSP.getOptions() + "\n");
     }
     
     class TestRunner implements Runnable {
@@ -183,10 +189,16 @@ public class BulkThroughput {
         	testRunners[i].waitForCompletion();
         }
         sw.stop();
+        
+        long bytes = (long)options.reps * (long)options.numKeys * (long)options.valueSize;
+        double _Mbps = NetUtil.calcMbps(bytes, sw);
         iops = (double)(options.numKeys * options.reps * options.parallelThreads) / sw.getElapsedSeconds();
+        double timePerKey = 1 / iops;
         out.printf("\n *** Aggregate ***\n");
         out.printf("Elapsed           %s\n", sw);
+        out.printf("Throughput (Mbps) %f\n", _Mbps);
         out.printf("Throughput (IOPS) %f\n", iops);
+        out.printf("Time / key        %f s (%f ms)\n", timePerKey, timePerKey*1000);
     }
     
     public void runParallelTest(BulkThroughputTest test, TestParameters p, int externalReps) throws PutException, RetrievalException {
@@ -201,7 +213,15 @@ public class BulkThroughput {
 
         context = keyPrefix + threadID +".";
         
-        allBatchTimes = new ArrayList<>(externalReps * ((p.maxKey - p.minKey) / p.batchSize + 1));
+        int size = externalReps * ((p.maxKey - p.minKey) / p.batchSize + 1);
+        allBatchTimes = new ArrayList<>(size);
+
+        System.out.println("max: " + p.maxKey);
+        System.out.println("min: " + p.minKey);
+        System.out.println("batchSize: " + p.batchSize);
+        System.out.println("size: " + size);
+        
+        
         
         throughputList = new ArrayList<>(externalReps);
         for (int j = 0; j < externalReps; j++) {
@@ -221,7 +241,7 @@ public class BulkThroughput {
             sw = new SimpleStopwatch();
             for (int i = 0; i < p.repetitions; i++) {
                 switch (test) {
-                case Write: write(p, context, syncNSP); break;
+                case Write: write(p, batchTimes, context, syncNSP); break;
                 case Read: valueSize = read(p, batchTimes, context, syncNSP); break;
                 case ReadAsync: valueSize = readAsync(p, context, asyncNSP); break;
                 default: throw new RuntimeException("Panic");
@@ -282,18 +302,29 @@ public class BulkThroughput {
         return v;
     }
     
-    public void write(TestParameters p, String context, SynchronousNamespacePerspective<String,byte[]> syncNSP) throws PutException {
+    public void write(TestParameters p, List<Double> batchTimes, String context, SynchronousNamespacePerspective<String,byte[]> syncNSP) throws PutException {
         int k;
         int lastDisplay;
-        
+
+        Stopwatch batchSW = new SimpleStopwatch();
+        Map<String,byte[]> keysAndVals;
         k = p.minKey;
         lastDisplay = p.minKey;
+        int i = 0;
+		int batchMultiple = p.maxKey / p.batchSize / 10;
         while (k <= p.maxKey - p.batchSize) {
+    		if (i++ % batchMultiple == 0)
+    			System.out.println("batch: " + i);
+        	
             int batchSize;
             
             batchSize = Math.min(p.batchSize, p.maxKey - k + 1);
             //out.printf("put %d\n", k, batchSize);
-            syncNSP.put(createMap(context, k, batchSize));
+            keysAndVals = createMap(context, k, batchSize);
+            batchSW.reset();
+            syncNSP.put(keysAndVals);
+            batchSW.stop();
+            batchTimes.add(batchSW.getElapsedSeconds());
             k += batchSize;
             if (options.verbose && k - lastDisplay > options.displayInterval) {
                 out.printf("%d\t%s\n", k, new Date());
@@ -329,8 +360,8 @@ public class BulkThroughput {
             byte[]  value;
             
             batchSize = Math.min(p.batchSize, p.maxKey - p.minKey + 1);
-            batchSW.reset();
             keys = createSet(context, k, batchSize);
+            batchSW.reset();
             values = syncNSP.get(keys);
             batchSW.stop();
             if (options.verifyValues) {

@@ -59,6 +59,10 @@ public class MatchResult {
                 && checksumMismatch.size() == 0;
     }
     
+    public String toSummaryString() {
+    	return String.format("sourceNotInDest %d destNotInSource %d checksumMismatch %d", sourceNotInDest.size(), destNotInSource.size(), checksumMismatch.size());
+    }
+    
     @Override
     public String toString() {
         StringBuilder   sb;

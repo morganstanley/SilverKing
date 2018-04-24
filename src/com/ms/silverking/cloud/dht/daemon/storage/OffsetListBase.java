@@ -5,6 +5,7 @@ import java.util.Iterator;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.collection.Pair;
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 
@@ -285,11 +286,16 @@ abstract class OffsetListBase implements OffsetList {
     }
     
     @Override
+    public Iterable<Long> versionIterable() {
+    	return new VersionIterator();
+    }
+    
+    @Override
     public Iterator<Long> versionIterator() {
         return new VersionIterator();
     }
     
-    private class VersionIterator extends OffsetListIteratorBase<Long> {
+    private class VersionIterator extends OffsetListIteratorBase<Long> implements Iterable<Long> {
         VersionIterator() {
         }
 
@@ -301,14 +307,24 @@ abstract class OffsetListBase implements OffsetList {
                 return null;
             }
         }
+
+		@Override
+		public Iterator<Long> iterator() {
+			return this;
+		}
     }
 
+    @Override
+    public Iterable<Pair<Long,Long>> versionAndStorageTimeIterable() {
+    	return new VersionAndStorageTimeIterator();
+    }
+    
     @Override
     public Iterator<Pair<Long,Long>> versionAndStorageTimeIterator() {
         return new VersionAndStorageTimeIterator();
     }
     
-    private class VersionAndStorageTimeIterator extends OffsetListIteratorBase<Pair<Long,Long>> {
+    private class VersionAndStorageTimeIterator extends OffsetListIteratorBase<Pair<Long,Long>> implements Iterable<Pair<Long, Long>> {
         VersionAndStorageTimeIterator() {
         }
 
@@ -324,6 +340,44 @@ abstract class OffsetListBase implements OffsetList {
                 return null;
             }
         }
+
+		@Override
+		public Iterator<Pair<Long, Long>> iterator() {
+			return this;
+		}
+    }    
+
+    @Override
+    public Iterable<Triple<Integer,Long,Long>>	offsetVersionAndStorageTimeIterable() {
+    	return new OffsetVersionAndStorageTimeIterator();
+    }
+    
+    @Override
+    public Iterator<Triple<Integer,Long,Long>> offsetVersionAndStorageTimeIterator() {
+        return new OffsetVersionAndStorageTimeIterator();
+    }
+    
+    private class OffsetVersionAndStorageTimeIterator extends OffsetListIteratorBase<Triple<Integer,Long,Long>> implements Iterable<Triple<Integer, Long, Long>> {
+    	OffsetVersionAndStorageTimeIterator() {
+        }
+
+        @Override
+        public Triple<Integer,Long,Long> next() {
+            if (hasNext()) {
+            	Triple<Integer,Long,Long>	t;
+            	
+            	t = new Triple<>(getOffset(index), getVersion(index), supportsStorageTime ? getStorageTime(index) : 0);
+            	index++;
+                return t;
+            } else {
+                return null;
+            }
+        }
+
+		@Override
+		public Iterator<Triple<Integer, Long, Long>> iterator() {
+			return this;
+		}
     }    
     
     @Override

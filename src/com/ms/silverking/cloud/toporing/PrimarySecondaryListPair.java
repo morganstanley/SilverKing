@@ -96,10 +96,12 @@ class PrimarySecondaryListPair {
         StringBuilder   sb;
         
         sb = new StringBuilder();
+        sb.append("p ");
         for (Node owner : primaryOwners) {
             sb.append(owner);
             sb.append(' ');
         }
+        sb.append("s ");
         for (Node owner : secondaryOwners) {
             sb.append(owner);
             sb.append(' ');

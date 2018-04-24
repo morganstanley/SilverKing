@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -24,6 +24,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
+import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
@@ -55,11 +56,13 @@ import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.NamespaceUtil;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
+import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.common.ValueUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.daemon.Waiter;
+import com.ms.silverking.cloud.dht.daemon.storage.FileSegment.SegmentPrereadMode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ActiveRegionSync;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumTreeRequest;
@@ -73,22 +76,35 @@ import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyOrdinalEntry;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
+import com.ms.silverking.cloud.dht.serverside.PutTrigger;
+import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
+import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
+import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
+import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.HashedSetMap;
+import com.ms.silverking.collection.Pair;
+import com.ms.silverking.collection.SKImmutableList;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
+import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.thread.ThreadUtil;
+import com.ms.silverking.time.SimpleStopwatch;
+import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.SystemTimeSource;
+import com.ms.silverking.util.PropertiesHelper;
 
-public class NamespaceStore {
+public class NamespaceStore implements SSNamespaceStore {
     private final long ns;
     private NamespaceStore  parent;
     private final File nsDir;
+    private final File ssDir;
     private final NamespaceProperties nsProperties;
     private final NamespaceOptions nsOptions;
     private final boolean	verifyStorageState;
@@ -126,6 +142,8 @@ public class NamespaceStore {
     private long lastConvergenceTotalKeys;
     protected final SystemTimeSource   systemTimeSource;
     private final Set<Integer>	deletedSegments;
+    private final PutTrigger	putTrigger;
+    private final RetrieveTrigger	retrieveTrigger;
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>	activeRegionSyncs;    
     
@@ -163,6 +181,8 @@ public class NamespaceStore {
     // FUTURE - allow for a richer compaction policy
     private static final double	compactionThreshold = 0.1;
     
+    private static final int	maxFailedStores = 1000000;
+    
     public enum DirCreationMode {
         CreateNSDir, DoNotCreateNSDir
     };
@@ -172,12 +192,25 @@ public class NamespaceStore {
     private static final int    VERSION_INDEX = 0;
     private static final int    STORAGE_TIME_INDEX = 1;
     
+    private static final SegmentIndexLocation segmentIndexLocation;
+    private static final int	nsPrereadGB;
+    private static final SegmentPrereadMode	readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
+    private static final SegmentPrereadMode	updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
+    
+    static {
+    	segmentIndexLocation = SegmentIndexLocation.valueOf(PropertiesHelper.systemHelper.getString(DHTConstants.segmentIndexLocationProperty, DHTConstants.defaultSegmentIndexLocation.toString()));
+    	Log.warningf("segmentIndexLocation: %s", segmentIndexLocation);
+    	nsPrereadGB = PropertiesHelper.systemHelper.getInt(DHTConstants.nsPrereadGBProperty, DHTConstants.defaultNSPrereadGB);
+    	Log.warningf("nsPrereadGB: %s", nsPrereadGB);
+    }
+    
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
             NamespaceStore parent,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
         this.ns = ns;
         this.nsDir = nsDir;
+        ssDir = new File(nsDir, DHTConstants.ssSubDirName);
         activeRegionSyncs = new ConcurrentHashMap<>();
         this.nsOptions = nsProperties.getOptions();
         verifyStorageState = StorageProtocolUtil.requiresStorageStateVerification(nsOptions.getConsistencyProtocol());
@@ -215,34 +248,16 @@ public class NamespaceStore {
         case FILE_SYNC:
         case FILE:
             ramSegments = null;
-            recentFileSegments = new FileSegmentMap(fileSegmentCacheCapacity);
+            if (!FileSegment.mapEverything) {
+            	recentFileSegments = new FileSegmentMap(fileSegmentCacheCapacity);
+            } else {
+            	recentFileSegments = new ConcurrentHashMap<>();
+            }
             break;
         default: throw new RuntimeException("Panic");
         }
         if (!isRecovery) {
-            FileSegment.SyncMode    syncMode;
-            
-            syncMode = FileSegment.SyncMode.NoSync;
-            switch (nsOptions.getStorageType()) {
-            case FILE_SYNC:
-                syncMode = FileSegment.SyncMode.Sync;
-                // fall through
-            case FILE:
-                try {
-                    headSegment = FileSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
-                                                     nsOptions.getSegmentSize(), syncMode, nsOptions);
-                } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                }
-                break;
-            case RAM:
-                headSegment = RAMSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
-                                                nsOptions.getSegmentSize(), nsOptions);
-                ramSegments.put(headSegment.getSegmentNumber(), (RAMSegment)headSegment);
-                break;
-            default:
-                throw new RuntimeException("panic");
-            }
+        	createInitialHeadSegment();
         }
         //headCreationLock = new ReentrantLock();
         // valueSegments = new ConcurrentHashMap<>();
@@ -266,12 +281,96 @@ public class NamespaceStore {
         systemTimeSource = SystemTimeUtil.systemTimeSource;
         nsStats = new NamespaceStats();
         deletedSegments = new HashSet<>();
+        
+    	Pair<PutTrigger,RetrieveTrigger>	triggers;    	
+    	triggers = instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
+    	putTrigger = triggers.getV1();
+    	retrieveTrigger = triggers.getV2();
+    	if (putTrigger != null) {
+    		putTrigger.initialize(this);
+    	}
+    	if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
+    		retrieveTrigger.initialize(this);
+    	}
+    }
+    
+    private void createInitialHeadSegment() {
+        FileSegment.SyncMode    syncMode;
+        
+        if (nextSegmentID.get() != 0) {
+        	throw new RuntimeException("nextSegmentID.get() != 0");
+        }
+        Log.warning("Creating initial head segment");
+        syncMode = FileSegment.SyncMode.NoSync;
+        switch (nsOptions.getStorageType()) {
+        case FILE_SYNC:
+            syncMode = FileSegment.SyncMode.Sync;
+            // fall through
+        case FILE:
+            try {
+                headSegment = FileSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
+                                                 nsOptions.getSegmentSize(), syncMode, nsOptions);
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+            break;
+        case RAM:
+            headSegment = RAMSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
+                                            nsOptions.getSegmentSize(), nsOptions);
+            ramSegments.put(headSegment.getSegmentNumber(), (RAMSegment)headSegment);
+            break;
+        default:
+            throw new RuntimeException("panic");
+        }
+    }
+    
+    private static final boolean isNonBlankNonDefaultSSCode(NamespaceServerSideCode	ssCode) {
+    	if (ssCode == null) {
+    		return false;
+    	} else {
+    		if (StringUtil.isNullOrEmptyTrimmed(ssCode.getUrl()) && StringUtil.isNullOrEmptyTrimmed(ssCode.getPutTrigger()) && StringUtil.isNullOrEmptyTrimmed(ssCode.getRetrieveTrigger())) {
+    			return false;
+    		} else {
+    			return true;
+    		}
+    	}
+    }
+    
+    private static final Pair<PutTrigger,RetrieveTrigger> instantiateServerSideCode(NamespaceServerSideCode	ssCode) {
+        PutTrigger		putTrigger;
+        RetrieveTrigger	retrieveTrigger;
+        
+		putTrigger = null;
+		retrieveTrigger = null;
+        if (isNonBlankNonDefaultSSCode(ssCode)) {
+	    	if (ssCode.getUrl() != null && ssCode.getUrl().trim().length() != 0) {
+	    		Log.warningf("Ignoring server side code %s. Remote code not currently supported", ssCode.getUrl());
+	    	} else {
+				try {
+		    		putTrigger = (PutTrigger)Class.forName(ssCode.getPutTrigger()).newInstance();
+		    		if (ssCode.getPutTrigger().equals(ssCode.getRetrieveTrigger())) {
+		    			retrieveTrigger = (RetrieveTrigger)putTrigger;
+		    		} else {
+		        		retrieveTrigger = (RetrieveTrigger)Class.forName(ssCode.getRetrieveTrigger()).newInstance();
+		    		}
+				} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+					Log.logErrorWarning(e, "Unable to instantiate server side code: "+ ssCode);
+				}
+	    	}
+        }
+		return new Pair<>(putTrigger, retrieveTrigger);
     }
     
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
         this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals);
+    }
+    
+    private void initRAMSegments() {
+        headSegment = RAMSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
+                nsOptions.getSegmentSize(), nsOptions);
+        ramSegments.put(headSegment.getSegmentNumber(), (RAMSegment)headSegment);
     }
     
     public void startWatches(ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {        
@@ -307,7 +406,11 @@ public class NamespaceStore {
     }
     
     public long getTotalKeys() {
-        return nsStats.getTotalKeys();
+    	if (retrieveTrigger != null) {
+    		return retrieveTrigger.getTotalKeys();
+    	} else {
+    		return nsStats.getTotalKeys();
+    	}
     }
 
     public NamespaceOptions getNamespaceOptions() {
@@ -486,6 +589,9 @@ public class NamespaceStore {
                 for (PendingWaitFor pendingWaitFor : pendingWaitForCollection) {
                     ByteBuffer result;
 
+                    if (debugWaitFor) {
+                    	System.out.printf("pendingWaitFor %s options %s\n", pendingWaitFor, pendingWaitFor.getOptions());
+                    }
                     result = _retrieve(key, pendingWaitFor.getOptions());
                     if (result != null) {
                         Waiter waiter;
@@ -499,6 +605,9 @@ public class NamespaceStore {
                             triggeredWaiters.add(waiter);
                             // duplicate the result so that each
                             // waiter gets its own
+                            if (debugWaitFor) {
+                                System.out.printf("Triggering waiter for %s\n", pendingWaitFor.getOpUUID());
+                            }
                             waiter.waitForTriggered(key, result.duplicate());
                             // Give the waiter the result of the waitfor.
                             // In addition, we pass back the triggered wait fors so that
@@ -552,7 +661,12 @@ public class NamespaceStore {
             for (StorageValueAndParameters value : values) {
                 OpResult storageResult;
 
-                storageResult = _put(value.getKey(), value.getValue(), value, userData, nsVersionMode);
+                if (putTrigger != null) {
+                	storageResult = putTrigger.put(this, value.getKey(), value.getValue(), new SSStorageParametersImpl(value, value.getValue().remaining()), userData, nsVersionMode);
+                } else {
+                	storageResult = _put(value.getKey(), value.getValue(), value, userData, nsVersionMode);
+                }
+                //if (storageResult != OpResult.SUCCEEDED) Log.warningf("fail _put %s %s %d", KeyUtil.keyToString(value.getKey()), storageResult, value.getVersion()); // for debugging
                 resultListener.sendResult(value.getKey(), storageResult);
                 if (storageResult == OpResult.SUCCEEDED) {
                     Set<Waiter> _triggeredWaitFors;
@@ -826,7 +940,7 @@ public class NamespaceStore {
                 // of flipping to a new segment
             }
             while (storageResult.callerShouldRetry()) {
-                if (value.remaining() > headSegment.totalSize()) {
+                if (value.remaining() > headSegment.getDataSegmentSize()) {
                     throw new RuntimeException("value > segment size");
                     // FIXME - we don't support values > segment size
                     // client needs to enforce this
@@ -848,6 +962,7 @@ public class NamespaceStore {
         default:
             throw new RuntimeException("panic");
         }
+        //if (storageResult != SegmentStorageResult.stored) Log.warningf("!stored _put2 %s %s %d %s", KeyUtil.keyToString(key), storageResult, storageParams.getVersion(), storageParams); // for debugging
         return storageResult.toOpResult();
     }
     
@@ -884,7 +999,22 @@ public class NamespaceStore {
                 Log.warning("prevSegment: ", rawPrevSegment);
             }
             if (rawPrevSegment == IntCuckooConstants.noSuchValue) {
-                valueSegmentsPut(key, segmentNumber);
+            	if (nsOptions.isWriteOnce() || nsOptions.getStorageType() == StorageType.RAM) {
+	                valueSegmentsPut(key, segmentNumber);
+            	} else {
+                    OffsetList	offsetList;
+
+                    // the current pkc doesn't support version storage; we must either use an offset list,
+                    // or touch disk to get the version
+                    // (touching disk is expensive when computing checksum trees)
+                    // Similar logic in WritableSegmentBase._put()
+                    if (debugSegments) {
+                        Log.warning("multi versioning using offset list");
+                    }
+                    offsetList = offsetListStore.newOffsetList();
+                    offsetList.putOffset(version, segmentNumber, creationTime);
+                    valueSegmentsPut(key, -((RAMOffsetList)offsetList).getIndex());
+            	}
                 // new key, record it in stats
                 nsStats.incTotalKeys();
             } else if (rawPrevSegment >= 0) {
@@ -996,7 +1126,7 @@ public class NamespaceStore {
         return results;
     }
     
-    public OpResult putUpdate(DHTKey key, long version, byte storageState) {
+    public OpResult putUpdate_(DHTKey key, long version, byte storageState) {
         OpResult    result;
         Set<Waiter> triggeredWaitFors;
         
@@ -1007,6 +1137,7 @@ public class NamespaceStore {
         writeLock.lock();
         try {
             result = _putUpdate(key, version, storageState);
+            //if (result != OpResult.SUCCEEDED) Log.warningf("fail putUpdate %s %s %d", KeyUtil.keyToString(key), result, version); // for debugging
             if (result == OpResult.SUCCEEDED 
                     && StorageProtocolUtil.storageStateValidForRead(
                             nsOptions.getConsistencyProtocol(), storageState)) {
@@ -1022,6 +1153,19 @@ public class NamespaceStore {
     }
     
     private OpResult _putUpdate(DHTKey key, long version, byte storageState) {
+    	if (putTrigger != null) {
+    		return putTrigger.putUpdate(this, key, version, storageState);
+    	} else {
+    		return __putUpdate(key, version, storageState);
+    	}
+    }
+    
+    @Override
+    public OpResult putUpdate(DHTKey key, long version, byte storageState) {
+    	return __putUpdate(key, version, storageState);
+    }
+    
+    private OpResult __putUpdate(DHTKey key, long version, byte storageState) {
         OpResult result;
         int segmentNumber;
 
@@ -1035,7 +1179,9 @@ public class NamespaceStore {
             if (debug) {
                 System.out.println("_putUpdate returning INVALID_VERSION");
             }
-            return OpResult.INVALID_VERSION;
+            Log.warningf("Couldn't find %s %d in _putUpdate()", KeyUtil.keyToString(key), version);
+            return OpResult.ERROR;
+            //return OpResult.INVALID_VERSION;
         } else {
             if (headSegment.getSegmentNumber() == segmentNumber) {
                 if (debugSegments) {
@@ -1068,7 +1214,7 @@ public class NamespaceStore {
                     }
                     */
                     
-                    segment = getFileSegment(segmentNumber);
+                    segment = getFileSegment(segmentNumber, SegmentPrereadMode.NoPreread);
                     try {
                         if (debugSegments) {
                             Log.warning("Read from file segment");
@@ -1103,6 +1249,90 @@ public class NamespaceStore {
     private static final AtomicInteger  totalKeys = new AtomicInteger();
     
     public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
+    	if (retrieveTrigger == null) {
+	        DHTKey[]  		_keys;
+	        ByteBuffer[]	_results;
+	        
+	        if (debugVersion) {
+	            System.out.printf("retrieve internal options: %s\n", options);
+	        }        
+	        _keys = new DHTKey[keys.size()];
+	        for (int i = 0; i < _keys.length; i++) {
+	        	_keys[i] = keys.get(i);
+	        }
+	        
+	        if (_keys.length > 1) {
+	        	_results = _retrieve(_keys, options);
+	        } else {
+	        	// special case single retrieval
+	        	_results = new ByteBuffer[1];
+	        	_results[0] = _retrieve(_keys[0], options);
+	        }
+	        
+	        for (int i = 0; i < _results.length; i++) {
+	            if (parent != null) {
+	                VersionConstraint   vc;
+	                
+	                if (debugParent) {
+	                    Log.warning("parent != null");
+	                }
+	                vc = options.getVersionConstraint();
+	                
+	                // We look in parent if the vc could possibly be answered by the parent
+	                // in a way that would override what we have from this namespace.
+	                
+	                if (_results[i] == null) {
+	                    if (debugParent) {
+	                        Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
+	                    }
+	                    // If result from this ns is null, look in the parent.
+	                    _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+	                    if (debugParent) {
+	                        if (_results[i] != null) {
+	                            Log.warning("Found result in parent");
+	                        }
+	                    }
+	                } else {
+	                    // If we have a non-null value from this ns, and the vc mode is GREATEST
+	                    // then the value that we already have is the best.
+	                    // Otherwise for the LEAST case, look in the parent to see if it has a better result.
+	                    if (vc.getMode() == VersionConstraint.Mode.LEAST) {
+	                        ByteBuffer parentResult;
+	
+	                        if (debugParent) {
+	                            Log.warning("Non-null result, but mode LEAST. checking parent");
+	                        }
+	                        parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+	                        if (parentResult != null) {
+	                            // if the parent had any valid result, then - by virtue of the fact
+	                            // that all parent versions are < child versions - the parent
+	                            // result is preferred
+	                        	_results[i] = parentResult;
+	                            if (_results[i] != null) {
+	                                Log.warning("Found result in parent");
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	            
+	            if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR
+	                    && options.getVersionConstraint().getMax() > curSnapshot) {
+	                // Note that since we hold the readLock, a write cannot come
+	                // in while we add the pending wait for.
+	                addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
+	            }
+	            if (options.getVerifyIntegrity()) {
+	            	_results[i] = verifyIntegrity(_keys[i], _results[i]);
+	            }
+	        }
+	        return SKImmutableList.copyOf(_results);
+    	} else {
+    		return retrieve_nongroupedImpl(keys, options, opUUID);
+    	}
+    }
+    
+    public List<ByteBuffer> retrieve_nongroupedImpl(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
         List<ByteBuffer> results;
         KeyAndInteger[]  _keys;
         
@@ -1183,7 +1413,16 @@ public class NamespaceStore {
                     result = null;
                 }
                 */
-                result = _retrieve(key, options);
+                if (retrieveTrigger != null) {
+    	            readLock.lock();
+    	            try {
+    	            	result = retrieveTrigger.retrieve(this, key, options);
+    	            } finally {
+    	            	readLock.unlock();
+    	            }
+                } else {
+                	result = _retrieve(key, options);
+                }
                 
                 if (parent != null) {
                     VersionConstraint   vc;
@@ -1323,14 +1562,64 @@ public class NamespaceStore {
         return _retrieve(key, new InternalRetrievalOptions(options));
     }
     
-    protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
-        int segmentNumber;
+    protected ByteBuffer[] _retrieve(DHTKey[] keys, InternalRetrievalOptions options) {
+        int[] segmentNumbers;
+        Triple<DHTKey,Integer,Integer>[]	keysSegmentNumbersAndIndices;
+        ByteBuffer[]	sortedResults;
+        ByteBuffer[]	unsortedResults;
         
-        segmentNumber = getSegmentNumber(key, options.getVersionConstraint());
         if (debugParent) {
-        	Log.warningf("_retrieve %x %s segmentNumber %d", ns, key, segmentNumber);
+        	Log.warningAsyncf("_retrieve %x batch size %d", ns, keys.length);
         }
-        return _retrieve(key, options, segmentNumber);
+        segmentNumbers = new int[keys.length];
+        for (int i = 0; i < keys.length; i++) {
+	        segmentNumbers[i] = getSegmentNumber(keys[i], options.getVersionConstraint());
+	        if (debugParent) {
+	        	Log.warningAsyncf("_retrieve %x %s segmentNumber %d", ns, KeyUtil.keyToString(keys[i]), segmentNumbers[i]);
+	        }
+        }
+        
+        // Sort so that we group segment access. Not always useful,
+        // but can become critical for large retrievals that span multiple segments
+        keysSegmentNumbersAndIndices = new Triple[keys.length];
+        for (int i = 0; i < keysSegmentNumbersAndIndices.length; i++) {
+        	keysSegmentNumbersAndIndices[i] = new Triple<>(keys[i], segmentNumbers[i], i);
+        }
+        Arrays.sort(keysSegmentNumbersAndIndices, KeyAndSegmentComparator.mostRecentSegmentsFirst);
+        
+        sortedResults = _retrieve(keysSegmentNumbersAndIndices, options);
+        
+        // We fix up the ordering here. It would be possible to avoid this
+        // by constructing the unsorted results inside of the above _retrieve() call.
+        // We currently avoid that to avoid leaking the notion of sorting/indexing changes
+        // into that method.
+        unsortedResults = new ByteBuffer[sortedResults.length];
+        for (int i = 0; i < sortedResults.length; i++) {
+        	unsortedResults[keysSegmentNumbersAndIndices[i].getV3()] = sortedResults[i];
+        }
+        return unsortedResults;
+    }
+    
+    /**
+     * Sort by segment number. Break ties using original index.
+     */
+    private static class KeyAndSegmentComparator implements Comparator<Triple<DHTKey,Integer,Integer>> {
+    	private final int	order;
+    	
+    	static final KeyAndSegmentComparator	mostRecentSegmentsFirst = new KeyAndSegmentComparator(-1);
+    	static final KeyAndSegmentComparator	leastRecentSegmentsFirst = new KeyAndSegmentComparator(1);
+    	
+    	private KeyAndSegmentComparator(int order) {
+    		this.order = order;
+    	}
+    	
+		@Override
+		public int compare(Triple<DHTKey, Integer, Integer> o1, Triple<DHTKey, Integer, Integer> o2) {
+			int	c;
+			
+			c = order * Integer.compare(o1.getV2(), o2.getV2());
+			return c == 0 ? Integer.compare(o1.getV3(), o2.getV3()) : c; 
+		}
     }
     
     /**
@@ -1340,6 +1629,8 @@ public class NamespaceStore {
      * @param options
      * @return
      */
+    /*
+     * FUTURE - consider removal
     protected ByteBuffer _retrievePrevious(DHTKey key, InternalRetrievalOptions options) {
     	InternalRetrievalOptions curPrevOptions;
     	boolean	found;
@@ -1369,6 +1660,7 @@ public class NamespaceStore {
     		}
     	}
     }
+    */
     
     /*
     protected ByteBuffer[] _retrieve(KeyAndInteger[] keyGroup, InternalRetrievalOptions options) {
@@ -1421,75 +1713,197 @@ public class NamespaceStore {
     }
     */
     
-    protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options, int segmentNumber) {
-        ByteBuffer result;
-
-        if (debugVersion) {
-            System.out.println("retrieve:\t" + key);
-            System.out.println("RetrievalOptions:\t" + options);
+    protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
+        int segmentNumber;
+    	VersionConstraint	versionConstraint;
+    	int	failedStore;
+        
+        if (debugParent) {
+        	Log.warningf("_retrieve %x %s", ns, key);
         }
-        if (segmentNumber == IntCuckooConstants.noSuchValue) {
-            return null;
-        } else {
-            if (headSegment.getSegmentNumber() == segmentNumber) {
-                readLock.lock();
-                try {
-                    // return getValueEntry(key).retrieve(options);
-                    if (debugSegments) {
-                        Log.warning("Read from head segment");
-                    }
-                    result = retrieve(headSegment, key, options);
-                    if (debugSegments) {
-                        Log.warning("Done read from head segment");
-                    }
-                } finally {
-                    readLock.unlock();
-                }
-            } else {
-                try {
-                    AbstractSegment segment;
+    	
+        failedStore = 0;
+        versionConstraint = options.getVersionConstraint();
+        do {
+	        ByteBuffer result;
+	
+	        segmentNumber = getSegmentNumber(key, versionConstraint);
+	        if (debugVersion) {
+	            System.out.println("retrieve:\t" + key);
+	            System.out.println("RetrievalOptions:\t" + options);
+	        }
+	        if (segmentNumber == IntCuckooConstants.noSuchValue) {
+	            return null;
+	        } else {
+	            readLock.lock();
+	            try {
+		            if (headSegment.getSegmentNumber() == segmentNumber) {
+	                    // return getValueEntry(key).retrieve(options);
+	                    if (debugSegments) {
+	                        Log.warning("Read from head segment");
+	                    }
+	                    result = retrieve(headSegment, key, options);
+	                    if (debugSegments) {
+	                        Log.warning("Done read from head segment");
+	                    }
+		            } else {
+		                try {
+		                    AbstractSegment segment;
+		
+		                    segment = getSegment(segmentNumber, readSegmentPrereadMode);
+		                    try {
+		                        if (debugSegments) {
+		                            Log.warning("Read from file segment");
+		                        }
+		                        result = retrieve(segment, key, options);
+		                        if (debugSegments) {
+		                            Log.warning("Done read from file segment");
+		                            Log.warning("result: " + result);
+		                        }
+		                    } finally {
+		                        if (nsOptions.getStorageType() == StorageType.FILE) {
+		                        	if (segment != headSegment) {
+		                        		((FileSegment)segment).removeReference();
+		                        	}
+		                        }
+		                    }
+		                } catch (IOException ioe) {
+		                    Log.logErrorWarning(ioe);
+		                    return null;
+		                }
+		            }
+	            } finally {
+	                readLock.unlock();
+	            }
+	            
+	            if (result != null) {
+	                // Double check that the result is valid
+	                if (debug) {
+	                    System.out.printf("tpc %d\n", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
+	                    System.out.printf("tpc %s\n", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+	                            CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0))));
+	                }
+	                // FUTURE - this is a temporary workaround until the versioned storage is overhauled
+	                if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+	                                               MetaDataUtil.getStorageState(result, 0))) {
+	                    //System.out.printf("key %s storage state: %d\n", KeyUtil.keyToString(key), 
+	                    //        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
+	                	switch (versionConstraint.getMode()) {
+	                	case GREATEST:
+		                	long	newMaxVersion;
+		                	
+		                    newMaxVersion = MetaDataUtil.getVersion(result, 0) - 1;
+		                    if (newMaxVersion < versionConstraint.getMin()) {
+		                    	return null;
+		                    }
+		                    versionConstraint = versionConstraint.max(newMaxVersion);
+		                    break;
+	                	case LEAST:
+		                	long	newMinVersion;
+		                	
+		                	newMinVersion = MetaDataUtil.getVersion(result, 0) + 1;
+		                    if (newMinVersion > versionConstraint.getMax()) {
+		                    	return null;
+		                    }
+		                    versionConstraint = versionConstraint.min(newMinVersion);
+	                		break;
+	                	default: throw new RuntimeException("Panic");
+	                	}
+	                    options = options.versionConstraint(versionConstraint);
+	                } else {
+	                	return result;
+	                }
+	            } else {
+	            	return null;
+	            }
+	        }
+        } while (failedStore++ < maxFailedStores);
+        Log.warning("maxFailedStores exceeded");
+        return null;
+    }
+    
+    protected ByteBuffer[] _retrieve(Triple<DHTKey,Integer,Integer>[] keysSegmentNumbersAndIndices, InternalRetrievalOptions options) {
+        ByteBuffer[] results;
 
-                    segment = getSegment(segmentNumber);
-                    try {
-                        if (debugSegments) {
-                            Log.warning("Read from file segment");
-                        }
-                        result = retrieve(segment, key, options);
-                        if (debugSegments) {
-                            Log.warning("Done read from file segment");
-                            Log.warning("result: " + result);
-                        }
-                    } finally {
-                        if (nsOptions.getStorageType() == StorageType.FILE) {
-                        	if (segment != headSegment) {
-                        		((FileSegment)segment).removeReference();
-                        	}
-                        }
-                    }
-                } catch (IOException ioe) {
-                    Log.logErrorWarning(ioe);
-                    return null;
+        results = new ByteBuffer[keysSegmentNumbersAndIndices.length];
+        for (int i = 0; i < keysSegmentNumbersAndIndices.length; i++) {
+        	if (debugParent) {
+        		Log.warningAsyncf("\t%s %d %d", KeyUtil.keyToString(keysSegmentNumbersAndIndices[i].getV1()), keysSegmentNumbersAndIndices[i].getV2(), keysSegmentNumbersAndIndices[i].getV3());
+        	}
+            if (debugVersion) {
+                System.out.println("retrieve:\t" + keysSegmentNumbersAndIndices[i].getV1());
+                System.out.println("RetrievalOptions:\t" + options);
+            }
+            if (keysSegmentNumbersAndIndices[i].getV2() == IntCuckooConstants.noSuchValue) {
+                results[i] = null;
+            }
+        }
+        readLock.lock();
+        try {
+            for (int i = 0; i < keysSegmentNumbersAndIndices.length; i++) {
+                if (keysSegmentNumbersAndIndices[i].getV2() != IntCuckooConstants.noSuchValue) {
+		            if (headSegment.getSegmentNumber() == keysSegmentNumbersAndIndices[i].getV2()) {
+		                if (debugSegments) {
+		                    Log.warning("Read from head segment");
+		                }
+		                results[i] = retrieve(headSegment, keysSegmentNumbersAndIndices[i].getV1(), options);
+		                if (debugSegments) {
+		                    Log.warning("Done read from head segment");
+		                }
+		            } else {
+		                try {
+		                    AbstractSegment segment;
+		
+		                    segment = getSegment(keysSegmentNumbersAndIndices[i].getV2(), readSegmentPrereadMode);
+		                    try {
+		                        if (debugSegments) {
+		                            Log.warning("Read from file segment");
+		                        }
+		                        results[i] = retrieve(segment, keysSegmentNumbersAndIndices[i].getV1(), options);
+		                        if (debugSegments) {
+		                            Log.warning("Done read from file segment");
+		                            Log.warning("result: " + results[i]);
+		                        }
+		                    } finally {
+		                    	// Not optimizing this as we do not expect to use it at present
+		                    	// (we're using the map everything approach at present)
+		                        if (nsOptions.getStorageType() == StorageType.FILE) {
+		                        	if (segment != headSegment) {
+		                        		((FileSegment)segment).removeReference();
+		                        	}
+		                        }
+		                    }
+		                } catch (IOException ioe) {
+		                    Log.logErrorWarning(ioe);
+		                    return null;
+		                }
+		            }
                 }
             }
-            
-            if (result != null) {
-                // Double check that the result is valid
-                if (debug) {
-                    System.out.printf("tpc %d\n", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
-                    System.out.printf("tpc %s\n", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
-                            CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0))));
-                }
-                if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
-                                               MetaDataUtil.getStorageState(result, 0))) {
-                    //System.out.printf("key %s storage state: %d\n", KeyUtil.keyToString(key), 
-                    //        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
-                    result = null;
-                	//result = valueStorageStateInvalidForRead;
-                }
-            }
-            
-            return result;
+        } finally {
+            readLock.unlock();
         }
+        
+        for (int i = 0; i < results.length; i++) {
+	        if (results[i] != null) {
+	            // Double check that the result is valid
+	            if (debug) {
+	                System.out.printf("tpc %d\n", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0)));
+	                System.out.printf("tpc %s\n", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+	                        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0))));
+	            }
+	            if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+	                                           MetaDataUtil.getStorageState(results[i], 0))) {
+	                //System.out.printf("key %s storage state: %d\n", KeyUtil.keyToString(key), 
+	                //        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
+	            	// If we detect a failed store, simply revert to the single key retrieval code
+	            	// which is capable of handling this situation
+	                results[i] = _retrieve(keysSegmentNumbersAndIndices[i].getV1(), options);
+	            }
+	        }
+        }
+        
+        return results;
     }
 
     /**
@@ -1522,12 +1936,20 @@ public class NamespaceStore {
 	}
 
 	public void cleanupPendingWaitFors() {
+        if (debugWaitFor) {
+        	System.out.println("Cleaning pending waitfors");
+        }
         for (Map.Entry<DHTKey, Set<PendingWaitFor>> entry : pendingWaitFors.entrySet()) {
             for (PendingWaitFor pendingWaitFor : entry.getValue()) {
                 ActiveProxyRetrieval waiter;
 
                 waiter = activeRetrievals.get(pendingWaitFor.getOpUUID());
                 if (waiter == null) {
+                    if (debugWaitFor) {
+                    	System.out.printf("No active retrieval for %s\n", pendingWaitFor.getKey());
+                    } else {
+                    	System.out.printf("Found active retrieval for %s\n", pendingWaitFor.getKey());
+                    }
                     entry.getValue().remove(pendingWaitFor);
                 }
             }
@@ -1643,13 +2065,13 @@ public class NamespaceStore {
         return versionAndStorageTime;
     }
 
-    private WritableSegmentBase getSegment(int segmentNumber) throws IOException {
+    private WritableSegmentBase getSegment(int segmentNumber, SegmentPrereadMode segmentPrereadMode) throws IOException {
     	if (segmentNumber == headSegment.getSegmentNumber()) {
     		return headSegment;
     	} else {
 	        switch (nsOptions.getStorageType()) {
 	        case RAM: return ramSegments.get(segmentNumber);
-	        case FILE: return getFileSegment(segmentNumber);
+	        case FILE: return getFileSegment(segmentNumber, segmentPrereadMode);
 	        default: throw new RuntimeException("Panic");
 	        }
     	}
@@ -1661,7 +2083,7 @@ public class NamespaceStore {
     	} else {
 	        switch (nsOptions.getStorageType()) {
 	        case RAM: return ramSegments.get(segmentNumber);
-	        case FILE: return getFileSegment(segmentNumber);
+	        case FILE: return getFileSegment(segmentNumber, readSegmentPrereadMode);
 	        default: throw new RuntimeException("Panic");
 	        }
     	}
@@ -1693,9 +2115,9 @@ public class NamespaceStore {
     	return FileSegment.fileForSegment(nsDir, segmentNumber).exists();
 	}
 
-	private FileSegment getFileSegment(int segmentNumber) throws IOException {
+	private FileSegment getFileSegment(int segmentNumber, SegmentPrereadMode segmentPrereadMode) throws IOException {
         try {
-        	return _getFileSegment(segmentNumber);
+        	return _getFileSegment(segmentNumber, segmentPrereadMode);
         } catch (IOException | RuntimeException e) {
         	Exception	lastE;
             int			attemptIndex;
@@ -1705,7 +2127,7 @@ public class NamespaceStore {
             Log.warning(String.format("Treating as non fatal. %s ns %x segmentNumber %d attemptIndex %d", e, ns, segmentNumber, attemptIndex));
             while (attemptIndex < fileSegmentAttempts) {
             	try {
-                	return _getFileSegment(segmentNumber);
+                	return _getFileSegment(segmentNumber, segmentPrereadMode);
                 } catch (IOException | RuntimeException e2) {
                     lastE = e2;
                     Log.warning(String.format("Treating as non fatal. %s ns %x segmentNumber %d attemptIndex %d", e2, ns, segmentNumber, attemptIndex));
@@ -1721,7 +2143,7 @@ public class NamespaceStore {
         }
     }
     
-    private FileSegment _getFileSegment(int segmentNumber) throws IOException {
+    private FileSegment _getFileSegment(int segmentNumber, SegmentPrereadMode segmentPrereadMode) throws IOException {
         FileSegment fileSegment;
 
         // FUTURE - this implementation touches disk more than we need to
@@ -1732,7 +2154,8 @@ public class NamespaceStore {
 
             	syncMode = nsOptions.getStorageType() == StorageType.FILE_SYNC ? FileSegment.SyncMode.Sync : FileSegment.SyncMode.NoSync; 
                 //fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
-                fileSegment = FileSegment.openForDataUpdate(nsDir, segmentNumber, nsOptions.getSegmentSize(), syncMode, nsOptions);
+                fileSegment = FileSegment.openForDataUpdate(nsDir, segmentNumber, nsOptions.getSegmentSize(), syncMode, nsOptions, 
+                											segmentIndexLocation, segmentPrereadMode);
             } catch (IOException | OutOfMemoryError e) {
                 boolean oom;
                 
@@ -1847,10 +2270,10 @@ public class NamespaceStore {
             NodeRingMaster2 ringMaster, ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
             ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
         NamespaceStore nsStore;
-        String[] segmentFiles;
-        int headSegmentNumberIndex;
-        int headSegmentNumber;
         NamespaceProperties nsProperties;
+        int	numSegmentsToPreread;
+        int	numSegmentsToSkipPreread;
+        int	segmentsPrereadSkipped;
 
         if (ns == NamespaceUtil.metaInfoNamespace.contextAsLong()) {
             nsProperties = NamespaceUtil.metaInfoNamespaceProperties;
@@ -1863,57 +2286,70 @@ public class NamespaceStore {
         }
         nsStore = new NamespaceStore(ns, nsDir, NamespaceStore.DirCreationMode.DoNotCreateNSDir, 
                                      nsProperties, parent, mgBase, ringMaster, true, activeRetrievals);
-        segmentFiles = nsDir.list();
-        if (segmentFiles != null) {
-            FileSegmentRecoverer fsr;
+        if (nsProperties.getOptions().getStorageType() != StorageType.RAM) {
             List<Integer> segmentNumbers;
-
-            fsr = new FileSegmentRecoverer(nsDir);
-            segmentNumbers = new ArrayList<>();
-            for (String segmentFile : segmentFiles) {
-                try {
-                    int segmentNumber;
-
-                    segmentNumber = Integer.parseInt(segmentFile);
-                    if (segmentNumber >= 0) {
-                        segmentNumbers.add(segmentNumber);
-                    } else {
-                        Log.warning("Ignoring bad segment number: ", segmentNumber);
-                    }
-                } catch (NumberFormatException nfe) {
-                    Log.warning("Recovery ignoring bad segment number: ", segmentFile);
-                }
-            }
-            Collections.sort(segmentNumbers);
-            headSegmentNumberIndex = segmentNumbers.size() - 1;
-            headSegmentNumber = segmentNumbers.get(headSegmentNumberIndex); 
-            for (int i : segmentNumbers) {
-            	try {
-            		fsr.recoverFullSegment(i, nsStore);
-            	} catch (Exception e) {
+        	
+        	segmentNumbers = FileUtil.numericFilesInDirAsSortedIntegerList(nsDir);
+        	if (segmentNumbers.size() > 0) {
+	            FileSegmentRecoverer fsr;
+	            int headSegmentNumber;
+	            int headSegmentNumberIndex;
+	
+	            fsr = new FileSegmentRecoverer(nsDir);
+	            
+	            headSegmentNumberIndex = segmentNumbers.size() - 1;
+	            headSegmentNumber = segmentNumbers.get(headSegmentNumberIndex); 
+	            segmentNumbers.remove(headSegmentNumberIndex);
+	            
+	            numSegmentsToPreread = (int)((long)nsPrereadGB * (1024L * 1024L * 1024L) / (long)(nsProperties.getOptions().getSegmentSize()));
+	            numSegmentsToSkipPreread = segmentNumbers.size() - numSegmentsToPreread; 
+	            segmentsPrereadSkipped = 0;
+	            Log.warningf("segmentsToPreread: %d", numSegmentsToPreread);
+	            
+	            for (int i : segmentNumbers) {
             		FileSegment	segment;
+    	            SegmentPrereadMode	segmentPrereadMode;
             		
-            		Log.logErrorWarning(e, "Error recovering full segment "+ i);
-            		Log.warning("Attempting partial segment recovery of segment: "+ i);
-            		segment = fsr.readPartialSegment(i);
-            		Log.warning("Successfully read segment as partial segment: "+ i);
-            		Log.warning("Persisting segment: "+ i);
-            		try {
-            			segment.persist();
-            		} catch (IOException ioe) {
-            			throw new RuntimeException("Segment persists failed for recovered segment" + i, ioe);
-            		}
-            		Log.warning("Persisted segment: "+ i);
-            		Log.warning("Resuming full segment recovery: "+ i);
-            		fsr.recoverFullSegment(i, nsStore);
-            	}
-            }
-            // Check for partial recovery on last
-            // FIXME - Check for corruption
-            // FIXME - If full, then do full recovery
-            nsStore.setHeadSegment(fsr.recoverPartialSegment(headSegmentNumber, nsStore));
+    	            segmentPrereadMode = segmentsPrereadSkipped < numSegmentsToSkipPreread ? SegmentPrereadMode.NoPreread : SegmentPrereadMode.Preread;
+            		segment = null;
+	            	try {
+	            		segment = fsr.recoverFullSegment(i, nsStore, segmentIndexLocation, segmentPrereadMode);
+	            	} catch (Exception e) {
+	            		Log.logErrorWarning(e, "Error recovering full segment "+ i);
+	            		Log.warningf("Attempting partial segment recovery of segment: %d %s", i, segmentPrereadMode);
+	            		segment = fsr.readPartialSegment(i, false);
+	            		Log.warning("Successfully read segment as partial segment: "+ i);
+	            		Log.warning("Persisting segment: "+ i);
+	            		try {
+	            			segment.persist();
+	            		} catch (IOException ioe) {
+	            			throw new RuntimeException("Segment persists failed for recovered segment" + i, ioe);
+	            		}
+	            		Log.warning("Persisted segment: "+ i);
+	            		Log.warning("Resuming full segment recovery: "+ i);
+	            		segment = fsr.recoverFullSegment(i, nsStore, segmentIndexLocation, segmentPrereadMode);
+	            	}
+	            	if (segmentPrereadMode == SegmentPrereadMode.Preread && segment != null) {
+	            		nsStore.addRecentFileSegment(i, segment);
+	            	}
+	            	segmentsPrereadSkipped++;
+	            }
+	            // Check for partial recovery on last
+	            // FUTURE - Check for corruption
+	            // FUTURE - If full, then do full recovery?
+	            nsStore.setHeadSegment(fsr.recoverPartialSegment(headSegmentNumber, nsStore));
+        	} else {
+        		nsStore.createInitialHeadSegment();
+        	}
+        } else {
+        	nsStore.initRAMSegments();
         }
         return nsStore;
+    }
+    
+    private void addRecentFileSegment(int segmentNumber, FileSegment fileSegment) {
+        fileSegment.addReferences(2); // 1 for the map, 1 for the returned reference
+        recentFileSegments.put(segmentNumber, fileSegment);
     }
 
     // FUTURE - Consider deco
@@ -1940,7 +2376,7 @@ public class NamespaceStore {
     	ActiveRegionSync	ars;
     	
     	ars = new ActiveRegionSync(this, checksumTreeServer, mgBase, new ChecksumTreeRequest(targetCP, sourceCP, region, replica));
-    	Log.warningf("getChecksumTreeForLocal req uuid %s  ars uuid %s  %s %s %s %s", uuid, ars.getUUID(), targetCP, sourceCP, region, replica);
+    	Log.warningAsyncf("getChecksumTreeForLocal req uuid %s  ars uuid %s  %s %s %s %s", uuid, ars.getUUID(), targetCP, sourceCP, region, replica);
     	activeRegionSyncs.put(ars.getUUID(), ars);
     	try {
 	    	// Forward request to remote
@@ -1962,7 +2398,7 @@ public class NamespaceStore {
                                      MessageGroupConnection connection) {
     	ActiveRegionSync	ars;
     	
-    	Log.warningf("incomingChecksumTree %s", uuidBase);
+    	Log.warningAsyncf("incomingChecksumTree %s", uuidBase);
     	ars = activeRegionSyncs.get(uuidBase);
     	if (ars == null) {
     		Log.warningf("Ignoring unexpected incoming checksum tree %x %s", ns, uuidBase.toString());
@@ -1980,7 +2416,7 @@ public class NamespaceStore {
         List<StorageValueAndParameters> svpList;
         
         if (debug) {
-            Log.warning("incomingSyncRetrievalResponse");
+        	Log.warningAsyncf("incomingSyncRetrievalResponse");
         }
         svpList = new ArrayList<>();
         for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
@@ -2046,7 +2482,17 @@ public class NamespaceStore {
     
     /** readLock() must be held while this is in use and readUnlock() must be called when complete */
     public Iterator<KeyAndVersionChecksum> keyAndVersionChecksumIterator(long minVersion, long maxVersion) {
-        return new KeyAndVersionChecksumIterator(minVersion, maxVersion);
+    	if (retrieveTrigger == null) {
+    		if (debug) {
+    			System.out.printf("KeyAndVersionChecksumIterator\n");
+    		}
+    		return new KeyAndVersionChecksumIterator(minVersion, maxVersion);
+    	} else {
+    		if (debug) {
+    			System.out.printf("KeyAndVersionChecksumIteratorForTrigger\n");
+    		}
+    		return new KeyAndVersionChecksumIteratorForTrigger();
+    	}
     }
 
     private class KeyAndVersionChecksumIterator implements Iterator<KeyAndVersionChecksum> {
@@ -2084,7 +2530,12 @@ public class NamespaceStore {
                 } else {
                 	MultiVersionChecksum	_checksum;
                 	
-                	_checksum = getVersionChecksum(vsEntry.getKey());
+                	try {
+                		_checksum = getVersionChecksum(vsEntry.getKey());
+                	} catch (RuntimeException re) {
+                		re.printStackTrace();
+                		_checksum = null;
+                	}
                 	if (_checksum != null) {
                 		checksum = _checksum.getLongChecksum();
                     	validChecksum = true;
@@ -2094,7 +2545,7 @@ public class NamespaceStore {
                 	}
                 }
                 if (validChecksum) {
-                	_next = new KeyAndVersionChecksum(vsEntry.getKey(), checksum);
+                	_next = new KeyAndVersionChecksum(vsEntry.getKey(), checksum, vsEntry.getValue());
                 }
                 /*
                 ByteBuffer result;
@@ -2138,31 +2589,94 @@ public class NamespaceStore {
         }
     }
     
+    // simplified - doesn't support multi version as multi-version convergence is not yet fully implemented
+    private class KeyAndVersionChecksumIteratorForTrigger implements Iterator<KeyAndVersionChecksum> {
+        private final Iterator<DHTKey>  keyIterator;
+
+        private KeyAndVersionChecksumIteratorForTrigger() {
+        	keyIterator = retrieveTrigger.keyIterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return keyIterator.hasNext();
+        }
+
+        @Override
+        public KeyAndVersionChecksum next() {
+        	DHTKey	key;
+        	
+        	key = keyIterator.next();        	
+        	if (key != null) {
+        		return new KeyAndVersionChecksum(key, 0, 0);
+        	} else {
+        		return null;
+        	}
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
+    
     private MultiVersionChecksum getVersionChecksum(DHTKey key) {
-    	int		segmentNumber;
-    	
-    	segmentNumber = valueSegments.get(key);
-    	if (segmentNumber >= 0) {
-    		return MultiVersionChecksum.fromKey(key);
+    	if (retrieveTrigger != null) {
+    		throw new RuntimeException("panic"); // Not for use with triggers 
     	} else {
-            OffsetList 			offsetList;
-            
-            offsetList = offsetListStore.getOffsetList(-segmentNumber);
-            //return offsetList.getMultiVersionChecksum();
-            // FIXME - TEMPORARY - ONLY CONSIDER THE MOST RECENT VALUE
-            // FOR CONVERGENCE
-            MultiVersionChecksum	checksum;
-            long					latestVersion;
-            
-            latestVersion = offsetList.getLatestVersion();
-            if (latestVersion >= 0) {
+	    	int		segmentNumber;
+	    	
+	    	segmentNumber = valueSegments.get(key);
+	    	if (segmentNumber >= 0) {
+	            MultiVersionChecksum	checksum;
+	            WritableSegmentBase		segment;
+	            long					latestVersion;
+	            
+	            try {
+	            	segment = getSegment(segmentNumber, SegmentPrereadMode.Preread);
+	            } catch (IOException ioe) {
+	            	throw new RuntimeException(ioe);
+	            }
+				try {
+					int	offset;
+					
+					offset = segment.getRawOffset(key);
+					if (offset < 0) {
+						throw new RuntimeException("Unexpected offset < 0: "+ key +" "+ offset +" "+ segmentNumber);
+					}
+					latestVersion = segment.getVersion(offset);
+	    		} finally {
+	                if (nsOptions.getStorageType() == StorageType.FILE) {
+	                	if (segment != headSegment) {
+	                		((FileSegment)segment).removeReference();
+	                	}
+	                }
+	    		}
 	            checksum = new MultiVersionChecksum();
 	            checksum.addKey(key);
 	            checksum.addVersionAndStorageTime(latestVersion, 0);
 	            return checksum;
-            } else {
-            	return null;
-            }
+	    		//return MultiVersionChecksum.fromKey(key);            
+	    	} else {
+	            OffsetList 			offsetList;
+	            
+	            offsetList = offsetListStore.getOffsetList(-segmentNumber);
+	            //return offsetList.getMultiVersionChecksum();
+	            // FIXME - TEMPORARY - ONLY CONSIDER THE MOST RECENT VALUE
+	            // FOR CONVERGENCE
+	            MultiVersionChecksum	checksum;
+	            long					latestVersion;
+	            
+	            latestVersion = offsetList.getLatestVersion();
+	            if (latestVersion >= 0) {
+		            checksum = new MultiVersionChecksum();
+		            checksum.addKey(key);
+		            checksum.addVersionAndStorageTime(latestVersion, 0);
+		            return checksum;
+	            } else {
+	            	return null;
+	            }
+	    	}
     	}
     }
     
@@ -2179,13 +2693,15 @@ public class NamespaceStore {
     ////////////////////
     // Retention
     
-    public void reap() {
+    public void reap(boolean leaveTrash) {
     	ValueRetentionPolicy	vrp;
     	
     	vrp = nsOptions.getValueRetentionPolicy();
-    	Log.warningf("reap ns %x %s", ns, vrp);
+    	Log.warningAsyncf("reap ns %x %s %s", ns, vrp, leaveTrash);
     	if (vrp != null) {
-    		FileSegmentCompactor.emptyTrash(nsDir);
+    		if (!leaveTrash) {
+    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    		}
 	    	writeLock.lock();
 	    	metaWriteLock.lock();
 	    	try {
@@ -2204,6 +2720,9 @@ public class NamespaceStore {
 		    	metaWriteLock.unlock();
 		    	writeLock.unlock();
 	    	}
+    		if (!leaveTrash) {
+    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    		}
     	}
     }
     
@@ -2213,33 +2732,44 @@ public class NamespaceStore {
 		
 		removedEntries = new HashedSetMap<>();
 		deletedSegments = new HashSet<>();
-        for (int i = headSegment.getSegmentNumber(); i >= 0; i--) {
+        for (int i = headSegment.getSegmentNumber() - 1; i >= 0; i--) {
         	if (segmentExists(i)) {
         		Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>	result; 
         		WritableSegmentBase		segment;
         		CompactionCheckResult	ccr;
         		
         		try {
-					segment = getSegment(i);
+                	Stopwatch	sw;
+                	
+                	sw = new SimpleStopwatch();
+        			if (nsOptions.getStorageType() == StorageType.RAM) {
+        				segment = getSegment(i, SegmentPrereadMode.Preread);
+        			} else {
+        				segment = getSegment(i, SegmentPrereadMode.Preread);
+        				//segment = FileSegment.openReadOnly(nsDir, i, nsOptions.getSegmentSize(), nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
+        			}
 					try {
 						result = segment.singleReverseSegmentWalk(vrp, valueRetentionState, curTimeNanos, ringMaster);
 						ccr = result.getV1();
 		    		} finally {
 		                if (nsOptions.getStorageType() == StorageType.FILE) {
-		                	if (segment != headSegment) {
+		                	if (segment.getSegmentNumber() != headSegment.getSegmentNumber()) {
 		                		((FileSegment)segment).removeReference();
 		                	}
 		                }
 		    		}
-					Log.warningf("Segment %3d CompactionCheckResult:\t%s", i, ccr.toString());
-					if (segment == headSegment) {
-						Log.warning("Retaining head segment");
+					Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", i, ccr.toString());
+					if (segment.getSegmentNumber() == headSegment.getSegmentNumber()) {
+						Log.warningAsyncf("Retaining head segment");
 					} else {
 						if (ccr.getValidEntries() == 0) {
 			            	try {
 			            		recentFileSegments.remove(i);
 			            		FileSegmentCompactor.delete(nsDir, i);
 			            		deletedSegments.add(i);
+			            		if (FileSegment.mapEverything) {
+			                		((FileSegment)segment).close();
+			            		}
 			            	} catch (IOException ioe) {
 			            		Log.logErrorWarning(ioe, "Failed to delete segment: "+ i);
 			            	}
@@ -2255,6 +2785,8 @@ public class NamespaceStore {
 			            	}
 						}
 					}
+					sw.stop();
+					Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
 				} catch (Exception e) {
 					Log.logErrorWarning(e, "Skipping segment "+ i +" due to Exception");
 				}
@@ -2307,16 +2839,55 @@ public class NamespaceStore {
 
                 versionAndStorageTime = segmentOldestVersion(rawSegmentNumber, key); // only one should exist
                 if (removedEntries.getSet(key).size() != 1) {
-                	Log.warning("Unexpected removedEntries.getSet(key).size() != 1");
+                	Log.warningAsyncf("Unexpected removedEntries.getSet(key).size() != 1");
                 }
                 creationTime = nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS ? versionAndStorageTime[1] : 0;
                 if (removedEntries.getSet(key).contains(new Triple<>(versionAndStorageTime[0], rawSegmentNumber, creationTime))) {
                 	valueSegments.remove(key);
                 } else {
-                	Log.warning("Unexpected !removedEntries.getSet(key).contains(new Triple<>(versionAndStorageTime[0], rawSegmentNumber, creationTime))");
-                	Log.warningf("%s", new Triple<>(versionAndStorageTime[0], rawSegmentNumber, creationTime));
+                	Log.warningAsyncf("Unexpected !removedEntries.getSet(key).contains(new Triple<>(versionAndStorageTime[0], rawSegmentNumber, creationTime))");
+                	Log.warningAsyncf("%s", new Triple<>(versionAndStorageTime[0], rawSegmentNumber, creationTime));
                 }
             }    		
     	}
+	}
+    
+    ////////////////////////////////////
+    // SSNamespaceStore implementation
+
+	@Override
+	public long getNamespaceHash() {
+		return ns;
+	}
+
+	@Override
+	public boolean isNamespace(String ns) {
+		return NamespaceUtil.nameToLong(ns) == this.ns;
+	}
+
+	@Override
+	public OpResult put(DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData, NamespaceVersionMode nsVersionMode) {
+	    return _put(key, value, StorageParameters.fromSSStorageParameters(storageParams), userData, nsVersionMode);
+	}
+
+	@Override
+	public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options) {
+	    return _retrieve(key, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+	}
+
+	@Override
+	public File getNamespaceSSDir() {
+		synchronized (ssDir) {
+			if (!ssDir.exists() && !ssDir.mkdir()) {
+				throw new RuntimeException("Unable to create: "+ ssDir);
+			} else {
+				return ssDir;
+			}
+		}
+	}
+	
+	@Override 
+	public ReadWriteLock getReadWriteLock() {
+		return rwLock;
 	}
 }

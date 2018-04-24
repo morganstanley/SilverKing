@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
@@ -44,6 +46,7 @@ import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
 public class TopologyRingCreator {
 	private final long	magnitudeTolerance;
     private final long	residualRegionThreshold;
+    private final Random	random;
 
     private static final boolean debug = false;
     
@@ -55,11 +58,14 @@ public class TopologyRingCreator {
     }
 
     static final long defaultMagnitudeTolerance = LongRingspace.halfRingspaceErrorRoom * magnitudeToleranceFactor;
+    
+    private static final int	maxShuffleAttempts = 20;
 
     
     public TopologyRingCreator(long magnitudeTolerance) {
     	this.magnitudeTolerance = magnitudeTolerance;
         residualRegionThreshold = magnitudeTolerance * 10;
+        random = new Random(0);
     }
 
     public TopologyRingCreator() {
@@ -935,7 +941,7 @@ public class TopologyRingCreator {
 
         prList = ProtoRegionList.createEmpty();
         for (SubPolicy subPolicy : recipe.storagePolicy.getSubPolicies()) {
-            allocateSubPolicy(prList, subPolicy, ringParentID, recipe);
+            prList = allocateSubPolicy(prList, subPolicy, ringParentID, recipe);
         }
 
         System.out.println("*********************");
@@ -954,7 +960,7 @@ public class TopologyRingCreator {
      * newRing; }
      */
 
-    private void allocateSubPolicy(ProtoRegionList prList, SubPolicy subPolicy,
+    private ProtoRegionList allocateSubPolicy(ProtoRegionList prList, SubPolicy subPolicy,
             String ringParentID, RingTreeRecipe recipe) {
         Node parent;
 
@@ -964,19 +970,26 @@ public class TopologyRingCreator {
         }
         parent = recipe.topology.getNodeByID(ringParentID);
         for (SubPolicyMember member : subPolicy.getMembers()) {
-            allocateSubPolicyMember(prList, member, recipe, parent,
+            prList = allocateSubPolicyMember(prList, member, recipe, parent,
                     subPolicy.getReplicationType());
         }
+        return prList;
     }
 
-    private void allocateSubPolicyMember(ProtoRegionList prList,
+    private ProtoRegionList allocateSubPolicyMember(ProtoRegionList prList,
             SubPolicyMember member, RingTreeRecipe recipe, Node parent,
             ReplicationType rType) {
         List<Node> nodes;
         int replicas;
         NodeClass nodeClass;
         List<Long> nodeRegionSizes;
+        List<Integer> shuffle;
         boolean allReplicasTag;
+        
+        if (recipe.getWeight(parent) == 0.0) {
+        	System.out.printf("Ignoring allocation for zero-weighted node %s", parent.getIDString());
+        	return prList;
+        }
 
         nodeClass = parent.getChildNodeClass();
         if (nodeClass == null) {
@@ -992,7 +1005,12 @@ public class TopologyRingCreator {
         nodeRegionSizes = RingRegion.allRingspace
                 .dividedRegionSizes(recipe.weightSpecs.getWeights(nodes));
         if (debug) {
+        	System.out.println("nodeRegionSizes");
             System.out.println(CollectionUtil.toString(nodeRegionSizes, '\n'));
+        }
+        shuffle = new ArrayList<>();
+        for (int i = 0; i < nodes.size(); i++) {
+        	shuffle.add(i);
         }
 
         replicas = member.getQuantity();
@@ -1001,99 +1019,197 @@ public class TopologyRingCreator {
             replicas = nodes.size();
         }
         for (int replicaIndex = 0; replicaIndex < replicas; replicaIndex++) {
-            for (int nodeIndex = 0; nodeIndex < nodes.size(); nodeIndex++) {
-                Node node;
-                int regionIndex;
-                long ringspaceToAllocate;
-                long ringspaceAllocated;
-
-                if (debug) {
-                    System.out.printf("\nreplicaIndex %d nodeIndex %d\n",
-                            replicaIndex, nodeIndex);
-                }
-
-                // Determine how much ringspace to allocate to this node
-                node = nodes.get(nodeIndex);
-                ringspaceToAllocate = nodeRegionSizes.get(nodeIndex);
-                ringspaceAllocated = 0;
-
-                regionIndex = nodeIndex;
-
-                while (ringspaceAllocated < ringspaceToAllocate - magnitudeTolerance) {
-                    ProtoRegion protoRegion;
-
-                    if (debug) {
-                        System.out
-                                .printf("\tringspaceAllocated %d ringspaceToAllocate %d\tremaining %d\n",
-                                        ringspaceAllocated,
-                                        ringspaceToAllocate,
-                                        ringspaceToAllocate
-                                                - ringspaceAllocated);
-                        System.out.printf("regionIndex %d\n", regionIndex);
-                    }
-                    // Find an available region
-                    regionIndex = prList.nextRegion(regionIndex, node,
-                            replicaIndex, rType);
-                    if (debug) {
-                        System.out.printf("next regionIndex %d\n", regionIndex);
-                    }
-                    if (regionIndex < 0) {
-                        if (allReplicasTag) {
-                            break;
-                        } else {
-                            throw new RuntimeException(
-                                    "Couldn't find a free region");
-                        }
-                    }
-
-                    // Now add this node to the region found
-                    protoRegion = prList.get(regionIndex);
-                    if (debug) {
-                        System.out.println(protoRegion.getRegion());
-                        System.out.printf("%d %d\n", protoRegion.getRegion()
-                                .getSize(), ringspaceToAllocate
-                                - magnitudeTolerance);
-                    }
-                    if (protoRegion.getRegion().getSize() <= NumUtil.addWithClamp(ringspaceToAllocate, magnitudeTolerance)) {
-                        // The candidate region size is <= ringspaceToAllocate,
-                        // so we add the entire region
-                        ringspaceAllocated += protoRegion.getRegion().getSize();
-                        protoRegion.addOwner(rType, node);
-                    } else {
-                        // The candidate region size is > ringspaceToAllocate.
-                        // Split the region and add this node to the appropriate
-                        // portion.
-                        if (debug) {
-                            System.out.println("\t***splitProtoRegion***");
-                        }
-                        prList.splitProtoRegion(regionIndex,
-                                ringspaceToAllocate);
-                        // Need to get protoRegion from list again since the
-                        // previous region was split
-                        protoRegion = prList.get(regionIndex);
-                        if (protoRegion.getRegion().getSize() != ringspaceToAllocate) {
-                            throw new RuntimeException("panic");
-                        }
-
-                        // Add the entire region
-                        ringspaceAllocated += protoRegion.getRegion().getSize();
-                        protoRegion.addOwner(rType, node);
-                    }
-
-                    if (ringspaceAllocated < ringspaceToAllocate - magnitudeTolerance) {
-                        if (debug) {
-                            System.out.printf("incrementing regionIndex %d\n",
-                                    regionIndex);
-                        }
-                        regionIndex = (regionIndex + 1) % prList.size();
-                    }
-                    if (debug) {
-                        System.out
-                                .printf("after regionIndex %d\n", regionIndex);
-                    }
-                }
-            }
+        	ProtoRegionList	_prList;
+        	int				attemptIndex;
+        	boolean			successful;
+        	
+        	if (debug) {
+        		System.out.printf("\nreplicaIndex %d", replicaIndex);
+        	}
+        	_prList = prList.duplicate();
+        	attemptIndex = 0;
+        	successful = false;
+        	while (!successful && attemptIndex++ < maxShuffleAttempts) {
+	            Collections.shuffle(shuffle, random);
+	        	try {
+		            for (int _nodeIndex = 0; _nodeIndex < nodes.size(); _nodeIndex++) {
+		                Node	node;
+		                int		regionIndex;
+		                long	ringspaceToAllocate;
+		                long	ringspaceAllocated;
+		                int		nodeIndex;
+		
+		                nodeIndex = shuffle.get(_nodeIndex);
+		                if (debug) {
+		                    System.out.printf("\nreplicaIndex %d nodeIndex %d _nodeIndex %d attemptIndex %d\n",
+		                            replicaIndex, nodeIndex, _nodeIndex, attemptIndex);
+		                }
+		
+		                // Determine how much ringspace to allocate to this node
+		                node = nodes.get(nodeIndex);
+		                ringspaceToAllocate = nodeRegionSizes.get(nodeIndex);
+		                ringspaceAllocated = 0;
+		                sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		
+		                //regionIndex = _nodeIndex;
+		                regionIndex = 0;
+		
+		                while (ringspaceAllocated < ringspaceToAllocate - magnitudeTolerance) {
+		                    ProtoRegion protoRegion;
+		
+		                    if (debug) {
+		                        System.out
+		                                .printf("\tringspaceAllocated %d ringspaceToAllocate %d\tremaining %d\n",
+		                                        ringspaceAllocated,
+		                                        ringspaceToAllocate,
+		                                        ringspaceToAllocate
+		                                                - ringspaceAllocated);
+		                        System.out.printf("regionIndex %d\n", regionIndex);
+		                    }
+		                    // Find an available region
+		                    regionIndex = prList.nextRegion(regionIndex, node,
+		                            replicaIndex, rType);
+		                    if (debug) {
+		                        System.out.printf("next regionIndex %d\n", regionIndex);
+		                    }
+		                    if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		                    
+		                    if (regionIndex < 0) {
+		                        if (allReplicasTag) {
+		                            break;
+		                        } else {
+		                        	Map<String,Long>	allocations;
+		                        	
+		                        	allocations = prList.getAllocations();
+		                        	for (int i = 0; i < nodes.size(); i++) {
+		                        		long	regionSize;
+		                        		Node	n;
+		                        		long	allocation;
+		                        		
+		                        		n = nodes.get(i);
+		                        		regionSize = nodeRegionSizes.get(i);
+		                        		allocation = allocations.get(n.getIDString());
+		                        		System.out.printf("%s\t%d\t%d\t%d\n", n.getIDString(), regionSize, allocation, regionSize * (replicaIndex + 1) - allocation);
+		                        	}
+		                            throw new RuntimeException("Couldn't find a free region");
+		                        }
+		                    }
+		
+		                    if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		                    // Now add this node to the region found
+		                    protoRegion = prList.get(regionIndex);
+		                    if (debug) {
+		                        System.out.println(protoRegion.getRegion());
+		                        System.out.printf("%d %d\n", protoRegion.getRegion()
+		                                .getSize(), ringspaceToAllocate
+		                                - magnitudeTolerance);
+		                    }
+		                    if (protoRegion.getRegion().getSize() <= NumUtil.addWithClamp(ringspaceToAllocate - ringspaceAllocated, magnitudeTolerance)) {
+		                        // The candidate region size is <= ringspaceToAllocate,
+		                        // so we add the entire region
+		                        ringspaceAllocated += protoRegion.getRegion().getSize();
+		                        protoRegion.addOwner(rType, node);
+		                        if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		                    } else {
+		                        // The candidate region size is > ringspaceToAllocate.
+		                        // Split the region and add this node to the appropriate
+		                        // portion.
+		                        if (debug) {
+		                            System.out.println("\t***splitProtoRegion***");
+		                        }
+		                        if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		                        prList.splitProtoRegion(regionIndex,
+		                                ringspaceToAllocate - ringspaceAllocated);
+		                        if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		                        // Need to get protoRegion from list again since the
+		                        // previous region was split
+		                        protoRegion = prList.get(regionIndex);
+		                        if (protoRegion.getRegion().getSize() != ringspaceToAllocate - ringspaceAllocated) {
+		                            throw new RuntimeException("panic");
+		                        }
+		                        if (debug ) {
+		                        	System.out.printf("protoRegion %s\n", protoRegion);
+		                        }
+		
+		                        // Add the entire region
+		                        ringspaceAllocated += protoRegion.getRegion().getSize();
+		                        protoRegion.addOwner(rType, node);
+		                        if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		                    }
+		
+		                    if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+		                    if (ringspaceAllocated < ringspaceToAllocate - magnitudeTolerance) {
+		                        if (debug) {
+		                            System.out.printf("incrementing regionIndex %d\n",
+		                                    regionIndex);
+		                        }
+		                        regionIndex = (regionIndex + 1) % prList.size();
+		                    }
+		                    if (debug) {
+		                        System.out.printf("after regionIndex %d\n", regionIndex);
+		                    }
+		                }
+		            }
+		        	successful = true;
+	            } catch (RuntimeException re) {
+	            	if (attemptIndex >= maxShuffleAttempts) {
+	            		throw re;
+	            	} else {
+	            		Log.warningf("Ignoring exception. Trying a new shuffle. attemptIndex %s", attemptIndex);
+	            		prList = _prList.duplicate();
+	            	}
+	            }
+        	}
         }
+        return prList;
+    }
+
+    private void sanityCheckAllocations(ProtoRegionList prList, List<Node> nodes, List<Long> nodeRegionSizes, 
+    									int replicaIndex, int nodeIndex, long ringspaceToAllocate, List<Integer> shuffle) {
+		Map<String,Long>	allocations;
+		
+		allocations = prList.getAllocations();
+		
+		if (ringspaceToAllocate < -magnitudeTolerance) {
+			long	regionSize;
+			Node	n;
+			Long	allocation;
+			int		i;
+			
+			i = shuffle.get(nodeIndex);
+			n = nodes.get(i);
+			regionSize = nodeRegionSizes.get(i);
+			allocation = allocations.get(n.getIDString());
+			if (allocation == null) {
+				allocation = new Long(0);
+			}
+    		System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\t***FAILED1\n", n.getIDString(), regionSize, regionSize * (replicaIndex + 1), allocation, regionSize * (replicaIndex + 1) - allocation, ringspaceToAllocate);
+			//throw new RuntimeException("Fatal: sanityCheckAllocations failed@1");
+    		System.exit(-1);
+		}
+		
+		for (int _i = 0; _i < nodes.size(); _i++) {
+			long	regionSize;
+			Node	n;
+			Long	allocation;
+			int		i;
+			
+			i = shuffle.get(_i);
+			n = nodes.get(i);
+			regionSize = nodeRegionSizes.get(i);
+			allocation = allocations.get(n.getIDString());
+			if (allocation != null) {
+				long	_ringspaceToAllocate;
+				
+				_ringspaceToAllocate = i == nodeIndex ? ringspaceToAllocate : 0;
+        		//System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\n", n.getIDString(), regionSize, regionSize * (replicaIndex + 1), allocation, regionSize * (replicaIndex + 1) - allocation, _ringspaceToAllocate);
+				if (_ringspaceToAllocate + allocation > regionSize * (replicaIndex + 1) + magnitudeTolerance) {
+	        		System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\t***FAILED\n", n.getIDString(), regionSize, regionSize * (replicaIndex + 1), allocation, regionSize * (replicaIndex + 1) - allocation, _ringspaceToAllocate);
+					//throw new RuntimeException("Fatal: sanityCheckAllocations failed");
+	        		System.exit(-1);
+				}
+			}
+		}
     }
 
     // ///////////////////////////////////////////////////////////

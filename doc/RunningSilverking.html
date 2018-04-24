@@ -1,0 +1,60 @@
+<html>
+<head><title>Running SilverKing</title>
+<link href="style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<h1>Running SilverKing</h1>
+
+<h2>Overview</h2>
+<p>
+This section describes several ways to run SilverKing starting 
+with simple single-server setups, and progressing to large-scale setups that
+require health monitoring and dynamic topology changes.
+
+</p>
+
+<h2>Standalone Server</h2>
+<p>
+The simplest way to run SilverKing is to start a standalone server from the command prompt. 
+This is done as follows: 
+<pre>
+./skc -s __EMBEDDED_KVS__
+</pre>
+This starts a SilverKing client shell with a server embedded in it.
+</p>
+
+<h2>Embedded in a Client</h2>
+<p>
+Another simple way to run SilverKing is to run an embedded instance inside of the same
+Java VM that the client resides in. This is useful for testing purposes. 
+Data in an embedded instance will not persist after the VM exits.
+See the <a href="./Examples.html">source code examples</a> for more details on this method.
+(At present, starting up the embedded SK instance takes several seconds.)
+</p>
+
+<h2>Static IP List</h2>
+<p>
+The simplest way to configure a distributed SK instance is using a 
+static list of IP addresses. Given such a list, the StaticInstanceCreator.sh
+script will populate all configuration required to run such an instance.
+</p>
+<p>
+For example, to create a simple SK configuration we can run:
+<pre>
+./StaticInstanceCreator.sh -G /tmp -d SK.MyTest -s <ip> -r 1 -z zkserver:9981 -g GC_SK_MY_TEST 
+</pre>
+</p>
+
+<h2>Full-featured Configuration</h2>
+<p>
+A fully-featured distributed configuration enables powerful capabilities
+such as the ability to tolerate server failures, change topology, replication level, 
+and data distribution on the fly. 
+See <a href="FullScaleAdministration.html">FullScaleAdministration.html</a>
+for instructions on administering a full-scale SilverKing installation.
+</p>
+
+</p>
+
+</body>
+</html>

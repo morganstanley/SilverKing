@@ -26,6 +26,7 @@ import org.kohsuke.args4j.CmdLineParser;
 
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.SKConstants;
+import com.ms.silverking.cloud.config.HostGroupTable;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.LightLinkedBlockingQueue;
@@ -69,8 +70,8 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     private static final int      maxWorkers = 20;
     private static final double   workerFraction = 0.05;
     private static final int      maxWorkerThreads = 20;
-    private static final double   workerSecondsPerHost = 0.15;
-    private static final int      workerTimeoutMinSeconds = 1 * 60;
+    private static final double   workerSecondsPerHost = 15;
+    private static final int      workerTimeoutMinSeconds = 5 * 60;
     
     private static final String javaCmd;
     
@@ -91,6 +92,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
                         boolean terminateUponCompletion) throws IOException {
         Registry    registry;
         int         registryPort;
+        String		envCmd;
         
         numWorkerThreads = Math.min(numWorkerThreads, maxWorkerThreads);
         
@@ -112,6 +114,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         
         workerTimeoutSeconds = (int)Math.max(workerTimeoutMinSeconds, 
                                 (double)hosts.size() * workerSecondsPerHost);            
+        Log.warning("workerTimeoutSeconds: ", workerTimeoutSeconds);
         Log.warning("hosts.size(): ", hosts.size());
         if (hosts.size() == 0) {
         	terminate();
@@ -179,7 +182,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         List<String>	hostList;
         int				numWorkers;
     	
-        hostList = ImmutableList.copyOf(hosts);
+        hostList = ImmutableList.copyOf(workerCandidateHosts);
         random = new Random();
         numWorkers = (int)Math.min((double)workerCandidateHosts.size() * workerFraction, maxWorkers);;
         numWorkers = Math.max(numWorkers, 1);
@@ -191,13 +194,13 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         return workers;
     }
     
-    public void startWorkers() {
-        startWorkers(workers, numWorkers);        
+    public void startWorkers(HostGroupTable hostGroups) {
+        startWorkers(workers, numWorkers, hostGroups);        
     }
 
-    private void startWorkers(Set<String> workers, int numWorkers) {
+    private void startWorkers(Set<String> workers, int numWorkers, HostGroupTable hostGroups) {
         workerSSH = new ParallelSSH(workers, workerCommand, 
-                numWorkers, workerTimeoutSeconds);
+                numWorkers, workerTimeoutSeconds, hostGroups);
     }
     
     public boolean waitForWorkerCompletion() {
@@ -219,6 +222,26 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     }
     
     //////////////////////////////////////////////////////////////////////
+
+
+	@Override
+	public String getSSHCmd() throws RemoteException {
+		if (workerSSH.sshCmdIsDefault()) {
+			return null;
+		} else {
+			return workerSSH.getSSHCmd();
+		}
+	}
+	
+	@Override
+	public Map<String, String> getSSHCmdMap() throws RemoteException {
+		return workerSSH.getSSHCmdMap();
+	}
+	
+	@Override
+	public HostGroupTable getHostGroups() throws RemoteException {
+		return workerSSH.getHostGroups();
+	}
     
     @Override
     public HostAndCommand getHostAndCommand() {
@@ -362,7 +385,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     	
     	workersComplete = false;
         while (!workersComplete) {
-            startWorkers();
+            startWorkers(null);
             workersComplete = waitForWorkerCompletion();
         }
         if (terminateUponCompletion) {

@@ -1,7 +1,9 @@
 package com.ms.silverking.cloud.dht;
 
 import com.ms.silverking.cloud.dht.client.OperationException;
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
 
+@NonVirtual
 public class SecondarySetSpecificationParseException extends OperationException {
     private final String    spec;
     

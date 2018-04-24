@@ -21,24 +21,24 @@ import com.ms.silverking.text.ObjectDefParser2;
  * these options only apply to the perspective of a single client.</p>
  */
 public final class NamespacePerspectiveOptions<K,V> {
-    private final Class<K>  keyClass;
-    private final Class<V>  valueClass;
-    private final KeyDigestType keyDigestType;
-    private final PutOptions defaultPutOptions;
+    private final Class<K>            keyClass;
+    private final Class<V>            valueClass;
+    private final KeyDigestType       keyDigestType;
+    private final PutOptions          defaultPutOptions;
     private final InvalidationOptions defaultInvalidationOptions;
-    private final GetOptions defaultGetOptions;
-    private final WaitOptions defaultWaitOptions;
-    private final VersionProvider   defaultVersionProvider;
-    private final EncrypterDecrypter	encrypterDecrypter;
+    private final GetOptions          defaultGetOptions;
+    private final WaitOptions         defaultWaitOptions;
+    private final VersionProvider     defaultVersionProvider;
+    private final EncrypterDecrypter  encrypterDecrypter;
     
     // FUTURE - think about this
-    static final KeyDigestType  standardKeyDigestType = KeyDigestType.MD5;
+    static final KeyDigestType standardKeyDigestType = KeyDigestType.MD5;
     
-    private static final NamespacePerspectiveOptions   template = 
-                                        new NamespacePerspectiveOptions(byte[].class, byte[].class);
+    static final ConstantVersionProvider standardVersionProvider = new ConstantVersionProvider(SystemTimeUtil.systemTimeSource.absTimeMillis());
+    static final NamespacePerspectiveOptions<byte[], byte[]> templateOptions = new NamespacePerspectiveOptions<byte[], byte[]>(byte[].class, byte[].class);
     
     static {
-        ObjectDefParser2.addParser(template);
+        ObjectDefParser2.addParser(templateOptions);
     }    
     
     /**
@@ -109,13 +109,13 @@ public final class NamespacePerspectiveOptions<K,V> {
      * @param keyClass
      * @param valueClass
      */
-    NamespacePerspectiveOptions(Class<K> keyClass, Class<V> valueClass) {
+    private NamespacePerspectiveOptions(Class<K> keyClass, Class<V> valueClass) {
         this(keyClass, valueClass, standardKeyDigestType, 
                 DHTConstants.standardPutOptions, 
                 DHTConstants.standardInvalidationOptions, 
                 DHTConstants.standardGetOptions, 
                 DHTConstants.standardWaitOptions, 
-                new ConstantVersionProvider(SystemTimeUtil.systemTimeSource.absTimeMillis()), null);
+                standardVersionProvider, null);
     }
     
     public Class<K> getKeyClass() {
@@ -196,6 +196,9 @@ public final class NamespacePerspectiveOptions<K,V> {
      * @return the modified copy of the instance
      */
     public NamespacePerspectiveOptions<K,V> defaultPutOptions(PutOptions defaultPutOptions) {
+    	if (defaultPutOptions instanceof InvalidationOptions) {
+    		throw new IllegalArgumentException("InvalidationOptions not allowed for defaultPutOptions");
+    	}
         return new NamespacePerspectiveOptions<>(keyClass, valueClass, 
                                     keyDigestType, defaultPutOptions, defaultInvalidationOptions,
                                     defaultGetOptions, defaultWaitOptions, 
@@ -273,7 +276,9 @@ public final class NamespacePerspectiveOptions<K,V> {
     
     @Override
     public int hashCode() {
-    	return keyClass.hashCode()
+    	int hashCode;
+    	
+    	hashCode = keyClass.hashCode()
     			^ valueClass.hashCode()
     			^ keyDigestType.hashCode()
     			^ defaultPutOptions.hashCode()
@@ -281,25 +286,51 @@ public final class NamespacePerspectiveOptions<K,V> {
     			^ defaultGetOptions.hashCode()
     			^ defaultWaitOptions.hashCode()
     			^ defaultVersionProvider.hashCode();
+    	
+		if (encrypterDecrypter != null) {
+			hashCode ^= encrypterDecrypter.hashCode();
+		}
+		
+    	return hashCode;
     }
     
     @Override
-    public boolean equals(Object other) {
-    	if (this == other) {
+    public boolean equals(Object o) {
+    	if (this == o) {
     		return true;
-    	} else {
-    		NamespacePerspectiveOptions oOptions;
-    	
-    		oOptions = (NamespacePerspectiveOptions)other;
-    		return keyClass.equals(oOptions.keyClass)
-    				&& valueClass.equals(oOptions.valueClass)
-    				&& keyDigestType == oOptions.keyDigestType
-    				&& defaultPutOptions.equals(oOptions.defaultPutOptions)
-    				&& defaultInvalidationOptions.equals(oOptions.defaultInvalidationOptions)
-    				&& defaultGetOptions.equals(oOptions.defaultGetOptions)
-    				&& defaultWaitOptions.equals(oOptions.defaultWaitOptions)
-    				&& defaultVersionProvider.equals(oOptions.defaultVersionProvider);
     	}
+    		
+		if (this.getClass() != o.getClass()) {
+			return false;
+		}
+
+		NamespacePerspectiveOptions other;
+		other = (NamespacePerspectiveOptions)o;
+		
+		boolean encrypterDecrypterEquals;
+		if (encrypterDecrypter == null) { 
+			if (other.encrypterDecrypter == null) {
+				encrypterDecrypterEquals = true;
+			} else {
+				return false;
+			}
+		} else { 
+    		if (other.encrypterDecrypter == null) { 
+    			return false;
+    		} else { 
+    			encrypterDecrypterEquals = encrypterDecrypter.equals(other.encrypterDecrypter);
+    		}
+		}
+		
+		return keyClass.equals(other.keyClass)
+				&& valueClass.equals(other.valueClass)
+				&& keyDigestType == other.keyDigestType
+				&& defaultPutOptions.equals(other.defaultPutOptions)
+				&& defaultInvalidationOptions.equals(other.defaultInvalidationOptions)
+				&& defaultGetOptions.equals(other.defaultGetOptions)
+				&& defaultWaitOptions.equals(other.defaultWaitOptions)
+				&& defaultVersionProvider.equals(other.defaultVersionProvider)
+				&& encrypterDecrypterEquals;
     }    
     
     @Override

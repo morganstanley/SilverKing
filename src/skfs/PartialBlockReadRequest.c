@@ -11,7 +11,7 @@
 ///////////////////
 // implementation
 
-PartialBlockReadRequest *pbrr_new(FileBlockID *fbid, void *dest, size_t readOffset, size_t readSize, uint64_t minModificationTimeMillis) {
+PartialBlockReadRequest *pbrr_new(FileBlockID *fbid, void *dest, size_t readOffset, size_t readSize, uint64_t minModificationTimeMicros) {
 	PartialBlockReadRequest *pbrr;
 
 	srfsLog(LOG_FINE, "pbrr_new %llx %llx %lu %lu", fbid, dest, readOffset, readSize);
@@ -26,7 +26,7 @@ PartialBlockReadRequest *pbrr_new(FileBlockID *fbid, void *dest, size_t readOffs
 	pbrr->dest = dest;
 	pbrr->readOffset = readOffset;
 	pbrr->readSize = readSize;
-    pbrr->minModificationTimeMillis = minModificationTimeMillis;
+    pbrr->minModificationTimeMicros = minModificationTimeMicros;
 	return pbrr;
 }
 

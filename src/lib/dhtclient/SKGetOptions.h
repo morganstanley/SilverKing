@@ -27,6 +27,9 @@ public:
 	SKAPI SKGetOptions * verifyChecksums(bool verifyChecksums);
 	SKAPI SKGetOptions * returnInvalidations(bool returnInvalidations);
 	SKAPI SKGetOptions * updateSecondariesOnMiss(bool updateSecondariesOnMiss);
+	SKAPI SKGetOptions * forwardingMode(SKForwardingMode forwardingMode);
+    
+	SKAPI virtual SKForwardingMode getForwardingMode() const;
     
 	SKAPI static SKGetOptions * parse(const char * def);
 	SKAPI virtual string toString();
@@ -37,13 +40,12 @@ public:
         std::set<SKSecondaryTarget*> * secondaryTargets,
         SKRetrievalType retrievalType, SKVersionConstraint * versionConstraint, 
         SKNonExistenceResponse::SKNonExistenceResponse nonExistenceResponse, bool verifyChecksums,  
-        bool returnInvalidations, bool updateSecondariesOnMiss);
+        bool returnInvalidations, SKForwardingMode forwardingMode, bool updateSecondariesOnMiss);
         
 	SKGetOptions(void * pOpt);
 	void * getPImpl() const;
 
 protected:
-	
 };
 
 #endif // SKGETOPTIONS_H

@@ -16,15 +16,12 @@ public abstract class PartialKeyIntCuckooBase extends CuckooBase implements Iter
     protected final PKIntSubTableBase[]  subTables;
     
     
-    private static final int    empty = Integer.MIN_VALUE;
-    public static final int    keyNotFound = empty;
-    
     protected static final long   emptyEntry = (long)empty << offsetIndexShift;
     
     private static final boolean    debug = false;
     private static final boolean    debugCycle = false;
     private static final boolean    sanityCheck = false;
-    
+
     // entry - key/value entry
     // bucket - group of entries
     // bucketSize - entriesPerBucket

@@ -25,10 +25,11 @@ import org.kohsuke.args4j.CmdLineParser;
 
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.client.OperationException;
+import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.CentralConvergenceController;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.Mode;
+import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.RequestState;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.RequestStatus;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.RingMasterControl;
-import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.RingMasterControlImpl;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
@@ -74,14 +75,17 @@ public class SKAdminShell implements Watcher {
     private static final String    prompt = "ska> ";
     private static final String    terminator = ";";
     
+    private static final String	currentPointerName = "Current";
+    private static final String	targetPointerName = "Target";
+    
 	public SKAdminShell(SKGridConfiguration gc, InputStream in, PrintStream out, PrintStream err, String server, int port) throws NotBoundException, KeeperException, IOException {
 		this.gc = gc;
-		zkConfig = new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs());
+		zkConfig = gc.getClientDHTConfiguration().getZKConfig();
 		zk = new ZooKeeperExtended(zkConfig, zkTimeout, this);
         this.in = new BufferedReader(new InputStreamReader(in));
         this.out = out;
         this.err = err;
-        rmc = (RingMasterControl)Naming.lookup("rmi://"+ server +":"+ port +"/"+ RingMasterControl.registryName);
+        rmc = (RingMasterControl)Naming.lookup("rmi://"+ server +":"+ port +"/"+ RingMasterControl.getRegistryName(gc));
         sw = new SimpleStopwatch();
         rings = ImmutableList.of();
         
@@ -349,12 +353,57 @@ public class SKAdminShell implements Watcher {
 			status = rmc.getStatus(uuid);
 			if (status != null) {
 				if (prevStatus == null || !status.equals(prevStatus)) {
-					out.printf("%s\n", status.getStatusString());
+					out.printf("%s\t%s\n", new Date().toString(), status.getStatusString());
 					prevStatus = status;
 				}
 			}
 		} while (status != null && !status.requestComplete());
-		out.printf("Complete\n");
+		if (status == null) {
+			out.printf("Received null status for %s\n", uuid.toString());
+		} else {
+			if (status.getRequestState() == RequestState.FAILED) {
+				throw new RuntimeException("Request failed");
+			}
+		}
+		out.printf("Complete %s\t%s\n", uuid.toString(), new Date().toString());
+	}
+	
+	/**
+	 * Allows users to specify an index instead of a full ring def
+	 * @param def
+	 * @return
+	 */
+	private String getRingDef(String def) {
+		if (def.indexOf(currentPointerName) >= 0 || def.indexOf(targetPointerName) >= 0) {
+			return getRingDefFromPointerName(def);
+		} else {
+			try {
+				return getRingDefFromIndex(def);
+			} catch (NumberFormatException nfe) {
+				return def; // Couldn't parse the index. Must be a full def
+			}
+		}
+	}
+	
+	private String getRingDefFromIndex(String indexDef) {
+		int	index;
+		
+		index = Integer.parseInt(indexDef);
+		if (index < 0 || index >= rings.size()) {
+			out.printf("Bad ring index\n");
+			return null;
+		}
+		return rings.get(index).getV2();
+	}
+	
+	private String getRingDefFromPointerName(String pointerName) {
+		for (int i = 0; i < rings.size(); i++) {
+			if (rings.get(i).getV3().indexOf(pointerName) >= 0) {
+				out.printf("pointerName: %s\tring: %s\n", pointerName, rings.get(i).getV2());
+				return rings.get(i).getV2();
+			}
+		}
+		throw new RuntimeException("Unexpected couldn't find pointer for: "+ pointerName);
 	}
 	
 	private void doTarget(String[] args) throws RemoteException {
@@ -364,18 +413,11 @@ public class SKAdminShell implements Watcher {
 			Triple<String,Long,Long>	target;
 			String						ringDef;
 			
-			try {
-				int	index;
-				
-				index = Integer.parseInt(args[0]);
-				if (index < 0 || index >= rings.size()) {
-					out.printf("Bad ring index\n");
-					return;
-				}
-				ringDef = rings.get(index).getV2();
-			} catch (NumberFormatException nfe) {
-				ringDef = args[0];
+			ringDef = getRingDef(args[0]);
+			if (ringDef == null) {
+				return;
 			}
+			
 			target = Triple.parseDefault(ringDef, java.lang.String.class.getName(), java.lang.Long.class.getName(), java.lang.Long.class.getName());
 			out.printf("Setting target: %s\n", target);
 			mostRecentRequest = rmc.setTarget(target);
@@ -384,6 +426,66 @@ public class SKAdminShell implements Watcher {
 			doWaitForRequest(mostRecentRequest);
 		}
 	}
+	
+	private void doSyncData(String[] args) throws RemoteException {
+		if (args.length != 2 && args.length != 3) {
+			out.println("Incorrect arguments to syncData. 2 or 3 expected.");
+		} else {
+			Triple<String,Long,Long>	source;
+			Triple<String,Long,Long>	target;
+			String						sourceRingDef;
+			String						targetRingDef;
+			String						syncTargetDef;
+			CentralConvergenceController.SyncTargets	syncTargets;
+			
+			sourceRingDef = getRingDef(args[0]);
+			targetRingDef = getRingDef(args[1]);
+			if (args.length == 3) {
+				syncTargets = CentralConvergenceController.SyncTargets.valueOf(args[2]);
+			} else {
+				syncTargets = CentralConvergenceController.SyncTargets.Primary;
+			}
+			if (targetRingDef == null || sourceRingDef == null) {
+				return;
+			}
+			
+			source = Triple.parseDefault(sourceRingDef, java.lang.String.class.getName(), java.lang.Long.class.getName(), java.lang.Long.class.getName());
+			target = Triple.parseDefault(targetRingDef, java.lang.String.class.getName(), java.lang.Long.class.getName(), java.lang.Long.class.getName());
+			out.printf("Sync data: %s %s\n", source, target);
+			mostRecentRequest = rmc.syncData(source, target, syncTargets);
+			out.printf("%s\n", mostRecentRequest);
+			out.printf("Target set\n");
+			doWaitForRequest(mostRecentRequest);
+		}
+	}
+	
+	private void doRecoverData(String[] args) throws RemoteException {
+		if (args.length != 0) {
+			out.println("Too many arguments to recover data. 0 expected.");
+		} else {
+			mostRecentRequest = rmc.recoverData();
+			out.printf("Recovering data\n");
+			doWaitForRequest(mostRecentRequest);
+		}
+	}
+	
+	private void doRequestChecksumTree(String[] args) throws RemoteException {
+		if (args.length != 4) {
+			out.println("Incorrect arguments to requestChecksumTree. 2 or 3 expected.");
+		} else {
+			Triple<Long,Long,Long>		nsAndRegion;
+			Triple<String, Long, Long>	source;
+			Triple<String, Long, Long>	target;
+			String 						owner;
+			
+			nsAndRegion = Triple.parseDefault(args[0], Long.class.getName(), Long.class.getName(), Long.class.getName());
+			source = Triple.parseDefault(args[1], String.class.getName(), Long.class.getName(), Long.class.getName());
+			target = Triple.parseDefault(args[2], String.class.getName(), Long.class.getName(), Long.class.getName());
+			owner = args[3];
+			rmc.requestChecksumTree(nsAndRegion, source, target, owner);
+		}
+	}
+
 	
 	private void doTestTarget(String[] args) throws RemoteException {
 		for (String target : args) {
@@ -442,9 +544,12 @@ public class SKAdminShell implements Watcher {
         actionPerformed = true;
         switch (action) {
         case Mode: doMode(args); break;
+        case SyncData: doSyncData(args); break;
         case Target: doTarget(args); break;
         case TestTarget: doTestTarget(args); break;
+        case RecoverData: doRecoverData(args); break;
         case WaitForConvergence: doWaitForRequest(requestUUID(args)); break;
+		case RequestChecksumTree: doRequestChecksumTree(args); break;
         case Display: doDisplay(args); break;
         case Help: displayHelpMessage(); break;
         case ToggleVerbose: toggleVerbose(); break;
@@ -469,12 +574,46 @@ public class SKAdminShell implements Watcher {
         }
     }	
 	
+	private static String[] repairArgs(String[] args) {
+		List<String>	newArgs;
+		String			commandArg;
+		boolean			inCommand;
+		
+		newArgs = new ArrayList<>();
+		inCommand = false;
+		commandArg = null;
+		for (String arg : args) {
+			arg = arg.trim();
+			if (!inCommand) {
+				newArgs.add(arg);
+				if (arg.equals("-c")) {
+					inCommand = true;
+					commandArg = "";
+				}
+			} else {
+				if (arg.startsWith("-") && arg.length() > 1 && !Character.isDigit(arg.charAt(1))) {
+					newArgs.add(commandArg);
+					newArgs.add(arg);
+					inCommand = false;
+				} else {
+					commandArg += " "+ arg;
+				}
+			}
+		}
+		if (inCommand) {
+			newArgs.add(commandArg.trim());
+		}
+		return newArgs.toArray(new String[0]);
+	}
+    
 	public static void main(String[] args) {
         try {
             CmdLineParser       	parser;
             SKAdminShellOptions	options;
             SKGridConfiguration		gc;
             SKAdminShell			shell;
+
+            args = repairArgs(args);
             
             options = new SKAdminShellOptions();
             parser = new CmdLineParser(options);
@@ -484,7 +623,6 @@ public class SKAdminShell implements Watcher {
                 gc = SKGridConfiguration.parseFile(options.gridConfig);
                 
                 shell = new SKAdminShell(gc, System.in, System.out, System.err, options.server, options.port);
-                shell.shellLoop();
                 
         		if (options.commands == null && options.commandFile == null) {
         		    shell.shellLoop();
@@ -496,14 +634,16 @@ public class SKAdminShell implements Watcher {
                         shell.runCommands(options.commands);
                     }
         		}
+                System.exit(0);
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+                System.exit(-1);
             }        	
         } catch (Exception e) {
             e.printStackTrace();
             Log.logErrorSevere(e, SKAdminShell.class.getName(), "main");
+            System.exit(-1);
         }
 	}
 }

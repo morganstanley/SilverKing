@@ -87,6 +87,30 @@ public class ObjectUtil {
 		return object;
 	}
 	
+	public static boolean equal(Object o1, Object o2) {
+		if (o1 == o2) {
+			return true;
+		} else {
+			if (o1 == null) {
+				return false;
+			} else {
+				if (o2 == null) {
+					return false;
+				} else {
+					return o1.equals(o2);
+				}
+			}
+		}
+	}
+
+	public static int hashCode(Object o) {
+		if (o == null) {
+			return 0;
+		} else {
+			return o.hashCode();
+		}
+	}
+	
 	public static void main(String[] args) {
 		try {
 			String		testString;

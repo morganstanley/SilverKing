@@ -1,0 +1,207 @@
+
+
+# $< is the first prerequisite
+
+#.cpp.o:
+#	${CC} ${CC_OPTS} ${INC_OPTS} -I${PROXY_INC} -I${INSTALL_COMMON_INC_DIR} -c -o $@ $?
+# from "$ld $ld_opts $lib_opts -o $out_filename $obj_files" in lib_common.sh::(function f_link)
+
+TestUtilName       = TestUtil
+UtilName           = Util
+DhtActionName      = DhtAction
+SyncNspName        = SyncNSP
+AsyncNspName       = AsyncNSP
+PutOptsName        = PutOpts
+GetOptsName        = GetOpts
+WaitOptsName       = WaitOpts
+
+common_lib_headers =               ${G_TEST_SRC_DIR}/${TestUtilName}.h 	             ${G_TEST_SRC_DIR}/${UtilName}.h 		       ${G_TEST_SRC_DIR}/${DhtActionName}.h               ${G_TEST_SRC_DIR}/${SyncNspName}.h               ${G_TEST_SRC_DIR}/${AsyncNspName}.h               ${G_TEST_SRC_DIR}/${PutOptsName}.h                ${G_TEST_SRC_DIR}/${GetOptsName}.h               ${G_TEST_SRC_DIR}/${WaitOptsName}.h               
+common_lib_objs    = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${TestUtilName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${UtilName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${DhtActionName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${SyncNspName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AsyncNspName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutOptsName}.o  ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${GetOptsName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${WaitOptsName}.o
+compile            = ${CC} ${CC_OPTS} ${INC_OPTS} -c
+link               = ${LD} ${LD_OPTS} ${LIB_OPTS} -o
+
+PutGetName                = PutGet
+PutGetTestName            = PutGetTest
+PutGetMetaName            = PutGetMeta
+PutGetMetaTestName        = PutGetMetaTest
+PutGetWaitName            = PutGetWait
+PutGetWaitTestName        = PutGetWaitTest
+
+APutAGetName              = AsyncPutAsyncGet
+APutAGetTestName          = AsyncPutAsyncGetTest
+APutAGetMetaName          = AsyncPutAsyncGetMeta
+APutAGetMetaTestName      = AsyncPutAsyncGetMetaTest
+APutAGetWaitName          = AsyncPutAsyncGetWait
+APutAGetWaitTestName      = AsyncPutAsyncGetWaitTest
+
+MPutMGetName              = MultiPutMultiGet
+MPutMGetTestName          = MultiPutMultiGetTest
+MPutMGetMetaName          = MultiPutMultiGetMeta
+MPutMGetMetaTestName      = MultiPutMultiGetMetaTest
+MPutMGetWaitName          = MultiPutMultiGetWait
+MPutMGetWaitTestName      = MultiPutMultiGetWaitTest
+
+AMPutAMGetName            = AsyncMultiPutAsyncMultiGet
+AMPutAMGetTestName        = AsyncMultiPutAsyncMultiGetTest
+AMPutAMGetMetaName        = AsyncMultiPutAsyncMultiGetMeta
+AMPutAMGetMetaTestName    = AsyncMultiPutAsyncMultiGetMetaTest
+AMPutAMGetWaitName        = AsyncMultiPutAsyncMultiGetWait
+AMPutAMGetWaitTestName    = AsyncMultiPutAsyncMultiGetWaitTest
+
+NamespaceHandlingName     = NamespaceHandling
+NamespaceHandlingTestName = NamespaceHandlingTest
+
+
+PutGetHelloWorldTest_EXECUTABLE         = ${TEST_FRAMEWORK_BIN_DIR}/${PutGetTestName}
+PutGetMetaHelloWorldTest_EXECUTABLE     = ${TEST_FRAMEWORK_BIN_DIR}/${PutGetMetaTestName}
+PutGetWaitHelloWorldTest_EXECUTABLE     = ${TEST_FRAMEWORK_BIN_DIR}/${PutGetWaitTestName}
+
+APutAGetHelloWorldTest_EXECUTABLE       = ${TEST_FRAMEWORK_BIN_DIR}/${APutAGetTestName}
+APutAGetMetaHelloWorldTest_EXECUTABLE   = ${TEST_FRAMEWORK_BIN_DIR}/${APutAGetMetaTestName}
+APutAGetWaitHelloWorldTest_EXECUTABLE   = ${TEST_FRAMEWORK_BIN_DIR}/${APutAGetWaitTestName}
+
+MPutMGetHelloWorldTest_EXECUTABLE       = ${TEST_FRAMEWORK_BIN_DIR}/${MPutMGetTestName}
+MPutMGetMetaHelloWorldTest_EXECUTABLE   = ${TEST_FRAMEWORK_BIN_DIR}/${MPutMGetMetaTestName}
+MPutMGetWaitHelloWorldTest_EXECUTABLE   = ${TEST_FRAMEWORK_BIN_DIR}/${MPutMGetWaitTestName}
+
+AMPutAMGetHelloWorldTest_EXECUTABLE     = ${TEST_FRAMEWORK_BIN_DIR}/${AMPutAMGetTestName}
+AMPutAMGetMetaHelloWorldTest_EXECUTABLE = ${TEST_FRAMEWORK_BIN_DIR}/${AMPutAMGetMetaTestName}
+AMPutAMGetWaitHelloWorldTest_EXECUTABLE = ${TEST_FRAMEWORK_BIN_DIR}/${AMPutAMGetWaitTestName}
+
+NamespaceHandlingTest_EXECUTABLE        = ${TEST_FRAMEWORK_BIN_DIR}/${NamespaceHandlingTestName}
+
+
+PutGetHelloWorldTest_OBJS         = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutGetTestName}.o            ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutGetName}.o
+PutGetMetaHelloWorldTest_OBJS     = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutGetMetaTestName}.o        ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutGetMetaName}.o
+PutGetWaitHelloWorldTest_OBJS     = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutGetWaitTestName}.o        ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutGetWaitName}.o
+
+APutAGetHelloWorldTest_OBJS       = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${APutAGetTestName}.o          ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${APutAGetName}.o
+APutAGetMetaHelloWorldTest_OBJS   = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${APutAGetMetaTestName}.o      ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${APutAGetMetaName}.o
+APutAGetWaitHelloWorldTest_OBJS   = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${APutAGetWaitTestName}.o      ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${APutAGetWaitName}.o
+
+MPutMGetHelloWorldTest_OBJS       = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${MPutMGetTestName}.o          ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${MPutMGetName}.o
+MPutMGetMetaHelloWorldTest_OBJS   = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${MPutMGetMetaTestName}.o      ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${MPutMGetMetaName}.o
+MPutMGetWaitHelloWorldTest_OBJS   = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${MPutMGetWaitTestName}.o      ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${MPutMGetWaitName}.o
+
+AMPutAMGetHelloWorldTest_OBJS     = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AMPutAMGetTestName}.o        ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AMPutAMGetName}.o
+AMPutAMGetMetaHelloWorldTest_OBJS = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AMPutAMGetMetaTestName}.o    ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AMPutAMGetMetaName}.o
+AMPutAMGetWaitHelloWorldTest_OBJS = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AMPutAMGetWaitTestName}.o    ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AMPutAMGetWaitName}.o
+
+NamespaceHandlingTest_OBJS        = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${NamespaceHandlingTestName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${NamespaceHandlingName}.o
+
+EXECUTABLES = $(PutGetHelloWorldTest_EXECUTABLE) $(PutGetMetaHelloWorldTest_EXECUTABLE) $(PutGetWaitHelloWorldTest_EXECUTABLE) $(APutAGetHelloWorldTest_EXECUTABLE) $(APutAGetMetaHelloWorldTest_EXECUTABLE) $(APutAGetWaitHelloWorldTest_EXECUTABLE) $(MPutMGetHelloWorldTest_EXECUTABLE) $(MPutMGetMetaHelloWorldTest_EXECUTABLE) $(MPutMGetWaitHelloWorldTest_EXECUTABLE) $(AMPutAMGetHelloWorldTest_EXECUTABLE) $(AMPutAMGetMetaHelloWorldTest_EXECUTABLE) $(AMPutAMGetWaitHelloWorldTest_EXECUTABLE) $(NamespaceHandlingTest_EXECUTABLE)
+OBJS        = $(PutGetHelloWorldTest_OBJS)       $(PutGetMetaHelloWorldTest_OBJS)       $(PutGetWaitHelloWorldTest_OBJS)       $(APutAGetHelloWorldTest_OBJS)       $(APutAGetMetaHelloWorldTest_OBJS)       $(APutAGetWaitHelloWorldTest_OBJS)       $(MPutMGetHelloWorldTest_OBJS)       $(MPutMGetMetaHelloWorldTest_OBJS)       $(MPutMGetWaitHelloWorldTest_OBJS)       $(AMPutAMGetHelloWorldTest_OBJS)       $(AMPutAMGetMetaHelloWorldTest_OBJS)       $(AMPutAMGetWaitHelloWorldTest_OBJS)       $(NamespaceHandlingTest_OBJS)
+
+.PHONY: all clean
+all: $(EXECUTABLES)
+clean:
+	rm $(OBJS) $(EXECUTABLES)
+
+# this is an example of https://www.gnu.org/software/make/manual/make.html#Multiple-Targets
+$(PutGetHelloWorldTest_OBJS):         ${G_TEST_SRC_DIR}/${PutGetName}.h            ${G_TEST_SRC_DIR}/${PutGetTestName}.h            ${common_lib_headers}
+$(PutGetMetaHelloWorldTest_OBJS):     ${G_TEST_SRC_DIR}/${PutGetMetaName}.h        ${G_TEST_SRC_DIR}/${PutGetMetaTestName}.h        ${common_lib_headers}
+$(PutGetWaitHelloWorldTest_OBJS):     ${G_TEST_SRC_DIR}/${PutGetWaitName}.h        ${G_TEST_SRC_DIR}/${PutGetWaitTestName}.h        ${common_lib_headers}
+
+$(APutAGetHelloWorldTest_OBJS):       ${G_TEST_SRC_DIR}/${APutAGetName}.h          ${G_TEST_SRC_DIR}/${APutAGetTestName}.h          ${common_lib_headers}
+$(APutAGetMetaHelloWorldTest_OBJS):   ${G_TEST_SRC_DIR}/${APutAGetMetaName}.h      ${G_TEST_SRC_DIR}/${APutAGetMetaTestName}.h      ${common_lib_headers}
+$(APutAGetWaitHelloWorldTest_OBJS):   ${G_TEST_SRC_DIR}/${APutAGetWaitName}.h      ${G_TEST_SRC_DIR}/${APutAGetWaitTestName}.h      ${common_lib_headers}
+
+$(MPutMGetHelloWorldTest_OBJS):       ${G_TEST_SRC_DIR}/${MPutMGetName}.h          ${G_TEST_SRC_DIR}/${MPutMGetTestName}.h          ${common_lib_headers}
+$(MPutMGetMetaHelloWorldTest_OBJS):   ${G_TEST_SRC_DIR}/${MPutMGetMetaName}.h      ${G_TEST_SRC_DIR}/${MPutMGetMetaTestName}.h      ${common_lib_headers}
+$(MPutMGetWaitHelloWorldTest_OBJS):   ${G_TEST_SRC_DIR}/${MPutMGetWaitName}.h      ${G_TEST_SRC_DIR}/${MPutMGetWaitTestName}.h      ${common_lib_headers}
+
+$(AMPutAMGetHelloWorldTest_OBJS):     ${G_TEST_SRC_DIR}/${AMPutAMGetName}.h        ${G_TEST_SRC_DIR}/${AMPutAMGetTestName}.h        ${common_lib_headers}
+$(AMPutAMGetMetaHelloWorldTest_OBJS): ${G_TEST_SRC_DIR}/${AMPutAMGetMetaName}.h    ${G_TEST_SRC_DIR}/${AMPutAMGetMetaTestName}.h    ${common_lib_headers}
+$(AMPutAMGetWaitHelloWorldTest_OBJS): ${G_TEST_SRC_DIR}/${AMPutAMGetWaitName}.h    ${G_TEST_SRC_DIR}/${AMPutAMGetWaitTestName}.h    ${common_lib_headers}
+
+$(NamespaceHandlingTest_OBJS):        ${G_TEST_SRC_DIR}/${NamespaceHandlingName}.h ${G_TEST_SRC_DIR}/${NamespaceHandlingTestName}.h ${common_lib_headers}
+
+
+$(common_lib_objs): $(common_lib_headers)
+
+$(common_lib_objs):                   ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+# this is an example of:
+# 1) https://www.gnu.org/software/make/manual/make.html#Multiple-Rules - this is the second time PutGetHelloWorldTest_OBJS is defined as target
+# 2) https://www.gnu.org/software/make/manual/make.html#Static-Pattern - the stem
+# 3) https://www.gnu.org/software/make/manual/make.html#Automatic-Variables - $< and $@ - they only have values within the recipe
+$(PutGetHelloWorldTest_OBJS):         ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(PutGetMetaHelloWorldTest_OBJS):     ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(PutGetWaitHelloWorldTest_OBJS):     ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(APutAGetHelloWorldTest_OBJS):       ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(APutAGetMetaHelloWorldTest_OBJS):   ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(APutAGetWaitHelloWorldTest_OBJS):   ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(MPutMGetHelloWorldTest_OBJS):       ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(MPutMGetMetaHelloWorldTest_OBJS):   ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(MPutMGetWaitHelloWorldTest_OBJS):   ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(AMPutAMGetHelloWorldTest_OBJS):     ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(AMPutAMGetMetaHelloWorldTest_OBJS): ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+	
+$(AMPutAMGetWaitHelloWorldTest_OBJS): ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+$(NamespaceHandlingTest_OBJS):        ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_TEST_SRC_DIR}/%.cpp
+	$(compile) $< -o $@
+
+	
+	
+$(PutGetHelloWorldTest_EXECUTABLE): $(PutGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(PutGetHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(PutGetMetaHelloWorldTest_EXECUTABLE): $(PutGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(PutGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(PutGetWaitHelloWorldTest_EXECUTABLE): $(PutGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(PutGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(APutAGetHelloWorldTest_EXECUTABLE): $(APutAGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(APutAGetHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(APutAGetMetaHelloWorldTest_EXECUTABLE): $(APutAGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(APutAGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(APutAGetWaitHelloWorldTest_EXECUTABLE): $(APutAGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(APutAGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(MPutMGetHelloWorldTest_EXECUTABLE): $(MPutMGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(MPutMGetHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(MPutMGetMetaHelloWorldTest_EXECUTABLE): $(MPutMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(MPutMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(MPutMGetWaitHelloWorldTest_EXECUTABLE): $(MPutMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(MPutMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(AMPutAMGetHelloWorldTest_EXECUTABLE): $(AMPutAMGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(AMPutAMGetHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(AMPutAMGetMetaHelloWorldTest_EXECUTABLE): $(AMPutAMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(AMPutAMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(AMPutAMGetWaitHelloWorldTest_EXECUTABLE): $(AMPutAMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(AMPutAMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+
+$(NamespaceHandlingTest_EXECUTABLE): $(NamespaceHandlingTest_OBJS) $(common_lib_objs)
+	$(link) $@ $(NamespaceHandlingTest_OBJS) $(common_lib_objs)

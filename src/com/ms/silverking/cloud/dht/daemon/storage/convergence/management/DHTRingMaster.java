@@ -12,8 +12,10 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingIDAndVersionPair;
+import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.CentralConvergenceController.SyncTargets;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.management.LogStreamConfig;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
@@ -27,9 +29,12 @@ import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
+import com.ms.silverking.cloud.dht.net.ProtoChecksumTreeMessageGroup;
+import com.ms.silverking.cloud.dht.net.ProtoChecksumTreeRequestMessageGroup;
 import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.cloud.meta.ExclusionZK;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
+import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.meta.RingChangeListener;
 import com.ms.silverking.cloud.toporing.meta.RingConfigWatcher;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
@@ -39,10 +44,13 @@ import com.ms.silverking.collection.Quadruple;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.net.async.OutgoingData;
 import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
+import com.ms.silverking.time.SystemTimeSource;
 
 /**
  * Observers ZooKeeper for changes in metadata that this DHT is dependent upon.
@@ -60,10 +68,11 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     private volatile DHTConfiguration   dhtConfig;
     private final boolean   enableLogging;
     private final RingChangedWorker	ringChangedWorker;
-    private CentralConvergenceController	targetConvergenceController;
+    private final RecoverDataWorker	recoverDataWorker;
+    private ConvergenceControllerBase	targetConvergenceController;
     private final DHTMetaReader	dhtMetaReader;
     private Mode	mode;
-    private ConcurrentMap<UUIDBase,CentralConvergenceController>	convergenceControllers;
+    private ConcurrentMap<UUIDBase,ConvergenceControllerBase>	convergenceControllers;
     
     private final MessageGroupBase	mgBase;
     
@@ -89,7 +98,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     
     private static final int	mgBasePort = 0; // Use ephemeral port
     
-    private static final int	numSelectorControllers = 1;
+    private static final int	numSelectorControllers = Runtime.getRuntime().availableProcessors();
     private static final String	selectorControllerClass = DHTRingMaster.class.getName();
     private static final int	queueLimit = 1024;
 
@@ -97,6 +106,10 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 	private static final boolean	syncUnchangedOwners = true;
     
     private static final boolean	debugValidTarget = true;
+    
+    static {
+    	OutgoingData.setAbsMillisTimeSource(SystemTimeSource.instance);
+    }
 
     public DHTRingMaster(ZooKeeperConfig zkConfig, String dhtName, 
                           long intervalMillis, Mode mode, boolean enableLogging) throws IOException, KeeperException, AlreadyBoundException {
@@ -117,6 +130,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
         dhtRingCurTargetZK = new DHTRingCurTargetZK(mc, dhtConfig);
         
         ringChangedWorker = new RingChangedWorker();
+        recoverDataWorker = new RecoverDataWorker();
         
         dhtMetaReader = new DHTMetaReader(zkConfig, dhtName, enableLogging);
         
@@ -129,6 +143,10 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     public DHTRingMaster(ZooKeeperConfig zkConfig, String dhtName, long intervalMillis, Mode mode) 
                   throws IOException, KeeperException, AlreadyBoundException {
         this(zkConfig, dhtName, intervalMillis, mode, true);
+    }
+    
+    public String getDHTName() {
+    	return mc.getDHTName();
     }
     
     public void setMode(Mode mode) {
@@ -164,13 +182,17 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     }
     
     private ExclusionSet readExclusions(Quadruple<String, Long, Long, Long> ring) throws KeeperException, IOException {
+    	return readExclusions(ring.getHead(), ring.getV2());
+    }
+    
+    private ExclusionSet readExclusions(String ringName, long ringVersion) throws KeeperException, IOException {
     	ExclusionZK		exclusionZK;
         ExclusionSet	instanceExclusionSet;
         ExclusionSet	exclusionSet;        
         com.ms.silverking.cloud.meta.MetaClient  cloudMC;
         com.ms.silverking.cloud.toporing.meta.MetaClient	ringMC;
         
-        ringMC = com.ms.silverking.cloud.toporing.meta.MetaClient.createMetaClient(ring.getHead(), ring.getV2(), zkConfig);
+        ringMC = com.ms.silverking.cloud.toporing.meta.MetaClient.createMetaClient(ringName, ringVersion, zkConfig);
         cloudMC = ringMC.createCloudMC();
         
         exclusionZK = new ExclusionZK(cloudMC);
@@ -333,16 +355,20 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     @Override
     public void ringChanged(String ringName, String basePath, Pair<Long,Long> ringVersion, long creationTimeMillis) {
     	if (mode == Mode.Automatic) {
-    		ringChangedWorker.addWork(new Pair<>(UUIDBase.random(), Quadruple.of(ringName, ringVersion, creationTimeMillis)));
+    		ringChangedWorker.addWork(new Quadruple<>(UUIDBase.random(), Quadruple.of(ringName, ringVersion, creationTimeMillis),null,SyncTargets.Primary));
     	} else {
     		Log.warningAsyncf("mode == Manual. Ignoring new ring: %s %s", ringName, ringVersion);
     	}
     }
     
-    private class RingChangedWorker extends BaseWorker<Pair<UUIDBase,Quadruple<String,Long,Long,Long>>> {
+    private class RingChangedWorker extends BaseWorker<Quadruple<UUIDBase,Quadruple<String,Long,Long,Long>,Quadruple<String,Long,Long,Long>,SyncTargets>> {
 		@Override
-		public void doWork(Pair<UUIDBase,Quadruple<String, Long, Long, Long>> idAndRing) {
-			setTarget(idAndRing);
+		public void doWork(Quadruple<UUIDBase,Quadruple<String, Long, Long, Long>,Quadruple<String, Long, Long, Long>,SyncTargets> idAndRings) {
+			if (idAndRings.getV3() == null) {
+				setTarget(idAndRings.getPairAt1());
+			} else {
+				syncData(idAndRings);
+			}
 		}
     }
     
@@ -371,6 +397,8 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 			            Log.warningAsync("New ring: ", ring);
 			        }
 			        try {
+				        CentralConvergenceController.RequestedSyncMode	syncMode;
+				        
 						// Stop old convergence
 						if (targetConvergenceController != null) {
 					        if (enableLogging) {
@@ -387,8 +415,15 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 				            Log.warningAsync("New targetRing: ", targetRing);
 				        }
 				        
+				        if (mode == Mode.ManualNoSync) {
+				        	syncMode = CentralConvergenceController.RequestedSyncMode.SetStateOnly;
+				        } else {
+				        	syncMode = CentralConvergenceController.RequestedSyncMode.SyncAndSetStateUnlessSubset;
+				        }
+			        	// MAKE syncUnchangedOnwers CONFIGURABLE
+				        
 						try {
-							targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, currentCP, targetCP, readExclusions(ring), mgBase, syncUnchangedOwners);
+							targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, currentCP, targetCP, readExclusions(ring), mgBase, syncUnchangedOwners, syncMode);
 							convergenceControllers.put(targetConvergenceController.getUUID(), targetConvergenceController);
 						} catch (IOException ioe) {
 							Log.logErrorWarning(ioe, "Unable to start convergence");
@@ -400,7 +435,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 						        if (enableLogging) {
 						            Log.warningAsync("Calling converge(): ", targetRing);
 						        }
-								targetConvergenceController.converge();
+								((CentralConvergenceController)targetConvergenceController).converge(CentralConvergenceController.SyncTargets.Primary);
 							} finally {
 								convergenceLock.lock();
 							}
@@ -412,6 +447,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 							dhtRingCurTargetZK.setCurRingAndVersionPair(currentRing.getHead(), currentRing.getTail());
 							targetRing = null;
 							targetCP = null;
+				            targetConvergenceController = null;
 					        if (enableLogging) {
 					            Log.warningAsync("Convergence complete: ", targetRing);
 					        }
@@ -433,6 +469,89 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 						Log.logErrorWarning(ke, "Unexpected exception during peerStateMet handling");
 					}
 	    		}
+    		}
+    	} finally {
+    		convergenceLock.unlock();
+    	}
+    }
+    
+    private boolean ringIsSubset(Triple<String, Long, Long> superRing, Triple<String, Long, Long> subRing) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public void syncData(Quadruple<UUIDBase,Quadruple<String,Long,Long,Long>,Quadruple<String,Long,Long,Long>,SyncTargets> idAndRings) {
+    	UUIDBase							uuid;
+    	Quadruple<String,Long,Long,Long>	sourceRing;
+    	Quadruple<String,Long,Long,Long>	targetRing;
+    	
+    	uuid = idAndRings.getV1();
+    	sourceRing = idAndRings.getV2();
+    	targetRing = idAndRings.getV3();
+		Log.warningAsyncf("DHTRingMaster.syncData %s %s %s", uuid, sourceRing.getV1(), targetRing.getV1());
+    	convergenceLock.lock();
+		try {
+			if (/*!isValidTarget(targetRing)*/false) { // FUTURE think about checking validity
+	        	// FUTURE - could improve this sanity check to look at zk info
+	        	Log.warningAsyncf("Ignoring invalid sync %s %s", sourceRing, targetRing);
+			} else {
+		        if (enableLogging) {
+		            Log.warningAsync("New ring: ", targetRing);
+		        }
+		        try {
+		        	ConvergencePoint	_sourceCP;
+		        	ConvergencePoint	_targetCP;
+		        	
+					// Check for old convergence
+					if (targetConvergenceController != null) {
+				        if (enableLogging) {
+				            Log.warningAsync("Can't sync due to ongoing convergence: ", targetRing);
+				            return;
+				        }
+					}
+					
+					// Start new sync
+					_sourceCP = new ConvergencePoint(dhtConfig.getVersion(), RingIDAndVersionPair.fromRingNameAndVersionPair(sourceRing.getTripleAt1()), sourceRing.getV4());
+					_targetCP = new ConvergencePoint(dhtConfig.getVersion(), RingIDAndVersionPair.fromRingNameAndVersionPair(targetRing.getTripleAt1()), targetRing.getV4());
+					try {
+						targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, _sourceCP, _targetCP, readExclusions(targetRing), mgBase, syncUnchangedOwners, CentralConvergenceController.RequestedSyncMode.SyncOnly);
+						convergenceControllers.put(targetConvergenceController.getUUID(), targetConvergenceController);
+					} catch (IOException ioe) {
+						Log.logErrorWarning(ioe, "Unable to start sync");
+						return;
+					}
+					try {
+						convergenceLock.unlock();
+						try {
+					        if (enableLogging) {
+					            Log.warningAsync("Calling converge(): ", targetRing);
+					        }
+							((CentralConvergenceController)targetConvergenceController).converge(idAndRings.getV4());
+						} finally {
+							convergenceLock.lock();
+						}
+						
+			            targetConvergenceController = null;
+				        if (enableLogging) {
+				            Log.warningAsync("Convergence complete: ", targetRing);
+				        }
+					} catch (ConvergenceException ce) {
+						// Convergence failed
+						if (!ce.getAbandoned()) {
+							// Failed due to an exception
+							Log.logErrorWarning(ce, "Convergence failed due to exception");
+						} else {
+							// Failed due to a new target causing the old convergence to be abandoned
+							// In this case, the new convergence will take over the cur and target pointers
+							Log.warningAsync("Previous convergence abandoned");
+						}
+					}
+				} catch (KeeperException ke) {
+					// Retries are internal to DHTringCurTargetZK. If we got here, those
+					// retries failed.
+					// FUTURE - relay to alerting
+					Log.logErrorWarning(ke, "Unexpected exception during peerStateMet handling");
+				}
     		}
     	} finally {
     		convergenceLock.unlock();
@@ -480,10 +599,44 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
         	Log.warningAsync("Ignoring setTarget() due to zk exceptions: "+ ringName +" "+ target.getTail());
         	return null;
         }
-        //setTarget(Quadruple.of(target, creationTime));
         uuid = UUIDBase.random();
-		ringChangedWorker.addWork(new Pair<>(uuid, Quadruple.of(target, creationTime)), 0);
+		ringChangedWorker.addWork(new Quadruple<>(uuid, Quadruple.of(target, creationTime), null, SyncTargets.Primary), 0);
 		waitForConvergenceControllerCreation(uuid);
+		return uuid;
+	}
+	
+	public UUIDBase syncData(Triple<String, Long, Long> source, Triple<String, Long, Long> target, SyncTargets syncTargets) {
+		String		sourceRingName;
+		long		sourceCreationTime;
+		String		targetRingName;
+		long		targetCreationTime;
+		UUIDBase	uuid;
+		
+		Log.warningAsyncf("DHTRingMaster.syncData %s %s", source, target);
+		sourceRingName = source.getHead();
+		sourceCreationTime = getCreationTime(sourceRingName, target.getTail().getV1(), target.getTail().getV2());
+        if (sourceCreationTime < 0) {
+        	Log.warningAsync("Ignoring syncData() due to zk exceptions: "+ sourceRingName +" "+ source.getTail());
+        	return null;
+        }
+		targetRingName = target.getHead();
+		targetCreationTime = getCreationTime(targetRingName, target.getTail().getV1(), target.getTail().getV2());
+        if (targetCreationTime < 0) {
+        	Log.warningAsync("Ignoring syncData() due to zk exceptions: "+ targetRingName +" "+ target.getTail());
+        	return null;
+        }
+        uuid = UUIDBase.random();
+		ringChangedWorker.addWork(new Quadruple<>(uuid, Quadruple.of(source, sourceCreationTime), Quadruple.of(target, targetCreationTime), syncTargets), 0);
+		waitForConvergenceControllerCreation(uuid);
+		return uuid;
+	}
+	
+	public UUIDBase recoverData() {
+		UUIDBase	uuid;
+		
+		Log.warningAsyncf("DHTRingMaster.recoverData");
+        uuid = UUIDBase.random();
+        recoverDataWorker.addWork(uuid);
 		return uuid;
 	}
 	   
@@ -514,11 +667,19 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     
 	@Override
 	public void receive(MessageGroup message, MessageGroupConnection connection) {
-		CentralConvergenceController	_targetConvergenceController;
+		ConvergenceControllerBase	_targetConvergenceController;
 		
+		System.out.println(connection);
+		System.out.println(message);
 		_targetConvergenceController = targetConvergenceController;
 		if (_targetConvergenceController == null) {
-			Log.info("Ignoring message due to null _targetConvergenceController");
+			switch (message.getMessageType()) {
+			case CHECKSUM_TREE:
+				displayChecksumTree(message, connection);
+				break;
+			default:
+				Log.info("Ignoring message due to null _targetConvergenceController");
+			}
 		} else {
 			switch (message.getMessageType()) {
 			case NAMESPACE_RESPONSE:
@@ -526,6 +687,12 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 				break;
 			case OP_RESPONSE:
 				_targetConvergenceController.handleOpResponse(message, connection);
+				break;
+			case PROGRESS:
+				_targetConvergenceController.handleProgress(message, connection);
+				break;
+			case CHECKSUM_TREE:
+				displayChecksumTree(message, connection);
 				break;
 			default:
 				Log.warningAsync("Ignoring unexpected MessageType: ", message.getMessageType());
@@ -535,7 +702,107 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 
     // End MessageGroupReceiver implementation
     ////////////////////////////////////////////
+	
+	public ConvergencePoint cpFromTriple(Triple<String, Long, Long> t) {
+		String		ringName;
+		long		creationTime;
+		
+		ringName = t.getHead();
+		creationTime = getCreationTime(ringName, t.getTail().getV1(), t.getTail().getV2());
+        if (creationTime < 0) {
+        	Log.warningAsync("Ignoring cpFromTriple() due to zk exceptions: "+ ringName +" "+ t.getTail());
+        	return null;
+        }
+		return new ConvergencePoint(dhtConfig.getVersion(), RingIDAndVersionPair.fromRingNameAndVersionPair(t), creationTime);
+	}
+	
+	public void requestChecksumTree(Triple<Long,Long,Long> nsAndRegion, Triple<String, Long, Long> source, Triple<String, Long, Long> target, String owner) {
+		requestChecksumTree(nsAndRegion, cpFromTriple(source), cpFromTriple(target), new IPAndPort(owner));
+	}
+	
+	public void requestChecksumTree(Triple<Long,Long,Long> nsAndRegion, ConvergencePoint curCP, ConvergencePoint targetCP, IPAndPort owner) {		
+        MessageGroup	mg;
+        UUIDBase		uuid;
+        
+		uuid = UUIDBase.random();
+        mg = new ProtoChecksumTreeRequestMessageGroup(uuid, nsAndRegion.getV1(), targetCP, curCP,  
+                                                      mgBase.getMyID(), new RingRegion(nsAndRegion.getV2(), nsAndRegion.getV3()), mgBase._getIPAndPort(), false).toMessageGroup(); 
+        mgBase.send(mg, owner);
+	}
+	
+	public void displayChecksumTree(MessageGroup message, MessageGroupConnection connection) {
+        ChecksumNode		remoteTree;
+        ConvergencePoint	cp;
+        
+        cp = ProtoChecksumTreeMessageGroup.getConvergencePoint(message);
+        remoteTree = ProtoChecksumTreeMessageGroup.deserialize(message);
+        System.out.printf("incomingChecksumTree: %s\t%s\t%s\n", message.getUUID(), cp, connection);
+		System.out.println(remoteTree);
+	}
+	
+	
+	///////////////////////////////
+	// RecoverData implementation
+	
+    private class RecoverDataWorker extends BaseWorker<UUIDBase> {
+		@Override
+		public void doWork(UUIDBase uuid) {
+			recoverData(uuid);
+		}
+    }
     
+    public void recoverData(UUIDBase uuid) {
+		Log.warningAsyncf("DHTRingMaster.recoverData %s", uuid);
+    	convergenceLock.lock();
+		try {
+    		if (currentRing == null) {
+    			Log.warning("No current ring. Unable to recover data.");
+    		} else {
+    	    	try {
+					// Check for ongoing
+					if (targetConvergenceController != null) {
+			            Log.warningAsync("Can't recover data due to ongoing convergence: ", targetRing);
+					} else {
+	        	    	RecoverDataController	recoverDataController;
+	        	    	
+						recoverDataController = new RecoverDataController(uuid, dhtMetaReader, currentCP, readExclusions(currentRing.getHead(), currentRing.getV2()), mgBase);
+						targetConvergenceController = recoverDataController;
+						try {
+							//convergenceLock.unlock();
+							//try {
+						        if (enableLogging) {
+						            Log.warningAsync("Calling recover()");
+						        }
+						        recoverDataController.recover();
+							//} finally {
+							//	convergenceLock.lock();
+							//}
+						} catch (ConvergenceException ce) {
+							// Convergence failed
+							if (!ce.getAbandoned()) {
+								// Failed due to an exception
+								Log.logErrorWarning(ce, "Convergence failed due to exception");
+							} else {
+								// Failed due to a new target causing the old convergence to be abandoned
+								// In this case, the new convergence will take over the cur and target pointers
+								Log.warningAsync("Previous convergence abandoned");
+							}
+						}
+					}
+				} catch (KeeperException ke) {
+					throw new RuntimeException(ke);
+				} catch (IOException ioe) {
+					throw new RuntimeException(ioe);
+				}
+    		}
+    	} finally {
+    		convergenceLock.unlock();
+    	}
+    }
+	
+	// End RecoverData implementation
+	///////////////////////////////////
+	
     public static void main(String[] args) {
         try {
             CmdLineParser       	parser;
@@ -558,7 +825,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
                 
     	        LWTPoolProvider.createDefaultWorkPools();                
                 
-                dhtRingMaster = new DHTRingMaster(new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs()), 
+                dhtRingMaster = new DHTRingMaster(gc.getClientDHTConfiguration().getZKConfig(), 
                 									gc.getClientDHTConfiguration().getName(), intervalMillis, options.mode);
                 Log.warningAsync("DHTRingMaster created");
                 dhtRingMaster.start();
@@ -567,11 +834,12 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+	            System.exit(-1);
             }        	
         } catch (Exception e) {
             e.printStackTrace();
             Log.logErrorSevere(e, DHTRingMaster.class.getName(), "main");
+            System.exit(-1);
         }
     }
     
@@ -587,7 +855,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
 
 	@Override
 	public RequestStatus getStatus(UUIDBase uuid) {
-    	CentralConvergenceController	ccc;
+    	ConvergenceControllerBase	ccc;
 
     	ccc = convergenceControllers.get(uuid);
     	if (ccc == null) {

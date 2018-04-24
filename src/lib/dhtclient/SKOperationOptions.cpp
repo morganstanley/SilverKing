@@ -95,7 +95,7 @@ SKOperationOptions::SKOperationOptions(SKOpTimeoutController * opTimeoutControll
 {
 	OpTimeoutController * pTimeoutCtrl = opTimeoutController->getPImpl();
 	
-    Set targets ;
+	Set targets ;
 	if(secondaryTargets && secondaryTargets->size()){
 		targets = java_new<HashSet>();
 		std::set<SKSecondaryTarget*>::iterator it;

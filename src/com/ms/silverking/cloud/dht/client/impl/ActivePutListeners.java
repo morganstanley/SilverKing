@@ -2,28 +2,24 @@ package com.ms.silverking.cloud.dht.client.impl;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.google.common.collect.ImmutableMap;
+import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
+
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MapMaker;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.EnumValues;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyOrdinalEntry;
-import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.util.Libraries;
-
-import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
 
 /**
  * Maps UUIDs from active messages back to active operations.

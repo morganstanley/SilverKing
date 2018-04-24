@@ -1,5 +1,6 @@
 package com.ms.silverking.fs.test;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Random;
@@ -24,10 +25,10 @@ public class SparseFileCreator {
 		}
 	}
 
-	public void createSparseFile(String name, int headerLength, int skipLength, int tailLength, int finalLength) throws IOException {
+	public void createSparseFile(File f, int headerLength, int skipLength, int tailLength, int finalLength) throws IOException {
 		RandomAccessFile	raf;
 		
-		raf = new RandomAccessFile(name, "rw");
+		raf = new RandomAccessFile(f, "rw");
 		write(raf, headerLength);
 		raf.seek(raf.getFilePointer() + skipLength);
 		write(raf, tailLength);
@@ -58,7 +59,7 @@ public class SparseFileCreator {
 					finalLength = 0;
 				}
 				sfc = new SparseFileCreator();
-				sfc.createSparseFile(file, headerLength, skipLength, tailLength, finalLength);
+				sfc.createSparseFile(new File(file), headerLength, skipLength, tailLength, finalLength);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

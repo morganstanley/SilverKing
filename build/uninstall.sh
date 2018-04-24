@@ -1,4 +1,6 @@
 #!/bin/ksh
 
+source lib/common.lib
+
 ./$UNINSTALL_SILVERKING_SCRIPT_NAME
 ./$UNINSTALL_SILVERKING_FS_SCRIPT_NAME

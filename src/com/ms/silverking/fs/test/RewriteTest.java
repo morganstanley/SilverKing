@@ -12,15 +12,16 @@ import com.ms.silverking.time.Stopwatch;
 public class RewriteTest {
 	private RandomAccessFile	raf;
 	
-	private static final int	blockSize = 262144;
+	static final int	blockSize = 262144;
 	private static final byte[][]	buf = new byte[26][blockSize];
 	private static final byte[]	buf1 = new byte[blockSize];
 	private static final byte[]	buf2 = new byte[blockSize];
+	private static final byte[] buf3 = {'1', '2', '3', '4', '5', '6'};
 	
-	private enum Test {Current, Past, CurrentAndPast, CurrentAndPastAndExtension, Random};
-	private enum Mode {Write, Verify};
+	private enum Test {Current, Past, CurrentAndPast, CurrentAndPastAndExtension, Random, Last, LastExtension};
+	enum Mode {Write, Verify};
 	
-	private static void fillBuf(byte[] buf, int offset, int length, byte b) {
+	static void fillBuf(byte[] buf, int offset, int length, byte b) {
 		for (int i = 0; i < length; i++) {
 			buf[offset + i] = b;
 		}
@@ -38,35 +39,71 @@ public class RewriteTest {
 		raf = new RandomAccessFile(file, mode == Mode.Write ? "rw" : "r");
 	}
 	
-	private void testCurrent() throws IOException {
+	public void testCurrent() throws IOException {
 		raf.write(buf1, 0, 128);
 		raf.seek(64);
 		raf.write(buf2, 0, 32);
+		raf.close();
 	}
 
-	private void testPast() throws IOException {
+	public void testPast() throws IOException {
 		raf.write(buf1, 0, blockSize);
 		raf.write(buf1, 0, blockSize);
 		raf.write(buf1, 0, blockSize);
 		raf.seek(64);
 		raf.write(buf2, 0, blockSize);
+		raf.close();
 	}
 	
-	private void testCurrentAndPast() throws IOException {
+	public void testCurrentAndPast() throws IOException {
 		raf.write(buf1, 0, blockSize);
 		raf.write(buf1, 0, 128);
 		raf.seek(64);
 		raf.write(buf2, 0, blockSize);
+		raf.close();
 	}
 	
-	private void testCurrentAndPastAndExtension() throws IOException {
+	public void testCurrentAndPastAndExtension() throws IOException {
 		raf.write(buf1, 0, blockSize);
 		raf.write(buf1, 0, 64);
 		raf.seek(128);
 		raf.write(buf2, 0, blockSize);
+		raf.close();
 	}
 	
-	private void testRandom(int numWrites, Mode mode) throws IOException {
+	public void testLast() throws IOException {
+		raf.write(buf1, 0, blockSize);
+		raf.write(buf1, 0, 128);
+		raf.seek(blockSize + 64);
+		raf.write(buf2, 0, 64);
+		raf.close();
+	}
+	
+	public void testLastAndExtension() throws IOException {
+		raf.write(buf1, 0, blockSize);
+		raf.write(buf1, 0, 128);
+		raf.seek(blockSize + 64);
+		raf.write(buf2, 0, 256);
+		raf.close();
+	}
+	
+	public void testBlockBorderOneByteEachSide() throws IOException {
+		raf.write(buf1, 0, blockSize);
+		raf.write(buf2, 0, blockSize);
+		raf.seek(blockSize-1);
+		raf.write(buf3, 0, 2);
+		raf.close();
+	}
+	
+	public void testBlockBorder() throws IOException {
+		raf.write(buf1, 0, blockSize);
+		raf.write(buf2, 0, blockSize);
+		raf.seek(blockSize-(buf3.length/2));
+		raf.write(buf3, 0, buf3.length);
+		raf.close();
+	}
+	
+	public void testRandom(int numWrites, Mode mode) throws IOException {
 		Random	r;
 		Stopwatch	sw;
 		long	fileLength = blockSize * 100;
@@ -107,8 +144,13 @@ public class RewriteTest {
 				}
 			}
 		}
+		raf.close();
 		sw.stop();
 		System.out.printf("Elapsed: %s\n", sw.getElapsedSeconds());
+	}
+	
+	public RandomAccessFile getFile() {
+		return raf;
 	}
 	
 	public static void main(String[] args) {
@@ -141,6 +183,12 @@ public class RewriteTest {
 					break;
 				case CurrentAndPastAndExtension:
 					rt.testCurrentAndPastAndExtension();
+					break;
+				case Last:
+					rt.testLast();
+					break;
+				case LastExtension:
+					rt.testLastAndExtension();
 					break;
 				case Random:
 					if (args.length != 4) {

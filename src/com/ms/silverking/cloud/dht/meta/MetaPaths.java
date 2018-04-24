@@ -14,6 +14,7 @@ public class MetaPaths extends MetaPathsBase {
     private final String  instanceCommandsPath;
     private final String  instanceRingStatePath;
     private final String  instanceDaemonStatePath;
+    private final String  instanceNodeInfoPath;
     private final String  passiveNodesPath;
         
     // dht global base directories
@@ -25,6 +26,7 @@ public class MetaPaths extends MetaPathsBase {
     private static final String configNodeName = "config";
     private static final String nsLinkNodeName = "nsLink";
     private static final String suspectsNodeName = "suspects";
+    private static final String nodeInfoNodeName = "nodeInfo";
     private static final String exclusionsNodeName = "exclusions";
     private static final String commandsNodeName = "commands";
     private static final String ringStateNodeName = "ringState";
@@ -33,6 +35,7 @@ public class MetaPaths extends MetaPathsBase {
         
     private static final String curRingAndVersionPairNodeName = "curRingAndVersionPair";
     private static final String targetRingAndVersionPairNodeName = "targetRingAndVersionPair";
+    private static final String masterRingAndVersionPairNodeName = "masterRingAndVersionPair";
     
     /*
     public final String         dhtInfoBase;
@@ -65,6 +68,8 @@ public class MetaPaths extends MetaPathsBase {
         listBuilder.add(instanceNSLinkPath);
         instanceSuspectsPath = instancePath +"/"+ suspectsNodeName;
         listBuilder.add(instanceSuspectsPath);
+        instanceNodeInfoPath = instancePath +"/"+ nodeInfoNodeName;
+        listBuilder.add(instanceNodeInfoPath);
         instanceExclusionsPath = instancePath +"/"+ exclusionsNodeName;
         listBuilder.add(instanceExclusionsPath);
         instanceCommandsPath = instancePath +"/"+ commandsNodeName;
@@ -118,6 +123,10 @@ public class MetaPaths extends MetaPathsBase {
         return getInstancePath(dhtName) +"/"+ suspectsNodeName;
     }
     
+    public static String getInstanceNodeInfoPath(String dhtName) {
+        return getInstancePath(dhtName) +"/"+ nodeInfoNodeName;
+    }
+    
     public static String getInstanceExclusionsPath(String dhtName) {
         return getInstancePath(dhtName) +"/"+ exclusionsNodeName;
     }
@@ -140,6 +149,10 @@ public class MetaPaths extends MetaPathsBase {
     
     public static String getInstanceTargetRingAndVersionPairPath(String dhtName) {
         return getInstanceRingStatePath(dhtName) +"/"+ targetRingAndVersionPairNodeName;
+    }
+    
+    public static String getInstanceMasterRingAndVersionPairPath(String dhtName) {
+        return getInstanceRingStatePath(dhtName) +"/"+ masterRingAndVersionPairNodeName;
     }
     
     public String getInstancePath() {
@@ -176,6 +189,10 @@ public class MetaPaths extends MetaPathsBase {
     
     public String getInstanceDaemonStatePath() {
         return instanceDaemonStatePath;
+    }
+    
+    public String getInstanceNodeInfoPath() {
+        return instanceNodeInfoPath;
     }
     
     public String getPassiveNodesPath() {

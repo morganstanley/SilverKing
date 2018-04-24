@@ -12,13 +12,17 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 public class ProducerConsumer {        
     SynchronousNamespacePerspective<Integer, Integer> syncNSP;
     
-    private static final String pcNamespace = "_ProducerConsumer";
+    public static final String pcNamespace = "_ProducerConsumer";
     
     private enum Mode {Producer, Consumer};
-    
+
     public ProducerConsumer(SKGridConfiguration gridConfig) throws ClientException, IOException {
+    	this(gridConfig, "");
+    }
+    
+    ProducerConsumer(SKGridConfiguration gridConfig, String nsSuffix) throws ClientException, IOException {
         syncNSP = new DHTClient().openSession(gridConfig)
-                .openSyncNamespacePerspective(pcNamespace, Integer.class, Integer.class);
+                .openSyncNamespacePerspective(pcNamespace+nsSuffix, Integer.class, Integer.class);
     }
     
     public void run(Mode mode, int startKey, int endKey) throws ClientException {
@@ -40,7 +44,6 @@ public class ProducerConsumer {
     public void consumer(int startKey, int endKey) throws RetrievalException {
         for (int i = startKey; i <= endKey; i++) {
             int val;
-            
             System.out.printf("Waiting for %d\t", i);
             val = syncNSP.waitFor(i);
             System.out.printf("Received %d\n", val);
@@ -57,7 +60,7 @@ public class ProducerConsumer {
                 usage();
             } else {
                 ProducerConsumer   pc;
-                SKGridConfiguration  gridConfig;
+                SKGridConfiguration gridConfig;
                 Mode               mode;
                 int                startKey;
                 int                endKey;
@@ -67,7 +70,7 @@ public class ProducerConsumer {
                 startKey = Integer.parseInt(args[2]);
                 endKey = Integer.parseInt(args[3]);
                 pc = new ProducerConsumer(gridConfig);
-                pc.run(Mode.valueOf(args[1]), startKey, endKey);
+                pc.run(mode, startKey, endKey);
             }
         } catch (Exception e) {
             e.printStackTrace();

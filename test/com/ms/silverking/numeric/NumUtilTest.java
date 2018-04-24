@@ -4,7 +4,7 @@ import static com.ms.silverking.testing.Util.copy;
 import static com.ms.silverking.testing.Util.createToString;
 import static com.ms.silverking.testing.Util.double_maxVal;
 import static com.ms.silverking.testing.Util.double_nan;
-import static com.ms.silverking.testing.Util.exceptionNameChecker;
+import static com.ms.silverking.testing.Assert.exceptionNameChecker;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static com.ms.silverking.testing.Util.int_maxVal;
 import static com.ms.silverking.testing.Util.int_minVal;

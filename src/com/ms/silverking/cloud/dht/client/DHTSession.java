@@ -84,6 +84,7 @@ public interface DHTSession {
      */
 	public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace, 
 	                                                            Class<K> keyClass, Class<V> valueClass);	
+	public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace);	
 	/**
 	 * Open a SynchronousNamespacePerspective for the given key, value types
 	 * @param <K> key type of perspective to open
@@ -105,6 +106,7 @@ public interface DHTSession {
      */
 	public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace,
 																Class<K> keyClass, Class<V> valueClass);
+	public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace);
 	/**
 	 * Deletes an entire namespace. This causes the data in the namespace to be inaccessible, and the data  
 	 * to be moved to the trash directory.

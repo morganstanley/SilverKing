@@ -34,7 +34,7 @@ public class PutOptions extends OperationOptions {
     private static final OpTimeoutController    standardTimeoutController = new OpSizeBasedTimeoutController();
     private static final PutOptions template = new PutOptions(
 								            standardTimeoutController, 
-								            null, Compression.LZ4, 
+								            DHTConstants.noSecondaryTargets, Compression.LZ4, 
 								            ChecksumType.MURMUR3_32, 
 								            false, 
 								            PutOptions.defaultVersion, null);
@@ -62,6 +62,8 @@ public class PutOptions extends OperationOptions {
 					Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, 
 					long version, byte[] userData) {
 	    super(opTimeoutController, secondaryTargets);
+        Preconditions.checkNotNull(compression);
+        Preconditions.checkNotNull(checksumType);
 		this.compression = compression;
 		if (version < 0) {
 		    throw new IllegalArgumentException("version can't be < 0: "+ version);
@@ -78,7 +80,6 @@ public class PutOptions extends OperationOptions {
      * @return the modified PutOptions instance
      */
     public PutOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-        Preconditions.checkNotNull(opTimeoutController);
         return new PutOptions(opTimeoutController, getSecondaryTargets(), compression, checksumType, checksumCompressedValues, version, userData);
     }
     
@@ -88,7 +89,6 @@ public class PutOptions extends OperationOptions {
      * @return the modified InvalidationOptions
      */
 	public PutOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-        Preconditions.checkNotNull(secondaryTargets);
 		return new PutOptions(getOpTimeoutController(), secondaryTargets, getCompression(), 
 										getChecksumType(), getChecksumCompressedValues(), getVersion(), getUserData());
 	}
@@ -110,7 +110,6 @@ public class PutOptions extends OperationOptions {
      * @return the modified PutOptions instance
      */
     public PutOptions compression(Compression compression) {
-        Preconditions.checkNotNull(compression);
         return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType, checksumCompressedValues, version, userData);
     }
     
@@ -120,7 +119,6 @@ public class PutOptions extends OperationOptions {
      * @return the modified PutOptions instance
      */
     public PutOptions checksumType(ChecksumType checksumType) {
-        Preconditions.checkNotNull(checksumType);
         return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType, checksumCompressedValues, version, userData);
     }
     

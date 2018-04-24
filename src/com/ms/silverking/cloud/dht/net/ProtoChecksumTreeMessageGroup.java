@@ -130,6 +130,7 @@ public class ProtoChecksumTreeMessageGroup extends ProtoMessageGroup {
     private static void writeKeyValueChecksum(ByteBuffer buffer, KeyAndVersionChecksum kvc) {
         writeKey(buffer, kvc.getKey());
         buffer.putLong(kvc.getVersionChecksum());
+        buffer.putLong(kvc.getSegmentNumber());
     }
 
     private static void writeNodeHeader(ByteBuffer buffer, NodeType type, ChecksumNode node) {
@@ -235,9 +236,11 @@ public class ProtoChecksumTreeMessageGroup extends ProtoMessageGroup {
     private static KeyAndVersionChecksum deserializeKeyAndVersionChecksum(ByteBuffer buffer) {
         DHTKey  key;
         long    versionChecksum;
+        long	segmentNumber;
         
         key = deserializeKey(buffer);
         versionChecksum = buffer.getLong();
-        return new KeyAndVersionChecksum(key, versionChecksum);
+        segmentNumber = buffer.getLong();
+        return new KeyAndVersionChecksum(key, versionChecksum, segmentNumber);
     }
 }

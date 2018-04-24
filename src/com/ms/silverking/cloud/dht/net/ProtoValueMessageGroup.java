@@ -19,12 +19,12 @@ public final class ProtoValueMessageGroup extends ProtoValueMessageGroupBase {
     private int expectedSize;
     // FUTURE - dedup wrt ProtoPutMessageGroup
     
-    public ProtoValueMessageGroup(UUIDBase uuid, long context, int opSize, int valueBytes, byte[] originator, int lengthRemaining, int deadlineRelativeMillis) {
+    public ProtoValueMessageGroup(UUIDBase uuid, long context, int opSize, int valueBytes, byte[] originator, int deadlineRelativeMillis) {
         super(MessageType.RETRIEVE_RESPONSE, uuid, context, opSize, valueBytes, 
                 ByteBuffer.allocate(RetrievalResponseMessageFormat.optionBytesSize), 
                     RetrievalResponseMessageFormat.size - KeyedMessageFormat.baseBytesPerKeyEntry, 
                     originator, deadlineRelativeMillis, ForwardingMode.FORWARD);
-        expectedSize = Math.min(maxValueBytesPerMessage, lengthRemaining);
+        expectedSize = valueBytes;
     }
     
     public void addValue(DHTKey dhtKey, ByteBuffer value, int compressedLength, boolean noCopy) {
@@ -84,13 +84,13 @@ public final class ProtoValueMessageGroup extends ProtoValueMessageGroupBase {
                 // dedicatedBufferSizeThreshold <= valueBufferSize
                 //valueBuffer = ByteBuffer.allocate(valueBufferSize);
                 //valueBuffer = ByteBuffer.allocate(Math.min(expectedSize, valueBufferSize));
-                valueBuffer = ByteBuffer.allocate(Math.max(Math.min(expectedSize, valueBufferSize), storedValueSize));
+                valueBuffer = ByteBuffer.allocate(Math.max(expectedSize - totalValueBytes, storedValueSize));
                 if (!addMultiValueBuffer(valueBuffer)) {
                     throw new RuntimeException("Too many buffers");
                 }
             }
             // record where the value will be written into the key buffer
-            keyByteBuffer.putShort(curMultiValueBufferIndex);
+            keyByteBuffer.putInt(curMultiValueBufferIndex);
             keyByteBuffer.putInt(valueBuffer.position());
             //keyByteBuffer.putInt(uncompressedValueSize);
             //keyByteBuffer.putInt(compressedValueSize);
@@ -125,11 +125,8 @@ public final class ProtoValueMessageGroup extends ProtoValueMessageGroupBase {
         } else {
             //ByteBuffer  newBuf;
             
-            if (bufferList.size() >= Short.MAX_VALUE) {
-                throw new RuntimeException("Too many buffers");
-            }
             // record where the value will be located in the key buffer
-            keyByteBuffer.putShort((short)bufferList.size());
+            keyByteBuffer.putInt(bufferList.size());
             keyByteBuffer.putInt(value.position());
             //keyByteBuffer.putInt(uncompressedValueSize);
             //keyByteBuffer.putInt(compressedValueSize);
@@ -164,7 +161,7 @@ public final class ProtoValueMessageGroup extends ProtoValueMessageGroupBase {
 
     public void addErrorCode(DHTKey key, OpResult result) {
         addKey(key);
-        keyByteBuffer.putShort((short)-(result.ordinal() + 1));
+        keyByteBuffer.putInt(-(result.ordinal() + 1));
         keyByteBuffer.putInt(-1);
         keyByteBuffer.putInt(-1);
     }

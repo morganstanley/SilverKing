@@ -27,8 +27,10 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
 						String controllerClass,
 						Acceptor<T> acceptor,
 						ConnectionCreator<T> connectionCreator, 
-						IncomingConnectionListener<T> incomingConnectionListener, LWTPool lwtPool, boolean enabled, boolean debug) throws IOException {
-		super(port, numSelectorControllers, controllerClass, acceptor, connectionCreator, lwtPool, debug);
+						IncomingConnectionListener<T> incomingConnectionListener, 
+						LWTPool lwtPool, int selectionThreadWorkLimit, 
+						boolean enabled, boolean debug) throws IOException {
+		super(port, numSelectorControllers, controllerClass, acceptor, connectionCreator, lwtPool, selectionThreadWorkLimit, debug);
 		this.incomingConnectionListener = incomingConnectionListener;
 		this.enabled = enabled;
         this.debug = debug;
@@ -54,10 +56,12 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
             int numSelectorControllers, 
             String controllerClass,
             ConnectionCreator<T> connectionCreator, 
-            IncomingConnectionListener<T> newConnectionListener, LWTPool lwtPool, boolean enabled, boolean debug) throws IOException {
+            IncomingConnectionListener<T> newConnectionListener, 
+            LWTPool lwtPool, int selectionThreadWorkLimit, 
+            boolean enabled, boolean debug) throws IOException {
         this(port, backlog, numSelectorControllers, 
                 controllerClass, 
-                new Acceptor<T>(lwtPool), connectionCreator, newConnectionListener, lwtPool, enabled, debug);
+                new Acceptor<T>(lwtPool), connectionCreator, newConnectionListener, lwtPool, selectionThreadWorkLimit, enabled, debug);
     }
         
 	//////////////////////////////////////////////////////////////////////

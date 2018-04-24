@@ -2,6 +2,8 @@ package com.ms.silverking.collection;
 
 import java.util.List;
 
+import com.ms.silverking.text.StringUtil;
+
 public class Quadruple<T1,T2,T3,T4> extends TupleBase {
 	private final T1    v1;
     private final T2    v2;
@@ -99,7 +101,7 @@ public class Quadruple<T1,T2,T3,T4> extends TupleBase {
     
     @Override 
     public String toString() {
-        return v1.toString() +":"+ v2.toString() +":"+ v3.toString() + ":"+ v4.toString();
+    	return StringUtil.nullSafeToString(v1) + ":"+ StringUtil.nullSafeToString(v2) + ":"+  StringUtil.nullSafeToString(v3) + ":"+ StringUtil.nullSafeToString(v4);
     }
     
     public static <T1,T2,T3,T4> Quadruple<T1,T2,T3,T4> parse(String def, String pattern, String... typeNames) {

@@ -13,6 +13,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.BaseRetrievalEntrySta
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DaemonStateZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
+import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
@@ -36,7 +37,8 @@ public class DHTNode {
     private final StorageModule  storage;
     private final MemoryManager  memoryManager;
     private final DaemonStateZK  daemonStateZK;
-    private boolean       running;
+    private final NodeInfoZK	 nodeInfoZK;
+    private boolean       running = true;
      
     // FUTURE - make port non-static
     // also possibly make it a per-node rather than per-DHT notion
@@ -61,7 +63,7 @@ public class DHTNode {
     private static final int					timerDrivenTimeSourceResolutionMS = 5;
     private static final String					timeSourceTimerName = "TimeSourceTimer";
     private static final AbsMillisTimeSource    absMillisTimeSource;
-
+    
     static {
     	DHTConstants.isDaemon = true;
         AsyncGlobals.setVerbose(true);
@@ -75,7 +77,7 @@ public class DHTNode {
         ConvergenceController2.setAbsMillisTimeSource(absMillisTimeSource);
     }
     
-	public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds) {
+	public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, boolean disableReap, boolean leaveTrash) {
 	    try {
 	        IPAndPort  daemonIPAndPort;
 	        //DHTRingCurTargetWatcher	dhtRingCurTargetWatcher;
@@ -96,12 +98,16 @@ public class DHTNode {
             daemonStateZK.setState(DaemonState.INITIAL_MAP_WAIT);
 	        ringMaster.initializeMap(dhtConfig);
 	        
-            daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT, 
-                    inactiveNodeTimeoutSeconds);
+            if (!daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT, 
+                    inactiveNodeTimeoutSeconds)) {
+                daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT, 
+                        inactiveNodeTimeoutSeconds);
+            }
             daemonStateZK.setState(DaemonState.RECOVERY);
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY, 
             		recoveryInactiveNodeTimeoutSeconds);
-            storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig);
+            nodeInfoZK = new NodeInfoZK(mc, daemonIPAndPort, daemonStateTimer);       
+            storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK);
 	        msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort, 
 	                                      mc);
 	        memoryManager = new MemoryManager();
@@ -110,7 +116,9 @@ public class DHTNode {
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT, 
                                              inactiveNodeTimeoutSeconds);
             daemonStateZK.setState(DaemonState.ENABLING_COMMUNICATION);
-            storage.initialReap();
+            if (!disableReap) {
+            	storage.initialReap(leaveTrash);
+            }
             msgModule.enable();
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.ENABLING_COMMUNICATION, 
                                              inactiveNodeTimeoutSeconds);
@@ -119,18 +127,26 @@ public class DHTNode {
                     inactiveNodeTimeoutSeconds);
             daemonStateZK.setState(DaemonState.PRIMING);
 	        msgModule.start();
+	        cleanVM();
             daemonStateZK.setState(DaemonState.RUNNING);
 	    } catch (Exception e) {
 	        throw new RuntimeException(e);
 	    }
 	}
 	
-    public void run() {
+    private void cleanVM() {
+    	Runtime.getRuntime().runFinalization();
+    	System.gc();
+	}
+
+	public void run() {
         while (running) {
-            try {
-                this.wait();
-            } catch (InterruptedException ie) {
-            }
+        	synchronized (this) {
+	            try {
+	                this.wait();
+	            } catch (InterruptedException ie) {
+	            }
+        	}
         }
     }
     
@@ -161,18 +177,21 @@ public class DHTNode {
                 
                 dhtName = options.dhtName;
                 zkConfig = new ZooKeeperConfig(options.zkConfig);                
-                dhtNode = new DHTNode(dhtName, zkConfig, options.inactiveNodeTimeoutSeconds);
+                dhtNode = new DHTNode(dhtName, zkConfig, options.inactiveNodeTimeoutSeconds, options.disableReap, options.leaveTrash);
                 //Log.setLevelAll();
                 Log.initAsyncLogging();
                 dhtNode.run();
+                Log.warning("DHTNode run() returned cleanly");
             } catch (CmdLineException cle) {
+            	Log.logErrorWarning(cle);
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
                 return;
             } catch (Exception e) {
+            	Log.logErrorWarning(e);
                 e.printStackTrace();
             } finally {
-                System.out.println("DHTNode leaving main()");
+                Log.warning("DHTNode leaving main()");
             }
 	    } catch (Exception e) {
 	        Log.logErrorWarning(e);

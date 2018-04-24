@@ -26,13 +26,14 @@ typedef struct OpenDirWriter {
 	// retry logic is currently deprecated in favor of periodic reconciliation
 	//QueueProcessor	*retryQP;
 	//DirDataReader	*ddr;
+    uint64_t        minWriteIntervalMillis;
 } OpenDirWriter;
 
 
 ///////////////
 // prototypes
 
-OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/);
+OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/, uint64_t minWriteIntervalMillis);
 void odw_delete(OpenDirWriter **odw);
 void odw_write_dir(OpenDirWriter *odw, const char *path, OpenDir *od);
 

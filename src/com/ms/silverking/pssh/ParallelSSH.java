@@ -7,6 +7,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.config.HostGroupTable;
 import com.ms.silverking.io.StreamParser;
 import com.ms.silverking.log.Log;
 
@@ -18,7 +19,9 @@ public class ParallelSSH extends ParallelSSHBase implements Runnable {
     private AtomicInteger   active;
     
     public ParallelSSH(Set<String> hosts, String[] command, 
-                        int numWorkerThreads, int timeoutSeconds) {
+                        int numWorkerThreads, int timeoutSeconds,
+                        HostGroupTable hostGroups) {
+    	super(hostGroups);
         this.hosts = new ArrayBlockingQueue<String>(hosts.size(), false, hosts);
         this.command = command;
         this.timeoutSeconds = timeoutSeconds;
@@ -68,7 +71,7 @@ public class ParallelSSH extends ParallelSSHBase implements Runnable {
             numWorkerThreads = Integer.parseInt(args[1]);
             timeoutSeconds = Integer.parseInt(args[2]);
             cmd = Arrays.copyOfRange(args, 3, args.length); 
-            parallelSSH = new ParallelSSH(hosts, cmd, numWorkerThreads, timeoutSeconds);
+            parallelSSH = new ParallelSSH(hosts, cmd, numWorkerThreads, timeoutSeconds, null);
         } catch (Exception e) {
             e.printStackTrace();
         }

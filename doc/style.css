@@ -1,5 +1,5 @@
 h1 {
-	color: #aa0000;
+	color: #700000;
 	font-family: "Arial",Verdana,Sans-serif;
 }
 
@@ -15,16 +15,32 @@ h3 {
 	font-weight: normal;
 }
 
+h4 {
+	color: #2222aa;
+	font-size: 12px;
+	font-family: "Arial",Verdana,Sans-serif;
+	font-weight: bold;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	line-height: 0px;
+}
+
 pre {
 	font-weight: bold;
 	color: #880000;
-	font-family: "Arial",Verdana,Sans-serif;
+	font-family: "Courier New",Courier,monospace;
+	font-size: 13px;
+	margin-top: 0px;
+	margin-bottom: 24px;
 }
 
 pre.code {
 	font-weight: bold;
 	color: #880000;
 	font-family: "Courier New",Courier,monospace;
+	font-size: 13px;
+	margin-top: 0px;
+	margin-bottom: 0px;
 }
 
 p {
@@ -36,11 +52,13 @@ ul {
 }
 
 code {
-	color: black;
+	color: #882222;
+	margin-top: 0px;
+	margin-bottom: 0px;
 }
 
 table, th, td {
-    border: 1px solid black;
+    border: 0px solid black;
     border-collapse: collapse;	
 }
 

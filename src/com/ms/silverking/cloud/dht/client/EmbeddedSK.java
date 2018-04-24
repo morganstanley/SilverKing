@@ -12,7 +12,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableSet;
-import com.ms.silverking.cloud.dht.client.impl.LocalZKImpl;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
@@ -21,6 +20,7 @@ import com.ms.silverking.cloud.dht.meta.DHTRingCurTargetZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.toporing.StaticRingCreator;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
+import com.ms.silverking.cloud.zookeeper.LocalZKImpl;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
@@ -104,7 +104,7 @@ public class EmbeddedSK {
 			} else {
 				dhtPort = skPort;
 			}
-			clientDHTConfig = new ClientDHTConfiguration(dhtName, dhtPort, zkConfig.getEnsemble());
+			clientDHTConfig = new ClientDHTConfiguration(dhtName, dhtPort, zkConfig);
 			dhtMC = new MetaClient(clientDHTConfig);
 			dhtConfigZK = new DHTConfigurationZK(dhtMC);
 			dhtConfig = DHTConfiguration.emptyTemplate.ringName(ringName).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>());
@@ -122,7 +122,7 @@ public class EmbeddedSK {
 			
 			// 4) Start DHTNode
 			Log.warning("Starting DHTNode");
-			new DHTNode(dhtName, zkConfig, 0);
+			new DHTNode(dhtName, zkConfig, 0, false, false);
 			Log.warning("DHTNode started");
 			
 			// 5) Return the configuration to the caller

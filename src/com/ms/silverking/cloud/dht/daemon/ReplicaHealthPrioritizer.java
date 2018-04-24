@@ -34,6 +34,8 @@ public class ReplicaHealthPrioritizer implements ReplicaPrioritizer {
 		long	t1;
 		long	t2;
 		
+		// Note that peer health monitor will timeout errors so that nodes
+		// without recent errors come back as Long.MAX_VALUE here
 		t1 = peerHealthMonitor.getLastWeakErrorTime(r1);
 		t2 = peerHealthMonitor.getLastWeakErrorTime(r2);
 		if (t1 < t2) {

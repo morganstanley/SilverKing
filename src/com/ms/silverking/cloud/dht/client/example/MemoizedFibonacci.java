@@ -57,7 +57,7 @@ public class MemoizedFibonacci {
                 usage();
             } else {
                 MemoizedFibonacci  fib;
-                SKGridConfiguration  gridConfig;
+                SKGridConfiguration gridConfig;
                 int                n;
                 int                fn;
                 

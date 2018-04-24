@@ -94,7 +94,7 @@ static Cache *fbc_select_cache(FileBlockCache *fbCache, FileBlockID *fbid) {
 
 CacheReadResult fbc_read(FileBlockCache *fbCache, FileBlockID *fbid, 
 						 unsigned char *buf, size_t sourceOffset, size_t size, ActiveOpRef **activeOpRef, int *cacheNumRead, 
-						 void *fbReader, uint64_t minModificationTimeMillis,
+						 void *fbReader, uint64_t minModificationTimeMicros,
                          uint64_t newOpTimeoutMillis) {
 	if (srfsLogLevelMet(LOG_FINE)) {
 		char	_fbid[SRFS_MAX_PATH_LENGTH];
@@ -103,12 +103,26 @@ CacheReadResult fbc_read(FileBlockCache *fbCache, FileBlockID *fbid,
 		srfsLog(LOG_FINE, "fbc_read %llx %s", fbid, _fbid);
 	}
 	return cache_read(fbc_select_cache(fbCache, fbid), fbid, sizeof(FileBlockID), buf, sourceOffset, size, activeOpRef, cacheNumRead, 
-					 fbr_create_active_op, fbReader, minModificationTimeMillis,
+					 fbr_create_active_op, fbReader, minModificationTimeMicros,
                      newOpTimeoutMillis);
 }
 
+
+CacheReadResult fbc_read_no_op_creation(FileBlockCache *fbCache, FileBlockID *fbid, 
+						 unsigned char *buf, size_t sourceOffset, size_t size, int *cacheNumRead, 
+						 uint64_t minModificationTimeMicros) {
+	if (srfsLogLevelMet(LOG_FINE)) {
+		char	_fbid[SRFS_MAX_PATH_LENGTH];
+
+		fbid_to_string(fbid, _fbid);
+		srfsLog(LOG_FINE, "fbc_read_no_op_creation %llx %s", fbid, _fbid);
+	}
+	return cache_read(fbc_select_cache(fbCache, fbid), fbid, sizeof(FileBlockID), buf, sourceOffset, size, NULL, cacheNumRead, 
+					 NULL, NULL, minModificationTimeMicros);
+}
+
 CacheStoreResult fbc_store_dht_value(FileBlockCache *fbCache, FileBlockID *fbid, SKVal *pRVal,
-                            uint64_t modificationTimeMillis) {
+                            uint64_t modificationTimeMicros) {
 	if (srfsLogLevelMet(LOG_FINE)) {
 		char	_fbid[SRFS_MAX_PATH_LENGTH];
 
@@ -116,18 +130,18 @@ CacheStoreResult fbc_store_dht_value(FileBlockCache *fbCache, FileBlockID *fbid,
 		srfsLog(LOG_FINE, "fbc_store_dht_value %llx %s %u", fbid, _fbid, pRVal->m_len);
 	}
 	return cache_store_dht_value(fbc_select_cache(fbCache, fbid), fbid, sizeof(FileBlockID), pRVal, 
-                                modificationTimeMillis, CACHE_NO_TIMEOUT);
+                                modificationTimeMicros, CACHE_NO_TIMEOUT);
 }
 
 CacheStoreResult fbc_store_raw_data(FileBlockCache *fbCache, FileBlockID *fbid, void *data, 
-                                size_t size, int replace, uint64_t modificationTimeMillis) {
+                                size_t size, int replace, uint64_t modificationTimeMicros) {
 	if (srfsLogLevelMet(LOG_FINE)) {
 		char	_fbid[SRFS_MAX_PATH_LENGTH];
 
 		fbid_to_string(fbid, _fbid);
 		srfsLog(LOG_FINE, "fbc_store_raw_data %llx %s", fbid, _fbid);
 	}
-	return cache_store_raw_data(fbc_select_cache(fbCache, fbid), fbid, sizeof(FileBlockID), data, size, replace, modificationTimeMillis, CACHE_NO_TIMEOUT);
+	return cache_store_raw_data(fbc_select_cache(fbCache, fbid), fbid, sizeof(FileBlockID), data, size, replace, modificationTimeMicros, CACHE_NO_TIMEOUT);
 }
 
 void fbc_store_active_op(FileBlockCache *fbCache, FileBlockID *fbid, ActiveOp *op) {
@@ -140,14 +154,18 @@ void fbc_store_active_op(FileBlockCache *fbCache, FileBlockID *fbid, ActiveOp *o
 	cache_store_active_op(fbc_select_cache(fbCache, fbid), fbid, sizeof(FileBlockID), op);
 }
 
+void fbc_remove(FileBlockCache *fbCache, FileBlockID *fbid, int removeActiveOps) {
+	cache_remove(fbc_select_cache(fbCache, fbid), fbid, removeActiveOps);
+}
+
 void fbc_remove_active_op(FileBlockCache *fbCache, FileBlockID *fbid, int fatalErrorOnNotFound) {
 	cache_remove_active_op(fbc_select_cache(fbCache, fbid), fbid, fatalErrorOnNotFound);
 }
 
 void fbc_store_error(FileBlockCache *fbCache, FileBlockID *fbid, int errorCode, 
-                     uint64_t modificationTimeMillis, uint64_t timeoutMillis) {
+                     uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
 	cache_store_error(fbc_select_cache(fbCache, fbid), fbid, sizeof(FileBlockID), errorCode, 
-                        FALSE, modificationTimeMillis, timeoutMillis);
+                        FALSE, modificationTimeMicros, timeoutMillis);
 }
 
 // path functions

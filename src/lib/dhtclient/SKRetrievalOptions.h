@@ -31,7 +31,7 @@ public:
 	SKAPI SKRetrievalOptions * nonExistenceResponse(SKNonExistenceResponse::SKNonExistenceResponse nonExistenceResponse);
 	SKAPI SKRetrievalOptions * verifyChecksums(bool verifyChecksums);
 	SKAPI SKRetrievalOptions * returnInvalidations(bool returnInvalidations);
-	SKAPI SKRetrievalOptions * forwardingMode(SKForwardingMode forwardingMode);
+	SKAPI virtual SKRetrievalOptions * forwardingMode(SKForwardingMode forwardingMode);
 	SKAPI SKRetrievalOptions * updateSecondariesOnMiss(bool updateSecondariesOnMiss);
     
 	SKAPI SKRetrievalType getRetrievalType() const;
@@ -40,7 +40,7 @@ public:
 	SKAPI SKNonExistenceResponse::SKNonExistenceResponse getNonExistenceResponse() const;
 	SKAPI bool getVerifyChecksums() const;
 	SKAPI bool getReturnInvalidations() const;
-	SKAPI SKForwardingMode getForwardingMode() const;
+	SKAPI virtual SKForwardingMode getForwardingMode() const;
     SKAPI bool getUpdateSecondariesOnMiss() const;
     
 	SKAPI static SKRetrievalOptions * parse(const char * def);

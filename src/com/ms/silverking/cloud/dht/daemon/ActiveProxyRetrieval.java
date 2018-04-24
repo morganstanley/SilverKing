@@ -2,11 +2,13 @@ package com.ms.silverking.cloud.dht.daemon;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.ValueCreator;
@@ -54,17 +56,24 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
     
     private static final boolean    debugWaitFor = false;
     
+    private static final int	resultListInitialSize = 10;
+    
     ActiveProxyRetrieval(MessageGroup message, MessageGroupConnectionProxy connection,
                          MessageModule messageModule,
                          StorageModule storage, InternalRetrievalOptions retrievalOptions,
                          RetrievalProtocol retrievalProtocol, long absDeadlineMillis) {
         super(connection, message, messageModule, absDeadlineMillis, true);
-        this.retrievalOptions = retrievalOptions;
+        this.retrievalOptions = getRetrievalOptions(message, retrievalOptions);
         this.retrievalOperation = retrievalProtocol.createRetrievalOperation(
                 message.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()), 
-                this, message.getForwardingMode());
+                this, getForwardingMode(message));
         secondaryTargets = retrievalOptions.getRetrievalOptions().getSecondaryTargets();
         super.setOperation(retrievalOperation);
+    }
+    
+    private static InternalRetrievalOptions getRetrievalOptions(MessageGroup message, InternalRetrievalOptions retrievalOptions) {
+    	return StorageModule.isDynamicNamespace(message.getContext()) 
+    			? retrievalOptions.retrievalOptions(retrievalOptions.getRetrievalOptions().forwardingMode(ForwardingMode.DO_NOT_FORWARD)) : retrievalOptions;
     }
     
     //protected OpVirtualCommunicator<DHTKey,RetrievalResult> createCommunicator() {
@@ -72,8 +81,12 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
     //}
     
     void startOperation() {
-        if (message.getForwardingMode() == ForwardingMode.FORWARD) {
+        if (forwardingMode.forwards()) {
             messageModule.addActiveRetrieval(uuid, this);
+        } else {
+        	if (retrievalOptions.getWaitMode() == WaitMode.WAIT_FOR) {
+                messageModule.addActiveRetrieval(uuid, this);
+        	}
         }
         rComm = new RetrievalCommunicator();
         super.startOperation(rComm, message.getKeyIterator(), new RetrievalForwardCreator());
@@ -123,7 +136,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
             result = results.get(i);
             if (debug) {
                 Log.warning("localRetrieval: ", entry);
-                System.out.printf("result %s\n", StringUtil.byteBufferToHexString(result));
+                System.out.printf("result %s %s\n", result, StringUtil.byteBufferToHexString(result));
             }
             
             // FUTURE - THIS NEEDS TO GO THROUGH THE PROTOCOL
@@ -221,12 +234,42 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
         }
         return retrievalOperation.getOpResult();
     }
+    
+    private List<List<RetrievalResult>> createResultGroups(List<RetrievalResult> results) {
+    	if (results.size() == 1) {
+    		return ImmutableList.of(results);
+    	} else {
+        	List<List<RetrievalResult>>	resultGroups;
+        	List<RetrievalResult>	curGroup;
+        	int						curGroupSize;
+
+        	resultGroups = new ArrayList<>(Math.min(results.size(), resultListInitialSize));
+        	curGroup = new ArrayList<>(Math.min(results.size(), resultListInitialSize));
+        	resultGroups.add(curGroup);
+        	curGroupSize = 0;
+        	for (int i = 0; i < results.size(); i++) {
+        		RetrievalResult	result;
+        		
+        		result = results.get(i);
+        		if (curGroupSize != 0) {
+        			if (curGroupSize + result.getResultLength() > ProtoValueMessageGroup.maxValueBytesPerMessage) {
+        	        	curGroup = new ArrayList<>(Math.min(results.size() - i, resultListInitialSize));
+        	        	resultGroups.add(curGroup);
+        	        	curGroupSize = 0;
+        			}
+        		}
+    			curGroup.add(result);
+    			curGroupSize += result.getResultLength();
+        	}
+        	return resultGroups;
+    	}
+    }
 
     /**
      * Send responses for all locally completed operations
      * @param retrievalOperation
      */
-    protected void sendResults(List<RetrievalResult>  results) {
+    protected void sendResults(List<RetrievalResult> results) {
         if (debug) {
             System.out.printf("ActiveProxyRetrieval.sendresults() %d\n", results.size());
         }
@@ -238,72 +281,45 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
         debugString.append("+++\n");
         */
         try {
-            int             lengthRemaining;
-            
-            lengthRemaining = RetrievalResult.totalResultLength(results);
             if (results.size() > 0) {
                 ProtoValueMessageGroup  pmg;
                 byte[]                  _originator;
-                
-                _originator = ConvergenceController2.isChecksumVersionConstraint(retrievalOptions.getVersionConstraint())
-                        ? originator : messageModule.getMessageGroupBase().getMyID(); 
-                pmg = new ProtoValueMessageGroup(uuid, namespace, results.size(), 
-                        Math.min(lengthRemaining, ProtoValueMessageGroup.maxValueBytesPerMessage),
-                        _originator, lengthRemaining, 
-                        messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis));
-                for (RetrievalResult result : results) {
-                    DHTKey      key;
-                    ByteBuffer  value;
-                    int         valueSize;
+            	List<List<RetrievalResult>>	resultGroups;
 
-                    if (debug) {
-                        System.out.println(result);
-                    }
-                    key = result.getKey();
-                    if (retrievalOptions.getWaitMode() != WaitMode.WAIT_FOR || result.getValue() == null) {
-                        value = result.getValue();
-                    } else {
-                        value = result.getValue().duplicate();
-                    }
-                    if (value == null) {
-                        valueSize = 0;
-                    } else {
-                        valueSize = value.remaining();
-                    }
-                    if (!pmg.canBeAdded(valueSize) && valueSize > 0) {
-                        MessageGroup    messageGroup;
-                        
-                        messageGroup = pmg.toMessageGroup();
-                        connection.sendAsynchronous(messageGroup, 
-                                messageGroup.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()));
-                        pmg = new ProtoValueMessageGroup(messageGroup.getUUID(), namespace, results.size(), 
-                                Math.min(lengthRemaining, ProtoValueMessageGroup.maxValueBytesPerMessage), originator, 
-                                lengthRemaining, 
-                                messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis));                        
-                    } else {
-                        lengthRemaining -= valueSize;
-                    }
-                    if (value == null) {
-                        pmg.addErrorCode(key, result.getResult());
-                    } else {
-                        pmg.addValue(key, value, result.getResultLength(), true);
-                        //pmg.addValue(key, value);
-                        //pmg.addValue(key, (ByteBuffer)value.duplicate().rewind());
-                    }
-                }
-                if (pmg.isNonEmpty()) {
+                _originator = ConvergenceController2.isChecksumVersionConstraint(retrievalOptions.getVersionConstraint())
+                        ? originator : messageModule.getMessageGroupBase().getMyID();
+                
+            	resultGroups = createResultGroups(results);
+            	for (List<RetrievalResult> resultGroup : resultGroups) {
                     MessageGroup    messageGroup;
+                    int	groupLength;
                     
-                    try {
-                        messageGroup = pmg.toMessageGroup();
-                    } catch (RuntimeException re) {
-                        System.out.println("### "+pmg.currentBufferKeys() +"\t"+ pmg.currentValueBytes());
-                        throw re;
+                    groupLength = RetrievalResult.totalResultLength(resultGroup);
+                    pmg = new ProtoValueMessageGroup(uuid, namespace, results.size(), groupLength,
+                            _originator, messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis));
+                    for (RetrievalResult result : resultGroup) {
+                        DHTKey      key;
+                        ByteBuffer  value;
+
+                        if (debug) {
+                            System.out.println(result);
+                        }
+                        key = result.getKey();
+                        if (retrievalOptions.getWaitMode() != WaitMode.WAIT_FOR || result.getValue() == null) {
+                            value = result.getValue();
+                        } else {
+                            value = result.getValue().duplicate();
+                        }
+                        if (value == null) {
+                            pmg.addErrorCode(key, result.getResult());
+                        } else {
+                            pmg.addValue(key, value, result.getResultLength(), true);
+                        }
                     }
-                    //messageGroup.displayForDebug();
+                    messageGroup = pmg.toMessageGroup();
                     connection.sendAsynchronous(messageGroup, 
                             messageGroup.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()));
-                }
+            	}
             }
             /*
         } catch (RuntimeException re) {
@@ -376,8 +392,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
             System.out.printf("valueBytes %d valueLength %d\n", valueBytes, valueLength);
         }
         pmg = new ProtoValueMessageGroup(new UUIDBase(), message.getContext(), 1, 
-                valueBytes, creator.getBytes(), valueBytes, 
-                DHTConstants.defaultSecondaryReplicaUpdateTimeoutMillis);
+                valueBytes, creator.getBytes(), DHTConstants.defaultSecondaryReplicaUpdateTimeoutMillis);
         pmg.addValue(result.getKey(), value, valueLength, true);
         return pmg;
     }

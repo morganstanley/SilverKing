@@ -1,22 +1,27 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
+import com.ms.silverking.cloud.dht.RetrievalType;
+import com.ms.silverking.cloud.dht.client.impl.MetaDataTextUtil;
 import com.ms.silverking.cloud.dht.client.serialization.internal.StringMD5KeyCreator;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
+import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
-import com.ms.silverking.text.StringUtil;
+import com.ms.silverking.cloud.dht.common.RawRetrievalResult;
+import com.ms.silverking.io.util.BufferUtil;
 
 public class FileSegmentUtil {
 	public FileSegmentUtil() {
 	}
 	
-	public void debugSegment(DHTKey key, File nsDir, int segmentNumber, NamespaceOptions nsOptions) throws IOException {
+	public void debugSegment(DHTKey key, File nsDir, int segmentNumber, NamespaceOptions nsOptions, boolean displayValues) throws IOException {
 		FileSegment	segment;
 		
 		System.out.printf("Segment %d\n", segmentNumber);
@@ -35,29 +40,45 @@ public class FileSegmentUtil {
 		                offsetList = segment.offsetListStore.getOffsetList(-offset);
 		                for (int listOffset : offsetList) {
 				        	System.out.printf("%s\t%d\n", entry.getKey(), listOffset);
+				        	if (displayValues) {
+				        		displayValue(segment.retrieveForDebug(key, listOffset));
+				        	}
 		                }
 		            } else {
 			        	System.out.printf("%s\t%d\n", entry.getKey(), offset);
+			        	if (displayValues) {
+			        		displayValue(segment.retrieveForDebug(key, offset));
+			        	}
 		            }
 	            } else {
 		        	System.out.printf("%s\t%d\n", KeyUtil.keyToString(key), offset);
-		            if (offset < 0) {
-		                OffsetList  offsetList;
-		                
-		                offsetList = segment.offsetListStore.getOffsetList(-offset);
-		                for (int listOffset : offsetList) {
-		                    displayValue(segment.retrieveForDebug(key, listOffset));
-		                }
-		            } else {
-	                    displayValue(segment.retrieveForDebug(key, offset));
-		            }
+		        	if (displayValues) {
+			            if (offset < 0) {
+			                OffsetList  offsetList;
+			                
+			                offsetList = segment.offsetListStore.getOffsetList(-offset);
+			                for (int listOffset : offsetList) {
+			                    displayValue(segment.retrieveForDebug(key, listOffset));
+			                }
+			            } else {
+		                    displayValue(segment.retrieveForDebug(key, offset));
+			            }
+		        	}
 	            }
         	}
         }	
 	}
 
 	private void displayValue(ByteBuffer value) {
-		System.out.printf("%s\n", StringUtil.byteBufferToHexString(value));
+		RawRetrievalResult	rawResult;
+		ByteBuffer			aValue;
+		
+		aValue = BufferUtil.convertToArrayBacked(value);
+		//System.out.printf("value: %s\n", StringUtil.byteBufferToHexString(value));
+		rawResult = new RawRetrievalResult(RetrievalType.VALUE_AND_META_DATA);
+		rawResult.setStoredValue_direct(aValue);
+		System.out.printf("ss: %x\n", CCSSUtil.getStorageState(rawResult.getCCSS())); 
+		System.out.printf("%s\n", MetaDataTextUtil.toMetaDataString(rawResult.getMetaData(), true));
 	}
 	
 	private static NamespaceOptions readNamespaceOptions(File nsDir) {
@@ -71,13 +92,15 @@ public class FileSegmentUtil {
         }
 	}
 
-	public static void debugFiles(DHTKey key, File nsDir, int minSegment, int maxSegment) throws IOException {
+	public static void debugFiles(DHTKey key, File nsDir, int minSegment, int maxSegment, boolean displayValues) throws IOException {
 		NamespaceOptions nsOptions;
 		
 		nsOptions = readNamespaceOptions(nsDir);
 		for (int i = minSegment; i <= maxSegment; i++) {
 			try {
-				new FileSegmentUtil().debugSegment(key, nsDir, i, nsOptions);
+				new FileSegmentUtil().debugSegment(key, nsDir, i, nsOptions, displayValues);
+			} catch (FileNotFoundException fnfe) {
+				System.out.printf("Ignoring FileNotFoundException for segment %d\n", i);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -85,14 +108,15 @@ public class FileSegmentUtil {
 	}
 	
 	public static void main(String[] args) {
-		if (args.length != 4) {
-			System.err.println("args: <key> <nsDir> <minSegment> <maxSegment>");
+		if (args.length < 4 || args.length > 5) {
+			System.err.println("args: <key> <nsDir> <minSegment> <maxSegment> [displayValues]");
 		} else {
 			try {
 				DHTKey	key;
 				File	nsDir;
 				int		minSegment;
 				int		maxSegment;
+				boolean	displayValues;
 				
 				if (!args[0].equals("*")) {
 					key = new StringMD5KeyCreator().createKey(args[0]);
@@ -102,7 +126,12 @@ public class FileSegmentUtil {
 				nsDir = new File(args[1]);
 				minSegment = Integer.parseInt(args[2]);
 				maxSegment = Integer.parseInt(args[3]);
-				debugFiles(key, nsDir, minSegment, maxSegment);
+				if (args.length == 5) {
+					displayValues = Boolean.parseBoolean(args[4]);
+				} else {
+					displayValues = key != null;
+				}
+				debugFiles(key, nsDir, minSegment, maxSegment, displayValues);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

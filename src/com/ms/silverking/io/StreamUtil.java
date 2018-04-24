@@ -103,11 +103,16 @@ public final class StreamUtil {
 	
 	public static void readBytes(byte[] b, int offset, int length, 
 								InputStream in) throws IOException {
+		int	totalRead;
 		int	numRead;
 		
 		numRead = 0;
-		while (numRead < length) {
-			numRead += in.read(b, offset + numRead, length - numRead);
+		totalRead = 0;
+		while (numRead >= 0 && totalRead < length) {
+			numRead = in.read(b, offset + totalRead, length - totalRead);
+			if (numRead > 0) {
+				totalRead += numRead;
+			}
 		}
 		/*
 		for (int i = 0; i < length; i++) {

@@ -36,7 +36,7 @@ public abstract class BaseStorageOperation<S> extends BaseOperation<S> implement
             System.out.printf("processInitialMessageGroupEntry() %d\n", primaryReplicas.size());
         }
         entry = (MessageGroupPutEntry)_entry;
-        if (forwardingMode == ForwardingMode.FORWARD) {
+        if (forwardingMode.forwards()) {
             if (putOperationContainer.getSecondaryTargets() == null) {
                 // Eagerly write to secondary replicas *only* if targets have
                 // been defined. FUTURE - could change.

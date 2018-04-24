@@ -3,7 +3,9 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 import com.ms.silverking.cloud.dht.collection.PKCReaderWriter;
 import com.ms.silverking.cloud.dht.collection.SVTReaderWriter;
 import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.numeric.NumConversion;
+import com.ms.silverking.util.PropertiesHelper;
 
 /**
  * Central repository for storage subsystem configuration parameters. 
@@ -32,7 +34,12 @@ class StoreConfiguration {
     
     /**/
     // production
-    public static final int fileSegmentCacheCapacity = 4096;
+    
+    static {
+    	fileSegmentCacheCapacity = PropertiesHelper.systemHelper.getInt(DHTConstants.fileSegmentCacheCapacityProperty, DHTConstants.defaultFileSegmentCacheCapacity);
+    }
+    
+    public static final int fileSegmentCacheCapacity;
     public static final int ramSegmentSizeBytes = 64 * 1024 * 1024;
     public static final int ramSegmentPKCSubTables = 4;
     public static final int ramSegmentPKCEntriesPerBucket = 4;

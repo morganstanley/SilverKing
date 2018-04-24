@@ -13,16 +13,11 @@ import com.ms.silverking.cloud.dht.WaitOptions;
 import com.ms.silverking.cloud.dht.client.AsyncRetrieval;
 import com.ms.silverking.cloud.dht.client.AsyncValueRetrieval;
 import com.ms.silverking.cloud.dht.client.InvalidationException;
-import com.ms.silverking.cloud.dht.client.OperationException;
 import com.ms.silverking.cloud.dht.client.PutException;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
-import com.ms.silverking.cloud.dht.client.SnapshotException;
 import com.ms.silverking.cloud.dht.client.StoredValue;
-import com.ms.silverking.cloud.dht.client.SyncRequestException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.impl.ClientNamespace.OpLWTMode;
-import com.ms.silverking.cloud.dht.common.DHTUtil;
-import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 
 class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveImpl<K,V> implements SynchronousNamespacePerspective<K,V> {
     private static final OpLWTMode    opLWTMode;
@@ -47,7 +42,7 @@ class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveI
 	public Map<K, ? extends StoredValue<V>> retrieve(Set<? extends K> keys,
 			RetrievalOptions retrievalOptions) throws RetrievalException {
 		AsyncRetrieval<K,V>	asyncRetrieval;
-		
+
 		asyncRetrieval = baseRetrieve(keys, retrievalOptions, opLWTMode);
 		asyncRetrieval.waitForCompletion();
 		return asyncRetrieval.getStoredValues();
@@ -145,7 +140,6 @@ class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveI
 	public void put(K key, V value) throws PutException {
 		put(key, value, nspoImpl.getDefaultPutOptions());
 	}
-	
 	
 	public void invalidate(Set<? extends K> keys, InvalidationOptions invalidationOptions) throws InvalidationException {
 		try {

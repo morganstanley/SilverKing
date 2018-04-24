@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,6 +36,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
 import com.ms.silverking.cloud.dht.meta.LinkCreationListener;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
+import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
@@ -68,6 +71,7 @@ public class StorageModule implements LinkCreationListener {
     private StoragePolicyGroup  spGroup;
     private ConcurrentMap<UUIDBase,ActiveProxyRetrieval>  activeRetrievals;
     private NodeNamespaceStore    nodeNSStore;
+    private SystemNamespaceStore	systemNSStore;
     private ReplicasNamespaceStore  replicasNSStore;
     private Lock    nsCreationLock;
     private final ZooKeeperExtended zk;
@@ -76,6 +80,7 @@ public class StorageModule implements LinkCreationListener {
     private final LWTPool           methodCallPool;
     private final Timer				timer;
     private final ValueCreator      myOriginatorID;
+    private final NodeInfoZK		nodeInfoZK;
     
     private NamespaceStore  metaNamespaceStore; // used to bootstrap the meta NS store
                                                 // reference held here merely to ensure no GC
@@ -109,23 +114,32 @@ public class StorageModule implements LinkCreationListener {
     // ValueStore class after implementing all of Persistence.doc ideas
     
     private enum NSCreationMode {CreateIfAbsent, DoNotCreate};
+    public enum RetrievalImplementation {Ungrouped, Grouped};
+    
+    private static final Set<Long>			dynamicNamespaces = new HashSet<>();
+    
+    private static final RetrievalImplementation	retrievalImplementation;
     
     static {
-    	reapPeriodMillis = PropertiesHelper.envHelper.getInt(DHTConstants.reapIntervalProperty, defaultReapPeriodSeconds) * 1000;
+    	reapPeriodMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.reapIntervalProperty, defaultReapPeriodSeconds) * 1000;
     	reapInitialDelayMillis = Math.min(reapPeriodMillis, reapMaxInitialDelayMillis);
     	Log.warningf("reapInitialDelayMillis:\t%d", reapInitialDelayMillis);
     	Log.warningf("reapPeriodMillis:\t%d", reapPeriodMillis);
+    	retrievalImplementation = RetrievalImplementation.valueOf(
+    			PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
+    	Log.warningf("retrievalImplementation: %s", retrievalImplementation);
     }
     
-    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig) {
+    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK) {
         ClientDHTConfiguration  clientDHTConfiguration;
         
         this.timer = timer;
         this.ringMaster = ringMaster;
+        this.nodeInfoZK = nodeInfoZK;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
         baseDir = new File(DHTNodeConfiguration.dataBasePath, dhtName);
-        clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig.getEnsemble());
+        clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
         nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
         //spGroup = createTestPolicy();
         spGroup = null;
@@ -169,19 +183,23 @@ public class StorageModule implements LinkCreationListener {
     public void setReady() {
         // meta ns
         createMetaNSStore();
-        // system ns
+        // node ns
         nodeNSStore = new NodeNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values());
         addDynamicNamespace(nodeNSStore);
         // replicas ns
         replicasNSStore = new ReplicasNamespaceStore(mgBase, ringMaster, activeRetrievals);
         addDynamicNamespace(replicasNSStore);
+        // system ns
+        systemNSStore = new SystemNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values(), nodeInfoZK);
+        addDynamicNamespace(systemNSStore);
+        
         timer.scheduleAtFixedRate(new Cleaner(), cleanupPeriodMillis, cleanupPeriodMillis);
         // For now, reap must come from external
         //timer.scheduleAtFixedRate(new Reaper(), reapInitialDelayMillis, reapPeriodMillis);        
     }
     
-    public void initialReap() {
-    	reap();
+    public void initialReap(boolean leaveTrash) {
+    	reap(leaveTrash);
     }
     
     private void createMetaNSStore() {
@@ -200,6 +218,7 @@ public class StorageModule implements LinkCreationListener {
     }
 
     private void addDynamicNamespace(DynamicNamespaceStore nsStore) {
+    	dynamicNamespaces.add(nsStore.getNamespace());
         namespaces.put(nsStore.getNamespace(), nsStore);
         // FUTURE - below is a duplicative store since the deeper map also has this
         nsMetaStore.setNamespaceProperties(nsStore.getNamespace(), nsStore.getNamespaceProperties());
@@ -399,7 +418,7 @@ public class StorageModule implements LinkCreationListener {
         
         nsStore = getNamespaceStore(ns, NSCreationMode.DoNotCreate);
         if (nsStore != null) {
-            return nsStore.putUpdate(key, version, storageState);
+            return nsStore.putUpdate_(key, version, storageState);
         } else {
             return OpResult.NO_SUCH_VALUE;
         }
@@ -446,7 +465,11 @@ public class StorageModule implements LinkCreationListener {
             // Can't use DoNotCreate if we have a waitfor.
             //nsStore = getNamespaceStore(ns, NSCreationMode.DoNotCreate);
             if (nsStore != null) {
-                return nsStore.retrieve(keys, options, opUUID);
+            	if (retrievalImplementation == RetrievalImplementation.Grouped) {
+            		return nsStore.retrieve(keys, options, opUUID);
+            	} else {
+            		return nsStore.retrieve_nongroupedImpl(keys, options, opUUID);
+            	}
             } else {
                 return null;
             }
@@ -474,14 +497,14 @@ public class StorageModule implements LinkCreationListener {
         }
     }
     
-    public void reap() {
+    public void reap(boolean leaveTrash) {
     	Stopwatch	sw;
     	
     	Log.warning("Reap");
     	sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
         	if (!ns.isDynamic()) {
-        		ns.reap();
+        		ns.reap(leaveTrash);
         	}
         }
     	sw.stop();
@@ -550,7 +573,7 @@ public class StorageModule implements LinkCreationListener {
     }
     
     public static boolean isDynamicNamespace(long context) {
-        return context == NodeNamespaceStore.context || context == ReplicasNamespaceStore.context;
+        return dynamicNamespaces.contains(context);
     }
     
     /////////////////////////////////
@@ -616,8 +639,8 @@ public class StorageModule implements LinkCreationListener {
     /////////////////////////////////
 	
     private static final String methodCallPoolName = "StorageMethodCallPool";
-    private static final int    methodCallPoolTargetSize = 20;
-    public static final int     methodCallPoolMaxSize = 20;
+    private static final int    methodCallPoolTargetSize = 26;
+    public static final int     methodCallPoolMaxSize = 26;
     private static final int    methodCallPoolWorkUnit = 16;
     
     public void asyncInvocation(String methodName, Object... parameters) {
@@ -668,12 +691,15 @@ public class StorageModule implements LinkCreationListener {
     /////////////////////////////////
     
     class Reaper extends TimerTask {
-        Reaper() {
+    	private final boolean	leaveTrash;
+    	
+        Reaper(boolean leaveTrash) {
+        	this.leaveTrash = leaveTrash;
         }
         
         @Override
         public void run() {
-            reap();
+            reap(leaveTrash);
         }
     }
     

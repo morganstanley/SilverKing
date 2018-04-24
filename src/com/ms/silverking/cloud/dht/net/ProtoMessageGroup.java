@@ -17,6 +17,7 @@ import com.ms.silverking.text.StringUtil;
  */
 public abstract class ProtoMessageGroup {
     private final MessageType         type;
+    private final int                 options;
     private final UUIDBase            uuid;
     protected final long              context;
     private final byte[]              originator;
@@ -31,6 +32,7 @@ public abstract class ProtoMessageGroup {
     public ProtoMessageGroup(MessageType type, UUIDBase uuid, long context, 
                              byte[] originator, int deadlineRelativeMillis, ForwardingMode forward) {
         this.type = type;
+        this.options = 0; // options are currently only used between peers; set to zero here
         this.uuid = uuid;
         this.context = context;
         assert originator != null && originator.length == ValueCreator.BYTES;
@@ -61,7 +63,7 @@ public abstract class ProtoMessageGroup {
             System.out.println("toMessageGroup: "+ flip);
             displayForDebug();
         }
-        mg = new MessageGroup(type, uuid, context, flip ? BufferUtil.flip(getBufferList()) : getBufferList(), 
+        mg = new MessageGroup(type, options, uuid, context, flip ? BufferUtil.flip(getBufferList()) : getBufferList(), 
                                 originator, deadlineRelativeMillis, forward);
         if (debug) {
             mg.displayForDebug();

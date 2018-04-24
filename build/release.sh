@@ -1,20 +1,20 @@
 #!/bin/ksh
 
-source lib_common.sh
+source lib/common.lib
 
 # params
-RELEASE_AREA=$1
+typeset release_area=$1
 
-if [[ -z $RELEASE_AREA ]] ; then
-	RELEASE_AREA="../release-x.xx"
-	echo "Set RELEASE_AREA=$RELEASE_AREA"
+if [[ -z $release_area ]] ; then
+	release_area="../release-x.xx"
+	echo "Set release_area=$release_area"
 	echo
 fi
 	
 f_printHeader "RELEASING"
 
-f_makeVerbose "$RELEASE_AREA"
-f_copy "$BIN_DIR"     "$RELEASE_AREA"
-f_copy "$DOC_DIR"     "$RELEASE_AREA"
-f_copy "$LIB_DIR"     "$RELEASE_AREA"
-f_copy "$INCLUDE_DIR" "$RELEASE_AREA"
+f_makeVerbose "$release_area"
+f_copy "$BIN_DIR"     "$release_area"
+f_copy "$DOC_DIR"     "$release_area"
+f_copy "$LIB_DIR"     "$release_area"
+f_copy "$INCLUDE_DIR" "$release_area"

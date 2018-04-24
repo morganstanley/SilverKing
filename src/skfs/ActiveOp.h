@@ -17,6 +17,8 @@
 
 #define AO_MAX_REFS 512 
 #define AO_STAGE_COMPLETE 65536
+#define AO_RECYCLE_THRESHOLD    500
+// AO_RECYCLE_THRESHOLD must be < AO_MAX_REFS for reference number recycling to be active
 
 
 //////////

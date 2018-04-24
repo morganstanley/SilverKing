@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.ValueCreator;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.client.impl.DHTSessionImpl;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
@@ -19,8 +20,8 @@ import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
+import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
 import com.ms.silverking.cloud.toporing.TopoRingConstants;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
@@ -90,6 +91,7 @@ public class DHTClient {
 	 * Construct DHTClient with the specified SerializationRegistry. 
 	 * @throws IOException
 	 */
+	@OmitGeneration
 	public DHTClient(SerializationRegistry serializationRegistry) throws IOException {
 		sessionCreationLock = new ReentrantLock();
 		dhtNameToSessionMap = new HashMap<>();
@@ -132,7 +134,19 @@ public class DHTClient {
 	    		embedPassiveNode(dhtConfig);
 		    	preferredServer = null;
 	    	} else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
+	    		String	gcBase;
+	    		String	gcName;
+	    		
 	    		dhtConfig = embedKVS();
+	    		gcBase = "/tmp"; // FIXME - make user configurable
+	    		gcName = "GC_"+ dhtConfig.getName();
+	    		try {
+	    			Log.warningf("GridConfigBase: %s", gcBase);
+	    			Log.warningf("GridConfigName: %s", gcName);
+					StaticDHTCreator.writeGridConfig(dhtConfig, gcBase, gcName);
+				} catch (IOException e) {
+					throw new ClientException("Error creating embedded kvs", e);
+				}
 		    	preferredServer = null;
 	    	}
 	    }
@@ -159,7 +173,7 @@ public class DHTClient {
     				    MetaPaths       mp;
     				    long            latestConfigVersion;
 
-    				    Log.warning("dhtConfig.getZkLocs(): "+ dhtConfig.getZkLocs());
+    				    Log.warning("dhtConfig.getZkLocs(): "+ dhtConfig.getZKConfig());
     				    mc = new MetaClient(dhtConfig);
     				    mp = mc.getMetaPaths();
     				    
@@ -206,7 +220,7 @@ public class DHTClient {
 		}
 		
 		DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
-		embeddedNode = new DHTNode(dhtConfig.getName(), new ZooKeeperConfig(dhtConfig.getZkLocs()), defaultInactiveNodeTimeoutSeconds);
+		embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, false, false);
 	}
 	
 	private ClientDHTConfiguration embedKVS() {

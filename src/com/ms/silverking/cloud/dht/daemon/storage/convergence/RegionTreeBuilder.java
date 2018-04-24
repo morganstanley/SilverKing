@@ -28,7 +28,7 @@ public class RegionTreeBuilder {
     
     RegionTreeBuilder(RingRegion region, int entriesPerNode, int estimatedKeys) {
         if (entriesPerNode < 2) {
-            throw new RuntimeException("entriesPerNode must be < 2");
+            throw new RuntimeException("entriesPerNode must be >= 2");
         }
         this.region = region;
         this.entriesPerNode = entriesPerNode;
@@ -233,7 +233,7 @@ public class RegionTreeBuilder {
             region = new RingRegion(regionStart, regionEnd);
             rtb = new RegionTreeBuilder(region, keysPerNode, numKeys);
             for (int i = 0; i < numKeys; i++) {
-                rtb.addChecksum(new KeyAndVersionChecksum(KeyUtil.randomRegionKey(region), i));
+                rtb.addChecksum(new KeyAndVersionChecksum(KeyUtil.randomRegionKey(region), i, 0));
             }
             System.out.println(rtb);
         }

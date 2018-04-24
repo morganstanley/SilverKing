@@ -5,7 +5,6 @@ package com.ms.silverking.text;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +13,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.ms.silverking.cloud.dht.crypto.MD5Digest;
 import com.ms.silverking.numeric.MutableInteger;
 
 
@@ -31,6 +31,16 @@ public class StringUtil {
     private static final char   hexMajorDelim = ' ';
     private static final char   hexMinorDelim = ':';
     private static final char   delim = ' ';
+    
+    private static final String	defaultNullString = "<null>";
+    
+    public static boolean isNullOrEmpty(String s) {
+    	return s == null || s.length() == 0;
+    }
+    
+    public static boolean isNullOrEmptyTrimmed(String s) {
+    	return s == null || s.trim().length() == 0;
+    }
     
 	public static String[] splitAndTrim(String source, String regex) {
 		String[]	splitSource;
@@ -77,7 +87,6 @@ public class StringUtil {
     		    byte  curByte;
     		    
     		    curByte = inBytes[offset + i];
-    		    System.out.println(curByte);
     			out.append(digits[(curByte & 0xF0) >>> 4]);
     			out.append(digits[curByte & 0x0f]);
                 if ((i + 1) % minorGroupSize == 0) {
@@ -340,23 +349,26 @@ public class StringUtil {
 	
 	public static String md5(String string) {
 		MessageDigest	digest;
-		int				numRead;
 		
-		try {
-			digest = MessageDigest.getInstance("md5");
-		} catch (NoSuchAlgorithmException nsae) {
-			nsae.printStackTrace();
-			throw new RuntimeException("couldn't find md5!");
-		}
+		digest = MD5Digest.getLocalMessageDigest();
 		digest.update(string.getBytes(), 0, string.length());
 		return StringUtil.byteArrayToHexString( digest.digest() );
 	}	
 	
+	public static String trimLength(String s, int length) {
+		return s.substring(0, Math.min(s.length(), length));
+	}
+	
 	public static int countOccurrences(String string, char c) {
+		return countOccurrences(string, c, Integer.MAX_VALUE);
+	}
+	
+	public static int countOccurrences(String string, char c, int limit) {
 		int	occurrences;
 		
 		occurrences = 0;
-		for (int i = 0; i < string.length(); i++) {
+		limit = Math.min(limit, string.length());
+		for (int i = 0; i < limit; i++) {
 			if (string.charAt(i) == c) {
 				occurrences++;
 			}
@@ -464,6 +476,18 @@ public class StringUtil {
 	public static String escapeForRegex(String s) {
 		// FUTURE - make this more complete
 		return s.replaceAll("\\.", "\\.");
+	}
+	
+	public static String nullSafeToString(Object o) {
+		return nullSafeToString(o, defaultNullString);
+	}
+	
+	public static String nullSafeToString(Object o, String nullString) {
+		if (o == null) {
+			return nullString;
+		} else {
+			return o.toString();
+		}
 	}
 	
 	public static void main(String[] args) {

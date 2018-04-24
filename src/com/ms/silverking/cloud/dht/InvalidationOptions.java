@@ -8,6 +8,7 @@ import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -17,7 +18,7 @@ import com.ms.silverking.text.ObjectDefParser2;
  */
 public class InvalidationOptions extends PutOptions {
     private static final OpTimeoutController    standardTimeoutController = new OpSizeBasedTimeoutController();
-    private static final PutOptions template = OptionsHelper.newInvalidationOptions(standardTimeoutController, PutOptions.defaultVersion, null);
+    private static final PutOptions template = OptionsHelper.newInvalidationOptions(standardTimeoutController, PutOptions.defaultVersion, DHTConstants.noSecondaryTargets);
 
     static {
         ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
@@ -48,7 +49,6 @@ public class InvalidationOptions extends PutOptions {
      * @return the modified InvalidationOptions
      */
 	public InvalidationOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-        Preconditions.checkNotNull(opTimeoutController);
 		return new InvalidationOptions(opTimeoutController, getSecondaryTargets(), getVersion());
 	}
 	
@@ -58,7 +58,6 @@ public class InvalidationOptions extends PutOptions {
      * @return the modified InvalidationOptions
      */
 	public InvalidationOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-        Preconditions.checkNotNull(secondaryTargets);
 		return new InvalidationOptions(getOpTimeoutController(), secondaryTargets, getVersion());
 	}
 	
@@ -68,7 +67,7 @@ public class InvalidationOptions extends PutOptions {
      * @return the modified InvalidationOptions
      */
 	public InvalidationOptions secondaryTargets(SecondaryTarget secondaryTarget) {
-        Preconditions.checkNotNull(secondaryTarget);
+		Preconditions.checkNotNull(secondaryTarget);
 		return new InvalidationOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getVersion());
 	}
 	

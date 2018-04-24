@@ -21,6 +21,8 @@ import com.ms.silverking.cloud.dht.management.LogStreamConfig;
 import com.ms.silverking.cloud.meta.ChildrenListener;
 import com.ms.silverking.cloud.meta.ChildrenWatcher;
 import com.ms.silverking.cloud.meta.ExclusionSet;
+import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
+import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
@@ -49,6 +51,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     private final ConvictionLimits	convictionLimits;
     private final Map<IPAndPort,Long>	convictionTimes;
     private volatile long	lastCheckMillis;
+    private Set<IPAndPort>	activeNodesInMap;
+    private final boolean	disableAddition;
     
     private static final String	logFileName = "HealthMonitor.out";
     private static final String	doctorThreadName = "DoctorRunner";
@@ -62,9 +66,11 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     private static final long	oneHourMillis = TimeUtils.MINUTES_PER_HOUR * TimeUtils.SECONDS_PER_MINUTE * TimeUtils.MILLIS_PER_SECOND;
 
     
+    // FUTURE: just pass in the options...
     public HealthMonitor(SKGridConfiguration gc, ZooKeeperConfig zkConfig, int watchIntervalSeconds, int guiltThreshold, 
     					 int doctorRoundIntervalSeconds, boolean forceInclusionOfUnsafeExcludedServers,
-    					 ConvictionLimits convictionLimits)
+    					 ConvictionLimits convictionLimits, int doctorNodeStartupTimeoutSeconds,
+    					 boolean disableAddition)
                          throws IOException, KeeperException {
     	String	dhtName;
     	
@@ -76,9 +82,10 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         this.forceInclusionOfUnsafeExcludedServers = forceInclusionOfUnsafeExcludedServers;
         this.convictionLimits = convictionLimits;
         convictionTimes = new HashMap<>();
+        this.disableAddition = disableAddition;
         
         if (doctorRoundIntervalSeconds != HealthMonitorOptions.NO_DOCTOR) {
-        	doctor = new Doctor(gc, forceInclusionOfUnsafeExcludedServers);
+        	doctor = new Doctor(gc, forceInclusionOfUnsafeExcludedServers, doctorNodeStartupTimeoutSeconds);
         } else {
         	doctor = null;
         }
@@ -101,8 +108,14 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     public void dhtMetaUpdate(DHTMetaUpdate dhtMetaUpdate) {
         Log.warning(String.format("Received dhtMetaUpdate %s", dhtMetaUpdate));
         try {
+            InstantiatedRingTree	rawRingTree;
+            ResolvedReplicaMap		replicaMap;
+            
     		instanceExclusionZK = new InstanceExclusionZK(dhtMetaUpdate.getMetaClient());
     		dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMetaUpdate.getMetaClient(), dhtMetaUpdate.getDHTConfig());
+            rawRingTree = dhtMetaUpdate.getRingTree();
+            replicaMap = rawRingTree.getResolvedMap(dhtMetaUpdate.getNamedRingConfiguration().getRingConfiguration().getRingParentName(), null);
+            activeNodesInMap = replicaMap.allReplicas();
         	synchronized (this) {
         		this.notifyAll();
         	}
@@ -120,14 +133,14 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         check();
     }
     
-    private void verifyEligibility(Set<IPAndPort> newlyInactiveNodes) throws KeeperException {
-    	if (newlyInactiveNodes.size() > 0) {
+    private void verifyEligibility(Set<IPAndPort> nodes) throws KeeperException {
+    	if (nodes.size() > 0) {
         	int			port;
         	Set<String>	newlyInactiveServers;
         	Set<String>	ineligibleServers;
         	
-    		port = newlyInactiveNodes.iterator().next().getPort();    		        	
-        	newlyInactiveServers = IPAndPort.copyServerIPsAsMutableSet(newlyInactiveNodes);
+    		port = nodes.iterator().next().getPort();    		        	
+        	newlyInactiveServers = IPAndPort.copyServerIPsAsMutableSet(nodes);
         	ineligibleServers = removeIneligibleServers(newlyInactiveServers, dhtRingCurTargetZK, instanceExclusionZK);
         	for (String ineligibleServer : ineligibleServers) {
         		IPAndPort	ineligibleNode;
@@ -190,6 +203,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             // Now compute newlyInactiveNodes as the set difference of the previously active nodes minus the active nodes in ZK
             newlyInactiveNodes = new HashSet<>(activeNodes); 
             newlyInactiveNodes.removeAll(newActiveNodes);
+            filterPassiveNodes(newlyInactiveNodes);
             // verify that all newly active nodes are eligible to return
             //verifyEligibility(newlyInactiveNodes);
             verifyEligibility(newActiveNodes);
@@ -237,7 +251,9 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 }
             }
             
-            removeFromConvictionTimes(newActiveNodes);
+            if (!disableAddition) {
+            	removeFromConvictionTimes(newActiveNodes);
+            }
             if (guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()) {
             	Log.warning("guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()");
             	Log.warningf("%d > %d", guiltySuspects.size(), convictionLimits.getTotalGuiltyServers());
@@ -252,9 +268,16 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
 	            	addToConvictionTimes(guiltySuspects, SystemTimeUtil.systemTimeSource.absTimeMillis());
 		            if (doctor != null) {
 		            	doctor.admitPatients(guiltySuspects);
-		            	doctor.releasePatients(newActiveNodes);
+		                if (!disableAddition) {
+		                	doctor.releasePatients(newActiveNodes);
+		                }
 		            }
-		            updateInstanceExclusionSet(guiltySuspects, newActiveNodes);
+		            
+		            // FIXME - We need to check if the newActiveNodes are either in the current or target ring. If so, we
+		            // remove them so that they are not activated.
+		            // We can't allow them to become active as this could result in data loss. 
+		            
+		            updateInstanceExclusionSet(guiltySuspects, disableAddition ? ImmutableSet.of() : newActiveNodes);
             	}
             }
         } catch (Exception e) {
@@ -264,6 +287,19 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         }
     }
     
+	private void filterPassiveNodes(Set<IPAndPort> nodes) {
+		Set<IPAndPort>	passiveNodes;
+		
+		passiveNodes = new HashSet<>();
+		for (IPAndPort node : nodes) {
+			if (!activeNodesInMap.contains(node)) {
+				Log.warning("Ignoring passive node: "+ node);
+				passiveNodes.add(node);
+			}
+		}
+		nodes.removeAll(passiveNodes);
+	}
+
 	private void removeFromConvictionTimes(Set<IPAndPort> healthServers) {
 		for (IPAndPort server : healthServers) {
 			convictionTimes.remove(server);
@@ -455,20 +491,23 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             	convictionLimits = ConvictionLimits.parse(options.convictionLimits);
                 LogStreamConfig.configureLogStreams(gc, logFileName);
                 healthMonitor = new HealthMonitor(gc, 
-                                                  new ZooKeeperConfig(gc.getClientDHTConfiguration().getZkLocs()), 
+                                                  gc.getClientDHTConfiguration().getZKConfig(), 
                                                   options.watchIntervalSeconds,
                                                   options.guiltThreshold,
                                                   options.doctorRoundIntervalSeconds,
                                                   options.forceInclusionOfUnsafeExcludedServers,
-                                                  convictionLimits);
+                                                  convictionLimits,
+                                                  options.doctorNodeStartupTimeoutSeconds,
+                                                  options.disableAddition);
                 healthMonitor.monitor();
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-                return;
+	            System.exit(-1);
             }
         } catch (Exception e) {
             e.printStackTrace();
+            System.exit(-1);
         }
     }
 }

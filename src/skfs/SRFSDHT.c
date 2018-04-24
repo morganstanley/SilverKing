@@ -7,6 +7,7 @@
 #include "SRFSDHT.h"
 #include "Util.h"
 
+#include <errno.h>
 #include <pthread.h>
 
 ////////////////////
@@ -55,8 +56,8 @@ SRFSDHT *sd_new(char *host, char *gcname, char *zk, SKCompression::SKCompression
 	sd->gcname = gcname;
 	sd->zk = zk;
 	sd->compression = compression;
-	if (minOpTimeout >= maxOpTimeout) {
-		fatalError("minOpTimeout >= maxOpTimeout", __FILE__, __LINE__);
+	if (minOpTimeout > maxOpTimeout) {
+		fatalError("minOpTimeout > maxOpTimeout", __FILE__, __LINE__);
 	}
 	sd->minOpTimeout = minOpTimeout;
 	sd->maxOpTimeout = maxOpTimeout;
@@ -243,4 +244,19 @@ SKSession *sd_new_session(SRFSDHT *sd) {
 	} else {
 		return pGlobalSession;
 	}
+}
+
+uint64_t sd_parse_timeout(const char *s, uint64_t _default) {
+    uint64_t    t;
+    
+    t = strtoull(s, NULL, 10);
+    if (t == 0) {
+        if (errno < 0) {
+            return _default;
+        } else {
+            return 0;
+        }
+    } else {
+        return t;
+    }
 }

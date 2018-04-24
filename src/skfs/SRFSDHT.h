@@ -109,5 +109,6 @@ void sd_op_failed(SRFSDHT *sd, SKOperationState::SKOperationState errorCode, cha
 int sd_is_enabled(SRFSDHT *sd);
 SKSession *sd_new_session(SRFSDHT *sd);
 uint64_t sd_get_dht_timeout(SRFSDHT *sd, ResponseTimeStats *rtsDHT, ResponseTimeStats *rtsNFS, int numOps);
+uint64_t sd_parse_timeout(const char *s, uint64_t _default);
 
 #endif

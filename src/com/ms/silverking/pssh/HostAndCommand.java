@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.util.ArrayUtil;
 
 public class HostAndCommand implements Serializable, Comparable<HostAndCommand> {
@@ -86,5 +87,10 @@ public class HostAndCommand implements Serializable, Comparable<HostAndCommand> 
 			result = thisCommand.compareTo(oCommand);
 		}
 		return result;
+	}
+	
+	@Override
+	public String toString() {
+		return host +":"+ StringUtil.arrayToString(command);
 	}
 }

@@ -22,6 +22,7 @@ public abstract class BaseRetrievalEntryState {
     public abstract IPAndPort currentReplica();
     public abstract IPAndPort nextReplica();
     public abstract boolean isComplete();
+    public abstract boolean prevReplicaSameAsCurrent();
     
     protected void incrementReplicaTimeout() {
         nextTimeoutAbsMillis = absMillisTimeSource.absTimeMillis() + relTimeoutMillis;

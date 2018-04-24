@@ -6,12 +6,13 @@ import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
+import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 
 /**
  * Adds internally useful information to RetrievalOptions that should not be exposed to
  * end users. Also removes RetrievalOptions that only apply in the client.
  */
-public class InternalRetrievalOptions {
+public class InternalRetrievalOptions implements SSRetrievalOptions {
     private final RetrievalOptions  retrievalOptions;
     private final boolean           verifyIntegrity;
     private final ConsistencyProtocol	cpSSToVerify; // ConsistencyProtocol to verify storage state against
@@ -30,6 +31,17 @@ public class InternalRetrievalOptions {
     public InternalRetrievalOptions(RetrievalOptions retrievalOptions) {
         this(retrievalOptions, false, null);
     }
+    
+	public static InternalRetrievalOptions fromSSRetrievalOptions(SSRetrievalOptions options) {
+		if (options instanceof InternalRetrievalOptions) {
+			return (InternalRetrievalOptions)options;
+		} else {
+			RetrievalOptions	retrievalOptions;
+			
+			retrievalOptions = new RetrievalOptions(null, null, options.getRetrievalType(), WaitMode.GET, options.getVersionConstraint(), null, options.getVerifyIntegrity(), options.getReturnInvalidations(), null, false);
+			return new InternalRetrievalOptions(retrievalOptions, options.getVerifyIntegrity());
+		}
+	}
     
     public InternalRetrievalOptions retrievalOptions(RetrievalOptions retrievalOptions) {
     	return new InternalRetrievalOptions(retrievalOptions, verifyIntegrity, cpSSToVerify); 
@@ -54,6 +66,11 @@ public class InternalRetrievalOptions {
     public boolean getVerifyStorageState() {
         return cpSSToVerify != null;
     }
+    
+	@Override
+	public boolean getReturnInvalidations() {
+		return retrievalOptions.getReturnInvalidations();
+	}
     
     /**
      * 

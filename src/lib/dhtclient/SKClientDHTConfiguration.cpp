@@ -51,6 +51,7 @@ SKClientDHTConfiguration * SKClientDHTConfiguration::create(map<string,string> *
 	return new SKClientDHTConfiguration(pCdc);
 }
 
+#if 0
 SKClientDHTConfiguration::SKClientDHTConfiguration(const char * dhtName, int dhtPort, SKAddrAndPort zkLocs[])
 	: SKClientDHTConfigurationProvider((void*)NULL)
 {
@@ -76,6 +77,8 @@ SKClientDHTConfiguration::SKClientDHTConfiguration(const char * dhtName, SKAddrA
 	}
 	pImpl = new ClientDHTConfiguration( java_new<ClientDHTConfiguration> ( str, addrAndPortArray ));
 }
+#endif
+
 SKClientDHTConfiguration::SKClientDHTConfiguration(const char * dhtName, const char * zkLocs)
 	: SKClientDHTConfigurationProvider((void*)NULL)
 {
@@ -90,8 +93,7 @@ SKClientDHTConfiguration::SKClientDHTConfiguration(const char * dhtName, int dht
 {
 	String name = java_new<String>((char *)dhtName);
 	String locs = java_new<String>((char *)zkLocs);
-    AddrAndPortArray hapa = java_cast<AddrAndPortArray>(HostAndPort::parseMultiple(locs));
-	pImpl = new ClientDHTConfiguration( java_new<ClientDHTConfiguration> ( name, dhtPort, hapa ));
+	pImpl = new ClientDHTConfiguration( java_new<ClientDHTConfiguration> ( name, dhtPort, locs ));
 }
 
 SKClientDHTConfiguration::SKClientDHTConfiguration(void * pClientDHTConfiguration) //FIXME: ?
@@ -140,6 +142,7 @@ bool SKClientDHTConfiguration::hasPort(){
 	return hasPort;
 }
 
+#if 0
 SKAddrAndPort* SKClientDHTConfiguration::getZkLocs(){
 	ClientDHTConfiguration* pCdc = (ClientDHTConfiguration*) pImpl;
 	AddrAndPortArray jlocs = java_cast<AddrAndPortArray>(pCdc->getZkLocs());
@@ -153,8 +156,8 @@ SKAddrAndPort* SKClientDHTConfiguration::getZkLocs(){
 		new(&locs[i]) SKAddrAndPort( pAddrAndPort ); //obj allocated using placement new(where)
 	}
 	return locs;
-	
 }
+#endif
 
 SKClientDHTConfiguration * SKClientDHTConfiguration::getClientDHTConfiguration(){
 	ClientDHTConfiguration* pClientConf = (ClientDHTConfiguration*) pImpl;

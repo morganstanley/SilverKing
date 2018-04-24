@@ -15,6 +15,9 @@ class SilverKingClientOptions {
 	SilverKingClientOptions() {
 	}
 	
+	@Option(name="-G", usage="GridConfigBase", required=false)
+	String	gridConfigBase;
+	
 	@Option(name="-g", usage="GridConfig", required=false)
 	String	gridConfig;
 	

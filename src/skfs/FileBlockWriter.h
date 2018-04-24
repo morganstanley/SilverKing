@@ -8,6 +8,7 @@
 
 #include "ActiveOpRef.h"
 #include "FileBlockID.h"
+#include "FileBlockCache.h"
 #include "QueueProcessor.h"
 #include "SRFSConstants.h"
 #include "SRFSDHT.h"
@@ -31,6 +32,7 @@ typedef struct FileBlockWriter {
     SKAsyncNSPerspective *ansp;
 	SKSession		*_pSession[FBW_DHT_SESSIONS];
     SKAsyncNSPerspective *_ansp[FBW_DHT_SESSIONS];
+    FileBlockCache  *fbc;
 } FileBlockWriter;
 
 typedef struct FBW_ActiveDirectPut {
@@ -43,7 +45,7 @@ typedef struct FBW_ActiveDirectPut {
 ///////////////
 // prototypes
 
-FileBlockWriter *fbw_new(SRFSDHT *sd, int useCompression, int reliableQueue = FALSE);
+FileBlockWriter *fbw_new(SRFSDHT *sd, int useCompression, FileBlockCache *fbc, int reliableQueue = FALSE);
 void fbw_delete(FileBlockWriter **fbw);
 void fbw_write_file_block(FileBlockWriter *fbw, FileBlockID *fbid, size_t dataLength, void *data, ActiveOpRef *aor);
 FBW_ActiveDirectPut *fbw_put_direct(FileBlockWriter *fbw, FileBlockID *fbid, WritableFileBlock *wfb);

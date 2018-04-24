@@ -9,7 +9,8 @@ enum Action {
              CloneNamespace("clone", false, false),
              LinkToNamespace("linkTo", false),
              Retrieve,
-             MultiGet, MultiPut, // used by client tool only 
+             MultiGet, MultiPut, // used by client tool only
+             Copy,
              Quit(false), SetNamespace(false), ToggleVerbose("v", false), 
              ValueMapDisplay(false), ValueFormat(false), 
              Reps("Repetitions SetRepetitions sr SR", false), 

@@ -176,6 +176,21 @@ public class SingleRing extends LongNavigableMapRing<RingEntry> implements Topol
         return false;
 	}
 	
+	public boolean isSubset(SingleRing subRing) {
+		for (RingEntry subEntry : subRing.getMembers()) {
+			RingEntry	superEntry;
+			
+			superEntry = getOwner(subEntry.getRegion().getStart());
+			if (superEntry == null) {
+				return false;
+			} else {
+				if (!superEntry.isSubset(subEntry)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 
     @Override
     public double getWeight(String nodeID) {
@@ -306,19 +321,19 @@ public class SingleRing extends LongNavigableMapRing<RingEntry> implements Topol
 			} else {
 				// region is the end of the old region
 				Log.fine("region is the end of the old region");
-				addEntry(new RingEntry(oldEntry.getOwnersSetWithReplacement(oldOwner, newOwner, OwnerQueryMode.Primary), region));
+				addEntry(new RingEntry(oldEntry.getOwnersSetWithReplacement(oldOwner, newOwner, OwnerQueryMode.Primary), region, oldEntry.getMinPrimaryUnderFailure()));
 				
 				otherRegion = new RingRegion(oldRegion.getStart(), LongRingspace.prevPoint(region.getStart()));
-				addEntry(new RingEntry(oldEntry.getPrimaryOwnersList(), otherRegion));
+				addEntry(new RingEntry(oldEntry.getPrimaryOwnersList(), otherRegion, oldEntry.getMinPrimaryUnderFailure()));
 			}
 		} else {
 			if (oldRegion.getStart() == region.getStart()) {
 				// region is the start of the old region
 				Log.fine("region is the start of the old region");
 				otherRegion = new RingRegion(LongRingspace.nextPoint(region.getEnd()), oldRegion.getEnd());
-				addEntry(new RingEntry(oldEntry.getPrimaryOwnersList(), otherRegion));
+				addEntry(new RingEntry(oldEntry.getPrimaryOwnersList(), otherRegion, oldEntry.getMinPrimaryUnderFailure()));
 				
-				addEntry(new RingEntry(oldEntry.getOwnersSetWithReplacement(oldOwner, newOwner, OwnerQueryMode.Primary), region));	
+				addEntry(new RingEntry(oldEntry.getOwnersSetWithReplacement(oldOwner, newOwner, OwnerQueryMode.Primary), region, oldEntry.getMinPrimaryUnderFailure()));	
 			} else {
 				throw new RuntimeException("invalid regions: "+ oldRegion +"\t"+ region);
 			}

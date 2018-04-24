@@ -6,10 +6,12 @@ import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.RevisionMode;
-import com.ms.silverking.cloud.dht.TimeRetentionPolicy;
+import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy;
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
+import com.ms.silverking.cloud.dht.daemon.storage.FileSegment.SegmentPrereadMode;
 import com.ms.silverking.collection.HashedSetMap;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
@@ -83,7 +85,7 @@ public class FileSegmentCompactor {
             Log.warning("Compacting segment: ", segmentNumber);
             sourceSegment = FileSegment.openReadOnly(nsDir, segmentNumber, 
 					            						nsOptions.getSegmentSize(),  
-					            						nsOptions);
+					            						nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
             sourceSegment.addReference();
             try {
 	            destSegment = FileSegment.create(getCompactionDir(nsDir), segmentNumber, nsOptions.getSegmentSize(), FileSegment.SyncMode.NoSync, nsOptions);
@@ -164,20 +166,23 @@ public class FileSegmentCompactor {
         Log.warning("Done deleting segment: ", segmentNumber);
 	}    
     
-    public static void emptyTrash(File nsDir) {
+    public static void emptyTrashAndCompaction(File nsDir) {
     	try {
-	    	File	trashDir;
-	    	File[]	trashFiles;
-	    	
-	    	trashDir = getTrashDir(nsDir);
-	    	trashFiles = trashDir.listFiles();
-	    	for (File file : trashFiles) {
-	    		if (!file.delete()) {
-	    			Log.warning("Failed to delete", file);
-	    		}
-	    	}
+    		emptyDir(getTrashDir(nsDir));
+    		emptyDir(getCompactionDir(nsDir));
     	} catch (IOException ioe) {
     		Log.logErrorWarning(ioe);
+    	}
+    }
+    
+    private static void emptyDir(File dir) {
+    	File[]	files;
+    	
+    	files = dir.listFiles();
+    	for (File file : files) {
+    		if (!file.delete()) {
+    			Log.warning("Failed to delete", file);
+    		}
     	}
     }
     
@@ -195,7 +200,7 @@ public class FileSegmentCompactor {
 	    		nsDir = new File(args[0]);
 	    		segmentNumber = Integer.parseInt(args[1]);
 	    		timeSpanSeconds = Integer.parseInt(args[2]);
-	    		valueRetentionPolicy = new TimeRetentionPolicy(TimeRetentionPolicy.Mode.wallClock, 0, timeSpanSeconds);
+	    		valueRetentionPolicy = new TimeAndVersionRetentionPolicy(TimeAndVersionRetentionPolicy.Mode.wallClock, 1, timeSpanSeconds);
 	    		nsOptions = DHTConstants.defaultNamespaceOptions.valueRetentionPolicy(valueRetentionPolicy);
 	    		compact(nsDir, segmentNumber, nsOptions, new TestRetentionCheck(32768));
     		}

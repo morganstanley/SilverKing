@@ -61,7 +61,7 @@ public class WriteReadTest implements Runnable {
         runningSem = new Semaphore(-numThreads + 1);
     }
     
-	private void doTest() {
+	public void doTest() {
         Stopwatch   runSW;
         
         runSW = new SimpleStopwatch();
@@ -87,10 +87,12 @@ public class WriteReadTest implements Runnable {
 	}
     
     private void singleThreadTest(int index) {
+//    	out.printf("Thread: %d\n", index);
         SynchronousNamespacePerspective<String,Integer>	nsp;
         
         nsp = ns.openSyncPerspective(String.class, Integer.class);
     	for (int i = 0; i < keysPerThread; i++) {
+//    		System.out.println("thread: " + index + " key: " + i);
     		for (int j = 0; j < updatesPerKey; j++) {
     			String	key;
     			

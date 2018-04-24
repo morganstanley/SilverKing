@@ -1,0 +1,185 @@
+
+source lib/common.lib
+
+function f_runTestAntScript {
+	typeset filename=$2
+	typeset line=`wc -l < $filename`
+	((line++))
+	
+	f_runAnt $1 "$4"
+	
+	typeset tmpFilename="${filename}_ant_junit_output"
+	tail -n +$line "$filename" > "$tmpFilename"
+	
+	f_runJunitTestChecks "$tmpFilename" $3 
+}
+
+function f_runJunitTestChecks {
+	typeset filename=$1
+	typeset expectedTotal=$2
+	
+	f_printSection "TESTS";
+	
+	typeset matchedLines=`grep -P '\[junit\] (Running com.ms.silverking|Tests run)' "$filename"`
+	typeset matchedCount=`echo "$matchedLines" | wc -l`
+	for (( i = 1; i <= $matchedCount; i+=2 )); do
+		typeset j=$((i+1))
+		typeset   testname=`echo "$matchedLines" | sed -n "$i p" | awk '{print $3}' | sed 's#\w*\.##g'`
+		typeset resultLine=`echo "$matchedLines" | sed -n "$j p"`
+		
+		typeset     runCount=$(f_getTestCount "$resultLine" "run")
+		typeset    failCount=$(f_getTestCount "$resultLine" "Failures")
+		typeset   errorCount=$(f_getTestCount "$resultLine" "Errors")
+		typeset skippedCount=$(f_getTestCount "$resultLine" "Skipped")
+		
+		typeset totalFails=$((failCount+errorCount+skippedCount))
+		typeset passCount=$((runCount-totalFails))
+		
+		# for lines like this, so we don't get a -1 passcount
+		# 	[junit] Tests run: 0, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.062 sec
+		if [[ $runCount -eq 0 ]]; then
+			passCount=0
+		fi
+
+		typeset result=$(f_getJunitTestResultHelper "$passCount" "$totalFails")
+		f_printResult "$result" "$testname" "total:${runCount} (p:${passCount},f:${failCount},e:${errorCount},s:${skippedCount})" "$filename"
+	done 
+	
+	f_testTotalTestsRun "$filename" "$expectedTotal"
+}
+
+function f_getTestCount {
+	typeset fileOrLine=$1
+	typeset type=$2
+	
+	echo $(f_getFileOrLineCount "$fileOrLine" "$type")
+}		
+
+function f_getFileOrLineCount {
+	typeset fileOrLine=$1
+	typeset type=$2
+	
+	# this commented out line is if param is a file
+	#echo `grep '\sTests' -w "$fileOrLine" | awk -F "${type}:" '{print $2}' | awk -F ',' '{print $1}' | awk '{s+=$1} END {print s}'`
+	echo `echo "$fileOrLine" | awk -F "${type}:" '{print $2}' | awk -F ',' '{print $1}' | awk '{s+=$1} END {print s}'`
+}
+
+function f_getJunitTestResultHelper {
+	typeset passCount=$1
+	typeset failCount=$2
+	
+	if [[ $passCount -eq 0 && $failCount -eq 0 ]] ; then
+		echo $NEUTRAL_TEXT
+	elif [[ $failCount -eq 0 ]] ; then
+		echo $PASS_TEXT
+	else
+		echo $FAIL_TEXT		
+	fi
+}	  
+
+function f_runGTests {
+	# params
+	typeset install_arch_bin_dir=$1
+    typeset gc_name=$2
+    typeset host=$3
+	typeset namespace=$4
+	typeset output_filename=$5
+
+	typeset gtest_dir=$TESTING_OUTPUT_DIR/$GTEST_FOLDER_NAME
+	typeset tests_report=$gtest_dir/SK_Gtests_Report.xml
+	
+	f_cleanOrMakeDirectory "$gtest_dir"
+	
+	if [[ -z $install_arch_bin_dir ]]; then
+		install_arch_bin_dir=$INSTALL_ARCH_BIN_DIR
+	fi
+
+	if [[ -z $gc_name ]]; then
+		gc_name=$SK_GRID_CONFIG_NAME
+	fi
+	
+	if [[ -z $host ]]; then
+		# only take the first one
+		host=`echo "$SK_SERVERS" | cut -d "," -f 1`
+	fi
+		
+	typeset skClasspath=$(f_getSkClasspath)
+	typeset vars="
+		GC_DEFAULT_BASE=$SK_GRID_CONFIG_DIR
+		LD_LIBRARY_PATH=$install_arch_bin_dir/../lib:$G_TEST_LIB
+		   SK_CLASSPATH=$JACE_RUNTIME_JAR:$skClasspath
+		   SK_JAVA_HOME=$JAVA_8_HOME
+		   SK_JACE_HOME=$JACE_HOME
+	"
+	
+	typeset gtest_bin_dir=$install_arch_bin_dir/$GTEST_FOLDER_NAME
+	cd $gtest_bin_dir
+	for testName in *Test; do
+		typeset ns;
+		if [[ -z $namespace ]]; then
+			ns=$testName
+		else
+			ns=$namespace
+		fi
+		
+		typeset xml_file=$gtest_dir/${testName}.xml
+		
+		f_runCmdInEvalEnv "$vars" "$testName --gtest_output=\"xml:$xml_file\" -g $gc_name -H $host -n $ns"
+
+		cat $xml_file >> $tests_report
+		echo $'\n' >> $tests_report
+	done
+	cd -
+	
+	#cat $tests_report
+	#sleep 1	# unfortunate hack to get everything cat'ed out before we run the checks, if not here, sometimes will have 0 P/F b/c report didn't make it to output file before running checks
+	f_runGTestChecks "$tests_report"
+}
+
+function f_runGTestChecks {
+	typeset filename=$1
+	
+	f_printSection "TESTS";
+		
+	#typeset matchedLines=`grep '<testsuite name=' "$filename" | tr '\n' ' '`
+	typeset matchedLines=`grep '<testsuite name=' "$filename"`
+	typeset matchedCount=`echo "$matchedLines" | wc -l`
+	for (( i = 1; i <= $matchedCount; i++ )); do
+		typeset line=`echo "$matchedLines" | sed -n "$i p"`
+		#typeset match=`echo $line | grep -Po "testsuite name=\"\K(\w+)\" tests=\"\K(\d+)\" failures=\"\K(\d+)\" disabled=\"\K(\d+)\" errors=\"\K(\d+)\""`
+		
+		typeset     name=$(f_getGtestContent "$line" "name"     "\w")
+		typeset    tests=$(f_getGtestContent "$line" "tests"    "\d")
+		typeset failures=$(f_getGtestContent "$line" "failures" "\d")
+		typeset disabled=$(f_getGtestContent "$line" "disabled" "\d")
+		typeset   errors=$(f_getGtestContent "$line" "errors"   "\d")
+		
+		typeset totalFails=$((failures+errors+disabled))
+		typeset  passCount=$((tests-totalFails))
+
+		typeset result=$(f_getJunitTestResultHelper "$passCount" "$totalFails")
+		f_printResult "$result" "$name" "total:${tests} (p:${passCount},f:${failures},e:${errors},d:${disabled})" "$filename"
+	done
+	
+	f_testTotalTestsRun "$filename" "$TEST_SILVERKING_CLIENT_EXPECTED_COUNT"
+}
+
+
+function f_testTotalTestsRun {
+	typeset filename=$1
+	typeset expectedTotal=$2
+	
+	typeset actualPassCount=$(f_getPassCount "$filename")
+	typeset result=$(f_getEqualsResult "$actualPassCount" "$expectedTotal")
+	f_printResult "$result" "# of passing tests run should be $expectedTotal" "$actualPassCount"
+}
+
+# http://stackoverflow.com/questions/18892670/can-not-extract-the-capture-group-with-neither-sed-nor-grep
+function f_getGtestContent {
+	typeset line=$1
+	typeset name=$2
+	typeset type=$3
+	
+	echo $line | grep -Po "$name=\"\K($type+)(?=\")"
+}	
+

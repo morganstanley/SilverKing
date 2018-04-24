@@ -1,9 +1,9 @@
 package com.ms.silverking.id;
 
 import static com.ms.silverking.testing.Util.getTestMessage;
-import static com.ms.silverking.collection.Util.expectedDoubleValue;
-import static com.ms.silverking.collection.Util.expectedIntValue;
-import static com.ms.silverking.collection.Util.expectedStringValue;
+import static com.ms.silverking.collection.TestUtil.expectedDoubleValue;
+import static com.ms.silverking.collection.TestUtil.expectedIntValue;
+import static com.ms.silverking.collection.TestUtil.expectedStringValue;
 import static org.junit.Assert.*;
 
 import java.util.UUID;

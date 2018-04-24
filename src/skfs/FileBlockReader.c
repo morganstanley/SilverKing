@@ -25,7 +25,6 @@ using std::exception;
 ////////////////////
 // private defines
 
-#define FBR_FBC_NAME "FileBlockCache"
 #define _FBR_ERR_TIMEOUT_MILLIS (10 * 1000)
 
 // For prefetch operations, there is no waiting thread. Hence,
@@ -61,23 +60,17 @@ FileBlockReader *fbr_new(FileIDToPathMap *f2p,
 						 FileBlockWriter *fbwCompress, FileBlockWriter *fbwRaw, 
 						 SRFSDHT *sd, 
 						 ResponseTimeStats *rtsDHT, ResponseTimeStats *rtsNFS,
-						 int numSubCaches,
-						 int transientCacheSize) {
+						 FileBlockCache *fbc) {
 	FileBlockReader *fbr;
-    int evictionBatch;
 
 	fbr = (FileBlockReader*)mem_alloc(1, sizeof(FileBlockReader));
 	fbr->f2p = f2p;
 	fbr->fbwCompress = fbwCompress;
 	fbr->fbwRaw = fbwRaw;
+    fbr->nft = nft_new("NativeFileTable");
 	fbr->sd = sd;
-	if (transientCacheSize == 0) {
-		transientCacheSize = FBR_TRANSIENT_CACHE_SIZE;
-	}
-    evictionBatch = int_max(int_min(FBR_TRANSIENT_CACHE_EVICTION_BATCH, transientCacheSize / numSubCaches), 1);
     
-	fbr->fileBlockCache = fbc_new(FBR_FBC_NAME, transientCacheSize, 
-        evictionBatch, f2p, numSubCaches);
+	fbr->fileBlockCache = fbc;
 	fbr->nfsFileBlockQueueProcessor = qp_new(fbr_process_nfs_request, __FILE__, __LINE__, FBR_NFS_QUEUE_SIZE, ABQ_FULL_BLOCK, FBR_NFS_THREADS);
 	fbr->dhtFileBlockQueueProcessor = qp_new_batch_processor(fbr_process_dht_batch, __FILE__, __LINE__, 
 											FBR_DHT_QUEUE_SIZE, ABQ_FULL_DROP, FBR_DHT_THREADS, FBR_MAX_BATCH_SIZE);
@@ -192,6 +185,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 	SKOperationState::SKOperationState	dhtMgetErr = SKOperationState::FAILED;
 	FileBlockReader	*fbr;
 	int				i;
+    int             j;
 	ActiveOpRef		*refs[numRequests];
 	char			keys[numRequests][SRFS_FBID_KEY_SIZE];
 	uint64_t		t1;
@@ -199,11 +193,14 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
     int             hasSKFSRequests;
     SKAsyncValueRetrieval   *pValRetrieval;
    	StrVector       requestGroup;  // sets of keys 
+    int             isDuplicate[numRequests];
 
 	srfsLog(LOG_FINE, "in fbr_process_dht_batch %d", curThreadIndex);
 	fbr = NULL;
     pValRetrieval = NULL;
 
+    memset(isDuplicate, 0, sizeof(int) * numRequests);
+    
 	// Create requestGroup
     hasSKFSRequests = FALSE;
 	for (i = 0; i < numRequests; i++) {
@@ -228,7 +225,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
         }
 		fbid_to_string(fbrr->fbid, keys[i]);
 		srfsLog(LOG_FINE, "fbr adding to group %llx %s", keys[i], keys[i]);
-        requestGroup.push_back( keys[i] );
+        requestGroup.push_back(keys[i]);
 	}
 	
 	// Retrieve from kvs
@@ -243,6 +240,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 	    rts_add_sample(fbr->rtsDHT, t2 - t1, numRequests);
         dhtMgetErr = pValRetrieval->getState();
     } catch (SKRetrievalException & e ){
+        // No need to handle duplicates here as each ppval is created on each iteration
 		for (i = 0; i < numRequests; i++) {
 			ActiveOp		      *op;
 			FileBlockReadRequest  *fbrr;
@@ -274,7 +272,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 						srfsLog(LOG_WARNING, "fbr dhtErr no pval %llx %s : %s line %d", fbrr, SKFS_FB_NS, keys[i], __LINE__);
 					} else {
 						if ((ppval->m_len == 0) || (ppval->m_len > SRFS_BLOCK_SIZE)) {
-							srfsLog(LOG_WARNING, "ignoring block with bogus size fbid->block %d m_len %d", fbrr->fbid->block, ppval->m_len);
+							srfsLog(LOG_WARNING, "Ignoring block with bogus size fbid->block %d m_len %d %s %d", fbrr->fbid->block, ppval->m_len, __FILE__, __LINE__);
 						} else {
 							CacheStoreResult	result;
 								
@@ -283,7 +281,7 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
                             ao_set_complete(op, AOResult_Success, ppval->m_pVal, ppval->m_len);
 						    successful = TRUE;
                             srfsLog(LOG_FINE, "Storing block cache");
-                            result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid, ppval, fbrr->minModificationTimeMillis);
+                            result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid, ppval, fbrr->minModificationTimeMicros);
                             if (result != CACHE_STORE_SUCCESS) {
                                 srfsLog(LOG_FINE, "Cache store rejected");
                                 sk_destroy_val(&ppval);
@@ -375,113 +373,142 @@ static void fbr_process_dht_batch(void **requests, int numRequests, int curThrea
 
     StrValMap   *pValues = pValRetrieval->getValues();
 	OpStateMap  *opStateMap = pValRetrieval->getOperationStateMap();
+    int foundDuplicate = FALSE;
 
-	for (i = 0; i < numRequests; i++) {
-		ActiveOp		      *op;
-		FileBlockReadRequest  *fbrr;
-		SKVal	              *val;
-		int				successful;
-        SKOperationState::SKOperationState  opState;
-
-		op   = NULL;
-		fbrr = NULL;
-		val  = NULL;
-		successful = FALSE;
-		op = refs[i]->ao;
-		fbrr = (FileBlockReadRequest *)ao_get_target(op);
-            
-        try {
-            opState = opStateMap->at(keys[i]);
-        } catch(std::exception &emap) { 
-            opState = SKOperationState::FAILED;
-            srfsLog(LOG_INFO, "fbr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
+    // Check for duplicates
+    if (pValues->size() != numRequests) {
+        // Naive n^2 search for the duplicates that must exist
+        for (i = 0; i < numRequests; i++) {
+            for (j = i + 1; j < numRequests; j++) {
+                if (!strcmp(keys[i], keys[j])) {
+                    isDuplicate[j] = TRUE;
+                    foundDuplicate = TRUE;
+                }
+            }
         }
-        if (opState == SKOperationState::SUCCEEDED) {
-            SKVal   *ppval;
-        
+    }
+    
+    for (i = 0; i < numRequests; i++) {
+        if (!isDuplicate[i]) {
+            ActiveOp		      *op;
+            FileBlockReadRequest  *fbrr;
+            SKVal	              *val;
+            int				successful;
+            SKOperationState::SKOperationState  opState;
+
+            op   = NULL;
+            fbrr = NULL;
+            val  = NULL;
+            successful = FALSE;
+            op = refs[i]->ao;
+            fbrr = (FileBlockReadRequest *)ao_get_target(op);
+                
             try {
-                ppval = pValues->at(keys[i]);
-            } catch (std::exception &emap) { 
-                ppval = NULL;
+                opState = opStateMap->at(keys[i]);
+            } catch(std::exception &emap) { 
+                opState = SKOperationState::FAILED;
                 srfsLog(LOG_INFO, "fbr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
             }
-            if (ppval == NULL ) {  
-				//sd_op_failed(fbr->sd, opState, __FILE__, __LINE__);
-                //srfsLog(LOG_WARNING, "fbr dhtErr val not found %llx %s : %s line %d", fbrr, SKFS_FB_NS, keys[i], __LINE__);
-                // used to treat this as an error, but with new OpResult fix, we reach here for blocks that aren't found
-				srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
-				ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
-            } else {
-    			if (ppval->m_len > SRFS_BLOCK_SIZE) {
-    			//if ((ppval->m_len == 0) || (ppval->m_len > SRFS_BLOCK_SIZE)) {
-					//sd_op_failed(fbr->sd, opState);
-    				srfsLog(LOG_WARNING, "ignoring block with bogus size fbid->block %d m_len %d", fbrr->fbid->block, ppval->m_len);
-                } else {
-					CacheStoreResult	result;
-                    
-                    if (ppval->m_len == 0) {
-                        sk_destroy_val(&ppval);
-                        ppval = sk_create_val();
-                        // FUTURE - Consider changing the below to remove a copy
-                        // Would require a special check in cache data deletion to ensure that we don't delete
-                        // the shared data. Maybe add support for no delete entries.
-                        // Below will create a copy of the zero block for now.
-                        sk_set_val(ppval, SRFS_BLOCK_SIZE, (void *)zeroBlock);
-                    }
-                    srfsLog(LOG_FINE, "set op complete %llx %s %d", op, __FILE__, __LINE__);
-                    ao_set_complete(op, AOResult_Success, ppval->m_pVal, ppval->m_len);
-                    successful = TRUE;
-                    srfsLog(LOG_FINE, "Storing block cache");
-                    result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid,
-                                                 ppval, fbrr->minModificationTimeMillis);
-                    if (result != CACHE_STORE_SUCCESS) {
-                        srfsLog(LOG_FINE, "Cache store rejected");
-                        sk_destroy_val(&ppval);
-                    }
-                }
-            }
-        } //opState == SKOperationState::SUCCEEDED
-         else { //SKOperationState::INCOMPLETE or SKOperationState::FAILED 
-            SKFailureCause::SKFailureCause cause = SKFailureCause::ERROR;
-            
-            if (opState == SKOperationState::FAILED){
-                try {
-                    cause = pValRetrieval->getFailureCause();
-				} catch(SKClientException &e) { 
-                    srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
-                } catch(std::exception &e) { 
-                    srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
-                } catch (...) {
-                    srfsLog(LOG_WARNING, "exception fbr failed to query FailureCause"); 
-                }
-            }
-            //mark all except SKFailureCause::NO_SUCH_VALUE
-            if (cause != SKFailureCause::NO_SUCH_VALUE) {
-			    sd_op_failed(fbr->sd, dhtMgetErr, __FILE__, __LINE__);
-            }
-                        
-            if (!fid_is_native_fs(fbid_get_id(fbrr->fbid))) {
-                fbc_remove_active_op(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid);
-                if (cause == SKFailureCause::NO_SUCH_VALUE) {
-                    ao_set_complete_error(op, ENOENT);                    
-                } else {
-                    ao_set_complete_error(op, EIO);
-                }
-                successful = TRUE; // FUTURE - change the name
-                                  // this is a notification that we don't need to update the operation
-            }            
-            
-            srfsLog(LOG_FINE, "fbr m_rc %llx %d %d %s : %s  %d", fbrr, opState, cause, SKFS_FB_NS, keys[i], __LINE__);
-        }
 
-		if (successful) {
-            // No need to set op complete. Taken care of above
-		} else {
-			srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
-			ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
-		}
-		aor_delete(&refs[i]);
-	}
+            if (opState == SKOperationState::SUCCEEDED) {
+                SKVal   *ppval;
+            
+                try {
+                    ppval = pValues->at(keys[i]);
+                } catch (std::exception &emap) { 
+                    ppval = NULL;
+                    srfsLog(LOG_INFO, "fbr std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
+                }
+                if (ppval == NULL ) {  
+                    //sd_op_failed(fbr->sd, opState, __FILE__, __LINE__);
+                    //srfsLog(LOG_WARNING, "fbr dhtErr val not found %llx %s : %s line %d", fbrr, SKFS_FB_NS, keys[i], __LINE__);
+                    // used to treat this as an error, but with new OpResult fix, we reach here for blocks that aren't found
+                    srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
+                    ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
+                } else {
+                    if (ppval->m_len > SRFS_BLOCK_SIZE) {
+                        int ki;
+                    //if ((ppval->m_len == 0) || (ppval->m_len > SRFS_BLOCK_SIZE)) {
+                        //sd_op_failed(fbr->sd, opState);
+                        srfsLog(LOG_WARNING, "Ignoring block with bogus size keys[i] %s fbid->block %d m_len %d dup %d %s %d", 
+                            keys[i], fbrr->fbid->block, ppval->m_len, foundDuplicate, __FILE__, __LINE__);
+                        for (ki = 0; ki < numRequests; ki++) {
+                            srfsLog(LOG_WARNING, "keys[%d] %s", ki, keys[ki]);
+                        }
+                    } else {
+                        CacheStoreResult	result;
+                        
+                        if (ppval->m_len == 0) {
+                            if (ppval->m_pVal != NULL) {
+                                srfsLog(LOG_WARNING, "Ignoring bogus empty value %s %d", __FILE__, __LINE__);
+                            } else {
+                                // FIXME - temp potential crash workaround
+                                //sk_destroy_val(&ppval);
+                            }
+                            ppval = sk_create_val();
+                            // FUTURE - Consider changing the below to remove a copy
+                            // Would require a special check in cache data deletion to ensure that we don't delete
+                            // the shared data. Maybe add support for no delete entries.
+                            // Below will create a copy of the zero block for now.
+                            sk_set_val(ppval, SRFS_BLOCK_SIZE, (void *)zeroBlock);
+                        }
+                        srfsLog(LOG_FINE, "set op complete %llx %s %d", op, __FILE__, __LINE__);
+                        ao_set_complete(op, AOResult_Success, ppval->m_pVal, ppval->m_len);
+                        successful = TRUE;
+                        srfsLog(LOG_FINE, "Storing block cache");
+                        result = fbc_store_dht_value(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid,
+                                                     ppval, fbrr->minModificationTimeMicros);
+                        if (result != CACHE_STORE_SUCCESS) {
+                            srfsLog(LOG_FINE, "Cache store rejected");
+                            sk_destroy_val(&ppval);
+                        }
+                    }
+                }
+            } //opState == SKOperationState::SUCCEEDED
+             else { //SKOperationState::INCOMPLETE or SKOperationState::FAILED 
+                SKFailureCause::SKFailureCause cause = SKFailureCause::ERROR;
+                
+                if (opState == SKOperationState::FAILED){
+                    try {
+                        cause = pValRetrieval->getFailureCause();
+                    } catch(SKClientException &e) { 
+                        srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
+                    } catch(std::exception &e) { 
+                        srfsLog(LOG_WARNING, "fbr getFailureCause exception at %s:%d\n%s\n", __FILE__, __LINE__, e.what()); 
+                    } catch (...) {
+                        srfsLog(LOG_WARNING, "exception fbr failed to query FailureCause"); 
+                    }
+                }
+                //mark all except SKFailureCause::NO_SUCH_VALUE
+                if (cause != SKFailureCause::NO_SUCH_VALUE) {
+                    sd_op_failed(fbr->sd, dhtMgetErr, __FILE__, __LINE__);
+                }
+                            
+                if (!fid_is_native_fs(fbid_get_id(fbrr->fbid))) {
+                    fbc_remove_active_op(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid);
+                    if (cause == SKFailureCause::NO_SUCH_VALUE) {
+                        ao_set_complete_error(op, ENOENT);                    
+                    } else {
+                        ao_set_complete_error(op, EIO);
+                    }
+                    successful = TRUE; // FUTURE - change the name
+                                      // this is a notification that we don't need to update the operation
+                }            
+                
+                srfsLog(LOG_FINE, "fbr m_rc %llx %d %d %s : %s  %d", fbrr, opState, cause, SKFS_FB_NS, keys[i], __LINE__);
+            }
+
+            if (successful) {
+                // No need to set op complete. Taken care of above
+            } else {
+                srfsLog(LOG_FINE, "set op stage dht+1 %llx", op);
+                ao_set_stage(op, SRFS_OP_STAGE_DHT + 1);
+            }
+        } else {
+            // No duplicate-specific action required
+        }
+        aor_delete(&refs[i]);
+    }
     delete opStateMap;
     delete pValues;
     pValRetrieval->close();
@@ -538,9 +565,12 @@ static int fbr_get_block_file(char *blockFile, char *path, FileBlockReadRequest 
 }
 
 static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, char *path, int *openOK) {
-	int	fd;
+	NativeFileReference *nfr;
+    int fd;
 
-	fd = open(path, O_RDONLY | O_NOFOLLOW);
+    nfr = nft_open(fbrr->fileBlockReader->nft, path);
+    fd = nfr_get_fd(nfr);
+	//fd = open(path, O_RDONLY | O_NOFOLLOW);
 	*openOK = fd != -1;
 	if (fd != -1) {
 		void	*blockData;
@@ -551,7 +581,7 @@ static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, 
 		off_t	offset;
 		int		result;
 		int		zeroReadRetries;
-
+    
 		offset  = fbid_block_offset(fbrr->fbid);
 		blockSize = fbid_block_size(fbrr->fbid);
 		//srfsLog(LOG_FINE, "offset %ld blockSize %ld", offset, blockSize);
@@ -573,7 +603,11 @@ static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, 
 				srfsLog(LOG_WARNING, "fbid %s", key);
 				srfsLog(LOG_WARNING, "numRead %lu totalRead %lu dest %llx blockData %llx blockSize %lu totalRead %lu blockSize - totalRead %lu offset %lu", 
 										numRead, totalRead, dest, blockData, blockSize, totalRead, blockSize - totalRead, offset);
-				close(fd);
+                if (nfr != NULL) {
+                    nfr_delete(&nfr);
+                } else {
+                    close(fd);
+                }
 				if (numRead < 0 || zeroReadRetries > maxZeroReadRetries) {
 					srfsLog(LOG_ERROR, "Giving up on read");
 					mem_free(&blockData);
@@ -592,7 +626,11 @@ static void *fbr_read_block_raw(FileBlockReadRequest *fbrr, size_t *_blockSize, 
 				}
 			}
 		}
-		result = close(fd);
+        if (nfr != NULL) {
+            result = nfr_delete(&nfr);
+        } else {
+            result = close(fd);
+        }
 		if (result == -1) {
 			srfsLog(LOG_WARNING, "Ignoring error closing %s", path);
 		}
@@ -614,7 +652,7 @@ static void *fbr_read_block(FileBlockReadRequest *fbrr, size_t *_blockSize, int 
 	fid = fbid_get_id(fbrr->fbid);
 	pathListEntry = f2p_get(fbrr->fileBlockReader->f2p, fid);
 	if (pathListEntry == NULL) {
-		srfsLog(LOG_WARNING, "Can't find path for fbid");
+		srfsLog(LOG_WARNING, "Can't find path for fid");
 		return NULL;
 	} else {
 		while (pathListEntry != NULL) {
@@ -627,6 +665,7 @@ static void *fbr_read_block(FileBlockReadRequest *fbrr, size_t *_blockSize, int 
 				fatalError("Unexpected NULL path", __FILE__, __LINE__);
 			}
 
+            srfsLog(LOG_FINE, "calling fbr_read_block_raw %s", path);
 			blockData = fbr_read_block_raw(fbrr, _blockSize, path, &openOK);
 			if (openOK) {
 				pthread_spin_lock(&fbrr->fileBlockReader->statLock);
@@ -701,7 +740,7 @@ static void fbr_process_nfs_request(void *_requestOpRef, int curThreadIndex) {
         blockDataForWrite = mem_dup(blockData, blockSize);
 		srfsLog(LOG_FINE, "Storing block cache %d", blockSize);
 		result = fbc_store_raw_data(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid,      
-                            blockData, blockSize, TRUE, fbrr->minModificationTimeMillis);
+                            blockData, blockSize, TRUE, fbrr->minModificationTimeMicros);
 		if (result == CACHE_STORE_SUCCESS) {
 			if (cacheInDHT) {
                 fbw_write_file_block(fbrr->fileBlockReader->fbwCompress, fbrr->fbid, blockSize, blockDataForWrite, NULL);
@@ -723,14 +762,14 @@ static void fbr_process_nfs_request(void *_requestOpRef, int curThreadIndex) {
 		//srfsLog(LOG_FINE, "Storing error cache");
 		////fbc_store_raw_data(fbrr->fileBlockReader->fileBlockCache, fbrr->path, fbrr->dest);
         //fbc_store_error(fbrr->fileBlockReader->fileBlockCache, fbrr->fbid, -1,
-        //                fbrr->minModificationTimeMillis, _FBR_ERR_TIMEOUT_MILLIS);
+        //                fbrr->minModificationTimeMicros, _FBR_ERR_TIMEOUT_MILLIS);
 	}
     // No need to set op complete here. Taken care of above
 	aor_delete(&aor);
 	srfsLog(LOG_FINE, "out fbr_process_nfs_request %llx", _requestOpRef);
 }
 
-ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMillis) {
+ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMicros) {
 	FileBlockReader	*fbr;
 	FileBlockID		*fbid;
 	ActiveOp		*op;
@@ -739,7 +778,7 @@ ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModification
 	fbr = (FileBlockReader *)_fbr;
 	fbid = (FileBlockID *)_fbid;
 	srfsLog(LOG_FINE, "fb_create_active_op %llx", fbid);
-	fileBlockReadRequest = fbrr_new(fbr, fbid, minModificationTimeMillis);
+	fileBlockReadRequest = fbrr_new(fbr, fbid, minModificationTimeMicros);
 	fbrr_display(fileBlockReadRequest, LOG_FINE);
 	op = ao_new(fileBlockReadRequest, (void (*)(void **))fbrr_delete);
 	return op;
@@ -757,7 +796,9 @@ static void fbr_cp_rVal_to_pbrr(PartialBlockReadRequest *pbrr, ActiveOpRef *aor,
 
 // Main FileBlockReader function. Handles a group of partial block read requests.
 int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numRequests,
-								   PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead) {
+								   PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead,
+                                   int presumeBlocksInDHT,
+                                   int useNFSReadAhead) {
     AOResult        aoResults[numRequests];
 	CacheReadResult	results[numRequests];
 	ActiveOpRef		*activeOpRefs[numRequests];
@@ -781,7 +822,7 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 	srfsLog(LOG_FINE, "looking in cache for block");
 	for (i = 0; i < numRequests; i++) {
 		results[i] = fbc_read(fbr->fileBlockCache, pbrrs[i]->fbid, (unsigned char *)pbrrs[i]->dest, 
-							pbrrs[i]->readOffset, pbrrs[i]->readSize, &activeOpRefs[i], &cacheNumRead[i], fbr, pbrrs[i]->minModificationTimeMillis, _FBR_READ_OP_TIMEOUT_MILLIS);
+							pbrrs[i]->readOffset, pbrrs[i]->readSize, &activeOpRefs[i], &cacheNumRead[i], fbr, pbrrs[i]->minModificationTimeMicros, _FBR_READ_OP_TIMEOUT_MILLIS);
 		statCounted[i] = 0;
 		srfsLog(LOG_FINE, "cache results[%d] %d cacheNumRead[i] %d", i, results[i], cacheNumRead[i]);
 		if (results[i] == CRR_ACTIVE_OP_CREATED) {
@@ -806,7 +847,9 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 				statCounted[i] = TRUE;
                 aoResults[i] = AOResult_Success;
 			} else {
-				fatalError("Error: cacheNumRead[i] != pbrrs[i]->readSize", __FILE__, __LINE__);
+                srfsLog(LOG_WARNING, "1) cacheNumRead[%d] (%d) != pbrrs[%d]->readSize (%d)", 
+                                     i, cacheNumRead[i], i, pbrrs[i]->readSize);
+                fatalError("Error: cacheNumRead[i] != pbrrs[i]->readSize", __FILE__, __LINE__);
 			}
 		}
 	}
@@ -820,19 +863,42 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 		aor = NULL;
 		cacheReadResult = fbc_read(fbr->fileBlockCache, pbrrsReadAhead[i]->fbid, NULL, 
 									0, 0, &aor, NULL, fbr, 
-                                    pbrrsReadAhead[i]->minModificationTimeMillis,
+                                    pbrrsReadAhead[i]->minModificationTimeMicros,
                                     _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
 		if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
 			int	added;
+            //char	fbid[SRFS_FBID_KEY_SIZE];
+
+            //fbid_to_string(pbrrsReadAhead[i]->fbid, fbid);
 
 			// Not found in cache. Issue the read ahead, but don't hold on to the ref
 			// since we don't need the result.
-			srfsLog(LOG_FINE, "Ahead: CRR_ACTIVE_OP_CREATED %llx", pbrrsReadAhead[i]->fbid);
-			srfsLog(LOG_FINE, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
-			added = qp_add(fbr->dhtFileBlockQueueProcessor, aor);
+			//srfsLog(LOG_WARNING, "Ahead: CRR_ACTIVE_OP_CREATED %s", fbid);
+			//srfsLog(LOG_WARNING, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
+            if (!useNFSReadAhead) {
+                added = qp_add(fbr->dhtFileBlockQueueProcessor, aor);
+            } else {
+                srfsLog(LOG_FINE, "adding request %d to nfs q", i);
+                added = qp_add(fbr->nfsFileBlockQueueProcessor, aor);
+            }
 			if (!added) {
 				aor_delete(&aor);
-			}
+			} else {
+                // FUTURE - consider making this optional
+                // to date haven't found a benefit
+                /*
+                    ActiveOpRef *aor2;
+                    int	added2;
+
+                    aor2 = NULL;
+                    srfsLog(LOG_FINE, "adding request %d to nfs q", i);
+                    aor2 = aor_new(aor->ao, __FILE__, __LINE__);
+                    added2 = qp_add(fbr->nfsFileBlockQueueProcessor, aor2);
+                    if (!added2) {
+                        aor_delete(&aor2);
+                    }
+                */
+            }
 		} else {
             if (aor != NULL) {
 				aor_delete(&aor);
@@ -841,7 +907,11 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 	}
 
     // Now wait for kvs request completion, and begin native fs requests for any missing values.
-	timeout = sd_get_dht_timeout(fbr->sd, fbr->rtsDHT, fbr->rtsNFS, numRequests);
+    if (presumeBlocksInDHT) {
+        timeout = sd_get_dht_timeout(fbr->sd, fbr->rtsDHT, fbr->rtsNFS, numRequests);
+    } else {
+        timeout = 0;
+    }
 	srfsLog(LOG_FINE, "stage timeout %u", timeout);
 	for (i = 0; i < numRequests; i++) {
         if (aoResults[i] != AOResult_Success) {
@@ -945,30 +1015,31 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 	// consider adding back in eventually
 	// nfs read-ahead should be disabled when nfs delays are > a threshold
 #if 0
-	// handle speculative read ahead requests
-	srfsLog(LOG_FINE, "read ahead");
-	for (i = 0; i < numRequestsReadAhead; i++) {
-		CacheReadResult	cacheReadResult;
-		ActiveOpRef		*aor;
+        // handle speculative read ahead requests
+        srfsLog(LOG_FINE, "nfs read ahead %d", numRequestsReadAhead);
+        for (i = 0; i < numRequestsReadAhead; i++) {
+            CacheReadResult	cacheReadResult;
+            ActiveOpRef		*aor;
 
-		aor = NULL;
-		cacheReadResult = fbc_read(fbr->fileBlockCache, pbrrsReadAhead[i]->fbid, NULL, 
-									0, 0, &aor, NULL, fbr, 
-                                    pbrrsReadAhead[i]->minModificationTimeMillis,
-                                    _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
-		if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
-			int	added;
+            aor = NULL;
+            cacheReadResult = fbc_read(fbr->fileBlockCache, pbrrsReadAhead[i]->fbid, NULL, 
+                                        0, 0, &aor, NULL, fbr, 
+                                        pbrrsReadAhead[i]->minModificationTimeMicros,
+                                        _FBR_PREFETCH_OP_TIMEOUT_MILLIS);
+            srfsLog(LOG_FINE, "nfs read ahead crr %d", (int)cacheReadResult);
+            if (cacheReadResult == CRR_ACTIVE_OP_CREATED) {
+                int	added;
 
-			// not found in cache, issue the read ahead, but don't hold on to the ref
-			// since we don't need the result
-			srfsLog(LOG_FINE, "Ahead: CRR_ACTIVE_OP_CREATED %llx", pbrrsReadAhead[i]->fbid);
-			srfsLog(LOG_FINE, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
-			added = qp_add(fbr->nfsFileBlockQueueProcessor, aor);
-			if (!added) {
-				aor_delete(&aor);
-			}
-		}
-	}
+                // not found in cache, issue the read ahead, but don't hold on to the ref
+                // since we don't need the result
+                srfsLog(LOG_FINE, "Ahead: CRR_ACTIVE_OP_CREATED %llx", pbrrsReadAhead[i]->fbid);
+                srfsLog(LOG_FINE, "Ahead: Queueing op %llx %llx", pbrrsReadAhead[i]->fbid, aor->ao);
+                added = qp_add(fbr->nfsFileBlockQueueProcessor, aor);
+                if (!added) {
+                    aor_delete(&aor);
+                }
+            }
+        }
 #endif
 	srfsLog(LOG_FINE, "out fbr_read");
 	return returnCode;
@@ -981,7 +1052,7 @@ int fbr_read_test(FileBlockReader *fbr, FileBlockID *fbid, void *dest, size_t re
 
 	pbrr = pbrr_new(fbid, dest, readOffset, readSize, 0);
 	pbrrs = &pbrr;
-	result = fbr_read(fbr, pbrrs, 1, NULL, 0);
+	result = fbr_read(fbr, pbrrs, 1, NULL, 0, TRUE, FALSE);
 	pbrr_delete(&pbrr);
 	pbrrs = NULL;
 	return result;

@@ -7,7 +7,7 @@ import com.ms.silverking.cloud.dht.client.impl.SystemChecksum;
  */
 public enum ChecksumType {
     NONE, MD5, SHA_1, MURMUR3_32, MURMUR3_128, SYSTEM;
-    
+	
     public int length() {
         switch (this) {
         case NONE: return 0;

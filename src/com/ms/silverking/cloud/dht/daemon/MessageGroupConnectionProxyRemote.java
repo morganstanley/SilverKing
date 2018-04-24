@@ -22,7 +22,7 @@ class MessageGroupConnectionProxyRemote implements MessageGroupConnectionProxy {
         return connection.getRemoteSocketAddress().toString();
     }
     
-    MessageGroupConnection getConnection() {
+    public MessageGroupConnection getConnection() {
         return connection;
     }
 }

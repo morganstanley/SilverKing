@@ -2,34 +2,34 @@
 <project name="Silverking" default="main" basedir=".">
 	<!-- Sets variables which can later be used. -->
 	<!-- The value of a property is accessed via ${} -->
-	<property name="project.name"        value="silverking" />
-	<property name="build.folder"     location="${project.name}_build" />
-	<property name="src.dir"          location="../src" />
-	<property name="test.dir"         location="../test" />
-	<property name="lib.dir"          location="../lib" />
-	<property name="classes.dir"      location="${build.folder}/classes" />
-	<property name="classes.src.dir"  location="${classes.dir}/src" />
-	<property name="classes.test.dir" location="${classes.dir}/test" />
-	<property name="jar.dir"          location="${build.folder}/jar" />
-	<property name="jar.file"         location="${jar.dir}/${project.name}.jar" />
-	<property name="docs.dir"         location="${build.folder}/javadocs" />
-	<property name="report.dir"          value="${build.folder}/junitreport"/>
+	<property name="project.name"             value="silverking" />
+	<property name="build.folder"          location="${project.name}-build" />
+	<property name="src.dir"               location="../src" />
+	<property name="test.dir"              location="../test" />
+	<property name="lib.dir"               location="../lib" />
+	<property name="classes.dir"           location="${build.folder}/classes" />
+	<property name="classes.src.dir"       location="${classes.dir}/src" />
+	<property name="classes.test.dir"      location="${classes.dir}/test" />
+	<property name="classes.test.skfs.dir" location="com/ms/silverking/fs/**/*Test.class" />
+	<property name="jar.dir"               location="${build.folder}/jar" />
+	<property name="jar.file"              location="${jar.dir}/${project.name}.jar" />
+	<property name="docs.dir"              location="${build.folder}/javadocs" />
+	<property name="testing.name"             value="testing" />
+	<property name="junit.dir"                value="${testing.name}/junit"/>
+	<property name="testAll.dir"              value="${junit.dir}/sk-all"/>
+	<property name="testSk.dir"               value="${junit.dir}/sk-only"/>
+	<property name="testSkfs.dir"             value="${junit.dir}/skfs-only"/>
+	<property name="sk.tests.large.id.name"   value="skTestsLarge"/>
+	<property name="skfs.tests.small.id.name" value="skfsTestsSmall"/>
+	<property name="skfs.tests.large.id.name" value="skfsTestsLarge"/>
   
 <!--
     <presetdef name="javac">
 		<javac includeantruntime="false" />
 	</presetdef>
 -->
-  
-	<path id="application" location="${jar.file}" />
 	<path id="classpath">
 		<fileset dir="${lib.dir}" includes="**/*.jar" />
-		<!--
-		<fileset dir="${src.dir}" includes="**/com/ms/silverking/cloud/dht/collection/oldpkc/*.java" />
-		<fileset dir="${src.dir}/com/ms/silverking/cloud/dht/collection/oldpkc/">
-			<exclude name="*.java" />
-		</fileset>
-		-->
 	</path>
 	<path id="classpath.test">
 		<path refid="classpath"/>
@@ -37,12 +37,30 @@
 		<pathelement location="${classes.test.dir}" />
 	</path>
 	
+	<path id="sk.tests.all">    <fileset dir="${test.dir}" includes="**/*Test.java" /></path>
+	<path id="sk.tests.large">  <fileset dir="${test.dir}"><contains text="@SkLarge" />  </fileset></path>
+	<path id="skfs.tests.small"><fileset dir="${test.dir}"><contains text="@SkfsSmall" /></fileset></path>
+	<path id="skfs.tests.large"><fileset dir="${test.dir}"><contains text="@SkfsLarge" /></fileset></path>
+    <union id="union">
+		<path refid="sk.tests.large"/>
+		<path refid="skfs.tests.small"/>
+		<path refid="skfs.tests.large"/>
+	</union>
+	<path id="sk.tests.small">
+		<!--<fileset dir="${test.dir}" includes="**/AESEncrypterDecrypterTest.java" />-->
+		<difference>
+			<path refid="sk.tests.all"/>
+			<union refid="union" />
+		</difference>
+	</path>
+	<!--<echo>${toString:sk.tests.small}</echo>-->
+	
 	<!-- Deletes the existing build, docs and jar directory-->
 	<target name="clean">
 		<delete dir="${classes.dir}" />
 		<delete dir="${docs.dir}" />
 		<delete dir="${jar.dir}" />
-		<delete dir="${report.dir}" />
+		<delete dir="${junit.dir}" />
 	</target>
 
 	<!-- Creates the build, docs and jar directory-->
@@ -52,34 +70,49 @@
 		<mkdir dir="${classes.test.dir}" />
 		<mkdir dir="${docs.dir}" />
 		<mkdir dir="${jar.dir}" />
-		<mkdir dir="${report.dir}"/>
+		<mkdir dir="${junit.dir}"/>
+		<mkdir dir="${testAll.dir}"/>
+		<mkdir dir="${testSk.dir}"/>
+		<mkdir dir="${testSkfs.dir}"/>
 	</target>
 
 	<!-- Compiles the java code (including the usage of library for JUnit -->
 	<target name="compile" depends="clean, makedir">
-		<javac srcdir="${src.dir}" destdir="${classes.src.dir}" classpathref="classpath" encoding="utf-8">
+		<javac srcdir="${src.dir}" destdir="${classes.src.dir}" classpathref="classpath" encoding="utf-8" debug="on">
 			<compilerarg line="-Xmaxerrs 1000" />
 			<compilerarg line="-Xmaxwarns 100" />
 			<compilerarg line="-XDignore.symbol.file" />
-			<!-- <exclude name="com/ms/silverking/cloud/dht/collection/oldpkc/*.java" /> -->
-			<exclude name="**/oldpkc/*.java" />
-			<!-- <exclude name="com/ms/gpcg/grid/dht2/test/MD5Test.java" /> -->
+			<!-- important to have these or you will get something like: '[javac] .........../lib/dhtclient/SKStopwatchBase.cpp skipped - don't know how to handle it' -->
+			<exclude name="**/*.html" />
+			<exclude name="lib/**" />
+			<exclude name="jace/**" />
+			<exclude name="skfs/*" />
 		</javac>
+		<copy todir="${classes.test.dir}">
+			<fileset dir="${test.dir}" includes="com/ms/silverking/fs/**/*.txt" />
+			<fileset dir="${test.dir}" includes="com/ms/silverking/cloud/gridconfig/**/*.txt" />
+		</copy>
 		<javac srcdir="${test.dir}" destdir="${classes.test.dir}" classpathref="classpath.test" encoding="utf-8">
+			<exclude name="**/*.txt" />
 		</javac>
 	</target>
 
 	<!-- Creates Javadoc -->
 	<target name="docs" depends="compile">
-		<javadoc packagenames="*" sourcepath="${src.dir}" destdir="${docs.dir}" classpathref="classpath" encoding="utf-8">
+		<javadoc sourcepath="${src.dir}" destdir="${docs.dir}" classpathref="classpath" encoding="utf-8" access="public">
 			<arg value="-Xmaxerrs"/>
 			<arg value="1000"/>
 			<arg value="-Xmaxwarns"/>
 			<arg value="1000"/>
-			<!-- Define which files / directory should get included, we include all -->
+			<package name="com.ms.silverking.cloud.dht" />
+			<package name="com.ms.silverking.cloud.dht.client" />
+			<package name="com.ms.silverking.cloud.dht.client.serialization" />
+			<package name="com.ms.silverking.cloud.dht.gridconfig" />
+			<package name="com.ms.silverking.cloud.gridconfig" />
+			<package name="com.ms.silverking.time" />
 			<fileset dir="${src.dir}">
-				<include name="**/*.java" />
-				<!-- <exclude name="**/*.sh" /> -->
+				<include name="com/ms/silverking/net/AddrAndPort.java"/>
+				<include name="com/ms/silverking/numeric/NumUtil.java"/>
 			</fileset>
 		</javadoc>
 	</target>
@@ -93,17 +126,8 @@
 			<!-- <zipgroupfileset dir="${lib.dir}" includes="*.jar" /> -->
 		</jar>
 	</target>
-<!--	
-	<target name="test" depends="jar">
-		<junit printsummary="yes" fork="yes" haltonfailure="yes">
-			<classpath refid="classpath.test"/>
-			<formatter type="plain"/>
-			<test name="com.ms.silverking.collection.PairTest"/>
-			<test name="com.ms.silverking.collection.TripleTest"/>
-		</junit>
-	</target>
--->
-	<target name="junit" depends="jar">
+	
+	<target name="testAll">
 		<junit printsummary="withOutAndErr" haltonfailure="yes">
 			<classpath refid="classpath.test"/>
 			<formatter type="xml"/>
@@ -111,7 +135,7 @@
 			<test name="com.ms.silverking.collection.PairTest"/>
 			<test name="com.ms.silverking.collection.TripleTest"/>
 			-->
-			<batchtest fork="yes" todir="${report.dir}">
+			<batchtest fork="yes" todir="${testAll.dir}">
                 <!-- <fileset dir="${test.dir}" includes="**/*Test.java"/> -->
 				<fileset dir="${classes.test.dir}" includes="**/*Test.class"/>
 			</batchtest>
@@ -119,15 +143,55 @@
 	</target>
 
 	<target name="junitreport">
-		<junitreport todir="${report.dir}">
-			<fileset dir="${report.dir}" includes="TEST-*.xml"/>
-			<report todir="${report.dir}"/>
+		<junitreport todir="${junit.dir}">
+			<fileset dir="${junit.dir}" includes="TEST-*.xml"/>
+			<report todir="${junit.dir}"/>
 		</junitreport>
 	</target>
   
-	<target name="main" depends="compile, docs, jar, junit">
-		<description>Main target</description>
+	<target name="testSkOnly-small">
+		<antcall target="runTests">
+			<param name="output.run.dir"  value="${testSk.dir}"/>
+			<param name="test.files.list" value="sk.tests.small"/>
+		</antcall>
 	</target>
   
+	<target name="testSkOnly-large">
+		<antcall target="runTests">
+			<param name="output.run.dir"  value="${testSk.dir}"/>
+			<param name="test.files.list" value="sk.tests.large"/>
+		</antcall>
+	</target>
   
+	<target name="testSkfsOnly-small">
+		<antcall target="runTests">
+			<param name="output.run.dir"  value="${testSkfs.dir}"/>
+			<param name="test.files.list" value="skfs.tests.small"/>
+		</antcall>
+	</target>
+  
+	<target name="testSkfsOnly-large">
+		<antcall target="runTests">
+			<param name="output.run.dir"  value="${testSkfs.dir}"/>
+			<param name="test.files.list" value="skfs.tests.large"/>
+		</antcall>
+	</target>
+  
+	<target name="runTests">
+		<junit printsummary="withOutAndErr" haltonfailure="no" forkmode="perTest" threads="16" showoutput="true">
+			<classpath refid="classpath.test"/>
+			<formatter type="xml"/>
+			<batchtest fork="yes" todir="${output.run.dir}">
+				<path refid="${test.files.list}"/>
+			</batchtest>
+		</junit>
+	</target>
+  
+	<target name="buildOnly" depends="compile, docs, jar">
+		<description>Build Only</description>
+	</target>
+  
+	<target name="main" depends="compile, docs, jar, testAll">
+		<description>Main target</description>
+	</target>
 </project> 

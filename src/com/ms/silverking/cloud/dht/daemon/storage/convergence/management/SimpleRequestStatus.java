@@ -3,19 +3,24 @@ package com.ms.silverking.cloud.dht.daemon.storage.convergence.management;
 import java.io.Serializable;
 
 public class SimpleRequestStatus implements RequestStatus, Serializable {
-	private final boolean	isComplete;
-	private final String	statusString;
+	private final RequestState	requestState;
+	private final String		statusString;
 	
-	private static final long serialVersionUID = -2302840723977626560L;
+	private static final long serialVersionUID = -9154548957915879684L;
 	
-	public SimpleRequestStatus(boolean isComplete, String statusString) {
-		this.isComplete = isComplete;
+	public SimpleRequestStatus(RequestState requestState, String statusString) {
+		this.requestState = requestState;
 		this.statusString = statusString;
 	}
 	
 	@Override
+	public RequestState getRequestState() {
+		return requestState;
+	}
+	
+	@Override
 	public boolean requestComplete() {
-		return isComplete;
+		return requestState.isComplete();
 	}
 
 	@Override
@@ -25,7 +30,7 @@ public class SimpleRequestStatus implements RequestStatus, Serializable {
 	
 	@Override
 	public int hashCode() {
-		return Boolean.hashCode(isComplete) ^ statusString.hashCode();
+		return requestState.hashCode() ^ statusString.hashCode();
 	}
 	
 	@Override
@@ -33,6 +38,6 @@ public class SimpleRequestStatus implements RequestStatus, Serializable {
 		SimpleRequestStatus	o;
 		
 		o = (SimpleRequestStatus)obj;
-		return this.isComplete == o.isComplete && this.statusString.equals(o.statusString);
+		return this.requestState == o.requestState && this.statusString.equals(o.statusString);
 	}
 }

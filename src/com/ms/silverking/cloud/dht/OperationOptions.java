@@ -37,7 +37,7 @@ public class OperationOptions {
     	hashCode = opTimeoutController.hashCode();
     	if (secondaryTargets != null) {
     		hashCode = hashCode ^ secondaryTargets.hashCode();
-    	}
+    	}   	
     	return hashCode;
     }
     

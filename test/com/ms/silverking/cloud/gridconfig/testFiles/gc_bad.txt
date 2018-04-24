@@ -1,0 +1,4 @@
+// there are some mistakes in here
+ GC_SK_NAME=sk
+export GC_SK_ZK_LOC = host:9981
+export GC_SK_PORT=8889

@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import com.ms.silverking.cloud.dht.daemon.MessageModule.MessageAndConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
+import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.thread.lwt.BaseWorker;
 
 class MessageGroupConnectionProxyLocal implements MessageGroupConnectionProxy {
@@ -26,4 +27,9 @@ class MessageGroupConnectionProxyLocal implements MessageGroupConnectionProxy {
     public String getConnectionID() {
         return "localConnection";
     }
+    
+    @Override
+    public MessageGroupConnection getConnection() {
+    	return null;
+    }    
 }

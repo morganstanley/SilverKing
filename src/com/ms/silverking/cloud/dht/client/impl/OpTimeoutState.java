@@ -29,12 +29,14 @@ class OpTimeoutState {
     
     boolean opHasTimedOut(long curTimeMillis) {
         /*
-        System.out.printf("%d > %d || %d > %d\n", 
-                curAttempt, timeoutController.getMaxAttempts(op), 
-                curTimeMillis, startTimeMillis + timeoutController.getMaxRelativeTimeoutMillis(op));
+        System.out.printf("%d > %d || \n%d cur\n%d start\n%d to\n", 
+                curAttemptIndex, timeoutController.getMaxAttempts(op), 
+                curTimeMillis, startTimeMillis, startTimeMillis + timeoutController.getMaxRelativeTimeoutMillis(op));
         System.out.printf("%s || %s\n", 
                 curAttempt>  timeoutController.getMaxAttempts(op), 
                 curTimeMillis > startTimeMillis + timeoutController.getMaxRelativeTimeoutMillis(op));
+        System.out.printf("curAttemptIndex %d timeoutController.getMaxAttempts(op) %d\tmaxRelativeTimeoutMillis %d\n", 
+        		curAttemptIndex, timeoutController.getMaxAttempts(op), timeoutController.getMaxRelativeTimeoutMillis(op)); 
         */
         return curAttemptIndex >= timeoutController.getMaxAttempts(op) 
                 || curTimeMillis > startTimeMillis + timeoutController.getMaxRelativeTimeoutMillis(op);

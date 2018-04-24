@@ -35,6 +35,8 @@ using jace::proxy::com::ms::silverking::cloud::dht::WaitOptions;
 using jace::proxy::com::ms::silverking::cloud::dht::client::KeyDigestType;
 #include "jace/proxy/com/ms/silverking/cloud/dht/client/VersionProvider.h"
 using jace::proxy::com::ms::silverking::cloud::dht::client::VersionProvider;
+#include "jace/proxy/com/ms/silverking/cloud/dht/client/ConstantVersionProvider.h"
+using jace::proxy::com::ms::silverking::cloud::dht::client::ConstantVersionProvider;
 typedef JArray< jace::proxy::types::JByte > ByteArray;
 
 SKNamespacePerspectiveOptions::SKNamespacePerspectiveOptions( /* KeyClass k, ValueClass v, */ 
@@ -77,10 +79,13 @@ SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::keyDigestType(SKK
 	NamespacePerspectiveOptions * pNspoImp = new NamespacePerspectiveOptions(java_cast<NamespacePerspectiveOptions>(
 		((NamespacePerspectiveOptions*)pImpl)->keyDigestType(*pKeyDigestType)
 	)); 
+    return new SKNamespacePerspectiveOptions(pNspoImp);
+    /*
 	delete pKeyDigestType;
     delete ((NamespacePerspectiveOptions*)pImpl);
     pImpl = pNspoImp;
     return this;
+    */
 }
 
 SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultPutOptions(SKPutOptions * defaultPutOptions){
@@ -88,9 +93,12 @@ SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultPutOptions
 	NamespacePerspectiveOptions * pNspoImp = new NamespacePerspectiveOptions(java_cast<NamespacePerspectiveOptions>(
 		((NamespacePerspectiveOptions*)pImpl)->defaultPutOptions(*pPutOptions)
 	)); 
+    return new SKNamespacePerspectiveOptions(pNspoImp);
+    /*
     delete ((NamespacePerspectiveOptions*)pImpl);
     pImpl = pNspoImp;
     return this;
+    */
 }
 
 SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultInvalidationOptions(SKInvalidationOptions * defaultInvalidationOptions){
@@ -98,9 +106,12 @@ SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultInvalidati
 	NamespacePerspectiveOptions * pNspoImp = new NamespacePerspectiveOptions(java_cast<NamespacePerspectiveOptions>(
 		((NamespacePerspectiveOptions*)pImpl)->defaultInvalidationOptions(*pInvalidationOptions)
 	)); 
+    return new SKNamespacePerspectiveOptions(pNspoImp);
+    /*
     delete ((NamespacePerspectiveOptions*)pImpl);
     pImpl = pNspoImp;
     return this;
+    */
 }
 
 SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultGetOptions(SKGetOptions * defaultGetOptions){
@@ -108,9 +119,12 @@ SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultGetOptions
 	NamespacePerspectiveOptions * pNspoImp = new NamespacePerspectiveOptions(java_cast<NamespacePerspectiveOptions>(
 		((NamespacePerspectiveOptions*)pImpl)->defaultGetOptions(*pGetOptions)
 	)); 
+    return new SKNamespacePerspectiveOptions(pNspoImp);
+    /*
     delete ((NamespacePerspectiveOptions*)pImpl);
     pImpl = pNspoImp;
     return this;
+    */
 }
 
 SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultWaitOptions(SKWaitOptions * defaultWaitOptions){
@@ -118,9 +132,12 @@ SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultWaitOption
 	NamespacePerspectiveOptions * pNspoImp = new NamespacePerspectiveOptions(java_cast<NamespacePerspectiveOptions>(
 		((NamespacePerspectiveOptions*)pImpl)->defaultWaitOptions(*pWaitOptions)
 	)); 
+    return new SKNamespacePerspectiveOptions(pNspoImp);
+    /*
     delete ((NamespacePerspectiveOptions*)pImpl);
     pImpl = pNspoImp;
     return this;
+    */
 }
 
 SKNamespacePerspectiveOptions * SKNamespacePerspectiveOptions::defaultVersionProvider(SKVersionProvider * defaultVersionProvider){

@@ -52,7 +52,7 @@ public class StorageValueAndParameters extends StorageParameters {
             RawRetrievalResult  rawRetrievalResult;
             
             if (entry.getValue() == null) {
-                Log.warning("Couldn't find value for: ", entry);
+                Log.warning("createSVP Couldn't find value for: ", entry);
                 return null;
             } else {
                 if (debug) {
@@ -77,6 +77,11 @@ public class StorageValueAndParameters extends StorageParameters {
             
             valueBuffer = (ByteBuffer)rawValueBuffer.duplicate().position(
                     rawValueBuffer.position() + MetaDataUtil.getDataOffset(rawValueBuffer, 0));
+            if (debug) {
+	            System.out.printf("rawValueBuffer.position() %d MetaDataUtil.getDataOffset(rawValueBuffer, 0) %d\n", rawValueBuffer.position(), MetaDataUtil.getDataOffset(rawValueBuffer, 0));
+	            System.out.printf("valueBuffer %s\n", valueBuffer);
+	            System.out.printf("valueBuffer %s\n", StringUtil.byteBufferToHexString(valueBuffer));
+            }
             
             // FUTURE - consider making the nsstore allow a put that just accepts the buffer as is
             // to improve performance

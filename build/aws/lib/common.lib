@@ -1,0 +1,11 @@
+
+function f_generatePrivateKey {
+	cd ~/.ssh
+	typeset publicKeyFilename="id_rsa.pub"
+	if [[ ! -f $publicKeyFilename ]]; then
+		ssh-keygen -f id_rsa -N '' # flags -f,-N are to bypass prompt
+		cat $publicKeyFilename >> authorized_keys
+	fi
+}
+
+NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"

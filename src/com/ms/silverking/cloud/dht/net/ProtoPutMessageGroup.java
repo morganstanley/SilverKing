@@ -12,7 +12,6 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.impl.Checksum;
 import com.ms.silverking.cloud.dht.client.impl.ChecksumProvider;
-import com.ms.silverking.cloud.dht.client.impl.CodecProvider;
 import com.ms.silverking.cloud.dht.client.impl.SegmentationUtil;
 import com.ms.silverking.cloud.dht.client.serialization.BufferDestSerializer;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
@@ -20,6 +19,7 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.net.protocol.KeyedMessageFormat;
 import com.ms.silverking.cloud.dht.net.protocol.PutMessageFormat;
+import com.ms.silverking.compression.CodecProvider;
 import com.ms.silverking.compression.Compressor;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.util.BufferUtil;
@@ -118,7 +118,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
         int     bytesToChecksumOffset;
         int     bytesToChecksumLength;
         ByteBuffer  bytesToChecksumBuf;
-        short   _bufferIndex;
+        int		_bufferIndex;
         int     _bufferPosition;
         
         // FUTURE - in the future offload serialization, compression and/or checksum computation to a worker?
@@ -241,7 +241,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
             newBuf.position(bytesToStorePosition + bytesToStoreSize);
             
             // record where the value will be located in the key buffer
-            _bufferIndex = (short)bufferList.size();
+            _bufferIndex = bufferList.size();
             _bufferPosition = 0;
             if (!addDedicatedBuffer(newBuf)) {
                 return ValueAdditionResult.MessageGroupFull;
@@ -274,7 +274,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     }
 
     public void addValueDedicated(DHTKey dhtKey, ByteBuffer valueBuf) {
-        short _bufferIndex;
+        int _bufferIndex;
         int _bufferPosition; 
         int uncompressedValueSize;
         int compressedValueSize;
@@ -282,7 +282,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
         if (!addDedicatedBuffer(valueBuf)) {
             throw new RuntimeException("Too many buffers");
         }
-        _bufferIndex = (short)(bufferList.size() - 1);
+        _bufferIndex = bufferList.size() - 1;
         _bufferPosition = 0;
         uncompressedValueSize = valueBuf.limit();
         compressedValueSize = uncompressedValueSize;
@@ -298,12 +298,12 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     
     // NOTE: currently this method counts on the fact that checksum will move
     // the position of the bytesToChecksumBuf. FUTURE - eliminate this side effect.
-    private void addValueHelper(DHTKey dhtKey, short _bufferIndex, int _bufferPosition, 
+    private void addValueHelper(DHTKey dhtKey, int _bufferIndex, int _bufferPosition, 
                           int uncompressedValueSize, int compressedValueSize,
                           ByteBuffer bytesToChecksumBuf) {
         // key byte buffer update
         addKey(dhtKey);
-        keyByteBuffer.putShort(_bufferIndex);
+        keyByteBuffer.putInt(_bufferIndex);
         keyByteBuffer.putInt(_bufferPosition);
         keyByteBuffer.putInt(uncompressedValueSize);
         keyByteBuffer.putInt(compressedValueSize);

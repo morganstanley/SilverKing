@@ -6,6 +6,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
+import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.CentralConvergenceController.SyncTargets;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
@@ -22,7 +23,7 @@ public class RingMasterControlImpl extends UnicastRemoteObject implements RingMa
 		super();
 		this.rm = rm;
 		registry = LocateRegistry.createRegistry(port);		
-		registry.rebind(RingMasterControl.registryName, this);
+		registry.rebind(RingMasterControl.getRegistryName(rm.getDHTName()), this);
 	}
 	
 	protected RingMasterControlImpl(DHTRingMaster rm) throws RemoteException, AlreadyBoundException {
@@ -44,11 +45,24 @@ public class RingMasterControlImpl extends UnicastRemoteObject implements RingMa
 		Log.warningf("RingMasterControlImpl.setTarget %s", target);
 		return rm.setTarget(target);
 	}
-
+	
 	@Override
-	public void display(String object) {
+	public UUIDBase syncData(Triple<String, Long, Long> source, Triple<String, Long, Long> target, SyncTargets syncTargets) {
+		Log.warningf("RingMasterControlImpl.syncData %s", source);
+		return rm.syncData(source, target, syncTargets);
+	}
+	
+	@Override
+	public UUIDBase recoverData() {
+		return rm.recoverData();
 	}
 
+	@Override
+	public void requestChecksumTree(Triple<Long,Long,Long> nsAndRegion, Triple<String, Long, Long> source, Triple<String, Long, Long> target, String owner) {
+		Log.warningf("RingMasterControlImpl.requestChecksumTree %s %s %s %s", nsAndRegion, source, target, owner);
+		rm.requestChecksumTree(nsAndRegion, source, target, owner);
+	}
+	
 	@Override
 	public String getDHTConfiguration() throws RemoteException {
 		return rm.getDHTConfiguration().toString();

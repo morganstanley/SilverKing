@@ -2,7 +2,7 @@ package com.ms.silverking.util;
 
 import static com.ms.silverking.testing.Util.copy;
 import static com.ms.silverking.testing.Util.createToString;
-import static com.ms.silverking.testing.Util.exceptionNameChecker;
+import static com.ms.silverking.testing.Assert.exceptionNameChecker;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static com.ms.silverking.testing.Util.sort;
 import static org.junit.Assert.assertArrayEquals;

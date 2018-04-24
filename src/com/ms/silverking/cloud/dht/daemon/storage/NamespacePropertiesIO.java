@@ -52,8 +52,19 @@ public class NamespacePropertiesIO {
     }
     
     public static void write(File nsDir, NamespaceProperties nsProperties) throws IOException {
+    	_write(nsDir, nsProperties, false);
+    }
+    
+    public static void rewrite(File nsDir, NamespaceProperties nsProperties) throws IOException {
+    	_write(nsDir, nsProperties, true);
+    }
+    
+    private static void _write(File nsDir, NamespaceProperties nsProperties, boolean allowRewrite) throws IOException {
         if (!nsDir.isDirectory()) {
             throw new IOException("NamespacePropertiesIO.write() passed non-directory: "+ nsDir);
+        }
+        if (allowRewrite && propertiesFileExists(nsDir)) {
+        	propertiesFile(nsDir).delete();
         }
         if (propertiesFileExists(nsDir)) {
             NamespaceProperties existingProperties;
@@ -63,6 +74,11 @@ public class NamespacePropertiesIO {
                 System.err.println(nsProperties);
                 System.err.println(existingProperties);
                 System.err.println();
+                System.err.flush();
+                System.out.println(nsProperties);
+                System.out.println(existingProperties);
+                System.out.println();
+                System.out.flush();
                 nsProperties.debugEquals(existingProperties);
                 throw new RuntimeException("Existing properties != nsProperties");
             }

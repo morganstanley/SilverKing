@@ -16,19 +16,22 @@ import com.ms.silverking.cloud.topology.Node;
 class ProtoRegion {
     private final RingRegion    region;
     private final PrimarySecondaryListPair  owners;
+	private final int	minPrimaryUnderFailure;
     
-    ProtoRegion(RingRegion region) {
+    ProtoRegion(RingRegion region, int minPrimaryUnderFailure) {
         this.region = region;
         owners = new PrimarySecondaryListPair();
+        this.minPrimaryUnderFailure = minPrimaryUnderFailure;
     }
     
-    ProtoRegion(RingRegion region, PrimarySecondaryListPair owners) {
+    ProtoRegion(RingRegion region, PrimarySecondaryListPair owners, int minPrimaryUnderFailure) {
         this.region = region;
         this.owners = owners;
+        this.minPrimaryUnderFailure = minPrimaryUnderFailure;
     }
     
     public ProtoRegion duplicate() {
-        return new ProtoRegion(region, owners.duplicate());
+        return new ProtoRegion(region, owners.duplicate(), minPrimaryUnderFailure);
     }
     
     RingRegion getRegion() {
@@ -62,6 +65,10 @@ class ProtoRegion {
 
     List<Node> getSecondaryOwners() {
         return owners.getSecondaryOwners();
+    }
+    
+    int getMinPrimaryUnderFailure() {
+    	return minPrimaryUnderFailure;
     }
     
     int totalOwners() {
@@ -98,7 +105,7 @@ class ProtoRegion {
             
             region = r0.getRegion().merge(r1.getRegion());
             owners = PrimarySecondaryListPair.merge(r0.getOwners(), r1.getOwners());
-            protoRegion = new ProtoRegion(region, owners);
+            protoRegion = new ProtoRegion(region, owners, Math.max(r0.getMinPrimaryUnderFailure(), r1.getMinPrimaryUnderFailure()));
             merged.add(protoRegion);
         } else if (r0.getRegion().overlaps(r1.getRegion())) {
             RingRegion  _r0;
@@ -110,11 +117,11 @@ class ProtoRegion {
             _r1 = r1.getRegion().trimOverlappingWith(r0.getRegion());
 
             if (_r0 != null) {
-                merged.add(new ProtoRegion(_r0, r0.getOwners().duplicate()));
+                merged.add(new ProtoRegion(_r0, r0.getOwners().duplicate(), Math.max(r0.getMinPrimaryUnderFailure(), r1.getMinPrimaryUnderFailure())));
             }
-            merged.add(new ProtoRegion(_r01, PrimarySecondaryListPair.merge(r0.getOwners(), r1.getOwners())));
+            merged.add(new ProtoRegion(_r01, PrimarySecondaryListPair.merge(r0.getOwners(), r1.getOwners()), Math.max(r0.getMinPrimaryUnderFailure(), r1.getMinPrimaryUnderFailure())));
             if (_r1 != null) {
-                merged.add(new ProtoRegion(_r1, r1.getOwners().duplicate()));
+                merged.add(new ProtoRegion(_r1, r1.getOwners().duplicate(), Math.max(r0.getMinPrimaryUnderFailure(), r1.getMinPrimaryUnderFailure())));
             }
         } else {
             throw new RuntimeException("Invalid regions for merge");
@@ -140,7 +147,8 @@ class ProtoRegion {
             } else {
                 _r01 = rr0;
             }
-            return new ProtoRegion(_r01, PrimarySecondaryListPair.merge(r0.getOwners(), r1.getOwners()));
+            return new ProtoRegion(_r01, PrimarySecondaryListPair.merge(r0.getOwners(), r1.getOwners()), 
+            						Math.max(r0.getMinPrimaryUnderFailure(), r1.getMinPrimaryUnderFailure()));
         } else {
             throw new RuntimeException("Invalid regions for merge");
         }

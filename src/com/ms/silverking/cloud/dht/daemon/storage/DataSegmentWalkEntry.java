@@ -1,11 +1,15 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import com.ms.silverking.cloud.dht.ValueCreator;
+import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
+import com.ms.silverking.compression.CompressionUtil;
+import com.ms.silverking.io.util.BufferUtil;
 
 public class DataSegmentWalkEntry {
     private final DHTKey        key;
@@ -83,6 +87,28 @@ public class DataSegmentWalkEntry {
     
     public ByteBuffer getStoredFormat() {
     	return storedFormat;
+    }
+    
+    public ByteBuffer getValue() {
+    	int	dataOffset;
+    	ByteBuffer	rawValue;
+    	ByteBuffer	value;
+    	
+    	dataOffset = MetaDataUtil.getDataOffset(getStoredFormat(), 0);
+    	rawValue = (ByteBuffer)getStoredFormat().duplicate().position(dataOffset);
+    	if (getStorageParameters().getCompression() == Compression.NONE) {
+    		value = rawValue;
+    	} else {
+    		byte[]	v;
+    		
+    		v = BufferUtil.arrayCopy(rawValue);
+    		try {
+				value = ByteBuffer.wrap(CompressionUtil.decompress(getStorageParameters().getCompression(), v, 0, v.length, getStorageParameters().getUncompressedSize()));
+			} catch (IOException ioe) {
+				throw new RuntimeException("Failed to decompress", ioe);
+			}
+    	}
+    	return value;
     }
     
     public StorageParameters getStorageParameters() {

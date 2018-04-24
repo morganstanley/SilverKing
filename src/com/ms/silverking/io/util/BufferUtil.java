@@ -93,6 +93,18 @@ public class BufferUtil {
         return dst;
     }
     
+    public static byte[] arrayCopy(ByteBuffer src, int length) {
+        byte[]  dst;
+        
+        dst = new byte[length];
+        src.get(dst);
+        return dst;
+    }
+    
+    public static byte[] arrayCopy(ByteBuffer src) {
+    	return arrayCopy(src, src.remaining());
+    }
+    
     public static ByteBuffer convertToArrayBacked(ByteBuffer buf) {
     	if (buf.hasArray()) {
     		throw new RuntimeException("Already array backed");

@@ -58,6 +58,7 @@ public class NamespaceOptionsClient {
         this.seTimeoutController = seTimeoutController;
         systemNamespaceOptions = new HashMap<>();
         nsCreator = new SimpleNamespaceCreator();
+        systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.systemName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
         systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.nodeName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
         systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.replicasName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
     }
@@ -68,7 +69,7 @@ public class NamespaceOptionsClient {
     
     public NamespaceOptionsClient(DHTSession session, ClientDHTConfiguration dhtConfig, 
     							SessionEstablishmentTimeoutController seTimeoutController) {
-        this(session, new ZooKeeperConfig(dhtConfig.getZkLocs()), dhtConfig.getName(), seTimeoutController);
+        this(session, dhtConfig.getZKConfig(), dhtConfig.getName(), seTimeoutController);
     }
 
     public void createNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceCreationException {

@@ -1,10 +1,10 @@
 package com.ms.silverking.collection;
 
-import static com.ms.silverking.collection.Util.checkEqualsEmptySet;
-import static com.ms.silverking.collection.Util.checkEqualsSetOne;
-import static com.ms.silverking.collection.Util.key1;
-import static com.ms.silverking.collection.Util.value1;
-import static com.ms.silverking.collection.Util.value2;
+import static com.ms.silverking.testing.Assert.checkEqualsEmptySet;
+import static com.ms.silverking.testing.Assert.checkEqualsSetOne;
+import static com.ms.silverking.collection.TestUtil.key1;
+import static com.ms.silverking.collection.TestUtil.value1;
+import static com.ms.silverking.collection.TestUtil.value2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNull;

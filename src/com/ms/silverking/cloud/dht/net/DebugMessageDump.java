@@ -40,6 +40,7 @@ public class DebugMessageDump {
         
         buffers = getBuffers(lines);
         return new MessageGroup(messageType, 
+        		0, // options
                 new UUIDBase(0, 0), 
                 0L, // context
                 buffers.toArray(new ByteBuffer[0]), 

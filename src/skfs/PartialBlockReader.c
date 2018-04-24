@@ -18,7 +18,7 @@
 #define _PBR_MAX_NATIVE_READ_ATTEMPTS 8
 #define _PBR_NATIVE_READ_ERROR_SLEEP_MICROS 200
 #define _PBR_MAX_SKFS_BLOCK_READ_RETRIES 8
-#define _PBR_SKFS_READ_ERROR_SLEEP_MICROS 200
+#define _PBR_SKFS_READ_ERROR_SLEEP_MICROS (200 * 1000)
 
 
 ///////////////////
@@ -42,26 +42,35 @@ void pbr_delete(PartialBlockReader **pbr) {
 	}
 }
 
-int pbr_read(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset) {
-	FileAttr	fa;
-	int			result;
-
+int pbr_read(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset, SKFSOpenFile *sof) {
+    FileAttr	fa;
+	FileAttr	*_fa;
+    
 	srfsLog(LOG_FINE, "pbr_read %s %d %d", path, readSize, readOffset);
 	if (readSize == 0) {
 		srfsLog(LOG_WARNING, "readFromFile ignoring zero-byte read");
 		return 0;
 	}
-	memset(&fa, 0, sizeof(FileAttr));
-	result = ar_get_attr(pbr->ar, (char *)path, &fa);
-	if (result != 0) {
-		if (!is_writable_path(path)) {
-			srfsLog(LOG_WARNING, "Error reading %s result %d", path, result);
-			fatalError("readFromFile() failed", __FILE__, __LINE__);
-		} else {
-			return -ENOENT;
-		}
-	}
-    return pbr_read_given_attr(pbr, path, dest, readSize, readOffset, &fa);
+    
+    if (sof != NULL && sof->attr != NULL) {
+        _fa = sof->attr;
+    } else {
+        int			result;
+        int         attrFoundInDHT;
+        
+        _fa = &fa;
+        memset(&fa, 0, sizeof(FileAttr));
+        result = ar_get_attr(pbr->ar, (char *)path, &fa);
+        if (result != 0) {
+            if (!is_writable_path(path)) {
+                srfsLog(LOG_WARNING, "Error reading %s result %d", path, result);
+                fatalError("readFromFile() failed", __FILE__, __LINE__);
+            } else {
+                return -ENOENT;
+            }
+        }
+    }
+    return pbr_read_given_attr(pbr, path, dest, readSize, readOffset, _fa, TRUE);
 }
     
 static int _pbr_native_read(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset) {
@@ -113,10 +122,11 @@ static int _pbr_native_read(PartialBlockReader *pbr, const char *path, char *des
     return totalRead;
 }
     
-int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset, FileAttr *fa, int maxBlocksReadAhead) {    
+int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset, FileAttr *fa, int presumeBlocksInDHT, int maxBlocksReadAhead, int useNFSReadAhead) {    
 	int			numBlocks;
 	uint64_t	firstBlock;
 	uint64_t	lastBlock;
+    uint64_t    readAheadFirstBlock;
 	off_t		readEnd;
 	off_t		actualReadSize;
 	off_t		totalRead;
@@ -133,6 +143,8 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
 			return -1;
 		}
 	}
+    
+    srfsLog(LOG_FINE, "pbr_read_given_attr %s %d %d presumeBlocksInDHT %d", path, readSize, readOffset, presumeBlocksInDHT);
 
     // FUTURE: probably remove g2tor
 	//if (g2tor_is_g2tor_path(pbr->g2tor, path)) {
@@ -165,6 +177,15 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
         numBlocksReadAhead = 0;
     }
 	srfsLog(LOG_FINE, "numBlocksReadAhead %d", numBlocksReadAhead);
+
+    // dest == NULL ==> purely read-ahead, convert the request
+    if (dest == NULL) {
+        numBlocksReadAhead += numBlocks;
+        numBlocks = 0;
+        readAheadFirstBlock = firstBlock;
+    } else {
+        readAheadFirstBlock = lastBlock + 1;
+    }
 
 	{
 		PartialBlockReadRequest	*pbrrs[numBlocks];
@@ -200,22 +221,22 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
 			}
 			blockReadSize = blockReadEnd - blockReadOffset;
 			pbrrs[i] = pbrr_new(fbids[i], dest + totalSize, blockReadOffset, blockReadSize, 
-                                fa->stat.st_mtime * 1000 + (fa->stat.st_mtim.tv_nsec / 1000000));
+                                stat_mtime_micros(&fa->stat));
 			totalSize += blockReadSize;
 		}
-		if (totalSize != actualReadSize) {
+		if (dest != NULL && totalSize != actualReadSize) {
 			srfsLog(LOG_WARNING, "totalSize %d actualReadSize %d", totalSize, actualReadSize);
 			fatalError("totalSize != actualReadSize", __FILE__, __LINE__);
 		}
 
 		for (i = 0; i < numBlocksReadAhead; i++) {
-			fbidsReadAhead[i] = fbid_new(&fa->fid, lastBlock + 1 + i);
+			fbidsReadAhead[i] = fbid_new(&fa->fid, readAheadFirstBlock + i);
 			pbrrsReadAhead[i] = pbrr_new(fbidsReadAhead[i], NULL, 0, 0, 
-                                    fa->stat.st_mtime * 1000 + (fa->stat.st_mtim.tv_nsec / 1000000));
+                                    stat_mtime_micros(&fa->stat));
 		}
 
-		totalRead = fbr_read(pbr->fbr, pbrrs, numBlocks, pbrrsReadAhead, numBlocksReadAhead);
-		if (totalRead != actualReadSize) {
+		totalRead = fbr_read(pbr->fbr, pbrrs, numBlocks, pbrrsReadAhead, numBlocksReadAhead, presumeBlocksInDHT, useNFSReadAhead);
+		if (dest != NULL && totalRead != actualReadSize) {
 			srfsLog(LOG_WARNING, "totalRead %d actualReadSize %d", totalRead, actualReadSize);
 			if (totalRead != -1) {
 				//fatalError("totalRead != actualReadSize", __FILE__, __LINE__);
@@ -232,7 +253,7 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
                     int ii;
                     
                     for (ii = 0; totalRead != actualReadSize && ii < _PBR_MAX_SKFS_BLOCK_READ_RETRIES; ii++) {
-                        totalRead = fbr_read(pbr->fbr, pbrrs, numBlocks, pbrrsReadAhead, numBlocksReadAhead);
+                        totalRead = fbr_read(pbr->fbr, pbrrs, numBlocks, pbrrsReadAhead, numBlocksReadAhead, presumeBlocksInDHT, useNFSReadAhead);
                         srfsLog(LOG_WARNING, "skfs block read retry %d %d", totalRead, actualReadSize);
                         if (totalRead != actualReadSize) {
                             usleep(_PBR_SKFS_READ_ERROR_SLEEP_MICROS);

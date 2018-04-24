@@ -10,6 +10,8 @@ class PendingWaitFor implements Comparable<PendingWaitFor> {
     private final RetrievalOptions  options;
     private final UUIDBase          opUUID;
     
+    // No timeout here as this is cleaned up when the corresponding active retrieval is no longer found
+    
     PendingWaitFor(DHTKey key, RetrievalOptions options, UUIDBase opUUID) {
         this.key = key;
         this.options = options;

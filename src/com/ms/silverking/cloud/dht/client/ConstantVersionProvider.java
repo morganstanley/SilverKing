@@ -14,4 +14,23 @@ public class ConstantVersionProvider implements VersionProvider {
     public long getVersion() {
         return version;
     }
+    
+    @Override
+    public int hashCode() {
+    	return Long.hashCode(version);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+    	if (this == o) {
+    		return true;
+    	}
+    		
+    	if (this.getClass() != o.getClass()) {
+    		return false;
+    	}
+    	
+    	ConstantVersionProvider other = (ConstantVersionProvider)o;
+    	return this.version == other.version;
+    }
 }

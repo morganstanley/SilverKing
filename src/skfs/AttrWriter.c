@@ -100,11 +100,15 @@ void aw_write_attr(AttrWriter *aw, const char *path, FileAttr *fa) {
 static void aw_process_dht_batch(void **requests, int numRequests, int curThreadIndex) {
 	SKOperationState::SKOperationState	dhtErr;
 	int					i;
+	int				j;
 	AttrWriter			*aw;
    	StrValMap           requestGroup;  //keys map
+    int                 isDuplicate[numRequests];
 
 	srfsLog(LOG_FINE, "in aw_process_dht_batch %d", curThreadIndex);
 	aw = NULL;
+    
+    memset(isDuplicate, 0, sizeof(int) * numRequests);
 
 	for (i = 0; i < numRequests; i++) {
 		AttrWriteRequest	*awr;
@@ -171,19 +175,37 @@ static void aw_process_dht_batch(void **requests, int numRequests, int curThread
         srfsLog(LOG_ERROR, "aw mput dhtErr Exception %s", e.what());
     }
 
+    // Check for duplicates
+    if (requestGroup.size() != numRequests) {
+        // Naive n^2 search for the duplicates that must exist
+        for (i = 0; i < numRequests; i++) {
+            for (j = i + 1; j < numRequests; j++) {
+                AttrWriteRequest    *awr_i = (AttrWriteRequest *)requests[i];
+                AttrWriteRequest    *awr_j = (AttrWriteRequest *)requests[j];
+                
+                if (!strcmp(awr_i->path, awr_j->path)) {
+                    isDuplicate[j] = TRUE;
+                }
+            }
+        }
+    }
+    
 	if (pPut) {
 		pPut->close();
 		delete pPut;
 	}
-    for (i = 0; i < numRequests; i++) {
+    for (i = numRequests - 1; i >= 0; i--) { // reverse order so that duplicates aren't deleted before we use them
 		AttrWriteRequest	*awr = (AttrWriteRequest *)requests[i];
         SKVal * ppval = requestGroup.at(awr->path);
 		if (ppval == NULL || ppval->m_len == 0) {
             srfsLog(LOG_WARNING, "aw unexpected NULL %s %s\n", SKFS_ATTR_NS, awr->path);
         }
-        //m_pVal points to awr's member, which is deleted below
-        ppval->m_len = 0; ppval->m_pVal = NULL;
-        sk_destroy_val( &ppval );
+        if (!isDuplicate[i]) {
+            ppval->m_len = 0; 
+            //m_pVal points to awr's member, which is deleted below
+            ppval->m_pVal = NULL;
+            sk_destroy_val( &ppval ); // FIXME - native file relay was requiring this to be c/o, checking if fixed now
+        }
 		// unlike AttrReader (which uses ActiveOp to perform the deletion), we must delete the requests
 		awr_delete(&awr);
 	}
@@ -247,7 +269,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 		CacheStoreResult	acResult;
 		
 		acResult = ac_store_raw_data(ac, (char *)path, fa_dup(fa), TRUE, 
-                                SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
+                                curTimeMicros(), SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
 		if (acResult != CACHE_STORE_SUCCESS) {
 			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d at %s %d", acResult, __FILE__, __LINE__);
 			result = SKOperationState::FAILED;

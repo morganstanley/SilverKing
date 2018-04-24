@@ -1,0 +1,79 @@
+	
+source lib/common.lib
+
+function f_checkAndCdToRegressionArea {
+	typeset regressionArea=$1
+	
+	if [[ -z $regressionArea ]]; then
+		echo "Must pass in a path for the regression area, so we can cd to this area, make a folder, and kick off a run"
+		exit
+	fi
+
+	cd $regressionArea 
+}
+
+function f_makeSetAndChangeToFolder {
+    FOLDER_NAME=$(f_getBuildTime)
+	f_make $FOLDER_NAME
+	cd $FOLDER_NAME
+}
+
+# sendmail - good, can send html body, but attachment is a pain
+#     mail - good, but only one line in body and no html, attachment is easy tho
+function f_emailResults {
+	typeset outputFile=$1
+	typeset to=$2
+	
+	typeset   passCount=$(f_getPassCount "$outputFile")
+	typeset   failCount=$(f_getFailCount "$outputFile")
+	typeset      result=$(f_getResultHelper "$passCount" "$failCount")
+	typeset summaryText=$(f_extractSummaryFromFile "$outputFile")
+	
+	typeset    from="regression@the_real_silverking.com"
+	typeset subject="Regression $FOLDER_NAME $result - (p=$passCount, f=$failCount)"
+	
+	f_sendEmail "$to" "$from" "$subject" "$summaryText" "$outputFile"
+	#echo "$summaryText" | $MUTT -e "my_hdr From:$from" $to -s "$subject" -a "$outputFile"  
+	
+	#typeset summaryTrimmed=`echo "$summaryText" | tr -d '\n'`
+	#echo "$summaryText" > abc.txt
+	#tr '\n' '+' < abc.txt > abc2.txt
+	#mail -s "Regression $FOLDER_NAME $result - (p=$passCount, f=$failCount)" -a $outputFile user@domain.com < abc2.txt
+	
+	#(
+		#echo "From: $from"
+		#echo "To: $to"
+		#echo "Subject: $subject"
+		##echo "Content-Type: text/html"
+		#echo
+		#echo "$summaryTrimmed"
+		#echo
+	#) | sendmail -t
+	#echo -e "To: $to\nSubject: $subject\n\n$summaryText" | sendmail -t	# important to have double \n between headers and body
+}
+
+function f_extractSummaryFromFile {
+	typeset outputFile=$1
+	typeset   startLine=`sed -n '/+++/=' $outputFile`
+	typeset     endLine=`wc -l < $outputFile`
+	typeset summaryText=`sed -n "${startLine},${endLine}p" $outputFile`
+	echo "$summaryText"	# double quotes very important, preserves the multi-line result
+}
+
+function f_removeOldRegressions {
+	typeset regressionArea=$1
+	
+	if [[ -z $regressionArea ]] ; then
+		echo "Need to pass in a value for regressionArea"
+		return 1
+	fi
+	
+	cd $regressionArea
+	if [[ `pwd` == $regressionArea ]]; then
+		while [[ `ls -Al | grep '^d' | wc -l` -gt 10 ]]; do	# keep oldest 10 directories
+			typeset folderToClean=`ls | head -n 1`
+			f_remove "$folderToClean"
+		done
+	fi
+} 
+

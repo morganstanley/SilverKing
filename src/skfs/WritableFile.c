@@ -11,6 +11,7 @@
 
 #include "AttrReader.h"
 #include "FileBlockWriter.h"
+#include "SKFSOpenFile.h"
 #include "WritableFile.h"
 #include "WritableFileBlock.h"
 #include "Util.h"
@@ -25,7 +26,16 @@
 #define WF_BLOCK_INCREMENT		16
 #define WF_MAX_BLOCKS_OUTSTANDING	100
 #define WF_ATTR_WRITE_MAX_ATTEMPTS	12
+#define WF_TRUNCATE_ON_FLUSH_ERROR  1
+#define WF_FAILED_BLOCK_RETRIES 2
 
+// Ugly Linux requirement to report st_blocks as 512 byte blocks
+// irrespective of actual blocks
+//#define statBlockConversion(B) (B * (SRFS_BLOCK_SIZE / 512))
+// For now, roll back this change. Need to remove assumption
+// in code that actual blocks == st_blocks if we use this fix...
+// Perhaps just do the fix in stat...
+#define statBlockConversion(B) (B)
 
 /////////////////
 // private types
@@ -37,26 +47,38 @@ typedef struct WF_BlockWrite {
 } WF_BlockWrite;
 
 
+/////////////////
+// private data
+
+static int wf_syncDirUpdates;
+
 ///////////////////////
 // private prototypes
 
 static int wf_init_cur_block(WritableFile *wf, PartialBlockReader *pbr);
 static void wf_init_blockList(WritableFile *wf, size_t sizes);
 static void wf_write_block(WritableFile *wf, WritableFileBlock *wfb, uint64_t block, FileBlockWriter *fbw);
-static SKOperationState::SKOperationState wf_write_block_sync(WritableFile *wf, WritableFileBlock *wfb, uint64_t blockIndex, FileBlockWriter *fbw);
+static SKOperationState::SKOperationState wf_write_block_sync(WritableFile *wf, WritableFileBlock *wfb, uint64_t blockIndex, FileBlockWriter *fbw, int maxAttempts = 1);
 static void wf_new_block(WritableFile *wf);
 static uint64_t wf_blocks_outstanding(WritableFile *wf);
 static void wf_limit_outstanding_blocks(WritableFile *wf, FileBlockWriter *fbw, uint64_t limit);
-static int wf_all_blocks_written_successfully(WritableFile *wf);
-static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks);
+static int wf_all_blocks_written_successfully(WritableFile *wf, FileBlockWriter *fbw);
+static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks, FileBlockWriter *fbw);
 static uint64_t wf_cur_block_index(WritableFile *wf);
 static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int cacheOnly = FALSE);
+static int _wf_find_empty_ref(WritableFile *wf);
 static int _wf_has_references(WritableFile *wf);
 static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
 static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
+static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fbw);
 
 ///////////////////
 // implementation
+
+void wf_set_sync_dir_updates(int syncDirUpdates) {
+    srfsLog(LOG_INFO, "wf_set_sync_dir_updates %d", syncDirUpdates);
+    wf_syncDirUpdates = syncDirUpdates;
+}
 
 static WF_BlockWrite *wfbw_new(WritableFileBlock *wfb, FBW_ActiveDirectPut *adp) {
 	WF_BlockWrite	*bw;
@@ -103,7 +125,7 @@ static void wfbw_set_complete(WF_BlockWrite *bw, SKOperationState::SKOperationSt
 		srfsLog(LOG_WARNING, "Ignoring multiple completion in wfbw_set_complete %llx %d %d", bw, bw->result, result);
 	} else {
 		bw->result = result;
-		if (bw->wfb != NULL) {
+		if (bw->wfb != NULL && result == SKOperationState::SUCCEEDED) {
 			if (srfsLogLevelMet(LOG_FINE)) {
 				srfsLog(LOG_FINE, "bw %llx bw->wfb %llx &bw->wfb %llx", bw, bw->wfb, &bw->wfb);
 			}
@@ -129,6 +151,7 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
     time_t  curEpochTimeSeconds;
     long    curTimeNanos;
 	pthread_mutexattr_t mutexAttr;
+    uint64_t    minModificationTimeMicros;
     
 	fuseContext = fuse_get_context();
 
@@ -182,7 +205,9 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
 	pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);	
     pthread_mutex_init(&wf->lock, &mutexAttr); 
 
-	if (ar_store_attr_in_cache_static((char *)wf->path, &wf->fa, TRUE, 
+    minModificationTimeMicros = stat_mtime_micros(&wf->fa.stat);
+    
+	if (ar_store_attr_in_cache_static((char *)wf->path, &wf->fa, TRUE, minModificationTimeMicros,
             SKFS_DEF_ATTR_TIMEOUT_SECS * 1000) != CACHE_STORE_SUCCESS) {
 		wf_delete(&wf); // sets wf to NULL
 	}
@@ -212,7 +237,7 @@ static int wf_init_cur_block(WritableFile *wf, PartialBlockReader *pbr) {
         blockBuf = (char *)mem_alloc(curBlockLength, 1);
         readResult = pbr_read_given_attr(pbr, wf->path, blockBuf, 
                                          curBlockLength, wf_cur_block_index(wf) * SRFS_BLOCK_SIZE, 
-                                         &wf->fa, 0);
+                                         &wf->fa, TRUE, 0);
         
         if (readResult != (int)curBlockLength) {
             mem_free((void **)&blockBuf);
@@ -249,6 +274,15 @@ void wf_delete(WritableFile **wf) {
 	} else {
 		fatalError("bad ptr in wf_delete");
 	}
+}
+
+void wf_set_parent_dir(WritableFile *wf, OpenDir *parentDir, uint64_t parentDirUpdateTimeMillis) {
+    pthread_mutex_lock(&wf->lock);    
+    if (wf->parentDir == NULL) {
+        wf->parentDir = parentDir;
+        wf->parentDirUpdateTimeMillis = parentDirUpdateTimeMillis;
+    }
+    pthread_mutex_unlock(&wf->lock);    
 }
 
 WritableFileReference *wf_add_reference(WritableFile *wf, char *file, int line) {
@@ -324,7 +358,7 @@ static size_t wf_rewrite_past_blocks(WritableFile *wf, const char *src, size_t p
     numBlocks = lastPastBlockIndex - firstBlockIndex + 1;
     rewriteBufSize = numBlocks * SRFS_BLOCK_SIZE;
     rewriteBuf = (char *)mem_alloc(rewriteBufSize, 1);
-    readResult = pbr_read_given_attr(pbr, wf->path, rewriteBuf, rewriteBufSize, firstBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, 0);
+    readResult = pbr_read_given_attr(pbr, wf->path, rewriteBuf, rewriteBufSize, firstBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, TRUE, 0);
     
     // Rewrite
     firstBlockOffset = writeOffset % SRFS_BLOCK_SIZE;
@@ -353,7 +387,7 @@ static size_t wf_rewrite_past_blocks(WritableFile *wf, const char *src, size_t p
         wf_write_block_sync(wf, wfb, firstBlockIndex + i, fbw);
         fbid = fbid_new(&wf->fa.fid, (firstBlockIndex + i));
         blockCacheStoreResult = fbc_store_raw_data(fbc, fbid, cacheBlock, wfb->size, TRUE,
-                                        blockWriteTimeMillis);
+                                        blockWriteTimeMillis * 1000);
         if (blockCacheStoreResult != CACHE_STORE_SUCCESS) {
             srfsLog(LOG_ERROR, "wf_rewrite_past_blocks blockCacheStoreResult != CACHE_STORE_SUCCESS %s", wf->path);
             mem_free((void **)&cacheBlock);
@@ -376,6 +410,7 @@ static size_t wf_rewrite(WritableFile *wf, const char *src, size_t writeSize, of
     size_t      curBlockRewriteOffset;
     size_t      curBlockRewriteSize;
     size_t      totalWritten;
+    size_t      curBlockSrcOffset;
     
     srfsLog(LOG_FINE, "wf_rewrite %llx %s %u %u", wf, src, writeSize, writeOffset);
     // first flush all new blocks
@@ -404,7 +439,8 @@ static size_t wf_rewrite(WritableFile *wf, const char *src, size_t writeSize, of
         if (curBlockRewriteOffset + curBlockRewriteSize > wf->curBlock->size) {
             fatalError("lastBlockIndex > wf_cur_block_index(wf)", __FILE__, __LINE__);
         }
-        totalWritten += wfb_rewrite(wf->curBlock, src, curBlockRewriteOffset, curBlockRewriteSize);
+        curBlockSrcOffset = writeSize - curBlockRewriteSize; // compute location of src for current block
+        totalWritten += wfb_rewrite(wf->curBlock, src + curBlockSrcOffset, curBlockRewriteOffset, curBlockRewriteSize);
         srfsLog(LOG_FINE, "%u", totalWritten);
     } else {
         srfsLog(LOG_FINE, "no rewrite current block");
@@ -492,7 +528,7 @@ static int _wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, Part
     
     // Note that after we truncate, cached file blocks could be invalid. 
     // This is handled by the FileBlockCache support for the modification time.
-    // The newly stored attribute will tell us to user newer blocks, and hte
+    // The newly stored attribute will tell us to user newer blocks, and the
     // old cached blocks will be dropped.
     
     newCurBlockIndex = size / SRFS_BLOCK_SIZE;
@@ -518,7 +554,7 @@ static int _wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, Part
             // Even though we might not actually care about all of it
             blockBuf = (char *)mem_alloc(SRFS_BLOCK_SIZE, 1);
             readResult = pbr_read_given_attr(pbr, wf->path, blockBuf, 
-                                             SRFS_BLOCK_SIZE, newCurBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, 0);
+                                             SRFS_BLOCK_SIZE, newCurBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, TRUE, 0);
             if (readResult != 0) {
                 return -EIO;
             }
@@ -528,8 +564,9 @@ static int _wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, Part
         }
         wf->numBlocks = newNumBlocks;
         wf->leastIncompleteBlockIndex = wf->numBlocks - 1;
-        wf->fa.stat.st_blocks = wf->numBlocks; // FUTURE - we don't normally update this on the fly
-                                               // maybe change that everywhere        
+        wf->fa.stat.st_blocks = statBlockConversion(wf->numBlocks); 
+                                                // FUTURE - we don't normally update this on the fly
+                                                // maybe change that everywhere        
     } else { // Modify the current block size only
         // Truncate the current block
         wfb_truncate(wf->curBlock, newCurBlockLength);
@@ -578,7 +615,7 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
 	// Wait for all block writes to complete
 	wf_limit_outstanding_blocks(wf, fbw, 0);
 	srfsLog(LOG_FINE, "wf_flush. ensure blocks written successfully");
-    blocksOK = wf_blocks_written_successfully(wf, abl_size(wf->blockList));
+    blocksOK = wf_blocks_written_successfully(wf, abl_size(wf->blockList), fbw);
     // FUTURE - consider retrying failed blocks
 	if (!wfb_is_empty(wf->curBlock)) { // attempt this write even if others failed
         SKOperationState::SKOperationState	bwResult;
@@ -589,8 +626,32 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
         }
     }
     if (blocksOK) {
-        result = wf_update_attr(wf, aw, ac, TRUE);
+        //if (wf->kvAttrStale) {
+            result = wf_update_attr(wf, aw, ac, FALSE);
+        //}
+        if (wf_syncDirUpdates && wf->parentDir != NULL) {
+            srfsLog(LOG_INFO, "_wf_flush %s od_waitForWrite parentDir %s", wf->path, wf->parentDir->path);
+            od_waitForWrite(wf->parentDir, wf->parentDirUpdateTimeMillis);
+            srfsLog(LOG_INFO, "_wf_flush %s od_waitForWrite parentDir %s complete", wf->path, wf->parentDir->path);
+        } else {
+            srfsLog(LOG_INFO, "No parentDir set %s", wf->path);
+        }
     } else {
+        if (WF_TRUNCATE_ON_FLUSH_ERROR) {
+            off_t   okBytes;
+            int     tResult;
+            int     aResult;
+            
+            // In case of an error, we make a best-effort attempt
+            // to truncate the file to the last successfully written block
+            srfsLog(LOG_WARNING, "Error in _wf_flush %s. Attempting to truncate file and update attribute.", wf->path);
+            okBytes = wf_bytes_successfully_written(wf, fbw);
+            srfsLog(LOG_WARNING, "%s okBytes %d", wf->path, okBytes);
+            tResult = _wf_truncate(wf, okBytes, fbw, NULL); // NULL is allowed for pbr since we won't have any partial blocks to read
+            srfsLog(LOG_WARNING, "%s _wf_truncate %s", wf->path, !tResult ? "succeeded" : "failed");
+            aResult = wf_update_attr(wf, aw, ac, FALSE);
+            srfsLog(LOG_WARNING, "%s wf_update_attr %s", wf->path, !aResult ? "succeeded" : "failed");
+        }
         result = EIO;
     }
 	srfsLog(LOG_FINE, "out wf_flush %d", result);
@@ -604,6 +665,7 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
     struct timespec tp;
     int result;
     
+    wf->kvAttrStale = FALSE;
     result = 0;
     // Fill in file stat information
     if (clock_gettime(CLOCK_REALTIME, &tp)) {
@@ -616,16 +678,16 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
     wf->fa.stat.st_mtim.tv_nsec = curTimeNanos;
     wf->fa.stat.st_atim.tv_nsec = curTimeNanos;
 	if (!wfb_is_empty(wf->curBlock)) {
-        wf->fa.stat.st_blocks = wf->numBlocks;
+        wf->fa.stat.st_blocks = statBlockConversion(wf->numBlocks);
     } else {
-        wf->fa.stat.st_blocks = wf->numBlocks - 1;
+        wf->fa.stat.st_blocks = statBlockConversion(wf->numBlocks - 1);
     }
     
     if (cacheOnly) {
 		CacheStoreResult	acResult;
 		
 		acResult = ac_store_raw_data(ac, (char *)wf->path, fa_dup(&wf->fa), TRUE, 
-            SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
+                        curTimeMicros(), SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
 		if (acResult != CACHE_STORE_SUCCESS) {
 			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d at %s %d", acResult, __FILE__, __LINE__);
 			result = EIO;
@@ -652,7 +714,9 @@ static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Attr
     pthread_mutex_lock(&wf->lock);    
     
     // wf_flush() only updates the cached attribute. Update the the key-value store.
-	result = wf_update_attr(wf, aw, NULL);
+    // UPDATE: wf_flush() is now updating both the cached attribute and the key-value store
+    // Assumption: fuse is calling flush() after every OS close() operation
+	//result = wf_update_attr(wf, aw, NULL);
     wfb_delete(&wf->curBlock);
     
     pthread_mutex_unlock(&wf->lock);
@@ -662,21 +726,33 @@ static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Attr
     return result;
 }
 
-static SKOperationState::SKOperationState wf_write_block_sync(WritableFile *wf, WritableFileBlock *wfb, uint64_t blockIndex, FileBlockWriter *fbw) {
+static SKOperationState::SKOperationState wf_write_block_sync(WritableFile *wf, WritableFileBlock *wfb, uint64_t blockIndex, FileBlockWriter *fbw, int maxAttempts) {
 	FileBlockID	*fbid;
 	FBW_ActiveDirectPut	*adp;
 	SKOperationState::SKOperationState	result;
+    int attempt;
 	
+    if (wfb == NULL) {
+        srfsLog(LOG_WARNING, "NULL wfb %s %d", wf->path, blockIndex);
+        return SKOperationState::FAILED;
+    }
+    attempt = 1;
+    wf->kvAttrStale = TRUE;
 	if (srfsLogLevelMet(LOG_FINE)) {
 		srfsLog(LOG_FINE, "wf_rewrite_block %u", wfb->size);
 	}
 	fbid = fbid_new(&wf->fa.fid, blockIndex);
-	adp = fbw_put_direct(fbw, fbid, wfb);
-    result = fbw_wait_for_direct_put(fbw, &adp);
+    do {
+        adp = fbw_put_direct(fbw, fbid, wfb);
+        result = fbw_wait_for_direct_put(fbw, &adp);
+        if (result != SKOperationState::SUCCEEDED) {        
+            char    key[SRFS_FBID_KEY_SIZE];
+            
+            fbid_to_string(fbid, key);            
+            srfsLog(LOG_ERROR, "wf_write_block_sync failed %s %d %s. Attempt %d of %d", wf->path, result, key, attempt, maxAttempts);
+        }
+    } while (result != SKOperationState::SUCCEEDED && attempt++ < maxAttempts);
 	fbid_delete(&fbid);
-	if (result != SKOperationState::SUCCEEDED) {
-        srfsLog(LOG_ERROR, "wf_rewrite_block failed %s %d", wf->path, result);
-    }
     return result;
 }
 
@@ -684,6 +760,7 @@ static void wf_write_block(WritableFile *wf, WritableFileBlock *wfb, uint64_t bl
 	FileBlockID	*fbid;
 	FBW_ActiveDirectPut	*adp;
 	
+    wf->kvAttrStale = TRUE;
 	if (srfsLogLevelMet(LOG_FINE)) {
 		srfsLog(LOG_FINE, "wf_write_block %u %u", blockIndex, wfb->size);
 	}
@@ -694,17 +771,25 @@ static void wf_write_block(WritableFile *wf, WritableFileBlock *wfb, uint64_t bl
 }
 
 WritableFile *wf_fuse_fi_fh_to_wf(struct fuse_file_info *fi) {
-    WritableFileReference   *wf_ref;
-	WritableFile	        *wf;
+    SKFSOpenFile    *sof;
+    WritableFile    *wf;
 	
-    wf_ref = (WritableFileReference *)fi->fh;
-	wf = wfr_get_wf(wf_ref);
-	if (wf != NULL) {
-		if (wf->magic != WF_MAGIC) {
-			srfsLog(LOG_ERROR, "Bogus fi->fh. wf->magic is %x", wf->magic);			
-			wf = NULL;
-		}
-	}
+    sof = (SKFSOpenFile*)fi->fh;
+    if (!sof_is_valid(sof)) {
+        srfsLog(LOG_ERROR, "Bogus fi->fh");
+        wf = NULL;
+    } else {
+        WritableFileReference   *wf_ref;
+        
+        wf_ref = (WritableFileReference *)sof->wf_ref;
+        wf = wfr_get_wf(wf_ref);
+        if (wf != NULL) {
+            if (wf->magic != WF_MAGIC) {
+                srfsLog(LOG_ERROR, "Bogus wfr in sof. wf->magic is %x", wf->magic);			
+                wf = NULL;
+            }
+        }
+    }
 	return wf;
 }
 
@@ -742,11 +827,11 @@ static void wf_limit_outstanding_blocks(WritableFile *wf, FileBlockWriter *fbw, 
 
 // Verifies that all blocks that have been written to SK have succeeded.
 // Does not consider blocks that have not yet been written to SK.
-static int wf_all_blocks_written_successfully(WritableFile *wf) {
-	return wf_blocks_written_successfully(wf, wf->numBlocks);
+static int wf_all_blocks_written_successfully(WritableFile *wf, FileBlockWriter *fbw) {
+	return wf_blocks_written_successfully(wf, wf->numBlocks, fbw);
 }
 
-static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks) {
+static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks, FileBlockWriter *fbw) {
 	size_t	i;
 	
 	for (i = 0; i < numBlocks; i++) {
@@ -754,24 +839,85 @@ static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks) {
 		
 		bw = (WF_BlockWrite *)abl_get(wf->blockList, i);
 		if (bw != NULL && bw->result != SKOperationState::SUCCEEDED) {
-			srfsLog(LOG_WARNING, "Block not successful: %s %d", bw->adp->key, bw->result);
-			return FALSE;
+            SKOperationState::SKOperationState  retryResult;
+            char	    key[SRFS_FBID_KEY_SIZE];
+            FileBlockID	*fbid;
+            
+            fbid = fbid_new(&wf->fa.fid, i);
+            fbid_to_string(fbid, key);            
+            fbid_delete(&fbid);
+			srfsLog(LOG_WARNING, "Block not successful: %s %d %s %d", wf->path, i, key, bw->result);
+            retryResult = wf_write_block_sync(wf, bw->wfb, i, fbw, WF_FAILED_BLOCK_RETRIES);
+            if (retryResult == SKOperationState::SUCCEEDED) {
+                srfsLog(LOG_WARNING, "Block retried successfully: %s %d %s %d", wf->path, i, key, bw->result);
+                bw->result = SKOperationState::SUCCEEDED;
+            } else {
+                if (bw->wfb != NULL) {
+                    wfb_delete(&bw->wfb);
+                }
+                return FALSE;
+            }
 		}
 	}
 	return TRUE;
 }
 
-int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid) {
+static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fbw) {
+	size_t	i;
+	
+	for (i = 0; i < wf->numBlocks; i++) {
+		WF_BlockWrite	*bw;
+		
+		bw = (WF_BlockWrite *)abl_get(wf->blockList, i);
+		if (bw != NULL && bw->result != SKOperationState::SUCCEEDED) {
+            SKOperationState::SKOperationState  retryResult;
+            char	    key[SRFS_FBID_KEY_SIZE];
+            FileBlockID	*fbid;
+            
+            fbid = fbid_new(&wf->fa.fid, i);
+            fbid_to_string(fbid, key);            
+            fbid_delete(&fbid);
+			srfsLog(LOG_WARNING, "Block not successful: %s %d %s %d", wf->path, i, key, bw->result);
+            retryResult = wf_write_block_sync(wf, bw->wfb, i, fbw, WF_FAILED_BLOCK_RETRIES);
+            if (retryResult == SKOperationState::SUCCEEDED) {
+                srfsLog(LOG_WARNING, "Block retried successfully: %s %d %s %d", wf->path, i, key, bw->result);
+                bw->result = SKOperationState::SUCCEEDED;
+            } else {
+                return i * SRFS_BLOCK_SIZE;
+            }
+		}
+	}
+	return wf->fa.stat.st_size;
+}
+
+int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid, 
+                    const struct timespec *last_access_tp, const struct timespec *last_modification_tp, const struct timespec *last_change_tp) {
     // FUTURE - check on semantics of allowing all
+    pthread_mutex_lock(&wf->lock);
     if (mode != NULL) {
         wf->fa.stat.st_mode = *mode;
     }
-    if (uid != NULL) {
+    if (uid != NULL && *uid != (gid_t)-1) {
         wf->fa.stat.st_uid = *uid;
     }
-    if (gid != NULL) {
+    if (gid != NULL && *gid != (gid_t)-1) {
         wf->fa.stat.st_gid = *gid;
     }
+
+    if (last_access_tp != NULL) {
+        wf->fa.stat.st_atime = last_access_tp->tv_sec;
+        wf->fa.stat.st_atim.tv_nsec = last_access_tp->tv_nsec;
+    }    
+    if (last_modification_tp != NULL) {
+        wf->fa.stat.st_mtime = last_modification_tp->tv_sec;
+        wf->fa.stat.st_mtim.tv_nsec = last_modification_tp->tv_nsec;
+    }    
+    if (last_change_tp != NULL) {
+        wf->fa.stat.st_ctime = last_change_tp->tv_sec;
+        wf->fa.stat.st_ctim.tv_nsec = last_change_tp->tv_nsec;
+    }    
+    pthread_mutex_unlock(&wf->lock);
+    
     return 0;
 }
 
@@ -783,17 +929,38 @@ int wf_create_ref(WritableFile *wf) {
 
 	ref = -1;
 	pthread_mutex_lock(&wf->lock);
-	if (wf->referentState.nextRef < WFR_MAX_REFS) {
-		ref = wf->referentState.nextRef++;
-		if (wf->referentState.refStatus[ref] != WFR_Invalid) {
-			fatalError("wf->referentState.refStatus[ref] != WFR_Invalid", __FILE__, __LINE__);
-		}
-		wf->referentState.refStatus[ref] = WFR_Created;
-	} else {
-		fatalError("WFR_MAX_REFS exceeded", __FILE__, __LINE__);
-	}
+    
+    if (wf->referentState.nextRef >= WFR_RECYCLE_THRESHOLD) {
+        ref = _wf_find_empty_ref(wf);
+    }
+    if (ref >= 0) {
+        wf->referentState.refStatus[ref] = WFR_Created;
+    } else {
+        if (wf->referentState.nextRef < WFR_MAX_REFS) {
+            ref = wf->referentState.nextRef++;
+            if (wf->referentState.refStatus[ref] != WFR_Invalid) {
+                fatalError("wf->referentState.refStatus[ref] != WFR_Invalid", __FILE__, __LINE__);
+            }
+            wf->referentState.refStatus[ref] = WFR_Created;
+        } else {
+            fatalError("WFR_MAX_REFS exceeded", __FILE__, __LINE__);
+        }
+    }
+    
 	pthread_mutex_unlock(&wf->lock);
 	return ref;
+}
+
+// lock must be held
+static int _wf_find_empty_ref(WritableFile *wf) {
+	int	i;
+
+    for (i = 0; i < wf->referentState.nextRef; i++) {
+        if (wf->referentState.refStatus[i] != WFR_Created) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 // lock must be held
@@ -869,10 +1036,12 @@ static int wf_check_for_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter 
                                 wf->htl->ht, wf->path, _wf, wf);
             fatalError("_wf != wf", __FILE__, __LINE__);
         }
-        // wf_flush() and wf_close() may cause remote I/O. We must drop the table lock
-        // (must drop before releasing wf lock; release order inversion is ok)
-        pthread_rwlock_unlock(&wf->htl->rwLock);
+        // We would like to drop the table lock here to avoid holding it during remote i/o
+        // We cannot, however, as this can introduce inconsistency.
+        // (Mitigating this with many table partitions to minimize extraneous locking)
         rc_f = _wf_flush(wf, aw, fbw, ac);
+        // Now we may drop the table lock safely.
+        pthread_rwlock_unlock(&wf->htl->rwLock);
         // we removed wf from the table, so we no longer need a lock
         // hold it to here just to meet the documented lock contract of _wf_flush()
         pthread_mutex_unlock(&wf->lock);

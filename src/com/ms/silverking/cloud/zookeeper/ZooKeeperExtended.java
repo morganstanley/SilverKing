@@ -78,7 +78,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
      */
     public ZooKeeperExtended(ZooKeeperConfig zkConfig, int sessionTimeout, Watcher watcher) throws KeeperException,
             IOException {
-        super(zkConfig.getEnsembleString(), sessionTimeout, watcher);
+        super(zkConfig.getConnectString(), sessionTimeout, watcher);
         this.zkConfig = zkConfig;
         this.watcher = watcher;
         //activeOps = new ConcurrentHashMap<ZKRequestUUID, ActiveOp>();
@@ -96,7 +96,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
      */
     public ZooKeeperExtended(ZooKeeperConfig zkConfig, int sessionTimeout, Watcher watcher, long sessionId,
             byte[] sessionPasswd) throws KeeperException, IOException {
-        super(zkConfig.getEnsembleString(), sessionTimeout, watcher, sessionId, sessionPasswd);
+        super(zkConfig.getConnectString(), sessionTimeout, watcher, sessionId, sessionPasswd);
         this.zkConfig = zkConfig;
         this.watcher = watcher;
         //activeOps = new ConcurrentHashMap<ZKRequestUUID, ActiveOp>();
@@ -933,7 +933,8 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
             try {
                 create(path.substring(0, index));
             } catch (KeeperException ke) {
-                if (ke.code() != Code.NODEEXISTS) {
+                if (ke.code() != Code.NODEEXISTS && ke.code() != Code.AUTHFAILED && ke.code() != Code.NOAUTH) {
+                	Log.logErrorWarning(ke, "Error in create("+ path.substring(0, index) +")");
                     throw ke;
                 }
             }

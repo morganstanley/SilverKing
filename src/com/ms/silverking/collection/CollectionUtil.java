@@ -1,6 +1,7 @@
 package com.ms.silverking.collection;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -101,13 +102,21 @@ public class CollectionUtil {
     }
     
     public static Set<String> parseSet(String def, String pattern) {
-    	def = def.trim();
-    	if (def.startsWith(defaultStartBrace)) {
-    		def = def.substring(defaultStartBrace.length());
-        	if (def.endsWith(defaultEndBrace)) {
-        		def = def.substring(0, def.length() - defaultEndBrace.length());
-        	}
+    	if (def != null) {
+	    	def = def.trim();
+	    	if (def.startsWith(defaultStartBrace)) {
+	    		def = def.substring(defaultStartBrace.length());
+	        	if (def.endsWith(defaultEndBrace)) {
+	        		def = def.substring(0, def.length() - defaultEndBrace.length());
+	        	}
+	    	}
+	    	return ImmutableSet.copyOf(def.split(pattern));
+    	} else {
+    		return ImmutableSet.of();
     	}
-    	return ImmutableSet.copyOf(def.split(pattern));
+    }
+    
+    public static <K extends Enum<K>> EnumSet<K> arrayToEnumSet(K[] a) {
+    	return EnumSet.copyOf(ImmutableSet.copyOf(a));
     }
 }

@@ -11,114 +11,163 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.Topology;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
 /**
- * Associates a RingRegion with one or more Node primary owners, and zero or more secondary owners.  
+ * Associates a RingRegion with one or more Node primary owners, and zero or
+ * more secondary owners.
  */
 public class RingEntry {
-	private final List<Node>	primaryOwners;
-    private final List<Node>    secondaryOwners;
-	private final RingRegion	region;
-	
-	private static final String    primarySecondarySeparator = "::";
-	
-	private static final List<Node>    emptyNodeList = ImmutableList.of();
-	
-    public static final Comparator<RingEntry>  positionComparator = new RingEntryPositionComparator();    
-    public static RingEntry unownedWholeRing = new RingEntry(emptyNodeList, emptyNodeList, RingRegion.allRingspace);
-	
-    public RingEntry(Collection<Node> primaryOwners, Collection<Node> secondaryOwners, RingRegion region) {
+	private final List<Node> primaryOwners;
+	private final List<Node> secondaryOwners;
+	private final RingRegion region;
+	private final int minPrimaryUnderFailure;
+
+	private static final String primarySecondarySeparator = "::";
+	private static final int defaultMinPrimaryUnderFailureIndicator = -1;
+
+	private static final List<Node> emptyNodeList = ImmutableList.of();
+
+	public static final Comparator<RingEntry> positionComparator = new RingEntryPositionComparator();
+	public static RingEntry unownedWholeRing = new RingEntry(emptyNodeList,
+			emptyNodeList, RingRegion.allRingspace, 0);
+
+	public RingEntry(Collection<Node> primaryOwners,
+			Collection<Node> secondaryOwners, RingRegion region,
+			int minPrimaryUnderFailure) {
 		this.primaryOwners = ImmutableList.copyOf(primaryOwners);
 		this.secondaryOwners = ImmutableList.copyOf(secondaryOwners);
 		this.region = region;
+		if (minPrimaryUnderFailure < defaultMinPrimaryUnderFailureIndicator
+				|| minPrimaryUnderFailure > primaryOwners.size()) {
+			throw new RuntimeException("Bad minPrimaryUnderFailure: "
+					+ minPrimaryUnderFailure + " " + primaryOwners.size());
+		} else {
+			this.minPrimaryUnderFailure = minPrimaryUnderFailure;
+		}
 		// assert no duplicates
 		assert primaryOwners.size() == getPrimaryOwnersSet().size();
-        assert secondaryOwners.size() == getSecondaryOwnersSet().size();
+		assert secondaryOwners.size() == getSecondaryOwnersSet().size();
 	}
-	
-    public RingEntry(Collection<Node> primaryOwners, RingRegion region) {
-        this(new ArrayList<Node>(primaryOwners), emptyNodeList, region);
-    }
-    
-    public List<IPAndPort> getOwnersIPList(OwnerQueryMode oqm) {
-        return ImmutableList.copyOf(nodesToIPAndPort(getOwnersList(oqm)));
-    }    
-    
-    private static IPAndPort[] nodesToIPAndPort(List<Node> replicaNodes) {
-        IPAndPort[] replicas;
-        
-        replicas = new IPAndPort[replicaNodes.size()];
-        for (int i = 0; i < replicas.length; i++) {
-            replicas[i] = new IPAndPort(replicaNodes.get(i).getIDString(), DHTNode.getServerPort());
-        }
-        return replicas;
-    }
-    
+
+	public RingEntry(Collection<Node> primaryOwners, RingRegion region,
+			int minPrimaryUnderFailure) {
+		this(new ArrayList<Node>(primaryOwners), emptyNodeList, region,
+				minPrimaryUnderFailure);
+	}
+
+	public List<IPAndPort> getOwnersIPList(OwnerQueryMode oqm) {
+		return ImmutableList.copyOf(nodesToIPAndPort(getOwnersList(oqm)));
+	}
+
+	private static IPAndPort[] nodesToIPAndPort(List<Node> replicaNodes) {
+		IPAndPort[] replicas;
+
+		replicas = new IPAndPort[replicaNodes.size()];
+		for (int i = 0; i < replicas.length; i++) {
+			replicas[i] = new IPAndPort(replicaNodes.get(i).getIDString(),
+					DHTNode.getServerPort());
+		}
+		return replicas;
+	}
+
 	public List<Node> getPrimaryOwnersList() {
 		return primaryOwners;
 	}
-	
+
 	public Set<Node> getPrimaryOwnersSet() {
 		return ImmutableSet.copyOf(primaryOwners);
 	}
-	
-    public List<Node> getSecondaryOwnersList() {
-        return secondaryOwners;
-    }
-    
-    public Set<Node> getSecondaryOwnersSet() {
-        return ImmutableSet.copyOf(secondaryOwners);
-    }
-    
-    public List<Node> getOwnersList(OwnerQueryMode oqm) {
-        switch (oqm) {
-        case Primary: return primaryOwners;
-        case Secondary: return secondaryOwners;
-        case All: 
-            ImmutableList.Builder<Node> builder;
-            
-            builder = ImmutableList.builder();
-            return builder.addAll(primaryOwners).addAll(secondaryOwners).build();
-        default: throw new RuntimeException("panic");
-        }
-    }
-    
-    public Set<Node> getOwnersSet(OwnerQueryMode oqm) {
-        switch (oqm) {
-        case Primary:
-            return ImmutableSet.copyOf(primaryOwners);
-        case Secondary: 
-            return ImmutableSet.copyOf(secondaryOwners);
-        case All:
-            return new ImmutableSet.Builder().addAll(primaryOwners).addAll(secondaryOwners).build();
-        default: throw new RuntimeException("panic");
-        }
-    }
-    
-	public Set<Node> getOwnersSetWithReplacement(Node oldOwner, Node newOwner, OwnerQueryMode oqm) {
-		Set<Node>	ownersSet;
-		
+
+	public List<Node> getSecondaryOwnersList() {
+		return secondaryOwners;
+	}
+
+	public Set<Node> getSecondaryOwnersSet() {
+		return ImmutableSet.copyOf(secondaryOwners);
+	}
+
+	public List<Node> getOwnersList(OwnerQueryMode oqm) {
+		switch (oqm) {
+		case Primary:
+			return primaryOwners;
+		case Secondary:
+			return secondaryOwners;
+		case All:
+			ImmutableList.Builder<Node> builder;
+
+			builder = ImmutableList.builder();
+			return builder.addAll(primaryOwners).addAll(secondaryOwners)
+					.build();
+		default:
+			throw new RuntimeException("panic");
+		}
+	}
+
+	public Set<Node> getOwnersSet(OwnerQueryMode oqm) {
+		switch (oqm) {
+		case Primary:
+			return ImmutableSet.copyOf(primaryOwners);
+		case Secondary:
+			return ImmutableSet.copyOf(secondaryOwners);
+		case All:
+			return new ImmutableSet.Builder().addAll(primaryOwners)
+					.addAll(secondaryOwners).build();
+		default:
+			throw new RuntimeException("panic");
+		}
+	}
+
+	public Set<Node> getOwnersSetWithReplacement(Node oldOwner, Node newOwner,
+			OwnerQueryMode oqm) {
+		Set<Node> ownersSet;
+
 		ownersSet = getOwnersSet(oqm);
 		if (!ownersSet.remove(oldOwner)) {
-			throw new RuntimeException("Not an owner: "+ oldOwner);
+			throw new RuntimeException("Not an owner: " + oldOwner);
 		}
 		ownersSet.add(newOwner);
 		return ownersSet;
 	}
-	
+
 	public Node getPrimaryOwner(int index) {
 		return primaryOwners.get(index);
 	}
-	
+
 	public RingRegion getRegion() {
 		return region;
 	}
-	
+
+	public int getMinPrimaryUnderFailure() {
+		if (minPrimaryUnderFailure == defaultMinPrimaryUnderFailureIndicator) {
+			return DHTConstants.defaultMinPrimaryUnderFailure;
+		} else {
+			return minPrimaryUnderFailure;
+		}
+	}
+
+	public boolean isSubset(RingEntry o) {
+		return region.equals(o.region)
+				&& nodesAreSubset(primaryOwners, o.primaryOwners)
+				&& nodesAreSubset(secondaryOwners, o.secondaryOwners)
+				&& minPrimaryUnderFailure == o.minPrimaryUnderFailure;
+	}
+
+	private boolean nodesAreSubset(List<Node> nodes0, List<Node> nodes1) {
+		for (Node n : nodes1) {
+			if (!nodes0.contains(n)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public RingEntry replacePrimaryOwner(Node oldOwner, Node newOwner) {
 		int	index;
 		
@@ -147,7 +196,7 @@ public class RingEntry {
 				newOwners.add(primaryOwners.get(i));
 			}
 		}
-		return new RingEntry(newOwners, region);
+		return new RingEntry(newOwners, region, minPrimaryUnderFailure);
 	}
 	
 	public RingEntry merge(RingEntry oEntry) {
@@ -159,7 +208,7 @@ public class RingEntry {
 			RingRegion	mergedRegion;
 			
 			mergedRegion = region.merge(oEntry.region);
-			return new RingEntry(primaryOwners, mergedRegion);
+			return new RingEntry(primaryOwners, mergedRegion, minPrimaryUnderFailure);
 		}
 	}
 	
@@ -176,7 +225,7 @@ public class RingEntry {
     }
     
 	public RingEntry replaceRegion(RingRegion newRegion) {
-	    return new RingEntry(primaryOwners, secondaryOwners, newRegion);
+	    return new RingEntry(primaryOwners, secondaryOwners, newRegion, minPrimaryUnderFailure);
 	}
 	
 	@Override
@@ -190,6 +239,10 @@ public class RingEntry {
 		sb.append(getZKString(primaryOwners));
         sb.append(primarySecondarySeparator);
         sb.append(getZKString(secondaryOwners));
+        if (minPrimaryUnderFailure != defaultMinPrimaryUnderFailureIndicator) {
+            sb.append(primarySecondarySeparator);
+            sb.append(minPrimaryUnderFailure);
+        }
 		sb.append(']');
 		return sb.toString();
 	}
@@ -222,7 +275,11 @@ public class RingEntry {
         if (splitS.length > 0) {
             return parseOwnersString(topology, splitS[0]);
         } else {
-            throw new RuntimeException("Unexpected bad primary owners string: "+ s);
+            //throw new RuntimeException("Unexpected bad primary owners string: "+ s);
+        	// Master mode ring creation may create empty entries at some levels of the topology
+        	// we allow this. This requires verifying the projected ring to ensure that no 
+        	// projected entries are without primary owners.
+        	return emptyNodeList;
         }
     }
     
@@ -249,10 +306,22 @@ public class RingEntry {
         return nodes;
     }
     
+    public static int parseMinPrimaryUnderFailure(String s) {
+        String[]    splitS;
+        
+        splitS = s.split(primarySecondarySeparator);
+        if (splitS.length >= 3) {
+        	return Integer.parseInt(splitS[2]);
+        } else {
+            return defaultMinPrimaryUnderFailureIndicator;
+        }
+    }
+    
     public static RingEntry parseZKDefs(Topology topology, String regionDef, String ownersDef) {
         return new RingEntry(parsePrimaryOwnersString(topology, ownersDef), 
                              parseSecondaryOwnersString(topology, ownersDef),
-                             RingRegion.parseZKString(regionDef));
+                             RingRegion.parseZKString(regionDef), 
+                             parseMinPrimaryUnderFailure(ownersDef));
     }
 
     public RingEntry addOwners(RingEntry oEntry) {
@@ -265,7 +334,7 @@ public class RingEntry {
         newSecondaryOwners.addAll(secondaryOwners);
         newPrimaryOwners.addAll(oEntry.getPrimaryOwnersList());
         newSecondaryOwners.addAll(oEntry.getSecondaryOwnersList());
-        return new RingEntry(newPrimaryOwners, newSecondaryOwners, region);
+        return new RingEntry(newPrimaryOwners, newSecondaryOwners, region, minPrimaryUnderFailure);
     }
     
     public static List<RingRegion> getRegions(Collection<RingEntry> entries) {
@@ -289,7 +358,9 @@ public class RingEntry {
             List<RingRegion>    regions;
             
             regions = getRegions(entries);
-            Collections.sort(regions, RingRegion.positionComparator);
+            if (entries.size() > 2) {
+            	Collections.sort(regions, RingRegion.positionComparator);
+            }
             for (int i = 0; i < regions.size(); i++) {
                 int j;
                 
@@ -303,8 +374,32 @@ public class RingEntry {
             return true;
         }
     }
+    
+	public static void ensureMinPrimaryUnderFailureMet(Collection<RingEntry> entries) {
+        if (!minPrimaryUnderFailureMet(entries)) {
+            throw new RuntimeException("minPrimaryUnderFailure not met");
+        }
+	}    
 
-    public static String toString(List<RingEntry> entries) {
+	private static boolean minPrimaryUnderFailureMet(Collection<RingEntry> entries) {
+		boolean	met;
+		
+		met = true;
+		for (RingEntry entry : entries) {
+			if (!entry.minPrimaryUnderFailureMet()) {
+				// Note that we check all even if we find a single bad
+				met = false;
+				Log.warningf("minPrimaryUnderFailureNotMet: %s", entry);
+			}
+		}
+		return met;
+	}
+	
+    private boolean minPrimaryUnderFailureMet() {
+    	return primaryOwners.size() >= minPrimaryUnderFailure;
+	}
+
+	public static String toString(List<RingEntry> entries) {
         return toString(entries, null);
     }
     
@@ -328,7 +423,8 @@ public class RingEntry {
         oEntry = (RingEntry)other;
         return region.equals(oEntry.region)
                && getPrimaryOwnersSet().equals(oEntry.getPrimaryOwnersSet())
-               && getSecondaryOwnersSet().equals(oEntry.getSecondaryOwnersSet());
+               && getSecondaryOwnersSet().equals(oEntry.getSecondaryOwnersSet())
+               && this.minPrimaryUnderFailure == oEntry.minPrimaryUnderFailure;
     }
     
     public static List<RingEntry> eliminateDuplicates(List<RingEntry> entries) {
@@ -382,7 +478,7 @@ public class RingEntry {
         _secondary = new ArrayList<>(primaryOwners.size() + secondaryOwners.size());
         _secondary.addAll(primaryOwners);
         _secondary.addAll(secondaryOwners);
-        return new RingEntry(emptyNodeList, _secondary, region);
+        return new RingEntry(emptyNodeList, _secondary, region, minPrimaryUnderFailure);
     }
 
     private static List<Node> removeOwnersNotInSet(List<Node> old, Set<Node> includeNodes) {
@@ -403,7 +499,7 @@ public class RingEntry {
         
         _p = removeOwnersNotInSet(primaryOwners, includeNodes);
         _s = removeOwnersNotInSet(secondaryOwners, includeNodes);
-        return new RingEntry(_p, _s, region);
+        return new RingEntry(_p, _s, region, minPrimaryUnderFailure);
     }
     
     public RingEntry removeOwnersInSet(Set<Node> excludeNodes) {
@@ -415,7 +511,7 @@ public class RingEntry {
         includeNodes.removeAll(excludeNodes);
         _p = removeOwnersNotInSet(primaryOwners, includeNodes);
         _s = removeOwnersNotInSet(secondaryOwners, includeNodes);
-        return new RingEntry(_p, _s, region);
+        return new RingEntry(_p, _s, region, minPrimaryUnderFailure);
     }
     
     public int getNumberOfNewOwners(RingEntry newEntry) {
@@ -430,5 +526,5 @@ public class RingEntry {
 
     public RingEntry shiftTo(long newStart) {
         return replaceRegion(region.shiftTo(newStart));
-    }    
+    }
 }

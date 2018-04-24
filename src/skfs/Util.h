@@ -18,6 +18,7 @@
 
 #include "skbasictypes.h"
 #include "SRFSConstants.h"
+#include "SKValueCreator.h"
 
 ////////////
 // defines
@@ -39,6 +40,7 @@ typedef enum {LOG_ERROR, LOG_WARNING, LOG_OPS, LOG_INFO, LOG_FINE} LogLevel;
 // public globals
 
 extern char zeroBlock[SRFS_BLOCK_SIZE];
+extern uint64_t    myValueCreator;
 
 
 /////////////////////
@@ -54,11 +56,14 @@ void setSRFSLogLevel(LogLevel level);
 int srfsLogLevelMet(LogLevel level);
 
 uint64_t curTimeMillis(void);
+uint64_t curTimeMicros(void);
 
 void setFatalErrorWarnOnly(int warnOnly);
 void fatalError(char *msg, char *file = "", int line = 0);
 void resetFatalErrorCount(void);
 uint64_t getFatalErrorCount(void);
+
+void dumpCoreAndContinue();
 
 #define mem_alloc(A,B,...) _mem__alloc(A,B,__FILE__,__LINE__)
 #define mem_alloc_no_dbg(A,B,...) _mem__alloc(A,B,MEM_DBG_IGNORE_ALLOCATION,0)
@@ -77,6 +82,9 @@ void *_mem__dup(const void *source, int size, char *file = "", int line = 0);
 char *_str__dup(const char *source, char *file = "", int line = 0);
 int *_int__dup(int *i, char *file = "", int line = 0);
 int strcntc(char *s, char c);
+
+char **str_alloc_array(int r, size_t size);
+void str_free_array(char ***a, int r);
 
 void mutex_init(pthread_mutex_t *mutex, pthread_mutex_t **mutexPtr);
 void cv_init(pthread_cond_t *cv, pthread_cond_t **cvPtr);
@@ -106,6 +114,8 @@ size_t trim_in_place(char *s, size_t length);
 unsigned int mem_hash(void *m, int size);
 
 void stat_display(struct stat *s, FILE *f = stdout);
+uint64_t stat_mtime_micros(struct stat *s);
+uint64_t stat_mtime_millis(struct stat *s);
 
 size_t size_max(size_t a, size_t b);
 size_t size_min(size_t a, size_t b);
@@ -118,12 +128,14 @@ uint64_t uint64_min(off_t a, off_t b);
 
 int get_num_cpus(void);
 int get_pid();
+uint64_t getValueCreatorAsUint64(SKValueCreator *vc);
 
 int zlibBuffToBuffDecompress(char *dest, int *destLength, 
 						   char* source, int sourceLength);
 
 uid_t get_uid();
 gid_t get_gid();
+pid_t get_caller_pid();
 
 void bytesToString(char *dest, unsigned char *src, int length);
 						   
@@ -133,5 +145,6 @@ void sleep_random_millis(uint64_t minMillis, uint64_t maxMillis, unsigned int *s
 uint64_t offsetToBlock(off_t offset);
 
 int is_writable_path(const char *path);
+int is_base_path(const char *path);
 
 #endif

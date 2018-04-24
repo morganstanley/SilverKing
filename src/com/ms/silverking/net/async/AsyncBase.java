@@ -37,7 +37,8 @@ public class AsyncBase<T extends Connection> {
     // Sapphire 1 settings
 	//private static final int	_defReceiveBufferSize = 32678;
 	//private static final int	_defSendBufferSize = 32678;
-	private static final int	_defSocketReadTimeout = 3 * 60 * 1000;
+    // FUTURE - link below to default op timeouts so that we at least try one additional connection in each op
+	private static final int	_defSocketReadTimeout = 5 * 60 * 1000 - 10 * 1000; 
 	private static final int	_defSocketConnectTimeout = 8 * 1000;	
 	
 	private static final int	defReceiveBufferSize;
@@ -74,6 +75,8 @@ public class AsyncBase<T extends Connection> {
 		if (AsyncGlobals.verbose) {
     		Log.warning("defReceiveBufferSize: "+ defReceiveBufferSize);
             Log.warning("defSendBufferSize: "+ defSendBufferSize);
+    		Log.warning("defSocketReadTimeout: "+ defSocketReadTimeout);
+            Log.warning("defSocketConnectTimeout: "+ defSocketConnectTimeout);
 		}
 	}
 	
@@ -102,7 +105,9 @@ public class AsyncBase<T extends Connection> {
 						BaseWorker<ServerSocketChannel> acceptWorker, 
 						ConnectionCreator<T> connectionCreator,
 						ChannelSelectorControllerAssigner<T> cscAssigner,
-						LWTPool workPool, boolean debug) throws IOException {	    
+						LWTPool workPool,
+						int selectionThreadWorkLimit,
+						boolean debug) throws IOException {	    
 		this.cscAssigner = cscAssigner;
 		this.connectionCreator = connectionCreator;
 		this.workPool = workPool;
@@ -113,7 +118,7 @@ public class AsyncBase<T extends Connection> {
 		for (int i = 0; i < numSelectorControllers; i++) {
 			selectorControllers.add(
 				new SelectorController<>(acceptWorker, null/*ConnecctWorker*/, 
-				        new Reader(workPool), new Writer(workPool), controllerClass, debug));		
+				        new Reader(workPool), new Writer(workPool), controllerClass, selectionThreadWorkLimit, debug));		
         }
 		if (Connection.statsEnabled) {
 		    File  statsBaseDir;
@@ -133,9 +138,11 @@ public class AsyncBase<T extends Connection> {
 	public AsyncBase(int port, int numSelectorControllers, 
 	        String controllerClass, 
 	        BaseWorker<ServerSocketChannel> acceptWorker, 
-	        ConnectionCreator<T> connectionCreator, LWTPool lwtPool, boolean debug) throws IOException {
+	        ConnectionCreator<T> connectionCreator, LWTPool lwtPool,
+	        int selectionThreadWorkLimit, boolean debug) throws IOException {
 		this(port, numSelectorControllers, controllerClass, acceptWorker, 
-                connectionCreator, new LocalGroupingCSCA<T>(numSelectorControllers / 4), lwtPool, debug);
+                connectionCreator, new LocalGroupingCSCA<T>(numSelectorControllers / 4), lwtPool, 
+                selectionThreadWorkLimit, debug);
                                // FUTURE allow more than just the fixed fraction of local selector controllers
 		        //new RandomChannelSelectorControllerAssigner<T>(), lwtPool, debug);
 	}
@@ -157,8 +164,8 @@ public class AsyncBase<T extends Connection> {
 	
 	//////////////////////////////////////////////////////////////////////
 
-	private void disconnect(Connection connection) {
-		Log.warning("AsyncBase disconnect: ", connection);
+	private void disconnect(Connection connection, String reason) {
+		Log.warning("AsyncBase disconnect: ", connection +" "+ reason);
         if (Connection.statsEnabled) {
         	connections.remove(connection);
         }
@@ -206,7 +213,7 @@ public class AsyncBase<T extends Connection> {
                     // Remote entity shut the socket down cleanly. Do the
                     // same from our end and cancel the channel.
                     // Also called if there is a corrupt message.
-                    disconnect(connection);
+                    disconnect(connection, "numRead < 0");
                 }
             } catch (IOException ioe) {
                 Log.logErrorWarning(ioe);
@@ -227,7 +234,7 @@ public class AsyncBase<T extends Connection> {
                 Log.logErrorWarning(e, "Unhandled exception");
             } finally {
                 if (!cleanRead) {
-                    disconnect(connection);
+                    disconnect(connection, "!cleanRead");
                 }
             }
 		}
@@ -265,7 +272,7 @@ public class AsyncBase<T extends Connection> {
                 Log.logErrorWarning(e, "Unhandled exception()");
             } finally {
                 if (!cleanWrite) {
-                    disconnect(connection);
+                    disconnect(connection, "!cleanWrite");
                 }
             }
 		}
@@ -309,7 +316,7 @@ public class AsyncBase<T extends Connection> {
         channel.socket().setTcpNoDelay(tcpNoDelay);
         channel.socket().setReceiveBufferSize(defReceiveBufferSize);
         channel.socket().setSendBufferSize(defSendBufferSize);
-        channel.socket().setSoTimeout(defSocketReadTimeout);
+        channel.socket().setSoTimeout(defSocketReadTimeout); // Useless for SocketChannel I/O. Remove
 		try {
 			channel.configureBlocking(false);
 		} catch (IOException ioe) {

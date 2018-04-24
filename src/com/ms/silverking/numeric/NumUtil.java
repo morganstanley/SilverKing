@@ -182,7 +182,19 @@ public class NumUtil {
         		return 0;
         	}
     	}
-    }        
+    }    
+
+    public static int[] parseIntArray(String def, String delimiter) {
+		String[]	defs;
+		int[]		vals;
+		
+		defs = def.split(delimiter);
+		vals = new int[defs.length];
+		for (int i = 0; i < defs.length; i++) {
+			vals[i] = Integer.parseInt(defs[i]);
+		}
+		return vals;
+    }
 	
     public static void main(String[] args) {
         for (int i = 0; i <= 16; i++) {

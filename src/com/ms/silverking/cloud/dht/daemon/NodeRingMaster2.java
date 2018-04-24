@@ -277,6 +277,10 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
         return targetMapState.getResolvedReplicaMap().getReplicaEntries(replica, oqm);
     }
     
+    public double getCurrentOwnedFraction(IPAndPort replica, OwnerQueryMode oqm) {
+    	return RingRegion.getTotalFraction(RingEntry.getRegions(getCurrentMapReplicaEntries(replica, oqm)));
+    }
+    
     /**
      * All replicas in the current map
      * @return
@@ -360,14 +364,22 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
         RingMapState2    mapState;
         
         //mapState = mapStates.get(ringIDAndVersion);
-        if (curMapState.getConvergencePoint().getRingIDAndVersionPair().equals(ringIDAndVersion)) {
+        if (curMapState != null && curMapState.getConvergencePoint().getRingIDAndVersionPair().equals(ringIDAndVersion)) {
         	mapState = curMapState;
-        } else if (targetMapState.getConvergencePoint().getRingIDAndVersionPair().equals(ringIDAndVersion)) {
+        } else if (targetMapState != null && targetMapState.getConvergencePoint().getRingIDAndVersionPair().equals(ringIDAndVersion)) {
         	mapState = targetMapState;
         } else {
         	mapState = null;
         }
         return mapState;
+    }
+    
+    /**
+     * All regions in the current map
+     * @return
+     */
+    public List<RingRegion> getAllCurrentRegions() {
+        return curMapState.getResolvedReplicaMap().getRegions();
     }
     
     public Collection<RingRegion> getRegions(RingIDAndVersionPair ringIDAndVersion) {
@@ -495,6 +507,10 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
             return curMapState.getResolvedReplicaMap().getReplicaListPair(key);
         default: throw new RuntimeException("panic");
         }
+    }
+    
+    public Set<RingEntry> getAllCurrentRingEntries() {
+    	return curMapState.getResolvedReplicaMap().getEntries();
     }
     
     public List<RingEntry> getEntries(RingRegion region) {

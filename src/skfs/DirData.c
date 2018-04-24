@@ -323,10 +323,15 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
 	DirData     *tdd;
     uint32_t    tddNumEntries;
     DirEntry    *nextDE;
-	uint32_t    i0;
-	uint32_t    i1;
     DEIndexEntry    *tmpIndex;
     DEIndexEntry    *nextIndexEntry;
+	DirData     *su_tdd;
+    uint32_t    su_tddNumEntries;
+    DirEntry    *su_nextDE;
+    DEIndexEntry    *su_tmpIndex;
+    DEIndexEntry    *su_nextIndexEntry;
+	uint32_t    i0;
+	uint32_t    i1;
 
     dd_sanity_check_full(dd0);
     dd_sanity_check_full(dd1);
@@ -337,13 +342,19 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
 	i0 = 0;
 	i1 = 0;
     tddNumEntries = 0;
+    su_tddNumEntries = 0;
 	
 	// Allocate temporary space for working
 	tdd = (DirData *)mem_alloc(dd_length_with_header_and_index(dd0) + dd_length_with_header_and_index(dd1), 1);
     nextDE = (DirEntry *)tdd->data;
     tmpIndex = (DEIndexEntry *)mem_alloc(dd0->numEntries + dd1->numEntries, sizeof(DEIndexEntry));
-    //tmpIndex = (DEIndexEntry *)offset_to_ptr(tdd->data, dd0->indexOffset + dd1->indexOffset);
 	nextIndexEntry = tmpIndex;
+
+	// ServerUpdate: Allocate temporary space for working
+	su_tdd = (DirData *)mem_alloc(dd_length_with_header_and_index(dd0), 1); // in the worst case, all local entries need to be updated, no more
+    su_nextDE = (DirEntry *)su_tdd->data;
+    su_tmpIndex = (DEIndexEntry *)mem_alloc(dd0->numEntries, sizeof(DEIndexEntry));
+	su_nextIndexEntry = su_tmpIndex;
     
     // Merge entries until end of one DirData reached
 	while (i0 < dd0->numEntries && i1 < dd1->numEntries) {
@@ -367,6 +378,10 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
             nextDE = de_init_from_de(nextDE, de0);
             m.dd0NotIn1 = TRUE;
             ++i0;
+            
+            su_nextIndexEntry = deie_set(su_nextIndexEntry, su_tdd, su_nextDE);
+            su_nextDE = de_init_from_de(su_nextDE, de0);
+            ++su_tddNumEntries;
 		} else if (cmp > 0) {
 			// add entry 1
             nextDE = de_init_from_de(nextDE, de1);
@@ -378,6 +393,10 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
 				// add de0
                 nextDE = de_init_from_de(nextDE, de0);
                 m.dd0NotIn1 = TRUE;
+                
+                su_nextIndexEntry = deie_set(su_nextIndexEntry, su_tdd, su_nextDE);
+                su_nextDE = de_init_from_de(su_nextDE, de0);
+                ++su_tddNumEntries;
 			} else if (de0->version < de1->version) {
 				// add de1
                 nextDE = de_init_from_de(nextDE, de1);
@@ -401,6 +420,13 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
                     fs_set_deleted(&fs, TRUE);
 				}
                 nextDE = de_init(nextDE, de0->dataSize, fs, de0->version, de0->data);
+                
+                // versions match. don't update server unless deleted status doesn't match
+				if (fs_get_deleted(&de0->status) != fs_get_deleted(&de1->status)) {
+                    su_nextIndexEntry = deie_set(su_nextIndexEntry, su_tdd, su_nextDE);
+                    su_nextDE = de_init(su_nextDE, de0->dataSize, fs, de0->version, de0->data);
+                    ++su_tddNumEntries;
+                }
 			}
             ++i0;
             ++i1;
@@ -414,6 +440,7 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
     uint32_t    i;
     DirData     *idd;
     DirEntry    *ide;
+    bool        d0_case;
     
 	if (i0 < dd0->numEntries) {
         if (i1 < dd1->numEntries) {
@@ -422,14 +449,17 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
         i = i0;
         idd = dd0;
         m.dd0NotIn1 = TRUE;
+        d0_case = true;
     } else if (i1 < dd1->numEntries) {
         i = i1;
         idd = dd1;
         m.dd1NotIn0 = TRUE;
+        d0_case = false;
     } else {
         // both i0 and i1 past, no additions needed
         idd = dd0; // arbitrarily use dd0
         i = idd->numEntries; // sent termination condition on loop
+        d0_case = false;
     }
     while (i < idd->numEntries) {
         nextIndexEntry = deie_set(nextIndexEntry, tdd, nextDE);
@@ -437,6 +467,12 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
         nextDE = de_init_from_de(nextDE, ide);
         i++;
         ++tddNumEntries;
+
+        if (d0_case) {
+            su_nextIndexEntry = deie_set(su_nextIndexEntry, su_tdd, su_nextDE);
+            su_nextDE = de_init_from_de(su_nextDE, ide);
+            ++su_tddNumEntries;
+        }
     }
     // We have now added all DirEntries.
     // Also, we have created a complete, but unsorted index    
@@ -468,10 +504,42 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
         
         dd_sanity_check_full(m.dd);
     }
+
+    // Server update code
+    srfsLog(LOG_INFO, "tddNumEntries %d su_tddNumEntries %d", tddNumEntries, su_tddNumEntries);
+    if (su_tddNumEntries == 0) {
+        // Nothing new in d0. No server update
+        m.ddForUpdate = NULL;
+    } else {
+        // Useful server update. Finish construction.
+    
+        // Set tdd header
+        su_tdd->magic = DD_MAGIC;
+        su_tdd->dataLength = ptr_to_offset(su_tdd->data, ((char *)su_nextDE) + DEI_HEADER_BYTES + su_tddNumEntries * sizeof(DEIndexEntry));
+        su_tdd->numEntries = su_tddNumEntries;
+        
+        // Create the server update index
+        DirEntryIndex   *tDEI;
+        
+        tDEI = (DirEntryIndex *)su_nextDE;
+        su_tdd->indexOffset = ptr_to_offset(su_tdd->data, tDEI);
+        memcpy((void *)&tDEI->entries, (void *)su_tmpIndex, su_tddNumEntries * sizeof(DEIndexEntry));
+        dei_init(tDEI, su_tddNumEntries);
+        dei_reindex(tDEI, su_tdd);
+        
+        // Copy data from temp space to correctly sized buffer
+        m.ddForUpdate = (DirData *)mem_alloc(dd_length_with_header_and_index(su_tdd), 1);
+        memcpy(m.ddForUpdate, su_tdd, dd_length_with_header_and_index(su_tdd));        
+        
+        dd_sanity_check_full(m.ddForUpdate);
+    }
+    // end server update code
     
     // Free temp space
     mem_free((void **)&tdd);
     mem_free((void **)&tmpIndex);
+    mem_free((void **)&su_tdd);
+    mem_free((void **)&su_tmpIndex);
     
     srfsLog(LOG_FINE, "MergeResult %llx %d %d", m.dd, m.dd0NotIn1, m.dd1NotIn0);
     
@@ -517,4 +585,18 @@ void dd_display_ordered(DirData *dd, FILE *file) {
 		}
 		fprintf(file, "}\n\n");
 	}
+}
+
+int dd_is_empty(DirData *dd) {
+    uint32_t    i;
+
+    for (i = 0; i < dd->numEntries; i++) {
+        DirEntry	*de;
+        
+        de = dd_get_entry(dd, i);
+        if (!de_is_deleted(de)) {
+            return FALSE;
+        }
+    }
+    return TRUE;
 }

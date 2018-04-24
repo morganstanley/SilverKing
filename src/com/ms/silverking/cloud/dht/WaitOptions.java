@@ -72,6 +72,8 @@ public final class WaitOptions extends RetrievalOptions {
                 WaitMode.WAIT_FOR, versionConstraint, 
                 nonExistenceResponse, verifyChecksums,
                 returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss);
+    	Preconditions.checkArgument(timeoutSeconds >= 0);
+    	Preconditions.checkArgument(threshold >= 0);
         this.timeoutSeconds = timeoutSeconds;
         this.threshold = threshold;
         this.timeoutResponse = timeoutResponse;
@@ -88,7 +90,6 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-        Preconditions.checkNotNull(opTimeoutController);
     	return new WaitOptions(opTimeoutController, getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
     						   getNonExistenceResponse(), getVerifyChecksums(), 
     						   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
@@ -101,7 +102,6 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-        Preconditions.checkNotNull(secondaryTargets);
     	return new WaitOptions(getOpTimeoutController(), secondaryTargets, getRetrievalType(), getVersionConstraint(), 
 				   getNonExistenceResponse(), getVerifyChecksums(), 
 				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
@@ -139,7 +139,6 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions versionConstraint(VersionConstraint versionConstraint) {
-        Preconditions.checkNotNull(versionConstraint);
     	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), versionConstraint, 
 				   getNonExistenceResponse(), getVerifyChecksums(), 
 				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
@@ -200,7 +199,6 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions timeoutSeconds(int timeoutSeconds) {
-    	Preconditions.checkArgument(timeoutSeconds >= 0);
     	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
 				   getNonExistenceResponse(), getVerifyChecksums(), 
 				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
@@ -213,7 +211,6 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions threshold(int threshold) {
-    	Preconditions.checkArgument(threshold >= 0);
     	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
 				   getNonExistenceResponse(), getVerifyChecksums(), 
 				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 

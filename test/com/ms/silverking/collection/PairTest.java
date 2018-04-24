@@ -1,20 +1,24 @@
 package com.ms.silverking.collection;
 
-import static com.ms.silverking.collection.Util.expectedDoubleValue;
-import static com.ms.silverking.collection.Util.expectedIntValue;
-import static com.ms.silverking.collection.Util.expectedStringValue;
-import static com.ms.silverking.collection.Util.pD;
-import static com.ms.silverking.collection.Util.pI;
-import static com.ms.silverking.collection.Util.pIS;
-import static com.ms.silverking.collection.Util.pM;
-import static com.ms.silverking.collection.Util.pS;
-import static com.ms.silverking.collection.Util.pSI;
+import static com.ms.silverking.collection.TestUtil.expectedDoubleValue;
+import static com.ms.silverking.collection.TestUtil.expectedIntValue;
+import static com.ms.silverking.collection.TestUtil.expectedIntValue2;
+import static com.ms.silverking.collection.TestUtil.expectedStringValue;
+import static com.ms.silverking.collection.TestUtil.pD;
+import static com.ms.silverking.collection.TestUtil.pI;
+import static com.ms.silverking.collection.TestUtil.pIS;
+import static com.ms.silverking.collection.TestUtil.pM;
+import static com.ms.silverking.collection.TestUtil.pS;
+import static com.ms.silverking.collection.TestUtil.pSI;
 import static com.ms.silverking.testing.Util.getTestMessage;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 public class PairTest {
+
+	private static final Pair<Integer, Integer> pI_HalfCopy = new Pair<>(expectedIntValue, expectedIntValue2);
+	private static final Pair<Integer, Integer> pI_FullCopy = new Pair<>(expectedIntValue, expectedIntValue);
 	
 	@Test
 	public void testGet() {
@@ -53,9 +57,11 @@ public class PairTest {
 	@Test
 	public void testEquals_Valid() {
 		Object[][] testCases = {
-			{pI, pI,  true},
-			{pI, pD, false},
-			{pS, pD, false},
+			{pI, pI,           true},
+			{pI, pI_HalfCopy, false},
+			{pI, pI_FullCopy,  true},
+			{pI, pD,          false},
+			{pS, pD,          false},
 		};
 			
 		for (Object[] testCase : testCases) {

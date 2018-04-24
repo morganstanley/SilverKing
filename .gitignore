@@ -1,0 +1,10 @@
+
+.checkstyle
+.classpath
+.project
+
+# ide's
+.vscode
+ide-bin
+bin-ide
+ide
