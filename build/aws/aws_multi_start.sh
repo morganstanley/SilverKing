@@ -23,19 +23,20 @@ function f_aws_updateServersList {
 function f_aws_copyGc {
     typeset gcFile=$SK_GRID_CONFIG_DIR/$SK_GRID_CONFIG_NAME.env
     while read host; do
-        scp $USER@$host:$gcFile $gcFile
+        scp $gcFile $USER@$host:$SK_GRID_CONFIG_DIR
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
 function f_aws_symlinkSkfsD {
     typeset ssh_options="-v -x -o StrictHostKeyChecking=no"
     while read host; do
-        ssh $ssh_options $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME"
+        ssh $ssh_options $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
 f_printSection "PREPPING LAUNCH MACHINE"
 f_aws_updateServersList
+./aws_zk.sh start
 f_runStaticInstanceCreator
 
 f_printSection "PREPPING NONLAUNCH MACHINES"
@@ -43,4 +44,11 @@ f_aws_copyGc
 f_aws_symlinkSkfsD
 
 f_printSection "STARTING"
-./aws_start.sh
+f_runSkAdmin "StartNodes"
+f_userProcessCheck "SK" "1"
+f_listSkProcesses
+
+f_startSkfs
+
+
+

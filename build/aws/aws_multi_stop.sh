@@ -9,7 +9,7 @@ source lib/common.lib
 function f_aws_removeSkfsD {
     typeset ssh_options="-v -x -o StrictHostKeyChecking=no"
     while read host; do
-        ssh $ssh_options $host "rm -rv $BIN_SKFS_DIR/$SKFS_EXEC_NAME"
+        ssh $ssh_options $host "rm -rv $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
