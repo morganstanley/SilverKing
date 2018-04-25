@@ -51,6 +51,8 @@ cd -
 
 source lib/common.lib
 
+sudo yum update
+
 echo "BUILD"
 f_aws_install_ant
 f_aws_install_java

@@ -51,6 +51,10 @@ cd -
 
 source lib/common.lib
 
+sudo apt-get update
+f_aptgetInstall "make"
+f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
+
 echo "BUILD"
 f_aws_install_ant
 f_ubuntu_install_java
