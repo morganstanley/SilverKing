@@ -14,6 +14,19 @@ function f_ubuntu_install_java {
     f_fillInBuildConfigVariable "JAVA_7_HOME" "$LIB_ROOT/$java7"
 }
 
+function f_ubuntu_symlink_boost {
+    f_aptgetInstall "libboost-all-dev" # libboost-dev doesn't have the .so's
+    cd $LIB_ROOT
+    typeset boost_lib=libs/boost
+    mkdir -p $boost_lib
+    cd $boost_lib
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.58.0    libboost_thread.so
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.58.0 libboost_date_time.so
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_system.so.1.58.0    libboost_system.so
+    
+    f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
+}
+
 function f_ubuntu_fillin_build_skfs {    
     echo "BUILD SKFS"
     f_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
@@ -49,18 +62,20 @@ sk_repo_home=$LIB_ROOT/$REPO_NAME
 f_aws_fillin_vars
 
 echo "BUILDING JACE"
-f_aptgetInstall "boost"
-f_aws_install_and_symlink_boost
+f_aws_install_boost
+f_ubuntu_symlink_boost
 f_aws_install_jace
 
-f_aptgetInstall "gcc-c++" # for g++
+f_aptgetInstall "g++"
 gpp_path=/usr/bin/g++
 cd $BUILD_DIR
 ./$BUILD_JACE_SCRIPT_NAME $gpp_path 
 
 f_aws_symlink_jace
 
-f_aws_fillin_build_client "$gpp_path"
+echo "BUILD CLIENT"
+f_fillInBuildConfigVariable "GPP"         "$gpp_path"
+f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/6.0.0"
 f_ubuntu_fillin_build_skfs
 
 source $BUILD_CONFIG_FILE

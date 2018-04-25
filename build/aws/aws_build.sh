@@ -14,6 +14,19 @@ function f_aws_install_java {
     f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
 }
 
+function f_aws_symlink_boost {
+    f_yumInstall "boost"
+    cd $LIB_ROOT
+    typeset boost_lib=libs/boost
+    mkdir -p $boost_lib
+    cd $boost_lib
+    ln -s /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
+    ln -s /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
+    ln -s /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
+
+    f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
+}
+
 function f_aws_fillin_build_skfs {    
     echo "BUILD SKFS"
     f_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
@@ -49,8 +62,8 @@ sk_repo_home=$LIB_ROOT/$REPO_NAME
 f_aws_fillin_vars
 
 echo "BUILDING JACE"
-f_yumInstall "boost"
-f_aws_install_and_symlink_boost
+f_aws_install_boost
+f_aws_symlink_boost
 f_aws_install_jace
 
 f_yumInstall "gcc-c++" # for g++
@@ -60,7 +73,9 @@ cd $BUILD_DIR
 
 f_aws_symlink_jace
 
-f_aws_fillin_build_client "$gpp_path"
+echo "BUILD CLIENT"
+f_fillInBuildConfigVariable "GPP"         "$gpp_path"
+f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
 f_aws_fillin_build_skfs
 
 source $BUILD_CONFIG_FILE

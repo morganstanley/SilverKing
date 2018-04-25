@@ -41,6 +41,7 @@ function f_aws_install_ant {
     typeset ant_version="apache-ant-1.10.0"
     typeset ant_tar=$ant_version-bin.tar.bz2
     f_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
+    
     f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
 }
 
@@ -61,33 +62,21 @@ function f_aws_fillin_vars {
     f_fillInBuildConfigVariable "PERL_5_8"     "/usr/bin/perl"
 }
 
-function f_aws_install_and_symlink_boost {
+function f_aws_install_boost {
     echo "installing boost"
     typeset boost_version="boost_1_61_0"
     typeset boost_tar=$boost_version.tar.gz
     f_downloadTar "$boost_tar" "https://versaweb.dl.sourceforge.net/project/boost/boost/1.61.0/$boost_tar"
-    
-    cd $LIB_ROOT
-    typeset boost_lib=libs/boost
-    mkdir -p $boost_lib
-    cd $boost_lib
-    ln -s /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
-    ln -s /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
-    ln -s /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
 
     f_overrideBuildConfigVariable "BOOST_INC" "$LIB_ROOT/$boost_version"
-    f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
 
 function f_aws_install_jace {
     cd $LIB_ROOT
-    typeset jace_runtime="jace-core-runtime"
-    typeset    jace_core="jace-core-java"
-    typeset jace_runtime_jar=$jace_runtime-1.2.22.jar
-    typeset    jace_core_jar=$jace_core-1.2.22.jar
+    
     typeset jar_url="search.maven.org/remotecontent?filepath=com/googlecode/jace"
-    f_downloadJar "$jar_url/$jace_runtime/1.2.22/$jace_runtime_jar"
-    f_downloadJar "$jar_url/$jace_core/1.2.22/$jace_core_jar"
+    f_downloadJar "$jar_url/$JACE_RUNTIME/1.2.22/$JACE_RUNTIME_JAR"
+    f_downloadJar "$jar_url/$JACE_CORE/1.2.22/$JACE_CORE_JAR"
 }
 
 function f_aws_symlink_jace {
@@ -98,18 +87,10 @@ function f_aws_symlink_jace {
     ln -s $sk_repo_home/src/jace/include include
     mkdir lib
     cd lib
-    ln -s ../../../$jace_runtime_jar jace-runtime.jar
-    ln -s ../../../$jace_core_jar    jace-core.jar
+    ln -s ../../../$JACE_RUNTIME_JAR jace-runtime.jar
+    ln -s ../../../$JACE_CORE_JAR    jace-core.jar
     mv $INSTALL_ARCH_LIB_DIR/jace/dynamic .
     f_fillInBuildConfigVariable "JACE_HOME" "$LIB_ROOT/$jace_lib"
-}
-
-function f_aws_fillin_build_client {
-    typeset gpp_path=$1
-
-    echo "BUILD CLIENT"
-    f_fillInBuildConfigVariable "GPP"         "$gpp_path"
-    f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
 }
 
 function f_aws_edit_configs {
@@ -126,4 +107,9 @@ function f_aws_skc {
 }
 
 LIB_ROOT=~
+JACE_RUNTIME="jace-core-runtime"
+JACE_CORE="jace-core-java"
+JACE_RUNTIME_JAR=$JACE_RUNTIME-1.2.22.jar
+JACE_CORE_JAR=$JACE_CORE-1.2.22.jar
+
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
