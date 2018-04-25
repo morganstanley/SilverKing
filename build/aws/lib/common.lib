@@ -47,7 +47,7 @@ function f_aws_install_ant {
 
 function f_aws_install_zk {
     echo "installing zk"
-    typeset zk_version="zookeeper-3.4.11"
+    typeset zk_version="zookeeper-3.4.12"
     typeset zk_tar=$zk_version.tar.gz
     f_downloadTar "$zk_tar" "http://apache.claz.org/zookeeper/$zk_version/$zk_tar"
 
