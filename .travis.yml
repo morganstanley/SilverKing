@@ -5,4 +5,4 @@ install: true
 script: 
 - uname -a
 - ls -l ~/.ssh
-- cd build && ./build.sh 
+- cd build/aws && ./ubuntu_build.sh 
