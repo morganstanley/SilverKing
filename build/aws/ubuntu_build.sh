@@ -1,20 +1,20 @@
 #!/bin/ksh
 
-function f_yumInstall {
-	sudo yum -y install $1
+function f_aptgetInstall {
+	sudo apt-get -qq install $1
 }
 
-function f_aws_install_java {
+function f_ubuntu_install_java {
     echo "installing java"
-    typeset java8=java-1.8.0
-    typeset java7=java-1.7.0
-    f_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
-    f_yumInstall "$java7-openjdk-devel.x86_64" 
-    f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java8"
-    f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
+    f_aptgetInstall "default-jdk" 
+    typeset java7_tar=jdk-7u80-linux-x64.tar.gz
+    f_downloadTar "$java7_tar" "http://ftp.osuosl.org/pub/funtoo/distfiles/oracle-java/$java7_tar"
+
+    f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+    f_fillInBuildConfigVariable "JAVA_7_HOME" "$LIB_ROOT/$java7"
 }
 
-function f_aws_fillin_build_skfs {    
+function f_ubuntu_fillin_build_skfs {    
     echo "BUILD SKFS"
     f_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_yumInstall "fuse-devel" #(.h files, .so)
@@ -40,7 +40,7 @@ source lib/common.lib
 
 echo "BUILD"
 f_aws_install_ant
-f_aws_install_java
+f_ubuntu_install_java
 f_aws_install_zk
 
 f_generatePrivateKey
@@ -49,11 +49,11 @@ sk_repo_home=$LIB_ROOT/$REPO_NAME
 f_aws_fillin_vars
 
 echo "BUILDING JACE"
-f_yumInstall "boost"
+f_aptgetInstall "boost"
 f_aws_install_and_symlink_boost
 f_aws_install_jace
 
-f_yumInstall "gcc-c++" # for g++
+f_aptgetInstall "gcc-c++" # for g++
 gpp_path=/usr/bin/g++
 cd $BUILD_DIR
 ./$BUILD_JACE_SCRIPT_NAME $gpp_path 
@@ -61,7 +61,7 @@ cd $BUILD_DIR
 f_aws_symlink_jace
 
 f_aws_fillin_build_client "$gpp_path"
-f_aws_fillin_build_skfs
+f_ubuntu_fillin_build_skfs
 
 source $BUILD_CONFIG_FILE
 f_aws_edit_configs
