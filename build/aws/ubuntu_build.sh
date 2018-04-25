@@ -7,12 +7,11 @@ function f_aptgetInstall {
 function f_ubuntu_install_java {
     echo "installing java"
     f_aptgetInstall "default-jdk" 
-    typeset java7="jdk-7u80-linux-x64"
-    typeset java7_tar=$java7.tar.gz
+    typeset java7_tar=jdk-7u80-linux-x64.tar.gz
     f_downloadTar "$java7_tar" "http://ftp.osuosl.org/pub/funtoo/distfiles/oracle-java/$java7_tar"
 
     f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/java-1.8.0-openjdk-amd64"
-    f_fillInBuildConfigVariable "JAVA_7_HOME" "$LIB_ROOT/$java7"
+    f_fillInBuildConfigVariable "JAVA_7_HOME" "$LIB_ROOT/jdk1.7.0_80"
 }
 
 function f_ubuntu_symlink_boost {
