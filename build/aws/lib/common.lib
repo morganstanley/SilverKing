@@ -47,11 +47,10 @@ function f_aws_install_ant {
 
 function f_aws_install_zk {
     echo "installing zk"
-    typeset zk_version="zookeeper-3.4.12"
-    typeset zk_tar=$zk_version.tar.gz
-    f_downloadTar "$zk_tar" "http://apache.claz.org/zookeeper/$zk_version/$zk_tar"
+    typeset zk_tar=$ZK_VERSION.tar.gz
+    f_downloadTar "$zk_tar" "http://apache.claz.org/zookeeper/$ZK_VERSION/$zk_tar"
 
-    cd $zk_version/conf
+    cd $ZK_VERSION/conf
     echo "tickTime=2000
     dataDir=/var/tmp/zookeeper
     clientPort=2181" > zoo.cfg
@@ -112,4 +111,6 @@ JACE_CORE="jace-core-java"
 JACE_RUNTIME_JAR=$JACE_RUNTIME-1.2.22.jar
 JACE_CORE_JAR=$JACE_CORE-1.2.22.jar
 
+ZK_VERSION="zookeeper-3.4.12"
+    
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
