@@ -51,42 +51,47 @@ cd -
 
 source lib/common.lib
 
-sudo yum update
+typeset output_filename=/tmp/aws_build.out
+{
+    sudo yum update
 
-echo "BUILD"
-f_aws_install_ant
-f_aws_install_java
-f_aws_install_zk
+    echo "BUILD"
+    f_aws_install_ant
+    f_aws_install_java
+    f_aws_install_zk
 
-f_generatePrivateKey
+    f_generatePrivateKey
 
-sk_repo_home=$LIB_ROOT/$REPO_NAME
-f_aws_fillin_vars
+    sk_repo_home=$LIB_ROOT/$REPO_NAME
+    f_aws_fillin_vars
 
-echo "BUILDING JACE"
-f_aws_install_boost
-f_aws_symlink_boost
-f_aws_install_jace
+    echo "BUILDING JACE"
+    f_aws_install_boost
+    f_aws_symlink_boost
+    f_aws_install_jace
 
-f_yumInstall "gcc-c++" # for g++
-gpp_path=/usr/bin/g++
-cd $BUILD_DIR
-./$BUILD_JACE_SCRIPT_NAME $gpp_path 
+    f_yumInstall "gcc-c++" # for g++
+    gpp_path=/usr/bin/g++
+    cd $BUILD_DIR
+    ./$BUILD_JACE_SCRIPT_NAME $gpp_path 
 
-f_aws_symlink_jace
+    f_aws_symlink_jace
 
-echo "BUILD CLIENT"
-f_fillInBuildConfigVariable "GPP"         "$gpp_path"
-f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
-f_aws_fillin_build_skfs
+    echo "BUILD CLIENT"
+    f_fillInBuildConfigVariable "GPP"         "$gpp_path"
+    f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
+    f_aws_fillin_build_skfs
 
-source $BUILD_CONFIG_FILE
-f_aws_edit_configs
-f_aws_skc
+    source $BUILD_CONFIG_FILE
+    f_aws_edit_configs
+    f_aws_skc
 
-cd $BUILD_DIR/aws
-./aws_zk.sh "start"
-cd ..
-./$BUILD_SCRIPT_NAME
-cd aws
-./aws_zk.sh "stop"
+    cd $BUILD_DIR/aws
+    ./aws_zk.sh "start"
+    cd ..
+    ./$BUILD_SCRIPT_NAME
+    cd aws
+    ./aws_zk.sh "stop"
+} 2>&1 | tee $output_filename
+
+
