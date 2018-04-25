@@ -15,7 +15,7 @@ function f_ubuntu_install_java {
 }
 
 function f_ubuntu_symlink_boost {
-    f_aptgetInstall "libboost-all-dev" # libboost-dev doesn't have the .so's
+    f_aptgetInstall "libboost-all-dev" # sudo apt-get install 'libboost-dev' isn't sufficient, doesn't have the .so's
     cd $LIB_ROOT
     typeset boost_lib=libs/boost
     mkdir -p $boost_lib
@@ -29,18 +29,17 @@ function f_ubuntu_symlink_boost {
 
 function f_ubuntu_fillin_build_skfs {    
     echo "BUILD SKFS"
-    f_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
-    f_yumInstall "fuse-devel" #(.h files, .so)
+    f_aptgetInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
+    f_aptgetInstall "libfuse-dev" #(.h files, .so)
+    sudo ln -s /lib/x86_64-linux-gnu/libfuse.so.2 /lib/x86_64-linux-gnu/libfuse.so
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
     f_fillInBuildConfigVariable "FUSE_LIB"  "/lib64"
 
-    f_yumInstall "zlib"
-    f_yumInstall "zlib-devel"
-    f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
-    f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib64"
+    f_aptgetInstall "zlib1g-dev" # zlib.h and libz.so
+    f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include/"
+    f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib/x86_64-linux-gnu/"
 
-    f_yumInstall "valgrind"	#(not sure this is necessary)
-    f_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
+    f_aptgetInstall "valgrind"	#(/usr/include/valgrind/valgrind.h)
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
 
@@ -79,7 +78,7 @@ f_aws_symlink_jace
 
 echo "BUILD CLIENT"
 f_fillInBuildConfigVariable "GPP"         "$gpp_path"
-f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-amazon-linux/6.0.0"
+f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-linux-gnu/6.0.0"
 f_ubuntu_fillin_build_skfs
 
 source $BUILD_CONFIG_FILE

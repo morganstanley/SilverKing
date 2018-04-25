@@ -95,7 +95,7 @@ function f_aws_symlink_jace {
 
 function f_aws_edit_configs {
     f_fillInSkfsConfigVariable   "fuseLib" "$FUSE_LIB"
-    f_fillInSkfsConfigVariable   "fuseBin" "/bin"
+    f_fillInSkfsConfigVariable   "fuseBin" "/bin"   # for /bin/fusermount
     f_fillInSkConfig
 
     f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf" "sudo"

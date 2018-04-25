@@ -34,12 +34,12 @@ function f_aws_fillin_build_skfs {
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
     f_fillInBuildConfigVariable "FUSE_LIB"  "/lib64"
 
-    f_yumInstall "zlib"
-    f_yumInstall "zlib-devel"
+    f_yumInstall "zlib" # not sure why it's necessary
+    f_yumInstall "zlib-devel"   # zlib.h and libz.so
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
     f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib64"
 
-    f_yumInstall "valgrind"	#(not sure this is necessary)
+    # f_yumInstall "valgrind"	#(not sure this is necessary)
     f_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
