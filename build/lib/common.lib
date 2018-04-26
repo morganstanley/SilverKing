@@ -970,14 +970,18 @@ function f_startSilverking {
 }
 
 function f_startSilverking_Helper {
-	f_printSubSection "StaticInstanceCreator"
-	
-	typeset vars=$(f_getBinScriptVars)
-	f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE"
+	f_runStaticInstanceCreator
 	f_runSkAdmin "StartNodes"
 	
 	f_userProcessCheck "SK" "1"
 	f_listSkProcesses
+}
+
+function f_runStaticInstanceCreator {
+    f_printSubSection "StaticInstanceCreator"
+	
+	typeset vars=$(f_getBinScriptVars)
+	f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE"
 }
 
 function f_stopSilverking {
@@ -991,7 +995,7 @@ function f_stopSilverking {
 function f_startSkfs {
 	f_printSection "STARTING SKFS"
 	
-	f_symlinkVerbose "$BIN_SKFS_DIR/$SKFS_EXEC_NAME" "$SKFS_D"
+	f_addBinSkfsD
 	f_startSkfs_Helper
 }
 
@@ -1053,6 +1057,10 @@ function f_getBinScriptVars {
 		skGlobalCodebase=$skClasspath
 		   skDevJavaHome=$JAVA_8_HOME
 	"
+}
+
+function f_addBinSkfsD {
+    f_symlinkVerbose "$BIN_SKFS_DIR/$SKFS_EXEC_NAME" "$SKFS_D"
 }
 
 function f_removeBinSkfsD {
