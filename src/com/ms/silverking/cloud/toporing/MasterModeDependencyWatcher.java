@@ -35,6 +35,10 @@ import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 
+/**
+ * Watches ring dependencies and builds a new ring if any changes are detected. 
+ * Always builds with respect to a "master" ring.
+ */
 public class MasterModeDependencyWatcher implements VersionListener {
     private final MetaClient    mc;
     private final MetaPaths     mp;
@@ -54,7 +58,7 @@ public class MasterModeDependencyWatcher implements VersionListener {
     
     private static final String	logFileName = "MasterModeDependencyWatcher.out";
     
-    private static final int    requiredInitialUpdates = 6;
+    private static final int    requiredInitialUpdates = 2;
     
     public MasterModeDependencyWatcher(SKGridConfiguration gridConfig, MasterModeDependencyWatcherOptions options) throws IOException, KeeperException {
         ZooKeeperConfig	zkConfig;
@@ -79,11 +83,6 @@ public class MasterModeDependencyWatcher implements VersionListener {
         buildQueue = new LinkedBlockingQueue<>();
         lastBuild = new HashMap<>();
         
-        /*
-         * updatesReceived is used to ensure that we have an update from every version before we trigger a build
-         */
-        updatesReceived = new ConcurrentSkipListSet<>();
-        
         masterRingTreeReadPair = readMasterRingTree(dhtMC, dhtMC.getDHTConfiguration());
         masterRingTree = masterRingTreeReadPair.getV1();
         masterRingAndVersionPair = masterRingTreeReadPair.getV2();
@@ -96,26 +95,17 @@ public class MasterModeDependencyWatcher implements VersionListener {
         existingTree = SingleRingZK.readTree(mc, ringConfigVersion, configInstanceVersion);
 		existingReplicaMap = existingTree.getResolvedMap(ringConfig.getRingConfiguration().getRingParentName(), new ReplicaNaiveIPPrioritizer());
         
+        /*
+         * updatesReceived is used to ensure that we have an update from every version before we trigger a build
+         */
+        updatesReceived = new ConcurrentSkipListSet<>();
+        
         intervalMillis = options.watchIntervalSeconds * 1000;
+        // We don't need to watch everything that a full DependencyWatcher needs to watch
         new VersionWatcher(mc, mp.getExclusionsPath(), this, intervalMillis);
         new VersionWatcher(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath(), this, intervalMillis);
-    }
-    
-    private RingTree readLatestRingTree(MetaClient mc) throws KeeperException, IOException {
-        RingTree    ringTree;
-        long        ringConfigVersion;
-        long        configInstanceVersion;
-        ZooKeeperExtended	zk;
-
-        zk = mc.getZooKeeper();
-        ringConfigVersion = zk.getLatestVersion(mp.getConfigPath());
-        configInstanceVersion = mc.getLatestConfigInstanceVersion(ringConfigVersion);
-        if (configInstanceVersion < 0) {
-        	throw new RuntimeException("Can't find configInstanceVersion");
-        } else {
-    		ringTree = SingleRingZK.readTree(mc, ringConfigVersion, configInstanceVersion);
-    	}
-        return ringTree;
+        
+        new Builder();
     }
     
     private Pair<RingTree,Triple<String,Long,Long>> readMasterRingTree(com.ms.silverking.cloud.dht.meta.MetaClient dhtMC, DHTConfiguration dhtConfig) throws KeeperException, IOException {
@@ -169,6 +159,10 @@ public class MasterModeDependencyWatcher implements VersionListener {
         return b;
 	}
     
+    /**
+     * Build a new ring based off of the master ring
+     * @param curBuild
+     */
     private void build(Map<String, Long> curBuild) {
     	try {
 	        ExclusionSet exclusionSet;
@@ -177,13 +171,11 @@ public class MasterModeDependencyWatcher implements VersionListener {
 	        long    instanceExclusionVersion;
 	        ZooKeeperExtended   zk;
 	        ExclusionSet	mergedExclusionSet;
-	        RingTree	existingRingTree;
 	        RingTree	newRingTree;
 	        String	newInstancePath;
 	        ResolvedReplicaMap	newReplicaMap;
 	        
 	        zk = mc.getZooKeeper();
-	        curBuild = createBuildMap(zk);
 	        exclusionVersion = curBuild.get(mp.getExclusionsPath());
 	        instanceExclusionVersion = curBuild.get(dhtMC.getMetaPaths().getInstanceExclusionsPath());
 	        
@@ -214,6 +206,7 @@ public class MasterModeDependencyWatcher implements VersionListener {
     
     private class Builder implements Runnable {
     	Builder() {
+    		new Thread(this).start();
         }
         
         @Override
@@ -271,5 +264,4 @@ public class MasterModeDependencyWatcher implements VersionListener {
 			System.exit(-1);
 		}
 	}
-
 }
