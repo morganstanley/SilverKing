@@ -31,9 +31,8 @@ function f_ubuntu_fillin_build_skfs {
     echo "BUILD SKFS"
     f_aptgetInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_aptgetInstall "libfuse-dev" #(.h files, .so)
-    sudo ln -s /lib/x86_64-linux-gnu/libfuse.so.2 /lib/x86_64-linux-gnu/libfuse.so
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
-    f_fillInBuildConfigVariable "FUSE_LIB"  "/lib64"
+    f_fillInBuildConfigVariable "FUSE_LIB"  "/usr/lib/x86_64-linux-gnu/"
 
     f_aptgetInstall "zlib1g-dev" # zlib.h and libz.so
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include/"
@@ -79,8 +78,8 @@ typeset output_filename=/tmp/ubuntu_build.out
     f_aws_symlink_jace
 
     echo "BUILD CLIENT"
-    f_fillInBuildConfigVariable "GPP"         "$gpp_path"
-    f_fillInBuildConfigVariable "GCC_LIB"     "/usr/lib/gcc/x86_64-linux-gnu/6.0.0"
+    f_fillInBuildConfigVariable "GPP"     "$gpp_path"
+    f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/6.0.0"
     f_ubuntu_fillin_build_skfs
 
     source $BUILD_CONFIG_FILE
