@@ -51,9 +51,9 @@ source lib/common.lib
 
 typeset output_filename=/tmp/ubuntu_build.out
 {
-    sudo apt-get update
-    f_aptgetInstall "make"
-    f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
+    # sudo apt-get update
+    # f_aptgetInstall "make"
+    # f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
     echo "BUILD"
     f_aws_install_ant
