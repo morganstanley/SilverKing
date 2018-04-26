@@ -59,7 +59,9 @@ typeset output_filename=/tmp/ubuntu_build.out
 
     pwd
     echo "BUILD"
+    pwd
     f_aws_install_ant
+    pwd
     f_ubuntu_install_java
     f_aws_install_zk
 
