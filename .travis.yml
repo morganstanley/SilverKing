@@ -1,5 +1,6 @@
-
+language: java
 env:
+    - LIB_ROOT=~/bh-ms
     - QUIET_OUTPUT=true
 before_install:
     - sudo apt-get update -qq
