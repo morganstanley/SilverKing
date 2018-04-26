@@ -11,4 +11,3 @@ script:
     - ls
     - echo $TEST
     - echo $TRAVIS_BUILD_DIR
-    - cd build/aws && ./ubuntu_build.sh 
