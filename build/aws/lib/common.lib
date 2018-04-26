@@ -5,7 +5,7 @@ function f_downloadTar {
 	typeset url=$2
 	
 	cd $lib_root
-	wget --progress=bar:force:noscroll $url # could also use '-nv', see the manpage for 'nv' or '--progress=type'
+	wget --progress=bar:force:noscroll $url # could also use '-nv', see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
     
     typeset verbose;
     if [[ ! $QUIET_OUTPUT == "true" ]]; then
@@ -112,7 +112,9 @@ function f_aws_skc {
     ln -s $SILVERKING_JAR
 }
 
-LIB_ROOT=~
+if [[ -z $LIB_ROOT ]]; then
+    LIB_ROOT=~
+fi
 JACE_RUNTIME="jace-core-runtime"
 JACE_CORE="jace-core-java"
 JACE_RUNTIME_JAR=$JACE_RUNTIME-1.2.22.jar
