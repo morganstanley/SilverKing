@@ -12,9 +12,8 @@ function f_downloadTar {
         tarOption="-v"
     fi
     
-	cd $lib_root
+	cd $LIB_ROOT
 	wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
-        
 	tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
 	rm $tar
 }

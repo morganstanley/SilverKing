@@ -6,5 +6,4 @@ before_install:
     - sudo apt-get install -qq git ksh
 install: true
 script: 
-    - which make
     - cd build/aws && ./ubuntu_build.sh 
