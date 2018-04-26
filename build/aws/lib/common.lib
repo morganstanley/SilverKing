@@ -4,15 +4,18 @@ function f_downloadTar {
 	typeset tar=$1
 	typeset url=$2
 	
-	cd $lib_root
-	wget --progress=bar:force:noscroll $url # could also use '-nv', see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
-    
-    typeset verbose;
-    if [[ ! $QUIET_OUTPUT == "true" ]]; then
-        verbose="-v"
+    typeset wgetOption;
+    typeset tarOption;
+    if [[ $QUIET_OUTPUT == "true" ]]; then
+        wgetOption="-nv"
+    else
+        tarOption="-v"
     fi
     
-	tar -xf $tar $verbose # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
+	cd $lib_root
+	wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
+        
+	tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
 	rm $tar
 }
 
