@@ -51,9 +51,9 @@ source lib/common.lib
 
 typeset output_filename=/tmp/ubuntu_build.out
 {
-    # sudo apt-get update
-    # f_aptgetInstall "make"
-    # f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
+    sudo apt-get update
+    f_aptgetInstall "make"
+    f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
     echo "BUILD"
     f_aws_install_ant
@@ -86,6 +86,8 @@ typeset output_filename=/tmp/ubuntu_build.out
     f_aws_edit_configs
     f_aws_skc
 
+    
+    ls -l $LIB_ROOT/SilverKing
     ls -l $LIB_ROOT
     ls -l $LIB_ROOT/jdk1.7.0_80/
     
