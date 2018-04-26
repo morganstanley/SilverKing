@@ -1,8 +1,9 @@
+
+env:
+    - QUIET_OUTPUT=true
 before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq git ksh
 install: true
 script: 
-- uname -a
-- ls -l ~/.ssh
-- cd build/aws && ./ubuntu_build.sh 
+    - cd build/aws && ./ubuntu_build.sh 
