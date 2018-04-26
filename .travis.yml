@@ -6,4 +6,5 @@ before_install:
     - sudo apt-get install -qq git ksh
 install: true
 script: 
+    - wget --progress=bar:force:noscroll http://archive.apache.org/dist/ant/binaries/apache-ant-1.10.0-bin.tar.bz2
     - cd build/aws && ./test.sh 
