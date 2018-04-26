@@ -28,6 +28,8 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 	private volatile boolean	hasUnserializedUpdates;
 	private boolean	firstUpdateReceived;
 	
+	private static final boolean	debug = false;
+	
 	LazyDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
 		super(dirKey, d, storageParams, sDir, nsOptions, reap, false);
 		serializationLock = new ReentrantLock();
@@ -80,10 +82,13 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 			if (hasUnserializedUpdates) {
 				// There are updates to the parent DirectoryInMemory that have not yet been serialized
 				if (!options.getRetrievalType().hasValue()) {
+					StorageParameters	sp;
+					
+					sp = serializeDirMetaData();
 					// Retrieval requires meta data only. For this case, don't bother serializing the underlying value
 					// Just create dummy metadata.
-					sd = new SerializedDirectory(serializeDirMetaData(), null, false);
-					if (Log.levelMet(Level.INFO)) {
+					sd = new SerializedDirectory(sp, SSUtil.metaDataToStoredValue(sp), false);
+					if (debug || Log.levelMet(Level.INFO)) {
 						Log.warningf("_ metaData %s %d", KeyUtil.keyToString(dirKey), sd.getStorageParameters().getVersion());
 					}
 				} else {
@@ -151,7 +156,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 			try {
 				sdp = sd.readDir();
 				
-				rVal = SSUtil.retrievalResultBufferFromValue(sdp.getV2(), StorageParameters.fromSSStorageParameters(sdp.getV1()), options);
+				rVal = ByteBuffer.wrap(sdp.getV2());
 				return rVal;
 			} catch (IOException ioe) {
 				Log.logErrorWarning(ioe);

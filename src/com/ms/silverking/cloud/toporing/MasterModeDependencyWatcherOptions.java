@@ -14,4 +14,7 @@ public class MasterModeDependencyWatcherOptions {
     
     @Option(name="-c", usage="consecutiveUpdateGuardSeconds", required=false)
     int     consecutiveUpdateGuardSeconds = 60;    
+    
+    @Option(name="-I", usage="ignoreInstanceExclusions", required=false)
+    boolean	ignoreInstanceExclusions = false;    
 }

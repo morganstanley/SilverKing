@@ -25,9 +25,11 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
+import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
+import com.ms.silverking.cloud.dht.serverside.SSUtil;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInMemory;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.collection.Pair;
@@ -129,17 +131,20 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 				SerializedDirectory	_sd;
 				DirectoryInPlace	recoveredDir;
 				byte[]	b;
+				int	_dataOffset;
 				
 				sd = readFromDisk(version);
 				_sd = new SerializedDirectory(sd, true);
 				serializedVersions.put(version, _sd);
 				latestUpdateSP = _sd.getStorageParameters();				
+				_dataOffset = MetaDataUtil.getDataOffset(sd.getV1().getChecksumType());
 				if (sd.getV1().getCompression() != Compression.NONE) {
-					b = CompressionUtil.decompress(sd.getV1().getCompression(), sd.getV2(), 0, sd.getV2().length, sd.getV1().getUncompressedSize());
+					b = CompressionUtil.decompress(sd.getV1().getCompression(), sd.getV2(), _dataOffset, sd.getV2().length - _dataOffset, sd.getV1().getUncompressedSize());
+					recoveredDir = new DirectoryInPlace(b, 0, b.length);
 				} else {
 					b = sd.getV2();
+					recoveredDir = new DirectoryInPlace(b, _dataOffset, b.length);
 				}
-				recoveredDir = new DirectoryInPlace(b, 0, b.length);
 				//recoveredDir.display();
 				super.update(recoveredDir);
 				//Log.warningf("Recovered version %d", version);
@@ -254,13 +259,13 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 				Log.logErrorWarning(ioe);
 			}		
 		}
-		sp = createDirMetaData(serializedDir.length, compressedDir.length, compressionUsed);
-		return new Pair<>(sp, compressedDir);
+		sp = createDirMetaData(serializedDir.length, compressedDir.length, compressionUsed);		
+		return new Pair<>(sp, SSUtil.rawValueToStoredValue(compressedDir, sp));
 	}
 	
 	protected StorageParameters serializeDirMetaData() {
 		// Note, this version of the meta data is for uncompressed
-		// When serialized has taken place, the actual data may be compressed
+		// After serialization has taken place, the actual data may be compressed
 		return createDirMetaData(computeSerializedSize());
 	}
 	
@@ -357,21 +362,16 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 		if (Log.levelMet(Level.INFO)) {
 			Log.infof("persisting %s", fileForVersion(sp));
 		}
-		FileUtil.writeToFile(fileForVersion(sp), StorageParameterSerializer.serialize(sp), serializedDirData);
+		FileUtil.writeToFile(fileForVersion(sp), serializedDirData);
 	}
 	
 	Pair<SSStorageParameters, byte[]> readFromDisk(long version) throws IOException {
 		byte[]	b;
 		SSStorageParameters	sp;
-		byte[]	serializedDir;
-		int	spLength;
 		
 		b = FileUtil.readFileAsBytes(fileForVersion(version));
 		sp = StorageParameterSerializer.deserialize(b);
-		spLength = StorageParameterSerializer.getSerializedLength(sp);
-		serializedDir = new byte[b.length - spLength];
-		System.arraycopy(b, spLength, serializedDir, 0, b.length - spLength);
-		return new Pair<>(sp, serializedDir);
+		return new Pair<>(sp, b);
 	}
 	
 	private File fileForVersion(SSStorageParameters sp) {

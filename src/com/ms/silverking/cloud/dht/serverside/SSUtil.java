@@ -9,6 +9,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 
 public class SSUtil {
 	private static final byte[]	emptyUserData = new byte[0];
+	private static final ByteBuffer	emptyBuffer = ByteBuffer.wrap(new byte[0]);
 	
 	public static ByteBuffer retrievalResultBufferFromValue(byte[] value, SSStorageParameters storageParams, SSRetrievalOptions options) {
 		return retrievalResultBufferFromValue(ByteBuffer.wrap(value), storageParams, options);
@@ -25,5 +26,25 @@ public class SSUtil {
 								Integer.MAX_VALUE, returnValue);
 		buf.position(0);
 		return buf;
+	}
+	
+	public static byte[] rawValueToStoredValue(byte[] rawValue, SSStorageParameters storageParams) {
+		ByteBuffer	buf;
+		
+		buf = ByteBuffer.allocate(MetaDataUtil.computeStoredLength(storageParams.getCompressedSize(), storageParams.getChecksumType().length(), 
+								emptyUserData.length));
+		StorageFormat.writeToBuf(null, ByteBuffer.wrap(rawValue), StorageParameters.fromSSStorageParameters(storageParams), emptyUserData, buf, new AtomicInteger(0), 
+								Integer.MAX_VALUE, true);
+		return buf.array();
+	}
+	
+	public static byte[] metaDataToStoredValue(SSStorageParameters storageParams) {
+		ByteBuffer	buf;
+		
+		buf = ByteBuffer.allocate(MetaDataUtil.computeMetaDataLength(storageParams.getCompressedSize(), storageParams.getChecksumType().length(), 
+								emptyUserData.length));
+		StorageFormat.writeToBuf(null, emptyBuffer, StorageParameters.fromSSStorageParameters(storageParams), emptyUserData, buf, new AtomicInteger(0), 
+								Integer.MAX_VALUE, true);
+		return buf.array();
 	}
 }
