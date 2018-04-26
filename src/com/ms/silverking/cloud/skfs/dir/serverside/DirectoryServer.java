@@ -29,6 +29,7 @@ import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.compression.CompressionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.SafeThread;
+import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
@@ -45,6 +46,8 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	public static String	modeProperty = DirectoryServer.class.getCanonicalName() +".Mode";
 	private static final Mode	defaultMode = Mode.Lazy;
 	private static final Mode	mode;
+	
+	private static final boolean	debug = false;
 	
 	static FileDeletionWorker	fileDeletionWorker = new FileDeletionWorker();
 	
@@ -125,7 +128,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			BaseDirectoryInMemorySS	existingDir;
 			DirectoryInPlace	updateDir;
 			
-			if (Log.levelMet(Level.INFO)) {
+			if (debug || Log.levelMet(Level.INFO)) {
 				Log.warningf("DirectoryServer.put() %s %s %s", KeyUtil.keyToString(key), value.hasArray(), storageParams.getCompression());
 			}
 	
@@ -181,7 +184,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		BaseDirectoryInMemorySS	existingDir;
 		ByteBuffer	rVal;
 		
-		if (Log.levelMet(Level.INFO)) {
+		if (debug || Log.levelMet(Level.INFO)) {
 			Log.warningf("retrieve %s", KeyUtil.keyToString(key));
 		}
 		existingDir = getExistingDirectory(key, false);
@@ -191,6 +194,9 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		} else {
 			//Log.warning("existingDir not found");
 			rVal = null;
+		}
+		if (debug) {
+			Log.warningf("rVal %s %s", rVal, StringUtil.byteBufferToHexString(rVal));
 		}
 		return rVal;
 	}

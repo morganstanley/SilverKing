@@ -56,6 +56,10 @@ public class MetaDataUtil {
         return compressedLength + checksumLength + userDataLength + fixedMetaDataLength;
     }
     
+    public static int computeMetaDataLength(int compressedLength, int checksumLength, int userDataLength) {
+        return checksumLength + userDataLength + fixedMetaDataLength;
+    }
+    
     public static short getCCSS(byte[] storedValue, int baseOffset) {
         return NumConversion.bytesToShort(storedValue, baseOffset + ccss);
         //return storedValue[baseOffset + ccss];
@@ -142,6 +146,10 @@ public class MetaDataUtil {
     
     public static long getVersion(byte[] storedValue, int baseOffset) {
         return NumConversion.bytesToLong(storedValue, baseOffset + versionOffset);
+    }
+    
+    public static int getDataOffset(ChecksumType checksumType) {
+    	return dataOffset + checksumType.length();
     }
     
     public static long getCreationTime(ByteBuffer buf, int baseOffset) {

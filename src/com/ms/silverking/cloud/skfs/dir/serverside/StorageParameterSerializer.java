@@ -11,11 +11,14 @@ import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.numeric.NumConversion;
 
-public class StorageParameterSerializer {	
+public class StorageParameterSerializer {
+	
+	// FUTURE - deprecate this class
+	
 	private static final int	BASE_SERIALIZED_SIZE = NumConversion.BYTES_PER_LONG * 2 
 												+ NumConversion.BYTES_PER_INT * 2 
 												+ NumConversion.BYTES_PER_SHORT 
-												+ ValueCreator.BYTES;
+												+ ValueCreator.BYTES + 1;
 	
 	public static int getSerializedLength(SSStorageParameters p) {
 		return BASE_SERIALIZED_SIZE + p.getChecksumType().length();
@@ -25,17 +28,22 @@ public class StorageParameterSerializer {
 		ByteBuffer	buf;
 		
 		buf = ByteBuffer.allocate(getSerializedLength(p));
-		buf.putLong(p.getVersion());
 		buf.putInt(p.getUncompressedSize());
 		buf.putInt(p.getCompressedSize());
+		buf.putLong(p.getVersion());
 		buf.putLong(p.getCreationTime());
-		buf.putShort(CCSSUtil.createCCSS(p.getCompression(), p.getChecksumType(), p.getStorageState()));
 		buf.put(p.getValueCreator());
+		buf.putShort(CCSSUtil.createCCSS(p.getCompression(), p.getChecksumType(), p.getStorageState()));
+		buf.put((byte)0);
 		buf.put(p.getChecksum());
 		return buf.array();
 	}
 
 	public static SSStorageParameters deserialize(byte[] a) {
+		return deserialize(a, 0);
+	}
+	
+	public static SSStorageParameters deserialize(byte[] a, int offset) {
 		ByteBuffer	b;
 		long	version;
 		int		uncompressedSize;
@@ -45,13 +53,14 @@ public class StorageParameterSerializer {
 		byte[]	valueCreator;
 		long	creationTime;
 		
-		b = ByteBuffer.wrap(a);
-		version = b.getLong();
-		uncompressedSize = b.getInt();
+		b = ByteBuffer.wrap(a, offset, a.length - offset);
 		compressedSize = b.getInt();
+		uncompressedSize = b.getInt();
+		version = b.getLong();
 		creationTime = b.getLong();
-		ccss = b.getShort();
 		valueCreator = BufferUtil.arrayCopy(b, ValueCreator.BYTES);
+		ccss = b.getShort();
+		b.get(); // userdatalength
 		checksum = BufferUtil.arrayCopy(b, CCSSUtil.getChecksumType(ccss).length());
 		return new StorageParameters(version, uncompressedSize, compressedSize, ccss, checksum, valueCreator, creationTime);
 	}
