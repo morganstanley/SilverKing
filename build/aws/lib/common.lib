@@ -5,13 +5,14 @@ function f_downloadTar {
 	typeset url=$2
 	
 	cd $lib_root
-	wget $url
+	wget --progress=bar:force:noscroll $url # could also use '-nv', see the manpage for 'nv' or '--progress=type'
     
-    typeset options="-xf"
+    typeset verbose;
     if [[ ! $QUIET_OUTPUT == "true" ]]; then
-        options+="v"
+        verbose="-v"
     fi
-	tar $options $tar
+    
+	tar -xf $tar $verbose # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
 	rm $tar
 }
 
@@ -76,6 +77,7 @@ function f_aws_install_boost {
 }
 
 function f_aws_install_jace {
+    echo "installing jace"
     cd $LIB_ROOT
     
     typeset jar_url="search.maven.org/remotecontent?filepath=com/googlecode/jace"
