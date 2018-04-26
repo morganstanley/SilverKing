@@ -86,6 +86,9 @@ typeset output_filename=/tmp/ubuntu_build.out
     f_aws_edit_configs
     f_aws_skc
 
+    ls -l $LIB_ROOT
+    ls -l $LIB_ROOT/jdk1.7.0_80/
+    
     cd $BUILD_DIR/aws
     ./aws_zk.sh "start"
     cd ..
