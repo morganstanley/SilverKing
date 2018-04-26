@@ -1,6 +1,6 @@
 language: java
 env:
-    - LIB_ROOT=~/bh-ms QUIET_OUTPUT=true
+    - LIB_ROOT=~/bh-ms QUIET_OUTPUT=true TEST=$TRAVIS_BUILD_DIR
 before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq git ksh
