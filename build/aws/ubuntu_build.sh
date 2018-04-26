@@ -6,6 +6,7 @@ function f_aptgetInstall {
 
 function f_ubuntu_install_java {
     echo "installing java"
+    pwd
     f_aptgetInstall "default-jdk" 
     typeset java7_tar=jdk-7u80-linux-x64.tar.gz
     f_downloadTar "$java7_tar" "http://ftp.osuosl.org/pub/funtoo/distfiles/oracle-java/$java7_tar"
