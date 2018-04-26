@@ -49,13 +49,15 @@ source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
 cd -
 
 source lib/common.lib
-
+echo before 
+pwd
 typeset output_filename=/tmp/ubuntu_build.out
 {
     sudo apt-get update
     f_aptgetInstall "make"
     f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
+    pwd
     echo "BUILD"
     f_aws_install_ant
     f_ubuntu_install_java
