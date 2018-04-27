@@ -10,4 +10,4 @@ f_generatePrivateKey
 cd $BUILD_DIR/aws
 ./aws_zk.sh start
 cd $TESTING_OUTPUT_DIR
-./start_instance.sh
+./$START_INSTANCE_SCRIPT_NAME
