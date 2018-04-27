@@ -7,4 +7,4 @@ if [[ -z $1 ]]; then
 	exit
 fi
 
-~/$ZK_VERSION/bin/zkServer.sh $1
+$LIB_ROOT/$ZK_VERSION/bin/zkServer.sh $1

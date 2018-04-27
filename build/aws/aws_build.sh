@@ -6,6 +6,7 @@ function f_yumInstall {
 
 function f_aws_install_java {
     echo "installing java"
+    cd $LIB_ROOT
     typeset java8=java-1.8.0
     typeset java7=java-1.7.0
     f_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
