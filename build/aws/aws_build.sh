@@ -56,7 +56,7 @@ f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
 {
-    sudo yum update
+    sudo yum -y update
 
     echo "BUILD"
     f_aws_install_ant
