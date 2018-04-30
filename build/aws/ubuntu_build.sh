@@ -6,6 +6,7 @@ function f_aptgetInstall {
 
 function f_ubuntu_install_java {
     echo "installing java"
+    cd $LIB_ROOT
     f_aptgetInstall "default-jdk" 
     typeset java7_tar=jdk-7u80-linux-x64.tar.gz
     f_downloadTar "$java7_tar" "http://ftp.osuosl.org/pub/funtoo/distfiles/oracle-java/$java7_tar"
@@ -51,8 +52,9 @@ source lib/common.lib
 
 typeset output_filename=/tmp/ubuntu_build.out
 {
+    # these 3 needed for aws and travis-ci ubuntu's
     sudo apt-get update
-    f_aptgetInstall "make"
+    f_aptgetInstall "make"  # need for aws, not travis-ci
     f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
     echo "BUILD"
