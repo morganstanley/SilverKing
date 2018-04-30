@@ -127,7 +127,7 @@ public class MetaDataUtil {
         
         checksumLength = getChecksumLength(storedValue, baseOffset);
         return getStoredLength(storedValue, baseOffset) 
-                - checksumLength // property of namespace 
+                - checksumLength
                 - getUserDataLength(storedValue, baseOffset) 
                 - fixedMetaDataLength;
     }
