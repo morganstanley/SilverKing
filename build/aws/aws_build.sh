@@ -52,7 +52,9 @@ cd -
 
 source lib/common.lib
 
-typeset output_filename=/tmp/aws_build.out
+f_checkAndSetBuildTimestamp
+
+typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
 {
     sudo yum update
 
