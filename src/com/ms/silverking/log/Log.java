@@ -344,4 +344,12 @@ public final class Log {
     		log(Level.FINE, m);
 	    }
 	}
+	
+	public static void dumpStack() {
+		try {
+			throw new RuntimeException("stacktrace");
+		} catch (RuntimeException re) {
+			logErrorWarning(re);
+		}
+	}
 }
