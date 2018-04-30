@@ -116,6 +116,8 @@ public class StorageParameters implements SSStorageParameters {
         sb.append(':');
         sb.append(compressedSize);
         sb.append(':');
+        sb.append(getCompression());
+        sb.append(':');
         sb.append(valueCreator);
         return sb.toString();
     }

@@ -37,6 +37,7 @@ import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.numeric.LongInterval;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.SimpleTimer;
@@ -239,48 +240,58 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 	////////////////////////////////////////////////////////////////////
 	
     public void incomingSyncRetrievalResponse(MessageGroup message) {
-        List<StorageValueAndParameters> svpList;
-        SyncRetrievalRequest	srr;
-        
-		lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
-        srr = outstandingSyncRetrievalRequests.get(message.getUUID());
-        
-        //outstandingMessages.decrementAndGet();
-        //if (outstandingMessages.get() < 0) {
-       //     outstandingMessages.set(0);
-        //}
-        
-        if (debug) {
-            Log.warning("incomingSyncRetrievalResponse");
-        }
-        svpList = new ArrayList<>();
-        for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
-            StorageValueAndParameters   svp;
-            
-            if (debug) {
-                Log.warningf("%s", entry.toString());
-            }
-            if (srr != null) {
-            	srr.outstandingKeys.remove(entry);
-            }
-            svp = StorageValueAndParameters.createSVP(entry);
-            if (svp != null) {
-                svpList.add(svp);
-            }
-        }
-        if (!svpList.isEmpty()) {
-        	if (nsStore != null) {
-	        	// FUTURE - support migration of user data
-	            nsStore.put(svpList, emptyUserData, this);
-        	}
-        }
-        if (srr != null && srr.outstandingKeys.isEmpty()) {
-            Log.warningAsyncf("ars %s complete-srr %s", uuid, srr.getUUID());
-            outstandingSyncRetrievalRequests.remove(srr.getUUID());
-            inprocessSyncRetrievalRequests.remove(srr.getUUID());
-        }
-        //checkMGQueue();
-        checkForCompletion();
+    	try {
+	        List<StorageValueAndParameters> svpList;
+	        SyncRetrievalRequest	srr;
+	        
+			lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
+	        srr = outstandingSyncRetrievalRequests.get(message.getUUID());
+	        
+	        //outstandingMessages.decrementAndGet();
+	        //if (outstandingMessages.get() < 0) {
+	       //     outstandingMessages.set(0);
+	        //}
+	        
+	        if (debug) {
+	            Log.warning("incomingSyncRetrievalResponse");
+	        }
+	        svpList = new ArrayList<>();
+	        for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
+	            StorageValueAndParameters   svp;
+	            
+	            if (debug) {
+	                Log.warningf("%s", entry.toString());
+	            }
+	            if (srr != null) {
+	            	srr.outstandingKeys.remove(entry);
+	            }
+	            try {
+	            	svp = StorageValueAndParameters.createSVP(entry);
+	            } catch (RuntimeException re) {
+	            	Log.warningf("Exception processing %s", IPAddrUtil.addrToString(message.getOriginator()));
+	            	throw re;
+	            }
+	            if (svp != null) {
+	                svpList.add(svp);
+	            }
+	        }
+	        if (!svpList.isEmpty()) {
+	        	if (nsStore != null) {
+		        	// FUTURE - support migration of user data
+		            nsStore.put(svpList, emptyUserData, this);
+	        	}
+	        }
+	        if (srr != null && srr.outstandingKeys.isEmpty()) {
+	            Log.warningAsyncf("ars %s complete-srr %s", uuid, srr.getUUID());
+	            outstandingSyncRetrievalRequests.remove(srr.getUUID());
+	            inprocessSyncRetrievalRequests.remove(srr.getUUID());
+	        }
+	        //checkMGQueue();
+	        checkForCompletion();
+    	} catch (RuntimeException re) {
+    		Log.warningf("Exception in ars for ns %x", namespace);
+    		throw re;
+    	}
     }	
 	
 	////////////////////////////////////////////////////////////////////

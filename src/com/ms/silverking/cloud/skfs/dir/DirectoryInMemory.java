@@ -71,7 +71,7 @@ public class DirectoryInMemory extends DirectoryBase {
 		throw new UnsupportedOperationException();
 	}
 	
-	private void addEntry(ByteString name, DirectoryEntryInPlace entry) {
+	protected void addEntry(ByteString name, DirectoryEntryInPlace entry) {
 		// copy so that the source can be garbage collected
 		entries.put(name.duplicateBuffer(), entry.duplicate());
 		entryBytes += entry.getLengthBytes();

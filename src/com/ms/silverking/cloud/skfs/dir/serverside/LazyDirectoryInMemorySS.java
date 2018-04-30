@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSUtil;
+import com.ms.silverking.cloud.skfs.dir.DirectoryEntryInPlace;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
@@ -37,6 +38,11 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 	
 	public LazyDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
 		this(dirKey, d, storageParams, sDir, nsOptions, true);
+	}
+	
+	protected void addEntry(ByteString name, DirectoryEntryInPlace entry) {
+		// catches updates during construction
+		hasUnserializedUpdates = true;
 	}
 	
 	/**
@@ -61,6 +67,43 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 				firstUpdateReceived = true;
 			}
 		}
+	}
+	
+	protected final void persistLatestIfNecessary() {
+		SerializedDirectory	sd;
+		
+		// FUTURE - dedup w.r.t. retrieve
+		if (hasUnserializedUpdates) {
+			serializationLock.lock();
+			try {
+				// We must double check now to see if updates were serialized while this thread was waiting for the lock
+				if (hasUnserializedUpdates) {
+					Pair<SSStorageParameters,byte[]>	sdsp;
+					SerializedDirectory	prev;
+					
+					// Not yet serialized. Do it now
+					sdsp = serializeDir();
+					sd = new SerializedDirectory(sdsp, false);
+					if (Log.levelMet(Level.INFO)) {
+						Log.warningf("a serializedVersions.put %s %d", KeyUtil.keyToString(dirKey), sdsp.getV1().getVersion());
+					}
+					prev = serializedVersions.putIfAbsent(sdsp.getV1().getVersion(), sd); 
+					if (prev != null) {
+						Log.warningAsyncf("Unexpected multiple serialization for %s %d", KeyUtil.keyToString(dirKey), sdsp.getV1().getVersion());
+					}
+					hasUnserializedUpdates = false;
+				} else {
+					// Updates were serialized while this thread was waiting for the lock. Simply return the most recent
+					if (Log.levelMet(Level.INFO)) {
+						Log.warningf("b serializedVersions.get %s %d", KeyUtil.keyToString(dirKey), latestUpdateSP.getVersion());
+					}
+					sd = getMostRecentDirectory();
+				}
+			} finally {
+				serializationLock.unlock();
+			}
+		}
+		super.persistLatestIfNecessary();
 	}
 	
 	/**

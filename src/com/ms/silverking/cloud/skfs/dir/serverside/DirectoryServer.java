@@ -95,14 +95,30 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		dirs = new HashSet<>();
 		for (String s : logDir.list()) {
 			try {
-				dirs.add(KeyUtil.keyStringToKey(s));
+				if (!filterEmptyDir(s)) {
+					dirs.add(KeyUtil.keyStringToKey(s));
+				}
 			} catch (Exception e) {
+				Log.logErrorWarning(e);
 				Log.warningf("DirectoryServer.getDirectoriesOnDiskAtBoot() skipping %s", s);
 			}
 		}
 		return ImmutableSet.copyOf(dirs);
 	}
 	
+	private boolean filterEmptyDir(String s) {
+		File	f;
+		
+		f = new File(logDir, s);
+		if (f.list().length == 0) {
+			Log.warningf("Removing empty dir: %s", s);
+			f.delete();
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	private BaseDirectoryInMemorySS newDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
 		return newDirectoryInMemorySS(dirKey, d, storageParams, sDir, nsOptions, true);
 	}
@@ -161,7 +177,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 				BaseDirectoryInMemorySS	newDir;
 				
 				newDir = newDirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
-				newDir.update(updateDir, storageParams);
+				newDir.update(updateDir, storageParams); // update extraneous, remove after verification
 				directories.put(key, newDir);
 			} else {
 				existingDir.update(updateDir, storageParams);

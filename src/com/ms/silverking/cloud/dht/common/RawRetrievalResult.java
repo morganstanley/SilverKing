@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.dht.client.impl.SegmentationUtil;
 import com.ms.silverking.compression.CodecProvider;
 import com.ms.silverking.compression.Decompressor;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.text.StringUtil;
 
 /*
  * Groups OpResult of retrieval operation with the retrieved data and metadata.
@@ -121,6 +122,12 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
 	                decompressor = CodecProvider.getDecompressor(compression);
 	                if (decompressor == null) {
 	                    if (compression == Compression.NONE) {
+	                    	Log.warningf("%s", compression);
+	                        Log.warningf("compressedLength: %d", compressedLength);
+	                        Log.warningf("uncompressedLength: %d", uncompressedLength);
+	                    	Log.warningf("%s", StringUtil.byteArrayToHexString(storedData, baseOffset, compressedLength));
+	                        Log.warning("MetaDataUtil.isCompressed() returning true for uncompressed data");
+	                        Log.warningf("%s", MetaDataTextUtil.toMetaDataString(storedData, baseOffset, true));
 	                        throw new RuntimeException("MetaDataUtil.isCompressed() returning true for uncompressed data");
 	                    } else {
 	                        throw new RuntimeException("Can't find compressor for: "+ compression);
