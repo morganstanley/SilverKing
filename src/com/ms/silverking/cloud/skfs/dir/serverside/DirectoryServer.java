@@ -177,7 +177,10 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 				BaseDirectoryInMemorySS	newDir;
 				
 				newDir = newDirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
-				newDir.update(updateDir, storageParams); // update extraneous, remove after verification
+				if (newDir instanceof LazyDirectoryInMemorySS) {
+					((LazyDirectoryInMemorySS)newDir).setUnserialized();
+				}
+				//newDir.update(updateDir, storageParams); // update extraneous, remove after verification
 				directories.put(key, newDir);
 			} else {
 				existingDir.update(updateDir, storageParams);
