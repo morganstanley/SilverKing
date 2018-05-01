@@ -53,7 +53,7 @@ function f_aws_install_ant {
     typeset ant_version="apache-ant-1.10.0"
     typeset ant_tar=$ant_version-bin.tar.bz2
     f_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
-    
+     
     f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
 }
 
