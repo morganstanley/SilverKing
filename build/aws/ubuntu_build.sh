@@ -89,7 +89,11 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/6.0.0"
     f_ubuntu_fillin_build_skfs
 
+    cat $BUILD_CONFIG_FILE
+      
     source $BUILD_CONFIG_FILE
+    ls -l $FUSE_INC
+    ls -l $FUSE_LIB
     f_aws_edit_configs
     f_aws_skc
 
