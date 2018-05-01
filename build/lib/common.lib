@@ -348,6 +348,14 @@ function f_getTestSkfs_RunOutputFilename {
 	echo $(f_getRunOutputFilename_Helper "$TEST_SILVERKING_FS_NAME")
 }
 
+function f_getStartInstance_RunOutputFilename {
+	echo $(f_getRunOutputFilename_Helper "$START_INSTANCE_NAME")
+}
+
+function f_getStopInstance_RunOutputFilename {
+	echo $(f_getRunOutputFilename_Helper "$STOP_INSTANCE_NAME")
+}
+
 # currently unused
 #function f_getRelease_RunOutputFilename {
 #	echo $(f_getRunOutputFilename_Helper "$RELEASE_NAME")

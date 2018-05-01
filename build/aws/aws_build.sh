@@ -6,6 +6,7 @@ function f_yumInstall {
 
 function f_aws_install_java {
     echo "installing java"
+    cd $LIB_ROOT
     typeset java8=java-1.8.0
     typeset java7=java-1.7.0
     f_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
@@ -51,9 +52,11 @@ cd -
 
 source lib/common.lib
 
-typeset output_filename=/tmp/aws_build.out
+f_checkAndSetBuildTimestamp
+
+typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
 {
-    sudo yum update
+    sudo yum -y update
 
     echo "BUILD"
     f_aws_install_ant

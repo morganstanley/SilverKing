@@ -66,6 +66,8 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 	private static final Compression	dimSSCompression;
 	private static final double			compressionThreshold = 0.8;
 	
+	private static final boolean	debugPersistence = false;
+	
 	protected static FileDeletionWorker	fileDeletionWorker;
 	
 	static {
@@ -295,47 +297,57 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 	public List<File> checkForPersistence(long checkTimeMillis) {
 		List<File>	filesToDelete;
 		
-		if (Log.levelMet(Level.INFO)) {
+		if (debugPersistence || Log.levelMet(Level.INFO)) {
 			Log.warningf("checkForPersistence %s", KeyUtil.keyToString(dirKey));
 		}
 
 		filesToDelete = ImmutableList.of();
 		// could use a timer below, but should avoid clock checking overhead
+		if (debugPersistence) {
+			Log.warningf("%d %d %d\t%d", checkTimeMillis, lastPersistenceCheckMillis, minPersistenceIntervalMillis, checkTimeMillis - lastPersistenceCheckMillis);
+		}
 		if (checkTimeMillis - lastPersistenceCheckMillis > minPersistenceIntervalMillis) {
 			lastPersistenceCheckMillis = checkTimeMillis;
 			persistLatestIfNecessary();
 			filesToDelete = reap();
 		}
-		if (Log.levelMet(Level.INFO)) {
+		if (debugPersistence || Log.levelMet(Level.INFO)) {
 			Log.warningf("out checkForPersistence %s", KeyUtil.keyToString(dirKey));
 		}
 		return filesToDelete;
 	}
 	
-	private final void persistLatestIfNecessary() {
+	protected void persistLatestIfNecessary() {
 		Map.Entry<Long, SerializedDirectory>	entry;
 		
-		if (Log.levelMet(Level.INFO)) {
+		if (debugPersistence || Log.levelMet(Level.INFO)) {
 			Log.warningf("persistLatestIfNecessary() %s", KeyUtil.keyToString(dirKey));
 		}
 		entry = serializedVersions.lastEntry();
 		if (entry != null) {
 			SerializedDirectory	sd;
 			
-			if (Log.levelMet(Level.INFO)) {
+			if (debugPersistence || Log.levelMet(Level.INFO)) {
 				Log.warning("persistLatestIfNecessary() found entry %s", KeyUtil.keyToString(dirKey));
 			}
 			sd = entry.getValue();
-			if (Log.levelMet(Level.INFO)) {
+			if (debugPersistence || Log.levelMet(Level.INFO)) {
 				Log.warningf("persistLatestIfNecessary() entry persisted %s %s", KeyUtil.keyToString(dirKey), sd.isPersisted());
 			}
 			if (!sd.isPersisted()) {
 				persist(sd);
 			}
+		} else {
+			if (debugPersistence || Log.levelMet(Level.INFO)) {
+				Log.warningf("persistLatestIfNecessary() no lastEntry");
+			}
 		}
 	}
 	
 	private final void persist(SerializedDirectory sd) {
+		if (debugPersistence) {
+			Log.warningf("persist()");
+		}
 		persist(sd.getStorageParameters(), sd.getSerializedDir());
 		sd.setPersisted();
 	}

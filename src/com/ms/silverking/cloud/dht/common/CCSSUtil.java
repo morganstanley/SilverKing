@@ -40,4 +40,8 @@ public class CCSSUtil {
     public static short updateCompression(int oldCCSS, Compression compression) {
         return (short)((oldCCSS & (short)0xfff) | (compression.ordinal() << 12));
     }    
+    
+    public static short updateChecksumType(int oldCCSS, ChecksumType checksumType) {
+        return (short)((oldCCSS & (short)0xf0ff) | (checksumType.ordinal() << 8));
+    }    
 }

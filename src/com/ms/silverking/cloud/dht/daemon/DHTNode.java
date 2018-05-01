@@ -190,6 +190,9 @@ public class DHTNode {
             } catch (Exception e) {
             	Log.logErrorWarning(e);
                 e.printStackTrace();
+            } catch (Throwable t) {
+            	Log.logErrorWarning(t);
+                t.printStackTrace();
             } finally {
                 Log.warning("DHTNode leaving main()");
             }

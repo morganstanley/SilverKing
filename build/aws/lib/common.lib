@@ -1,4 +1,7 @@
 
+function f_aws_getBuild_RunOutputFilename {
+	echo $(f_getRunOutputFilename_Helper "$1")
+}
 
 function f_downloadTar {
 	typeset tar=$1
@@ -42,11 +45,11 @@ function f_generatePrivateKey {
 	fi
 }
 
+# sudo yum install ant - is installing 1.8 and we need 1.9
+# download binary file @ http://archive.apache.org/dist/ant/binaries/ or www.apache.org/dist/ant/binaries
 function f_aws_install_ant {
-    # sudo yum install ant - is installing 1.8 and we need 1.9
-    # download binary file @ http://archive.apache.org/dist/ant/binaries/ or www.apache.org/dist/ant/binaries
     echo "installing ant"
-    pwd
+    cd $LIB_ROOT
     typeset ant_version="apache-ant-1.10.0"
     typeset ant_tar=$ant_version-bin.tar.bz2
     f_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
@@ -56,7 +59,7 @@ function f_aws_install_ant {
 
 function f_aws_install_zk {
     echo "installing zk"
-    pwd
+    cd $LIB_ROOT
     typeset zk_tar=$ZK_VERSION.tar.gz
     f_downloadTar "$zk_tar" "http://apache.claz.org/zookeeper/$ZK_VERSION/$zk_tar"
 
@@ -73,7 +76,7 @@ function f_aws_fillin_vars {
 
 function f_aws_install_boost {
     echo "installing boost"
-    pwd
+    cd $LIB_ROOT
     typeset boost_version="boost_1_61_0"
     typeset boost_tar=$boost_version.tar.gz
     f_downloadTar "$boost_tar" "https://versaweb.dl.sourceforge.net/project/boost/boost/1.61.0/$boost_tar"
@@ -117,6 +120,8 @@ function f_aws_skc {
     ln -s $SILVERKING_JAR
 }
 
+# LIB_ROOT should be at the same level as the cloned "SilverKing" repo
+# travis-ci sets LIB_ROOT
 if [[ -z $LIB_ROOT ]]; then
     LIB_ROOT=~
 fi
