@@ -33,11 +33,11 @@ function f_ubuntu_fillin_build_skfs {
     f_aptgetInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_aptgetInstall "libfuse-dev" #(.h files, .so)
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
-    f_fillInBuildConfigVariable "FUSE_LIB"  "/usr/lib/x86_64-linux-gnu/"
+    f_fillInBuildConfigVariable "FUSE_LIB"  "/usr/lib/x86_64-linux-gnu"
 
     f_aptgetInstall "zlib1g-dev" # zlib.h and libz.so
-    f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include/"
-    f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib/x86_64-linux-gnu/"
+    f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
+    f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib/x86_64-linux-gnu"
 
     f_aptgetInstall "valgrind"	#(/usr/include/valgrind/valgrind.h)
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
@@ -50,7 +50,9 @@ cd -
 
 source lib/common.lib
 
-typeset output_filename=/tmp/ubuntu_build.out
+f_checkAndSetBuildTimestamp
+
+typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 {
     # these 3 needed for aws and travis-ci ubuntu's
     sudo apt-get update

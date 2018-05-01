@@ -1,4 +1,7 @@
 
+function f_aws_getBuild_RunOutputFilename {
+	echo $(f_getRunOutputFilename_Helper "$1")
+}
 
 function f_downloadTar {
 	typeset tar=$1
