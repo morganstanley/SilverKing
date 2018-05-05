@@ -6,7 +6,6 @@ If you'd like to just give SilverKing a try, you can create an AWS instance from
     https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=silverking;sort=name
 ### Run
 [GitHub](http://github.com)
-
 [google](http://www.google.com/) inline link.
 
     [This link](http://example.com/ "Title") has a title attribute.
