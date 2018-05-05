@@ -5,6 +5,11 @@ If you'd like to just give SilverKing a try, you can create an AWS instance from
     AMI-Name: silverking
     https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=silverking;sort=name
 ### Run
+    This is [an example](http://www.example.com/) inline link.
+
+    [This link](http://example.com/ "Title") has a title attribute.
+
+    Links are also auto-detected in text: http://example.com/
 #### Single-instance
     cd ~/SilverKing/build/aws/
     ./aws_start.sh
@@ -35,8 +40,10 @@ If you'd like to just give SilverKing a try, you can create an AWS instance from
     ./aws_build.sh
 
 ### Ubuntu
-    sudo apt-get update
-    sudo apt-get install git ksh
-    git clone https://github.com/Morgan-Stanley/SilverKing.git
-    cd ~/SilverKing/build/aws
-    ./ubuntu_build.sh
+```ksh
+sudo apt-get update
+sudo apt-get install git ksh
+git clone https://github.com/Morgan-Stanley/SilverKing.git
+cd ~/SilverKing/build/aws
+./ubuntu_build.sh
+```
