@@ -7,7 +7,7 @@ If you'd like to just give SilverKing a try, you can create an AWS instance from
 ### Run
 [GitHub](http://github.com)
 
-    This is [google](http://www.google.com/) inline link.
+[google](http://www.google.com/) inline link.
 
     [This link](http://example.com/ "Title") has a title attribute.
 
