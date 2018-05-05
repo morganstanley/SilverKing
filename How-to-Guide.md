@@ -5,10 +5,6 @@ Region: US West (Oregon)<br>
 AMI-Name: silverking<br>
 [Silverking AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=silverking;sort=name)<br>
 ### Run
-[GitHub](http://github.com)<br>
-[google](http://www.google.com/) inline link.<br>
-[This link](http://example.com/ "Title") has a title attribute.<br>
-nks are also auto-detected in text: http://example.com/
 #### Single-instance
     cd ~/SilverKing/build/aws/
     ./aws_start.sh
