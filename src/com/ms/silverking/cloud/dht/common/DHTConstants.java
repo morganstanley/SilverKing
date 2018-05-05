@@ -1,11 +1,8 @@
 package com.ms.silverking.cloud.dht.common;
 
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 import com.ms.silverking.SKConstants;
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
