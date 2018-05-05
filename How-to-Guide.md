@@ -1,16 +1,14 @@
 # How to Guide
 ## Try a Demo
-If you'd like to just give SilverKing a try, you can create an AWS instance from our template:
-    Region: US West (Oregon)
-    AMI-Name: silverking
-    https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=silverking;sort=name
+If you'd like to just give SilverKing a try, you can create an AWS instance from our template:<br>
+Region: US West (Oregon)<br>
+AMI-Name: silverking<br>
+[Silverking AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=silverking;sort=name)<br>
 ### Run
 [GitHub](http://github.com)<br>
-[google](http://www.google.com/) inline link.
-
-    [This link](http://example.com/ "Title") has a title attribute.
-
-    Links are also auto-detected in text: http://example.com/
+[google](http://www.google.com/) inline link.<br>
+[This link](http://example.com/ "Title") has a title attribute.<br>
+nks are also auto-detected in text: http://example.com/
 #### Single-instance
     cd ~/SilverKing/build/aws/
     ./aws_start.sh
