@@ -31,6 +31,7 @@ AMI-Name: silverking<br>
 ### Amazon-linux
 ```
 sudo yum -y install git ksh
+cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
 cd ~/SilverKing/build/aws
 ./aws_build.sh
@@ -40,6 +41,7 @@ cd ~/SilverKing/build/aws
 ```
 sudo apt-get update
 sudo apt-get install git ksh
+cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
 cd ~/SilverKing/build/aws
 ./ubuntu_build.sh
