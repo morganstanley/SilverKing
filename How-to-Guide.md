@@ -6,10 +6,11 @@ AMI-Name: silverking<br>
 [Silverking AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=silverking;sort=name)<br>
 ### Run
 #### Single-instance
-    cd ~/SilverKing/build/aws/
-    ./aws_start.sh
-    cd ~/SilverKing/bin
-    ./skc -G ../build/testing -g GC_sk_test
+```ksh
+cd ~/SilverKing/build/aws/
+./aws_start.sh  # this starts zookeeper, sk, and skfs
+~/SilverKing/bin/skc -G ~/Silverking/build/testing -g GC_SK_test    # this is a silverking client, you can test puts and gets. type "skc> h;" to see the help menu.
+```
 
 #### Multi-instance
     - Start N instance from image
