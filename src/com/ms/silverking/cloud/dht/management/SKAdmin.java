@@ -111,8 +111,6 @@ public class SKAdmin {
 	private static final Set<String>	skfsFileBlockNamespaces = ImmutableSet.copyOf(_skfsFileBlockNamespaces);
 	private static final Set<String>	skfsDirNamespaces = ImmutableSet.copyOf(_skfsDirNamespaces);
 	
-	private static final int	unsafeWarningCountdown = 10;
-	
 	private static final String	logFileName = "SKAdmin.out";
 	
 	public static boolean	exitOnCompletion = true;
@@ -835,7 +833,7 @@ public class SKAdmin {
 				if (!options.forceInclusionOfUnsafeExcludedServers) {
 					throw new IneligibleServerException("Attempted to start ineligible servers: "+ CollectionUtil.toString(ineligibleServers, ','));
 				} else {
-					Log.countdownWarning("*** Including unsafe excluded servers. This may result in data loss ***", unsafeWarningCountdown);
+					Log.countdownWarning("*** Including unsafe excluded servers. This may result in data loss ***", options.unsafeWarningCountdownSecs);
 				}
 			} else {
 				Log.warning("Server eligibility verified");
@@ -934,7 +932,7 @@ public class SKAdmin {
 		Log.warning("validPassiveServers: ", CollectionUtil.toString(validPassiveServers));
 		
 		if (Arrays.contains(commands, SKAdminCommand.ClearData) && !options.targetsEqualsExclusionsTarget()) {
-			Log.countdownWarning("*** Clearing ALL data ***", unsafeWarningCountdown);
+			Log.countdownWarning("*** Clearing ALL data ***", options.unsafeWarningCountdownSecs);
 		}
 		
 		result = true;
@@ -1068,7 +1066,7 @@ public class SKAdmin {
 					throw new RuntimeException("Entire replica set excluded");
 				} else {
 					Log.warning("Servers to clear data from:\n", e);
-					Log.countdownWarning("*** Clearing instance exclusions data ***", unsafeWarningCountdown);
+					Log.countdownWarning("*** Clearing instance exclusions data ***", options.unsafeWarningCountdownSecs);
 					allServers.addAll(e.getServers());
 				}
 			} catch (KeeperException | IOException e) {
@@ -1247,7 +1245,7 @@ public class SKAdmin {
     		//LogStreamConfig.configureLogStreams(gc, logFileName);
     		
     		if (options.forceInclusionOfUnsafeExcludedServers) {
-				Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss", unsafeWarningCountdown);
+				Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss", options.unsafeWarningCountdownSecs);
     		}
     		
     		skAdmin = new SKAdmin(gc, options);

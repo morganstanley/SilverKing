@@ -1039,7 +1039,7 @@ function f_runSkAdmin {
 	# typeset vars=$(f_getBinScriptVars)
 	# f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
 	f_exportSilverkingCodebaseVars
-	f_runCmd "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
+	f_runCmd "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command -uwc 1"
 }
 
 function f_exportSilverkingCodebaseVars {
