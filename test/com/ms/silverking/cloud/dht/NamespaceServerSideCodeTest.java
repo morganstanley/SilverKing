@@ -25,6 +25,9 @@ public class NamespaceServerSideCodeTest {
 	private static final NamespaceServerSideCode defaultCodeDiff  = new NamespaceServerSideCode(urlDiff, putTriggerDiff, retrieveTriggerDiff);
 	private static final NamespaceServerSideCode defaultCodeNull1 = new NamespaceServerSideCode(null, null, null);
 	private static final NamespaceServerSideCode defaultCodeNull2 = new NamespaceServerSideCode(null, null, null);
+	private static final NamespaceServerSideCode defaultCodeNull3 = new NamespaceServerSideCode("",   null, null);
+	private static final NamespaceServerSideCode defaultCodeNull4 = new NamespaceServerSideCode("",   null, "");
+	private static final NamespaceServerSideCode defaultCodeNull5 = new NamespaceServerSideCode("",   "a",  null);
 
 	private String getUrl(NamespaceServerSideCode nssc) {
 		return nssc.getUrl();
@@ -62,7 +65,7 @@ public class NamespaceServerSideCodeTest {
 		checkHashCodeEquals(   defaultCode,      defaultCode);
 		checkHashCodeEquals(   defaultCode,      defaultCodeCopy);
 		checkHashCodeNotEquals(defaultCode,      defaultCodeDiff);
-		checkHashCodeEquals(   defaultCode,      defaultCodeNull1);	// strictly we would have checkHashNotEquals(), but this is fine for now since hashCode doesn't need to be unique, and both are corner cases
+		checkHashCodeEquals(   defaultCode,      defaultCodeNull1);	// strictly we would want checkHashNotEquals(), but this is fine for now since hashCode doesn't need to be unique, and both are corner cases
 		checkHashCodeEquals(   defaultCodeNull1, defaultCodeNull2);
 	}
 	
@@ -88,6 +91,9 @@ public class NamespaceServerSideCodeTest {
 			defaultCodeCopy,
 			defaultCodeDiff,
 			defaultCodeNull1,
+			defaultCodeNull3,
+			defaultCodeNull4,
+			defaultCodeNull5,
 		};
 		
 		for (NamespaceServerSideCode testCase : testCases)
