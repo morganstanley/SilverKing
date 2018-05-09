@@ -52,7 +52,7 @@ Running a multi-instance cluster presently requires some work to ensure that the
 
 
 ## Building SilverKing on AWS
-Our AMI instance includes simplified build scripts for Amazon-Linux and Ubuntu.
+You may also build SilverKing on AWS using simplified build scripts for both Amazon-Linux and Ubuntu.
 
 ### Amazon-Linux
 ```
