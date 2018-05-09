@@ -21,7 +21,7 @@ cd ~/SilverKing/build/aws/
 ```
 That's it! SilverKing is up and running.
 
-Once that completes you can perform key-value operations using the skc tool:
+You can now perform key-value operations using the skc tool:
 ```ksh
 ~/SilverKing/bin/skc -G ~/Silverking/build/testing -g GC_SK_test    # this is a silverking client, you can test puts and gets. type "skc> h;" to see the help menu.
 ```
