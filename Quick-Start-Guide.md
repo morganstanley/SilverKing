@@ -35,6 +35,7 @@ cat Hello
 
 #### Multi-instance Cluster
 Running a multi-instance cluster presently requires some work to ensure that the instances can work together. (This will be simplified in the future.)
+
     - Start N instance from image
     - For each instance N
         cd ~/SilverKing/build/aws && ./aws_multi_genKey.sh
