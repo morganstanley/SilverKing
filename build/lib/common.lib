@@ -981,7 +981,7 @@ function f_startSilverking_Helper {
 	f_runStaticInstanceCreator
 	f_runSkAdmin "StartNodes"
 	
-	f_userProcessCheck "SK" "1"
+    f_skUserProcessCheck "1"
 	f_listSkProcesses
 }
 
@@ -997,7 +997,7 @@ function f_stopSilverking {
 	
 	f_runSkAdmin "StopNodes,ClearData"
 	
-	f_userProcessCheck "SK" "0"
+    f_skUserProcessCheck "0"
 }
 
 function f_startSkfs {
@@ -1010,10 +1010,10 @@ function f_startSkfs {
 function f_startSkfs_Helper {
 	f_runSkAdmin "CreateSKFSns,CheckSKFS"
 	
-	f_userProcessCheck "skfs" "1" "15"
+    f_skfsUserProcessCheck "1"
 	f_listSkfsProcesses
 	
-	f_mountAccessibleCheck "0" "15"
+	f_mountAccessibleCheck "0"
 }
 
 function f_stopSkfs {
@@ -1026,9 +1026,9 @@ function f_stopSkfs {
 function f_stopSkfs_Helper {
 	f_runSkAdmin "StopSKFS"
 	
-	f_userProcessCheck "skfs" "0" "15"
+    f_skfsUserProcessCheck "0"
 	
-	f_mountAccessibleCheck "2" "15"
+	f_mountAccessibleCheck "2"
 }
 
 function f_runSkAdmin {
@@ -1075,15 +1075,59 @@ function f_removeBinSkfsD {
 	f_removeVerbose "$BIN_SKFS_DIR/$SKFS_EXEC_NAME"
 }
 
+function f_skUserProcessCheck {
+	f_userProcessCheck "$SK_PROCESS_NAME" "$SK_PROCESS_PATTERN" "$1"
+}
+
+function f_skfsUserProcessCheck {
+	f_userProcessCheck "$SKFS_PROCESS_NAME" "$SKFS_PROCESS_PATTERN" "$1" "15"
+}
+
+function f_userProcessCheck {
+    typeset processName=$1
+	typeset processPattern=$2
+	typeset expectedCount=$3
+	typeset retries=$4
+	
+	if [[ -z $retries ]]; then
+		retries=1
+	fi
+	
+	typeset startOrStopText="start"
+	typeset expectingText="exists"
+	if [[ $expectedCount -eq 0 ]] ; then
+		startOrStopText="stop"
+		expectingText="doesn't exist"
+	fi
+	
+	f_printChecking "$processName"
+	typeset userProcessInfo=;
+	typeset actualCount=;
+	typeset result=;
+	typeset retry=0;
+	while [[ $result != $PASS_TEXT && $retry -lt $retries ]]; do
+		sleep 1;
+		
+		((retry++))
+		echo "($retry) checking for $startOrStopText" 
+				
+		userProcessInfo=$(f_getProcesses "$processPattern")
+		actualCount=$(f_getProcessCount "$userProcessInfo")
+		result=$(f_getEqualsResult "$actualCount" "$expectedCount")
+	done
+		
+	f_printResult "$result" "process $expectingText with \"$processName\"" "$actualCount  $userProcessInfo";
+}
+
 # its important to quote anything that will be multi-line!, and used in commands, like echo
 function f_listSkProcesses {
 	echo 
-	echo "$(f_getProcesses "SK")"
+	echo "$(f_getProcesses "$SK_PROCESS_NAME")"
 }
 
 function f_listSkfsProcesses {
 	echo
-	echo "$(f_getProcesses "skfs")"
+	echo "$(f_getProcesses "$SKFS_PROCESS_NAME")"
 }
 
 function f_getAllProcesses {
@@ -1098,51 +1142,14 @@ function f_getProcessCount {
 	echo "$1" | grep -c -P "."
 }
 
-function f_userProcessCheck {
-	typeset pName=$1
-	typeset expectedCount=$2
-	typeset retries=$3
-	
-	if [[ -z $retries ]]; then
-		retries=1
-	fi
-	
-	typeset startOrStopText="start"
-	typeset expectingText="exists"
-	if [[ $expectedCount -eq 0 ]] ; then
-		startOrStopText="stop"
-		expectingText="doesn't exist"
-	fi
-	
-	f_printChecking "$pName"
-	typeset userProcessInfo=;
-	typeset actualCount=;
-	typeset result=;
-	typeset retry=0;
-	while [[ $result != $PASS_TEXT && $retry -lt $retries ]]; do
-		sleep 1;
-		
-		((retry++))
-		echo "($retry) checking for $startOrStopText" 
-				
-		userProcessInfo=$(f_getProcesses "${pName}.*${SK_LOG_HOME}")
-		actualCount=$(f_getProcessCount "$userProcessInfo")
-		result=$(f_getEqualsResult "$actualCount" "$expectedCount")
-	done
-		
-	f_printResult "$result" "process $expectingText with \"$pName\"" "$actualCount  $userProcessInfo";
-}
-
 function f_mountAccessibleCheck {
 	typeset expectedErrorCode=$1
-	typeset retries=$2
+	typeset retries=15
 	
 	typeset expectingText="is"
 	if [[ $expectedErrorCode -ne 0 ]] ; then
 		expectingText="isn't"
 	fi
-	
-	typeset mountDir=$SK_DATA_HOME/skfs/skfs_mnt/skfs
 	
 	echo
 	typeset actualCode;
@@ -1152,14 +1159,14 @@ function f_mountAccessibleCheck {
 		sleep 1;
 		
 		((retry++))
-		echo "($retry) checking $mountDir $expectingText accessible" 
+		echo "($retry) checking $SKFS_MNT_AREA $expectingText accessible" 
 		
-		ls -l $mountDir
+		ls -l $SKFS_MNT_AREA
 		actualCode=$?
 		result=$(f_getEqualsResult "$actualCode" "$expectedErrorCode")
 	done
 	
-	f_printResult "$result" "$mountDir $expectingText accessible, expectedErrorCode is $expectedErrorCode" "$actualCode";
+	f_printResult "$result" "$SKFS_MNT_AREA $expectingText accessible, expectedErrorCode is $expectedErrorCode" "$actualCode";
 }
 
 function f_fillInBuildConfigVariable {
