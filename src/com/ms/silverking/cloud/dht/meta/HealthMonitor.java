@@ -21,8 +21,11 @@ import com.ms.silverking.cloud.dht.management.LogStreamConfig;
 import com.ms.silverking.cloud.meta.ChildrenListener;
 import com.ms.silverking.cloud.meta.ChildrenWatcher;
 import com.ms.silverking.cloud.meta.ExclusionSet;
+import com.ms.silverking.cloud.meta.ExclusionZK;
 import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
+import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
+import com.ms.silverking.cloud.toporing.meta.NamedRingConfigurationUtil;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
@@ -31,6 +34,7 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.TimeUtils;
 
 public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
+	private final SKGridConfiguration gc;
     private final ZooKeeperConfig   zkConfig;
     private final MetaClient    mc;
     private final SuspectsZK    suspectsZK;
@@ -40,6 +44,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     private final DHTMetaWatcher    dmw;
     private final int           guiltThreshold;
     private boolean running;
+    private ExclusionZK	cloudExclusionZK;
     private InstanceExclusionZK	instanceExclusionZK;
 	private DHTRingCurTargetZK	dhtRingCurTargetZK;	
     private Set<IPAndPort>  activeNodes;
@@ -73,7 +78,9 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     					 boolean disableAddition)
                          throws IOException, KeeperException {
     	String	dhtName;
+    	com.ms.silverking.cloud.meta.MetaClient	cloudMC;
     	
+    	this.gc = gc;
     	dhtName = gc.getClientDHTConfiguration().getName();
         this.guiltThreshold = guiltThreshold;
         this.zkConfig = zkConfig;
@@ -94,6 +101,12 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         mc = new MetaClient(dhtName, zkConfig);
         suspectsZK = new SuspectsZK(mc);    
         daemonStateZK = new DaemonStateZK(mc);
+        
+        NamedRingConfiguration  ringConfig;    	
+        ringConfig = NamedRingConfigurationUtil.fromGridConfiguration(gc);        
+        cloudMC = new com.ms.silverking.cloud.meta.MetaClient(ringConfig.getRingConfiguration().getCloudConfiguration(), gc.getClientDHTConfiguration().getZKConfig());
+        
+        cloudExclusionZK = new ExclusionZK(cloudMC);
         dmw = new DHTMetaWatcher(zkConfig, dhtName, dmwUpdateIntervalMillis);
         dmw.addListener(this);
         if (doctor != null) {
@@ -183,6 +196,24 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     	servers.removeAll(ineligibleServers);
     	return ineligibleServers;
 	}    
+
+    /**
+     * Disregard accusations from excluded servers
+     * @param accuserSuspects
+     * @throws KeeperException
+     */
+    private void removeAccusationsFromExcludedServers(SetMultimap<IPAndPort,IPAndPort> accuserSuspects) throws KeeperException {
+        ExclusionSet	instanceExcludedServers;
+        ExclusionSet	cloudExcludedServers;
+        ExclusionSet	unionExcludedServers;
+        
+        instanceExcludedServers = instanceExclusionZK.readLatestFromZK();
+        cloudExcludedServers = cloudExclusionZK.readLatestFromZK();
+        unionExcludedServers = ExclusionSet.union(instanceExcludedServers, cloudExcludedServers);
+        for (IPAndPort excludedServer : unionExcludedServers.asIPAndPortSet(gc.getClientDHTConfiguration().getPort())) {
+        	accuserSuspects.removeAll(excludedServer); // remove all accusations from this excluded accuser
+        }
+    }
     
     public void check() {
     	lastCheckMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
@@ -197,7 +228,9 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             guiltySuspects = new HashSet<>();
             
             accuserSuspects = suspectsZK.readAccuserSuspectsFromZK();
+            removeAccusationsFromExcludedServers(accuserSuspects);
             suspectAccusers = CollectionUtil.transposeSetMultimap(accuserSuspects);
+            
             // Read the current active nodes from ZK
             newActiveNodes = suspectsZK.readActiveNodesFromZK();
             // Now compute newlyInactiveNodes as the set difference of the previously active nodes minus the active nodes in ZK
