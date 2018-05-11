@@ -154,13 +154,13 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     public static Set<String> removeIneligibleServers(Set<String> servers, DHTRingCurTargetZK _dhtRingCurTargetZK, 
     									 InstanceExclusionZK _instanceExclusionZK) throws KeeperException {
     	Stat	stat;
-    	long	curRingZmxid;
+    	long	curRingMzxid;
     	Set<String>	ineligibleServers;
     	Map<String,Long>	esStarts;
     	
     	stat = new Stat();
     	_dhtRingCurTargetZK.getCurRingAndVersionPair(stat);
-    	curRingZmxid = stat.getMzxid();
+    	curRingMzxid = stat.getMzxid();
     	ineligibleServers = new HashSet<>();
     	
     	esStarts = _instanceExclusionZK.getStartOfCurrentExclusion(servers);
@@ -174,8 +174,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     			Log.warning("Unexpected can't find startOfCurrentExclusion for ", server);
     		} else {
 	    		startOfCurrentExclusionMzxid = _instanceExclusionZK.getVersionMzxid(startOfCurrentExclusion);
-	    		if (startOfCurrentExclusionMzxid > curRingZmxid) {
-	    			Log.warningf("Ineligible: %s %d > %d", server, startOfCurrentExclusionMzxid, curRingZmxid);
+	    		if (startOfCurrentExclusionMzxid > curRingMzxid) {
+	    			Log.warningf("Ineligible: %s %d > %d", server, startOfCurrentExclusionMzxid, curRingMzxid);
 	    			ineligibleServers.add(server);
 	    		}
         	}

@@ -120,4 +120,7 @@ class SKAdminOptions {
 	
 	@Option(name="-pinToNICLocalCPUs", usage="pinToNICLocalCPUs", required=false)
 	public String pinToNICLocalCPUs;
+
+	@Option(name="-uwc", usage="unsafeWarningCountdownSecs", required=false)
+	int unsafeWarningCountdownSecs = 10;
 }
