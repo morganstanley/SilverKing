@@ -58,7 +58,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     
     # sudo apt-get update
     # f_ubuntu_aptgetInstall "make"
-    # f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
+    f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
     echo "BUILD"
     f_aws_install_ant

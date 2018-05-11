@@ -56,8 +56,8 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 {
     echo "AMI: Ubuntu 14.04.5 LTS, 14.04, trusty"
     
-    sudo apt-get update
-    f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
+    # sudo apt-get update
+    # f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
     echo "BUILD"
     f_aws_install_ant
