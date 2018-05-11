@@ -55,7 +55,7 @@ Running a multi-instance cluster presently requires some work to ensure that the
 You may also build SilverKing on AWS using simplified build scripts for both Amazon-Linux and Ubuntu.
 
 ### Amazon-Linux
-```
+```ksh
 sudo yum -y install git ksh
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
@@ -64,7 +64,7 @@ cd ~/SilverKing/build/aws
 ```
 
 ### Ubuntu
-```
+```ksh
 sudo apt-get update
 sudo apt-get install git ksh
 cd ~
