@@ -55,9 +55,9 @@ f_checkAndSetBuildTimestamp
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 {
     # these 3 needed for aws and travis-ci ubuntu's
-    sudo apt-get update
-    f_aptgetInstall "make"  # need for aws, not travis-ci
-    f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
+    sudo apt-get update     # aws, travis-ci
+    f_aptgetInstall "make"  # aws only, 
+    f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename" # aws, travis-ci
 
     pwd
     echo "BUILD"
@@ -101,6 +101,9 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     ls -l $LIB_ROOT/SilverKing
     ls -l $LIB_ROOT
     ls -l $LIB_ROOT/jdk1.7.0_80/
+    
+    cd $BUILD_DIR
+    ./check_config.sh
     
     cd $BUILD_DIR/aws
     ./aws_zk.sh "start"
