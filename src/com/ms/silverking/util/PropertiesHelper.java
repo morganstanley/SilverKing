@@ -260,6 +260,10 @@ public class PropertiesHelper  {
         return getLong(name, 0, standardUndefinedAction, parseExceptionAction);
     }
 
+    public long getLong(String name, long defaultValue) {
+        return getLong(name, defaultValue, UndefinedAction.DefaultOnUndefined, ParseExceptionAction.DefaultOnParseException);
+    }
+    
     public long getLong(String name) {
         return getLong(name, 0, standardUndefinedAction, standardParseExceptionAction);
     }
