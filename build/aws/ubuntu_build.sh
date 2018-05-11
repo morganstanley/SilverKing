@@ -54,6 +54,8 @@ f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 {
+    echo "AMI: Ubuntu Server 16.04 LTS (HVM), SSD Volume Type - ami-4e79ed36"
+    
     # these 3 needed for aws and travis-ci ubuntu's
     sudo apt-get update
     f_aptgetInstall "make"  # need for aws, not travis-ci
