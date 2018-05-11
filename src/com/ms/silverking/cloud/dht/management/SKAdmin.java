@@ -402,7 +402,7 @@ public class SKAdmin {
 		return  (destructive ? "" : "netstat -tulpn | grep tcp.*:"+ dhtConfig.getPort() +" ; ") +
 				(destructive ? "" : "if [ \\$? -ne 0 ]; then { ") +
 				(destructive ? createStopCommand(dhtConfig, classVars) +"; " : "")
-				+"mkdir -p "+ getDataDir(classVars) +"; "
+				//+"mkdir -p "+ getDataDir(classVars) +"; " // StorageModule worries about this creation
 				+"mkdir -p "+ daemonLogDir +"; "
 				+"rm "+ getHeapDumpFile(classVars) +"; "
 				+"mv "+ daemonLogFile +" "+ prevDaemonLogFile +"; "
@@ -481,7 +481,15 @@ public class SKAdmin {
 	}
 	
 	private String createClearDataCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
-		return classVars.getVarMap().get(DHTConstants.clearDataCommandVar) +" "+ getDataDir(classVars);
+		StringBuffer	sBuf;
+		String[]		dirs;
+		
+		sBuf = new StringBuffer();
+		dirs = getDataDir(classVars).split(DHTConstants.dataBasePathDelimiter);
+		for (String dir : dirs) {
+			sBuf.append(classVars.getVarMap().get(DHTConstants.clearDataCommandVar) +" "+ dir +";");
+		}
+		return sBuf.toString();
 	}
 	
 	private String getPreJavaCommand(ClassVars classVars) {
