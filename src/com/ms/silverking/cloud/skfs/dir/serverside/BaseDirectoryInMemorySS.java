@@ -27,6 +27,7 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
+import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSUtil;
@@ -292,9 +293,10 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 	 *  - update() calls may be in progress
 	 *  - retrieve() calls may be in progress
 	 * @param checkTimeMillis
+	 * @param nsStore 
 	 * @return 
 	 */
-	public List<File> checkForPersistence(long checkTimeMillis) {
+	public List<File> checkForPersistence(long checkTimeMillis, SSNamespaceStore nsStore) {
 		List<File>	filesToDelete;
 		
 		if (debugPersistence || Log.levelMet(Level.INFO)) {
@@ -308,7 +310,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 		}
 		if (checkTimeMillis - lastPersistenceCheckMillis > minPersistenceIntervalMillis) {
 			lastPersistenceCheckMillis = checkTimeMillis;
-			persistLatestIfNecessary();
+			persistLatestIfNecessary(nsStore);
 			filesToDelete = reap();
 		}
 		if (debugPersistence || Log.levelMet(Level.INFO)) {
@@ -317,7 +319,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 		return filesToDelete;
 	}
 	
-	protected void persistLatestIfNecessary() {
+	protected void persistLatestIfNecessary(SSNamespaceStore nsStore) {
 		Map.Entry<Long, SerializedDirectory>	entry;
 		
 		if (debugPersistence || Log.levelMet(Level.INFO)) {

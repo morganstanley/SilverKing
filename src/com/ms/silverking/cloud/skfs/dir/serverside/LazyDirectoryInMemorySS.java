@@ -13,6 +13,7 @@ import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
+import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSUtil;
@@ -68,11 +69,12 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 		}
 	}
 	
-	protected final void persistLatestIfNecessary() {
+	protected final void persistLatestIfNecessary(SSNamespaceStore nsStore) {
 		SerializedDirectory	sd;
 		
 		// FUTURE - dedup w.r.t. retrieve
 		if (hasUnserializedUpdates) {
+			nsStore.getReadWriteLock().writeLock().lock();;
 			serializationLock.lock();
 			try {
 				// We must double check now to see if updates were serialized while this thread was waiting for the lock
@@ -100,9 +102,10 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 				}
 			} finally {
 				serializationLock.unlock();
+				nsStore.getReadWriteLock().writeLock().unlock();;
 			}
 		}
-		super.persistLatestIfNecessary();
+		super.persistLatestIfNecessary(nsStore);
 	}
 	
 	/**
