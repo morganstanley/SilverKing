@@ -3,7 +3,7 @@ function f_aws_getBuild_RunOutputFilename {
 	echo $(f_getRunOutputFilename_Helper "$1")
 }
 
-function f_downloadTar {
+function f_aws_downloadTar {
 	typeset tar=$1
 	typeset url=$2
 	
@@ -21,13 +21,13 @@ function f_downloadTar {
 	rm $tar
 }
 
-function f_downloadJar {
+function f_aws_downloadJar {
 	typeset url=$1
 	
 	curl -O $url
 }
 
-function f_replaceLine {
+function f_aws_replaceLine {
 	typeset oldLine=$1
 	typeset newLine=$2
 	typeset filename=$3
@@ -36,7 +36,7 @@ function f_replaceLine {
 	$admin sed -i "/${oldLine}/c${newLine}" $filename
 }
 
-function f_generatePrivateKey {
+function f_aws_generatePrivateKey {
 	cd ~/.ssh
 	typeset publicKeyFilename="id_rsa.pub"
 	if [[ ! -f $publicKeyFilename ]]; then
@@ -52,7 +52,7 @@ function f_aws_install_ant {
     cd $LIB_ROOT
     typeset ant_version="apache-ant-1.10.0"
     typeset ant_tar=$ant_version-bin.tar.bz2
-    f_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
+    f_aws_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
     
     f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
 }
@@ -61,7 +61,7 @@ function f_aws_install_zk {
     echo "installing zk"
     cd $LIB_ROOT
     typeset zk_tar=$ZK_VERSION.tar.gz
-    f_downloadTar "$zk_tar" "http://apache.claz.org/zookeeper/$ZK_VERSION/$zk_tar"
+    f_aws_downloadTar "$zk_tar" "http://apache.claz.org/zookeeper/$ZK_VERSION/$zk_tar"
 
     cd $ZK_VERSION/conf
     echo "tickTime=2000
@@ -79,7 +79,7 @@ function f_aws_install_boost {
     cd $LIB_ROOT
     typeset boost_version="boost_1_61_0"
     typeset boost_tar=$boost_version.tar.gz
-    f_downloadTar "$boost_tar" "https://versaweb.dl.sourceforge.net/project/boost/boost/1.61.0/$boost_tar"
+    f_aws_downloadTar "$boost_tar" "https://versaweb.dl.sourceforge.net/project/boost/boost/1.61.0/$boost_tar"
 
     f_overrideBuildConfigVariable "BOOST_INC" "$LIB_ROOT/$boost_version"
 }
@@ -89,8 +89,8 @@ function f_aws_install_jace {
     cd $LIB_ROOT
     
     typeset jar_url="search.maven.org/remotecontent?filepath=com/googlecode/jace"
-    f_downloadJar "$jar_url/$JACE_RUNTIME/1.2.22/$JACE_RUNTIME_JAR"
-    f_downloadJar "$jar_url/$JACE_CORE/1.2.22/$JACE_CORE_JAR"
+    f_aws_downloadJar "$jar_url/$JACE_RUNTIME/1.2.22/$JACE_RUNTIME_JAR"
+    f_aws_downloadJar "$jar_url/$JACE_CORE/1.2.22/$JACE_CORE_JAR"
 }
 
 function f_aws_symlink_jace {
@@ -107,17 +107,43 @@ function f_aws_symlink_jace {
     f_fillInBuildConfigVariable "JACE_HOME" "$LIB_ROOT/$jace_lib"
 }
 
-function f_aws_edit_configs {
+function f_aws_buildConfig_check {
+    echo
+    echo "build.config looks like:"
+    cat $BUILD_CONFIG_FILE
+    
+    echo
+    echo "Checking build.config"
+    cd $BUILD_DIR
+    ./check_config.sh
+}
+
+function f_aws_edit_config_files {
     f_fillInSkfsConfigVariable  "fuseLib" "$FUSE_LIB"
     f_fillInSkfsConfigVariable  "fuseBin" "/bin"   # for /bin/fusermount
     f_fillInSkConfig
 
-    f_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf" "sudo"
+    f_aws_replaceLine "user_allow_other" "user_allow_other" "/etc/fuse.conf" "sudo"
 }
 
-function f_aws_skc {
+function f_aws_symlink_skjar_for_skc {
     cd $LIB_DIR
     ln -s $SILVERKING_JAR
+}
+
+function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
+    f_aws_buildConfig_check
+    
+    source $BUILD_CONFIG_FILE
+    f_aws_edit_config_files
+    f_aws_symlink_skjar_for_skc
+
+    cd $BUILD_DIR/aws
+    ./aws_zk.sh "start"
+    cd ..
+    ./$BUILD_SCRIPT_NAME
+    cd aws
+    ./aws_zk.sh "stop"
 }
 
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo
