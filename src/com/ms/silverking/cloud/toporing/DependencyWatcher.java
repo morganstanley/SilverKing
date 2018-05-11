@@ -304,6 +304,7 @@ public class DependencyWatcher implements VersionListener {
     	ringName = dhtMC.getDHTConfiguration().getRingName();
     	dhtRingCurTargetZK.setCurRingAndVersionPair(ringName, ringConfigVersion, configInstanceVersion);
     	dhtRingCurTargetZK.setTargetRingAndVersionPair(ringName, ringConfigVersion, configInstanceVersion);
+    	dhtRingCurTargetZK.setMasterRingAndVersionPair(ringName, ringConfigVersion, configInstanceVersion);
     	Log.warningf("Ring %s config %d instance %d", ringName, ringConfigVersion, configInstanceVersion);
     }
     
