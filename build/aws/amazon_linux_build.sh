@@ -56,6 +56,8 @@ f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
 {
+    echo "AMI: Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type - ami-6b8cef13"
+    
     sudo yum -y update
 
     echo "BUILD"
