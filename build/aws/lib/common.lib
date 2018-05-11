@@ -79,7 +79,7 @@ function f_aws_install_boost {
     cd $LIB_ROOT
     typeset boost_version="boost_1_61_0"
     typeset boost_tar=$boost_version.tar.gz
-    f_aws_downloadTar "$boost_tar" "https://versaweb.dl.sourceforge.net/project/boost/boost/1.61.0/$boost_tar"
+    f_aws_downloadTar "$boost_tar" "https://downloads.sourceforge.net/project/boost/boost/1.61.0/$boost_tar"
 
     f_overrideBuildConfigVariable "BOOST_INC" "$LIB_ROOT/$boost_version"
 }
