@@ -1,11 +1,14 @@
 # Quick-start Guide
 ## Running Simple AWS-based Instances
 If you'd like to give SilverKing a try, you can be up and running in minutes using an AWS instance from our template:<br>
-&emsp;[Silverking AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=silverking;sort=name)<br>
-&emsp;AMI-Name: silverking<br>
-&emsp;AMI-type: Amazon-Linux<br>
+&emsp;[SilverKing AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=SilverKing;sort=name)<br>
+&emsp;AMI-Name: SilverKing<br>
+&emsp;Platform: Amazon-Linux<br>
 &emsp;Username: ec2-user<br>
 &emsp;Region: US West (Oregon)<br>
+
+* Make sure your security group contains an Inbound Rule for All Traffic with your security group ID as the Source
+
 ### Running on AWS
 #### Single-instance Cluster
 
@@ -25,7 +28,7 @@ That's it! SilverKing is up and running.
 
 You can now perform key-value operations using the skc tool:
 ```ksh
-~/SilverKing/bin/skc -G ~/Silverking/build/testing -g GC_SK_test    # this is a silverking client, you can test puts and gets. type "skc> h;" to see the help menu.
+~/SilverKing/bin/skc -G ~/SilverKing/build/testing -g GC_SK_test    # this is a silverking client, you can test puts and gets. type "skc> h;" to see the help menu.
 ```
 
 You can also use the SKFS file system:
@@ -62,15 +65,15 @@ sudo yum -y install git ksh
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
 cd ~/SilverKing/build/aws
-./aws_build.sh
+./amazon_linux_build.sh
 ```
 
 ### Ubuntu
 ```ksh
-sudo apt-get update
-sudo apt-get install git ksh
+sudo apt-get update 
+sudo apt-get install git ksh    # update first, or else you will get: "E: Unable to locate package ksh"
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
 cd ~/SilverKing/build/aws
-./ubuntu_build.sh
+./amazon_ubuntu_build.sh
 ```
