@@ -28,9 +28,9 @@ function f_ubuntu_symlink_boost {
     typeset boost_lib=libs/boost
     mkdir -p $boost_lib
     cd $boost_lib
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.58.0    libboost_thread.so
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.58.0 libboost_date_time.so
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_system.so.1.58.0    libboost_system.so
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.54.0    libboost_thread.so
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.54.0 libboost_date_time.so
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_system.so.1.54.0    libboost_system.so
     
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
