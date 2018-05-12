@@ -6,7 +6,7 @@ cd -
 
 source lib/common.lib
 
-f_generatePrivateKey
+f_aws_generatePrivateKey
 cd $BUILD_DIR/aws
 ./aws_zk.sh start
 cd $TESTING_OUTPUT_DIR
