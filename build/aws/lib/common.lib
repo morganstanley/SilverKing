@@ -77,7 +77,7 @@ function f_aws_fillin_vars {
 function f_aws_install_boost {
     echo "installing boost"
     cd $LIB_ROOT
-    typeset boost_version="boost_1_67_0"
+    typeset boost_version="boost_1_61_0"
     typeset boost_tar=$boost_version.tar.gz
     f_aws_downloadTar "$boost_tar" "https://downloads.sourceforge.net/project/boost/boost/1.61.0/$boost_tar"
 
