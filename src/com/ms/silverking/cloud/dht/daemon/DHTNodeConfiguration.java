@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
@@ -13,12 +14,10 @@ import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
  * information, but rather to read in configuration information that is provided elsewhere. 
  */
 public class DHTNodeConfiguration {
-	public static final String	dataBasePathProperty = DHTNodeConfiguration.class.getPackage().getName() + ".DataBasePath";
+	private static final String	dataBasePathProperty = DHTNodeConfiguration.class.getPackage().getName() + ".DataBasePath";
 	// The below default path should not be used in a properly functioning system as the management
 	// infrastructure should be setting the property on launch.
-    public static final String  defaultDataBasePath = "/var/tmp/silverking/data";
-	public static String	dataBasePath;
-	private static final String	pathDelimiter = "%%";
+	public static String	dataBasePath; // The actual path in use at this node DHTConstants dataBasePath provides a list of possible paths
 	
 	static {
 		String	def;
@@ -30,7 +29,7 @@ public class DHTNodeConfiguration {
 		} else {
 			// Warn since a properly functioning system should have specified the property.
 			Log.warning("No dataBasePathProperty specified. Using default.");
-			setDataBasePath(defaultDataBasePath);
+			setDataBasePath(DHTConstants.defaultDataBasePath);
 		}
 	}
 	
@@ -39,7 +38,7 @@ public class DHTNodeConfiguration {
 		String 		_dataBasePath;
 		
 		_dataBasePath = null;
-		candidatePaths = __dataBasePath.split(pathDelimiter);
+		candidatePaths = __dataBasePath.split(DHTConstants.dataBasePathDelimiter);
 		if (candidatePaths.length == 0) {
 			throw new RuntimeException("No candidate paths. Empty "+ dataBasePathProperty +"?");
 		} else {

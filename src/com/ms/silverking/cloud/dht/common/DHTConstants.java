@@ -54,6 +54,9 @@ public class DHTConstants {
     public static final int					   defaultNSPrereadGB = 0;
     public static final int					   defaultMinPrimaryUnderFailure = 1;
     
+	public static final String	defaultDataBasePath = "/var/tmp/silverking/data";
+	public static final String	defaultSKInstanceLogBasePath = "/tmp/silverking";
+    
     public static final int noCapacityLimit = -1;
     public static final int defaultFileSegmentCacheCapacity = noCapacityLimit;
     
@@ -104,6 +107,8 @@ public class DHTConstants {
 	public static final String javaHomeEnv = SKConstants.javaHomeEnv;
 	public static final String javaHomeProperty = "java.home";
 	
+	public static final String	dataBasePathDelimiter = "%%";
+	
 	public static boolean	isDaemon = false;
 	
 	static {
@@ -113,8 +118,8 @@ public class DHTConstants {
 		defMap.put(initialHeapSizeVar, "1024");
 		defMap.put(maxHeapSizeVar, "1024");
 		defMap.put(ipAliasMapFileVar, PropertiesHelper.envHelper.getString(ipAliasMapFileEnvVar, ""));
-		defMap.put(dataBaseVar, "/var/tmp/silverking/data");
-		defMap.put(skInstanceLogBaseVar, "/tmp/silverking");
+		defMap.put(dataBaseVar, defaultDataBasePath);
+		defMap.put(skInstanceLogBaseVar, defaultSKInstanceLogBasePath);
 		defMap.put(skDaemonJavaCommandHeaderVar, PropertiesHelper.envHelper.getString(skDaemonJavaCommandHeaderEnvVar, ""));
 		defMap.put(killCommandVar, PropertiesHelper.envHelper.getString(killCommandEnvVar, UndefinedAction.ZeroOnUndefined));
 		defMap.put(clearDataCommandVar, "rm -rf");

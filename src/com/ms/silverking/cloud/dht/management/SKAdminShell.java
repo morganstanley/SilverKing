@@ -226,27 +226,32 @@ public class SKAdminShell implements Watcher {
     	ringConfigPath = MetaPaths.getRingConfigPath(ringName);
     	configs = zk.getChildren(ringConfigPath);
     	for (String config : configs) {
-    		List<String>	versions;
+    		String	instancePath;
     		
-    		versions = zk.getChildren(ringConfigPath +"/"+ config +"/instance");
-        	for (String version : versions) {
-        		String	label;
-        		Triple<String,Long,Long>	ring;
-        		
-        		ring = new Triple<>(ringName, Long.parseLong(config), Long.parseLong(version));
-        		label = "";
-        		if (currentRing.equals(ring)) {
-        			label += "Current ";
-        		}
-        		if (targetRing.equals(ring)) {
-        			label += "Target";
-        		}
-        		
-        		long	creationTime;
-        		
-        		creationTime = zk.getCreationTime(ringConfigPath +"/"+ config +"/instance/"+ ZooKeeperExtended.padVersion(Long.parseLong(version)));
-        		_rings.add(new Triple<>(creationTime, String.format("%s,%d,%d", ringName, Long.parseLong(config), Long.parseLong(version)), label));
-        	}
+    		instancePath = ringConfigPath +"/"+ config +"/instance";
+    		if (zk.exists(instancePath)) {
+	    		List<String>	versions;
+	    		
+	    		versions = zk.getChildren(instancePath);
+	        	for (String version : versions) {
+	        		String	label;
+	        		Triple<String,Long,Long>	ring;
+	        		
+	        		ring = new Triple<>(ringName, Long.parseLong(config), Long.parseLong(version));
+	        		label = "";
+	        		if (currentRing.equals(ring)) {
+	        			label += "Current ";
+	        		}
+	        		if (targetRing.equals(ring)) {
+	        			label += "Target";
+	        		}
+	        		
+	        		long	creationTime;
+	        		
+	        		creationTime = zk.getCreationTime(ringConfigPath +"/"+ config +"/instance/"+ ZooKeeperExtended.padVersion(Long.parseLong(version)));
+	        		_rings.add(new Triple<>(creationTime, String.format("%s,%d,%d", ringName, Long.parseLong(config), Long.parseLong(version)), label));
+	        	}
+    		}
     	}
     	_rings.sort(new RingComparator());
     	rings = _rings;

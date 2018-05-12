@@ -303,7 +303,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			for (BaseDirectoryInMemorySS dir : directories.values()) {
 				List<File>	dirFilesToRemove;
 				
-				dirFilesToRemove = dir.checkForPersistence(checkTimeMillis);
+				dirFilesToRemove = dir.checkForPersistence(checkTimeMillis, nsStore);
 				filesToRemove.addAll(dirFilesToRemove);
 			}
 			deleteFiles(filesToRemove);
