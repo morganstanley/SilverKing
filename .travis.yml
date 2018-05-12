@@ -6,4 +6,4 @@ before_install:
     - sudo apt-get install -qq git ksh  # update first, or else you will get: "E: Unable to locate package ksh"
 install: true
 script: 
-    - which basename
+    - cd build/aws && ./travisci_ubuntu_build.sh 
