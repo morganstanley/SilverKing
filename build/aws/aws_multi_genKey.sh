@@ -2,4 +2,4 @@
 
 source lib/common.lib
 
-f_generatePrivateKey
+f_aws_generatePrivateKey
