@@ -82,7 +82,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 
     echo "BUILD CLIENT"
     f_fillInBuildConfigVariable "GPP"     "$gpp_path"
-    f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/6.0.0"
+    f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/4.8.5"
     f_ubuntu_fillin_build_skfs
 
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
