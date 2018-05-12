@@ -24,11 +24,18 @@ With that sanity check out of the way, you can start up SilverKing as follows:
 cd ~/SilverKing/build/aws/
 ./aws_start.sh  # this starts zookeeper, sk, and skfs
 ```
-That's it! SilverKing is up and running.
+That's it! SilverKing is up and running. You can run 'ps uxww' to see all three processes.
 
 You can now perform key-value operations using the skc tool:
 ```ksh
-~/SilverKing/bin/skc -G ~/SilverKing/build/testing -g GC_SK_test    # this is a silverking client, you can test puts and gets. type "skc> h;" to see the help menu.
+~/SilverKing/bin/skc -G ~/SilverKing/build/testing -g GC_SK_test    
+skc> h;         # help menu
+skc> cn testNs; # this creates a namespace
+skc> p k1 v1;   # this puts a key: k1, with value: v1
+skc> g k1 v1;   # gets the values for keys: k1 and v1
+        k1 => v1
+        v1 => <No such value>
+skc> q;
 ```
 
 You can also use the SKFS file system:
@@ -36,6 +43,12 @@ You can also use the SKFS file system:
 cd /var/tmp/silverking/skfs/skfs_mnt/skfs
 echo World > Hello
 cat Hello
+```
+
+To shut everything down:
+```ksh
+cd ~/SilverKing/build/aws/
+./aws_stop.sh  # this stops zookeeper, sk, and skfs
 ```
 
 #### Multi-instance Cluster
