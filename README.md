@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/bh-ms/SilverKing.svg?branch=master)](https://travis-ci.org/bh-ms/SilverKing)
-
 # SilverKing
 **Scalable, high-throughput storage and coordination**
 
@@ -42,6 +40,7 @@ Linda-like coordination primitives simplify distributed application development.
 ### File System
 
 The SilverKing File System (SKFS) provides a highly-scalable file system by leveraging the SilverKing DHT. 
+SKFS is the successor to the SRFS project.
 
 
 ## Topology Support
