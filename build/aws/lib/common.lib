@@ -141,6 +141,7 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     ls -l $LIB_ROOT/SilverKing
     ls -l $LIB_ROOT
     ls -l $LIB_ROOT/jdk1.7.0_80/
+    ls -l $GCC_LIB/
     
     f_aws_edit_config_files
     f_aws_symlink_skjar_for_skc
