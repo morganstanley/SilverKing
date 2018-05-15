@@ -1,5 +1,6 @@
 #!/bin/ksh
 
+source `dirname $0`/lib/run_scripts_from_any_path.snippet
 source lib/build_sk_client.vars	# for SK_LIB_NAME and JACE_LIB_NAME
 
 f_clearOutEnvVariables
