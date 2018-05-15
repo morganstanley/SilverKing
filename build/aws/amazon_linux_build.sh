@@ -1,5 +1,7 @@
 #!/bin/ksh
 
+source `dirname $0`/../lib/run_scripts_from_any_path.snippet
+
 cd ..
 source lib/common.lib
 source lib/build_sk_client.lib	# for copying kill_process_and_children.pl

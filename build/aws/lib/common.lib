@@ -114,8 +114,7 @@ function f_aws_buildConfig_check {
     
     echo
     echo "Checking build.config"
-    cd $BUILD_DIR
-    ./check_config.sh
+    $BUILD_DIR/check_config.sh
 }
 
 function f_aws_edit_config_files {
@@ -138,12 +137,9 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     f_aws_edit_config_files
     f_aws_symlink_skjar_for_skc
 
-    cd $BUILD_DIR/aws
-    ./aws_zk.sh "start"
-    cd ..
+    $BUILD_DIR/aws/aws_zk_start.sh
     ./$BUILD_SCRIPT_NAME
-    cd aws
-    ./aws_zk.sh "stop"
+    $BUILD_DIR/aws/aws_zk_stop.sh
 }
 
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo

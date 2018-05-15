@@ -1,5 +1,7 @@
 #!/bin/ksh
 
+source `dirname $0`/../lib/run_scripts_from_any_path.snippet
+
 cd ..
 source lib/common.lib
 cd -
@@ -36,7 +38,7 @@ function f_aws_symlinkSkfsD {
 
 f_printSection "PREPPING LAUNCH MACHINE"
 f_aws_updateServersList
-./aws_zk.sh start
+./aws_zk_start.sh
 f_runStaticInstanceCreator
 
 f_printSection "PREPPING NONLAUNCH MACHINES"
