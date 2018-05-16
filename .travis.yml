@@ -3,7 +3,7 @@ env:
     - LIB_ROOT=$TRAVIS_BUILD_DIR/.. QUIET_OUTPUT=true
 before_install:
     - sudo apt-get update -qq   
-    - sudo apt-get install -qq git ksh  # update first, or else you will get: "E: Unable to locate package ksh"
+    - sudo apt-get install -qq git ksh  # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
 install: true
 script: 
     - build/aws/build_travisci_ubuntu.sh 
