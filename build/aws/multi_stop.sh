@@ -16,7 +16,7 @@ function f_aws_removeSkfsD {
 }
 
 f_printSection "STOPPING"
-./aws_stop.sh
+./stop.sh
 
 f_printSection "UN-PREPPING NONLAUNCH MACHINES"
 f_aws_removeSkfsD

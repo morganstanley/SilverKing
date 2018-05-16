@@ -38,7 +38,7 @@ function f_aws_symlinkSkfsD {
 
 f_printSection "PREPPING LAUNCH MACHINE"
 f_aws_updateServersList
-./aws_zk_start.sh
+./$ZK_START_SCRIPT_NAME
 f_runStaticInstanceCreator
 
 f_printSection "PREPPING NONLAUNCH MACHINES"

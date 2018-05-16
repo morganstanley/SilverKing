@@ -137,9 +137,9 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     f_aws_edit_config_files
     f_aws_symlink_skjar_for_skc
 
-    $BUILD_DIR/aws/aws_zk_start.sh
-    ./$BUILD_SCRIPT_NAME
-    $BUILD_DIR/aws/aws_zk_stop.sh
+    $AWS_DIR/$ZK_START_SCRIPT_NAME
+    $BUILD_DIR/$BUILD_SCRIPT_NAME
+    $AWS_DIR/$ZK_STOP_SCRIPT_NAME
 }
 
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo

@@ -85,7 +85,7 @@ function f_runGTests {
 	typeset namespace=$4
 	typeset output_filename=$5
 
-	typeset gtest_dir=$TESTING_OUTPUT_DIR/$GTEST_FOLDER_NAME
+	typeset gtest_dir=$TESTING_DIR/$GTEST_FOLDER_NAME
 	typeset tests_report=$gtest_dir/SK_Gtests_Report.xml
 	
 	f_cleanOrMakeDirectory "$gtest_dir"

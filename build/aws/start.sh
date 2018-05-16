@@ -8,5 +8,6 @@ cd -
 
 source lib/common.lib
 
-$TESTING_OUTPUT_DIR/$STOP_INSTANCE_SCRIPT_NAME
-$BUILD_DIR/aws/aws_zk_stop.sh
+f_aws_generatePrivateKey
+$AWS_DIR/$ZK_START_SCRIPT_NAME
+$TESTING_DIR/$START_INSTANCE_SCRIPT_NAME
