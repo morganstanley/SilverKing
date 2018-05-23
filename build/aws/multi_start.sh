@@ -9,6 +9,8 @@ cd -
 source lib/common.lib
 
 function f_aws_updateServersList {
+    f_printSubSection "Updating Servers List"
+
     typeset launchIp=`hostname -i`
     typeset serverList="$launchIp"
     
@@ -22,14 +24,43 @@ function f_aws_updateServersList {
     f_overrideBuildConfigVariable "SK_SERVERS" "$serverList"
 }
 
+function f_aws_addPublicKeyToAuthorizedKeys {
+    ssh-keygen -y -f >> "~/.ssh/authorized_keys"
+}
+
+function f_aws_copyPrivateKeyToAllMachines {
+    f_printSubSection "Copying Private Key to all machines"
+    
+    typeset  srcDir=~/.ssh
+    typeset destDir=$srcDir
+    typeset keyFile=$srcDir/id_rsa
+    
+    chmod 600 $keyFile
+    f_aws_scp_helper "$destDir" "$keyFile"
+}
+
 function f_aws_copyGc {
-    typeset gcFile=$SK_GRID_CONFIG_DIR/$SK_GRID_CONFIG_NAME.env
+    f_printSubSection "Copying GC to all machines"
+    
+    typeset  srcDir=$SK_GRID_CONFIG_DIR
+    typeset destDir=$srcDir
+    typeset  gcFile=$srcDir/$SK_GRID_CONFIG_NAME.env
+    
+    f_aws_scp_helper "$destDir" "$gcFile"
+}
+
+function f_aws_scp_helper {
+    typeset destDir=$1
+    typeset    file=$2
+    
     while read host; do
-        scp $gcFile $USER@$host:$SK_GRID_CONFIG_DIR
+        scp $file $USER@$host:$destDir
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
 function f_aws_symlinkSkfsD {
+    f_printSubSection "Symlinking skfsd on all machines"
+    
     typeset ssh_options="-v -x -o StrictHostKeyChecking=no"
     while read host; do
         ssh $ssh_options $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
@@ -38,6 +69,8 @@ function f_aws_symlinkSkfsD {
 
 f_printSection "PREPPING LAUNCH MACHINE"
 f_aws_updateServersList
+f_aws_addPublicKeyToAuthorizedKeys
+f_aws_copyPrivateKeyToAllMachines
 ./$ZK_START_SCRIPT_NAME
 f_runStaticInstanceCreator
 
