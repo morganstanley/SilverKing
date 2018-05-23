@@ -24,6 +24,10 @@ function f_aws_updateServersList {
     f_overrideBuildConfigVariable "SK_SERVERS" "$serverList"
 }
 
+function f_aws_addPublicKeyToAuthorizedKeys {
+    ssh-keygen -y -f >> "~/.ssh/authorized_keys"
+}
+
 function f_aws_copyPrivateKeyToAllMachines {
     f_printSubSection "Copying Private Key to all machines"
     
@@ -65,6 +69,7 @@ function f_aws_symlinkSkfsD {
 
 f_printSection "PREPPING LAUNCH MACHINE"
 f_aws_updateServersList
+f_aws_addPublicKeyToAuthorizedKeys
 f_aws_copyPrivateKeyToAllMachines
 ./$ZK_START_SCRIPT_NAME
 f_runStaticInstanceCreator
