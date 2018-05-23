@@ -18,7 +18,6 @@ public enum NamespaceVersionMode {
      * be drawn from the same time source as creation times.
      */
     SYSTEM_TIME_NANOS;
-
     /**
      * Determine if a version is supported by this mode
      * @param version
