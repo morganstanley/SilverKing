@@ -9,9 +9,10 @@ cd -
 source lib/common.lib
 
 function f_aws_removeSkfsD {
-    typeset ssh_options="-v -x -o StrictHostKeyChecking=no"
+    f_printSubSection "Removing skfsd symlink on all machines"
+    
     while read host; do
-        ssh $ssh_options $host "rm -rv $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
+        ssh $SSH_OPTIONS $host "rm -rv $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 

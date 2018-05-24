@@ -60,9 +60,8 @@ function f_aws_scp_helper {
 function f_aws_symlinkSkfsD {
     f_printSubSection "Symlinking skfsd on all machines"
     
-    typeset ssh_options="-v -x -o StrictHostKeyChecking=no"
     while read host; do
-        ssh $ssh_options $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
+        ssh $SSH_OPTIONS $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
