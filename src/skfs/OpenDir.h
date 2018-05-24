@@ -68,5 +68,6 @@ int od_updates_pending(OpenDir *od);
 int od_set_queued_for_write(OpenDir *od, int queuedForWrite);
 void od_display(OpenDir *od, FILE *file = stdout);
 int od_record_get_attr(OpenDir *od, char *child, uint64_t curTime);
+void od_check_for_remove_from_reconciliation(OpenDir *od, uint64_t _curTimeMillis);
 
 #endif /* _OPEN_DIR_H_ */
