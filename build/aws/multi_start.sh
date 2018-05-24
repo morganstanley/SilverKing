@@ -25,7 +25,7 @@ function f_aws_updateServersList {
 }
 
 function f_aws_addPublicKeyToAuthorizedKeys {
-    ssh-keygen -y -f >> "~/.ssh/authorized_keys"
+    ssh-keygen -y -f ~/.ssh/id_rsa >> ~/.ssh/authorized_keys
 }
 
 function f_aws_copyPrivateKeyToAllMachines {
