@@ -9,8 +9,6 @@ cd -
 source lib/common.lib
 
 function f_aws_updateServersList {
-    f_printSubSection "Updating Servers List"
-
     typeset launchIp=`hostname -i`
     typeset serverList="$launchIp"
     
@@ -25,6 +23,7 @@ function f_aws_updateServersList {
 }
 
 function f_aws_addPublicKeyToAuthorizedKeys {
+    f_printSubSection "Adding public key to authorized_keys"
     ssh-keygen -y -f ~/.ssh/id_rsa >> ~/.ssh/authorized_keys
 }
 
