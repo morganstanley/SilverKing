@@ -797,7 +797,7 @@ function f_link {
 	typeset lib_opts=$5
 	
 	f_printSubSection "linking $obj_files => $out_filename"
-	f_runCmd "$ld $ld_opts $lib_opts -o $out_filename $obj_files"
+	f_runCmd "$ld $ld_opts -o $out_filename $obj_files $lib_opts"
 }
 
 function f_runCmd {

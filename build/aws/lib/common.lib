@@ -114,8 +114,7 @@ function f_aws_buildConfig_check {
     
     echo
     echo "Checking build.config"
-    cd $BUILD_DIR
-    ./check_config.sh
+    $BUILD_DIR/check_config.sh
 }
 
 function f_aws_edit_config_files {
@@ -138,12 +137,9 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     f_aws_edit_config_files
     f_aws_symlink_skjar_for_skc
 
-    cd $BUILD_DIR/aws
-    ./aws_zk.sh "start"
-    cd ..
-    ./$BUILD_SCRIPT_NAME
-    cd aws
-    ./aws_zk.sh "stop"
+    $AWS_DIR/$ZK_START_SCRIPT_NAME
+    $BUILD_DIR/$BUILD_SCRIPT_NAME
+    $AWS_DIR/$ZK_STOP_SCRIPT_NAME
 }
 
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo
@@ -159,3 +155,5 @@ JACE_CORE_JAR=$JACE_CORE-1.2.22.jar
 ZK_VERSION="zookeeper-3.4.12"
     
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
+# SSH_OPTIONS="-v -x -o StrictHostKeyChecking=no"
+SSH_OPTIONS="-x -o StrictHostKeyChecking=no"

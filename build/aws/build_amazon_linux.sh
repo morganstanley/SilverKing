@@ -1,5 +1,7 @@
 #!/bin/ksh
 
+source `dirname $0`/../lib/run_scripts_from_any_path.snippet
+
 cd ..
 source lib/common.lib
 source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
@@ -18,8 +20,13 @@ function f_amazon_linux_install_java {
     typeset java7=java-1.7.0
     f_amazon_linux_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
     f_amazon_linux_yumInstall "$java7-openjdk-devel.x86_64" 
-    f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/$java8"
+    typeset java8home=/usr/lib/jvm/$java8
+    f_fillInBuildConfigVariable "JAVA_8_HOME" "$java8home"
     f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
+    
+    # make java 8 the default
+    sudo alternatives --set java  $java8home/bin/java
+    sudo alternatives --set javac $java8home/bin/javac
 }
 
 function f_amazon_linux_symlink_boost {

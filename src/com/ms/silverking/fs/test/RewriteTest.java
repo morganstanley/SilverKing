@@ -139,7 +139,7 @@ public class RewriteTest {
 				}
 				for (int j = 0; j < size; j++) {
 					if (readBuf[j] != buf[i % 26][j]) {
-						System.out.printf("%d\t%x != %x\n", offset + j, readBuf[j], buf[i % 26][j]);
+//						System.out.printf("%d\t%x != %x\n", offset + j, readBuf[j], buf[i % 26][j]);
 					}
 				}
 			}
