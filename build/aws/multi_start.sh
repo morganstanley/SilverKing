@@ -9,8 +9,6 @@ cd -
 source lib/common.lib
 
 function f_aws_updateServersList {
-    f_printSubSection "Updating Servers List"
-
     typeset launchIp=`hostname -i`
     typeset serverList="$launchIp"
     
@@ -25,7 +23,8 @@ function f_aws_updateServersList {
 }
 
 function f_aws_addPublicKeyToAuthorizedKeys {
-    ssh-keygen -y -f >> "~/.ssh/authorized_keys"
+    f_printSubSection "Adding public key to authorized_keys"
+    ssh-keygen -y -f ~/.ssh/id_rsa >> ~/.ssh/authorized_keys
 }
 
 function f_aws_copyPrivateKeyToAllMachines {
@@ -61,9 +60,8 @@ function f_aws_scp_helper {
 function f_aws_symlinkSkfsD {
     f_printSubSection "Symlinking skfsd on all machines"
     
-    typeset ssh_options="-v -x -o StrictHostKeyChecking=no"
     while read host; do
-        ssh $ssh_options $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
+        ssh $SSH_OPTIONS $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
