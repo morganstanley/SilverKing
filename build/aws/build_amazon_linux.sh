@@ -25,8 +25,8 @@ function f_amazon_linux_install_java {
     f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
     
     # make java 8 the default
-    sudo alternatives --set java  $java8home/bin/java
-    sudo alternatives --set javac $java8home/bin/javac
+    # sudo alternatives --set java  $java8home/bin/java
+    # sudo alternatives --set javac $java8home/bin/javac
 }
 
 function f_amazon_linux_symlink_boost {
