@@ -20,6 +20,7 @@ import com.ms.silverking.cloud.dht.daemon.NodeInfo;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
+import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
@@ -39,6 +40,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     private final DHTKey                diskBytesKey;
     private final DHTKey                allReplicasFreeDiskBytesKey;
     private final DHTKey                allReplicasFreeSystemDiskBytesEstimateKey;
+    private final DHTKey                exclusionSetKey;
     private final Set<DHTKey>			knownKeys;
     
     private Map<IPAndPort,NodeInfo>	cachedAllNodeInfo;
@@ -64,6 +66,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         diskBytesKey = keyCreator.createKey("diskBytes");
         allReplicasFreeDiskBytesKey = keyCreator.createKey("allReplicasFreeDiskBytes");
         allReplicasFreeSystemDiskBytesEstimateKey = keyCreator.createKey("allReplicasFreeSystemDiskBytesEstimate");
+        exclusionSetKey = keyCreator.createKey("exclusionSet");
         knownKeys = new HashSet<>();
         knownKeys.add(totalDiskBytesKey);
         knownKeys.add(usedDiskBytesKey);
@@ -71,6 +74,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         knownKeys.add(diskBytesKey);
         knownKeys.add(allReplicasFreeDiskBytesKey);
         knownKeys.add(allReplicasFreeSystemDiskBytesEstimateKey);
+        knownKeys.add(exclusionSetKey);
     }
         
     /*
@@ -176,6 +180,17 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     	return pairedResultsToBytes(results);
     }
     
+    private byte[] getExclusionSet() {
+    	ExclusionSet	exclusionSet;
+    	
+    	exclusionSet = ringMaster.getCurrentExclusionSet();
+    	if (exclusionSet != null) {
+    		return exclusionSet.toString().getBytes();
+    	} else {
+    		return null;
+    	}
+    }
+    
     public byte[] pairedResultsToBytes(List<Pair<IPAndPort,Long>> results) {
     	StringBuffer	sBuf;
     	
@@ -227,6 +242,8 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
 	            	return getAllReplicasFreeDiskBytes();
 	            } else if (key.equals(allReplicasFreeSystemDiskBytesEstimateKey)) {
 	            	return getAllReplicasFreeSystemDiskBytesEstimate();
+	            } else if (key.equals(exclusionSetKey)) {
+	            	return getExclusionSet();
 	            } else {
 	            	throw new RuntimeException("panic");
 	            }

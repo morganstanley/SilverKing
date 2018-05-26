@@ -35,7 +35,7 @@ skc> p k1 v1;   # this puts a key: k1, with value: v1
 skc> g k1 v1;   # gets the values for keys: k1 and v1
         k1 => v1
         v1 => <No such value>
-skc> q;
+skc> q;         # quit
 ```
 
 You can also use the SKFS file system:

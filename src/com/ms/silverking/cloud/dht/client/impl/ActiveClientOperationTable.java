@@ -146,7 +146,6 @@ public class ActiveClientOperationTable {
                 if (!op.opHasTimedOut(curTimeMillis)) {
                     if (debugTimeouts) {
                         Log.warning("Resending: ", op);
-                        //System.exit(-1);
                     } else {
                         Log.info("Resending: ", op);
                     }

@@ -74,7 +74,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 		
 		// FUTURE - dedup w.r.t. retrieve
 		if (hasUnserializedUpdates) {
-			nsStore.getReadWriteLock().writeLock().lock();;
+			nsStore.getReadWriteLock().writeLock().lock();
 			serializationLock.lock();
 			try {
 				// We must double check now to see if updates were serialized while this thread was waiting for the lock
@@ -102,7 +102,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 				}
 			} finally {
 				serializationLock.unlock();
-				nsStore.getReadWriteLock().writeLock().unlock();;
+				nsStore.getReadWriteLock().writeLock().unlock();
 			}
 		}
 		super.persistLatestIfNecessary(nsStore);
