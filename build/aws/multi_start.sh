@@ -63,6 +63,8 @@ function f_aws_symlinkSkfsD {
     while read host; do
         ssh $SSH_OPTIONS $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
+    
+    sleep 5
 }
 
 f_printSection "PREPPING LAUNCH MACHINE"
