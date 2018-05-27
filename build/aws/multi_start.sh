@@ -69,6 +69,10 @@ function f_aws_symlinkSkfsD {
 
 f_printSection "PREPPING LAUNCH MACHINE"
 f_aws_updateServersList
+# re-sourcing to grab the SK_SERVERS that we just updated, which is then used in StaticInstanceCreator, etc..
+cd ..
+source lib/common.lib
+cd -
 f_aws_addPublicKeyToAuthorizedKeys
 f_aws_copyPrivateKeyToAllMachines
 ./$ZK_START_SCRIPT_NAME
