@@ -54,7 +54,7 @@ function f_aws_scp_helper {
     
     while read host; do
         echo -n "$host: "
-        scp $file $USER@$host:$destDir
+        scp -o StrictHostKeyChecking=no $file $USER@$host:$destDir
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
