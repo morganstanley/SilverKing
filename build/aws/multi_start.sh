@@ -34,7 +34,7 @@ function f_aws_copyPrivateKeyToAllMachines {
     typeset destDir=$srcDir
     typeset keyFile=$srcDir/id_rsa
     
-    chmod 600 $keyFile
+    chmod 600 $keyFile  # shouldn't have to do it, but just in case
     f_aws_scp_helper "$destDir" "$keyFile"
 }
 
@@ -53,7 +53,8 @@ function f_aws_scp_helper {
     typeset    file=$2
     
     while read host; do
-        scp $file $USER@$host:$destDir
+        echo -n "$host: "
+        scp -o StrictHostKeyChecking=no $file $USER@$host:$destDir
     done < $NONLAUNCH_HOST_LIST_FILENAME
 }
 
@@ -61,12 +62,18 @@ function f_aws_symlinkSkfsD {
     f_printSubSection "Symlinking skfsd on all machines"
     
     while read host; do
-        ssh $SSH_OPTIONS $host "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
+        ssh $SSH_OPTIONS $host "echo -n \"$host: \"; ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
+    
+    sleep 5
 }
 
 f_printSection "PREPPING LAUNCH MACHINE"
 f_aws_updateServersList
+# re-sourcing to grab the SK_SERVERS that we just updated, which is then used in StaticInstanceCreator, etc..
+cd ..
+source lib/common.lib
+cd -
 f_aws_addPublicKeyToAuthorizedKeys
 f_aws_copyPrivateKeyToAllMachines
 ./$ZK_START_SCRIPT_NAME

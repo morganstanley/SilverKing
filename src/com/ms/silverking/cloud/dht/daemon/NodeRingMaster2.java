@@ -534,6 +534,10 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
         return curMapState.getSecondarySet(secondaryTargets);
     }
     
+    public ExclusionSet getCurrentExclusionSet() {
+    	return curMapState.getCurrentExclusionSet();
+    }    
+    
     ///////////////////////////////////////////////////////////////////////////
     
     private String getRingNameFromCP(ConvergencePoint cp) throws KeeperException {
