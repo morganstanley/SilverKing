@@ -9,6 +9,8 @@ SilverKing is a simple, scalable, high-throughput data **storage** and
 **coordination** mechanism designed for use in distributed applications. 
 SilverKing provides both a distributed key-value store and a distributed file system.
 
+## Getting Started
+Follow the [Quick Start Guide](Quick-Start-Guide.md)
 
 ### What makes SilverKing compelling?
 
