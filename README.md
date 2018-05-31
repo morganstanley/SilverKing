@@ -63,7 +63,7 @@ Specifically, SilverKing provides scale and performance along many dimensions su
 
 * **Operation throughput**: many tens of millions of operations per second for large instances
 * **Data throughput**: limited by the network for large data items
-* **Latency**: < 200 us average for sustained operations contained within a rack
+* **Latency**: < 200 &micro;s average for sustained operations contained within a rack
 * **Clients**: at least tens of thousands of concurrent writers (and readers) for large instances
 * **Storage**: limited by the aggregate capacity of all hard drives in use
 
