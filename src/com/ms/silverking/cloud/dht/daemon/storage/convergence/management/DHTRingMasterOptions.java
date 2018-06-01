@@ -9,4 +9,6 @@ public class DHTRingMasterOptions {
     public int  watchIntervalSeconds = 10;
     @Option(name="-m", usage="Mode", required=false)
     public Mode mode = Mode.Manual;
+    @Option(name="-pcm", usage="PassiveConvergenceMode", required=false)
+    public PassiveConvergenceMode passiveConvergenceMode = PassiveConvergenceMode.FullSync_FailOnFailure;
 }

@@ -47,6 +47,7 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
 	private final RingConfiguration	currentRingConfig;
 	private final boolean			syncUnchangedOwners;
 	private final SyncMode			mode;
+	private final PassiveConvergenceMode	passiveConvergenceMode;
 	
 	private static final boolean	serializeNamespaces = false;
 	
@@ -133,12 +134,13 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
 	
 	public CentralConvergenceController(UUIDBase uuid, DHTMetaReader dhtMetaReader, ConvergencePoint curCP, ConvergencePoint targetCP, 
 										ExclusionSet exclusionSet, MessageGroupBase	mgBase, boolean syncUnchangedOwners,
-										RequestedSyncMode requestedSyncMode) throws KeeperException, IOException {
+										RequestedSyncMode requestedSyncMode, PassiveConvergenceMode passiveConvergenceMode) throws KeeperException, IOException {
 		super(uuid, dhtMetaReader, targetCP, exclusionSet, mgBase);
 		assert curCP != null;
 		assert curCP.getRingIDAndVersionPair() != null;
 		this.curCP = curCP;
 		this.syncUnchangedOwners = syncUnchangedOwners;
+		this.passiveConvergenceMode = passiveConvergenceMode;
 		curRingName = getRingNameFromCP(curCP);
 		curRing = dhtMetaReader.readRing(curRingName, curCP.getRingIDAndVersionPair().getRingVersionPair());
 		
@@ -274,6 +276,7 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
     	Set<UUIDBase>	msgUUIDs;
     	Set<UUIDBase>	incompleteUUIDs;
     	Set<UUIDBase>	failedUUIDs;
+    	Set<UUIDBase>	passiveUUIDs;
     	Pair<Set<UUIDBase>,Set<UUIDBase>>	result;
     	Map<UUIDBase,IPAndPort>	replicaMap;
     	Set<IPAndPort>	targetReplicas;
@@ -282,6 +285,7 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
     	Log.warningAsyncf("setNodesState %s %s", targetRing.getRingIDAndVersionPair(), ringState);
     	replicaMap = new HashMap<>();
     	msgUUIDs = new HashSet<>();
+    	passiveUUIDs = new HashSet<>();
     	
     	// Also, send to source? but don't wait? unless source is now passive?
     	// fix passive to include unused?
@@ -305,6 +309,7 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
             opUUIDs.add(uuid);
     		uuid = sendSetState(uuid, passiveNode, ringState);
     		msgUUIDs.add(uuid);
+    		passiveUUIDs.add(uuid);
     		replicaMap.put(uuid, passiveNode);
     	}
     	
@@ -312,6 +317,10 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
     	opUUIDs.removeAll(msgUUIDs);
     	incompleteUUIDs = result.getV1();
     	failedUUIDs = result.getV2();
+    	if (passiveConvergenceMode.ignoresFailures()) {
+    		incompleteUUIDs.removeAll(passiveUUIDs);
+    		failedUUIDs.removeAll(passiveUUIDs);
+    	}
     	displayErrors(replicaMap, incompleteUUIDs, "Incomplete");
     	displayErrors(replicaMap, failedUUIDs, "Failed");
     	if (incompleteUUIDs.size() != 0) {
