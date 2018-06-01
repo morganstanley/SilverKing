@@ -28,6 +28,7 @@ import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfigurationUtil;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
@@ -224,10 +225,14 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             Set<IPAndPort>  guiltySuspects;
             Set<IPAndPort>  newActiveNodes;
             Set<IPAndPort>  newlyInactiveNodes;
+            Pair<Set<IPAndPort>,SetMultimap<IPAndPort,IPAndPort>>	activeServersAndAccuserSuspects;
+            Set<IPAndPort>	activeServers;
             
             guiltySuspects = new HashSet<>();
             
-            accuserSuspects = suspectsZK.readAccuserSuspectsFromZK();
+            activeServersAndAccuserSuspects = suspectsZK.readAccuserSuspectsFromZK();
+            activeServers = activeServersAndAccuserSuspects.getV1();
+            accuserSuspects = activeServersAndAccuserSuspects.getV2();
             removeAccusationsFromExcludedServers(accuserSuspects);
             suspectAccusers = CollectionUtil.transposeSetMultimap(accuserSuspects);
             
@@ -269,7 +274,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 // in the suspects list. If it has not, then we presume that the loss of
                 // the ephemeral node + the suspicion by another is sufficient to
                 // prove that this node is bad.
-                if (!accuserSuspects.containsKey(suspect)) {
+                if (!activeServers.contains(suspect)) {
                     Log.warning(String.format("Guilty 1: %s (at least one accuser, and no ephemeral node)", suspect));
                     guiltySuspects.add(suspect);
                 } else {

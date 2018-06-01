@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.CollectionUtil;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
@@ -91,7 +92,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String,String>,Me
      * @return accuser->suspects map
      * @throws KeeperException
      */
-    public SetMultimap<IPAndPort,IPAndPort> readAccuserSuspectsFromZK() throws KeeperException {
+    public Pair<Set<IPAndPort>,SetMultimap<IPAndPort,IPAndPort>> readAccuserSuspectsFromZK() throws KeeperException {
         String          basePath;
         List<IPAndPort>    accusers;
         SetMultimap<IPAndPort,IPAndPort>  accuserSuspectsMap;
@@ -116,7 +117,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String,String>,Me
         	Log.warning("accuserSuspectsMap.size()\t", accuserSuspectsMap.size());
         	Log.warning("out readAccuserSuspectsFromZK()");
         }
-        return accuserSuspectsMap;
+        return new Pair<>(ImmutableSet.copyOf(accusers), accuserSuspectsMap);
     }
     
     public Set<IPAndPort> readActiveNodesFromZK() throws KeeperException {
