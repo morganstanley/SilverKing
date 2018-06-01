@@ -12,8 +12,10 @@ function f_aws_removeSkfsD {
     f_printSubSection "Removing skfsd symlink on all machines"
     
     while read host; do
-        ssh $SSH_OPTIONS $host "rm -rv $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
+        ssh $SSH_OPTIONS $host "echo -n \"$host: \"; rm -rv $BIN_SKFS_DIR/$SKFS_EXEC_NAME" &
     done < $NONLAUNCH_HOST_LIST_FILENAME
+    
+    sleep 5
 }
 
 f_printSection "STOPPING"
