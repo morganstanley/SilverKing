@@ -87,7 +87,7 @@ feasible given the storage policy and level of failure.)
 ## Client APIs
 
 APIs are available for the following languages: Java, C++, Perl, and q. 
-See the [Client Primer](doc/ClientPrimer.html) for a brief introduction to writing client applications.
+See the [Client Primer](https://morgan-stanley.github.io/SilverKing/doc/ClientPrimer.html) for a brief introduction to writing client applications.
 Javadoc documentation is available for the Java API.
 
 ## Licensing
