@@ -63,7 +63,7 @@ function f_aws_symlinkSkfsD {
 }
 
 function f_aws_addHostToEtcHostsFile {
-    f_aws_ssh_helper "Adding host to /etc/hosts on all machines" "$AWS_DIR/mutli_addHost.sh"
+    f_aws_ssh_helper "Adding host to /etc/hosts on all machines" "$AWS_DIR/multi_addHost.sh"
 }
 
 function f_aws_ssh_helper {
