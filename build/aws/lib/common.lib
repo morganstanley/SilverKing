@@ -38,8 +38,7 @@ function f_aws_replaceLine {
 
 function f_aws_addHostToEtcHosts {
     typeset etcHostsFile=/etc/hosts
-    typeset output=`grep \`hostname\` $etcHostsFile`
-    typeset count=`echo "$output" | wc -l`
+    typeset count=`grep \`hostname\` $etcHostsFile -c`
     if [[ $count -eq 0 ]]; then
         echo `/sbin/ifconfig eth0 | grep "inet addr" | awk '{print $2}' | cut -d : -f 2; hostname` | sudo tee -a $etcHostsFile
     fi
