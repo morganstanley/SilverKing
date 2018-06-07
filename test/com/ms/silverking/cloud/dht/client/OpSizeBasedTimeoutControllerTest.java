@@ -28,9 +28,11 @@ public class OpSizeBasedTimeoutControllerTest {
 	private static final int mrtomCopy = 1_500_000;
 	private static final int mrtomDiff = 1_500_001;
 	
+	private static final int defaultExclusionChangeRetryIntervalMS = 5 * 1000;
+	
 	private static final OpSizeBasedTimeoutController defaultController     =     OpSizeBasedTimeoutController.template;
-	private static final OpSizeBasedTimeoutController defaultControllerCopy = new OpSizeBasedTimeoutController(maCopy, ctmCopy, itmCopy, mrtomCopy);
-	private static final OpSizeBasedTimeoutController defaultControllerDiff = new OpSizeBasedTimeoutController(maDiff, ctmDiff, itmDiff, mrtomDiff);
+	private static final OpSizeBasedTimeoutController defaultControllerCopy = new OpSizeBasedTimeoutController(maCopy, ctmCopy, itmCopy, mrtomCopy, defaultExclusionChangeRetryIntervalMS);
+	private static final OpSizeBasedTimeoutController defaultControllerDiff = new OpSizeBasedTimeoutController(maDiff, ctmDiff, itmDiff, mrtomDiff, defaultExclusionChangeRetryIntervalMS);
 	
 //	private static final NamespacePerspectiveOptions<byte[], byte[]> nspOptions = Util.getCopy();
 //	private static final AsyncRetrievalOperationImpl asyncRetrieval = new AsyncRetrievalOperationImpl(null, null, new NamespacePerspectiveOptionsImpl(nspOptions, SerializationRegistry.createEmptyRegistry()), 0, null);    

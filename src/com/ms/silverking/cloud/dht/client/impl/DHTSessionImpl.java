@@ -39,6 +39,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
+import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAddrUtil;
@@ -62,6 +63,9 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final NamespaceCreator  namespaceCreator;
     private final NamespaceOptionsClient    nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
+    
+    private SynchronousNamespacePerspective<String,String>	systemNSP;
+    private ExclusionSet	exclusionSet;
     
     private static final Class<String>	defaultKeyClass = String.class;
     private static final Class<byte[]>	defaultValueClass = byte[].class;
@@ -409,15 +413,63 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 	        Log.warning("No context found for: ", message);
 	    }
 	}
+    
+    /////////////////////
+    
+    void initializeExclusionSet() {
+    	try {
+    		if (systemNSP == null) {
+    			systemNSP = getClientNamespace(Namespace.systemName).openSyncPerspective(String.class, String.class);
+    		}
+	    	exclusionSet = getCurrentExclusionSet();
+    	} catch (Exception e) {
+    		Log.logErrorWarning(e, "initializeExclusionSet() failed");
+    	}
+    }
+    
+    ExclusionSet getCurrentExclusionSet() {
+    	try {
+	    	String	exclusionSetDef;
+	    	
+	    	exclusionSetDef = systemNSP.get("exclusionSet");
+	    	if (exclusionSetDef != null) {
+	    		return ExclusionSet.parse(exclusionSetDef);
+	    	} else {
+	    		return null;
+	    	}
+    	} catch (Exception e) {
+    		Log.logErrorWarning(e, "getCurrentExclusionSet() failed");
+    		return null;
+    	}
+    }
+    
+    boolean exclusionSetHasChanged() {
+    	if (exclusionSet == null) {
+    		initializeExclusionSet();
+    		return false;
+    	} else {
+    		ExclusionSet	newExclusionSet;
+    		boolean			exclusionSetHasChanged;
+    		
+    		newExclusionSet = getCurrentExclusionSet();
+    		exclusionSetHasChanged = !exclusionSet.equals(newExclusionSet);
+    		exclusionSet = newExclusionSet;
+    		return exclusionSetHasChanged;
+    	}
+    }
 			
     void checkForTimeouts() {
         long    curTimeMillis;
+        boolean	exclusionSetHasChanged;
         
         curTimeMillis = absMillisTimeSource.absTimeMillis();
+        exclusionSetHasChanged = exclusionSetHasChanged();
         for (ClientNamespace clientNamespace : clientNamespaceList) {
-            clientNamespace.checkForTimeouts(curTimeMillis);
+            clientNamespace.checkForTimeouts(curTimeMillis, exclusionSetHasChanged);
         }
     }
+    
+    /////////////////////
 	
 	/*
 	private void checkServers() {

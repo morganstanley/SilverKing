@@ -47,6 +47,11 @@ class OpTimeoutState {
                                + timeoutController.getRelativeTimeoutMillisForAttempt(op, curAttemptIndex);
     }
     
+    boolean retryOnExclusionChange(long curTimeMillis) {
+        return curTimeMillis > attemptStartTimeMillis 
+                + timeoutController.getRelativeExclusionChangeRetryMillisForAttempt(op, curAttemptIndex);
+    }
+    
     void newAttempt(long curTimeMillis) {
         ++curAttemptIndex;
         attemptStartTimeMillis = curTimeMillis;
