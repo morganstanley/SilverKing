@@ -119,8 +119,10 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     		
     		if (entry.getValue() != null) {
 	    		nodeEstimate = getNodeEstimate(entry.getKey(), entry.getValue());
-				minTotal = Math.min(minTotal, nodeEstimate.getV1());
-				minFree = Math.min(minFree, nodeEstimate.getV2());
+	    		if (nodeEstimate != null) {
+					minTotal = Math.min(minTotal, nodeEstimate.getV1());
+					minFree = Math.min(minFree, nodeEstimate.getV2());
+	    		}
     		}
     	}
     	return new Triple<>(minTotal, minFree, minTotal - minFree);
@@ -129,10 +131,17 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     private Pair<Long, Long> getNodeEstimate(IPAndPort node, NodeInfo info) {
 		long	totalSystemBytesEstimate;
 		long	freeSystemBytesEstimate;
+		double	currentOwnedFraction;
 		
-		totalSystemBytesEstimate = (long)((double)info.getFSTotalBytes() / ringMaster.getCurrentOwnedFraction(node, OwnerQueryMode.Primary));
-		freeSystemBytesEstimate = (long)((double)info.getFSFreeBytes() / ringMaster.getCurrentOwnedFraction(node, OwnerQueryMode.Primary));
-		return new Pair<>(totalSystemBytesEstimate, freeSystemBytesEstimate);
+		currentOwnedFraction = ringMaster.getCurrentOwnedFraction(node, OwnerQueryMode.Primary);
+		if (currentOwnedFraction == 0.0) {
+			Log.warning("getNodeEstimate(%s) unable to find any owned fraction. Ignoring", node.toString());
+			return null;
+		} else {
+			totalSystemBytesEstimate = (long)((double)info.getFSTotalBytes() / currentOwnedFraction);
+			freeSystemBytesEstimate = (long)((double)info.getFSFreeBytes() / currentOwnedFraction);
+			return new Pair<>(totalSystemBytesEstimate, freeSystemBytesEstimate);
+		}
 	}
 
 	private byte[] getAllReplicasFreeDiskBytes() {

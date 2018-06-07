@@ -278,7 +278,14 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
     }
     
     public double getCurrentOwnedFraction(IPAndPort replica, OwnerQueryMode oqm) {
-    	return RingRegion.getTotalFraction(RingEntry.getRegions(getCurrentMapReplicaEntries(replica, oqm)));
+    	List<RingEntry>	entries;
+    	
+    	entries = getCurrentMapReplicaEntries(replica, oqm);
+    	if (entries != null) {
+    		return RingRegion.getTotalFraction(RingEntry.getRegions(entries));
+    	} else {
+    		return 0.0;
+    	}
     }
     
     /**
