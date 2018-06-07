@@ -19,6 +19,10 @@ hostname -i
 10.0.0.1  # an ip should be returned
 ```
 If hostname -i fails to return an IP address, you must either modify your configuration to correct this, or add an entry in /etc/hosts.
+To add an entry in /etc/hosts, do:
+```ksh
+echo `ifconfig eth0 | grep "inet addr" | awk '{print $2}' | cut -d : -f 2; hostname` | sudo tee -a /etc/hosts
+```
 
 With that sanity check out of the way, you can start up SilverKing as follows:
 ```ksh
@@ -26,7 +30,7 @@ With that sanity check out of the way, you can start up SilverKing as follows:
 ```
 That's it! SilverKing is up and running. You can run 'ps uxww' to see all three processes.
 
-You can now perform key-value operations using the skc tool ([skc usage](doc/Shell.html)):
+You can now perform key-value operations using the skc tool ([skc usage](https://morgan-stanley.github.io/SilverKing/doc/Shell.html)):
 ```ksh
 ~/SilverKing/bin/skc -G ~/SilverKing/build/testing -g GC_SK_test    
 skc> h;         # help menu
