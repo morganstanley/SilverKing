@@ -147,20 +147,20 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         check();
     }
     
-    private void verifyEligibility(Set<IPAndPort> nodes) throws KeeperException {
-    	if (nodes.size() > 0) {
+    private void verifyEligibility(Set<IPAndPort> activeNodes) throws KeeperException {
+    	if (activeNodes.size() > 0) {
         	int			port;
-        	Set<String>	newlyInactiveServers;
+        	Set<String>	activeServers;
         	Set<String>	ineligibleServers;
         	
-    		port = nodes.iterator().next().getPort();    		        	
-        	newlyInactiveServers = IPAndPort.copyServerIPsAsMutableSet(nodes);
-        	ineligibleServers = removeIneligibleServers(newlyInactiveServers, dhtRingCurTargetZK, instanceExclusionZK);
+    		port = activeNodes.iterator().next().getPort();    		        	
+        	activeServers = IPAndPort.copyServerIPsAsMutableSet(activeNodes);
+        	ineligibleServers = removeIneligibleServers(activeServers, dhtRingCurTargetZK, instanceExclusionZK);
         	for (String ineligibleServer : ineligibleServers) {
         		IPAndPort	ineligibleNode;
         		
         		ineligibleNode = new IPAndPort(ineligibleServer, port);
-        		newlyInactiveServers.remove(ineligibleNode);
+        		activeServers.remove(ineligibleNode);
         	}
     	}
     }
