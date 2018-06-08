@@ -185,7 +185,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     		
     		startOfCurrentExclusion = esStarts.get(server);
     		if (startOfCurrentExclusion < 0) {
-    			Log.warning("Unexpected can't find startOfCurrentExclusion for ", server);
+    			Log.info("No startOfCurrentExclusion for ", server);
     		} else {
 	    		startOfCurrentExclusionMzxid = _instanceExclusionZK.getVersionMzxid(startOfCurrentExclusion);
 	    		if (startOfCurrentExclusionMzxid > curRingMzxid) {
@@ -293,15 +293,15 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             	removeFromConvictionTimes(newActiveNodes);
             }
             if (guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()) {
-            	Log.warning("guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()");
-            	Log.warningf("%d > %d", guiltySuspects.size(), convictionLimits.getTotalGuiltyServers());
+            	Log.severe("guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()");
+            	Log.severef("%d > %d", guiltySuspects.size(), convictionLimits.getTotalGuiltyServers());
             } else {
             	int	convictionsWithinOneHour;
             	
             	convictionsWithinOneHour = getConvictionsWithinTimeWindow(oneHourMillis);            	
             	if (convictionsWithinOneHour > convictionLimits.getGuiltyServersPerHour()) {
-                	Log.warning("convictionsWithinOneHour > convictionLimits.getGuiltyServersPerHour()");
-                	Log.warningf("%d > %d", convictionsWithinOneHour, convictionLimits.getGuiltyServersPerHour());
+                	Log.severe("convictionsWithinOneHour > convictionLimits.getGuiltyServersPerHour()");
+                	Log.severef("%d > %d", convictionsWithinOneHour, convictionLimits.getGuiltyServersPerHour());
             	} else {
 	            	addToConvictionTimes(guiltySuspects, SystemTimeUtil.systemTimeSource.absTimeMillis());
 		            if (doctor != null) {
