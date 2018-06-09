@@ -61,8 +61,11 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     f_ubuntu_aptgetInstall "make"
     f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
+    pwd
     echo "BUILD"
+    pwd
     f_aws_install_ant
+    pwd
     f_ubuntu_install_java
     f_aws_install_zk
 
