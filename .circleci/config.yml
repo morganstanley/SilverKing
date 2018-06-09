@@ -6,8 +6,10 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install
+          name: update
           command: 'sudo apt-get update'
+      - run:
+          name: install
           command: 'sudo apt-get install git ksh'    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
       - run:
           name: build
