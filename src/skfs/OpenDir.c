@@ -17,7 +17,6 @@
 
 #define OD_MIN_PREFETCH_INTERVAL_MILLIS	(1 * 60 * 1000)
 #define OD_TRIGGER_INTERVAL_MILLIS	4
-//#define OD_RECONCILIATION_PERIOD_MILLIS (15 * 60 * 1000)
 #define OD_RECONCILIATION_PERIOD_MILLIS (30 * 1000)
 
 #define _OD_DEBUG_MERGE 0
@@ -243,6 +242,13 @@ void od_add_entry(OpenDir *od, char *name, uint64_t version) {
 	od_add_update(od, name, ODU_T_ADDITION, version);
 }
 
+void od_check_for_remove_from_reconciliation(OpenDir *od, uint64_t _curTimeMillis) {
+    srfsLog(LOG_INFO, "%ld %ld %ld %d\t%s %d", _curTimeMillis, od->lastUpdateMillis, _curTimeMillis - od->lastUpdateMillis, OD_RECONCILIATION_PERIOD_MILLIS, __FILE__, __LINE__);
+    if (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS) {
+        od_remove_from_reconciliation(od);
+    }
+}
+
 static void od_remove_from_reconciliation(OpenDir *od) {
     rcst_remove_from_reconciliation_set(od->path);
     od->needsReconciliation = FALSE; 
@@ -305,40 +311,15 @@ int od_add_DirData(OpenDir *od, DirData *dd, SKMetaData *metaData) {
 		}
         // if local data and kvs data are an exact match
 		if (!mr.dd1NotIn0 && !mr.dd0NotIn1) {
-            if (metaData != NULL) {
-                SKValueCreator  *vc;
-                
-                vc = metaData->getCreator();
-                if (vc != NULL) {
-                    uint64_t    dataVC;
-                    
-                    dataVC = getValueCreatorAsUint64(vc);
-                    delete vc;
-                    srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "myValueCreator %x dataVC %x", myValueCreator, dataVC);
-                    // only clear needsReconciliation if somebody else wrote last, and we have an exact match
-                    if (myValueCreator != dataVC) {
-                        //od_remove_from_reconciliation(od);
-                        if (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS) {
-                            od_remove_from_reconciliation(od);
-                        }
-                    }
-                } else {
-                    srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "Can't compare IDs due to NULL metaData->getCreator()");
-                }
-            } else {
-                srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "Can't compare IDs due to NULL metaData");
-            }
-			//if (od->needsReconciliation > 0) {
-			//	--od->needsReconciliation;
-			//}
+            // This logic is only valid for server-side reconciliation
+            // Client-side has effectively been deprecated
+            od_check_for_remove_from_reconciliation(od, _curTimeMillis);
 		} else {
 			od->needsReconciliation = TRUE;
 		}
 	} else {
 		srfsLog(_OD_DEBUG_MERGE ? LOG_WARNING : LOG_INFO, "Ignoring stale or duplicate update %llx %ld", od, od->ddVersion);
-		if (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS) {
-            od_remove_from_reconciliation(od);
-        }
+        od_check_for_remove_from_reconciliation(od, _curTimeMillis);
 	}
     pthread_mutex_unlock(od->mutex);	
     if (deleteOnExit) {

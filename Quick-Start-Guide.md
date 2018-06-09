@@ -1,4 +1,4 @@
-# Quick-start Guide
+# Quick-Start Guide
 ## Running Simple AWS-based Instances
 If you'd like to give SilverKing a try, you can be up and running in minutes using an AWS instance from our template:<br>
 &emsp;[SilverKing AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=SilverKing;sort=name)<br>
@@ -19,15 +19,18 @@ hostname -i
 10.0.0.1  # an ip should be returned
 ```
 If hostname -i fails to return an IP address, you must either modify your configuration to correct this, or add an entry in /etc/hosts.
+To add an entry in /etc/hosts, do:
+```ksh
+echo `ifconfig eth0 | grep "inet addr" | awk '{print $2}' | cut -d : -f 2; hostname` | sudo tee -a /etc/hosts
+```
 
 With that sanity check out of the way, you can start up SilverKing as follows:
 ```ksh
-cd ~/SilverKing/build/aws/
-./aws_start.sh  # this starts zookeeper, sk, and skfs
+~/SilverKing/build/aws/start.sh  # this starts zookeeper, sk, and skfs
 ```
 That's it! SilverKing is up and running. You can run 'ps uxww' to see all three processes.
 
-You can now perform key-value operations using the skc tool:
+You can now perform key-value operations using the skc tool ([skc usage](https://morgan-stanley.github.io/SilverKing/doc/Shell.html)):
 ```ksh
 ~/SilverKing/bin/skc -G ~/SilverKing/build/testing -g GC_SK_test    
 skc> h;         # help menu
@@ -36,7 +39,7 @@ skc> p k1 v1;   # this puts a key: k1, with value: v1
 skc> g k1 v1;   # gets the values for keys: k1 and v1
         k1 => v1
         v1 => <No such value>
-skc> q;
+skc> q;         # quit
 ```
 
 You can also use the SKFS file system:
@@ -48,8 +51,7 @@ cat Hello
 
 To shut everything down:
 ```ksh
-cd ~/SilverKing/build/aws/
-./aws_stop.sh  # this stops zookeeper, sk, and skfs
+~/SilverKing/build/aws/stop.sh  # this stops zookeeper, sk, and skfs
 ```
 
 #### Multi-instance Cluster
@@ -57,7 +59,7 @@ Running a multi-instance cluster presently requires some work to ensure that the
 
     - Start N instance from image
     - For each instance N
-        cd ~/SilverKing/build/aws && ./aws_multi_genKey.sh
+        ~/SilverKing/build/aws/multi_genKey.sh
     - Machine1 (repeat for every machine)
         cd ~/.ssh
             vi authorized keys
@@ -66,8 +68,8 @@ Running a multi-instance cluster presently requires some work to ensure that the
         cd ~/SilverKing/build/aws
         vi multi_nonlaunch_machines_list.txt
             Add machines 2..N (make sure there is an empty line at the end!)
-        ./aws_multi_start.sh
-        ./aws_multi_stop.sh
+        ./multi_start.sh
+        ./multi_stop.sh
 
 
 ## Building SilverKing on AWS
@@ -78,16 +80,14 @@ You may also build SilverKing on AWS using simplified build scripts for both Ama
 sudo yum -y install git ksh
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
-cd ~/SilverKing/build/aws
-./amazon_linux_build.sh
+~/SilverKing/build/aws/build_amazon_linux.sh
 ```
 
 ### Ubuntu
 ```ksh
 sudo apt-get update 
-sudo apt-get install git ksh    # update first, or else you will get: "E: Unable to locate package ksh"
+sudo apt-get install git ksh    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
-cd ~/SilverKing/build/aws
-./amazon_ubuntu_build.sh
+~/SilverKing/build/aws/build_amazon_ubuntu.sh
 ```

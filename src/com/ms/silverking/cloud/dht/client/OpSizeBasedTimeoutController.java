@@ -15,6 +15,7 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     private final int   itemTime_ms;
     //private final int   keyedOpMaxRelTimeout_ms; // Waiting for C++ client change to include this, for no using nonKeyed as a workaround
     private final int   nonKeyedOpMaxRelTimeout_ms;
+    private final int	exclusionChangeRetryInterval_ms;
     
     private static final int    minTransferRate_bps = 275 * 1000 * 1000;
     private static final int    minTransferRate_Bps = minTransferRate_bps / 8;
@@ -27,6 +28,7 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     
     // For production
     static final int    defaultConstantTime_ms = 5 * 60 * 1000;
+    static final int    defaultExclusionChangeRetryIntervalMS = 5 * 1000;
     
     static final int    defaultMaxAttempts = 4;
     
@@ -54,22 +56,24 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
      * @param constantTimeMillis constant time in milliseconds 
      * @param itemTimeMillis per-item time in milliseconds
      * @param nonKeyedOpMaxRelTimeoutMillis maximum relative timeout in milliseconds
+     * @param exclusionChangeRetryInterval_ms TODO
      */
     public OpSizeBasedTimeoutController(int maxAttempts, int constantTimeMillis, int itemTimeMillis,
-			/*int keyedOpMaxRelTimeoutMillis,*/ int nonKeyedOpMaxRelTimeoutMillis) {
+			/*int keyedOpMaxRelTimeoutMillis,*/ int nonKeyedOpMaxRelTimeoutMillis, int exclusionChangeRetryInterval_ms) {
     	Util.checkAttempts(maxAttempts);
         this.maxAttempts = maxAttempts;
         this.constantTime_ms = constantTimeMillis;
         this.itemTime_ms = itemTimeMillis;
         //this.keyedOpMaxRelTimeout_ms = keyedOpMaxRelTimeoutMillis;
         this.nonKeyedOpMaxRelTimeout_ms = nonKeyedOpMaxRelTimeoutMillis;
+        this.exclusionChangeRetryInterval_ms = exclusionChangeRetryInterval_ms;
     }
     
     /**
      * Construct an OpSizeBasedTimeoutController using default parameters
      */
     public OpSizeBasedTimeoutController() {
-        this(defaultMaxAttempts, defaultConstantTime_ms, defaultItemTime_ms, /*defaultKeyedOpMaxRelTimeout_ms, */defaultNonKeyedOpMaxRelTimeout_ms);
+        this(defaultMaxAttempts, defaultConstantTime_ms, defaultItemTime_ms, /*defaultKeyedOpMaxRelTimeout_ms, */defaultNonKeyedOpMaxRelTimeout_ms, defaultExclusionChangeRetryIntervalMS);
     }
     
     @Override
@@ -85,6 +89,11 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
             return nonKeyedOpMaxRelTimeout_ms;
         }
     }
+    
+    @Override
+	public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
+    	return exclusionChangeRetryInterval_ms;
+	}
 
     @Override
     public int getMaxRelativeTimeoutMillis(AsyncOperation op) {
@@ -107,7 +116,7 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
      * @return the specified OpSizeBasedTimeoutController
      */
     public OpSizeBasedTimeoutController maxAttempts(int maxAttempts) {
-        return new OpSizeBasedTimeoutController(maxAttempts, constantTime_ms, itemTime_ms, /*keyedOpMaxRelTimeout_ms,*/ nonKeyedOpMaxRelTimeout_ms);
+        return new OpSizeBasedTimeoutController(maxAttempts, constantTime_ms, itemTime_ms, /*keyedOpMaxRelTimeout_ms,*/ nonKeyedOpMaxRelTimeout_ms, exclusionChangeRetryInterval_ms);
     }
     
     /**
@@ -117,7 +126,7 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
      * @return the specified OpSizeBasedTimeoutController
      */
     public OpSizeBasedTimeoutController constantTimeMillis(int constantTimeMillis) {
-        return new OpSizeBasedTimeoutController(maxAttempts, constantTimeMillis, itemTime_ms, /*keyedOpMaxRelTimeout_ms,*/ nonKeyedOpMaxRelTimeout_ms);
+        return new OpSizeBasedTimeoutController(maxAttempts, constantTimeMillis, itemTime_ms, /*keyedOpMaxRelTimeout_ms,*/ nonKeyedOpMaxRelTimeout_ms, exclusionChangeRetryInterval_ms);
     }
     
     /**
@@ -127,7 +136,7 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
      * @return the specified OpSizeBasedTimeoutController
      */
     public OpSizeBasedTimeoutController itemTimeMillis(int itemTimeMillis) {
-        return new OpSizeBasedTimeoutController(maxAttempts, constantTime_ms, itemTimeMillis, /*keyedOpMaxRelTimeout_ms,*/ nonKeyedOpMaxRelTimeout_ms);
+        return new OpSizeBasedTimeoutController(maxAttempts, constantTime_ms, itemTimeMillis, /*keyedOpMaxRelTimeout_ms,*/ nonKeyedOpMaxRelTimeout_ms, exclusionChangeRetryInterval_ms);
     }
     
     /**
@@ -157,13 +166,14 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
      * @return the specified OpSizeBasedTimeoutController
      */
     public OpSizeBasedTimeoutController maxRelTimeoutMillis(int maxRelTimeoutMillis) {
-        return new OpSizeBasedTimeoutController(maxAttempts, constantTime_ms, itemTime_ms, maxRelTimeoutMillis);
+        return new OpSizeBasedTimeoutController(maxAttempts, constantTime_ms, itemTime_ms, maxRelTimeoutMillis, exclusionChangeRetryInterval_ms);
     }
     
     @Override
     public int hashCode() {
     	return Integer.hashCode(maxAttempts) ^ Integer.hashCode(constantTime_ms) ^ Integer.hashCode(itemTime_ms) ^
-    			/*Integer.hashCode(keyedOpMaxRelTimeout_ms) ^*/ Integer.hashCode(nonKeyedOpMaxRelTimeout_ms); 
+    			/*Integer.hashCode(keyedOpMaxRelTimeout_ms) ^*/ Integer.hashCode(nonKeyedOpMaxRelTimeout_ms)
+    			^ Integer.hashCode(exclusionChangeRetryInterval_ms);
     }
     
     @Override
@@ -183,7 +193,8 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     			&& constantTime_ms == other.constantTime_ms
     			&& itemTime_ms == other.itemTime_ms
     	    	//&& keyedOpMaxRelTimeout_ms == o.keyedOpMaxRelTimeout_ms
-    			&& nonKeyedOpMaxRelTimeout_ms == other.nonKeyedOpMaxRelTimeout_ms;
+    			&& nonKeyedOpMaxRelTimeout_ms == other.nonKeyedOpMaxRelTimeout_ms
+    			&& exclusionChangeRetryInterval_ms == other.exclusionChangeRetryInterval_ms;
     }
     
     @Override

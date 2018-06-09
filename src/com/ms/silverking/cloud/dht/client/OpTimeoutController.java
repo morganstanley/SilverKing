@@ -29,6 +29,14 @@ public interface OpTimeoutController {
      * @return the maximum relative timeout for the given operation
      */
     public int getMaxRelativeTimeoutMillis(AsyncOperation op);
+    /**
+     * Return the relative retry interval in milliseconds for the given attempt for the
+     * case where the exclusion set has changed.
+     * @param op the relevant operation
+     * @param attemptIndex a zero-based attempt index. Ranges from 0 to the maximum number of attempts - 1.
+     * @return the relative timeout in milliseconds for the given attempt
+     */
+	public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex);
     
     public static final int	min_maxAttempts = 1;
     public static final int minInitialTimeout_ms = 5;

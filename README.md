@@ -11,6 +11,8 @@ SilverKing is a simple, scalable, high-throughput data **storage** and
 **coordination** mechanism designed for use in distributed applications. 
 SilverKing provides both a distributed key-value store and a distributed file system.
 
+## Getting Started
+Follow the [Quick Start Guide](Quick-Start-Guide.md)
 
 ### What makes SilverKing compelling?
 
@@ -65,7 +67,7 @@ Specifically, SilverKing provides scale and performance along many dimensions su
 
 * **Operation throughput**: many tens of millions of operations per second for large instances
 * **Data throughput**: limited by the network for large data items
-* **Latency**: < 200 us average for sustained operations contained within a rack
+* **Latency**: < 200 &micro;s average for sustained operations contained within a rack
 * **Clients**: at least tens of thousands of concurrent writers (and readers) for large instances
 * **Storage**: limited by the aggregate capacity of all hard drives in use
 
@@ -87,9 +89,9 @@ feasible given the storage policy and level of failure.)
 ## Client APIs
 
 APIs are available for the following languages: Java, C++, Perl, and q. 
-See the Client Primer for a brief introduction to writing client applications.
+See the [Client Primer](https://morgan-stanley.github.io/SilverKing/doc/ClientPrimer.html) for a brief introduction to writing client applications.
 Javadoc documentation is available for the Java API.
 
 ## Licensing
 
-See LICENSE.md for SilverKing licensing terms. See lib/LICENSE.README.md for licensing terms of libraries used by SilverKing.
+See [LICENSE.md](LICENSE.md) for SilverKing licensing terms. See [lib/LICENSE.README.md](lib/LICENSE.README.md) for licensing terms of libraries used by SilverKing.

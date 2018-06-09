@@ -1,10 +1,10 @@
 
 .checkstyle
+
+### ide's
+ide
+# eclipse
 .classpath
 .project
-
-# ide's
+# VS
 .vscode
-ide-bin
-bin-ide
-ide

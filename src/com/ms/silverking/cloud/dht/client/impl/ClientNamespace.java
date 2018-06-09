@@ -215,9 +215,9 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
         }
     }
     
-    void checkForTimeouts(long curTimeMillis) {
+    void checkForTimeouts(long curTimeMillis, boolean exclusionSetHasChanged) {
         Log.info("checkForTimeouts: ", name);
-        activeOpTable.checkForTimeouts(curTimeMillis, opSender, putSender, retrievalSender);
+        activeOpTable.checkForTimeouts(curTimeMillis, opSender, putSender, retrievalSender, exclusionSetHasChanged);
     }
     
     List<AsyncOperationImpl> getActiveAsyncOperations() {

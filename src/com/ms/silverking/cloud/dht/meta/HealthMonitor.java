@@ -28,6 +28,7 @@ import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfigurationUtil;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
@@ -146,20 +147,20 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         check();
     }
     
-    private void verifyEligibility(Set<IPAndPort> nodes) throws KeeperException {
-    	if (nodes.size() > 0) {
+    private void verifyEligibility(Set<IPAndPort> activeNodes) throws KeeperException {
+    	if (activeNodes.size() > 0) {
         	int			port;
-        	Set<String>	newlyInactiveServers;
+        	Set<String>	activeServers;
         	Set<String>	ineligibleServers;
         	
-    		port = nodes.iterator().next().getPort();    		        	
-        	newlyInactiveServers = IPAndPort.copyServerIPsAsMutableSet(nodes);
-        	ineligibleServers = removeIneligibleServers(newlyInactiveServers, dhtRingCurTargetZK, instanceExclusionZK);
+    		port = activeNodes.iterator().next().getPort();    		        	
+        	activeServers = IPAndPort.copyServerIPsAsMutableSet(activeNodes);
+        	ineligibleServers = removeIneligibleServers(activeServers, dhtRingCurTargetZK, instanceExclusionZK);
         	for (String ineligibleServer : ineligibleServers) {
         		IPAndPort	ineligibleNode;
         		
         		ineligibleNode = new IPAndPort(ineligibleServer, port);
-        		newlyInactiveServers.remove(ineligibleNode);
+        		activeServers.remove(ineligibleNode);
         	}
     	}
     }
@@ -184,7 +185,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     		
     		startOfCurrentExclusion = esStarts.get(server);
     		if (startOfCurrentExclusion < 0) {
-    			Log.warning("Unexpected can't find startOfCurrentExclusion for ", server);
+    			Log.info("No startOfCurrentExclusion for ", server);
     		} else {
 	    		startOfCurrentExclusionMzxid = _instanceExclusionZK.getVersionMzxid(startOfCurrentExclusion);
 	    		if (startOfCurrentExclusionMzxid > curRingMzxid) {
@@ -224,10 +225,14 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             Set<IPAndPort>  guiltySuspects;
             Set<IPAndPort>  newActiveNodes;
             Set<IPAndPort>  newlyInactiveNodes;
+            Pair<Set<IPAndPort>,SetMultimap<IPAndPort,IPAndPort>>	activeServersAndAccuserSuspects;
+            Set<IPAndPort>	activeServers;
             
             guiltySuspects = new HashSet<>();
             
-            accuserSuspects = suspectsZK.readAccuserSuspectsFromZK();
+            activeServersAndAccuserSuspects = suspectsZK.readAccuserSuspectsFromZK();
+            activeServers = activeServersAndAccuserSuspects.getV1();
+            accuserSuspects = activeServersAndAccuserSuspects.getV2();
             removeAccusationsFromExcludedServers(accuserSuspects);
             suspectAccusers = CollectionUtil.transposeSetMultimap(accuserSuspects);
             
@@ -269,7 +274,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 // in the suspects list. If it has not, then we presume that the loss of
                 // the ephemeral node + the suspicion by another is sufficient to
                 // prove that this node is bad.
-                if (!accuserSuspects.containsKey(suspect)) {
+                if (!activeServers.contains(suspect)) {
                     Log.warning(String.format("Guilty 1: %s (at least one accuser, and no ephemeral node)", suspect));
                     guiltySuspects.add(suspect);
                 } else {
@@ -288,15 +293,15 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             	removeFromConvictionTimes(newActiveNodes);
             }
             if (guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()) {
-            	Log.warning("guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()");
-            	Log.warningf("%d > %d", guiltySuspects.size(), convictionLimits.getTotalGuiltyServers());
+            	Log.severe("guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()");
+            	Log.severef("%d > %d", guiltySuspects.size(), convictionLimits.getTotalGuiltyServers());
             } else {
             	int	convictionsWithinOneHour;
             	
             	convictionsWithinOneHour = getConvictionsWithinTimeWindow(oneHourMillis);            	
             	if (convictionsWithinOneHour > convictionLimits.getGuiltyServersPerHour()) {
-                	Log.warning("convictionsWithinOneHour > convictionLimits.getGuiltyServersPerHour()");
-                	Log.warningf("%d > %d", convictionsWithinOneHour, convictionLimits.getGuiltyServersPerHour());
+                	Log.severe("convictionsWithinOneHour > convictionLimits.getGuiltyServersPerHour()");
+                	Log.severef("%d > %d", convictionsWithinOneHour, convictionLimits.getGuiltyServersPerHour());
             	} else {
 	            	addToConvictionTimes(guiltySuspects, SystemTimeUtil.systemTimeSource.absTimeMillis());
 		            if (doctor != null) {

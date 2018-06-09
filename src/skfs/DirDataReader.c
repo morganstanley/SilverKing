@@ -27,6 +27,7 @@
 #include <vector>
 #include <string>
 
+
 ////////////
 // defines
 
@@ -45,6 +46,7 @@ static int _ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int cr
 static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRequest *ddrr, SKMetaData	*metaData);
 static SKStoredValue *ddr_retrieve_specific_dir_version(DirDataReader *ddr, int curThreadIndex, char *path, uint64_t lowerVersionLimit);
 static uint64_t ddr_get_least_version(DirDataReader *ddr, int curThreadIndex, char *path);
+
 
 ///////////////////
 // externs
@@ -384,6 +386,7 @@ static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRe
         updateKVSWithLocal = FALSE;
         if (metaData == NULL) {
             updateKVSWithLocal = TRUE;
+            srfsLog(LOG_INFO, "kvs metadata null val for %s", ddrr->path);
         } else {
             uint64_t    latestKVSVersion;
             
@@ -518,10 +521,12 @@ static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRe
                         ddrr->path, updateKVSWithLocal, _od->lastMergedVersion);
             } else {
                 srfsLog(LOG_INFO, "Already up to date ddrr->path %s", ddrr->path);
+                od_check_for_remove_from_reconciliation(_od, curTimeMillis());
             }
         }
         
         if (updateKVSWithLocal) {
+            srfsLog(LOG_INFO, "updateKVSWithLocal is true; writing dir %s", ddrr->path);
             odw_write_dir(od_odw, ddrr->path, _od);
         }
 	}
@@ -639,127 +644,6 @@ static uint64_t ddr_get_least_version(DirDataReader *ddr, int curThreadIndex, ch
     return leastVersion;
 }
 
-/*
-static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRequest *ddrr, SKMetaData	*metaData) {
-	CacheReadResult	result;
-	OpenDir			*_od;
-	
-	srfsLog(LOG_FINE, "ddr_update_dir %llx %s %llx", ddrr, ddrr->path, metaData);
-	_od = NULL;
-	result = odc_read_no_op_creation(ddrr->dirDataReader->openDirCache, ddrr->path, &_od);
-	if (result != CRR_FOUND && ddrr->type != DDRR_Initial) {
-        fatalError("od not found", __FILE__, __LINE__);
-	} else {
-        int updateKVSWithLocal;
-        
-        if (ddrr->type == DDRR_Initial) {
-			ddr_store_DirData_as_OpenDir_in_cache(ddrr, dd_new_empty());
-            result = odc_read_no_op_creation(ddrr->dirDataReader->openDirCache, ddrr->path, &_od);
-            if (result != CRR_FOUND) {
-                fatalError("od not found", __FILE__, __LINE__);
-            }
-        }
-        updateKVSWithLocal = FALSE;
-        if (metaData == NULL) {
-            updateKVSWithLocal = TRUE;
-        } else {
-            uint64_t    latestKVSVersion;
-            
-            latestKVSVersion = metaData->getVersion();
-            while (_od->lastMergedVersion < latestKVSVersion) {
-                uint64_t        lowerMergeLimit;
-                SKStoredValue   *ppval;
-                SKMetaData      *storedValMetaData;
-                DirData         *dd;
-				SKVal	        *p;
-				
-                if (srfsLogLevelMet(LOG_INFO)) {
-                    srfsLog(LOG_INFO, "ddrr->path %s _od->lastMergedVersion %lu < latestKVSVersion %lu", 
-                                   ddrr->path, _od->lastMergedVersion, latestKVSVersion);
-                }
-                lowerMergeLimit = _od->lastMergedVersion + 1;
-                //ppval = retrieve val with least version >= latestKVSVersion
-                ppval = ddr_retrieve_specific_dir_version(ddr, curThreadIndex, ddrr->path, lowerMergeLimit);
-                if (ppval != NULL) {
-                    p = ppval->getValue();
-                    
-                    //merge storedVal
-                    dd = (DirData *)p->m_pVal;
-                    updateKVSWithLocal = od_add_DirData(_od, dd, metaData);
-                    storedValMetaData = ppval->getMetaData();
-                    if (srfsLogLevelMet(LOG_INFO)) {
-                        srfsLog(LOG_INFO, "ddrr->path %s storedValMetaData->getVersion() %lu", ddrr->path, storedValMetaData->getVersion());
-                    }
-                    _od->lastMergedVersion = storedValMetaData->getVersion();
-                    
-                    sk_destroy_val(&p);
-                    delete storedValMetaData;
-                    delete ppval;
-                } else {
-                    srfsLog(LOG_WARNING, "null val for %s %lu", ddrr->path, lowerMergeLimit);
-                    fatalError("null storedValue in ddr_update_dir", __FILE__, __LINE__);
-                }
-            }            
-            srfsLog(LOG_INFO, "All merges complete ddrr->path %s", ddrr->path);
-        }
-        
-        if (updateKVSWithLocal) {
-            odw_write_dir(od_odw, ddrr->path, _od);
-        }
-	}
-	srfsLog(LOG_FINE, "out ddr_update_dir %llx %s %llx", ddrr, ddrr->path, metaData);
-}
-
-static SKStoredValue *ddr_retrieve_specific_dir_version(DirDataReader *ddr, int curThreadIndex, char *path, uint64_t lowerVersionLimit) {
-    SKStoredValue   *storedValue;
-    SKAsyncRetrieval   *pRetrieval;
-	SKOperationState::SKOperationState   dhtMgetErr;
-	uint64_t		t1;
-	uint64_t		t2;
-
-    storedValue = NULL;
-    pRetrieval = NULL;
-    try {
-        SKGetOptions	*getOptions;
-        string  _path;
-            
-        // need to fill in operation options        
-        SKVersionConstraint   *vc;
-        
-        vc = SKVersionConstraint::minAboveOrEqual(lowerVersionLimit);
-        getOptions = ddr->valueAndMetaDataGetOptions->versionConstraint(vc);
-        
-	    t1 = curTimeMillis();
-	    pRetrieval = ddr->ansp[curThreadIndex]->get(path, getOptions);
-        pRetrieval->waitForCompletion();
-	    t2 = curTimeMillis();
-        rts_add_sample(ddr->rtsDirData, t2 - t1, 1);
-        dhtMgetErr = pRetrieval->getState();
-        srfsLog(LOG_FINE, "ddr_retrieve_specific_dir_version get complete %d", dhtMgetErr);
-        _path = string(path);
-        storedValue = pRetrieval->getStoredValue(_path);
-        
-        delete getOptions;
-        delete vc;
-    } catch (SKRetrievalException & e) {
-        srfsLog(LOG_INFO, "ddr line %d SKRetrievalException %s\n", __LINE__, e.what());
-		// The operation generated an exception. This is typically simply because
-		// values were not found for one or more keys (depending on namespace options.)
-		// This could also, however, be caused by a true error.
-		dhtMgetErr = SKOperationState::FAILED;
-	} catch (SKClientException & e) {
-        srfsLog(LOG_WARNING, "ddr line %d SKClientException %s\n", __LINE__, e.what());
-		dhtMgetErr = SKOperationState::FAILED;
-		// Shouldn't reach here as the only currently thrown exception 
-		// is a RetrievalException which is handled above
-		fatalError("ddr unexpected SKClientException", __FILE__, __LINE__);
-	}
-    delete pRetrieval;
-    return storedValue;
-}
-*/
-
-
 // Callback from Cache. Cache write lock is held during callback.
 ActiveOp *ddr_create_active_op(void *_ddr, void *_path, uint64_t noMinModificationTime) {
 	DirDataReader *ddr;
@@ -813,6 +697,7 @@ void ddr_check_for_reconciliation(DirDataReader *ddr, char *path) {
 			ddr_update_OpenDir(ddr, od);
 		} else {
 			srfsLog(LOG_INFO, "No reconciliation required %s", path);
+            od_check_for_remove_from_reconciliation(od, curTimeMillis());
 		}
 	}
 }

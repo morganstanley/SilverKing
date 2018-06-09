@@ -84,7 +84,7 @@ public class ActiveClientOperationTable {
     }
 
     public void checkForTimeouts(long curTimeMillis, 
-            OpSender opSender, OpSender putSender, OpSender retrievalSender) {
+            OpSender opSender, OpSender putSender, OpSender retrievalSender, boolean exclusionSetHasChanged) {
         /*
         Set<AsyncRetrievalOperationImpl>   crs;
         Set<AsyncPutOperationImpl>   cps;
@@ -119,38 +119,48 @@ public class ActiveClientOperationTable {
         
         crs = activeRetrievalListeners.currentRetrievalSet();
         //System.out.printf("Time %d\tcurrentRetrievalSet %d\n", curTimeMillis, crs.size());
-        checkOpsForTimeouts(curTimeMillis, crs, retrievalSender);
+        checkOpsForTimeouts(curTimeMillis, crs, retrievalSender, exclusionSetHasChanged);
         
         
         Set<AsyncPutOperationImpl>   cps;
         
         cps = activePutListeners.currentPutSet();
-        checkOpsForTimeouts(curTimeMillis, cps, putSender);
+        checkOpsForTimeouts(curTimeMillis, cps, putSender, exclusionSetHasChanged);
     }
     
-    private void checkOpsForTimeouts(long curTimeMillis, Set<? extends AsyncOperationImpl> ops, OpSender opSender) {
+    private void checkOpsForTimeouts(long curTimeMillis, Set<? extends AsyncOperationImpl> ops, OpSender opSender, boolean exclusionSetHasChanged) {
         if (debugTimeouts) {
             System.out.println("ActiveClientOperationTable.checkOpsForTimeouts "+ ops.size());
         }
         for (AsyncOperationImpl op : ops) {
-            checkOpForTimeouts(curTimeMillis, op, opSender);
+            checkOpForTimeouts(curTimeMillis, op, opSender, exclusionSetHasChanged);
         }
     }
     
-    private void checkOpForTimeouts(long curTimeMillis, AsyncOperationImpl op, OpSender opSender) {
-        if (op.attemptHasTimedOut(curTimeMillis)) {
+    private void checkOpForTimeouts(long curTimeMillis, AsyncOperationImpl op, OpSender opSender, boolean exclusionSetHasChanged) {
+    	boolean	attemptHasTimedOut;
+    	
+    	attemptHasTimedOut = op.attemptHasTimedOut(curTimeMillis);
+        if (attemptHasTimedOut || (exclusionSetHasChanged && op.retryOnExclusionChange(curTimeMillis))) {
             if (op.getState() == OperationState.INCOMPLETE) {
                 if (debugTimeouts) {
-                	Log.warning("Attempt timed out: ", op);
+                	if (attemptHasTimedOut) {
+                		Log.warning("Attempt timed out: ", op);
+                	} else {
+                		Log.warning("Retry due to exclusion set change: ", op);
+                	}
                 }
                 if (!op.opHasTimedOut(curTimeMillis)) {
                     if (debugTimeouts) {
                         Log.warning("Resending: ", op);
-                        //System.exit(-1);
                     } else {
                         Log.info("Resending: ", op);
                     }
-                    op.newAttempt(curTimeMillis);
+                    if (attemptHasTimedOut) {
+                    	// only bump up attempts if the attempt has timed out
+                    	// not if the exclusion set has changed
+                    	op.newAttempt(curTimeMillis);
+                    }
                     opSender.addWork(op);
                 } else {
                     if (debugTimeouts) {

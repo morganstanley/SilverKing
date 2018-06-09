@@ -1,5 +1,6 @@
 #!/bin/ksh
 
+source `dirname $0`/lib/run_scripts_from_any_path.snippet
 source lib/common.vars	# really only wanted build.config, but we are using some variables like TRUE/FALSE
 
 function f_check_AR {

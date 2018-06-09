@@ -39,7 +39,7 @@ SKOpSizeBasedTimeoutController::SKOpSizeBasedTimeoutController(int maxAttempts, 
 {
 	pImpl = new OpSizeBasedTimeoutController(java_new<OpSizeBasedTimeoutController>(
 					maxAttempts, constantTimeMillis, 
-					itemTimeMillis, maxRelTimeoutMillis 
+					itemTimeMillis, maxRelTimeoutMillis, maxRelTimeoutMillis /* simply copy the maxRelTimeout for the new exclusion change retry interval */ 
 				)); 
 }
 

@@ -87,6 +87,9 @@ public class RingMapState2 {
     private static final boolean    verboseStateTransition = true;
     static final boolean    debug = true;
     
+    private static final boolean	ignoreReaddition = false;	// Previously, we ignored all re-addition. 
+    															// Leave capability to go back to that, but turn off.
+    
     RingMapState2(IPAndPort nodeID, DHTMetaUpdate dhtMetaUpdate, RingID ringID, 
             StoragePolicyGroup storagePolicyGroup, com.ms.silverking.cloud.toporing.meta.MetaClient ringMC, 
             ExclusionSet exclusionSet, 
@@ -351,19 +354,29 @@ public class RingMapState2 {
 	            	if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath()) ) {
 	                    ExclusionSet	exclusionSet;
 	                    
+	                    // This is a server exclusion set change
 	                    exclusionSet = exclusionZK.readFromZK(version, null);
-	                    curExclusionSet = ExclusionSet.union(exclusionSet, curExclusionSet);
+	                    if (ignoreReaddition) {
+	                    	curExclusionSet = ExclusionSet.union(exclusionSet, curExclusionSet);
+	                    } else {
+	                    	curExclusionSet = exclusionSet;
+	                    }
 	                    Log.warning("ExclusionSet change detected/merged with old:\n", exclusionSet);
 	            	} else {
 	                    ExclusionSet	instanceExclusionSet;
 	                    
+	                    // This is an instance exclusion set change
 	                    try {
 	                    	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(version, null));
 	                    } catch (Exception e) {
 	                    	Log.warning("No instance ExclusionSet found");
 	                    	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
 	                    }
-	                    curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
+	                    if (ignoreReaddition) {
+	                    	curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
+	                    } else {
+	                    	curInstanceExclusionSet = instanceExclusionSet;
+	                    }
 	                    Log.warning("Instance ExclusionSet change detected/merged with old:\n", instanceExclusionSet);
 	            	}
 	            	

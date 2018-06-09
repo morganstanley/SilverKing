@@ -10,8 +10,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
+import com.ms.silverking.alert.Alert;
+import com.ms.silverking.alert.AlertReceiver;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
 /**
  * Log constants and utilities
@@ -24,6 +27,11 @@ public final class Log {
 	private static Level	__level;
 	private static int		_level; // store as int for performance
 	
+	private static AlertReceiver	alertReceiver; 
+	private static int				alertLevel;
+	private static String			alertContext;
+	private static String			alertKey;
+	
 	static final BlockingQueue<LogEntry>	logQueue;
 	static final AtomicBoolean	asyncLogRunning;
 	
@@ -34,10 +42,16 @@ public final class Log {
 	private static final LogDest	log4jLogDest = new Log4jLogDest();
 	private static final LogDest	javaLogDest = new JavaLogDest();
 	private static final String		defaultLogDestProperty = javaLogDestValue; 
-	private static final String		logDestProperty = "com.ms.silverking.LogDest";
+	private static final String		propertyBase = "com.ms.silverking.";
+	private static final String		logDestProperty = propertyBase +"LogDest";	
+	private static final String		logLevelProperty = propertyBase +"Log";
 	
-	private static final String	logLevelProperty = "com.ms.silverking.Log";
-	
+	private static final String		logAlertLevelEnvVar = "SK_LOG_ALERT_LEVEL";
+	private static final String		logAlertReceiverEnvVar = "SK_LOG_ALERT_RECEIVER";
+	private static final String		logAlertContextEnvVar = "SK_LOG_ALERT_CONTEXT";
+	private static final String		logAlertKeyEnvVar = "SK_LOG_ALERT_KEY";
+	private static final String		defaultLogAlertContext = "SilverKing";
+		
 	static {
 		String	val;
 		String	logLevel;
@@ -69,6 +83,21 @@ public final class Log {
 			Log.warning("Unknown logging level: "+ logLevel);
 		}
 		logQueue = new LinkedBlockingQueue<LogEntry>(maxAsyncQueueSize);
+		
+		val = PropertiesHelper.envHelper.getString(logAlertReceiverEnvVar, UndefinedAction.ZeroOnUndefined);
+		if (val != null) {
+			try {
+				alertReceiver = (AlertReceiver)Class.forName(val).newInstance();
+				alertLevel = PropertiesHelper.envHelper.getInt(logAlertLevelEnvVar, Level.SEVERE.intValue());
+				alertContext = PropertiesHelper.envHelper.getString(logAlertContextEnvVar, defaultLogAlertContext);
+				alertKey = PropertiesHelper.envHelper.getString(logAlertKeyEnvVar, UndefinedAction.ZeroOnUndefined);
+				Log.warningf("Log AlertReceiver %s level %d context %s key %s", alertReceiver, alertLevel, alertContext, alertKey);
+			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+				Log.logErrorWarning(e, "Unable to instantiate AlertReceiver");
+			}
+		} else {
+			Log.info("No log AlertReceiver");
+		}
 				
 		log(Level.FINE, "Logging initialized."+ logDest.getClass().getName());
 		
@@ -141,6 +170,9 @@ public final class Log {
 	}
 
 	public static void log(Level level, String m) {
+		if (alertReceiver != null && level.intValue() >= alertLevel) {
+			alertReceiver.sendAlert(new Alert(alertContext, level.intValue(), alertKey != null ? alertKey : m, m));
+		}
 		logDest.log(level, m);
 	}
 	
@@ -203,6 +235,62 @@ public final class Log {
 	public static void severe(String m, String className, String methodName) {
 		log(Level.SEVERE, className + "." + methodName + ": " + m);
 	}
+	
+	public static void severe(String m, Object o) {
+		if (levelMet(Level.SEVERE)) {
+			severe(m + o);
+		}
+	}
+
+	public static void severe(Object o) {
+		if (o == null) {
+			severe("null");
+		} else {
+			severe(o.toString());
+		}
+	}
+	
+	public static void severe(String m) {
+		log(Level.SEVERE, m);
+	}
+	
+	public static void severeAsyncf(String f, Object... args) {
+		if (levelMet(Level.SEVERE)) {
+			severeAsync(String.format(f, args));
+		}
+	}
+	
+	public static void severef(String f, Object... args) {
+		if (levelMet(Level.SEVERE)) {
+			severe(String.format(f, args));
+		}
+	}
+	
+	public static void severeAsync(String m, Object o) {
+		if (levelMet(Level.SEVERE)) {
+			try {
+				logQueue.put(new LogEntry(Level.SEVERE, o, m));
+			} catch (InterruptedException ie) {
+			}
+		}
+	}	
+	
+	public static void severeAsync(Object o) {
+		if (o == null) {
+			severeAsync("null");
+		} else {
+			severeAsync(o.toString());
+		}
+	}
+	
+	public static void severeAsync(String m) {
+		if (levelMet(Level.SEVERE)) {
+			try {
+				logQueue.put(new LogEntry(Level.SEVERE, m));
+			} catch (InterruptedException ie) {
+			}
+		}
+	}	
 	
 	public static void infoAsync(String m, Object o) {
 		if (levelMet(Level.INFO)) {

@@ -1,5 +1,6 @@
 #!/bin/ksh
 
+source `dirname $0`/lib/run_scripts_from_any_path.snippet
 source lib/build_sk_client.vars
 
 f_clearOutEnvVariables

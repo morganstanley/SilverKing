@@ -7,15 +7,19 @@ import com.ms.silverking.text.ObjectDefParser2;
 
 /**
  * Parent class of all OpTimeoutControllers
- * for WaitFor operations. For these operations, the only parameter that
- * may be specified is the internal retry interval. All other
+ * for WaitFor operations. For these operations, the only parameters that
+ * may be specified are the internal retry intervals. All other
  * parameters are either implicitly or explicitly specified in
  * the WaitOptions for the operation.
  */
 public class WaitForTimeoutController implements OpTimeoutController {
     private final int   internalRetryIntervalSeconds;
+    private final int	internalExclusionChangeRetryIntervalSeconds;
+    
+    // FIXME - internal retries should be specified in ms
     
     static final int    defaultInternalRetryIntervalSeconds = 20;
+    static final int    defaultExclusionChangeInternalRetryIntervalSeconds = 2;
     
     static final WaitForTimeoutController    template = new WaitForTimeoutController();
 
@@ -23,12 +27,17 @@ public class WaitForTimeoutController implements OpTimeoutController {
         ObjectDefParser2.addParser(template);
     }    
     
-    public WaitForTimeoutController(int internalRetryIntervalSeconds) {
+    public WaitForTimeoutController(int internalRetryIntervalSeconds, int internalExclusionChangeRetryIntervalSeconds) {
         this.internalRetryIntervalSeconds = internalRetryIntervalSeconds;
+        this.internalExclusionChangeRetryIntervalSeconds = internalExclusionChangeRetryIntervalSeconds; 
+    }
+    
+    public WaitForTimeoutController(int internalRetryIntervalSeconds) {
+    	this(internalRetryIntervalSeconds, defaultExclusionChangeInternalRetryIntervalSeconds);
     }
     
     public WaitForTimeoutController() {
-        this(defaultInternalRetryIntervalSeconds);
+        this(defaultInternalRetryIntervalSeconds, defaultExclusionChangeInternalRetryIntervalSeconds);
     }
     
     @Override
@@ -39,8 +48,13 @@ public class WaitForTimeoutController implements OpTimeoutController {
     @Override
     public int getRelativeTimeoutMillisForAttempt(AsyncOperation op,
             int attemptIndex) {
-        return internalRetryIntervalSeconds;
+        return internalRetryIntervalSeconds * 1000;
     }
+    
+    @Override
+	public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
+        return internalExclusionChangeRetryIntervalSeconds * 1000;
+	}
 
     @Override
     public final int getMaxRelativeTimeoutMillis(AsyncOperation op) {
@@ -58,7 +72,7 @@ public class WaitForTimeoutController implements OpTimeoutController {
     
     @Override
     public int hashCode() {
-    	return Integer.hashCode(internalRetryIntervalSeconds);
+    	return Integer.hashCode(internalRetryIntervalSeconds) ^ Integer.hashCode(internalExclusionChangeRetryIntervalSeconds);
     }
     
     @Override
@@ -73,7 +87,7 @@ public class WaitForTimeoutController implements OpTimeoutController {
 
     	WaitForTimeoutController other;
     	other = (WaitForTimeoutController)o;
-    	return internalRetryIntervalSeconds == other.internalRetryIntervalSeconds;
+    	return internalRetryIntervalSeconds == other.internalRetryIntervalSeconds && this.internalExclusionChangeRetryIntervalSeconds == other.internalExclusionChangeRetryIntervalSeconds;
     }    
     
     @Override

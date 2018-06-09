@@ -20,6 +20,7 @@ import com.ms.silverking.cloud.dht.daemon.NodeInfo;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
+import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
@@ -39,6 +40,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     private final DHTKey                diskBytesKey;
     private final DHTKey                allReplicasFreeDiskBytesKey;
     private final DHTKey                allReplicasFreeSystemDiskBytesEstimateKey;
+    private final DHTKey                exclusionSetKey;
     private final Set<DHTKey>			knownKeys;
     
     private Map<IPAndPort,NodeInfo>	cachedAllNodeInfo;
@@ -64,6 +66,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         diskBytesKey = keyCreator.createKey("diskBytes");
         allReplicasFreeDiskBytesKey = keyCreator.createKey("allReplicasFreeDiskBytes");
         allReplicasFreeSystemDiskBytesEstimateKey = keyCreator.createKey("allReplicasFreeSystemDiskBytesEstimate");
+        exclusionSetKey = keyCreator.createKey("exclusionSet");
         knownKeys = new HashSet<>();
         knownKeys.add(totalDiskBytesKey);
         knownKeys.add(usedDiskBytesKey);
@@ -71,6 +74,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         knownKeys.add(diskBytesKey);
         knownKeys.add(allReplicasFreeDiskBytesKey);
         knownKeys.add(allReplicasFreeSystemDiskBytesEstimateKey);
+        knownKeys.add(exclusionSetKey);
     }
         
     /*
@@ -115,8 +119,10 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     		
     		if (entry.getValue() != null) {
 	    		nodeEstimate = getNodeEstimate(entry.getKey(), entry.getValue());
-				minTotal = Math.min(minTotal, nodeEstimate.getV1());
-				minFree = Math.min(minFree, nodeEstimate.getV2());
+	    		if (nodeEstimate != null) {
+					minTotal = Math.min(minTotal, nodeEstimate.getV1());
+					minFree = Math.min(minFree, nodeEstimate.getV2());
+	    		}
     		}
     	}
     	return new Triple<>(minTotal, minFree, minTotal - minFree);
@@ -125,10 +131,17 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     private Pair<Long, Long> getNodeEstimate(IPAndPort node, NodeInfo info) {
 		long	totalSystemBytesEstimate;
 		long	freeSystemBytesEstimate;
+		double	currentOwnedFraction;
 		
-		totalSystemBytesEstimate = (long)((double)info.getFSTotalBytes() / ringMaster.getCurrentOwnedFraction(node, OwnerQueryMode.Primary));
-		freeSystemBytesEstimate = (long)((double)info.getFSFreeBytes() / ringMaster.getCurrentOwnedFraction(node, OwnerQueryMode.Primary));
-		return new Pair<>(totalSystemBytesEstimate, freeSystemBytesEstimate);
+		currentOwnedFraction = ringMaster.getCurrentOwnedFraction(node, OwnerQueryMode.Primary);
+		if (currentOwnedFraction == 0.0) {
+			Log.warning("getNodeEstimate(%s) unable to find any owned fraction. Ignoring", node.toString());
+			return null;
+		} else {
+			totalSystemBytesEstimate = (long)((double)info.getFSTotalBytes() / currentOwnedFraction);
+			freeSystemBytesEstimate = (long)((double)info.getFSFreeBytes() / currentOwnedFraction);
+			return new Pair<>(totalSystemBytesEstimate, freeSystemBytesEstimate);
+		}
 	}
 
 	private byte[] getAllReplicasFreeDiskBytes() {
@@ -174,6 +187,17 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
 			Log.logErrorWarning(ke);
 		}
     	return pairedResultsToBytes(results);
+    }
+    
+    private byte[] getExclusionSet() {
+    	ExclusionSet	exclusionSet;
+    	
+    	exclusionSet = ringMaster.getCurrentExclusionSet();
+    	if (exclusionSet != null) {
+    		return exclusionSet.toString().getBytes();
+    	} else {
+    		return null;
+    	}
     }
     
     public byte[] pairedResultsToBytes(List<Pair<IPAndPort,Long>> results) {
@@ -227,6 +251,8 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
 	            	return getAllReplicasFreeDiskBytes();
 	            } else if (key.equals(allReplicasFreeSystemDiskBytesEstimateKey)) {
 	            	return getAllReplicasFreeSystemDiskBytesEstimate();
+	            } else if (key.equals(exclusionSetKey)) {
+	            	return getExclusionSet();
 	            } else {
 	            	throw new RuntimeException("panic");
 	            }

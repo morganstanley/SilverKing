@@ -19,4 +19,4 @@ jobs:
           command: 'apt-get install --assume-yes git ksh'    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
       - run:
           name: build
-          command: build/aws/amazon_ubuntu_build.sh
+          command: build/aws/build_amazon_ubuntu.sh
