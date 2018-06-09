@@ -7,8 +7,8 @@ jobs:
       - checkout
       - run:
           name: install
-          command: sudo apt-get update 
-          command: sudo apt-get install git ksh    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
+          command: apt-get update 
+          command: apt-get install git ksh    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
       - run:
           name: build
           command: build/aws/amazon_ubuntu_build.sh
