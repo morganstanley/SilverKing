@@ -9,6 +9,9 @@ jobs:
           name: pwd
           command: pwd
       - run:
+          name: ll
+          command: ls -atlr
+      - run:
           name: update
           command: 'apt-get update'
       - run:
