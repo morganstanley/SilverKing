@@ -6,8 +6,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: blah
-          command: cwd
+          name: pwd
+          command: pwd
       - run:
           name: update
           command: 'apt-get update'
