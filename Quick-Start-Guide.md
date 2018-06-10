@@ -9,6 +9,8 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 
 *Make sure your security group contains an Inbound Rule for All Traffic with your security group ID as the Source:
 ![Security Group Inbound Rule](img/sg_inbound_rule.png)
+*Make sure whatever VPC you are using with your instance, dns resolution and hostnames are both set to 'yes'
+![VPC DNS](img/vpc_dns.png)
 
 ### Running on AWS
 #### Single-instance Cluster
