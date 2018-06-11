@@ -1,30 +1,21 @@
 # Quick-Start Guide
 ## Running Simple AWS-based Instances
 If you'd like to give SilverKing a try, you can be up and running in minutes using an AWS instance from our template:<br>
-&emsp;[SilverKing AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=SilverKing;sort=name)<br>
+&emsp;[SilverKing AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=SilverKing;sort=name) (ctrl+click to open in new tab)<br>
 &emsp;AMI-Name: SilverKing<br>
 &emsp;Platform: Amazon-Linux<br>
 &emsp;Username: ec2-user<br>
 &emsp;Region: US West (Oregon)<br>
 
-*Make sure your security group contains an Inbound Rule for All Traffic with your security group ID as the Source:
-![Security Group Inbound Rule](img/sg_inbound_rule.png)
+*Make sure your security group contains an **Inbound Rule** for **All Traffic** with your _security group ID_ as the **Source**:
+![Security Group Inbound Rule](img/sg_inbound_rule.png)<br>
+*Make sure whatever VPC you are using with your instance, dns **resolution** and **hostnames** are both set to 'yes':
+![VPC DNS](img/vpc_dns.PNG)
 
 ### Running on AWS
 #### Single-instance Cluster
 
-Once you have an AWS SilverKing AMI instance running, first sanity check to ensure that local hostname resolution is working:
-```ksh
-hostname -i
-10.0.0.1  # an ip should be returned
-```
-If hostname -i fails to return an IP address, you must either modify your configuration to correct this, or add an entry in /etc/hosts.
-To add an entry in /etc/hosts, do:
-```ksh
-echo `ifconfig eth0 | grep "inet addr" | awk '{print $2}' | cut -d : -f 2; hostname` | sudo tee -a /etc/hosts
-```
-
-With that sanity check out of the way, you can start up SilverKing as follows:
+Once you have an AWS SilverKing AMI instance running, you can start up SilverKing as follows:
 ```ksh
 ~/SilverKing/build/aws/start.sh  # this starts zookeeper, sk, and skfs
 ```
