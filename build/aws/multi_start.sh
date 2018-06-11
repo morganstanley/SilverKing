@@ -62,10 +62,6 @@ function f_aws_symlinkSkfsD {
     f_aws_ssh_helper "Symlinking skfsd on all machines" "ln -sv $SKFS_D $BIN_SKFS_DIR/$SKFS_EXEC_NAME"
 }
 
-function f_aws_addHostToEtcHostsFile {
-    f_aws_ssh_helper "Adding host to /etc/hosts on all machines" "$AWS_DIR/multi_addHost.sh"
-}
-
 function f_aws_ssh_helper {
     typeset sectionTitle=$1
     typeset scriptCommand=$2
@@ -93,7 +89,6 @@ f_runStaticInstanceCreator
 f_printSection "PREPPING NONLAUNCH MACHINES"
 f_aws_copyGc
 f_aws_symlinkSkfsD
-f_aws_addHostToEtcHostsFile
 
 f_printSection "STARTING"
 f_runSkAdmin "StartNodes"
