@@ -232,14 +232,22 @@ public class DaemonStateZK implements Watcher {
     	return waitForQuorumState(members, targetState, inactiveNodeTimeoutSeconds, false).isEmpty();
     }
     
+    private void fillStateMapWithComplete(Map<IPAndPort, DaemonState> stateMap, Set<IPAndPort> completeMembers, DaemonState targetState) {
+    	for (IPAndPort cm : completeMembers){
+    		stateMap.put(cm, targetState);
+    	}
+    }
+    
     public Map<IPAndPort, DaemonState> waitForQuorumState(Set<IPAndPort> members, DaemonState targetState, int inactiveNodeTimeoutSeconds, boolean exitOnTimeout) {
         boolean targetReached;
         int     lastNotReadyCount;
         int     notReadyCount;
         int     inactiveCount;
         Stopwatch   sw;
+        Set<IPAndPort>	completeMembers;
         Set<IPAndPort>	incompleteMembers;
 
+        completeMembers = new HashSet<>();
         incompleteMembers = new HashSet<>(members);
         if (verbose) {
             System.out.printf("Waiting for quorum state: %s\n", targetState);
@@ -291,6 +299,7 @@ public class DaemonStateZK implements Watcher {
 	    	                            System.out.print(sb);
 	                                	Log.warningf("Timeout: %s", incompleteMember);
 	                                	stateMap = fetchAndDisplayIncompleteState(incompleteMembers, targetState);
+	                                	fillStateMapWithComplete(stateMap, completeMembers, targetState);
 	                                	return stateMap;
 	                                }
 	                            }
@@ -304,6 +313,7 @@ public class DaemonStateZK implements Watcher {
                         	newlyCompleteMembers.add(incompleteMember);
                         }
                     }
+                    completeMembers.addAll(newlyCompleteMembers);
                 	incompleteMembers.removeAll(newlyCompleteMembers);
                     if (verbose) {
                     	if (allRead) {
@@ -335,6 +345,7 @@ public class DaemonStateZK implements Watcher {
 							e.printStackTrace();
 							stateMap = ImmutableMap.of();
 						}
+                    	fillStateMapWithComplete(stateMap, completeMembers, targetState);
                     	return stateMap;
                     }
                 }
