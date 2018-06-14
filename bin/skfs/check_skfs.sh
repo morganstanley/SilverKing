@@ -232,7 +232,7 @@ if [[ -n $id ]]; then
 else
     echo "NOT FOUND - '$GC_SK_NAME'"
     if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then 
-		echo "Sk daemon needs to exist in order to execute: $nodeControlCommand"
+		echo "SK daemon needs to exist in order to execute: $nodeControlCommand"
 		f_printFail
         exit -1
     fi

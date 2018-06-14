@@ -8,7 +8,6 @@ cd -
 
 source lib/common.lib
 
-f_aws_addHostToEtcHosts
 f_aws_generatePrivateKey
 $AWS_DIR/$ZK_START_SCRIPT_NAME
 $TESTING_DIR/$START_INSTANCE_SCRIPT_NAME
