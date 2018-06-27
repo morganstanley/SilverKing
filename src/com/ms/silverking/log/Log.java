@@ -31,6 +31,7 @@ public final class Log {
 	private static int				alertLevel;
 	private static String			alertContext;
 	private static String			alertKey;
+	private static String			alertData;
 	
 	static final BlockingQueue<LogEntry>	logQueue;
 	static final AtomicBoolean	asyncLogRunning;
@@ -50,6 +51,7 @@ public final class Log {
 	private static final String		logAlertReceiverEnvVar = "SK_LOG_ALERT_RECEIVER";
 	private static final String		logAlertContextEnvVar = "SK_LOG_ALERT_CONTEXT";
 	private static final String		logAlertKeyEnvVar = "SK_LOG_ALERT_KEY";
+	private static final String		logAlertDataEnvVar = "SK_LOG_ALERT_DATA";
 	private static final String		defaultLogAlertContext = "SilverKing";
 		
 	static {
@@ -91,7 +93,8 @@ public final class Log {
 				alertLevel = PropertiesHelper.envHelper.getInt(logAlertLevelEnvVar, Level.SEVERE.intValue());
 				alertContext = PropertiesHelper.envHelper.getString(logAlertContextEnvVar, defaultLogAlertContext);
 				alertKey = PropertiesHelper.envHelper.getString(logAlertKeyEnvVar, UndefinedAction.ZeroOnUndefined);
-				Log.warningf("Log AlertReceiver %s level %d context %s key %s", alertReceiver, alertLevel, alertContext, alertKey);
+				alertData = PropertiesHelper.envHelper.getString(logAlertDataEnvVar, UndefinedAction.ZeroOnUndefined);
+				Log.warningf("Log AlertReceiver %s level %d context %s key %s data %s", alertReceiver, alertLevel, alertContext, alertKey, alertData);
 			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 				Log.logErrorWarning(e, "Unable to instantiate AlertReceiver");
 			}
@@ -171,7 +174,7 @@ public final class Log {
 
 	public static void log(Level level, String m) {
 		if (alertReceiver != null && level.intValue() >= alertLevel) {
-			alertReceiver.sendAlert(new Alert(alertContext, level.intValue(), alertKey != null ? alertKey : m, m));
+			alertReceiver.sendAlert(new Alert(alertContext, level.intValue(), alertKey != null ? alertKey : m, m, alertData));
 		}
 		logDest.log(level, m);
 	}
