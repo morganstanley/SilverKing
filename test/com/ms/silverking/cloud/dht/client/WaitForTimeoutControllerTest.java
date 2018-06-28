@@ -1,6 +1,6 @@
 package com.ms.silverking.cloud.dht.client;
 
-import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxAttempts;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxAttempts_Null;
 import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeTimeout_Null;
 import static com.ms.silverking.cloud.dht.client.WaitForTimeoutController.defaultInternalRetryIntervalSeconds;
 import static com.ms.silverking.testing.AssertFunction.*;
@@ -21,12 +21,12 @@ public class WaitForTimeoutControllerTest {
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{int_maxVal,                          getMaxAttempts(defaultController)},
+			{int_maxVal,                          getMaxAttempts_Null(defaultController)},
 			{defaultInternalRetryIntervalSeconds, getRelativeTimeout_Null(defaultController)},
-//			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultController)},	// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsynOperation...
-			{int_maxVal,                          getMaxAttempts(defaultControllerDiff)},
+//			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultController)},		// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
+			{int_maxVal,                          getMaxAttempts_Null(defaultControllerDiff)},
 			{irisDiff,                            getRelativeTimeout_Null(defaultControllerDiff)},
-//			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultControllerDiff)},	// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsynOperation...
+//			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultControllerDiff)},	// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
 		};
 		
 		test_Getters(testCases);

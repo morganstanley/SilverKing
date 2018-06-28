@@ -14,7 +14,7 @@ import com.ms.silverking.time.TimerDrivenTimeSource;
 @OmitGeneration
 public class TestUtil {
 
-	public static int getMaxAttempts(OpTimeoutController controller) {
+	public static int getMaxAttempts_Null(OpTimeoutController controller) {
 		return controller.getMaxAttempts(null);
 	}
 	

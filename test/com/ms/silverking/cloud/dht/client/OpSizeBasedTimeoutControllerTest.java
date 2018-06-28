@@ -57,7 +57,7 @@ public class OpSizeBasedTimeoutControllerTest {
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{defaultMaxAttempts,                getMaxAttempts(defaultController)},
+			{defaultMaxAttempts,                getMaxAttempts_Null(defaultController)},
 			{defaultNonKeyedOpMaxRelTimeout_ms, getRelativeTimeout_Null(defaultController)},
 //			{fixme, getRelativeTimeout_Snapshot(defaultController)},
 //			{fixme,                             getRelativeTimeout_Retrieval(defaultController)},
@@ -87,7 +87,7 @@ public class OpSizeBasedTimeoutControllerTest {
 		OpSizeBasedTimeoutController nkomrtomController = setNonKeyedOpMaxRelTimeoutMillis(mrtomDiff);
 
 		Object[][] testCases = {
-			{maDiff,                            getMaxAttempts(maController)},
+			{maDiff,                            getMaxAttempts_Null(maController)},
 			{mrtomCopy, getRelativeTimeout_Null(ctmController)},
 //			{fixme, getRelativeTimeout_Async(ctmController},
 //			{fixme,                             getRelativeTimeout_Retrieval(ctmController},
