@@ -5,8 +5,7 @@ function f_checkAndCdToRegressionArea {
 	typeset regressionArea=$1
 	
 	if [[ -z $regressionArea ]]; then
-		echo "Must pass in a path for the regression area, so we can cd to this area, make a folder, and kick off a run"
-		exit
+		f_exit "Must pass in a path for the regression area, so we can cd to this area, make a folder, and kick off a run"
 	fi
 
 	cd $regressionArea 

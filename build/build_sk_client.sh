@@ -15,8 +15,7 @@ function f_checkParams {
 	echo "debug_flag=$debug_flag"
 	  
 	if [[ -z $cc || -z $gcc_r_lib ]] ; then
-		echo "Need to pass in a C compiler and lib"
-		exit 1
+		f_exit "Need to pass in a C compiler and lib"
 	fi
 
 	if [[ -z $rpath_dir ]] ; then
@@ -71,8 +70,8 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename)
 	f_makeWithParents $SILVERKING_INSTALL_DIR
 	f_makeWithParents $INSTALL_ARCH_BIN_DIR
 	f_makeWithParents $INSTALL_ARCH_LIB_DIR
-	[[ -d $DHT_CLIENT_SRC_DIR ]]      || f_abort "src dir $DHT_CLIENT_SRC_DIR does not exist";
-	[[ -d $SILVERKING_INSTALL_DIR ]]  || f_abort "install dir $SILVERKING_INSTALL_DIR does not exist";
+	[[ -d $DHT_CLIENT_SRC_DIR ]]      || f_exit "src dir $DHT_CLIENT_SRC_DIR does not exist";
+	[[ -d $SILVERKING_INSTALL_DIR ]]  || f_exit "install dir $SILVERKING_INSTALL_DIR does not exist";
 	
 	f_generateProxies;
 	f_compileAndLinkProxiesIntoLib "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_1";

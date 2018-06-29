@@ -12,8 +12,7 @@ function f_checkParams {
 	echo "cc=$CC"
 	  
 	if [[ -z $CC ]] ; then
-		echo "Need to pass in a C compiler"
-		exit 1
+		f_exit "Need to pass in a C compiler"
 	fi
 }
 
@@ -42,8 +41,8 @@ output_filename=$(f_getBuildSkClient_RunOutputFilename)
 	f_makeWithParents $SILVERKING_INSTALL_DIR
 	f_makeWithParents $INSTALL_ARCH_BIN_DIR
 	f_makeWithParents $INSTALL_ARCH_LIB_DIR
-	[[ -d $GENERATED_SRC ]]           || f_abort "src dir $GENERATED_SRC does not exist";
-	[[ -d $SILVERKING_INSTALL_DIR ]]  || f_abort "install dir $SILVERKING_INSTALL_DIR does not exist";
+	[[ -d $GENERATED_SRC ]]           || f_exit "src dir $GENERATED_SRC does not exist";
+	[[ -d $SILVERKING_INSTALL_DIR ]]  || f_exit "install dir $SILVERKING_INSTALL_DIR does not exist";
 	
 	# f_generateCppWrapper;
 	# f_compileAndLinkProxiesIntoLib "$CC" "$CC_FLAGS" "" "$LD" "" "";

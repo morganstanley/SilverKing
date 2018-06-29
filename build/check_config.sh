@@ -205,7 +205,6 @@ function f_check_kdb_helper {
 	f_printResult $varName
 }
 
-
 function f_check_SWIG_HOME {
 	f_check_defined_and_dir_exists ${!SWIG_HOME}
 }
@@ -345,16 +344,16 @@ function f_check_SK_GRID_CONFIG_DIR {
 	f_check_dir_exists $varName
 	f_printResult $varName
 }
-function f_check_SK_GRID_CONFIG_NAME {
-	typeset varName=${!SK_GRID_CONFIG_NAME}
-	f_check_defined $varName
-	f_check_begins_with $varName "GC_SK_"
-	f_printResult $varName
-}
 function f_check_SK_DHT_NAME {
 	typeset varName=${!SK_DHT_NAME}
 	f_check_defined $varName
 	f_check_begins_with $varName "SK_"
+	f_printResult $varName
+}
+function f_check_SK_GRID_CONFIG_NAME {
+	typeset varName=${!SK_GRID_CONFIG_NAME}
+	f_check_defined $varName
+	f_check_begins_with $varName "GC_SK_"
 	f_printResult $varName
 }
 function f_check_SK_SERVERS {
@@ -396,6 +395,18 @@ function f_check_SK_SKFS_CONFIG_FILE {
 	f_check_defined $varName
 	f_check_ends_with $varName "skfs.config"
 	f_check_file_exists $varName
+	f_printResult $varName
+}
+function f_check_SK_SK_INITIAL_HEAP_SIZE {
+	typeset varName=${!SK_SK_INITIAL_HEAP_SIZE}
+	f_check_defined $varName
+	f_check_isDigit_and_isAtleast $varName 10
+	f_printResult $varName
+}
+function f_check_SK_SKFS_INITIAL_HEAP_SIZE {
+	typeset varName=${!SK_SKFS_INITIAL_HEAP_SIZE}
+	f_check_defined $varName
+	f_check_isDigit_and_isAtleast $varName 10
 	f_printResult $varName
 }
 
@@ -469,6 +480,14 @@ function f_check_range {
 	typeset max=$3
 	if [[ $variableValue -lt $min || $variableValue -gt $max ]]; then
 		fails+=("range: '$variableValue' isn't [$min,$max]")
+	fi
+}
+
+function f_check_isDigit_and_isAtleast {
+	typeset variableValue=$(f_getVariableValue "$1")	
+	typeset min=$2
+	if [[ $variableValue -lt $min ]]; then
+		fails+=("range: '$variableValue' isn't >= $min")
 	fi
 }
 
@@ -629,6 +648,8 @@ f_check_SK_FOLDER_NAME
 f_check_SK_DATA_HOME
 f_check_SK_LOG_HOME
 f_check_SK_SKFS_CONFIG_FILE
+f_check_SK_SK_INITIAL_HEAP_SIZE
+f_check_SK_SKFS_INITIAL_HEAP_SIZE
 	
 f_check_IOZONE_BIN
 f_check_TRUNCATE_BIN

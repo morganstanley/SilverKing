@@ -12,8 +12,7 @@ function f_checkParams {
 	echo "       cc=$cc"
 	  
 	if [[ -z $cc ]] ; then
-		echo "Need to pass in a C compiler"
-		exit 1
+		f_exit "Need to pass in a C compiler"
 	fi
 }
 
