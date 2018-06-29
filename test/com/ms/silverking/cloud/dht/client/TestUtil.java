@@ -30,6 +30,10 @@ public class TestUtil {
 //		return controller.getRelativeTimeoutMillisForAttempt(asyncRetrieval, -1);
 //	}
 	
+	public static long getRelativeExclusionChangeRetryMillisForAttempt_Null(OpTimeoutController controller) {
+		return controller.getRelativeExclusionChangeRetryMillisForAttempt(null, -1);
+	}
+	
 	public static int getMaxRelativeTimeoutMillis_Null(OpTimeoutController controller) {
 		return controller.getMaxRelativeTimeoutMillis(null);
 	}

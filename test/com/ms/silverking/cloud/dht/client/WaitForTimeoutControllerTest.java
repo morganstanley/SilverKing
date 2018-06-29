@@ -1,8 +1,10 @@
 package com.ms.silverking.cloud.dht.client;
 
 import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxAttempts_Null;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeExclusionChangeRetryMillisForAttempt_Null;
 import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeTimeoutMillisForAttempt_Null;
 import static com.ms.silverking.cloud.dht.client.WaitForTimeoutController.defaultInternalRetryIntervalSeconds;
+import static com.ms.silverking.cloud.dht.client.WaitForTimeoutController.defaultExclusionChangeInternalRetryIntervalSeconds;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
@@ -27,9 +29,11 @@ public class WaitForTimeoutControllerTest {
 		Object[][] testCases = {
 			{int_maxVal,                                                    getMaxAttempts_Null(defaultController)},
 			{defaultInternalRetryIntervalSeconds*1000,                      getRelativeTimeoutMillisForAttempt_Null(defaultController)},
+			{(long)defaultExclusionChangeInternalRetryIntervalSeconds*1000, getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultController)},
 //			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultController)},		// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
 			{int_maxVal,                                                    getMaxAttempts_Null(defaultControllerDiff)},
 			{irisDiff*1000,                                                 getRelativeTimeoutMillisForAttempt_Null(defaultControllerDiff)},
+			{(long)defaultExclusionChangeInternalRetryIntervalSeconds*1000, getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultControllerDiff)},
 //			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultControllerDiff)},	// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
 		};
 		
