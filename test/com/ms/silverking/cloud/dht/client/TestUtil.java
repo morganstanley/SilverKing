@@ -30,15 +30,15 @@ public class TestUtil {
 //		return controller.getRelativeTimeoutMillisForAttempt(asyncRetrieval, -1);
 //	}
 	
-	public static int getMaxRelativeTimeout_Null(OpTimeoutController controller) {
+	public static int getMaxRelativeTimeoutMillis_Null(OpTimeoutController controller) {
 		return controller.getMaxRelativeTimeoutMillis(null);
 	}
 	
-//	public static int getMaxRelativeTimeout_Snapshot(OpSizeBasedTimeoutController controller) {
+//	public static int getMaxRelativeTimeoutMillis_Snapshot(OpSizeBasedTimeoutController controller) {
 //		return controller.getMaxRelativeTimeoutMillis(asyncSnapshot);
 //	}
 //	
-//	public static int getMaxRelativeTimeout_Retrieval(OpSizeBasedTimeoutController controller) {
+//	public static int getMaxRelativeTimeoutMillis_Retrieval(OpSizeBasedTimeoutController controller) {
 //		return controller.getMaxRelativeTimeoutMillis(asyncRetrieval);
 //	}
 
