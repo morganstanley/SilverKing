@@ -18,15 +18,15 @@ public class TestUtil {
 		return controller.getMaxAttempts(null);
 	}
 	
-	public static int getRelativeTimeout_Null(OpTimeoutController controller) {
+	public static int getRelativeTimeoutMillisForAttempt_Null(OpTimeoutController controller) {
 		return controller.getRelativeTimeoutMillisForAttempt(null, -1);
 	}
 
-//	public static int getRelativeTimeout_Snapshot(OpSizeBasedTimeoutController controller) {
+//	public static int getRelativeTimeoutMillisForAttempt_Snapshot(OpSizeBasedTimeoutController controller) {
 //		return controller.getRelativeTimeoutMillisForAttempt(asyncSnapshot, -1);
 //	}
 //	
-//	public static int getRelativeTimeout_Retrieval(OpSizeBasedTimeoutController controller) {
+//	public static int getRelativeTimeoutMillisForAttempt_Retrieval(OpSizeBasedTimeoutController controller) {
 //		return controller.getRelativeTimeoutMillisForAttempt(asyncRetrieval, -1);
 //	}
 	

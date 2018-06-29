@@ -40,8 +40,8 @@ public class SimpleTimeoutControllerTest {
 	public void testGetters() {
 		Object[][] testCases = {
 			{defaultMaxAttempts,              getMaxAttempts_Null(defaultController)},
-			{int_maxVal,                      getRelativeTimeout_Null(defaultController)},
-			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultController)},
+			{int_maxVal,                      getRelativeTimeoutMillisForAttempt_Null(defaultController)},
+			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeoutMillis_Null(defaultController)},
 		};
 		
 		test_Getters(testCases);
@@ -64,8 +64,8 @@ public class SimpleTimeoutControllerTest {
 
 		Object[][] testCases = {
 			{maDiff,     getMaxAttempts_Null(maController)},
-			{int_maxVal, getRelativeTimeout_Null(mrtomController)},
-			{mrtomDiff,  getMaxRelativeTimeout_Null(mrtomController)},
+			{int_maxVal, getRelativeTimeoutMillisForAttempt_Null(mrtomController)},
+			{mrtomDiff,  getMaxRelativeTimeoutMillis_Null(mrtomController)},
 		};
 		
 		test_Setters(testCases);

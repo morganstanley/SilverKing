@@ -58,10 +58,10 @@ public class OpSizeBasedTimeoutControllerTest {
 	public void testGetters() {
 		Object[][] testCases = {
 			{defaultMaxAttempts,                getMaxAttempts_Null(defaultController)},
-			{defaultNonKeyedOpMaxRelTimeout_ms, getRelativeTimeout_Null(defaultController)},
+			{defaultNonKeyedOpMaxRelTimeout_ms, getRelativeTimeoutMillisForAttempt_Null(defaultController)},
 //			{fixme, getRelativeTimeout_Snapshot(defaultController)},
 //			{fixme,                             getRelativeTimeout_Retrieval(defaultController)},
-			{defaultNonKeyedOpMaxRelTimeout_ms, getMaxRelativeTimeout_Null(defaultController)},
+			{defaultNonKeyedOpMaxRelTimeout_ms, getMaxRelativeTimeoutMillis_Null(defaultController)},
 //			{fixme, getMaxRelativeTimeout_Async(defaultController)},
 //			{fixme,                             getMaxRelativeTimeout_Retrieval(defaultController)},
 		};
@@ -88,22 +88,22 @@ public class OpSizeBasedTimeoutControllerTest {
 
 		Object[][] testCases = {
 			{maDiff,                            getMaxAttempts_Null(maController)},
-			{mrtomCopy, getRelativeTimeout_Null(ctmController)},
+			{mrtomCopy, getRelativeTimeoutMillisForAttempt_Null(ctmController)},
 //			{fixme, getRelativeTimeout_Async(ctmController},
 //			{fixme,                             getRelativeTimeout_Retrieval(ctmController},
-			{mrtomCopy, getMaxRelativeTimeout_Null(ctmController)},
+			{mrtomCopy, getMaxRelativeTimeoutMillis_Null(ctmController)},
 //			{fixme, getMaxRelativeTimeout_Async(ctmController},
 //			{fixme,                             getMaxRelativeTimeout_Retrieval(ctmController},
-			{mrtomCopy, getRelativeTimeout_Null(itmController)},
+			{mrtomCopy, getRelativeTimeoutMillisForAttempt_Null(itmController)},
 //			{fixme, getRelativeTimeout_Async(itmController},
 //			{fixme,                             getRelativeTimeout_Retrieval(itmController},
-			{mrtomCopy, getMaxRelativeTimeout_Null(itmController)},
+			{mrtomCopy, getMaxRelativeTimeoutMillis_Null(itmController)},
 //			{fixme, getMaxRelativeTimeout_Async(itmController},
 //			{fixme,                             getMaxRelativeTimeout_Retrieval(itmController},
-			{mrtomDiff,                      getRelativeTimeout_Null(nkomrtomController)},
+			{mrtomDiff,                      getRelativeTimeoutMillisForAttempt_Null(nkomrtomController)},
 //			{nkomrtDiff,                        getRelativeTimeout_Async(nkomrtController},
 //			{fixme,                             getRelativeTimeout_Retrieval(nkomrtController},
-			{mrtomDiff,                      getMaxRelativeTimeout_Null(nkomrtomController)},
+			{mrtomDiff,                      getMaxRelativeTimeoutMillis_Null(nkomrtomController)},
 //			{nkomrtDiff,                        getMaxRelativeTimeout_Async(nkomrtController},
 //			{fixme,                             getMaxRelativeTimeout_Retrieval(nkomrtController},
 		};
