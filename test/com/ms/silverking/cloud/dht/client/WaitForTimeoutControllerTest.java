@@ -30,11 +30,11 @@ public class WaitForTimeoutControllerTest {
 			{int_maxVal,                                                    getMaxAttempts_Null(defaultController)},
 			{defaultInternalRetryIntervalSeconds*1000,                      getRelativeTimeoutMillisForAttempt_Null(defaultController)},
 			{(long)defaultExclusionChangeInternalRetryIntervalSeconds*1000, getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultController)},
-//			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultController)},		// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
+//			{defaultMaxRelativeTimeoutMillis, 								getMaxRelativeTimeoutMillis_Null(defaultController)},		// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
 			{int_maxVal,                                                    getMaxAttempts_Null(defaultControllerDiff)},
 			{irisDiff*1000,                                                 getRelativeTimeoutMillisForAttempt_Null(defaultControllerDiff)},
 			{(long)defaultExclusionChangeInternalRetryIntervalSeconds*1000, getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultControllerDiff)},
-//			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultControllerDiff)},	// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
+//			{defaultMaxRelativeTimeoutMillis, 								getMaxRelativeTimeoutMillis_Null(defaultControllerDiff)},	// NPE if AsyncOperation param is null, testing with null b/c it's too much work to create an actual AsyncOperation...
 		};
 		
 		test_Getters(testCases);

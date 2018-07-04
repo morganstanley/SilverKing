@@ -61,17 +61,19 @@ public class OpSizeBasedTimeoutControllerTest {
 		return defaultController.maxRelTimeoutMillis(mrtom);
 	}
 	
+	// ALL THE "fixme"s for getRelativeTimeoutMillisForAttempt_(Snapshot|Retrieval) b/c Async Operation object is too hard to create.. 
+	
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
 			{defaultMaxAttempts,                          getMaxAttempts_Null(defaultController)},
 			{defaultNonKeyedOpMaxRelTimeout_ms,           getRelativeTimeoutMillisForAttempt_Null(defaultController)},
 			{(long)defaultExclusionChangeRetryIntervalMS, getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultController)},
-//			{fixme, 							          getRelativeTimeout_Snapshot(defaultController)},
-//			{fixme,                                       getRelativeTimeout_Retrieval(defaultController)},
+//			{fixme, 							          getRelativeTimeoutMillisForAttempt_Snapshot(defaultController)},
+//			{fixme,                                       getRelativeTimeoutMillisForAttempt_Retrieval(defaultController)},
 			{defaultNonKeyedOpMaxRelTimeout_ms,           getMaxRelativeTimeoutMillis_Null(defaultController)},
-//			{fixme, 							          getMaxRelativeTimeout_Async(defaultController)},
-//			{fixme,                                       getMaxRelativeTimeout_Retrieval(defaultController)},
+//			{fixme, 							          getMaxRelativeTimeoutMillis_Snapshot(defaultController)},
+//			{fixme,                                       getMaxRelativeTimeoutMillis_Retrieval(defaultController)},
 		};
 		
 		test_Getters(testCases);
@@ -97,23 +99,23 @@ public class OpSizeBasedTimeoutControllerTest {
 		Object[][] testCases = {
 			{maDiff,     getMaxAttempts_Null(maController)},
 			{mrtomCopy,  getRelativeTimeoutMillisForAttempt_Null(ctmController)},
-//			{fixme,      getRelativeTimeout_Async(ctmController},
-//			{fixme,      getRelativeTimeout_Retrieval(ctmController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Snapshot(ctmController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Retrieval(ctmController},
 			{mrtomCopy,  getMaxRelativeTimeoutMillis_Null(ctmController)},
-//			{fixme,      getMaxRelativeTimeout_Async(ctmController},
-//			{fixme,      getMaxRelativeTimeout_Retrieval(ctmController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Snapshot(ctmController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Retrieval(ctmController},
 			{mrtomCopy,  getRelativeTimeoutMillisForAttempt_Null(itmController)},
-//			{fixme,      getRelativeTimeout_Async(itmController},
-//			{fixme,      getRelativeTimeout_Retrieval(itmController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Snapshot(itmController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Retrieval(itmController},
 			{mrtomCopy,  getMaxRelativeTimeoutMillis_Null(itmController)},
-//			{fixme,      getMaxRelativeTimeout_Async(itmController},
-//			{fixme,      getMaxRelativeTimeout_Retrieval(itmController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Snapshot(itmController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Retrieval(itmController},
 			{mrtomDiff,  getRelativeTimeoutMillisForAttempt_Null(nkomrtomController)},
-//			{nkomrtDiff, getRelativeTimeout_Async(nkomrtController},
-//			{fixme,      getRelativeTimeout_Retrieval(nkomrtController},
+//			{nkomrtDiff, getRelativeTimeoutMillisForAttempt_Snapshot(nkomrtController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Retrieval(nkomrtController},
 			{mrtomDiff,  getMaxRelativeTimeoutMillis_Null(nkomrtomController)},
-//			{nkomrtDiff, getMaxRelativeTimeout_Async(nkomrtController},
-//			{fixme,      getMaxRelativeTimeout_Retrieval(nkomrtController},
+//			{nkomrtDiff, getMaxRelativeTimeoutMillis_Snapshot(nkomrtController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Retrieval(nkomrtController},
 		};
 		
 		test_Setters(testCases);
