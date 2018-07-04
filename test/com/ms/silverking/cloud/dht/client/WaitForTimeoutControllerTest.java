@@ -20,7 +20,7 @@ public class WaitForTimeoutControllerTest {
 	private static final int irisCopy = 20;
 	private static final int irisDiff = 21;
 	
-	private static final WaitForTimeoutController defaultController     =     WaitForTimeoutController.template;
+	public  static final WaitForTimeoutController defaultController     =     WaitForTimeoutController.template;
 	private static final WaitForTimeoutController defaultControllerCopy = new WaitForTimeoutController(irisCopy);
 	private static final WaitForTimeoutController defaultControllerDiff = new WaitForTimeoutController(irisDiff);
 

@@ -1,14 +1,9 @@
 package com.ms.silverking.testing;
 
+import static com.ms.silverking.testing.Assert.exceptionNameChecker;
 import static com.ms.silverking.testing.Util.getTestMessage;
-import static com.ms.silverking.testing.Assert.*;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
-import org.junit.Test;
-
-import com.ms.silverking.cloud.dht.client.crypto.AESEncrypterDecrypter;
-import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 
 public class AssertFunction {

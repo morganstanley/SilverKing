@@ -37,7 +37,7 @@ public class OpSizeBasedTimeoutControllerTest {
 	private static final int ecrimCopy = 5_000;
 	private static final int ecrimDiff = 4_999;
 	
-	private static final OpSizeBasedTimeoutController defaultController     =     OpSizeBasedTimeoutController.template;
+	public  static final OpSizeBasedTimeoutController defaultController     =     OpSizeBasedTimeoutController.template;
 	private static final OpSizeBasedTimeoutController defaultControllerCopy = new OpSizeBasedTimeoutController(maCopy, ctmCopy, itmCopy, mrtomCopy, ecrimCopy);
 	private static final OpSizeBasedTimeoutController defaultControllerDiff = new OpSizeBasedTimeoutController(maDiff, ctmDiff, itmDiff, mrtomDiff, ecrimDiff);
 	

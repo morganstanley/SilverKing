@@ -28,7 +28,7 @@ public class SimpleTimeoutControllerTest {
 	private static final int mrtomCopy = 120_000;
 	private static final int mrtomDiff = 119_999;
 	
-	private static final SimpleTimeoutController defaultController     =     SimpleTimeoutController.template;
+	public  static final SimpleTimeoutController defaultController     =     SimpleTimeoutController.template;
 	private static final SimpleTimeoutController defaultControllerCopy = new SimpleTimeoutController(maCopy, mrtomCopy);
 	private static final SimpleTimeoutController defaultControllerDiff = new SimpleTimeoutController(maDiff, mrtomDiff);
 	
