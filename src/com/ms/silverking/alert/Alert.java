@@ -53,7 +53,7 @@ public class Alert {
 		return context.equals(o.context)
 				&& level == o.level
 				&& key.equals(o.key)
-				&& message.equals(o.key)
+				&& message.equals(o.message)
 				&& data.equals(o.data);
 	}
 	
