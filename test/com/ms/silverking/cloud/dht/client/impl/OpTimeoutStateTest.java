@@ -152,14 +152,14 @@ public class OpTimeoutStateTest {
 	@Test
 	public void testToString() {
 		Object[][] testCases = {
-			{opSizeBasedTimeoutState, "0:0:maxAttempts=4,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000"},
-			{simpleTimeoutState,      "0:0:maxAttempts=5,maxRelativeTimeoutMillis=120000"},
-			{waitForTimeoutState,     "0:0:internalRetryIntervalSeconds=20,internalExclusionChangeRetryIntervalSeconds=2"},
+			{"0:0:maxAttempts=4,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000", opSizeBasedTimeoutState},
+			{"0:0:maxAttempts=5,maxRelativeTimeoutMillis=120000",                                                                                     simpleTimeoutState},
+			{"0:0:internalRetryIntervalSeconds=20,internalExclusionChangeRetryIntervalSeconds=2",                                                    waitForTimeoutState},
 		};
 
 		for (Object[] testCase : testCases) {
-			OpTimeoutState state = (OpTimeoutState)testCase[0];
-			String expected      =         (String)testCase[1];
+			String expected      =         (String)testCase[0];
+			OpTimeoutState state = (OpTimeoutState)testCase[1];
 
 			assertEquals(expected, state.toString());
 		}
