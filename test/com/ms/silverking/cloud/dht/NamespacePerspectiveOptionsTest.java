@@ -1,23 +1,63 @@
 package com.ms.silverking.cloud.dht;
 
-import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.*;
-import static com.ms.silverking.cloud.dht.TestUtil.*;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.*;
-import static com.ms.silverking.testing.AssertFunction.*;
-import static org.junit.Assert.*;
+import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardKeyDigestType;
+import static com.ms.silverking.cloud.dht.NamespacePerspectiveOptions.standardVersionProvider;
+import static com.ms.silverking.cloud.dht.TestUtil.goCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.goDiff;
+import static com.ms.silverking.cloud.dht.TestUtil.ioCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.ioDiff;
+import static com.ms.silverking.cloud.dht.TestUtil.poCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.poDiff;
+import static com.ms.silverking.cloud.dht.TestUtil.woCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.woDiff;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultEncrypterDecrypter;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardGetOptions;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardInvalidationOptions;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardPutOptions;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardWaitOptions;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_Getters;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
+import static com.ms.silverking.testing.AssertFunction.test_SetterExceptions;
+import static com.ms.silverking.testing.AssertFunction.test_Setters;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.client.AbsMillisVersionProvider;
+import com.ms.silverking.cloud.dht.client.ConstantVersionProvider;
 import com.ms.silverking.cloud.dht.client.KeyDigestType;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
+import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
 import com.ms.silverking.testing.Util.ExceptionChecker;
+import com.ms.silverking.time.ConstantAbsMillisTimeSource;
 
 public class NamespacePerspectiveOptionsTest {
 
-	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptions                     = NamespacePerspectiveOptions.templateOptions;
-	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptionsCopy                 = TestUtil.getCopy();
-	private static final NamespacePerspectiveOptions<IllegalArgumentException, Enum> defaultNspOptionsDiff = TestUtil.getDiff();
+	// *Copy: copies the values of nspOptions (copies the object values, rather than re-using the same object from defaultNspOptions, important for comparing reference vs value, i.e. hashCode and equals)
+	// *Diff: copies the values of nspOptionsCopy and changes at least one value - this is so that it's different
+	public static final Class<byte[]> kcCopy                   = byte[].class;
+	public static final Class<IllegalArgumentException> kcDiff = IllegalArgumentException.class;
+    
+    public static final Class<byte[]> vcCopy            = byte[].class;
+    public static final Class<Enum> vcDiff              = Enum.class;
+    
+    public static final KeyDigestType kdtCopy           = KeyDigestType.MD5;
+    public static final KeyDigestType kdtDiff           = KeyDigestType.NONE;
+	
+    
+    public static final ConstantVersionProvider vpCopy  = new ConstantVersionProvider(standardVersionProvider.getVersion());
+    public static final AbsMillisVersionProvider vpDiff = new AbsMillisVersionProvider(new ConstantAbsMillisTimeSource(0));
+    
+    public static final EncrypterDecrypter edCopy       = null;
+    public static final EncrypterDecrypter edDiff       = new XOREncrypterDecrypter(new byte[]{});
+     
+	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptions                     =     NamespacePerspectiveOptions.templateOptions;
+	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptionsCopy                 = new NamespacePerspectiveOptions<>(kcCopy, vcCopy, kdtCopy, poCopy, ioCopy, goCopy, woCopy, vpCopy, edCopy);
+	private static final NamespacePerspectiveOptions<IllegalArgumentException, Enum> defaultNspOptionsDiff = new NamespacePerspectiveOptions<>(kcDiff, vcDiff, kdtDiff, poDiff, ioDiff, goDiff, woDiff, vpDiff, edDiff);
 	
 	private Class<?> getKeyClass(NamespacePerspectiveOptions<?, ?> nspOptions) {
 		return nspOptions.getKeyClass();
@@ -114,7 +154,7 @@ public class NamespacePerspectiveOptionsTest {
 		Object[][] testCases = {
 			{"keyClass = null",                         new ExceptionChecker() { @Override public void check() { setKeyClass(null);                                 } },     NullPointerException.class},
 			{"valueClass = null",                       new ExceptionChecker() { @Override public void check() { setValueClass(null);                               } },     NullPointerException.class},
-			{"keyDigestType= null",                     new ExceptionChecker() { @Override public void check() { setKeyDigestType(null);                            } },     NullPointerException.class},
+			{"keyDigestType = null",                    new ExceptionChecker() { @Override public void check() { setKeyDigestType(null);                            } },     NullPointerException.class},
 			{"defaultPutOptions = null",                new ExceptionChecker() { @Override public void check() { setDefaultPutOptions(null);                        } },     NullPointerException.class},
 			{"defaultPutOptions = invalidationOptions", new ExceptionChecker() { @Override public void check() { setDefaultPutOptions(standardInvalidationOptions); } }, IllegalArgumentException.class},
 			{"defaultInvalidationOptions = null",       new ExceptionChecker() { @Override public void check() { setDefaultInvalidationOptions(null);               } },     NullPointerException.class},
