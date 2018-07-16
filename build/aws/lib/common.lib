@@ -117,7 +117,7 @@ function f_aws_install_gtest {
     f_aws_downloadTar "$gtest_tar" "https://github.com/google/googletest/archive/$gtest_tar"
     
     typeset gtest_home="$LIB_ROOT/googletest-$gtest_version/googletest"
-    f_overrideBuildConfigVariable "G_TEST_HOME" "$gtest_home"
+    f_fillInBuildConfigVariable "G_TEST_HOME" "$gtest_home"
 
     echo "building gtest - from: https://github.com/google/googletest/blob/master/googletest/README.md"
     cd $gtest_home
