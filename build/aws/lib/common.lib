@@ -116,16 +116,14 @@ function f_aws_install_gtest {
     typeset gtest_tar=$gtest_version.tar.gz
     f_aws_downloadTar "$gtest_tar" "https://github.com/google/googletest/archive/$gtest_tar"
     
-    typeset  repo_folder="googletest-$gtest_version"
-    typeset gtest_folder="$repo_folder/googletest"
-    f_overrideBuildConfigVariable "GTEST_HOME" "$LIB_ROOT/$gtest_folder"
+    typeset gtest_home="$LIB_ROOT/googletest-$gtest_version/googletest"
+    f_overrideBuildConfigVariable "G_TEST_HOME" "$gtest_home"
 
     echo "building gtest - from: https://github.com/google/googletest/blob/master/googletest/README.md"
-    cd $gtest_folder
+    cd $gtest_home
     mkdir lib
     cd lib
-    typeset gtest_dir=$LIB_ROOT/$repo_folder
-    $gpp_path -isystem $gtest_dir/include -I$gtest_dir -pthread -c $gtest_dir/src/gtest-all.cc
+    $gpp_path -isystem $gtest_home/include -I$gtest_home -pthread -c $gtest_home/src/gtest-all.cc
     ar -rv libgtest.a gtest-all.o
 }
 
