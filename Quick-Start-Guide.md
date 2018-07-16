@@ -71,7 +71,7 @@ You may also build SilverKing on AWS using simplified build scripts for both Ama
 sudo yum -y install git ksh
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
-~/SilverKing/build/aws/build_amazon_linux.sh
+~/SilverKing/build/aws/build_linux.sh
 ```
 
 ### Ubuntu
@@ -80,5 +80,5 @@ sudo apt-get update
 sudo apt-get install git ksh    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
-~/SilverKing/build/aws/build_amazon_ubuntu.sh
+~/SilverKing/build/aws/build_ubuntu.sh
 ```

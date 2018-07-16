@@ -107,6 +107,40 @@ function f_aws_symlink_jace {
     f_fillInBuildConfigVariable "JACE_HOME" "$LIB_ROOT/$jace_lib"
 }
 
+function f_aws_install_gtest {
+    typeset gpp_path=$1
+
+    echo "installing gtest"
+    cd $LIB_ROOT
+    typeset gtest_version="release-1.8.0"
+    typeset gtest_tar=$gtest_version.tar.gz
+    f_aws_downloadTar "$gtest_tar" "https://github.com/google/googletest/archive/$gtest_tar"
+    
+    typeset  repo_folder="googletest-$gtest_version"
+    typeset gtest_folder="$repo_folder/googletest"
+    f_overrideBuildConfigVariable "GTEST_HOME" "$LIB_ROOT/$gtest_folder"
+
+    echo "building gtest - from: https://github.com/google/googletest/blob/master/googletest/README.md"
+    cd $gtest_folder
+    mkdir lib
+    cd lib
+    typeset gtest_dir=$LIB_ROOT/$repo_folder
+    $gpp_path -isystem $gtest_dir/include -I$gtest_dir -pthread -c $gtest_dir/src/gtest-all.cc
+    ar -rv libgtest.a gtest-all.o
+}
+
+function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
+    f_aws_buildConfig_check
+    
+    source $BUILD_CONFIG_FILE
+    f_aws_edit_config_files
+    f_aws_symlink_skjar_for_skc
+
+    $AWS_DIR/$ZK_START_SCRIPT_NAME
+    $BUILD_DIR/$BUILD_SCRIPT_NAME
+    $AWS_DIR/$ZK_STOP_SCRIPT_NAME
+}
+
 function f_aws_buildConfig_check {
     echo
     echo "build.config looks like:"
@@ -128,18 +162,6 @@ function f_aws_edit_config_files {
 function f_aws_symlink_skjar_for_skc {
     cd $LIB_DIR
     ln -s $SILVERKING_JAR
-}
-
-function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
-    f_aws_buildConfig_check
-    
-    source $BUILD_CONFIG_FILE
-    f_aws_edit_config_files
-    f_aws_symlink_skjar_for_skc
-
-    $AWS_DIR/$ZK_START_SCRIPT_NAME
-    $BUILD_DIR/$BUILD_SCRIPT_NAME
-    $AWS_DIR/$ZK_STOP_SCRIPT_NAME
 }
 
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo

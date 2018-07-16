@@ -6,7 +6,7 @@ before_install:
     - sudo apt-get install -qq git ksh  # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
 install: true
 script:
-    - build/aws/build_travisci_ubuntu.sh
+    - build/aws/build_ubuntu.sh "travisci"
 notifications:
   slack:
     secure: KWeKWRTA42BvFJQ2dBFlhn8m7E13QSVANK3wiO5dLGgBXI3tu1b9+NvIdeN5Tk0aA+HfL9WZ094InHky/bpLD053B5RH2fgIl/Wex8Zhd2oGLATkZ6qEYTGZJXUfeNXJ0mSyXPwt0rOFKNyngqAinJAyVizmsDcCbyAgYOYU0g8vLArkB1FpiVoRYF8IoGSnJhDkaWbrXv8MQEXBuoazujWsWEwDEb+5qj/90yLdaE8S2pI0yIp7TYixN0pJPLHFm8D48hCGxtDBPAH6eE+0WQSZMr6fAVRhyxKrBJS6OZXiCCXEiuVlVb4d5MMox6dgzZHVdJEuPmDKY8X9nSAnI9Gf/KV+L8GoWKwq/ojN/o/Xx5KQeI8T9jWcNTP6YfXnDCshOLd+KSwchgyeuQh3MfOnDqwoGxpABRTF88+rvmJOiAT4tAlIG6TQMVUvameM2HJZcqLovDj88Hi4+oDMIc463aOlsDv2OLBg9xNUidCvntnyjFbJ0drezR+CRZ2RKmI44G3qmvmVFk1plycHbcPyaC1rLekleCMnmzT6nnRXe79gWZ7Az4UXhR7PQ+Zhj+W57wRwn3ADx3/fcnJaUR1wKoAZMDl2k4bUOlu3Ka7xAQ47CVGqfFaMeAdzyvi7J2vsao0wPdnDKaJiVVf8RBTttVCKNkLSx+65XEQlCXI=
