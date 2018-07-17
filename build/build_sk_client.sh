@@ -60,7 +60,7 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename)
 	# doesn't need -lpthread actually
 	typeset lib_opts_3="$LIB_OPTS $LD_LIB_OPTS -L${INSTALL_ARCH_LIB_DIR} -l${SK_LIB_NAME} -Wl,--rpath -Wl,$rpath_dir -Wl,--rpath -Wl,${JACE_LIB} -Wl,--rpath -Wl,${JAVA_LIB}"
 	# doesn't need -lpthread actually
-	typeset lib_opts_4="-ldl $lib_opts_3 -l${J_SK_LIB_NAME}"
+	typeset lib_opts_4="$lib_opts_3 -l${J_SK_LIB_NAME}"
 	typeset lib_opts_5="$lib_opts_1 -l${BOOST_SYSTEM_LIB} -Wl,--rpath -Wl,${JACE_LIB}"
 	
 	f_startLocalTimer;
