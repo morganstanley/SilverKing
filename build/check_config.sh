@@ -320,8 +320,9 @@ function f_check_G_TEST_LIB {
 	f_check_defined $varName
 	f_check_ends_with $varName "/lib"
 	f_check_dir_exists $varName
-	f_check_file_exists $varName "libgtest.so"
-	f_check_file_exists $varName "libgtest_main.so"
+	f_check_file_exists $varName "libgtest.a"
+	# f_check_file_exists $varName "libgtest.so"
+	# f_check_file_exists $varName "libgtest_main.so"
 	f_printResult $varName
 }
 
