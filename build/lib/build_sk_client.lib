@@ -187,7 +187,7 @@ function f_buildGtestFramework {
 	
     # added PATH with path to 'ld' b/c we will get: "collect2: fatal error: cannot find 'ld'"
 	typeset vars="
-     	                 PATH=\"/usr/bin\"
+     	                 PATH=\"$PATH\"
      	                   CC=\"$cc\"
 	                  CC_OPTS=\"$cc_opts\"
 	                 INC_OPTS=\"$inc_opts -I${G_TEST_INC} -I${INSTALL_COMMON_INC_DIR}\"
