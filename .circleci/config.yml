@@ -13,7 +13,7 @@ jobs:
           command: ls -atlr
       - run:
           name: update
-          command: 'apt-get update'
+          command: 'apt-get update' # doesn't like if I put sudo, i.e. 'sudo apt-get update'
       - run:
           name: install
           command: 'apt-get install --assume-yes git ksh'    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"

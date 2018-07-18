@@ -217,6 +217,7 @@ if [[ ! -e $fullGcFilePath ]] ; then
 	f_printFail
     exit
 fi
+echo "FOUND - $fullGcFilePath"
 source $fullGcFilePath
 if [[ -z $GC_SK_NAME ]] ; then
     echo "Error in $fullGcFilePath - can't find 'GC_SK_NAME'"
@@ -232,7 +233,7 @@ if [[ -n $id ]]; then
 else
     echo "NOT FOUND - '$GC_SK_NAME'"
     if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then 
-		echo "Sk daemon needs to exist in order to execute: $nodeControlCommand"
+		echo "SK daemon needs to exist in order to execute: $nodeControlCommand"
 		f_printFail
         exit -1
     fi
@@ -265,7 +266,7 @@ echo "SK_CLASSPATH: $SK_CLASSPATH"
 
 tmpfile=/tmp/skfs.${USER}.$$
 tmpfileConf=${tmpfile}.conf
-f_printSubSection "Retrieving '$GCName' config from '$zkEnsemble' into '$tmpfile'"
+f_printSubSection "Retrieving '$GCName' skfs config from '$zkEnsemble' into '$tmpfile'"
 UTIL_CLASS="com.ms.silverking.cloud.skfs.management.MetaUtil"
 utilCmd="$SK_JAVA_HOME/bin/java $UTIL_CLASS -c GetFromZK -d $GCName -z $zkEnsemble -t $tmpfile"
 echo $utilCmd
@@ -280,7 +281,7 @@ f_printSubSection "Renaming '$tmpfile' -> '$tmpfileConf'"
 grep -v "^null$" $tmpfile > $tmpfileConf
 chmod 755 $tmpfileConf
 source $tmpfileConf
-rm $tmpfile
+rm -v $tmpfile
 
 #source from config environment
 if [[ -n "${SKFS_DHT_OP_MIN_TIMEOUT_MS}" ]] ; then 

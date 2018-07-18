@@ -30,15 +30,19 @@ function f_ubuntu_symlink_boost {
     typeset boost_lib=libs/boost
     mkdir -p $boost_lib
     cd $boost_lib
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.54.0    libboost_thread.so
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.54.0 libboost_date_time.so
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_system.so.1.54.0    libboost_system.so
     
+    typeset boost_number=58
+    if [[ $BUILD_TYPE == $TRAVISCI ]]; then
+        boost_number=54
+    fi
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.${boost_number}.0    libboost_thread.so
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.${boost_number}.0 libboost_date_time.so
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_system.so.1.${boost_number}.0    libboost_system.so
+        
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
 
-function f_ubuntu_fillin_build_skfs {    
-    echo "BUILD SKFS"
+function f_ubuntu_fillin_build_skfs {   
     f_ubuntu_aptgetInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_ubuntu_aptgetInstall "libfuse-dev" #(.h files, .so)
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
@@ -52,16 +56,27 @@ function f_ubuntu_fillin_build_skfs {
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
 
+TRAVISCI="travisci"
+BUILD_TYPE=$1
 f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 {
-    echo "AMI: Ubuntu 14.04.5 LTS, 14.04, trusty"
+    if [[ $BUILD_TYPE == $TRAVISCI ]]; then
+        echo "AMI: Ubuntu 14.04.5 LTS, 14.04, trusty"
+    else
+        echo "AMI: Ubuntu Server 16.04 LTS (HVM), SSD Volume Type - ami-4e79ed36"
     
+        f_ubuntu_aptgetInstall "make"
+    fi
+ 
     f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
+    pwd
     echo "BUILD"
+    pwd
     f_aws_install_ant
+    pwd
     f_ubuntu_install_java
     f_aws_install_zk
 
@@ -78,13 +93,20 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     f_ubuntu_aptgetInstall "g++"
     gpp_path=/usr/bin/g++
     cd $BUILD_DIR
-    ./$BUILD_JACE_SCRIPT_NAME $gpp_path 
+    ./$BUILD_JACE_SCRIPT_NAME "$gpp_path"
 
     f_aws_symlink_jace
 
     echo "BUILD CLIENT"
     f_fillInBuildConfigVariable "GPP"     "$gpp_path"
-    f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/4.8.5"
+    typeset gcclib_number="6.0.0"
+    if [[ $BUILD_TYPE == $TRAVISCI ]]; then
+        gcclib_number="4.8.5"
+    fi
+    f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/$gcclib_number"
+    f_aws_install_gtest "$gpp_path"
+       
+    echo "BUILD SKFS"
     f_ubuntu_fillin_build_skfs
 
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything

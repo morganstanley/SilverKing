@@ -42,8 +42,7 @@ function f_amazon_linux_symlink_boost {
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
 
-function f_amazon_linux_fillin_build_skfs {    
-    echo "BUILD SKFS"
+function f_amazon_linux_fillin_build_skfs { 
     f_amazon_linux_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_amazon_linux_yumInstall "fuse-devel" #(.h files, .so)
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
@@ -83,13 +82,16 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     f_amazon_linux_yumInstall "gcc-c++" # for g++
     gpp_path=/usr/bin/g++
     cd $BUILD_DIR
-    ./$BUILD_JACE_SCRIPT_NAME $gpp_path 
+    ./$BUILD_JACE_SCRIPT_NAME "$gpp_path" 
 
     f_aws_symlink_jace
 
     echo "BUILD CLIENT"
     f_fillInBuildConfigVariable "GPP"     "$gpp_path"
     f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
+    f_aws_install_gtest "$gpp_path"
+       
+    echo "BUILD SKFS"
     f_amazon_linux_fillin_build_skfs
 
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything

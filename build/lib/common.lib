@@ -13,16 +13,10 @@ function f_getExecutablePath {
 	typeset path=`which $1`;
 	echo "$EXECUTABLE_COUNT. $1 - $path";
 	if [[ "$?" != "0" ]] ; then
-		echo "please install $1: $path";
-		exit 1;
+		f_exit "please install $1: $path";
 	fi
 	
 	return path;
-}
-
-function f_abort { 
-	echo "Aborting: $*"; 
-	exit 1; 
 }
 
 function f_printSection {

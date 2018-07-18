@@ -1,14 +1,20 @@
 package com.ms.silverking.cloud.dht.client;
 
-import static com.ms.silverking.cloud.dht.client.TestUtil.*;
-import static com.ms.silverking.testing.AssertFunction.*;
-import static com.ms.silverking.testing.AssertFunction.*;
+import static com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController.defaultExclusionChangeRetryIntervalMS;
+import static com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController.defaultMaxAttempts;
+import static com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController.defaultNonKeyedOpMaxRelTimeout_ms;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxAttempts_Null;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxRelativeTimeoutMillis_Null;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeExclusionChangeRetryMillisForAttempt_Null;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeTimeoutMillisForAttempt_Null;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 import static com.ms.silverking.testing.AssertFunction.test_Getters;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_SetterExceptions;
 import static com.ms.silverking.testing.AssertFunction.test_Setters;
 import static org.junit.Assert.assertEquals;
-
-import static com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController.*;
 
 import org.junit.Test;
 
@@ -28,11 +34,12 @@ public class OpSizeBasedTimeoutControllerTest {
 	private static final int mrtomCopy = 1_500_000;
 	private static final int mrtomDiff = 1_500_001;
 	
-	private static final int defaultExclusionChangeRetryIntervalMS = 5 * 1000;
+	private static final int ecrimCopy = 5_000;
+	private static final int ecrimDiff = 4_999;
 	
-	private static final OpSizeBasedTimeoutController defaultController     =     OpSizeBasedTimeoutController.template;
-	private static final OpSizeBasedTimeoutController defaultControllerCopy = new OpSizeBasedTimeoutController(maCopy, ctmCopy, itmCopy, mrtomCopy, defaultExclusionChangeRetryIntervalMS);
-	private static final OpSizeBasedTimeoutController defaultControllerDiff = new OpSizeBasedTimeoutController(maDiff, ctmDiff, itmDiff, mrtomDiff, defaultExclusionChangeRetryIntervalMS);
+	public  static final OpSizeBasedTimeoutController defaultController     =     OpSizeBasedTimeoutController.template;
+	private static final OpSizeBasedTimeoutController defaultControllerCopy = new OpSizeBasedTimeoutController(maCopy, ctmCopy, itmCopy, mrtomCopy, ecrimCopy);
+	private static final OpSizeBasedTimeoutController defaultControllerDiff = new OpSizeBasedTimeoutController(maDiff, ctmDiff, itmDiff, mrtomDiff, ecrimDiff);
 	
 //	private static final NamespacePerspectiveOptions<byte[], byte[]> nspOptions = Util.getCopy();
 //	private static final AsyncRetrievalOperationImpl asyncRetrieval = new AsyncRetrievalOperationImpl(null, null, new NamespacePerspectiveOptionsImpl(nspOptions, SerializationRegistry.createEmptyRegistry()), 0, null);    
@@ -54,16 +61,19 @@ public class OpSizeBasedTimeoutControllerTest {
 		return defaultController.maxRelTimeoutMillis(mrtom);
 	}
 	
+	// ALL THE "fixme"s for getRelativeTimeoutMillisForAttempt_(Snapshot|Retrieval) b/c Async Operation object is too hard to create.. 
+	
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{defaultMaxAttempts,                getMaxAttempts(defaultController)},
-			{defaultNonKeyedOpMaxRelTimeout_ms, getRelativeTimeout_Null(defaultController)},
-//			{fixme, getRelativeTimeout_Snapshot(defaultController)},
-//			{fixme,                             getRelativeTimeout_Retrieval(defaultController)},
-			{defaultNonKeyedOpMaxRelTimeout_ms, getMaxRelativeTimeout_Null(defaultController)},
-//			{fixme, getMaxRelativeTimeout_Async(defaultController)},
-//			{fixme,                             getMaxRelativeTimeout_Retrieval(defaultController)},
+			{defaultMaxAttempts,                          getMaxAttempts_Null(defaultController)},
+			{defaultNonKeyedOpMaxRelTimeout_ms,           getRelativeTimeoutMillisForAttempt_Null(defaultController)},
+			{(long)defaultExclusionChangeRetryIntervalMS, getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultController)},
+//			{fixme, 							          getRelativeTimeoutMillisForAttempt_Snapshot(defaultController)},
+//			{fixme,                                       getRelativeTimeoutMillisForAttempt_Retrieval(defaultController)},
+			{defaultNonKeyedOpMaxRelTimeout_ms,           getMaxRelativeTimeoutMillis_Null(defaultController)},
+//			{fixme, 							          getMaxRelativeTimeoutMillis_Snapshot(defaultController)},
+//			{fixme,                                       getMaxRelativeTimeoutMillis_Retrieval(defaultController)},
 		};
 		
 		test_Getters(testCases);
@@ -87,25 +97,25 @@ public class OpSizeBasedTimeoutControllerTest {
 		OpSizeBasedTimeoutController nkomrtomController = setNonKeyedOpMaxRelTimeoutMillis(mrtomDiff);
 
 		Object[][] testCases = {
-			{maDiff,                            getMaxAttempts(maController)},
-			{mrtomCopy, getRelativeTimeout_Null(ctmController)},
-//			{fixme, getRelativeTimeout_Async(ctmController},
-//			{fixme,                             getRelativeTimeout_Retrieval(ctmController},
-			{mrtomCopy, getMaxRelativeTimeout_Null(ctmController)},
-//			{fixme, getMaxRelativeTimeout_Async(ctmController},
-//			{fixme,                             getMaxRelativeTimeout_Retrieval(ctmController},
-			{mrtomCopy, getRelativeTimeout_Null(itmController)},
-//			{fixme, getRelativeTimeout_Async(itmController},
-//			{fixme,                             getRelativeTimeout_Retrieval(itmController},
-			{mrtomCopy, getMaxRelativeTimeout_Null(itmController)},
-//			{fixme, getMaxRelativeTimeout_Async(itmController},
-//			{fixme,                             getMaxRelativeTimeout_Retrieval(itmController},
-			{mrtomDiff,                      getRelativeTimeout_Null(nkomrtomController)},
-//			{nkomrtDiff,                        getRelativeTimeout_Async(nkomrtController},
-//			{fixme,                             getRelativeTimeout_Retrieval(nkomrtController},
-			{mrtomDiff,                      getMaxRelativeTimeout_Null(nkomrtomController)},
-//			{nkomrtDiff,                        getMaxRelativeTimeout_Async(nkomrtController},
-//			{fixme,                             getMaxRelativeTimeout_Retrieval(nkomrtController},
+			{maDiff,     getMaxAttempts_Null(maController)},
+			{mrtomCopy,  getRelativeTimeoutMillisForAttempt_Null(ctmController)},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Snapshot(ctmController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Retrieval(ctmController},
+			{mrtomCopy,  getMaxRelativeTimeoutMillis_Null(ctmController)},
+//			{fixme,      getMaxRelativeTimeoutMillis_Snapshot(ctmController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Retrieval(ctmController},
+			{mrtomCopy,  getRelativeTimeoutMillisForAttempt_Null(itmController)},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Snapshot(itmController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Retrieval(itmController},
+			{mrtomCopy,  getMaxRelativeTimeoutMillis_Null(itmController)},
+//			{fixme,      getMaxRelativeTimeoutMillis_Snapshot(itmController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Retrieval(itmController},
+			{mrtomDiff,  getRelativeTimeoutMillisForAttempt_Null(nkomrtomController)},
+//			{nkomrtDiff, getRelativeTimeoutMillisForAttempt_Snapshot(nkomrtController},
+//			{fixme,      getRelativeTimeoutMillisForAttempt_Retrieval(nkomrtController},
+			{mrtomDiff,  getMaxRelativeTimeoutMillis_Null(nkomrtomController)},
+//			{nkomrtDiff, getMaxRelativeTimeoutMillis_Snapshot(nkomrtController},
+//			{fixme,      getMaxRelativeTimeoutMillis_Retrieval(nkomrtController},
 		};
 		
 		test_Setters(testCases);

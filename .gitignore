@@ -1,10 +1,5 @@
 
-.checkstyle
-
 ### ide's
 ide
-# eclipse
-.classpath
-.project
 # VS
 .vscode

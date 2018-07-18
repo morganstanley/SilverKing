@@ -179,19 +179,21 @@ function f_buildGtestFramework {
 	
 	typeset g_test_src_dir="$APP_SRC_DIR/$appName/$testFrameworkName"
 	typeset buildObjDir=$SILVERKING_BUILD_ARCH_DIR/$appName/$testFrameworkName	# $SILVERKING_BUILD_ARCH_DIR/testdht/gtest
-	typeset test_framework_bin_dir=$INSTALL_ARCH_BIN_DIR/$testFrameworkName  # $INSTALL_ARCH_BIN_DIR/gtest
+	typeset test_framework_bin_dir=$INSTALL_ARCH_BIN_DIR/$testFrameworkName     # $INSTALL_ARCH_BIN_DIR/gtest
 	
 	echo "src: $g_test_src_dir"
 	f_cleanOrMakeDirectory "$buildObjDir"
 	f_cleanOrMakeDirectory "$test_framework_bin_dir"
 	
+    # added PATH with path to 'ld' b/c we will get: "collect2: fatal error: cannot find 'ld'"
 	typeset vars="
+     	                 PATH=\"/usr/bin\"
      	                   CC=\"$cc\"
 	                  CC_OPTS=\"$cc_opts\"
 	                 INC_OPTS=\"$inc_opts -I${G_TEST_INC} -I${INSTALL_COMMON_INC_DIR}\"
 	                       LD=\"$ld\"
 	                  LD_OPTS=\"$ld_opts\"
-	                 LIB_OPTS=\"$lib_opts -Wl,--rpath -Wl,${INSTALL_ARCH_LIB_DIR} -L${G_TEST_LIB} -lgtest -lgtest_main\"
+	                 LIB_OPTS=\"$lib_opts -Wl,--rpath -Wl,${INSTALL_ARCH_LIB_DIR} -L${G_TEST_LIB} -lgtest\"
 	           G_TEST_SRC_DIR=\"$g_test_src_dir\"
  BUILD_TEST_FRAMEWORK_OBJ_DIR=\"$buildObjDir\"
 	   TEST_FRAMEWORK_BIN_DIR=\"$test_framework_bin_dir\"

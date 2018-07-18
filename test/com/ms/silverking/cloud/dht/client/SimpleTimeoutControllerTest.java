@@ -2,14 +2,18 @@ package com.ms.silverking.cloud.dht.client;
 
 import static com.ms.silverking.cloud.dht.client.SimpleTimeoutController.defaultMaxAttempts;
 import static com.ms.silverking.cloud.dht.client.SimpleTimeoutController.defaultMaxRelativeTimeoutMillis;
-import static com.ms.silverking.cloud.dht.client.TestUtil.*;
-import static com.ms.silverking.testing.AssertFunction.*;
-import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxAttempts_Null;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxRelativeTimeoutMillis_Null;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeExclusionChangeRetryMillisForAttempt_Null;
+import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeTimeoutMillisForAttempt_Null;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 import static com.ms.silverking.testing.AssertFunction.test_Getters;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_SetterExceptions;
 import static com.ms.silverking.testing.AssertFunction.test_Setters;
-import static com.ms.silverking.testing.Util.*;
+import static com.ms.silverking.testing.Util.int_maxVal;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -24,7 +28,7 @@ public class SimpleTimeoutControllerTest {
 	private static final int mrtomCopy = 120_000;
 	private static final int mrtomDiff = 119_999;
 	
-	private static final SimpleTimeoutController defaultController     =     SimpleTimeoutController.template;
+	public  static final SimpleTimeoutController defaultController     =     SimpleTimeoutController.template;
 	private static final SimpleTimeoutController defaultControllerCopy = new SimpleTimeoutController(maCopy, mrtomCopy);
 	private static final SimpleTimeoutController defaultControllerDiff = new SimpleTimeoutController(maDiff, mrtomDiff);
 	
@@ -39,9 +43,10 @@ public class SimpleTimeoutControllerTest {
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{defaultMaxAttempts,              getMaxAttempts(defaultController)},
-			{int_maxVal,                      getRelativeTimeout_Null(defaultController)},
-			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeout_Null(defaultController)},
+			{defaultMaxAttempts,              getMaxAttempts_Null(defaultController)},
+			{int_maxVal,                      getRelativeTimeoutMillisForAttempt_Null(defaultController)},
+			{(long)int_maxVal,                getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultController)},
+			{defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeoutMillis_Null(defaultController)},
 		};
 		
 		test_Getters(testCases);
@@ -63,9 +68,10 @@ public class SimpleTimeoutControllerTest {
 		SimpleTimeoutController mrtomController = setMaxRelTimeoutMillis(mrtomDiff);
 
 		Object[][] testCases = {
-			{maDiff,     getMaxAttempts(maController)},
-			{int_maxVal, getRelativeTimeout_Null(mrtomController)},
-			{mrtomDiff,  getMaxRelativeTimeout_Null(mrtomController)},
+			{maDiff,           getMaxAttempts_Null(maController)},
+			{int_maxVal,       getRelativeTimeoutMillisForAttempt_Null(mrtomController)},
+			{(long)int_maxVal, getRelativeExclusionChangeRetryMillisForAttempt_Null(mrtomController)},
+			{mrtomDiff,        getMaxRelativeTimeoutMillis_Null(mrtomController)},
 		};
 		
 		test_Setters(testCases);

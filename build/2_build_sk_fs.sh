@@ -16,18 +16,15 @@ function f_checkParams {
 	echo " install_arch_area_folder_name=$INSTALL_ARCH_AREA_FOLDER_NAME"
 	  
 	if [[ -z $CC ]] ; then
-		echo "Need to pass in a C compiler"
-		exit 1
+		f_exit "Need to pass in a C compiler"
 	fi
 	  
 	if [[ -z $FUSE_INC_DIR ]] ; then
-		echo "Need to pass in a fuse_inc_dir"
-		exit 1
+		f_exit "Need to pass in a fuse_inc_dir"
 	fi
 	  
 	if [[ -z $FUSE_LIB_DIR ]] ; then
-		echo "Need to pass in a fuse_lib_dir"
-		exit 1
+		f_exit "Need to pass in a fuse_lib_dir"
 	fi
 	
 	if [[ -z $SK_ROOT ]] ; then

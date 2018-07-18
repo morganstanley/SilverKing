@@ -18,7 +18,7 @@ WaitOptsName       = WaitOpts
 common_lib_headers =               ${G_TEST_SRC_DIR}/${TestUtilName}.h 	             ${G_TEST_SRC_DIR}/${UtilName}.h 		       ${G_TEST_SRC_DIR}/${DhtActionName}.h               ${G_TEST_SRC_DIR}/${SyncNspName}.h               ${G_TEST_SRC_DIR}/${AsyncNspName}.h               ${G_TEST_SRC_DIR}/${PutOptsName}.h                ${G_TEST_SRC_DIR}/${GetOptsName}.h               ${G_TEST_SRC_DIR}/${WaitOptsName}.h               
 common_lib_objs    = ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${TestUtilName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${UtilName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${DhtActionName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${SyncNspName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${AsyncNspName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${PutOptsName}.o  ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${GetOptsName}.o ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/${WaitOptsName}.o
 compile            = ${CC} ${CC_OPTS} ${INC_OPTS} -c
-link               = ${LD} ${LD_OPTS} ${LIB_OPTS} -o
+link               = ${LD} ${LD_OPTS}
 
 PutGetName                = PutGet
 PutGetTestName            = PutGetTest
@@ -168,40 +168,40 @@ $(NamespaceHandlingTest_OBJS):        ${BUILD_TEST_FRAMEWORK_OBJ_DIR}/%.o: ${G_T
 	
 	
 $(PutGetHelloWorldTest_EXECUTABLE): $(PutGetHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(PutGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(PutGetHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(PutGetMetaHelloWorldTest_EXECUTABLE): $(PutGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(PutGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(PutGetMetaHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(PutGetWaitHelloWorldTest_EXECUTABLE): $(PutGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(PutGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(PutGetWaitHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(APutAGetHelloWorldTest_EXECUTABLE): $(APutAGetHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(APutAGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(APutAGetHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(APutAGetMetaHelloWorldTest_EXECUTABLE): $(APutAGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(APutAGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(APutAGetMetaHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(APutAGetWaitHelloWorldTest_EXECUTABLE): $(APutAGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(APutAGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(APutAGetWaitHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(MPutMGetHelloWorldTest_EXECUTABLE): $(MPutMGetHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(MPutMGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(MPutMGetHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(MPutMGetMetaHelloWorldTest_EXECUTABLE): $(MPutMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(MPutMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(MPutMGetMetaHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(MPutMGetWaitHelloWorldTest_EXECUTABLE): $(MPutMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(MPutMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(MPutMGetWaitHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(AMPutAMGetHelloWorldTest_EXECUTABLE): $(AMPutAMGetHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(AMPutAMGetHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(AMPutAMGetHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(AMPutAMGetMetaHelloWorldTest_EXECUTABLE): $(AMPutAMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(AMPutAMGetMetaHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(AMPutAMGetMetaHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(AMPutAMGetWaitHelloWorldTest_EXECUTABLE): $(AMPutAMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(AMPutAMGetWaitHelloWorldTest_OBJS) $(common_lib_objs)
+	$(link) $(AMPutAMGetWaitHelloWorldTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@
 
 $(NamespaceHandlingTest_EXECUTABLE): $(NamespaceHandlingTest_OBJS) $(common_lib_objs)
-	$(link) $@ $(NamespaceHandlingTest_OBJS) $(common_lib_objs)
+	$(link) $(NamespaceHandlingTest_OBJS) $(common_lib_objs) ${LIB_OPTS} -o $@

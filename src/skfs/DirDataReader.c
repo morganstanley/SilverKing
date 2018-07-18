@@ -45,6 +45,7 @@ static void ddr_process_dht_batch(void **requests, int numRequests, int curThrea
 static int _ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int createIfNotFound);
 static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRequest *ddrr, SKMetaData	*metaData);
 static SKStoredValue *ddr_retrieve_specific_dir_version(DirDataReader *ddr, int curThreadIndex, char *path, uint64_t lowerVersionLimit);
+static SKStoredValue *ddr_retrieve_most_recent_version(DirDataReader *ddr, int curThreadIndex, char *path);
 static uint64_t ddr_get_least_version(DirDataReader *ddr, int curThreadIndex, char *path);
 
 
@@ -395,7 +396,7 @@ static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRe
                 if (ddr->mergeMode == DDR_MM_SERVER_SIDE) {
                     SKStoredValue   *ppval;
                     
-                    ppval = ddr_retrieve_specific_dir_version(ddr, curThreadIndex, ddrr->path, latestKVSVersion);                    
+                    ppval = ddr_retrieve_most_recent_version(ddr, curThreadIndex, ddrr->path);
                     if (ppval != NULL) {
                         SKMetaData      *storedValMetaData;
                         
@@ -415,7 +416,10 @@ static void ddr_update_dir(DirDataReader *ddr, int curThreadIndex, DirDataReadRe
                                     _updateKVSWithLocal = od_add_DirData(_od, dd, metaData);
                                     // Only update kvs if the value retrieved is the most recent value in the
                                     // kvs, and if the local DirData has updates with respect to it
-                                    if (_updateKVSWithLocal && (storedValMetaData->getVersion() == latestKVSVersion)) {
+                                    //if (_updateKVSWithLocal && (storedValMetaData->getVersion() == latestKVSVersion)) {
+                                    // Update: server side directory implementation only stores one version
+                                    // no need to check version
+                                    if (_updateKVSWithLocal) {
                                         updateKVSWithLocal = TRUE;
                                     }
                                 } else {
@@ -642,6 +646,48 @@ static uint64_t ddr_get_least_version(DirDataReader *ddr, int curThreadIndex, ch
 	}
     delete pRetrieval;
     return leastVersion;
+}
+
+static SKStoredValue *ddr_retrieve_most_recent_version(DirDataReader *ddr, int curThreadIndex, char *path) {
+    SKStoredValue   *storedValue;
+    SKAsyncRetrieval   *pRetrieval;
+	SKOperationState::SKOperationState   dhtMgetErr;
+	uint64_t		t1;
+	uint64_t		t2;
+
+    storedValue = NULL;
+    pRetrieval = NULL;
+    try {
+        string  _path;
+            
+	    t1 = curTimeMillis();
+	    pRetrieval = ddr->ansp[curThreadIndex]->get(path, ddr->valueAndMetaDataGetOptions);
+        pRetrieval->waitForCompletion();
+	    t2 = curTimeMillis();
+        rts_add_sample(ddr->rtsDirData, t2 - t1, 1);
+        dhtMgetErr = pRetrieval->getState();
+        srfsLog(LOG_FINE, "ddr_retrieve_most_recent_version get complete %d", dhtMgetErr);
+        _path = string(path);
+        if (pRetrieval->getState() != SKOperationState::SUCCEEDED) {
+            storedValue = NULL;
+        } else {
+            storedValue = pRetrieval->getStoredValue(_path);
+        }
+    } catch (SKRetrievalException & e) {
+        srfsLog(LOG_INFO, "ddr line %d SKRetrievalException %s\n", __LINE__, e.what());
+		// The operation generated an exception. This is typically simply because
+		// values were not found for one or more keys (depending on namespace options.)
+		// This could also, however, be caused by a true error.
+		dhtMgetErr = SKOperationState::FAILED;
+	} catch (SKClientException & e) {
+        srfsLog(LOG_WARNING, "ddr line %d SKClientException %s\n", __LINE__, e.what());
+		dhtMgetErr = SKOperationState::FAILED;
+		// Shouldn't reach here as the only currently thrown exception 
+		// is a RetrievalException which is handled above
+		fatalError("ddr unexpected SKClientException", __FILE__, __LINE__);
+	}
+    delete pRetrieval;
+    return storedValue;
 }
 
 // Callback from Cache. Cache write lock is held during callback.

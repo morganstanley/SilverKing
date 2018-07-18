@@ -36,14 +36,6 @@ function f_aws_replaceLine {
 	$admin sed -i "/${oldLine}/c${newLine}" $filename
 }
 
-function f_aws_addHostToEtcHosts {
-    typeset etcHostsFile=/etc/hosts
-    typeset count=`grep \`hostname\` $etcHostsFile -c`
-    if [[ $count -eq 0 ]]; then
-        echo `/sbin/ifconfig eth0 | grep "inet addr" | awk '{print $2}' | cut -d : -f 2; hostname` | sudo tee -a $etcHostsFile
-    fi
-}
-
 function f_aws_generatePrivateKey {
 	cd ~/.ssh
 	typeset publicKeyFilename="id_rsa.pub"
@@ -113,6 +105,38 @@ function f_aws_symlink_jace {
     ln -s ../../../$JACE_CORE_JAR    jace-core.jar
     mv $INSTALL_ARCH_LIB_DIR/jace/dynamic .
     f_fillInBuildConfigVariable "JACE_HOME" "$LIB_ROOT/$jace_lib"
+}
+
+function f_aws_install_gtest {
+    typeset gpp_path=$1
+
+    echo "installing gtest"
+    cd $LIB_ROOT
+    typeset gtest_version="release-1.8.0"
+    typeset gtest_tar=$gtest_version.tar.gz
+    f_aws_downloadTar "$gtest_tar" "https://github.com/google/googletest/archive/$gtest_tar"
+    
+    typeset gtest_home="$LIB_ROOT/googletest-$gtest_version/googletest"
+    f_fillInBuildConfigVariable "G_TEST_HOME" "$gtest_home"
+
+    echo "building gtest - from: https://github.com/google/googletest/blob/master/googletest/README.md"
+    cd $gtest_home
+    mkdir lib
+    cd lib
+    $gpp_path -isystem $gtest_home/include -I$gtest_home -pthread -c $gtest_home/src/gtest-all.cc
+    ar -rv libgtest.a gtest-all.o
+}
+
+function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
+    f_aws_buildConfig_check
+    
+    source $BUILD_CONFIG_FILE
+    f_aws_edit_config_files
+    f_aws_symlink_skjar_for_skc
+
+    $AWS_DIR/$ZK_START_SCRIPT_NAME
+    $BUILD_DIR/$BUILD_SCRIPT_NAME
+    $AWS_DIR/$ZK_STOP_SCRIPT_NAME
 }
 
 function f_aws_buildConfig_check {
