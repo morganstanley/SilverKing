@@ -193,7 +193,7 @@ function f_buildGtestFramework {
 	                 INC_OPTS=\"$inc_opts -I${G_TEST_INC} -I${INSTALL_COMMON_INC_DIR}\"
 	                       LD=\"$ld\"
 	                  LD_OPTS=\"$ld_opts\"
-	                 LIB_OPTS=\"$lib_opts -Wl,--rpath -Wl,${INSTALL_ARCH_LIB_DIR} -L${G_TEST_LIB} -lgtest -ldl\"
+	                 LIB_OPTS=\"$lib_opts -Wl,--rpath -Wl,${INSTALL_ARCH_LIB_DIR} -L${G_TEST_LIB} -lgtest\"
 	           G_TEST_SRC_DIR=\"$g_test_src_dir\"
  BUILD_TEST_FRAMEWORK_OBJ_DIR=\"$buildObjDir\"
 	   TEST_FRAMEWORK_BIN_DIR=\"$test_framework_bin_dir\"
