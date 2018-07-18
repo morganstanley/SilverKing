@@ -28,8 +28,11 @@ Within each regional data center, each primary value must be stored in two racks
 secondary replica." We are not aware of any existing solution that provides similar support in an automated fashion.</li>
 <li><b>Speed</b> - SilverKing is as fast as the best RAM-only distributed key-value store (that we are aware of), 
 but also supports disk storage.</li>
-<li><b>Native Support for Bitemporal Data </b> - SilverKing <a href="Versioning.html">versioning</a> support can
+<li><b>Native support for bitemporal Data </b> - SilverKing <a href="Versioning.html">versioning</a> support can
 provide bitemporal data natively.</li>
+<li><b>Zero-copy namespace cloning</b> - SilverKing supports copy-on-write clones of existing namespaces. 
+This allows applications to explore changes to a base set of data without copying the base data.
+For example, interest rate shocks can be easily generated without any copying or special-case code.</li>
 <li><b>Memory efficiency</b> - SilverKing is more memory efficient than existing RAM-only key-value stores.</li>
 <li><b>Coordination primitives</b> - In addition to pure storage, SilverKing supports Linda-like coordination primitives. 
 This makes writing distributed applications far easier than with conventional techniques.</li>
