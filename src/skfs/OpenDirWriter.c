@@ -158,15 +158,6 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
 					fatalError("Unexpected multiple OpenDirWriter in odw_process_dht_batch");
 				}
 			}
-            // We presently rate-limit updates to a single dir. This is to prevent
-            // updates from consuming too much disk space. Once that issue is resolved,
-            // this code may safely be removed.
-            if (preWriteTimeMillis - od_getLastWriteMillis(odwr->od) < odw->minWriteIntervalMillis) {
-                okToWrite = FALSE;
-                odw = NULL;
-                usleep(ODW_REQUEUE_DELAY_MICROS);
-                odw_write_dir(odwr->openDirWriter, odwr->od->path, odwr->od);
-            }
         }
 		if (okToWrite) {
 			DirData	*dd;
