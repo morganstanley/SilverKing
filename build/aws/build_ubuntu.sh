@@ -16,7 +16,7 @@ function f_ubuntu_aptgetInstall {
 function f_ubuntu_install_java {
     echo "installing java"
     cd $LIB_ROOT
-    f_ubuntu_aptgetInstall "default-jdk" 
+    f_ubuntu_aptgetInstall "default-jdk" # 'default-jdk' works for 16.04, but for 14.04 it gets java7
     typeset java7_tar=jdk-7u80-linux-x64.tar.gz
     f_aws_downloadTar "$java7_tar" "http://ftp.osuosl.org/pub/funtoo/distfiles/oracle-java/$java7_tar"
 
@@ -66,10 +66,9 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
         echo "AMI: Ubuntu 14.04.5 LTS, 14.04, trusty"
     else
         echo "AMI: Ubuntu Server 16.04 LTS (HVM), SSD Volume Type - ami-4e79ed36"
-    
-        f_ubuntu_aptgetInstall "make"
     fi
  
+    f_ubuntu_aptgetInstall "make"
     f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
     echo "BUILD"
