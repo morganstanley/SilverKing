@@ -44,7 +44,7 @@ import com.amazonaws.services.ec2.model.UserIdGroupPair;
 
 public class MultiInstanceLauncher {
 
-	private final InetAddress masterIp;
+	private final String masterIp;
 	private final AmazonEC2 ec2;
 	private String amiId;
 	private String instanceType;
@@ -69,8 +69,8 @@ public class MultiInstanceLauncher {
 	
 	private long lastMinutePrinted;
 	
-	public MultiInstanceLauncher(InetAddress masterIp,  AmazonEC2 ec2, int numInstances, String amiId, String instanceType, boolean includeMaster) {
-		this.masterIp      = masterIp;
+	public MultiInstanceLauncher(InetAddress address,  AmazonEC2 ec2, int numInstances, String amiId, String instanceType, boolean includeMaster) {
+		this.masterIp      = address.getHostAddress();
 		this.ec2           = ec2;
 		this.amiId         = amiId;
 		this.instanceType  = instanceType;
@@ -171,7 +171,7 @@ public class MultiInstanceLauncher {
 	}
 	
 	private boolean ipMatchesThisMachine(Instance instance) {
-		return instance.getPrivateIpAddress().equals(masterIp.getHostAddress());
+		return instance.getPrivateIpAddress().equals(masterIp);
 	}
 	
 	private void setLaunchInstance(Instance instance) {
@@ -452,8 +452,8 @@ public class MultiInstanceLauncher {
         
         int numInstances = Integer.valueOf(args[0]);        
         System.out.println("Attempting to launch " + (numInstances-1) + " new instances, for a total of " + numInstances + " (this instance + those " + (numInstances-1) + ")");
-    	InetAddress masterIp = InetAddress.getLocalHost();
-        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterIp, AmazonEC2ClientBuilder.defaultClient(), numInstances, null, null, true);
+    	InetAddress masterAddress = InetAddress.getLocalHost();
+        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterAddress, AmazonEC2ClientBuilder.defaultClient(), numInstances, null, null, true);
         launcher.run();
 	}
 
