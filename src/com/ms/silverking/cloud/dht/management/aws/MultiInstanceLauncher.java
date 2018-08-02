@@ -65,7 +65,7 @@ public class MultiInstanceLauncher {
 	private List<Instance> workerInstances;
 
 	private static final String userHome = System.getProperty("user.home");
-	static final String newLine  = System.getProperty("line.separator");
+	static final String newLine          = System.getProperty("line.separator");
 	
 	private long lastMinutePrinted;
 	
@@ -80,7 +80,7 @@ public class MultiInstanceLauncher {
 		setNumWorkerInstances(numInstances);
 		
 		privateKeyFilename = userHome + "/.ssh/id_rsa";
-		ipsFilename        = userHome + "/SilverKing/bin/cloud_ips_list.txt";
+		ipsFilename        = userHome + "/SilverKing/build/aws/multi_nonlaunch_machines_list.txt";
 		
 		workerInstances = new ArrayList<>();
 		lastMinutePrinted = 0;
