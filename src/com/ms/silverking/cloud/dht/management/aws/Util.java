@@ -87,4 +87,13 @@ public class Util {
 		
 		printDone(newKeyName);
 	}
+	
+	public static void checkNumInstances(int numInstances) {
+		if (numInstances <= 0)
+			throwIllegalArgumentException("numInstances", numInstances, "must be > 0");
+	}
+
+	public static void throwIllegalArgumentException(String variableName, Object variableValue, String msg) {
+		throw new IllegalArgumentException("Invalid " + variableName + ": \"" + variableValue + "\" .... " + msg);
+	}
 }

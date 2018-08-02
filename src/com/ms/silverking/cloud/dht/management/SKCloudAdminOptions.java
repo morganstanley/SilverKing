@@ -2,24 +2,26 @@ package com.ms.silverking.cloud.dht.management;
 
 import org.kohsuke.args4j.Option;
 
-import com.ms.silverking.cloud.dht.client.Compression;
-import com.ms.silverking.cloud.dht.daemon.DHTNodeOptions;
-
 class SKCloudAdminOptions {
+	
+	static final int defaultNumInstances = -1;
+	
 	SKCloudAdminOptions() {
 	}
 	
-//	command
+	@Option(name="-c", usage="command. eg: \"launchInstances\", \"stopInstances\", or \"terminateInstances\"", required=true)
+	String command;
 	
-	@Option(name="-n", usage="NumberOfInstances", required=true)
-	int numInstances;
-//	
-//	@Option(name="-i", usage="instanceType", required=false)
-//	String	gridConfigBase;
-//	
-//	@Option(name="-e", usage="excludeMaster", required=true)
-//	String	commands;
-//	
-//	@Option(name="-a", usage="amiId", required=false)
-//	Compression	compression = Compression.LZ4;
+	@Option(name="-n", usage="numberOfInstances. eg: \"1\", \"50\", \"1000\", etc.", required=false)
+	int numInstances = defaultNumInstances;
+
+	@Option(name="-a", usage="amiId. eg: \"68790210\", \"bfe4b5c7\", etc.", required=false)
+	String amiId = null;
+	
+	@Option(name="-i", usage="instanceType. eg: \"t2.micro\", \"m5d.large\", \"i3.metal\", etc.", required=false)
+	String instanceType = null;
+	
+	@Option(name="-e", usage="excludeMaster", required=false)
+	boolean excludeMaster = false;
+	
 }

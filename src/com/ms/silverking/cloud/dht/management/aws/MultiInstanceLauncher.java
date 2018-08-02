@@ -44,53 +44,72 @@ import com.amazonaws.services.ec2.model.UserIdGroupPair;
 
 public class MultiInstanceLauncher {
 
-	private final InetAddress ip;
-	private final int numInstances;
+	private final InetAddress masterIp;
 	private final AmazonEC2 ec2;
-	
-	private Instance launchInstance;
 	private String amiId;
 	private String instanceType;
+	private final boolean includeMaster;
+	private int numWorkerInstances;
+	
+	private Instance launchInstance;
 	private String keyPairName;
 	private List<GroupIdentifier> securityGroups;
 	private String subnetId;
 
 	private String privateKeyFilename;
 	private String privateKey;
-	private String nonLaunchMachinesIpList;
+	private String ipsFilename;
 	
 	private static final String newSecurityGroupName = "sk_instance";
 	
 	private List<Instance> workerInstances;
 
 	private static final String userHome = System.getProperty("user.home");
-	private static final String newLine  = System.getProperty("line.separator");
+	static final String newLine  = System.getProperty("line.separator");
 	
 	private long lastMinutePrinted;
 	
-	public MultiInstanceLauncher(InetAddress ip, int numInstances, AmazonEC2 ec2) {
-		this.ip = ip;
-		this.numInstances = numInstances;
-		this.ec2 = ec2;
+	public MultiInstanceLauncher(InetAddress masterIp,  AmazonEC2 ec2, int numInstances, String amiId, String instanceType, boolean includeMaster) {
+		this.masterIp      = masterIp;
+		this.ec2           = ec2;
+		this.amiId         = amiId;
+		this.instanceType  = instanceType;
+		this.includeMaster = includeMaster;
 		
-		privateKeyFilename      = userHome + "/.ssh/id_rsa";
-		nonLaunchMachinesIpList = userHome + "/SilverKing/build/aws/multi_nonlaunch_machines_list.txt";
+		Util.checkNumInstances(numInstances);
+		setNumWorkerInstances(numInstances);
 		
+		privateKeyFilename = userHome + "/.ssh/id_rsa";
+		ipsFilename        = userHome + "/SilverKing/bin/cloud_ips_list.txt";
+		
+		workerInstances = new ArrayList<>();
 		lastMinutePrinted = 0;
 	}
 	
+	private void setNumWorkerInstances(int numInstances) {
+		numWorkerInstances = numInstances;
+		if (includeMaster)
+			numWorkerInstances--;
+	}
+	
 	public void run() {
-		System.out.println("Hi from mil run");
-		setLaunchInstance();
-//		createSecurityGroup();
-//		addSecurityGroupToLaunchInstance();
-		deleteKeyPair(ec2);
-		createKeyPair();
-		createPrivateKeyFile();
-		createAndRunNewInstances();
-		waitForInstancesToBeRunning();
-		waitForInstancesToBeReachable();
+		if (!isMasterOnlyInstance()) {
+			setLaunchInstance();
+	//		createSecurityGroup();
+	//		addSecurityGroupToLaunchInstance();
+			deleteKeyPair(ec2);
+			createKeyPair();
+			createPrivateKeyFile();
+			createAndRunNewInstances();
+			waitForInstancesToBeRunning();
+			waitForInstancesToBeReachable();
+		}
+	
 		createIpListFile();
+	}
+	
+	boolean isMasterOnlyInstance() {
+		return 0 == numWorkerInstances;
 	}
 	
 	private void createSecurityGroup() {
@@ -152,18 +171,29 @@ public class MultiInstanceLauncher {
 	}
 	
 	private boolean ipMatchesThisMachine(Instance instance) {
-		return instance.getPrivateIpAddress().equals(ip.getHostAddress());
+		return instance.getPrivateIpAddress().equals(masterIp.getHostAddress());
 	}
 	
 	private void setLaunchInstance(Instance instance) {
 		launchInstance = instance;
-    	amiId          = instance.getImageId();
-    	instanceType   = instance.getInstanceType();
+		
+		if (isSet(amiId))
+			amiId = "ami-"+amiId;
+		else
+			amiId = instance.getImageId();
+		
+		if (!isSet(instanceType))
+			instanceType = instance.getInstanceType();
+		
     	keyPairName    = instance.getKeyName();
     	securityGroups = instance.getSecurityGroups();
     	subnetId       = instance.getSubnetId();
     	printDetails();
     	printDone(instance.getInstanceId());
+	}
+	
+	private boolean isSet(String value) {
+		return value != null;
 	}
 	
 	private void printDetails() {
@@ -233,7 +263,7 @@ public class MultiInstanceLauncher {
 		runInstancesRequest.withImageId(amiId)
 		                   .withInstanceType(instanceType)
 		                   .withMinCount(1)
-		                   .withMaxCount(numInstances)
+		                   .withMaxCount(numWorkerInstances)
 		                   .withKeyName(newKeyName)
 		                   .withSecurityGroupIds( getSecurityGroupIds(securityGroups) )	// for some reason this one works and below doesn't
 //		                   .withSecurityGroups( getNames(securityGroups) )	if you try to use .withSecurityGroups AND .withSubnetId, you will get Exception in thread "main" com.amazonaws.services.ec2.model.AmazonEC2Exception: The parameter groupName cannot be used with the parameter subnet (Service: AmazonEC2; Status Code: 400; Error Code: InvalidParameterCombination; Request ID: a230cc97-c84b-4253-bdf0-874c68759efd)
@@ -289,7 +319,7 @@ public class MultiInstanceLauncher {
 		disRequest.withInstanceIds( getInstanceIds(workerInstances) );
 
 		long sleepSeconds        = 15;
-		long totalRunTimeSeconds = 5 * 60; 	
+		long totalRunTimeSeconds = 10 * 60; 	
 		int retriesCount = 0;
 		List<String> ips = getIps(workerInstances);
 		while (!ips.isEmpty()) {
@@ -399,23 +429,31 @@ public class MultiInstanceLauncher {
 	private void createIpListFile() {
 		print("Creating IpList File");
 		
-		writeToFile(nonLaunchMachinesIpList, String.join(newLine, getIps(workerInstances)) + newLine);
+		writeToFile(ipsFilename, getIpList());
 		
-		printDone(nonLaunchMachinesIpList);
+		printDone(ipsFilename);
+	}
+	
+	String getIpList() {
+		if (isMasterOnlyInstance())
+			return masterIp + newLine;
+		else {
+			String ipList = String.join(newLine, getIps(workerInstances)) + newLine;
+			if (includeMaster)
+				ipList = masterIp + newLine + ipList;
+			
+			return ipList;
+		}
 	}
 	
     public static void main(String[] args) throws Exception {
         if (args.length == 0)
         	throw new RuntimeException("We need to know how many instances to start. Please pass in <numberOfInstances>");
         
-        int numInstances = Integer.valueOf(args[0]);
-        int nonLaunchInstances = numInstances - 1;
-        if (nonLaunchInstances <= 0)
-        	throw new RuntimeException("numberOfInstances needs to be > 1");
-        
-        System.out.println("Attempting to launch " + nonLaunchInstances + " new instances, for a total of " + numInstances + " (this instance + those " + nonLaunchInstances + ")");
-    	InetAddress ip = InetAddress.getLocalHost();
-        MultiInstanceLauncher launcher = new MultiInstanceLauncher(ip, nonLaunchInstances, AmazonEC2ClientBuilder.defaultClient());
+        int numInstances = Integer.valueOf(args[0]);        
+        System.out.println("Attempting to launch " + (numInstances-1) + " new instances, for a total of " + numInstances + " (this instance + those " + (numInstances-1) + ")");
+    	InetAddress masterIp = InetAddress.getLocalHost();
+        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterIp, AmazonEC2ClientBuilder.defaultClient(), numInstances, null, null, true);
         launcher.run();
 	}
 
