@@ -8,7 +8,7 @@ source lib/common.lib
 
 allArgs="$@"
 
-f_sourceSkConfigAndConfigureClasspath
+f_sourceSkConfigAndConfigureClasspath "$__SK_CLASSPATH_TYPE"
 
 toolClass=$__SK_TOOL_EXEC_TOOL_CLASS
 cmd="$skJavaHome/bin/java -ea -cp $classpath $toolClass $allArgs"
