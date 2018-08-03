@@ -40,7 +40,7 @@ public class MultiInstanceLauncherTest {
 	@Test
 	public void testGetIpList() {
 		MultiInstanceLauncher launcher = getNewTestLauncher(1, true);
-		assertEquals(nullList(), launcher.getIpList());
+		assertEquals(nullList(), launcher.getInstanceIps());
 	}
 	
 	@Test

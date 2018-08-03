@@ -10,6 +10,9 @@ import com.amazonaws.services.ec2.model.Instance;
 
 public class Util {
 
+	public static final String userHome = System.getProperty("user.home");
+	       static final String newLine  = System.getProperty("line.separator");
+	
 	static boolean debugPrint = false;
 	
 	static final String newKeyName = "sk_key";
@@ -34,7 +37,7 @@ public class Util {
 		System.out.println();
 	}
 	
-	static void print(String text) {
+	public static void print(String text) {
 		printHelper(text, "...");
 	}
 	
@@ -42,7 +45,7 @@ public class Util {
 		System.out.printf("%-39s %-3s ", text, spacer);
 	}
 	
-	static void printDone(String value) {
+	public static void printDone(String value) {
 		System.out.println("done ("+value+")");
 	}
 	

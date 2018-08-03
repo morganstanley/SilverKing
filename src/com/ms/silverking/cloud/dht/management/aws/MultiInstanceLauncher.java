@@ -6,10 +6,12 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
 import static com.ms.silverking.cloud.dht.management.aws.Util.isRunning;
 import static com.ms.silverking.cloud.dht.management.aws.Util.newKeyName;
+import static com.ms.silverking.cloud.dht.management.aws.Util.newLine;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printInstance;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printNoDot;
+import static com.ms.silverking.cloud.dht.management.aws.Util.userHome;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -41,6 +43,7 @@ import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.UserIdGroupPair;
+import com.ms.silverking.cloud.dht.management.SKCloudAdmin;
 
 public class MultiInstanceLauncher {
 
@@ -56,16 +59,13 @@ public class MultiInstanceLauncher {
 	private List<GroupIdentifier> securityGroups;
 	private String subnetId;
 
-	private String privateKeyFilename;
+	public static final String privateKeyFilename = userHome + "/.ssh/id_rsa";
+	       static final String ipsFilename        = SKCloudAdmin.cloudOutDir + "/cloud_ip_list.txt";
 	private String privateKey;
-	private String ipsFilename;
 	
 	private static final String newSecurityGroupName = "sk_instance";
 	
 	private List<Instance> workerInstances;
-
-	private static final String userHome = System.getProperty("user.home");
-	static final String newLine          = System.getProperty("line.separator");
 	
 	private long lastMinutePrinted;
 	
@@ -78,9 +78,6 @@ public class MultiInstanceLauncher {
 		
 		Util.checkNumInstances(numInstances);
 		setNumWorkerInstances(numInstances);
-		
-		privateKeyFilename = userHome + "/.ssh/id_rsa";
-		ipsFilename        = userHome + "/SilverKing/build/aws/multi_nonlaunch_machines_list.txt";
 		
 		workerInstances = new ArrayList<>();
 		lastMinutePrinted = 0;
@@ -237,6 +234,7 @@ public class MultiInstanceLauncher {
 		File file = new File(filename);
 		
 	    try {
+	    	file.mkdirs();
 			file.createNewFile();
 			FileWriter writer = new FileWriter(file);
 			writer.write(content);
@@ -435,20 +433,24 @@ public class MultiInstanceLauncher {
 	private void createIpListFile() {
 		print("Creating IpList File");
 		
-		writeToFile(ipsFilename, String.join(newLine, getIpList()) + newLine);
+		writeToFile(ipsFilename, String.join(newLine, getInstanceIps()) + newLine);
 		
 		printDone(ipsFilename);
 	}
 	
-	public List<String> getIpList() {
+	public List<String> getWorkerIps() {
+		return getIps(workerInstances);
+	}
+	
+	public List<String> getInstanceIps() {
 		if (isMasterOnlyInstance())
 			return Arrays.asList(masterIp);
 		else {
-			List<String> ipList = getIps(workerInstances);
+			List<String> instanceIps = getWorkerIps();
 			if (includeMaster)
-				ipList.add(0, masterIp);
+				instanceIps.add(0, masterIp);
 			
-			return ipList;
+			return instanceIps;
 		}
 	}
 	

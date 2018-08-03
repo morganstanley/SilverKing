@@ -22,7 +22,7 @@ function f_aws_updateServersList {
     f_overrideBuildConfigVariable "SK_SERVERS" "$serverList"
 }
 
-function f_aws_addPublicKeyToAuthorizedKeys {
+function f_aws_generatePublicKeyAndAddToAuthorizedKeys {
     f_printSubSection "Generating public key and adding to authorized_keys"
     ssh-keygen -y -f ~/.ssh/id_rsa >> ~/.ssh/authorized_keys
 }
@@ -81,7 +81,7 @@ f_aws_updateServersList
 cd ..
 source lib/common.lib
 cd -
-f_aws_addPublicKeyToAuthorizedKeys
+f_aws_generatePublicKeyAndAddToAuthorizedKeys
 f_aws_copyPrivateKeyToAllMachines
 ./$ZK_START_SCRIPT_NAME
 f_runStaticInstanceCreator
@@ -90,6 +90,8 @@ f_printSection "PREPPING NONLAUNCH MACHINES"
 f_aws_copyGc
 f_aws_symlinkSkfsD
 
+# would have just called f_startAll in common.lib, but f_startSilverking_Helper has a first call to f_runStaticInstanceCreator, which we need to do first so we can prep the nonlaunch machines
+# so we are pretty much duplicating f_startAll
 f_printSection "STARTING"
 f_runSkAdmin "StartNodes"
 f_skUserProcessCheck "1"
