@@ -69,8 +69,8 @@ public class MultiInstanceLauncher {
 	
 	private long lastMinutePrinted;
 	
-	public MultiInstanceLauncher(InetAddress address,  AmazonEC2 ec2, int numInstances, String amiId, String instanceType, boolean includeMaster) {
-		this.masterIp      = address.getHostAddress();
+	public MultiInstanceLauncher(String masterIp, AmazonEC2 ec2, int numInstances, String amiId, String instanceType, boolean includeMaster) {
+		this.masterIp      = masterIp;
 		this.ec2           = ec2;
 		this.amiId         = amiId;
 		this.instanceType  = instanceType;
@@ -97,9 +97,13 @@ public class MultiInstanceLauncher {
 			setLaunchInstance();
 	//		createSecurityGroup();
 	//		addSecurityGroupToLaunchInstance();
-			deleteKeyPair(ec2);
-			createKeyPair();
-			createPrivateKeyFile();
+		}
+		
+		deleteKeyPair(ec2);
+		createKeyPair();
+		createPrivateKeyFile();
+		
+		if (!isMasterOnlyInstance()) {
 			createAndRunNewInstances();
 			waitForInstancesToBeRunning();
 			waitForInstancesToBeReachable();
@@ -205,6 +209,8 @@ public class MultiInstanceLauncher {
 		debugPrint("subnet: " + subnetId);
 	}
 	
+	// we have to create a new keypair b/c the keypair we used to get access (ssh) to this master/launch instance, that key_pair is on our windows machine.. i.e. outside aws
+	// this applies for masterOnlyInstances as well. w/o this, we can't even ssh to ourselves with masterOnlyInstances b/c of "Permission denied (publickey)" 
 	private void createKeyPair() {
 		print("Creating New Key Pair");
 		
@@ -429,18 +435,18 @@ public class MultiInstanceLauncher {
 	private void createIpListFile() {
 		print("Creating IpList File");
 		
-		writeToFile(ipsFilename, getIpList());
+		writeToFile(ipsFilename, String.join(newLine, getIpList()) + newLine);
 		
 		printDone(ipsFilename);
 	}
 	
-	String getIpList() {
+	public List<String> getIpList() {
 		if (isMasterOnlyInstance())
-			return masterIp + newLine;
+			return Arrays.asList(masterIp);
 		else {
-			String ipList = String.join(newLine, getIps(workerInstances)) + newLine;
+			List<String> ipList = getIps(workerInstances);
 			if (includeMaster)
-				ipList = masterIp + newLine + ipList;
+				ipList.add(0, masterIp);
 			
 			return ipList;
 		}
@@ -452,8 +458,8 @@ public class MultiInstanceLauncher {
         
         int numInstances = Integer.valueOf(args[0]);        
         System.out.println("Attempting to launch " + (numInstances-1) + " new instances, for a total of " + numInstances + " (this instance + those " + (numInstances-1) + ")");
-    	InetAddress masterAddress = InetAddress.getLocalHost();
-        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterAddress, AmazonEC2ClientBuilder.defaultClient(), numInstances, null, null, true);
+    	String masterIp = InetAddress.getLocalHost().getHostAddress();
+        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterIp, AmazonEC2ClientBuilder.defaultClient(), numInstances, null, null, true);
         launcher.run();
 	}
 

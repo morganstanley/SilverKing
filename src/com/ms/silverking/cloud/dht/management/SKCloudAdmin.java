@@ -92,7 +92,7 @@ public class SKCloudAdmin {
 	public void run() {
 		switch (command) {
 	        case "launchInstances":
-	            launchInstances();
+	        	launchInstances();
 	            break;
 	        case "stopInstances":
 	            stopInstances();
@@ -107,9 +107,10 @@ public class SKCloudAdmin {
 	
 	private void launchInstances() {
 		try {
-			new MultiInstanceLauncher(InetAddress.getLocalHost(), AmazonEC2ClientBuilder.defaultClient(), numInstances, amiId, instanceType, includeMaster).run();
+			MultiInstanceLauncher launcher = new MultiInstanceLauncher(InetAddress.getLocalHost().getHostAddress(), AmazonEC2ClientBuilder.defaultClient(), numInstances, amiId, instanceType, includeMaster);
+			launcher.run();
+			List<String> instanceIps = launcher.getIpList();
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
