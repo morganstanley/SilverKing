@@ -1,11 +1,15 @@
 package com.ms.silverking.cloud.dht.management;
 
 import static com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher.privateKeyFilename;
+import static com.ms.silverking.cloud.dht.management.aws.Util.ec2Client;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.userHome;
+import static com.ms.silverking.process.ProcessExecutor.runBashCmd;
+import static com.ms.silverking.process.ProcessExecutor.runCmd;
+import static com.ms.silverking.process.ProcessExecutor.scpFile;
+import static com.ms.silverking.process.ProcessExecutor.ssh;
 
-import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -14,8 +18,8 @@ import java.util.List;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
-import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher;
+import com.ms.silverking.cloud.dht.management.aws.MultiInstanceTerminator;
 import com.ms.silverking.cloud.dht.management.aws.Util;
 import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
 
@@ -116,6 +120,7 @@ public class SKCloudAdmin {
 	}
 	
 	private void launchInstances() {
+		System.out.println("=== LAUNCHING INSTANCES ===");
 		String launchHost = "";
 		try {
 			launchHost = InetAddress.getLocalHost().getHostAddress();
@@ -123,7 +128,7 @@ public class SKCloudAdmin {
 			e.printStackTrace();
 		}
 		
-		MultiInstanceLauncher launcher = new MultiInstanceLauncher(launchHost, AmazonEC2ClientBuilder.defaultClient(), numInstances, amiId, instanceType, includeMaster);
+		MultiInstanceLauncher launcher = new MultiInstanceLauncher(launchHost, ec2Client, numInstances, amiId, instanceType, includeMaster);
 		launcher.run();
 		// from the launch/master host's perspective (i.e. where we are running this script from):
 		//   1. this machine has the private key (created from MultiInstanceLauncher)
@@ -145,32 +150,10 @@ public class SKCloudAdmin {
 	private void generatePublicKeyAndAddToAuthorizedKeys() {
 		print("Generating public key and adding it to authorized_keys");
 
-		runCommand("ssh-keygen -y -f " + privateKeyFilename + " >> " + userHome + "/.ssh/authorized_keys");
+		// using runBashCmd instead of runCmd, b/c of chained command ">>"
+		runBashCmd("ssh-keygen -y -f " + privateKeyFilename + " >> " + userHome + "/.ssh/authorized_keys");
 		
 		printDone("");
-	}
-	
-	private void runCommand(String command) {
-		System.out.println("running command: " + command);
-		try {
-	        java.lang.Runtime rt = java.lang.Runtime.getRuntime();
-	        java.lang.Process p = rt.exec(command);
-	        p.waitFor();
-	        if (0 != p.exitValue())
-	        	System.out.println("Process exited with code = " + p.exitValue());
-	        // Get process' output: its InputStream
-	        java.io.InputStream inputStream = p.getInputStream();
-	        java.io.BufferedReader reader = new java.io.BufferedReader(new InputStreamReader(inputStream));
-	        // And print each line
-	        String line = null;
-	        while ((line = reader.readLine()) != null) {
-	            System.out.println(line);
-	        }
-	        inputStream.close();
-		}
-		catch (Exception e) {
-			
-		}
 	}
 	
 	private void copyPrivateKeyToWorkerMachines(List<String> workerIps) {
@@ -182,38 +165,41 @@ public class SKCloudAdmin {
 		printDone("");
 	}
 	
-	private void scpFile(String destDir, String file, String host) {
-		String user = System.getProperty("user.name");
-		runCommand("scp -o StrictHostKeyChecking=no " + file + " " + user + "@" + host + ":" + destDir);
-	}
-	
 	private void startZk() {
 		print("Starting ZooKeeper");
 
-		runCommand(userHome + "/SilverKing/build/aws/zk_start.sh");
+		runCmd(userHome + "/SilverKing/build/aws/zk_start.sh");
 		
 		printDone("");
 	}
 	
 	private void runStaticInstanceCreator(String launchHost, List<String> instanceIps) {
+		print("Running Static Instance Creator");
+
 		StaticDHTCreator.main(new String[]{"-G", cloudOutDir, "-g", cloudGcName, "-d", "SK_cloud", 
 										   "-s", String.join(",", instanceIps), "-r", "1", "-z", launchHost+":2181",
 										   "-D", "/var/tmp/silverking", "-L", "/tmp/silverking", "-k", cloudOutDir+"/../lib/skfs.config", "-i", "10"/*in M's*/});
+		
+		printDone("");
 	}
 	
 	private void copyGcToWorkerMachines(List<String> workerIps) {
 		print("Copying GC to workers");
 
 		String srcDir = cloudOutDir;
-		for (String workerIp : workerIps)
+		for (String workerIp : workerIps) {
+			ssh(workerIp, "mkdir -p " + srcDir);
 			scpFile(srcDir, srcDir+"/"+cloudGcName+".env", workerIp);
+		}
 		
 		printDone("");
 	}
 	
-	// even this launch host
+	// symlink even this launch host (master) b/c if it's included in the instances, we need skfsd on here, which it isn't
+	// and if it isn't a part of the instances, then it's just a harmless symlink 
+	// that's why we're using instanceIps instead of just workerIps
 	private void symlinkSkfsdOnAllMachines(List<String> instanceIps) {
-		print("Symlinking skfsd on workers");
+		print("Symlinking skfsd on all machines");
 
 		for (String instanceIp : instanceIps)
 			ssh(instanceIp, "ln -sv " + cloudOutDir+"/../build/skfs-build/skfs-install/arch-output-area/skfsd" + " " + cloudOutDir+"/../skfs/skfsd");
@@ -221,16 +207,23 @@ public class SKCloudAdmin {
 		printDone("");
 	}
 	
-	private void ssh(String host, String command) {
-		runCommand("ssh -x -o StrictHostKeyChecking=no " + host + " " + command);
-	}
-	
 	private void stopInstances() {
-		System.out.println("Stopping");
+		System.out.println("=== STOPPING INSTANCES ===");
 	}
 	
 	private void terminateInstances() {
-		System.out.println("Terminating");
+		System.out.println("=== TERMINATING INSTANCES ===");
+		MultiInstanceTerminator terminator = new MultiInstanceTerminator(ec2Client);
+		terminator.run();
+		stopZk();
+	}
+	
+	private void stopZk() {
+		print("Stopping ZooKeeper");
+
+		runCmd(userHome + "/SilverKing/build/aws/zk_stop.sh");
+		
+		printDone("");
 	}
 	
 	public static void main(String[] args) {

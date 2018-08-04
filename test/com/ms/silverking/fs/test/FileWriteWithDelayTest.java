@@ -51,7 +51,7 @@ public class FileWriteWithDelayTest {
 		String className = FileWriteWithDelay.class.getCanonicalName();
 		// if you're going to run from cmdline and test, use abs path names and set SK_CLASSPATH=/abs/path/to/repo/bin-ide/eclipse:/abs/path/to/repo/lib/*
 		// lib/* will work here, you don't have to list each jar one by one
-		String[] commands = ProcessExecutor.getSshCommands(server2, javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false > /tmp/fwwd.out");
+		String[] commands = ProcessExecutor.getSshCommandWithRedirectOutputFile(server2, javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false > /tmp/fwwd.out");
 		ProcessExecutor.runCmdNoWait(commands);
 		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});
 		

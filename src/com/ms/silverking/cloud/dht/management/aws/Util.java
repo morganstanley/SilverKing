@@ -1,15 +1,29 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
+import static com.ms.silverking.cloud.dht.management.aws.Util.debugPrint;
+import static com.ms.silverking.cloud.dht.management.aws.Util.isKeyPair;
+import static com.ms.silverking.cloud.dht.management.aws.Util.isRunning;
+import static com.ms.silverking.cloud.dht.management.aws.Util.print;
+import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
+import static com.ms.silverking.cloud.dht.management.aws.Util.printInstance;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.DeleteKeyPairRequest;
 import com.amazonaws.services.ec2.model.DeleteKeyPairResult;
+import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceStateChange;
+import com.amazonaws.services.ec2.model.Reservation;
 
 public class Util {
 
+	public static final AmazonEC2 ec2Client = AmazonEC2ClientBuilder.defaultClient();
+	
 	public static final String userHome = System.getProperty("user.home");
 	       static final String newLine  = System.getProperty("line.separator");
 	
@@ -70,6 +84,45 @@ public class Util {
 			ips.add(instance.getPrivateIpAddress());
 		
 		return ips;
+	}
+	
+	static List<Instance> findInstancesRunningWithKeyPair(AmazonEC2 ec2) {
+		print("Finding Running Instances");
+
+		List<Instance> instances = new ArrayList<>();
+		
+		DescribeInstancesRequest request = new DescribeInstancesRequest();
+		while (true) {
+		    DescribeInstancesResult response = ec2.describeInstances(request);
+
+		    for (Reservation reservation : response.getReservations()) {
+		        for (Instance instance : reservation.getInstances()) {
+		            printInstance(instance);
+			        if ( isRunning(instance) && isKeyPair(instance) ) {
+			        	instances.add(instance);
+			        }
+		        }
+		    }
+
+		    if (response.getNextToken() == null)
+		        break;
+		    
+		    debugPrint("token: " + response.getNextToken());
+		    request.setNextToken(response.getNextToken());
+		}
+
+		printDone("found " + instances.size());
+		
+		return instances;
+	}
+
+	static List<String> getIds(List<InstanceStateChange> instanceStateChanges) {
+		List<String> ids = new ArrayList<>();
+		
+		for (InstanceStateChange instanceStateChange : instanceStateChanges)
+			ids.add(instanceStateChange.getInstanceId());
+		
+		return ids;
 	}
 		
 	static boolean isRunning(Instance instance) {

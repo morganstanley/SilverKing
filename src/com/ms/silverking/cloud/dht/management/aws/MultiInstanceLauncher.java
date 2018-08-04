@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.management.aws;
 
 import static com.ms.silverking.cloud.dht.management.aws.Util.debugPrint;
 import static com.ms.silverking.cloud.dht.management.aws.Util.deleteKeyPair;
+import static com.ms.silverking.cloud.dht.management.aws.Util.ec2Client;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
 import static com.ms.silverking.cloud.dht.management.aws.Util.isRunning;
@@ -22,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairResult;
@@ -90,6 +90,8 @@ public class MultiInstanceLauncher {
 	}
 	
 	public void run() {
+		System.out.println("Creating " + numWorkerInstances + " new instance(s)");
+		
 		if (!isMasterOnlyInstance()) {
 			setLaunchInstance();
 	//		createSecurityGroup();
@@ -460,7 +462,7 @@ public class MultiInstanceLauncher {
         int numInstances = Integer.valueOf(args[0]);        
         System.out.println("Attempting to launch " + (numInstances-1) + " new instances, for a total of " + numInstances + " (this instance + those " + (numInstances-1) + ")");
     	String masterIp = InetAddress.getLocalHost().getHostAddress();
-        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterIp, AmazonEC2ClientBuilder.defaultClient(), numInstances, null, null, true);
+        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterIp, ec2Client, numInstances, null, null, true);
         launcher.run();
 	}
 

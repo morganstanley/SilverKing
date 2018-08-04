@@ -17,14 +17,14 @@ import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 
-public class Tester {
+public class ExampleTestCode {
 
 	private AmazonEC2 ec2;
 	private static final String amiId="ami-b77b06cf";
 	private static final String keyPairName="bph";
 	private static final String securityGroupName="bph";
 			
-	public Tester() {
+	public ExampleTestCode() {
 		/*
          * The ProfileCredentialsProvider will return your [default]
          * credential profile by reading from the credentials file located at
@@ -118,7 +118,7 @@ public class Tester {
         System.out.println("Welcome to the AWS Java SDK!");
         System.out.println("===========================================");
 
-        Tester tester = new Tester();
+        ExampleTestCode tester = new ExampleTestCode();
         tester.run();
         tester.test();
 //        tester.runInstances();
