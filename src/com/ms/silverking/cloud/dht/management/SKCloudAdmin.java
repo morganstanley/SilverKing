@@ -29,7 +29,7 @@ import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
  */
 public class SKCloudAdmin {
 
-	public  static final String cloudOutDir = userHome + "/SilverKing/bin/cloud_out/";
+	public  static final String cloudOutDir = userHome + "/SilverKing/bin/cloud_out";
 	private static final String cloudGcName = "GC_SK_cloud";
 	
 	static final String launchInstancesCommand    = getCommandName("launch");
@@ -127,20 +127,23 @@ public class SKCloudAdmin {
 		launcher.run();
 		// from the launch/master host's perspective (i.e. where we are running this script from):
 		//   1. this machine has the private key (created from MultiInstanceLauncher)
-		//      we need to create it's corresponding public key so we can ssh to this instance (i.e. ourselves - localhost)
-		//   2. each of the instances created from MultiInstanceLauncher already have the public key
+		//      we need to create it's corresponding public key AND add it to authorized_keys so we can ssh to this instance (i.e. ourselves - localhost)
+		//      we don't need the id_rsa.pub to hang around, we just need the CONTENTS of it in authorized_keys
+		//   2. each of the instances created from MultiInstanceLauncher already have the public key (they actually don't have the public key, i.e. there's 
+		//      no .ssh/id_rsa.pub on those machines, but the content of the public key is in authorized_keys, and that's all that there needs to be for ssh'ing)
 		//      we need to put the private key on all those machines
 		generatePublicKeyAndAddToAuthorizedKeys();
 		List<String> workerIps = launcher.getWorkerIps();
 		copyPrivateKeyToWorkerMachines(workerIps);
 		startZk();
-		runStaticInstanceCreator(launchHost, launcher.getInstanceIps());
+		List<String> masterAndWorkerIps = launcher.getInstanceIps();
+		runStaticInstanceCreator(launchHost, masterAndWorkerIps);
 		copyGcToWorkerMachines(workerIps);
-		symlinkSkfsdOnWorkerMachines(workerIps);
+		symlinkSkfsdOnAllMachines(masterAndWorkerIps);
 	}
 	
 	private void generatePublicKeyAndAddToAuthorizedKeys() {
-		print("Generating Pub Key and Adding to Auth Keys");
+		print("Generating public key and adding it to authorized_keys");
 
 		runCommand("ssh-keygen -y -f " + privateKeyFilename + " >> " + userHome + "/.ssh/authorized_keys");
 		
@@ -148,6 +151,7 @@ public class SKCloudAdmin {
 	}
 	
 	private void runCommand(String command) {
+		System.out.println("running commannd: " + command);
 		try {
 	        java.lang.Runtime rt = java.lang.Runtime.getRuntime();
 	        java.lang.Process p = rt.exec(command);
@@ -193,7 +197,7 @@ public class SKCloudAdmin {
 	private void runStaticInstanceCreator(String launchHost, List<String> instanceIps) {
 		StaticDHTCreator.main(new String[]{"-G", cloudOutDir, "-g", cloudGcName, "-d", "SK_cloud", 
 										   "-s", String.join(",", instanceIps), "-r", "1", "-z", launchHost+":2181",
-										   "-D", "/var/tmp/silverking", "-L", "/tmp/silverking", "-k", cloudOutDir+"/../skfs", "-i", "10"/*in M's*/});
+										   "-D", "/var/tmp/silverking", "-L", "/tmp/silverking", "-k", cloudOutDir+"/../lib/skfs.config", "-i", "10"/*in M's*/});
 	}
 	
 	private void copyGcToWorkerMachines(List<String> workerIps) {
@@ -206,11 +210,12 @@ public class SKCloudAdmin {
 		printDone("");
 	}
 	
-	private void symlinkSkfsdOnWorkerMachines(List<String> workerIps) {
+	// even this launch host
+	private void symlinkSkfsdOnAllMachines(List<String> instanceIps) {
 		print("Symlinking skfsd on workers");
 
-		for (String workerIp : workerIps)
-			ssh(workerIp, "ln -sv " + cloudOutDir+"/../build/skfs-build/skfs-install/arch-output-area/skfsd" + " " + cloudOutDir+"/../skfs/skfsd");
+		for (String instanceIp : instanceIps)
+			ssh(instanceIp, "ln -sv " + cloudOutDir+"/../build/skfs-build/skfs-install/arch-output-area/skfsd" + " " + cloudOutDir+"/../skfs/skfsd");
 		
 		printDone("");
 	}
