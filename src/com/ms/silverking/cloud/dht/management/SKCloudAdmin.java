@@ -151,12 +151,13 @@ public class SKCloudAdmin {
 	}
 	
 	private void runCommand(String command) {
-		System.out.println("running commannd: " + command);
+		System.out.println("running command: " + command);
 		try {
 	        java.lang.Runtime rt = java.lang.Runtime.getRuntime();
 	        java.lang.Process p = rt.exec(command);
 	        p.waitFor();
-	        System.out.println("Process exited with code = " + p.exitValue());
+	        if (0 != p.exitValue())
+	        	System.out.println("Process exited with code = " + p.exitValue());
 	        // Get process' output: its InputStream
 	        java.io.InputStream inputStream = p.getInputStream();
 	        java.io.BufferedReader reader = new java.io.BufferedReader(new InputStreamReader(inputStream));
