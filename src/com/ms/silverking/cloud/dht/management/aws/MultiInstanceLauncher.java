@@ -234,13 +234,13 @@ public class MultiInstanceLauncher {
 		File file = new File(filename);
 		
 	    try {
-	    	file.mkdirs();
+	    	// mkdirs and createNewFile only create iff those paths/file don't already exist. so no need to check for existence beforehand.
+	    	file.getParentFile().mkdirs();
 			file.createNewFile();
 			FileWriter writer = new FileWriter(file);
 			writer.write(content);
 			writer.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -391,7 +391,6 @@ public class MultiInstanceLauncher {
 	    try {
 			Thread.sleep(seconds*1_000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
