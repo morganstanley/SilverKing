@@ -2,7 +2,6 @@ package com.ms.silverking.cloud.dht.management.aws;
 
 import static com.ms.silverking.cloud.dht.management.aws.Util.debugPrint;
 import static com.ms.silverking.cloud.dht.management.aws.Util.deleteKeyPair;
-import static com.ms.silverking.cloud.dht.management.aws.Util.ec2Client;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
 import static com.ms.silverking.cloud.dht.management.aws.Util.isRunning;
@@ -11,32 +10,27 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.newLine;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printInstance;
-import static com.ms.silverking.cloud.dht.management.aws.Util.printNoDot;
 import static com.ms.silverking.cloud.dht.management.aws.Util.userHome;
+import static com.ms.silverking.cloud.dht.management.aws.Util.waitForInstancesToBeReachable;
+import static com.ms.silverking.cloud.dht.management.aws.Util.waitForInstancesToBeRunning;
+import static com.ms.silverking.cloud.dht.management.aws.Util.writeToFile;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairResult;
 import com.amazonaws.services.ec2.model.CreateSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.CreateSecurityGroupResult;
-import com.amazonaws.services.ec2.model.DescribeInstanceStatusRequest;
-import com.amazonaws.services.ec2.model.DescribeInstanceStatusResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.GroupIdentifier;
 import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.InstanceStatus;
-import com.amazonaws.services.ec2.model.InstanceStatusDetails;
-import com.amazonaws.services.ec2.model.InstanceStatusSummary;
 import com.amazonaws.services.ec2.model.IpPermission;
 import com.amazonaws.services.ec2.model.KeyPair;
 import com.amazonaws.services.ec2.model.Reservation;
@@ -67,9 +61,7 @@ public class MultiInstanceLauncher {
 	
 	private List<Instance> workerInstances;
 	
-	private long lastMinutePrinted;
-	
-	public MultiInstanceLauncher(String masterIp, AmazonEC2 ec2, int numInstances, String amiId, String instanceType, boolean includeMaster) {
+	public MultiInstanceLauncher(AmazonEC2 ec2, String masterIp, int numInstances, String amiId, String instanceType, boolean includeMaster) {
 		this.masterIp      = masterIp;
 		this.ec2           = ec2;
 		this.amiId         = amiId;
@@ -79,8 +71,7 @@ public class MultiInstanceLauncher {
 		Util.checkNumInstances(numInstances);
 		setNumWorkerInstances(numInstances);
 		
-		workerInstances = new ArrayList<>();
-		lastMinutePrinted = 0;
+		workerInstances = null;
 	}
 	
 	private void setNumWorkerInstances(int numInstances) {
@@ -104,8 +95,8 @@ public class MultiInstanceLauncher {
 		
 		if (!isMasterOnlyInstance()) {
 			createAndRunNewInstances();
-			waitForInstancesToBeRunning();
-			waitForInstancesToBeReachable();
+			waitForInstancesToBeRunning(  ec2, workerInstances);
+			waitForInstancesToBeReachable(ec2, workerInstances);
 		}
 	
 		createIpListFile();
@@ -113,30 +104,6 @@ public class MultiInstanceLauncher {
 	
 	boolean isMasterOnlyInstance() {
 		return 0 == numWorkerInstances;
-	}
-	
-	private void createSecurityGroup() {
-//		DescribeSecurityGroupsResult dsgResult = ec2.describeSecurityGroups();
-//		debugPrint(dsgResult);
-		
-		CreateSecurityGroupRequest sgRequest = new CreateSecurityGroupRequest();
-		sgRequest.withGroupName(newSecurityGroupName)
-				 .withDescription("For running sk instance(s)");
-		CreateSecurityGroupResult createSecurityGroupResult = ec2.createSecurityGroup(sgRequest);
-
-		IpPermission ipPermission = new IpPermission();
-		UserIdGroupPair pair = new UserIdGroupPair();
-		pair.withGroupName(newSecurityGroupName)	// or could have used .withGroupId(createSecurityGroupResult.getGroupId()) instead
-			.withDescription("so machines can talk to each other");	
-		ipPermission.withUserIdGroupPairs(Arrays.asList(pair))
-		            .withIpProtocol("-1")
-			        .withFromPort(-1)
-			        .withToPort(-1);
-		AuthorizeSecurityGroupIngressRequest authorizeSecurityGroupIngressRequest = new AuthorizeSecurityGroupIngressRequest();
-		authorizeSecurityGroupIngressRequest.withGroupName(newSecurityGroupName)
-		                                    .withIpPermissions(ipPermission);
-			
-		ec2.authorizeSecurityGroupIngress(authorizeSecurityGroupIngressRequest);
 	}
 	
 	private void setLaunchInstance() {
@@ -208,6 +175,30 @@ public class MultiInstanceLauncher {
 		debugPrint("subnet: " + subnetId);
 	}
 	
+	private void createSecurityGroup() {
+//		DescribeSecurityGroupsResult dsgResult = ec2.describeSecurityGroups();
+//		debugPrint(dsgResult);
+		
+		CreateSecurityGroupRequest sgRequest = new CreateSecurityGroupRequest();
+		sgRequest.withGroupName(newSecurityGroupName)
+				 .withDescription("For running sk instance(s)");
+		CreateSecurityGroupResult createSecurityGroupResult = ec2.createSecurityGroup(sgRequest);
+
+		IpPermission ipPermission = new IpPermission();
+		UserIdGroupPair pair = new UserIdGroupPair();
+		pair.withGroupName(newSecurityGroupName)	// or could have used .withGroupId(createSecurityGroupResult.getGroupId()) instead
+			.withDescription("so machines can talk to each other");	
+		ipPermission.withUserIdGroupPairs(Arrays.asList(pair))
+		            .withIpProtocol("-1")
+			        .withFromPort(-1)
+			        .withToPort(-1);
+		AuthorizeSecurityGroupIngressRequest authorizeSecurityGroupIngressRequest = new AuthorizeSecurityGroupIngressRequest();
+		authorizeSecurityGroupIngressRequest.withGroupName(newSecurityGroupName)
+		                                    .withIpPermissions(ipPermission);
+			
+		ec2.authorizeSecurityGroupIngress(authorizeSecurityGroupIngressRequest);
+	}
+	
 	// we have to create a new keypair b/c the keypair we used to get access (ssh) to this master/launch instance, that key_pair is on our windows machine.. i.e. outside aws
 	// this applies for masterOnlyInstances as well. w/o this, we can't even ssh to ourselves with masterOnlyInstances b/c of "Permission denied (publickey)" 
 	private void createKeyPair() {
@@ -231,36 +222,6 @@ public class MultiInstanceLauncher {
 		
 		printDone(privateKeyFilename);
 	}
-	
-	private void writeToFile(String filename, String content) {
-		File file = new File(filename);
-		
-	    try {
-	    	// mkdirs and createNewFile only create iff those paths/file don't already exist. so no need to check for existence beforehand.
-	    	file.getParentFile().mkdirs();
-			file.createNewFile();
-			FileWriter writer = new FileWriter(file);
-			writer.write(content);
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	    // needs to be done in this order, b/c "everyone else" wipes out all permissions (including "owner")...
-	    // "everyone else"
-		file.setExecutable(false, false);
-		file.setReadable(  false, false);
-		file.setWritable(  false, false);
-
-		// "owner"
-		file.setExecutable(false);
-		file.setReadable(true);
-		file.setWritable(true);
-		
-//	    System.out.println("Is Execute allow : " + file.canExecute());
-//		System.out.println("Is Write allow : " +   file.canWrite());
-//		System.out.println("Is Read allow : " +    file.canRead());
-	}
     
 	private void createAndRunNewInstances() {
 		print("Creating New Instances");
@@ -279,138 +240,6 @@ public class MultiInstanceLauncher {
 		workerInstances = result.getReservation().getInstances();
 		
 		printDone( String.join(", ", getInstanceIds(workerInstances)) );
-	}
-	
-	private void waitForInstancesToBeRunning() {
-		print("  Waiting for Instances to be running");
-		
-		DescribeInstancesRequest diRequest = new DescribeInstancesRequest();
-		diRequest.withInstanceIds( getInstanceIds(workerInstances) );
-
-		long sleepSeconds        = 5;
-		long totalRunTimeSeconds = 2 * 60; 	
-		int retriesCount = 0;
-		List<String> ips = getIps(workerInstances);
-		while (!ips.isEmpty()) {
-		    DescribeInstancesResult response = ec2.describeInstances(diRequest);
-		    for (Reservation reservation : response.getReservations()) {
-				for (Instance instance : reservation.getInstances()) { 
-//					System.out.println(instance.getState().getName());
-					if (isRunning(instance)) {
-//						System.out.println(instance.getPrivateIpAddress());
-						ips.remove(instance.getPrivateIpAddress());
-					}
-				}
-		    }
-
-		    if (ips.isEmpty())
-		    	break;
-		    
-		    checkForTimeoutException(sleepSeconds, totalRunTimeSeconds, retriesCount, "running");
-		    
-		    sleep(sleepSeconds);
-		    retriesCount++;
-		    printMinutesElapsed(sleepSeconds, retriesCount);
-		}
-
-		lastMinutePrinted = 0;
-		printDone(String.join(", ", getIps(workerInstances)));
-	}
-	
-	private void waitForInstancesToBeReachable() {
-		printNoDot("  Waiting for Instances to be reachable");
-		printNoDot("    be patient, it could take mins");
-
-		DescribeInstanceStatusRequest disRequest = new DescribeInstanceStatusRequest();
-		disRequest.withInstanceIds( getInstanceIds(workerInstances) );
-
-		long sleepSeconds        = 15;
-		long totalRunTimeSeconds = 10 * 60; 	
-		int retriesCount = 0;
-		List<String> ips = getIps(workerInstances);
-		while (!ips.isEmpty()) {
-		    DescribeInstanceStatusResult response = ec2.describeInstanceStatus(disRequest);
-		    for (InstanceStatus status : response.getInstanceStatuses()) {
-		    	if (passedSystemStatusCheck(status.getSystemStatus()) && passedInstanceStatusCheck(status.getInstanceStatus())) {
-		    		Instance instance = getInstance(status.getInstanceId(), workerInstances);
-		    		String ip = instance.getPrivateIpAddress();
-		    		if (ips.contains(ip)) {	// avoids multiple printing of those that are already 'good', while waiting for the rest to reach 'good' status
-						System.out.printf("\t%-17s is good%n", ip);
-						ips.remove(ip);
-		    		}	
-		    	}
-		    }
-
-		    if (ips.isEmpty())
-		    	break;
-		    
-		    checkForTimeoutException(sleepSeconds, totalRunTimeSeconds, retriesCount, "reachable");
-		    		    
-		    sleep(sleepSeconds);
-		    retriesCount++;
-		    printMinutesElapsed(sleepSeconds, retriesCount);
-		}
-
-		lastMinutePrinted = 0;
-		print("");
-		printDone(String.join(", ", getIps(workerInstances)));
-	}
-	
-	private void checkForTimeoutException(long sleepSeconds, long totalRunTimeSeconds, int retriesCount, String status) {
-		if (retriesCount*sleepSeconds > totalRunTimeSeconds)
-	    	throwTimeoutException(status);
-	}
-	
-	private void throwTimeoutException(String status) {
-    	throw new RuntimeException("instances should have been " + status + " by now...");
-	}
-	
-	private boolean passedSystemStatusCheck(InstanceStatusSummary statusSummary) {
-		return isReachableAndStatusIsOk(statusSummary);
-	}
-	
-	private boolean passedInstanceStatusCheck(InstanceStatusSummary statusSummary) {
-		return isReachableAndStatusIsOk(statusSummary);
-	}
-	
-	private boolean isReachableAndStatusIsOk(InstanceStatusSummary statusSummary) {
-		return reachabilityPassed(statusSummary.getDetails()) && statusIsOk(statusSummary.getStatus());
-	}
-	
-	private boolean reachabilityPassed(List<InstanceStatusDetails> details) {
-		for (InstanceStatusDetails detail : details)
-			if (detail.getName().equals("reachability") && detail.getStatus().equals("passed"))
-				return true;
-
-		return false;
-	}
-	
-	private boolean statusIsOk(String status) {
-		return status.equals("ok");
-	}
-	
-	private void sleep(long seconds) {
-	    try {
-			Thread.sleep(seconds*1_000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private void printMinutesElapsed(long sleepSeconds, int retries) {
-		long minute = sleepSeconds*retries / 60;
-		if (minute != 0 && minute != lastMinutePrinted) {
-			System.out.println("      *" + minute + " mins elapsed*");
-			lastMinutePrinted = minute;
-		}
-	}
-	
-	private Instance getInstance(String id, List<Instance> instances) {
-		for (Instance instance : instances)
-			if (instance.getInstanceId().equals(id))
-				return instance;
-		
-		throw new RuntimeException("instance '"+id+"' not found");
 	}
 	
 	private List<String> getSecurityGroupIds(List<GroupIdentifier> securityGroups) {
@@ -439,10 +268,6 @@ public class MultiInstanceLauncher {
 		printDone(ipsFilename);
 	}
 	
-	public List<String> getWorkerIps() {
-		return getIps(workerInstances);
-	}
-	
 	public List<String> getInstanceIps() {
 		if (isMasterOnlyInstance())
 			return Arrays.asList(masterIp);
@@ -455,6 +280,10 @@ public class MultiInstanceLauncher {
 		}
 	}
 	
+	public List<String> getWorkerIps() {
+		return getIps(workerInstances);
+	}
+	
     public static void main(String[] args) throws Exception {
         if (args.length == 0)
         	throw new RuntimeException("We need to know how many instances to start. Please pass in <numberOfInstances>");
@@ -462,7 +291,7 @@ public class MultiInstanceLauncher {
         int numInstances = Integer.valueOf(args[0]);        
         System.out.println("Attempting to launch " + (numInstances-1) + " new instances, for a total of " + numInstances + " (this instance + those " + (numInstances-1) + ")");
     	String masterIp = InetAddress.getLocalHost().getHostAddress();
-        MultiInstanceLauncher launcher = new MultiInstanceLauncher(masterIp, ec2Client, numInstances, null, null, true);
+        MultiInstanceLauncher launcher = new MultiInstanceLauncher(AmazonEC2ClientBuilder.defaultClient(), masterIp, numInstances, null, null, true);
         launcher.run();
 	}
 

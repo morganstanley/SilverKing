@@ -1,6 +1,5 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
-import static com.ms.silverking.cloud.dht.management.aws.Util.deleteKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.findInstancesRunningWithKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
@@ -9,6 +8,8 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.newKeyName;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printNoDot;
+import static com.ms.silverking.cloud.dht.management.aws.Util.waitForInstancesToBeReachable;
+import static com.ms.silverking.cloud.dht.management.aws.Util.waitForInstancesToBeRunning;
 
 import java.util.List;
 
@@ -16,16 +17,16 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
-import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import com.amazonaws.services.ec2.model.StartInstancesRequest;
+import com.amazonaws.services.ec2.model.StartInstancesResult;
 
-public class MultiInstanceTerminator {
+public class MultiInstanceStarter {
 
 	private final AmazonEC2 ec2;
 	private final String keyPair;
 	private List<Instance> instances;
 	
-	public MultiInstanceTerminator(AmazonEC2 ec2, String keyPair) {
+	public MultiInstanceStarter(AmazonEC2 ec2, String keyPair) {
 		this.ec2     = ec2;
 		this.keyPair = keyPair;
 		
@@ -34,30 +35,31 @@ public class MultiInstanceTerminator {
 	
 	public void run() {
 		instances = findInstancesRunningWithKeyPair(ec2, keyPair);
-		terminateInstances();
-		deleteKeyPair(ec2);
+		startInstances();
+		waitForInstancesToBeRunning(  ec2, instances);
+		waitForInstancesToBeReachable(ec2, instances);
 	}
 	
-	private void terminateInstances() {
-		printNoDot("Terminating Instances");
+	private void startInstances() {
+		printNoDot("Starting Instances");
 		
 		List<String> ips = getIps(instances);
 		for (String ip : ips)
 			System.out.println("    " + ip);
-		TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest();
-		terminateInstancesRequest.withInstanceIds( getInstanceIds(instances) );
+		StartInstancesRequest startInstancesRequest = new StartInstancesRequest();
+		startInstancesRequest.withInstanceIds( getInstanceIds(instances) );
 		
-		TerminateInstancesResult result = ec2.terminateInstances(terminateInstancesRequest);
-		List<InstanceStateChange> terminatingInstances = result.getTerminatingInstances();
+		StartInstancesResult result = ec2.startInstances(startInstancesRequest);
+		List<InstanceStateChange> startingInstances = result.getStartingInstances();
 
 		print("");
-		printDone( String.join(", ", getIds(terminatingInstances)) );
+		printDone( String.join(", ", getIds(startingInstances)) );
 	}
 	
     public static void main(String[] args) {
-        System.out.println("Attempting to terminate all instances with keypair: " + newKeyName);
-        MultiInstanceTerminator terminator = new MultiInstanceTerminator(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
-        terminator.run();
+        System.out.println("Attempting to start all instances with keypair: " + newKeyName);
+        MultiInstanceStarter starter = new MultiInstanceStarter(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
+        starter.run();
 	}
 
 }

@@ -15,7 +15,7 @@ import com.ms.silverking.testing.Util.ExceptionChecker;
 public class MultiInstanceLauncherTest {
 
 	private MultiInstanceLauncher getNewTestLauncher(int numInstances, boolean includeMaster) {
-		return new MultiInstanceLauncher(ip, null, numInstances, null, null, includeMaster);
+		return new MultiInstanceLauncher(null, ip, numInstances, null, null, includeMaster);
 	}
 	
 	private static List<String> nullList() {
@@ -31,7 +31,7 @@ public class MultiInstanceLauncherTest {
 	@Test
 	public void testConstructor_Exceptions() {
 		Object[][] testCases = {
-			{"numInstances = 0", new ExceptionChecker() { @Override public void check() { new MultiInstanceLauncher(ip, null, 0, null, null, true);	} }, IllegalArgumentException.class},
+			{"numInstances = 0", new ExceptionChecker() { @Override public void check() { new MultiInstanceLauncher(null, ip, 0, null, null, true);	} }, IllegalArgumentException.class},
 		};
 		
 		test_SetterExceptions(testCases);

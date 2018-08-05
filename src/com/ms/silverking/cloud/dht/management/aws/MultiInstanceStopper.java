@@ -1,6 +1,5 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
-import static com.ms.silverking.cloud.dht.management.aws.Util.ec2Client;
 import static com.ms.silverking.cloud.dht.management.aws.Util.findInstancesRunningWithKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
@@ -13,6 +12,7 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.printNoDot;
 import java.util.List;
 
 import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
@@ -21,19 +21,18 @@ import com.amazonaws.services.ec2.model.StopInstancesResult;
 public class MultiInstanceStopper {
 
 	private final AmazonEC2 ec2;
-
+	private final String keyPair;
 	private List<Instance> instances;
 	
-	private List<InstanceStateChange> workerInstances;
-	
-	public MultiInstanceStopper(AmazonEC2 ec2) {
-		this.ec2 = ec2;
+	public MultiInstanceStopper(AmazonEC2 ec2, String keyPair) {
+		this.ec2     = ec2;
+		this.keyPair = keyPair;
 		
 		instances = null;
 	}
 	
 	public void run() {
-		instances = findInstancesRunningWithKeyPair(ec2);
+		instances = findInstancesRunningWithKeyPair(ec2, keyPair);
 		stopInstances();
 	}
 	
@@ -47,15 +46,15 @@ public class MultiInstanceStopper {
 		stopInstancesRequest.withInstanceIds( getInstanceIds(instances) );
 		
 		StopInstancesResult result = ec2.stopInstances(stopInstancesRequest);
-		workerInstances = result.getStoppingInstances();
+		List<InstanceStateChange> stoppingInstances = result.getStoppingInstances();
 
 		print("");
-		printDone( String.join(", ", getIds(workerInstances)) );
+		printDone( String.join(", ", getIds(stoppingInstances)) );
 	}
 	
     public static void main(String[] args) {
         System.out.println("Attempting to stop all instances with keypair: " + newKeyName);
-        MultiInstanceStopper stopper = new MultiInstanceStopper(ec2Client);
+        MultiInstanceStopper stopper = new MultiInstanceStopper(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
         stopper.run();
 	}
 

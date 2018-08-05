@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.dht.management;
 
 import static com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher.privateKeyFilename;
-import static com.ms.silverking.cloud.dht.management.aws.Util.ec2Client;
+import static com.ms.silverking.cloud.dht.management.aws.Util.newKeyName;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.userHome;
@@ -18,7 +18,10 @@ import java.util.List;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher;
+import com.ms.silverking.cloud.dht.management.aws.MultiInstanceStarter;
+import com.ms.silverking.cloud.dht.management.aws.MultiInstanceStopper;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceTerminator;
 import com.ms.silverking.cloud.dht.management.aws.Util;
 import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
@@ -35,11 +38,12 @@ public class SKCloudAdmin {
 
 	public  static final String cloudOutDir = userHome + "/SilverKing/bin/cloud_out";
 	private static final String cloudGcName = "GC_SK_cloud";
-	
+
 	static final String launchInstancesCommand    = getCommandName("launch");
+	static final String startInstancesCommand     = getCommandName("start");
 	static final String stopInstancesCommand      = getCommandName("stop");
 	static final String terminateInstancesCommand = getCommandName("terminate");
-	private static final List<String> commands = Arrays.asList(launchInstancesCommand, stopInstancesCommand, terminateInstancesCommand);
+	private static final List<String> commands = Arrays.asList(launchInstancesCommand, startInstancesCommand, stopInstancesCommand, terminateInstancesCommand);
 	
 	private String  command;
 	private int     numInstances;
@@ -108,6 +112,9 @@ public class SKCloudAdmin {
 	        case "launchInstances":
 	        	launchInstances();
 	            break;
+	        case "startInstances":
+	            startInstances();
+	            break;
 	        case "stopInstances":
 	            stopInstances();
 	            break;
@@ -128,7 +135,7 @@ public class SKCloudAdmin {
 			e.printStackTrace();
 		}
 		
-		MultiInstanceLauncher launcher = new MultiInstanceLauncher(launchHost, ec2Client, numInstances, amiId, instanceType, includeMaster);
+		MultiInstanceLauncher launcher = new MultiInstanceLauncher(AmazonEC2ClientBuilder.defaultClient(), launchHost, numInstances, amiId, instanceType, includeMaster);
 		launcher.run();
 		// from the launch/master host's perspective (i.e. where we are running this script from):
 		//   1. this machine has the private key (created from MultiInstanceLauncher)
@@ -207,13 +214,21 @@ public class SKCloudAdmin {
 		printDone("");
 	}
 	
+	private void startInstances() {
+		System.out.println("=== STARTING INSTANCES ===");
+		MultiInstanceStarter starter = new MultiInstanceStarter(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
+		starter.run();
+	}
+	
 	private void stopInstances() {
 		System.out.println("=== STOPPING INSTANCES ===");
+		MultiInstanceStopper stopper = new MultiInstanceStopper(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
+		stopper.run();
 	}
 	
 	private void terminateInstances() {
 		System.out.println("=== TERMINATING INSTANCES ===");
-		MultiInstanceTerminator terminator = new MultiInstanceTerminator(ec2Client);
+		MultiInstanceTerminator terminator = new MultiInstanceTerminator(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
 		terminator.run();
 		stopZk();
 	}
