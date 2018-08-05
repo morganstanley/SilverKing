@@ -1,6 +1,6 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
-import static com.ms.silverking.cloud.dht.management.aws.Util.findInstancesRunningWithKeyPair;
+import static com.ms.silverking.cloud.dht.management.aws.Util.findStoppedInstancesWithKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
@@ -34,7 +34,7 @@ public class MultiInstanceStarter {
 	}
 	
 	public void run() {
-		instances = findInstancesRunningWithKeyPair(ec2, keyPair);
+		instances = findStoppedInstancesWithKeyPair(ec2, keyPair);
 		startInstances();
 		waitForInstancesToBeRunning(  ec2, instances);
 		waitForInstancesToBeReachable(ec2, instances);

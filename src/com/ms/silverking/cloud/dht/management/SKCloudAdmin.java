@@ -146,11 +146,13 @@ public class SKCloudAdmin {
 		//      we need to put the private key on all those machines
 		generatePublicKeyAndAddToAuthorizedKeys();
 		List<String> workerIps = launcher.getWorkerIps();
-		copyPrivateKeyToWorkerMachines(workerIps);
+		if (!launcher.isMasterOnlyInstance())
+			copyPrivateKeyToWorkerMachines(workerIps);
 		startZk();
 		List<String> masterAndWorkerIps = launcher.getInstanceIps();
 		runStaticInstanceCreator(launchHost, masterAndWorkerIps);
-		copyGcToWorkerMachines(workerIps);
+		if (!launcher.isMasterOnlyInstance())
+			copyGcToWorkerMachines(workerIps);
 		symlinkSkfsdOnAllMachines(masterAndWorkerIps);
 	}
 	

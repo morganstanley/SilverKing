@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
 import static com.ms.silverking.cloud.dht.management.aws.Util.deleteKeyPair;
-import static com.ms.silverking.cloud.dht.management.aws.Util.findInstancesRunningWithKeyPair;
+import static com.ms.silverking.cloud.dht.management.aws.Util.findRunningInstancesWithKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
@@ -33,13 +33,16 @@ public class MultiInstanceTerminator {
 	}
 	
 	public void run() {
-		instances = findInstancesRunningWithKeyPair(ec2, keyPair);
+		instances = findRunningInstancesWithKeyPair(ec2, keyPair);
 		terminateInstances();
 		deleteKeyPair(ec2);
 	}
 	
 	private void terminateInstances() {
 		printNoDot("Terminating Instances");
+
+		if (instances.isEmpty())
+			return;
 		
 		List<String> ips = getIps(instances);
 		for (String ip : ips)

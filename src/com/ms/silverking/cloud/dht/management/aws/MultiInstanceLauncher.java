@@ -103,7 +103,7 @@ public class MultiInstanceLauncher {
 		createIpListFile();
 	}
 	
-	boolean isMasterOnlyInstance() {
+	public boolean isMasterOnlyInstance() {
 		return 0 == numWorkerInstances;
 	}
 	

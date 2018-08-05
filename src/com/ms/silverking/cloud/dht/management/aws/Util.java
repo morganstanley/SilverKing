@@ -20,8 +20,14 @@ import com.amazonaws.services.ec2.model.InstanceStatusDetails;
 import com.amazonaws.services.ec2.model.InstanceStatusSummary;
 import com.amazonaws.services.ec2.model.Reservation;
 
-public class Util {
+import com.ms.silverking.cloud.dht.management.aws.Util.InstanceState;
 
+public class Util {
+	
+	public enum InstanceState {
+	    STOPPED, RUNNING
+	}
+	
 	public static final String userHome = System.getProperty("user.home");
 	       static final String newLine  = System.getProperty("line.separator");
 	
@@ -248,8 +254,16 @@ public class Util {
 		return lastMinutePrinted;
 	}
 	
-	static List<Instance> findInstancesRunningWithKeyPair(AmazonEC2 ec2, String keyPair) {
-		print("Finding Running Instances");
+	static List<Instance> findRunningInstancesWithKeyPair(AmazonEC2 ec2, String keyPair) {
+		return findInstancesStateWithKeyPair(ec2, keyPair, InstanceState.RUNNING);
+	}
+	
+	static List<Instance> findStoppedInstancesWithKeyPair(AmazonEC2 ec2, String keyPair) {
+		return findInstancesStateWithKeyPair(ec2, keyPair, InstanceState.STOPPED);
+	}
+	
+	static List<Instance> findInstancesStateWithKeyPair(AmazonEC2 ec2, String keyPair, InstanceState state) {
+		print("Finding " + state + " Instances");
 
 		List<Instance> instances = new ArrayList<>();
 		
@@ -257,14 +271,23 @@ public class Util {
 		while (true) {
 		    DescribeInstancesResult response = ec2.describeInstances(request);
 
-		    for (Reservation reservation : response.getReservations()) {
+		    for (Reservation reservation : response.getReservations())
 		        for (Instance instance : reservation.getInstances()) {
 		            printInstance(instance);
-			        if ( isRunning(instance) && isKeyPair(instance, keyPair) ) {
-			        	instances.add(instance);
-			        }
+		            switch (state) {
+			            case STOPPED:
+			            	if ( isStopped(instance) && isKeyPair(instance, keyPair) )
+					        	instances.add(instance);
+	                		break;
+			            case RUNNING:
+			            	if ( isRunning(instance) && isKeyPair(instance, keyPair) )
+					        	instances.add(instance);
+	                		break;
+		            	default: 
+		            		throw new RuntimeException("Unknown Instance state: " + state);
+		            }
+			        
 		        }
-		    }
 
 		    if (response.getNextToken() == null)
 		        break;
@@ -286,9 +309,17 @@ public class Util {
 		
 		return ids;
 	}
-		
+	
+	static boolean isStopped(Instance instance) {
+		return isState(instance, InstanceState.STOPPED);
+	}
+
 	static boolean isRunning(Instance instance) {
-		return instance.getState().getName().equals("running");
+		return isState(instance, InstanceState.RUNNING);
+	}
+	
+	private static boolean isState(Instance instance, InstanceState state) {
+		return instance.getState().getName().equals(state.toString().toLowerCase());
 	}
 	
 	static boolean isKeyPair(Instance instance, String keyPair) {

@@ -1,6 +1,6 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
-import static com.ms.silverking.cloud.dht.management.aws.Util.findInstancesRunningWithKeyPair;
+import static com.ms.silverking.cloud.dht.management.aws.Util.findRunningInstancesWithKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
@@ -32,12 +32,15 @@ public class MultiInstanceStopper {
 	}
 	
 	public void run() {
-		instances = findInstancesRunningWithKeyPair(ec2, keyPair);
+		instances = findRunningInstancesWithKeyPair(ec2, keyPair);
 		stopInstances();
 	}
 	
 	private void stopInstances() {
 		printNoDot("Stopping Instances");
+		
+		if (instances.isEmpty())
+			return;
 		
 		List<String> ips = getIps(instances);
 		for (String ip : ips)
