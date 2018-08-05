@@ -18,6 +18,7 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.writeToFile;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.amazonaws.services.ec2.AmazonEC2;
@@ -71,7 +72,7 @@ public class MultiInstanceLauncher {
 		Util.checkNumInstances(numInstances);
 		setNumWorkerInstances(numInstances);
 		
-		workerInstances = null;
+		workerInstances = Collections.emptyList();
 	}
 	
 	private void setNumWorkerInstances(int numInstances) {

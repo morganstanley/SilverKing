@@ -6,6 +6,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
@@ -40,7 +41,13 @@ public class MultiInstanceLauncherTest {
 	@Test
 	public void testGetIpList() {
 		MultiInstanceLauncher launcher = getNewTestLauncher(1, true);
-		assertEquals(nullList(), launcher.getInstanceIps());
+		assertEquals(nullList, launcher.getInstanceIps());
+	}
+	
+	@Test
+	public void testGetWorkerIps() {
+		MultiInstanceLauncher launcher = getNewTestLauncher(1, true);
+		assertEquals(Collections.EMPTY_LIST, launcher.getWorkerIps());
 	}
 	
 	@Test
