@@ -210,8 +210,10 @@ public class SKCloudAdmin {
 	private void symlinkSkfsdOnAllMachines(List<String> instanceIps) {
 		print("Symlinking skfsd on all machines");
 
+		String target   = cloudOutDir + "/../../build/skfs-build/skfs-install/arch-output-area/skfsd";
+		String linkName = cloudOutDir + "/../skfs/skfsd";
 		for (String instanceIp : instanceIps)
-			ssh(instanceIp, "ln -sv " + cloudOutDir+"/../build/skfs-build/skfs-install/arch-output-area/skfsd" + " " + cloudOutDir+"/../skfs/skfsd");
+			ssh(instanceIp, "ln -sv " + target + " " + linkName + "; ls " + target + "; ls " + linkName);
 		
 		printDone("");
 	}

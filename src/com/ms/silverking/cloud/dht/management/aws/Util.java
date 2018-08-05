@@ -339,7 +339,7 @@ public class Util {
 	
 	public static void checkNumInstances(int numInstances) {
 		if (numInstances <= 0)
-			throwIllegalArgumentException("numInstances", numInstances, "must be > 0");
+			throwIllegalArgumentException("numInstances", numInstances, "must be > 0. You need to set \"-n\", if you haven't already.");
 	}
 
 	public static void throwIllegalArgumentException(String variableName, Object variableValue, String msg) {

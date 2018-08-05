@@ -9,7 +9,7 @@ class SKCloudAdminOptions {
 	SKCloudAdminOptions() {
 	}
 	
-	@Option(name="-c", aliases={"--command"}, usage="command. eg: \"launchInstances\", \"stopInstances\", or \"terminateInstances\"", required=true)
+	@Option(name="-c", aliases={"--command"}, usage="command. eg: \"launchInstances\", \"startInstances\", \"stopInstances\", or \"terminateInstances\"", required=true)
 	String command;
 	
 	@Option(name="-n", aliases={"--num-of-instances"}, usage="numberOfInstances. eg: \"1\", \"50\", \"1000\", etc.", required=false)
