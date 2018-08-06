@@ -45,38 +45,43 @@ public class SKCloudAdmin {
 	static final String terminateInstancesCommand = getCommandName("terminate");
 	private static final List<String> commands = Arrays.asList(launchInstancesCommand, startInstancesCommand, stopInstancesCommand, terminateInstancesCommand);
 	
-	private String  command;
-	private int     numInstances;
-	private String  amiId;
-	private String  instanceType;
-	private boolean includeMaster;
+	private final String  command;
+	private final int     numInstances;
+	private final String  amiId;
+	private final String  instanceType;
+	private final boolean includeMaster;
+	private final int 	  replication;
+	private       String  dataBaseHome;
 	
 	private static String getCommandName(String command) {
 		return command+"Instances";
 	}
 	
-	// convenience ctor for stop/terminate testing
+	// convenience ctor for start/stop/terminate testing
 	SKCloudAdmin(String command) {
-		this(command, SKCloudAdminOptions.defaultNumInstances, null, null, true);
+		this(command, SKCloudAdminOptions.defaultNumInstances, null, null, true, 1, null);
 	}
 	
-	public SKCloudAdmin(String command, int numInstances, String amiId, String instanceType, boolean includeMaster) {
+	public SKCloudAdmin(String command, int numInstances, String amiId, String instanceType, boolean includeMaster, int replication, String dataBaseHome) {
 		checkCommand(command);
 		checkNumInstances(command, numInstances);
+		checkReplication(replication);
 		
 		this.command       = command;
 		this.numInstances  = numInstances;
 		this.amiId         = amiId;
 		this.instanceType  = instanceType;
 		this.includeMaster = includeMaster;
+		this.replication   = replication;
+		setDataBaseHome(dataBaseHome);
 	}
 	
-	void checkCommand(String command) {
+	private void checkCommand(String command) {
 		if (!commands.contains(command))
 			Util.throwIllegalArgumentException("command", command, "must be: " + commands);
 	}
 	
-	void checkNumInstances(String command, int numInstances) {
+	private void checkNumInstances(String command, int numInstances) {
 		if (notALaunchCommand(command))
 			return;
 		
@@ -85,6 +90,18 @@ public class SKCloudAdmin {
 	
 	private boolean notALaunchCommand(String command) {
 		return !command.equals(launchInstancesCommand);
+	}
+	
+	private void checkReplication(int replication) {
+		if (replication < 1)
+			throw new IllegalArgumentException("replcation must be >= 1");
+	}
+	
+	private void setDataBaseHome(String dataBaseHome) {
+		if (dataBaseHome == null)
+			this.dataBaseHome = "/var/tmp/silverking";
+		else
+			this.dataBaseHome = dataBaseHome;
 	}
 	
 	public String getCommand() {
@@ -107,6 +124,14 @@ public class SKCloudAdmin {
 		return includeMaster;
 	}
 	
+	public int getReplication() {
+		return replication;
+	}
+	
+	public String getDataBaseHome() {
+		return dataBaseHome;
+	}
+	
 	public void run() {
 		switch (command) {
 	        case "launchInstances":
@@ -127,7 +152,7 @@ public class SKCloudAdmin {
 	}
 	
 	private void launchInstances() {
-		System.out.println("=== LAUNCHING INSTANCES ===");
+		printHeader("LAUNCHING");
 		String launchHost = "";
 		try {
 			launchHost = InetAddress.getLocalHost().getHostAddress();
@@ -222,23 +247,23 @@ public class SKCloudAdmin {
 	private void printNextSteps() {
 		System.out.println();
 		System.out.println("Next steps: To start sk/skfs on all of these instances, you can run:");
-		System.out.println("SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS");
+		System.out.println("./SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS");
 	}
 	
 	private void startInstances() {
-		System.out.println("=== STARTING INSTANCES ===");
+		printHeader("STARTING");
 		MultiInstanceStarter starter = new MultiInstanceStarter(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
 		starter.run();
 	}
 	
 	private void stopInstances() {
-		System.out.println("=== STOPPING INSTANCES ===");
+		printHeader("STOPPING");
 		MultiInstanceStopper stopper = new MultiInstanceStopper(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
 		stopper.run();
 	}
 	
 	private void terminateInstances() {
-		System.out.println("=== TERMINATING INSTANCES ===");
+		printHeader("TERMINATING");
 		MultiInstanceTerminator terminator = new MultiInstanceTerminator(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
 		terminator.run();
 		stopZk();
@@ -250,6 +275,10 @@ public class SKCloudAdmin {
 		runCmd(userHome + "/SilverKing/build/aws/zk_stop.sh");
 		
 		printDone("");
+	}
+	
+	private void printHeader(String command) {
+		System.out.println("=== " + command + " INSTANCES ===");
 	}
 	
 	public static void main(String[] args) {
@@ -264,7 +293,7 @@ public class SKCloudAdmin {
                 System.exit(-1);
     		}
     		
-    		SKCloudAdmin cloudAdmin = new SKCloudAdmin(options.command, options.numInstances, options.amiId, options.instanceType, !options.excludeMaster);
+    		SKCloudAdmin cloudAdmin = new SKCloudAdmin(options.command, options.numInstances, options.amiId, options.instanceType, !options.excludeMaster, options.replication, options.dataBaseVar);
     		cloudAdmin.run();
     	} catch (Exception e) {
     		e.printStackTrace();

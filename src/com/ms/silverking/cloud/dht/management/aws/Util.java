@@ -60,7 +60,7 @@ public class Util {
 	}
 	
 	static void printHelper(String text, String spacer) {
-		System.out.printf("%-50s %s ", text, spacer);
+		System.out.printf("%-65s %s ", text, spacer);
 	}
 	
 	public static void printDone(String value) {
