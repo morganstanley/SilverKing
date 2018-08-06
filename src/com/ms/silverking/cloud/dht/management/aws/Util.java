@@ -56,11 +56,11 @@ public class Util {
 	}
 	
 	public static void print(String text) {
-		printHelper(text, "...");
+		printHelper(text, "......");
 	}
 	
 	static void printHelper(String text, String spacer) {
-		System.out.printf("%-39s %-3s ", text, spacer);
+		System.out.printf("%-50s %s ", text, spacer);
 	}
 	
 	public static void printDone(String value) {
@@ -167,7 +167,8 @@ public class Util {
 	
 	static void waitForInstancesToBeReachable(AmazonEC2 ec2, List<Instance> instances) {
 		printNoDot("  Waiting for Instances to be reachable");
-		printNoDot("    be patient, it could take mins");
+		printNoDot("    reachable = BOTH (System and Instance) status checks PASS");
+		printNoDot("    be patient, it usually takes ~5mins");
 
 		DescribeInstanceStatusRequest disRequest = new DescribeInstanceStatusRequest();
 		disRequest.withInstanceIds( getInstanceIds(instances) );

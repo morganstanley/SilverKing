@@ -154,6 +154,7 @@ public class SKCloudAdmin {
 		if (!launcher.isMasterOnlyInstance())
 			copyGcToWorkerMachines(workerIps);
 		symlinkSkfsdOnAllMachines(masterAndWorkerIps);
+		printNextSteps();
 	}
 	
 	private void generatePublicKeyAndAddToAuthorizedKeys() {
@@ -216,6 +217,12 @@ public class SKCloudAdmin {
 			ssh(instanceIp, "ln -sv " + target + " " + linkName + "; ls " + target + "; ls " + linkName);
 		
 		printDone("");
+	}
+	
+	private void printNextSteps() {
+		System.out.println();
+		System.out.println("Next steps: To start sk/skfs on all of these instances, you can run:");
+		System.out.println("SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS");
 	}
 	
 	private void startInstances() {
