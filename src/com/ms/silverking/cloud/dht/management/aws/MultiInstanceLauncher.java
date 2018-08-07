@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
@@ -84,6 +85,8 @@ public class MultiInstanceLauncher {
 	public void run() {
 		System.out.println("Creating " + numWorkerInstances + " new instance(s)");
 		
+		checkIamRoleIsAttached();
+		
 		if (!isMasterOnlyInstance()) {
 			setLaunchInstance();
 	//		createSecurityGroup();
@@ -101,6 +104,18 @@ public class MultiInstanceLauncher {
 		}
 	
 		createIpListFile();
+	}
+	
+	public void checkIamRoleIsAttached() {
+		DescribeInstancesRequest request = new DescribeInstancesRequest();
+		try {
+			DescribeInstancesResult response = ec2.describeInstances(request);
+		}
+		catch (SdkClientException exception) {
+			throw new SdkClientException("No AWS credentials found. You need to attach an IAM Role to this instance.\n"
+					+ "You can do that from the aws console. Right click on this instance->Instance Settings->Attach/Replace IAM Role.\n"
+					+ "If you haven't created a role, you can't attach one. If you need help creating a role, follow this guide: https://github.com/Morgan-Stanley/SilverKing/blob/master/Quick-Start-Guide.md#CreateIAMRole");
+		}
 	}
 	
 	public boolean isMasterOnlyInstance() {
