@@ -59,7 +59,7 @@ That's it! SilverKing is up and running. You can run 'ps uxww' to see all three 
 
 You can now perform key-value operations using the skc tool ([skc usage](https://morgan-stanley.github.io/SilverKing/doc/Shell.html)):
 ```ksh
-~/SilverKing/bin/skc -G ~/SilverKing/build/testing -g GC_SK_test    
+~/SilverKing/bin/skc -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud    
 skc> h;         # help menu
 skc> cn testNs; # this creates a namespace
 skc> p k1 v1;   # this puts a key: k1, with value: v1
@@ -78,12 +78,16 @@ cat Hello
 
 To shut down the SilverKing cluster:
 ```ksh
+cd ~/SilverKing/bin
+```
+
+```
 ./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StopSKFS,StopNodes  # this stops sk and skfs
 ```
 
 To terminate the aws instances:
 ```ksh
-./SKCloudAdmin -c terminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the aws console 
+./SKCloudAdmin.sh -c terminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the aws console 
 ```
 
 ## Building SilverKing on AWS
