@@ -1,4 +1,8 @@
 # Quick-Start Guide
+This guide covers:
+1. [Running  SilverKing on AWS](#running-simple-aws-based-instances) - allows you to try out SilverKing using our template ami
+2. [Building Silverking on AWS](#building-silverking-on-aws) - allows you to build SilverKing and then try SilverKing on your own ami's and instances
+
 ## Running Simple AWS-based Instances
 If you'd like to give SilverKing a try, you can be up and running in minutes using an AWS instance from our template:<br>
 &emsp;[SilverKing AMI](https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=SilverKing;sort=name) (ctrl+click to open in new tab)<br>
