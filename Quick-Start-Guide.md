@@ -23,6 +23,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
    - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
    - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script<br>
 *If you don't have an EC2 IAM role, you need to [create one](https://console.aws.amazon.com/iam/home?region=us-west-2#/roles) (ctrl+click to open in new tab):
+#CreateRole
       - Click "Create role"
       - AWS service->EC2, Click "Next: Permissions"
       - Search: "AmazonEC2FullAccess", Select Check Box for "AmazonEC2FullAccess" Policy, Click "Next: Review"
@@ -35,11 +36,9 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 ![Security Group Inbound Rule](img/sg_inbound_rule.png)<br>
 7. Review Instance Luanch: Click "Launch"
 
-
 ### Starting SK/SKFS
 Once you have an AWS SilverKing AMI instance running, ssh into this instance (this is the master/launch host).<br>
 You can run SilverKing on just this instance or on many instances.<br>
-First, we need to:
 ```ksh
 cd ~/SilverKing/bin/
 ```
@@ -51,7 +50,7 @@ Let's keep it relatively simple and use a total of 3 aws instances, including th
 ```
 
 You should now see 2 additional instances running in your aws console.<br>
-Once the script returns, it should inform us of what command we can run to start the SilverKing cluster:
+Once the script returns, it should inform us of what command we run to start the SilverKing cluster:
 ```ksh
 ./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StartNodes,CreateSKFSns,CheckSKFS  # this starts sk and skfs
 ```
@@ -106,3 +105,5 @@ cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
 ~/SilverKing/build/aws/build_ubuntu.sh
 ```
+
+[test link](#CreateRole)
