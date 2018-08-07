@@ -18,7 +18,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 ![Configure Details](img/sg_inbound_rule.png)
    - **Network**: I'm just using my default vpc<br>
 *Make sure whatever VPC you are using with your instance, dns **resolution** and **hostnames** are both set to 'yes':
-![VPC DNS](img/vpc_dns.PNG)<br>
+![VPC DNS](img/vpc_dns.PNG)
 *You can view your [VPC's here](https://console.aws.amazon.com/vpc/home?region=us-west-2#vpcs:) (ctrl+click to open in new tab)
    - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
    - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script<br>
