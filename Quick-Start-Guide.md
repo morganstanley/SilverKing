@@ -11,17 +11,40 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 &emsp;Username: ec2-user<br>
 &emsp;Region: US West (Oregon)<br>
 
+1. In the AWS console, right click on the instance you want to run and click "Launch"
+2. Choose an Instance Type: choose atleast a t2.micro 
+3. Configure Instance:   
+![Configure Details](img/sg_inbound_rule.png)
+   - **Network**: I'm just using my default vpc
+   - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
+   - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script
+*Make sure whatever VPC you are using with your instance, dns **resolution** and **hostnames** are both set to 'yes':
+![VPC DNS](img/vpc_dns.PNG)<br>
+You can view your VPC's here: 
+4. Add Storage: I'm just using the defaults
+5. Add Tags: I skip this
+6. Configure Security Group: I select my normal security group that I use for all my aws usage
 *Make sure your security group contains an **Inbound Rule** for **All Traffic** with your _security group ID_ as the **Source**:
 ![Security Group Inbound Rule](img/sg_inbound_rule.png)<br>
-*Make sure whatever VPC you are using with your instance, dns **resolution** and **hostnames** are both set to 'yes':
-![VPC DNS](img/vpc_dns.PNG)
+7. Review Instance Luanch: Click "Launch"
+
 
 ### Running on AWS
 #### Single-instance Cluster
 
-Once you have an AWS SilverKing AMI instance running, you can start up SilverKing as follows:
+Once you have an AWS SilverKing AMI instance running, you can run SilverKing on just this instance or on many other instances.<br>
+We need to:
 ```ksh
-~/SilverKing/build/aws/start.sh  # this starts zookeeper, sk, and skfs
+cd ~/SilverKing/bin/
+```
+We tell SKCloudAdmin how many number of aws instances we want to run. If we pass in "-n 1", it won't launch any more instances because we already have one, this instance, but if we pass in something like "-n 5", it'll launch four more instances for a total of 5.<br>
+Let's keep it relatively simple and use a total of 3 aws instances, including this launch host, so "-n 3":
+```ksh
+./SKCloudAdmin.sh -c launchInstances -n 3   # this fires up the instances, preps them i.e. wires up ssh'ing capability between instances, starts zookeeper, and does some SilverKing prep work
+```
+Once the script returns, it should inform us of what command we can run to start the SilverKing cluster:
+```ksh
+./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StartNodes,CreateSKFSns,CheckSKFS  # this starts sk and skfs
 ```
 That's it! SilverKing is up and running. You can run 'ps uxww' to see all three processes.
 
@@ -44,28 +67,14 @@ echo World > Hello
 cat Hello
 ```
 
-To shut everything down:
+To shut down the SilverKing cluster:
 ```ksh
-~/SilverKing/build/aws/stop.sh  # this stops zookeeper, sk, and skfs
+./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StopSKFS,StopNodes  # this stops sk and skfs
 ```
-
-#### Multi-instance Cluster
-Running a multi-instance cluster presently requires some work to ensure that the instances can work together. (This will be simplified in the future.)
-
-    - Start N instance from image
-    - For each instance N
-        ~/SilverKing/build/aws/multi_genKey.sh
-    - Machine1 (repeat for every machine)
-        cd ~/.ssh
-            vi authorized keys
-                □ add machine2..N key id_rsa.pub
-    - Machine1
-        cd ~/SilverKing/build/aws
-        vi multi_nonlaunch_machines_list.txt
-            Add machines 2..N (make sure there is an empty line at the end!)
-        ./multi_start.sh
-        ./multi_stop.sh
-
+To terminate the aws instances:
+```ksh
+./SKCloudAdmin -c terminateInstances    # this terminates all the slave instances, this current master/launcher instance is still running, you can terminate in the aws console 
+```
 
 ## Building SilverKing on AWS
 You may also build SilverKing on AWS using simplified build scripts for both Amazon-Linux and Ubuntu.
