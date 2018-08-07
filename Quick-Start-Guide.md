@@ -15,7 +15,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 1. In the AWS console, right click on the instance you want to run and click "Launch"
 2. Choose an Instance Type: choose atleast a t2.micro 
 3. Configure Instance:   
-![Configure Details](img/step3_configure_instance_details.png)
+![Configure Details](img/step3_configure_instance_details.PNG)
    - **Network**: I'm just using my default vpc<br>
 *Make sure whatever VPC you are using with your instance, dns **resolution** and **hostnames** are both set to 'yes':
 ![VPC DNS](img/vpc_dns.PNG)<br>
