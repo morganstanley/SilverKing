@@ -8,7 +8,7 @@ This guide covers:
 If you'd like to give SilverKing a try, you can be up and running in minutes using an AWS instance from our template:<br>
 &emsp;[SilverKing AMI](https://console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=SilverKing;sort=name) (ctrl+click to open in new tab)<br>
 &emsp;AMI-Name: SilverKing<br>
-&emsp;Platform: Amazon-Linux<br>
+&emsp;Platform: Amazon Linux<br>
 &emsp;Username: ec2-user<br>
 &emsp;Region: US West (Oregon)<br>
 
@@ -91,9 +91,9 @@ To terminate the aws instances:
 ```
 
 ## Building SilverKing on AWS
-You may also build SilverKing on AWS using simplified build scripts for both Amazon-Linux and Ubuntu.
+You may also build SilverKing on AWS using simplified build scripts for both Amazon Linux and Ubuntu.
 
-### Amazon-Linux
+### Amazon Linux
 ```ksh
 sudo yum -y install git ksh
 cd ~
