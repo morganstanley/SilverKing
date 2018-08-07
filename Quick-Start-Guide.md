@@ -23,11 +23,11 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
    - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
    - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script<br>
 *If you don't have an EC2 IAM role, you need to [create one](https://console.aws.amazon.com/iam/home?region=us-west-2#/roles) (ctrl+click to open in new tab):
-   - Click "Create role"
-   - AWS service->EC2, Click "Next: Permissions"
-   - Search: "AmazonEC2FullAccess", Select Check Box for "AmazonEC2FullAccess" Policy, Click "Next: Review"
-   - Role name: "EC2Admin"
-   - Click "Create role" button
+      - Click "Create role"
+      - AWS service->EC2, Click "Next: Permissions"
+      - Search: "AmazonEC2FullAccess", Select Check Box for "AmazonEC2FullAccess" Policy, Click "Next: Review"
+      - Role name: "EC2Admin"
+      - Click "Create role" button
 4. Add Storage: I'm just using the defaults
 5. Add Tags: I skip this
 6. Configure Security Group: I select my normal security group that I use for all my aws usage<br>
