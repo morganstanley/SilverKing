@@ -17,11 +17,11 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 3. Configure Instance:   
 ![Configure Details](img/sg_inbound_rule.png)
    - **Network**: I'm just using my default vpc
-   - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
-   - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script<br>
 *Make sure whatever VPC you are using with your instance, dns **resolution** and **hostnames** are both set to 'yes':
 ![VPC DNS](img/vpc_dns.PNG)<br>
 *You can view your [VPC's here](https://console.aws.amazon.com/vpc/home?region=us-west-2#vpcs:) (ctrl+click to open in new tab)<br>
+   - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
+   - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script<br>
 *If you don't have an EC2 IAM role, you need to [create one](https://console.aws.amazon.com/iam/home?region=us-west-2#/roles):
    - Click "Create role"
    - AWS service->EC2, Click "Next: Permissions"
@@ -30,7 +30,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
    - Click "Create role" button
 4. Add Storage: I'm just using the defaults
 5. Add Tags: I skip this
-6. Configure Security Group: I select my normal security group that I use for all my aws usage
+6. Configure Security Group: I select my normal security group that I use for all my aws usage<br>
 *Make sure your security group contains an **Inbound Rule** for **All Traffic** with your _security group ID_ as the **Source**:
 ![Security Group Inbound Rule](img/sg_inbound_rule.png)<br>
 7. Review Instance Luanch: Click "Launch"
