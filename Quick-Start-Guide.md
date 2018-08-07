@@ -12,6 +12,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 &emsp;Username: ec2-user<br>
 &emsp;Region: US West (Oregon)<br>
 
+#CreateRole
 1. In the AWS console, right click on the instance you want to run and click "Launch"
 2. Choose an Instance Type: choose atleast a t2.micro 
 3. Configure Instance:   
@@ -23,7 +24,6 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
    - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
    - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script<br>
 *If you don't have an EC2 IAM role, you need to [create one](https://console.aws.amazon.com/iam/home?region=us-west-2#/roles) (ctrl+click to open in new tab):
-#CreateRole
       - Click "Create role"
       - AWS service->EC2, Click "Next: Permissions"
       - Search: "AmazonEC2FullAccess", Select Check Box for "AmazonEC2FullAccess" Policy, Click "Next: Review"
