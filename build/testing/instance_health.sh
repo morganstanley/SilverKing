@@ -41,7 +41,7 @@ function f_status {
 
 typeset servers=`echo $SK_SERVERS | tr "," " "`
 if [[ -n $1 ]]; then
-    servers=`cat $1`
+    servers=`cat ~/SilverKing/bin/cloud_out/cloud_ip_list.txt`
 fi
 typeset skPattern=$SK_PROCESS_PATTERN
 if [[ -n $2 ]]; then
