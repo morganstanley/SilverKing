@@ -212,8 +212,8 @@ public class SKCloudAdmin {
 		print("Running Static Instance Creator");
 
 		StaticDHTCreator.main(new String[]{"-G", cloudOutDir, "-g", cloudGcName, "-d", "SK_cloud", 
-										   "-s", String.join(",", instanceIps), "-r", "1", "-z", launchHost+":2181",
-										   "-D", "/var/tmp/silverking", "-L", "/tmp/silverking", "-k", cloudOutDir+"/../lib/skfs.config", "-i", "10"/*in M's*/});
+										   "-s", String.join(",", instanceIps), "-r", String.valueOf(replication), "-z", launchHost+":2181",
+										   "-D", dataBaseHome, "-L", "/tmp/silverking", "-k", cloudOutDir+"/../lib/skfs.config", "-i", "10"/*in M's*/});
 		
 		printDone("");
 	}
