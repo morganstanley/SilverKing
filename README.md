@@ -92,4 +92,4 @@ Javadoc documentation is available for the Java API.
 
 ## Licensing
 
-See [LICENSE.md](LICENSE.md) for SilverKing licensing terms. See [lib/LICENSE.README.md](lib/LICENSE.README.md) for licensing terms of libraries used by SilverKing.
+See [LICENSE.md](LICENSE.md) for SilverKing licensing terms. See [lib/licenses/LICENSE.README.md](lib/licenses/LICENSE.README.md) for licensing terms of libraries used by SilverKing.
