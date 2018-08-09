@@ -40,7 +40,7 @@ public class SKCloudAdminTest {
 			String dataBaseHome   =  (String)testCase[5];
 			
 			SKCloudAdmin cloudAdmin = new SKCloudAdmin(launchInstancesCommand, numInstances, amiId, instanceType, includeMaster, replication, dataBaseHome);
-			assertEquals(cloudAdmin.getCommand(), launchInstancesCommand);
+			checkCommandName(cloudAdmin, launchInstancesCommand);
 			checkVariables(cloudAdmin, numInstances, amiId, instanceType, includeMaster, replication, dataBaseHome);
 		}
 	}
@@ -62,8 +62,12 @@ public class SKCloudAdminTest {
 	
 	private void checkCommand(String command) {
 		SKCloudAdmin cloudAdmin = new SKCloudAdmin(command);
-		assertEquals(cloudAdmin.getCommand(), command);
+		checkCommandName(cloudAdmin, command);
 		checkDefaults(cloudAdmin);
+	}
+	
+	private void checkCommandName(SKCloudAdmin cloudAdmin, String command) {
+		assertEquals(command, cloudAdmin.getCommand());
 	}
 	
 	private void checkDefaults(SKCloudAdmin cloudAdmin) {

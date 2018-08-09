@@ -40,12 +40,10 @@ function f_status {
 }
 
 typeset servers=`echo $SK_SERVERS | tr "," " "`
+typeset skPattern=$SK_PROCESS_PATTERN
 if [[ -n $1 ]]; then
     servers=`cat ~/SilverKing/bin/cloud_out/cloud_ip_list.txt`
-fi
-typeset skPattern=$SK_PROCESS_PATTERN
-if [[ -n $2 ]]; then
-    skPattern="java.*${2}.*/tmp/silverking"
+    skPattern="java.*SK_cloud.*/tmp/silverking"
 fi
 
 PASS_TEXT="x"
