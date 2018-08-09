@@ -55,7 +55,7 @@ Once the script returns, it should inform us of what command we run to start the
 ./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StartNodes,CreateSKFSns,CheckSKFS  # this starts sk and skfs
 ```
 
-That's it! SilverKing is up and running. You can run 'ps uxww' to see all three processes.
+That's it! SilverKing is up and running. You can run 'ps uxww' to see both processes - sk and skfs.
 
 You can now perform key-value operations using the skc tool ([skc usage](https://morgan-stanley.github.io/SilverKing/doc/Shell.html)):
 ```ksh
