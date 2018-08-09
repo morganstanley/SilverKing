@@ -8,7 +8,7 @@ This guide covers:
 If you'd like to give SilverKing a try, you can be up and running in minutes using an AWS instance from our template:<br>
 &emsp;[SilverKing AMI](https://console.aws.amazon.com/ec2/v2/home?region=us-west-2#Images:visibility=public-images;search=SilverKing;sort=name) (ctrl+click to open in new tab)<br>
 &emsp;AMI-Name: SilverKing<br>
-&emsp;Platform: Amazon-Linux<br>
+&emsp;Platform: Amazon Linux<br>
 &emsp;Username: ec2-user<br>
 &emsp;Region: US West (Oregon)<br>
 
@@ -55,11 +55,11 @@ Once the script returns, it should inform us of what command we run to start the
 ./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StartNodes,CreateSKFSns,CheckSKFS  # this starts sk and skfs
 ```
 
-That's it! SilverKing is up and running. You can run 'ps uxww' to see all three processes.
+That's it! SilverKing is up and running. You can run 'ps uxww' to see both processes - sk and skfs.
 
 You can now perform key-value operations using the skc tool ([skc usage](https://morgan-stanley.github.io/SilverKing/doc/Shell.html)):
 ```ksh
-~/SilverKing/bin/skc -G ~/SilverKing/build/testing -g GC_SK_test    
+~/SilverKing/bin/skc -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud    
 skc> h;         # help menu
 skc> cn testNs; # this creates a namespace
 skc> p k1 v1;   # this puts a key: k1, with value: v1
@@ -78,18 +78,22 @@ cat Hello
 
 To shut down the SilverKing cluster:
 ```ksh
+cd ~/SilverKing/bin
+```
+
+```
 ./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StopSKFS,StopNodes  # this stops sk and skfs
 ```
 
 To terminate the aws instances:
 ```ksh
-./SKCloudAdmin -c terminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the aws console 
+./SKCloudAdmin.sh -c terminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the aws console 
 ```
 
 ## Building SilverKing on AWS
-You may also build SilverKing on AWS using simplified build scripts for both Amazon-Linux and Ubuntu.
+You may also build SilverKing on AWS using simplified build scripts for both Amazon Linux and Ubuntu.
 
-### Amazon-Linux
+### Amazon Linux
 ```ksh
 sudo yum -y install git ksh
 cd ~
