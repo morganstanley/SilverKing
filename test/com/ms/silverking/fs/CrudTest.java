@@ -36,13 +36,13 @@ public class CrudTest {
 	}
 	
 	private static final String crudDirName    = "crud";
-	private static final String crudDirPath    = testsDirPath + sep + crudDirName;
+	private static final String crudDirPath    = testsDirPath + separator + crudDirName;
 	
 	private static final String parentDirName  = "parentDir";
-	private static final String parentDirPath  = crudDirPath + sep + parentDirName;
+	private static final String parentDirPath  = crudDirPath + separator + parentDirName;
 	
 	private static final String parentFileName = "parentFile.txt";
-	private static final String parentFilePath = crudDirPath + sep + parentFileName;
+	private static final String parentFilePath = crudDirPath + separator + parentFileName;
 
 	private final static File crudDir   = new File(testsDirPath, crudDirName);
 	
@@ -175,7 +175,7 @@ public class CrudTest {
 		checkWrite(contents);
 		checkRead( contents);
 
-		contents = "this is a first line?!#!@#?!@?# !?#?!@$?!@$2-=49159-0 285"+nl+"this is a second newline";
+		contents = "this is a first line?!#!@#?!@?# !?#?!@$?!@$2-=49159-0 285"+newline+"this is a second newline";
 		checkWrite(contents);
 		checkRead( contents);
 
@@ -295,7 +295,7 @@ public class CrudTest {
 //		printName("testCopy_File");
 		createAndCheckDir();
 		checkCopyAndRead(singleLine,   copy1, "this is a test file with one line",                                                                     "3402096896 33", "ffbe0d65deeba5b3abe46b0369372336");
-		checkCopyAndRead(multipleLine, copy2, "this is a test file with multiple lines"+nl+"and I'm spanning"+nl+"multiple lines"+nl+"great"+nl+"EOF",  "286419593 81", "efee80a1e02ee54237b3484ab1657d50");
+		checkCopyAndRead(multipleLine, copy2, "this is a test file with multiple lines"+newline+"and I'm spanning"+newline+"multiple lines"+newline+"great"+newline+"EOF",  "286419593 81", "efee80a1e02ee54237b3484ab1657d50");
 		deleteAndCheckDir();
 	}
 	

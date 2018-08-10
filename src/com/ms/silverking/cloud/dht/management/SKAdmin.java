@@ -530,7 +530,7 @@ public class SKAdmin {
 	private String getCheckSKFSBaseCommand(ClassVars classVars, String command) {
 		return (skGlobalCodebase == null ? "" : "export skGlobalCodebase="+ skGlobalCodebase +"; ")
 				+"export "+ GridConfiguration.defaultBaseEnvVar +"="+ 
-					(options.gridConfigBase == null ? GridConfiguration.getDefaultBase() : new File(options.gridConfigBase)) +"; " 
+					(options.gridConfigBase == null ? GridConfiguration.getDefaultBase() : new File(options.gridConfigBase).getAbsolutePath()) +"; " 
 				+"export "+ DHTConstants.jaceHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.jaceHomeEnv, UndefinedAction.ExceptionOnUndefined) +"; "
 				+"export "+ DHTConstants.javaHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.javaHomeEnv, getSystemJavaHome()) +"; "
 				+"export "+ DHTConstants.classpathEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.classpathEnv, System.getProperty(DHTConstants.classpathProperty)) +"; "
