@@ -2592,7 +2592,12 @@ int main(int argc, char *argv[]) {
 	add_fuse_option("-ononempty");
     add_fuse_option("-ouse_ino");
     add_fuse_option("-oauto_cache");
-    //add_fuse_option("-owriteback_cache");
+#if FUSE_KERNEL_VERSION >= 7
+#if FUSE_KERNEL_MINOR_VERSION >= 23
+    add_fuse_option("-owriteback_cache");
+	srfsLog(LOG_WARNING, "Writeback cache enabled");
+#endif
+#endif
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
 	sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs);
