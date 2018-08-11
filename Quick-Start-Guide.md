@@ -34,7 +34,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 6. Configure Security Group: I select my normal security group that I use for all my aws usage<br>
 *Make sure your security group contains an **Inbound Rule** for **All Traffic** with your _security group ID_ as the **Source**:
 ![Security Group Inbound Rule](img/sg_inbound_rule.png)<br>
-7. Review Instance Luanch: Click "Launch"
+7. Review Instance Launch: Click "Launch"
 
 ### Starting SK/SKFS
 Once you have an AWS SilverKing AMI instance running, ssh into this instance (this is the master/launch host).<br>
