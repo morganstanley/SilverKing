@@ -8,6 +8,8 @@ function f_printSkfsCheckWithResult {
 		
 		# leave this script running until skfs exits; currently being used by treadmill
 		if [[ -n $waitForSkfsdBeforeExiting ]]; then
+            ps auxww
+            ll /proc
 			typeset count=0
 			typeset secondsToSleep=10
 			typeset twoMinuteIntervals=$((120 / $secondsToSleep))
@@ -19,7 +21,9 @@ function f_printSkfsCheckWithResult {
 				fi
 				sleep $secondsToSleep
 			done
-			
+            
+            ps auxww
+            ll /proc			
 			f_printSkfsdStatus "$id" "dead"
 		fi
 		
@@ -200,8 +204,7 @@ id=$(f_getSkfsPid)
 if [[ -n $id ]]; then
     f_printSkfsFound
 	if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
-		f_printPass
-		exit
+		f_printSkfsCheckWithResult  # this will print f_printSkfsFound again, but that's ok..
 	fi
 else
 	f_printSkfsNotFound
