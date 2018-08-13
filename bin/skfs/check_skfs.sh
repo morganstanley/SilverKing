@@ -8,8 +8,9 @@ function f_printSkfsCheckWithResult {
 		
 		# leave this script running until skfs exits; currently being used by treadmill
 		if [[ -n $waitForSkfsdBeforeExiting ]]; then
-            ps auxww
-            ll /proc
+            f_printProcessInfo
+            sleep 15; # give the process time to show up in /proc/. sometimes tm skfsd is restarting b/c check_skfs.sh is exiting, and I think it's b/c /proc/$id doesn't exist yet
+            
 			typeset count=0
 			typeset secondsToSleep=10
 			typeset twoMinuteIntervals=$((120 / $secondsToSleep))
@@ -22,8 +23,7 @@ function f_printSkfsCheckWithResult {
 				sleep $secondsToSleep
 			done
             
-            ps auxww
-            ll /proc			
+            f_printProcessInfo
 			f_printSkfsdStatus "$id" "dead"
 		fi
 		
@@ -33,6 +33,14 @@ function f_printSkfsCheckWithResult {
 		f_printFail
 		exit -1
 	fi
+}
+
+function f_printProcessInfo {
+    echo
+    ps auxww
+    echo
+    ls -l /proc
+    echo
 }
 
 function f_printSkfsCheckWithResultOnlyIfFound {
