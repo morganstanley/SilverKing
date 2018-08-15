@@ -26,6 +26,7 @@
 
 typedef struct FileBlockWriter {
 	QueueProcessor	*qp;
+	QueueProcessor	*blockDeletionQP;
 	SRFSDHT			*sd;
 	int				useCompression;
 	SKSession		*pSession;
@@ -50,6 +51,6 @@ void fbw_delete(FileBlockWriter **fbw);
 void fbw_write_file_block(FileBlockWriter *fbw, FileBlockID *fbid, size_t dataLength, void *data, ActiveOpRef *aor);
 FBW_ActiveDirectPut *fbw_put_direct(FileBlockWriter *fbw, FileBlockID *fbid, WritableFileBlock *wfb);
 SKOperationState::SKOperationState fbw_wait_for_direct_put(FileBlockWriter *fbw, FBW_ActiveDirectPut **_adp);
-void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numRequests);
+void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numBlocks);
 
 #endif

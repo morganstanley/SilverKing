@@ -11,6 +11,7 @@
 #include "Util.h"
 
 #include "FileBlockWriteRequest.h"
+#include "FileInvalidationRequest.h"
 
 #include "skbasictypes.h"
 #include "skconstants.h"
@@ -30,6 +31,7 @@ using std::exception;
 // private prototypes
 
 static void fbw_process_dht_batch(void **requests, int numRequests, int curThreadIndex);
+static void fbw_process_dht_invalidation_batch(void **requests, int numRequests, int curThreadIndex);
 static int fbw_write_not_sane(FileBlockWriteRequest *fbwr, size_t dataLength);
 static FBW_ActiveDirectPut *fbwadp_new();
 static void fbwadp_delete(FBW_ActiveDirectPut **adp);
@@ -45,6 +47,8 @@ FileBlockWriter *fbw_new(SRFSDHT *sd, int useCompression, FileBlockCache *fbc, i
 	srfsLog(LOG_WARNING, "fbw_new reliableQueue %d", reliableQueue);
 	fbw->qp = qp_new_batch_processor(fbw_process_dht_batch, __FILE__, __LINE__, FBW_DHT_QUEUE_SIZE, 
 		reliableQueue ? ABQ_FULL_BLOCK : ABQ_FULL_DROP, FBW_DHT_THREADS, FBW_MAX_BATCH_SIZE);
+    fbw->blockDeletionQP = qp_new_batch_processor(fbw_process_dht_invalidation_batch, __FILE__, __LINE__, FBW_DHT_DELETION_QUEUE_SIZE, 
+		ABQ_FULL_BLOCK, FBW_DHT_DELETION_THREADS, FBW_MAX_BATCH_SIZE);
 	fbw->sd = sd;
 	fbw->pSession = sd_new_session(fbw->sd);
 	fbw->useCompression = useCompression;
@@ -428,26 +432,51 @@ static void fbwadp_delete(FBW_ActiveDirectPut **adp) {
 ////////////////////////
 // File block deletion
 
-void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numRequests) {
+void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numBlocks) {
+    FileInvalidationRequest    *fir;
+    int added;
+    
+    fir = fir_new(fbw, fid, numBlocks);
+    added = qp_add(fbw->blockDeletionQP, fir);
+    if (!added) {
+        fir_delete(&fir);
+    }
+}
+
+static void fbw_process_dht_invalidation_batch(void **requests, int numRequests, int curThreadIndex) {
 	SKOperationState::SKOperationState	dhtErr = SKOperationState::INCOMPLETE;
    	StrVector           requestGroup;  // sets of keys 
 	int					i;
-	char				**keys;
-
-	srfsLog(LOG_FINE, "in fbw_invalidate_file_blocks");
-
-    keys = str_alloc_array(numRequests, SRFS_FBID_KEY_SIZE);
+	FileBlockWriter		*fbw;
+	char				**keyLists[numRequests];
+    
+	srfsLog(LOG_FINE, "in fbw_process_dht_invalidation_batch %d", curThreadIndex);
+	fbw = NULL;
     
     // First, construct the requestGroup
 	for (i = 0; i < numRequests; i++) {
-        FileBlockID *fbid;
-        
-        fbid = fbid_new(fid, i);
-		fbid_to_string(fbid, keys[i]);
-		srfsLog(LOG_FINE, "fbw inv adding to group %llx %s", keys[i], keys[i]);
-        requestGroup.push_back(keys[i]);
-        fbid_delete(&fbid);
-	}
+		FileInvalidationRequest	*fir;
+        int j;
+
+		fir = (FileInvalidationRequest *)requests[i];
+		if (fbw == NULL) {
+			fbw = fir->fileBlockWriter;
+		} else {
+			if (fir->fileBlockWriter != fbw) {
+				fatalError("Unexpected multiple FileBlockWriter in fbw_process_dht_invalidation_batch");
+			}
+		}
+        keyLists[i] = str_alloc_array(fir->numBlocks, SRFS_FBID_KEY_SIZE);
+        for (j = 0; j < fir->numBlocks; j++) {
+            FileBlockID *fbid;
+            
+            fbid = fbid_new(fir->fid, j);
+            fbid_to_string(fbid, keyLists[i][j]);
+            srfsLog(LOG_FINE, "fbw inv adding to group %llx %s", keyLists[i][j], keyLists[i][j]);
+            requestGroup.push_back(keyLists[i][j]);
+            fbid_delete(&fbid);
+        }
+    }
 
     // Second, invalidate the group in the key-value store
 	SKAsyncInvalidation *pInvalidation = NULL;
@@ -463,21 +492,27 @@ void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numReques
 		srfsLog(LOG_FINE, "fbw invalidation complete: %d", dhtErr);
 		pOpMap = pInvalidation->getOperationStateMap();
 		for (i = 0; i < numRequests; i++) {
-			OpStateMap::iterator    osmit;
-            
-			osmit = pOpMap->find(keys[i]);
-			if (osmit != pOpMap->end()) {
-				SKOperationState::SKOperationState  piop;
+            FileInvalidationRequest	*fir;
+            int j;
+        
+            fir = (FileInvalidationRequest *)requests[i];
+            for (j = 0; j < fir->numBlocks; j++) {
+                OpStateMap::iterator    osmit;
                 
-				piop = osmit->second;
-				if (piop == SKOperationState::SUCCEEDED) {
-					// pInvalidation->getFailureCause(keys[i]);  //TODO: failure for individ keys
-					srfsLog(LOG_FINE, " fbw inv %s %s %d", SKFS_FB_NS, keys[i], 
-							piop);
-				}
-			} else {
-				srfsLog(LOG_WARNING, "failed to invalidate file block in dht %s %s", SKFS_FB_NS, keys[i]);
-			}
+                osmit = pOpMap->find(keyLists[i][j]);
+                if (osmit != pOpMap->end()) {
+                    SKOperationState::SKOperationState  piop;
+                    
+                    piop = osmit->second;
+                    if (piop == SKOperationState::SUCCEEDED) {
+                        // pInvalidation->getFailureCause(keyLists[i][j]);  //TODO: failure for individ keys
+                        srfsLog(LOG_FINE, " fbw inv %s %s %d", SKFS_FB_NS, keyLists[i][j], 
+                                piop);
+                    }
+                } else {
+                    srfsLog(LOG_WARNING, "failed to invalidate file block in dht %s %s", SKFS_FB_NS, keyLists[i][j]);
+                }
+            }
 		}
 		try {
 			if (dhtErr == SKOperationState::FAILED) {
@@ -500,28 +535,34 @@ void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numReques
                 e.printStackTrace();
             }
             for (i = 0; i < numRequests; i++) {
-                SKOperationState::SKOperationState    opState;
-                
-                try {
-                    opState = e.getOperationState(keys[i]);
-                    if (opState != SKOperationState::SUCCEEDED) {
-                        try {
-                            SKFailureCause::SKFailureCause      failureCause;
-                            LogLevel            logLevel;
-                            
-                            failureCause = e.getFailureCause(keys[i]);
-                            if (failureCause == SKFailureCause::INVALID_VERSION) {
-                                logLevel = LOG_FINE;
-                            } else {
-                                logLevel = LOG_ERROR;
+                FileInvalidationRequest	*fir;
+                int j;
+            
+                fir = (FileInvalidationRequest *)requests[i];
+                for (j = 0; j < fir->numBlocks; j++) {
+                    SKOperationState::SKOperationState    opState;
+                    
+                    try {
+                        opState = e.getOperationState(keyLists[i][j]);
+                        if (opState != SKOperationState::SUCCEEDED) {
+                            try {
+                                SKFailureCause::SKFailureCause      failureCause;
+                                LogLevel            logLevel;
+                                
+                                failureCause = e.getFailureCause(keyLists[i][j]);
+                                if (failureCause == SKFailureCause::INVALID_VERSION) {
+                                    logLevel = LOG_FINE;
+                                } else {
+                                    logLevel = LOG_ERROR;
+                                }
+                                srfsLog(logLevel, "fbw invalidation failed for block %s cause %d", keyLists[i][j], failureCause);
+                            } catch (...) {
+                                srfsLog(LOG_WARNING, "fbw inv failed to query FailureCause %s %s %d", keyLists[i][j], __FILE__, __LINE__); 
                             }
-                            srfsLog(logLevel, "fbw invalidation failed for block %s cause %d", keys[i], failureCause);
-                        } catch (...) {
-                            srfsLog(LOG_WARNING, "fbw inv failed to query FailureCause %s %s %d", keys[i], __FILE__, __LINE__); 
                         }
+                    } catch (...) {
+                        srfsLog(LOG_WARNING, "fbw inv failed to query OperationState %s %s %d", keyLists[i][j], __FILE__, __LINE__); 
                     }
-                } catch (...) {
-                    srfsLog(LOG_WARNING, "fbw inv failed to query OperationState %s %s %d", keys[i], __FILE__, __LINE__); 
                 }
             }
         } catch (...) {
@@ -540,7 +581,13 @@ void fbw_invalidate_file_blocks(FileBlockWriter *fbw, FileID *fid, int numReques
 		//pInvalidation->close();
 		delete pInvalidation;
 	}
-    str_free_array(&keys, numRequests);    
+	for (i = 0; i < numRequests; i++) {
+		FileInvalidationRequest	*fir;
+
+		fir = (FileInvalidationRequest *)requests[i];
+        str_free_array(&keyLists[i], fir->numBlocks);
+        fir_delete(&fir);
+    }
 	srfsLog(LOG_FINE, "out fbw_invalidate_file_blocks");
 }
 
