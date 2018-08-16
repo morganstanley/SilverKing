@@ -73,7 +73,7 @@ function f_amazon_linux_fillin_build_skfs {
 function f_amazon_linux_download_maven {
     typeset name="epel-apache-maven.repo"
     typeset redirectFile=/etc/yum.repos.d/$name
-    wget https://repos.fedorapeople.org/repos/dchen/apache-maven/$name -O $redirectFile
+    sudo wget https://repos.fedorapeople.org/repos/dchen/apache-maven/$name -O $redirectFile
     sudo sed -i s#\$releasever#6#g $redirectFile
     f_amazon_linux_yumInstall "apache-maven"
     mvn --version
