@@ -26,9 +26,8 @@ function f_amazon_linux_install_java {
     
     # make java 8 the default
     # you can see what java's are available with: alternatives --config java
-    typeset jre8Home=/usr/lib/jvm/jre-1.8.0-openjdk.x86_64
-    sudo alternatives --set java  $jre8Home/bin/java
-    sudo alternatives --set javac $jre8Home/bin/javac
+    sudo alternatives --set java  /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+    sudo alternatives --set javac ${java8home}-openjdk.x86_64/bin/javac
     
     ### this manually does what 'sudo alternatives --set' would do above
     # sudo rm /etc/alternatives/java
