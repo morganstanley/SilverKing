@@ -52,6 +52,7 @@ typedef struct FileID {
 void fid_module_init();
 void fid_init_native(FileID *fid, struct stat *_stat);
 void fid_init_skfs(FileID *fid, uint64_t instance, uint64_t sequence);
+FileID *fid_dup(FileID *fid);
 FileID *fid_new_native(struct stat *_stat);
 FileID *fid_new_skfs(uint64_t instance, uint64_t sequence);
 FileID *fid_generate_new_skfs();

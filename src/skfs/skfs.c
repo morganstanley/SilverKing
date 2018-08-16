@@ -2594,8 +2594,8 @@ int main(int argc, char *argv[]) {
     add_fuse_option("-oauto_cache");
 #if FUSE_KERNEL_VERSION >= 7
 #if FUSE_KERNEL_MINOR_VERSION >= 23
-    add_fuse_option("-owriteback_cache");
-	srfsLog(LOG_WARNING, "Writeback cache enabled");
+    //add_fuse_option("-owriteback_cache");
+	//srfsLog(LOG_WARNING, "Writeback cache enabled");
 #endif
 #endif
     
