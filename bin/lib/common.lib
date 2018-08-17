@@ -21,9 +21,11 @@ function f_sourceSkConfigAndConfigureClasspath {
 	
 	f_exitIfUndefined "skJavaHome" $skJavaHome
 	
-	echo "cp=$classpath"
-	echo "skJavaHome=$skJavaHome"
-	echo
+	if [ -z "${SK_QUIET_LAUNCH}" ]; then
+		echo "cp=$classpath"
+		echo "skJavaHome=$skJavaHome"
+		echo
+	fi
 }
 
 function f_getClasspath {
