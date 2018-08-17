@@ -93,7 +93,7 @@ public class ProcessExecutor {
 		return runCmd( getSshCommand(server, commands) );
 	}
 	
-	public static void scpFile(String destDir, String file, String host) {
+	public static void scpFile(String file, String host, String destDir) {
 		String user = System.getProperty("user.name");
 		runCmd("scp -o StrictHostKeyChecking=no " + file + " " + user + "@" + host + ":" + destDir);
 	}
