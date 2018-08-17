@@ -3,6 +3,10 @@ package com.ms.silverking.net.async;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.text.ObjectDefParser2;
 
+/**
+ * A simple NewConnectionTimeoutController that ignores destination addresses and accepts
+ * maxAttempts, attemptRelativeTimeoutMillis, and maxRelativeTimeoutMillis
+ */
 public class SimpleNewConnectionTimeoutController implements NewConnectionTimeoutController {
     private final int   maxAttempts;
     private final int	attemptRelativeTimeoutMillis;
