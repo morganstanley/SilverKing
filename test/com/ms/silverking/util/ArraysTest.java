@@ -113,7 +113,7 @@ public class ArraysTest {
 	}
 	
 	private void checkMatchesStart(byte[] a1, byte[] a2, boolean expected) {
-		assertEquals( getTestMessage("matchesStart", createToString(a1), createToString(a2)),	expected, Arrays.matchesStart(a1, a2));
+		assertEquals( getTestMessage("matchesStart", createToString(a1), createToString(a2)), expected, Arrays.matchesStart(a1, a2));
 	}
 	
 	@Test
