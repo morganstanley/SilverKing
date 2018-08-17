@@ -56,7 +56,7 @@ public class MultiInstanceLauncher {
 	private String subnetId;
 
 	public static final String privateKeyFilename = userHome + "/.ssh/id_rsa";
-	       static final String ipsFilename        = SKCloudAdmin.cloudOutDir + "/cloud_ip_list.txt";
+	public static final String ipsFilename        = SKCloudAdmin.cloudOutDir + "/cloud_ip_list.txt";
 	private String privateKey;
 	
 	private static final String newSecurityGroupName = "sk_instance";
@@ -279,7 +279,7 @@ public class MultiInstanceLauncher {
 	private void createIpListFile() {
 		print("Creating IpList File");
 		
-		writeToFile(ipsFilename, String.join(newLine, getInstanceIps()) + newLine);
+		writeToFile(ipsFilename, getInstanceIps());
 		
 		printDone(ipsFilename);
 	}

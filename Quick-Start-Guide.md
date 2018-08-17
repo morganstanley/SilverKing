@@ -46,7 +46,7 @@ cd ~/SilverKing/bin/
 We tell SKCloudAdmin how many number of aws instances we want to run. If we pass in "-n 1", the script won't launch any more instances because we already have one, this instance, but if we pass in something like "-n 5", the script will launch 4 more instances for a total of 5.<br>
 Let's keep it relatively simple and use a total of 3 aws instances, including this launch host, so "-n 3":
 ```ksh
-./SKCloudAdmin.sh -c launchInstances -n 3   # this fires up the instances, preps them i.e. wires up ssh'ing capability between instances, starts zookeeper, and does some SilverKing prep work
+./SKCloudAdmin.sh -c LaunchInstances -n 3   # this fires up the instances, preps them i.e. wires up ssh'ing capability between instances, starts zookeeper, and does some SilverKing prep work
 ```
 
 You should now see 2 additional instances running in your aws console.<br>
@@ -87,7 +87,7 @@ cd ~/SilverKing/bin
 
 To terminate the aws instances:
 ```ksh
-./SKCloudAdmin.sh -c terminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the aws console 
+./SKCloudAdmin.sh -c TerminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the aws console 
 ```
 
 ## Building SilverKing on AWS

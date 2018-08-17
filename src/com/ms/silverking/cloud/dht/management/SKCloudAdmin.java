@@ -12,19 +12,24 @@ import static com.ms.silverking.process.ProcessExecutor.ssh;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.List;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
+import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.parseCommands;
+import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.checkCommands;
+import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.notALaunchCommand;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher;
+import static com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher.ipsFilename;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceStarter;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceStopper;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceTerminator;
 import com.ms.silverking.cloud.dht.management.aws.Util;
+import static com.ms.silverking.cloud.dht.management.aws.Util.readFile;
 import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
+import static com.ms.silverking.cloud.dht.management.aws.Util.writeToFile;
 
 /**
  * <p>Tool responsible for executing most administrative SilverKing cloud commands.
@@ -35,61 +40,46 @@ import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
  * administrative tools' Java implementations.)</p>
  */
 public class SKCloudAdmin {
-
+    
 	public  static final String cloudOutDir = userHome + "/SilverKing/bin/cloud_out";
 	private static final String cloudGcName = "GC_SK_cloud";
-
-	static final String launchInstancesCommand    = getCommandName("launch");
-	static final String startInstancesCommand     = getCommandName("start");
-	static final String stopInstancesCommand      = getCommandName("stop");
-	static final String terminateInstancesCommand = getCommandName("terminate");
-	private static final List<String> commands = Arrays.asList(launchInstancesCommand, startInstancesCommand, stopInstancesCommand, terminateInstancesCommand);
-	
-	private final String  command;
+	private static final String sparkHome   = "~/spark-2.3.1-bin-hadoop2.7"; 
+    
+	private final SKCloudAdminCommand[] commands;
 	private final int     numInstances;
 	private final String  amiId;
 	private final String  instanceType;
 	private final boolean includeMaster;
 	private final int 	  replication;
 	private       String  dataBaseHome;
-	
-	private static String getCommandName(String command) {
-		return command+"Instances";
-	}
-	
+    private       StringBuffer nextSteps;
+		
 	// convenience ctor for start/stop/terminate testing
-	SKCloudAdmin(String command) {
-		this(command, SKCloudAdminOptions.defaultNumInstances, null, null, true, 1, null);
+	SKCloudAdmin(SKCloudAdminCommand command) {
+		this(new SKCloudAdminCommand[]{command}, SKCloudAdminOptions.defaultNumInstances, null, null, true, 1, null);
 	}
 	
-	public SKCloudAdmin(String command, int numInstances, String amiId, String instanceType, boolean includeMaster, int replication, String dataBaseHome) {
-		checkCommand(command);
-		checkNumInstances(command, numInstances);
+	public SKCloudAdmin(SKCloudAdminCommand[] commands, int numInstances, String amiId, String instanceType, boolean includeMaster, int replication, String dataBaseHome) {
+		checkCommands(commands);
+		checkNumInstances(commands, numInstances);
 		checkReplication(replication);
 		
-		this.command       = command;
+		this.commands      = commands;
 		this.numInstances  = numInstances;
 		this.amiId         = amiId;
 		this.instanceType  = instanceType;
 		this.includeMaster = includeMaster;
 		this.replication   = replication;
 		setDataBaseHome(dataBaseHome);
+        
+        nextSteps = new StringBuffer();
 	}
 	
-	private void checkCommand(String command) {
-		if (!commands.contains(command))
-			Util.throwIllegalArgumentException("command", command, "must be: " + commands);
-	}
-	
-	private void checkNumInstances(String command, int numInstances) {
-		if (notALaunchCommand(command))
+	private void checkNumInstances(SKCloudAdminCommand[] commands, int numInstances) {
+		if (notALaunchCommand(commands))
 			return;
 		
 		Util.checkNumInstances(numInstances);
-	}
-	
-	private boolean notALaunchCommand(String command) {
-		return !command.equals(launchInstancesCommand);
 	}
 	
 	private void checkReplication(int replication) {
@@ -104,8 +94,8 @@ public class SKCloudAdmin {
 			this.dataBaseHome = dataBaseHome;
 	}
 	
-	public String getCommand() {
-		return command;
+	public SKCloudAdminCommand[] getCommands() {
+		return commands;
 	}
 	
 	public int getNumInstances() {
@@ -133,32 +123,36 @@ public class SKCloudAdmin {
 	}
 	
 	public void run() {
-		switch (command) {
-	        case "launchInstances":
-	        	launchInstances();
-	            break;
-	        case "startInstances":
-	            startInstances();
-	            break;
-	        case "stopInstances":
-	            stopInstances();
-	            break;
-	        case "terminateInstances":
-	            terminateInstances();
-	            break;
-	        default: 
-	            throw new RuntimeException("It shouldn't have been possible to reach here, but somehow we got here with this unknown command: " + command);
-		}
+		for (SKCloudAdminCommand command : commands)
+            switch (command) {
+                case LaunchInstances:
+                    launchInstances();
+                    break;
+                case StartInstances:
+                    startInstances();
+                    break;
+                case StopInstances:
+                    stopInstances();
+                    break;
+                case TerminateInstances:
+                    terminateInstances();
+                    break;
+                case StartSpark:
+                    startSpark();
+                    break;
+                case StopSpark:
+                    stopSpark();
+                    break;
+                default: 
+                    throw new RuntimeException("It shouldn't have been possible to reach here, but somehow we got here with this unknown command: " + command);
+            }
+        
+		printNextSteps();
 	}
 	
 	private void launchInstances() {
 		printHeader("LAUNCHING");
-		String launchHost = "";
-		try {
-			launchHost = InetAddress.getLocalHost().getHostAddress();
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+		String launchHost = getMyIp();
 		
 		MultiInstanceLauncher launcher = new MultiInstanceLauncher(AmazonEC2ClientBuilder.defaultClient(), launchHost, numInstances, amiId, instanceType, includeMaster);
 		launcher.run();
@@ -179,8 +173,20 @@ public class SKCloudAdmin {
 		if (!launcher.isMasterOnlyInstance())
 			copyGcToWorkerMachines(workerIps);
 		symlinkSkfsdOnAllMachines(masterAndWorkerIps);
-		printNextSteps();
+        
+        nextSteps.append("- To start sk/skfs on all of these instances, you can run:\n");
+        nextSteps.append("\t./SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS\n");
+        nextSteps.append("\n");
 	}
+    
+    private String getMyIp() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } 
+        catch (UnknownHostException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 	
 	private void generatePublicKeyAndAddToAuthorizedKeys() {
 		print("Generating public key and adding it to authorized_keys");
@@ -195,7 +201,7 @@ public class SKCloudAdmin {
 		print("Copying private key to workers");
 
 		for (String workerIp : workerIps)
-			scpFile(userHome + "/.ssh", privateKeyFilename, workerIp);
+			scpFile(privateKeyFilename, workerIp, userHome + "/.ssh");
 		
 		printDone("");
 	}
@@ -224,7 +230,7 @@ public class SKCloudAdmin {
 		String srcDir = cloudOutDir;
 		for (String workerIp : workerIps) {
 			ssh(workerIp, "mkdir -p " + srcDir);
-			scpFile(srcDir, srcDir+"/"+cloudGcName+".env", workerIp);
+			scpFile(srcDir+"/"+cloudGcName+".env", workerIp, srcDir);
 		}
 		
 		printDone("");
@@ -244,12 +250,6 @@ public class SKCloudAdmin {
 		printDone("");
 	}
 	
-	private void printNextSteps() {
-		System.out.println();
-		System.out.println("Next steps: To start sk/skfs on all of these instances, you can run:");
-		System.out.println("./SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS");
-	}
-	
 	private void startInstances() {
 		printHeader("STARTING");
 		MultiInstanceStarter starter = new MultiInstanceStarter(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
@@ -267,6 +267,9 @@ public class SKCloudAdmin {
 		MultiInstanceTerminator terminator = new MultiInstanceTerminator(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
 		terminator.run();
 		stopZk();
+        
+        nextSteps.append("- We just terminated all the worker instances. To terminate this instance use the aws console.\n");
+        nextSteps.append("\n");
 	}
 	
 	private void stopZk() {
@@ -276,10 +279,69 @@ public class SKCloudAdmin {
 		
 		printDone("");
 	}
+    
+    private void startSpark() {
+        printHeaderHelper("STARTING SPARK");
+        List<String> ips = readFile(ipsFilename);
+		String launchHost = getMyIp();
+        String masterIp = getSparkMasterIp(ips, launchHost);
+        ips.remove(masterIp);
+        
+        ssh(masterIp, sparkHome+"/sbin/start-master.sh");
+         
+        if (!ips.isEmpty()) {
+            String tmpFile = "/tmp/ips.txt";
+            writeToFile(tmpFile, ips);
+			scpFile(tmpFile, masterIp, sparkHome+"/conf/slaves");
+            ssh(masterIp, sparkHome+"/sbin/start-slaves.sh");
+        }
+        
+        String skfsMountPath="/var/tmp/silverking/skfs/skfs_mnt/skfs";
+        String jarFilename="simple-project-1.0.jar";
+        
+        nextSteps.append("- To submit an app:\n");
+        if (!masterIp.equals(launchHost))
+            nextSteps.append("\t ssh " + masterIp + "\n");
+        nextSteps.append("\t 1. try spark locally:\n");
+        nextSteps.append("\t\t "+sparkHome+"/bin/spark-submit --class \"SimpleApp\" --master local[4] "+sparkHome+"/target/"+jarFilename+"\n");
+        nextSteps.append("\t 2. try spark on skfs (make sure you started sk/skfs first):\n");
+        nextSteps.append("\t\t cp "+sparkHome+"/README.md                     "+skfsMountPath+"\n");
+        nextSteps.append("\t\t cp "+sparkHome+"/target/"+jarFilename+" "+skfsMountPath+"\n");
+        nextSteps.append("\t\t "+sparkHome+"/bin/spark-submit --class \"SimpleAppSkfs\" --master spark://" + masterIp + ":7077 local:"+skfsMountPath+"/"+jarFilename+" --deploy-mode cluster\n");
+    }
+    
+    private void stopSpark() {
+        printHeaderHelper("STOPPING SPARK");
+		List<String> ips = readFile(ipsFilename);
+		String launchHost = getMyIp();
+        String masterIp = getSparkMasterIp(ips, launchHost);
+        ips.remove(masterIp);
+        
+        ssh(masterIp, sparkHome+"/sbin/stop-master.sh");
+         
+        if (!ips.isEmpty())
+            ssh(masterIp, sparkHome+"/sbin/stop-slaves.sh");
+    }
+    
+    private String getSparkMasterIp(List<String> ips, String launchHost) {
+        if (ips.contains(launchHost))
+            return launchHost;  // launched instance without -e (so master was included)
+        else
+            return ips.get(0);  // pick the first worker as the master for spark
+    }
 	
 	private void printHeader(String command) {
-		System.out.println("=== " + command + " INSTANCES ===");
+		System.out.println(command + " INSTANCES");
 	}
+    
+    private void printHeaderHelper(String command) {
+		System.out.println("=== " + command + " ===");
+    }
+    
+    private void printNextSteps() {
+        System.out.println("Next steps:");
+        nextSteps.toString();
+    }
 	
 	public static void main(String[] args) {
     	try {
@@ -293,7 +355,7 @@ public class SKCloudAdmin {
                 System.exit(-1);
     		}
     		
-    		SKCloudAdmin cloudAdmin = new SKCloudAdmin(options.command, options.numInstances, options.amiId, options.instanceType, !options.excludeMaster, options.replication, options.dataBaseVar);
+    		SKCloudAdmin cloudAdmin = new SKCloudAdmin(parseCommands(options.command), options.numInstances, options.amiId, options.instanceType, !options.excludeMaster, options.replication, options.dataBaseVar);
     		cloudAdmin.run();
     	} catch (Exception e) {
     		e.printStackTrace();
