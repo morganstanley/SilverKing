@@ -17,14 +17,16 @@ public class RandomBackoff {
 	protected final Random	random;
 	protected int			consecutiveBackoffs;
 	protected final boolean	exponential;
+	protected final long	hardDeadline;
 	
 	private static final int	MAX_EXPONENTIAL_MAX_BACKOFF = 30;
 	
 	public RandomBackoff(int maxBackoffNum, 
 						int initialBackoffValue,
 						int extraBackoffValue,
-						long seed,
-						boolean exponential) {
+						long hardDeadline,
+						boolean exponential, 
+						long seed) {
 		if (maxBackoffNum < 0 
 				|| exponential && maxBackoffNum > MAX_EXPONENTIAL_MAX_BACKOFF) {
 			throw new RuntimeException("Bad maxBackoffNum: "+ maxBackoffNum);
@@ -41,42 +43,25 @@ public class RandomBackoff {
 		}
 		this.extraBackoffValue = extraBackoffValue;
 		this.exponential = exponential;
+		this.hardDeadline = hardDeadline;
 		random = new Random(seed);
 	}
 
 	public RandomBackoff(int maxBackoffNum, 
 						int initialBackoffValue,
 						int extraBackoffValue,
-						long seed) {
-		this(maxBackoffNum, initialBackoffValue, extraBackoffValue, seed, true);
-	}
-	
-	public RandomBackoff(int maxBackoffNum, 
-						int initialBackoffValue,
-						int extraBackoffValue) {
+						long hardDeadline) {
 		this( maxBackoffNum, initialBackoffValue, extraBackoffValue, 
+		    hardDeadline, true,
 			SystemTimeSource.instance.absTimeMillis() );
 	}
 
 	public RandomBackoff(int maxBackoffNum, 
 						int initialBackoffValue,
-						int extraBackoffValue,
-						boolean exponential) {
-		this(maxBackoffNum, initialBackoffValue, extraBackoffValue, 
-			SystemTimeSource.instance.absTimeMillis(), exponential);
-	}
-	
-	public RandomBackoff(int maxBackoffNum, 
-						int initialBackoffValue) {
-		this(maxBackoffNum, initialBackoffValue, 0);
+						long hardDeadline) {
+		this(maxBackoffNum, initialBackoffValue, 0, hardDeadline);
 	}
 
-	public RandomBackoff(int maxBackoffNum, 
-						int initialBackoffValue, 
-						boolean exponential) {
-		this(maxBackoffNum, initialBackoffValue, 0, exponential);
-	}
-	
 	public void reset() {
 		curBackoffNum = 0;
 		consecutiveBackoffs = 0;
@@ -110,6 +95,9 @@ public class RandomBackoff {
 		//System.out.println(curBackoffNum +"\t"+ maxBackoffNum +"\t"+ backoffTime);
 		consecutiveBackoffs++;
 		if (waitHere) {
+			if (hardDeadline > 0) {
+				backoffTime = (int)Math.min(backoffTime, hardDeadline - SystemTimeSource.instance.absTimeMillis());
+			}
 			if (waitObj == null) {
 				ThreadUtil.sleep(backoffTime);
 			} else {

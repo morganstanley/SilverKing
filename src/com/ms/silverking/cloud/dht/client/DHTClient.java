@@ -162,7 +162,6 @@ public class DHTClient {
 			session = null; // FUTURE - this forces a new session
 			                // think about whether we want to use multiple or cache to common
 			if (session == null) {
-				DHTSession  prev;
 				int         serverPort;
 
 				try {
@@ -193,12 +192,6 @@ public class DHTClient {
                     throw new ClientException(ioe);
 				}
 				Log.info("session returned: ", session);
-				/*
-				prev = dhtNameToSessionMap.put(dhtConfig.getName(), session);
-				if (prev != null) {
-				    throw new RuntimeException("panic");
-				}
-				*/
 			}
 			return session;
 		} finally {

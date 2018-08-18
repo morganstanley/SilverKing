@@ -27,6 +27,7 @@ import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
 import com.ms.silverking.cloud.dht.common.Context;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
 import com.ms.silverking.cloud.dht.common.NamespaceOptionsClient;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
@@ -77,7 +78,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
      */
     
 	
-    // FIXME - server selection currently pinned to preferredServer only
+    // FUTURE - server selection currently pinned to preferredServer only; allow for others
     private AddrAndPort  server;
 	
 	//private final Map<OperationUUID,ActiveOperation>	activeOps;
@@ -111,37 +112,27 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 	                      AbsMillisTimeSource absMillisTimeSource, 
 	                      SerializationRegistry serializationRegistry, 
 	                      SessionEstablishmentTimeoutController timeoutController) throws IOException {
-        mgBase = new MessageGroupBase(0, this, absMillisTimeSource, this, 
-                                      connectionQueueLimit, numSelectorControllers, selectorControllerClass);
+        mgBase = new MessageGroupBase(0, this, absMillisTimeSource, new NewConnectionTimeoutControllerWrapper(timeoutController), 
+                                      this, connectionQueueLimit, numSelectorControllers, selectorControllerClass);
         mgBase.enable();
         server = preferredServer;
+        // Eagerly create the connection so that failures occur here, rather than after the session object is returned
+        if (!DHTConstants.isDaemon) {
+        	mgBase.ensureConnected(preferredServer);
+        }
 		this.dhtConfig = dhtConfig;
 		this.absMillisTimeSource = absMillisTimeSource;
 		this.serializationRegistry = serializationRegistry;
-		//serverPool = new ServerPool(dhtConfig, preferredServer);
 		myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getPort());
         Log.info("Session IP:Port ", IPAddrUtil.addrAndPortToString(myIPAndPort));
 		
 		clientNamespaces = new ConcurrentHashMap<>();  
         clientNamespaceList = new CopyOnWriteArrayList<>();
 		
-		//activeOpTable = new ActiveOperationTable();
-		
-		//activeOps = new ConcurrentHashMap<OperationUUID,ActiveOperation>();
-		
 		worker = new Worker();
 		DHTUtil.timer().scheduleAtFixedRate(new TimeoutCheckTask(), 
 											  timeoutCheckIntervalMillis, 
 											  timeoutCheckIntervalMillis);
-        /*
-		DHTClient.timer().scheduleAtFixedRate(new ServerCheckTask(), 
-											  serverCheckIntervalMillis, 
-											  serverCheckIntervalMillis);
-		DHTClient.timer().scheduleAtFixedRate(new ServerOrderTask(), 
-											  serverOrderIntervalMillis, 
-											  serverOrderIntervalMillis);
-											  */
-        //Runtime.getRuntime().addShutdownHook(new ShutdownHook());
 		namespaceCreator = new SimpleNamespaceCreator();
         nsOptionsClient = new NamespaceOptionsClient(this, dhtConfig, timeoutController);
 	}
@@ -468,77 +459,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             clientNamespace.checkForTimeouts(curTimeMillis, exclusionSetHasChanged);
         }
     }
-    
-    /////////////////////
-	
-	/*
-	private void checkServers() {
-		long	curTime;
-		
-		Log.info("DHTSessionImpl.checkServers()");
-		curTime = System.currentTimeMillis();
-		for (ServerInfo server : serverPool.getServers()) {
-			startOperation(new ActivePingOperation(server, curTime, this));
-		}
-	}
-	*/
-	
-	// start AsyncSendListener
-	
-	/*
-	@Override
-	public void failed(UUIDBase uuid) {
-		OperationAttempt	opAttempt;
-		
-		opAttempt = activeAttempts.remove(uuid);
-		if (opAttempt != null) {
-			ActiveOperation	activeOp;
-			
-			activeOp = opAttempt.getOperation();
-			switch (activeOp.getType()) {
-			case PING:
-    			((ActivePingOperation)activeOp).timedOut();
-				break;
-			default:
-				if (!activeOp.maxAttemptsExceeded()) {
-					serverPool.setFailed(opAttempt);
-					addWork(activeOp);
-				} else {
-					activeOp.setFailed(FailureCause.ERROR);
-	    			//activeOps.remove(activeOp.getUUID());
-	    			removeActiveOperation(activeOp);
-				}
-			}
-		}
-	}
-	
-	@Override
-	public void opFailed(ActiveOperation activeOp) {
-		serverPool.setFailed(activeOp.getLatestAttempt());
-	}	
-
-	@Override
-	public void sent(UUIDBase uuid) {
-	}
-    */
-    
-    // FUTURE - THINK ABOUT RECEIVING NETWORK SEND FAILURES MESSAGES
-
-	//@Override
-	//public void timeout(UUIDBase uuid) {
-		// ignore unacknowledged sends in the hope that they succeeded
-		// failures will be caught as operation timeouts
-	//}
-	
-	// end AsyncSendListener
-	
-	// think about different logic
-	// rather than sending operation, sweep through unresolved retrievals/puts/ops
-	// and send when necessary
-	// think about whether we want to short circuit work that doesn't
-	// need to go anywhere
-	// would be pretty unusual though, same client and r/w same key 
-	
+    	
 	public class TimeoutCheckTask extends TimerTask {
 		public void run() {
 			try {
@@ -548,26 +469,4 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 			}
 		}
 	}
-
-	/*
-	public class ServerCheckTask extends TimerTask {
-		public void run() {
-			try {
-				checkServers();
-			} catch (Exception e) {
-				Log.logErrorWarning(e);
-			}
-		}
-	}
-	
-	public class ServerOrderTask extends TimerTask {
-		public void run() {
-			try {
-				//serverPool.orderServers();
-			} catch (Exception e) {
-				Log.logErrorWarning(e);
-			}
-		}
-	}
-	*/
 }

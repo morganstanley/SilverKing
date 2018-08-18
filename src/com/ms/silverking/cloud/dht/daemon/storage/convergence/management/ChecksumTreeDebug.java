@@ -22,6 +22,7 @@ import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.OutgoingData;
+import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 
 public class ChecksumTreeDebug implements MessageGroupReceiver {
@@ -37,7 +38,7 @@ public class ChecksumTreeDebug implements MessageGroupReceiver {
 	}
 	
 	public ChecksumTreeDebug() throws IOException {
-		mgBase = new MessageGroupBase(0, this, SystemTimeUtil.systemTimeSource, null, queueLimit, 1, "");
+		mgBase = new MessageGroupBase(0, this, SystemTimeUtil.systemTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, null, queueLimit, 1, "");
 		mgBase.enable();
 	}
 	

@@ -204,6 +204,63 @@ public class NamespaceStore implements SSNamespaceStore {
     	Log.warningf("nsPrereadGB: %s", nsPrereadGB);
     }
     
+    
+    /////////////////////////////////
+    /*
+    private static final int	ssWorkerPoolTargetSize = 2;
+    private static final int	ssWorkerPoolMaxSize = 2;
+    
+    static LWTPool ssWorkerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("NamespaceStorePool").targetSize(ssWorkerPoolTargetSize).maxSize(ssWorkerPoolMaxSize));
+    
+    class SSWorker extends BaseWorker<Object> {
+        SSWorker() {
+            super(ssWorkerPool, true, 0);
+        }
+        
+        @Override
+        public void doWork(Object[] o) {
+        }
+        
+        @
+    }
+    
+    class KeyedOpResultRelay implements KeyedOpResultListener {
+    	private final Map<DHTKey, KeyedOpResultListener>	listeners;
+    	
+    	KeyedOpResultRelay() {
+    		
+    	}
+
+		@Override
+		public void sendResult(DHTKey key, OpResult result) {
+			KeyedOpResultListener	listener;
+			
+			listener = listeners.get(key);
+			if (listener != null) {
+				listener.sendResult(key, result);
+			} else {
+				Log.warningf("KeyedOpResultRelay can't find listener for %s", key);
+			}
+		}    	
+    }
+    
+    class PutWork {
+    	final List<StorageValueAndParameters>	values;
+    	final byte[] userData;
+    	final KeyedOpResultListener resultListener;
+    	
+    	PutWork(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
+    		this.values = values;
+    		this.userData = userData;
+    		this.resultListener = resultListener;
+    	}
+    }
+    */
+    
+    
+    /////////////////////////////////
+
+    
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
             NamespaceStore parent,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,

@@ -27,6 +27,12 @@ class SilverKingClientOptions {
 	@Option(name="-s", usage="server")
 	String	server;
 	
+	//@Option(name="-o", usage="sessionOptions")
+	//String	sessionOptions;
+	
+	@Option(name="-sto", usage="sessionTimeoutSeconds")
+	int sessionTimeoutSeconds;
+	
 	@Option(name="-a", usage="action")
 	Action action;
 	
