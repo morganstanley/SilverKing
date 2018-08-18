@@ -52,7 +52,7 @@ public class MultiInstanceStopper {
 		List<InstanceStateChange> stoppingInstances = result.getStoppingInstances();
 
 		print("");
-		printDone( String.join(", ", getIds(stoppingInstances)) );
+		printDone( getIds(stoppingInstances) );
 	}
 	
     public static void main(String[] args) {

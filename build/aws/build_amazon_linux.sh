@@ -106,6 +106,7 @@ function f_aws_compile_sample_app {
     f_aws_sampleJavaFile "SimpleApp"     "$HOME/spark-2.3.1-bin-hadoop2.7/README.md"    # I would use '~' instead of '$HOME', but the java code assumes anything that doesn't start with '/' is a relative path, so it tacks on the cwd to the filename.. which gives us the wrong path
     f_aws_sampleJavaFile "SimpleAppSkfs" "/var/tmp/silverking/skfs/skfs_mnt/skfs/README.md"
     
+    cd ~/spark-2.3.1-bin-hadoop2.7
     mvn package
 }
 

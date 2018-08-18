@@ -67,6 +67,14 @@ public class Util {
 		System.out.printf("%-65s %s ", text, spacer);
 	}
 	
+	public static void printDone(List<String> values) {
+		printDone( String.join(", ", values) );
+	}
+	
+	public static void printDone() {
+		printDone("");
+	}
+	
 	public static void printDone(String value) {
 		System.out.println("done ("+value+")");
 	}
@@ -173,7 +181,7 @@ public class Util {
 		    lastMinutePrinted = printMinutesElapsed(sleepSeconds, retriesCount, lastMinutePrinted);
 		}
 
-		printDone(String.join(", ", getIps(instances)));
+		printDone( getIps(instances) );
 	}
 	
 	private static void checkForTimeoutException(long sleepSeconds, long totalRunTimeSeconds, int retriesCount, String status) {
@@ -222,7 +230,7 @@ public class Util {
 		}
 
 		print("");
-		printDone(String.join(", ", getIps(instances)));
+		printDone( getIps(instances) );
 	}
 	
 	static boolean passedSystemStatusCheck(InstanceStatusSummary statusSummary) {

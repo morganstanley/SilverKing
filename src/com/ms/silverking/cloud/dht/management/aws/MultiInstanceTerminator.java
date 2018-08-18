@@ -54,7 +54,7 @@ public class MultiInstanceTerminator {
 		List<InstanceStateChange> terminatingInstances = result.getTerminatingInstances();
 
 		print("");
-		printDone( String.join(", ", getIds(terminatingInstances)) );
+		printDone( getIds(terminatingInstances) );
 	}
 	
     public static void main(String[] args) {
