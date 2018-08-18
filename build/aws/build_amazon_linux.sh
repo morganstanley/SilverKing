@@ -18,15 +18,27 @@ function f_amazon_linux_install_java {
     cd $LIB_ROOT
     typeset java8=java-1.8.0
     typeset java7=java-1.7.0
-    f_amazon_linux_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
-    f_amazon_linux_yumInstall "$java7-openjdk-devel.x86_64" 
+    f_amazon_linux_yumInstall "${java8}-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
+    f_amazon_linux_yumInstall "${java7}-openjdk-devel.x86_64" 
     typeset java8home=/usr/lib/jvm/$java8
     f_fillInBuildConfigVariable "JAVA_8_HOME" "$java8home"
     f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
     
     # make java 8 the default
-    # sudo alternatives --set java  $java8home/bin/java
-    # sudo alternatives --set javac $java8home/bin/javac
+    # you can see what java's are available with: alternatives --config java
+    sudo alternatives --set java  /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+    sudo alternatives --set javac ${java8home}-openjdk.x86_64/bin/javac
+    
+    ### this manually does what 'sudo alternatives --set' would do above
+    # sudo rm /etc/alternatives/java
+    # sudo ln -s $java8home/bin/java /etc/alternatives/java
+    
+    # sudo rm /etc/alternatives/javac
+    # sudo ln -s $java8home/bin/javac /etc/alternatives/javac
+    
+    # this is for JAVA_HOME
+    # sudo rm /etc/alternatives/jre
+    # sudo ln -s /etc/alternatives/jre_1.8.0 /etc/alternatives/jre
 }
 
 function f_amazon_linux_symlink_boost {
@@ -56,6 +68,71 @@ function f_amazon_linux_fillin_build_skfs {
     # f_amazon_linux_yumInstall "valgrind"	#(not sure this is necessary)
     f_amazon_linux_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
+}
+
+function f_amazon_linux_download_maven {
+    typeset name="epel-apache-maven.repo"
+    typeset redirectFile=/etc/yum.repos.d/$name
+    sudo wget https://repos.fedorapeople.org/repos/dchen/apache-maven/$name -O $redirectFile
+    sudo sed -i s#\$releasever#6#g $redirectFile
+    f_amazon_linux_yumInstall "apache-maven"
+    mvn --version
+}
+
+function f_aws_compile_sample_app {
+    echo "
+    <project>
+      <groupId>edu.berkeley</groupId>
+      <artifactId>simple-project</artifactId>
+      <modelVersion>4.0.0</modelVersion>
+      <name>Simple Project</name>
+      <packaging>jar</packaging>
+      <version>1.0</version>
+      <dependencies>
+        <dependency> <!-- Spark dependency -->
+          <groupId>org.apache.spark</groupId>
+          <artifactId>spark-sql_2.11</artifactId>
+          <version>2.3.1</version>
+        </dependency>
+      </dependencies>
+      <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+      </properties>
+    </project>
+    " > ~/spark-2.3.1-bin-hadoop2.7/pom.xml
+    
+    mkdir -p ~/spark-2.3.1-bin-hadoop2.7/src/main/java
+    f_aws_sampleJavaFile "SimpleApp"     "$HOME/spark-2.3.1-bin-hadoop2.7/README.md"    # I would use '~' instead of '$HOME', but the java code assumes anything that doesn't start with '/' is a relative path, so it tacks on the cwd to the filename.. which gives us the wrong path
+    f_aws_sampleJavaFile "SimpleAppSkfs" "/var/tmp/silverking/skfs/skfs_mnt/skfs/README.md"
+    
+    mvn package
+}
+
+function f_aws_sampleJavaFile {
+    typeset className=$1
+    typeset  fileName=$2
+
+    echo "
+    /* $className.java */
+    import org.apache.spark.sql.SparkSession;
+    import org.apache.spark.sql.Dataset;
+
+    public class $className {
+      public static void main(String[] args) {
+        String logFile = \"$fileName\"; // Should be some file on your system
+        SparkSession spark = SparkSession.builder().appName(\"Simple Application\").getOrCreate();
+        Dataset<String> logData = spark.read().textFile(logFile).cache();
+
+        long numAs = logData.filter(s -> s.contains(\"a\")).count();
+        long numBs = logData.filter(s -> s.contains(\"b\")).count();
+
+        System.out.println(\"Lines with a: \" + numAs + \", lines with b: \" + numBs);
+
+        spark.stop();
+      }
+    }
+    " > ~/spark-2.3.1-bin-hadoop2.7/src/main/java/$className.java
 }
 
 f_checkAndSetBuildTimestamp
@@ -94,6 +171,10 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     echo "BUILD SKFS"
     f_amazon_linux_fillin_build_skfs
 
+    f_aws_install_spark
+    f_amazon_linux_download_maven
+    f_aws_compile_sample_app
+    
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
 } 2>&1 | tee $output_filename
 

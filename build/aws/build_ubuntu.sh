@@ -16,7 +16,7 @@ function f_ubuntu_aptgetInstall {
 function f_ubuntu_install_java {
     echo "installing java"
     cd $LIB_ROOT
-    f_ubuntu_aptgetInstall "default-jdk" # 'default-jdk' works for 16.04, but for 14.04 it gets java7
+    f_ubuntu_aptgetInstall "openjdk-8-jdk" # 'default-jdk' works for 16.04, but for 14.04 it gets java7
     typeset java7_tar=jdk-7u80-linux-x64.tar.gz
     f_aws_downloadTar "$java7_tar" "http://ftp.osuosl.org/pub/funtoo/distfiles/oracle-java/$java7_tar"
 

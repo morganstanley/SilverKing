@@ -21,6 +21,10 @@ import com.amazonaws.services.ec2.model.InstanceStatusSummary;
 import com.amazonaws.services.ec2.model.Reservation;
 
 import com.ms.silverking.cloud.dht.management.aws.Util.InstanceState;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Util {
 	
@@ -100,7 +104,8 @@ public class Util {
 			FileWriter writer = new FileWriter(file);
 			writer.write(content);
 			writer.close();
-		} catch (IOException e) {
+		} 
+        catch (IOException e) {
 			e.printStackTrace();
 		}
 
@@ -119,6 +124,21 @@ public class Util {
 //		System.out.println("Is Write allow : " +   file.canWrite());
 //		System.out.println("Is Read allow : " +    file.canRead());
 	}
+    
+	public static void writeToFile(String filename, List<String> content) {
+		writeToFile(filename, String.join(newLine, content) + newLine);
+    }
+    
+    public static List<String> readFile(String filename) {
+        try {
+            return Files.readAllLines(Paths.get(filename));
+        } 
+        catch (IOException ex) {
+            throwRuntimeException(ex);
+        }
+        
+        return null;    // should never get here
+    }
 	
 	static void waitForInstancesToBeRunning(AmazonEC2 ec2, List<Instance> instances) {
 		print("  Waiting for Instances to be running");
@@ -240,8 +260,9 @@ public class Util {
 	private static void sleep(long seconds) {
 	    try {
 			Thread.sleep(seconds*1_000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+		} 
+        catch (InterruptedException ex) {
+			throwRuntimeException(ex);
 		}
 	}
 	
@@ -346,4 +367,8 @@ public class Util {
 	public static void throwIllegalArgumentException(String variableName, Object variableValue, String msg) {
 		throw new IllegalArgumentException("Invalid " + variableName + ": \"" + variableValue + "\" .... " + msg);
 	}
+    
+    public static void throwRuntimeException(Exception ex) {
+        throw new RuntimeException(ex);
+    }
 }

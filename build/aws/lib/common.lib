@@ -162,6 +162,14 @@ function f_aws_symlink_skjar_for_skc {
     ln -s $SILVERKING_JAR
 }
 
+function f_aws_install_spark {
+    echo "installing spark"
+    cd $LIB_ROOT
+    typeset spark_version="spark-2.3.1-bin-hadoop2.7"
+    typeset spark_tar=$spark_version.tgz
+    f_aws_downloadTar "$spark_tar" "http://mirror.cc.columbia.edu/pub/software/apache/spark/spark-2.3.1/$spark_tar"
+}
+
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo
 # travis-ci sets LIB_ROOT
 if [[ -z $LIB_ROOT ]]; then
