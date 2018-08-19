@@ -175,7 +175,7 @@ public class SKCloudAdmin {
 		symlinkSkfsdOnAllMachines(masterAndWorkerIps);
         
         nextSteps.append("- To start sk/skfs on all of these instances, you can run:\n");
-        nextSteps.append("\t./SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS\n");
+        nextSteps.append("\t~/SilverKing/bin/SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS\n");
         nextSteps.append("\n");
 	}
     
