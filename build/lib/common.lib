@@ -69,8 +69,8 @@ function f_cleanOrMakeDirectory {
 }
 
 function f_makeAndCopy {
-	typeset src=$1;
-	typeset dest=$2;
+	typeset src=$1
+	typeset dest=$2
 	echo "from: $src"
 	echo "  to: $dest" 
 	f_makeWithParents $dest
@@ -544,8 +544,8 @@ function f_printResult {
 }
 
 function f_getEqualsResult {
-	typeset actualSize=$1;
-	typeset expectedSize=$2;
+	typeset actualSize=$1
+	typeset expectedSize=$2
 	
 	if [[ $actualSize -eq $expectedSize ]]; then
 		echo $PASS_TEXT
@@ -555,8 +555,8 @@ function f_getEqualsResult {
 }
 
 function f_getGreaterThanOrEqualsResult {
-	typeset actualSize=$1;
-	typeset expectedSize=$2;
+	typeset actualSize=$1
+	typeset expectedSize=$2
 	
 	if [[ $actualSize -ge $expectedSize ]]; then
 		echo $PASS_TEXT
