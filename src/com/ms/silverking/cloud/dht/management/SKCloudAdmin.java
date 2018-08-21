@@ -175,7 +175,7 @@ public class SKCloudAdmin {
 		symlinkSkfsdOnAllMachines(masterAndWorkerIps);
         
         nextSteps.append("- To start sk/skfs on all of these instances, you can run:\n");
-        nextSteps.append("\t./SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS\n");
+        nextSteps.append("\t~/SilverKing/bin/SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS\n");
         nextSteps.append("\n");
 	}
     
@@ -189,21 +189,21 @@ public class SKCloudAdmin {
     }
 	
 	private void generatePublicKeyAndAddToAuthorizedKeys() {
-		print("Generating public key and adding it to authorized_keys");
+		print("Generating Public Key and Adding it to authorized_keys");
 
 		// using runBashCmd instead of runCmd, b/c of chained command ">>"
 		runBashCmd("ssh-keygen -y -f " + privateKeyFilename + " >> " + userHome + "/.ssh/authorized_keys");
 		
-		printDone("");
+		printDone();
 	}
 	
 	private void copyPrivateKeyToWorkerMachines(List<String> workerIps) {
-		print("Copying private key to workers");
+		print("Copying Private Key to Workers");
 
 		for (String workerIp : workerIps)
 			scpFile(privateKeyFilename, workerIp, userHome + "/.ssh");
 		
-		printDone("");
+		printDone();
 	}
 	
 	private void startZk() {
@@ -211,21 +211,23 @@ public class SKCloudAdmin {
 
 		runCmd(userHome + "/SilverKing/build/aws/zk_start.sh");
 		
-		printDone("");
+		printDone();
 	}
 	
 	private void runStaticInstanceCreator(String launchHost, List<String> instanceIps) {
 		print("Running Static Instance Creator");
-
-		StaticDHTCreator.main(new String[]{"-G", cloudOutDir, "-g", cloudGcName, "-d", "SK_cloud", 
-										   "-s", String.join(",", instanceIps), "-r", String.valueOf(replication), "-z", launchHost+":2181",
-										   "-D", dataBaseHome, "-L", "/tmp/silverking", "-k", cloudOutDir+"/../lib/skfs.config", "-i", "10"/*in M's*/});
+        
+        runBashCmd("~/SilverKing/bin/StaticInstanceCreator.sh -G " + cloudOutDir + " -g " + cloudGcName + " -d SK_cloud -s " + String.join(",", instanceIps) + " -r " + replication + " -z " + launchHost + ":2181 -D " + dataBaseHome + " -L /tmp/silverking -k " + cloudOutDir + "/../lib/skfs.config -i 10 >> /tmp/StaticInstanceCreator.out"); 
+        // using above so I can redirect output.. I'd rather use below, but above is a quick and dirty hack to redirect
+//		StaticDHTCreator.main(new String[]{"-G", cloudOutDir, "-g", cloudGcName, "-d", "SK_cloud", 
+//										   "-s", String.join(",", instanceIps), "-r", String.valueOf(replication), "-z", launchHost+":2181",
+//										   "-D", dataBaseHome, "-L", "/tmp/silverking", "-k", cloudOutDir+"/../lib/skfs.config", "-i", "10"/*in M's*/});
 		
-		printDone("");
+		printDone();
 	}
 	
 	private void copyGcToWorkerMachines(List<String> workerIps) {
-		print("Copying GC to workers");
+		print("Copying GC to Workers");
 
 		String srcDir = cloudOutDir;
 		for (String workerIp : workerIps) {
@@ -233,21 +235,21 @@ public class SKCloudAdmin {
 			scpFile(srcDir+"/"+cloudGcName+".env", workerIp, srcDir);
 		}
 		
-		printDone("");
+		printDone();
 	}
 	
 	// symlink even this launch host (master) b/c if it's included in the instances, we need skfsd on here, which it isn't
 	// and if it isn't a part of the instances, then it's just a harmless symlink 
 	// that's why we're using instanceIps instead of just workerIps
 	private void symlinkSkfsdOnAllMachines(List<String> instanceIps) {
-		print("Symlinking skfsd on all machines");
+		print("Symlinking skfsd on All Machines");
 
 		String target   = cloudOutDir + "/../../build/skfs-build/skfs-install/arch-output-area/skfsd";
 		String linkName = cloudOutDir + "/../skfs/skfsd";
 		for (String instanceIp : instanceIps)
 			ssh(instanceIp, "ln -sv " + target + " " + linkName + "; ls " + target + "; ls " + linkName);
 		
-		printDone("");
+		printDone();
 	}
 	
 	private void startInstances() {
@@ -277,23 +279,27 @@ public class SKCloudAdmin {
 
 		runCmd(userHome + "/SilverKing/build/aws/zk_stop.sh");
 		
-		printDone("");
+		printDone();
 	}
     
     private void startSpark() {
         printHeaderHelper("STARTING SPARK");
-        List<String> ips = readFile(ipsFilename);
+        List<String> ips = readIpFile();
 		String launchHost = getMyIp();
         String masterIp = getSparkMasterIp(ips, launchHost);
         ips.remove(masterIp);
         
+		print("Starting Master");
         ssh(masterIp, sparkHome+"/sbin/start-master.sh");
+        printDone();
          
         if (!ips.isEmpty()) {
+            print("Staring Slaves");
             String tmpFile = "/tmp/ips.txt";
             writeToFile(tmpFile, ips);
 			scpFile(tmpFile, masterIp, sparkHome+"/conf/slaves");
             ssh(masterIp, sparkHome+"/sbin/start-slaves.sh");
+            printDone();
         }
         
         String skfsMountPath="/var/tmp/silverking/skfs/skfs_mnt/skfs";
@@ -312,26 +318,46 @@ public class SKCloudAdmin {
     
     private void stopSpark() {
         printHeaderHelper("STOPPING SPARK");
-		List<String> ips = readFile(ipsFilename);
+		List<String> ips = readIpFile();
 		String launchHost = getMyIp();
         String masterIp = getSparkMasterIp(ips, launchHost);
         ips.remove(masterIp);
         
+		print("Stopping Master");
         ssh(masterIp, sparkHome+"/sbin/stop-master.sh");
-         
-        if (!ips.isEmpty())
+        printDone();
+        
+        if (!ips.isEmpty()) {
+            print("Stopping Slaves");
             ssh(masterIp, sparkHome+"/sbin/stop-slaves.sh");
+            printDone();
+        }
     }
     
+	private List<String> readIpFile() {
+		print("Reading IP's From " + ipsFilename);
+		
+		List<String> ips = readFile(ipsFilename);
+		
+		printDone(ips);
+        return ips;
+	}
+    
     private String getSparkMasterIp(List<String> ips, String launchHost) {
+		print("Getting Master IP");
+        
+        String masterIp = "";
         if (ips.contains(launchHost))
-            return launchHost;  // launched instance without -e (so master was included)
+            masterIp = launchHost;  // launched instance without -e (so master was included)
         else
-            return ips.get(0);  // pick the first worker as the master for spark
+            masterIp = ips.get(0);  // pick the first worker as the master for spark
+        
+        printDone(masterIp);
+        return masterIp;
     }
 	
 	private void printHeader(String command) {
-		System.out.println(command + " INSTANCES");
+		printHeaderHelper(command + " INSTANCES");
 	}
     
     private void printHeaderHelper(String command) {

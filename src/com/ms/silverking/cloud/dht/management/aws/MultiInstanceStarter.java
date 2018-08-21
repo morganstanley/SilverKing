@@ -53,7 +53,7 @@ public class MultiInstanceStarter {
 		List<InstanceStateChange> startingInstances = result.getStartingInstances();
 
 		print("");
-		printDone( String.join(", ", getIds(startingInstances)) );
+		printDone( getIds(startingInstances) );
 	}
 	
     public static void main(String[] args) {

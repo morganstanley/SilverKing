@@ -112,7 +112,7 @@ public class MultiInstanceLauncher {
 			DescribeInstancesResult response = ec2.describeInstances(request);
 		}
 		catch (SdkClientException exception) {
-			throw new SdkClientException("No AWS credentials found. You need to attach an IAM Role to this instance.\n"
+			throw new SdkClientException("No AWS credentials found. You need to attach an IAM Role to this instance that has EC2 permissions.\n"
 					+ "You can do that from the aws console. Right click on this instance->Instance Settings->Attach/Replace IAM Role.\n"
 					+ "If you haven't created a role, you can't attach one. If you need help creating a role, follow this guide: https://github.com/Morgan-Stanley/SilverKing/blob/master/Quick-Start-Guide.md#CreateIAMRole");
 		}
@@ -255,7 +255,7 @@ public class MultiInstanceLauncher {
 		RunInstancesResult result = ec2.runInstances(runInstancesRequest);
 		workerInstances = result.getReservation().getInstances();
 		
-		printDone( String.join(", ", getInstanceIds(workerInstances)) );
+		printDone( getInstanceIds(workerInstances) );
 	}
 	
 	private List<String> getSecurityGroupIds(List<GroupIdentifier> securityGroups) {
