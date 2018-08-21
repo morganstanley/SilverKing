@@ -226,8 +226,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         	// don't have any properties
             maxDirectCallDepth = 0;
         } else {
-        	if (nsProperties.getOptions().getNamespaceServerSideCode() != null) {
-        		// Disallow all potential server side code usage of SelectorThreads
+        	if (message.getForwardingMode() == ForwardingMode.DO_NOT_FORWARD && nsProperties.getOptions().getNamespaceServerSideCode() != null) {
+        		// For non-forwarded messages, disallow all potential server side code usage of SelectorThreads
         		// We don't want communication to be dependent on server side code operation
                 maxDirectCallDepth = 0;
         	} else {
