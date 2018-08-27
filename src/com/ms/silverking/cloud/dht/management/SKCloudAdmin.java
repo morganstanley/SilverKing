@@ -174,9 +174,7 @@ public class SKCloudAdmin {
 			copyGcToWorkerMachines(workerIps);
 		symlinkSkfsdOnAllMachines(masterAndWorkerIps);
         
-        nextSteps.append("- To start sk/skfs on all of these instances, you can run:\n");
-        nextSteps.append("\t~/SilverKing/bin/SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c StartNodes,CreateSKFSns,CheckSKFS\n");
-        nextSteps.append("\n");
+        addStartAndStopSilverkingNextSteps();
 	}
     
     private String getMyIp() {
@@ -251,11 +249,25 @@ public class SKCloudAdmin {
 		
 		printDone();
 	}
+    
+    private void addStartAndStopSilverkingNextSteps() {
+        addSilverkingNextSteps("start", "StartNodes,CreateSKFSns,CheckSKFS");
+        addSilverkingNextSteps("stop",  "StopSKFS,StopNodes");
+    }
+    
+    private void addSilverkingNextSteps(String action, String command) {
+        nextSteps.append("- To " + action + " sk/skfs on all of these instances, you can run:\n");
+        nextSteps.append("\t~/SilverKing/bin/SKAdmin.sh -G " + cloudOutDir + " -g " + cloudGcName + " -c " + command + "\n");
+        nextSteps.append("\n");
+    }
 	
 	private void startInstances() {
 		printHeader("STARTING");
 		MultiInstanceStarter starter = new MultiInstanceStarter(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
 		starter.run();
+		startZk();
+        
+        addStartAndStopSilverkingNextSteps();
 	}
 	
 	private void stopInstances() {
