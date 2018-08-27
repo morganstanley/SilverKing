@@ -282,7 +282,7 @@ public class SKCloudAdmin {
 		terminator.run();
 		stopZk();
         
-        nextSteps.append("- We just terminated all the worker instances. To terminate this instance use the aws console.\n");
+        nextSteps.append("- We just terminated all the worker instances. To terminate this instance use the AWS console.\n");
         nextSteps.append("\n");
 	}
 	
