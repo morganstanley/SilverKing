@@ -23,6 +23,7 @@ function f_printSkfsCheckWithResult {
 				sleep $secondsToSleep
 			done
             
+            echo "check_skfs will soon exit"
             f_printProcessInfo
 			f_printSkfsdStatus "$id" "dead"
 		fi
