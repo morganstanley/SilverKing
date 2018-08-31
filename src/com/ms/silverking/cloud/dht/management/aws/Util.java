@@ -21,10 +21,10 @@ import com.amazonaws.services.ec2.model.InstanceStatusSummary;
 import com.amazonaws.services.ec2.model.Reservation;
 
 import com.ms.silverking.cloud.dht.management.aws.Util.InstanceState;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Util {
 	
@@ -32,12 +32,12 @@ public class Util {
 	    STOPPED, RUNNING
 	}
 	
-	public static final String userHome = System.getProperty("user.home");
-	       static final String newLine  = System.getProperty("line.separator");
+	public static final String USER_HOME = System.getProperty("user.home");
+	       static final String NEW_LINE  = System.getProperty("line.separator");
 	
 	static boolean debugPrint = false;
 	
-	public static final String newKeyName = "sk_key";
+	private static final String KEY_PAIR_PREFIX = "sk_key";
 	
 	static void printInstance(Instance instance) {
 		if (debugPrint)
@@ -134,7 +134,7 @@ public class Util {
 	}
     
 	public static void writeToFile(String filename, List<String> content) {
-		writeToFile(filename, String.join(newLine, content) + newLine);
+		writeToFile(filename, String.join(NEW_LINE, content) + NEW_LINE);
     }
     
     public static List<String> readFile(String filename) {
@@ -142,10 +142,8 @@ public class Util {
             return Files.readAllLines(Paths.get(filename));
         } 
         catch (IOException ex) {
-            throwRuntimeException(ex);
+            throw new RuntimeException(ex);
         }
-        
-        return null;    // should never get here
     }
 	
 	static void waitForInstancesToBeRunning(AmazonEC2 ec2, List<Instance> instances) {
@@ -190,7 +188,7 @@ public class Util {
 	}
 	
 	private static void throwTimeoutException(String status) {
-    	throw new RuntimeException("instances should have been " + status + " by now...");
+    	throwRuntimeException("instances should have been " + status + " by now...");
 	}
 	
 	static void waitForInstancesToBeReachable(AmazonEC2 ec2, List<Instance> instances) {
@@ -314,7 +312,7 @@ public class Util {
 					        	instances.add(instance);
 	                		break;
 		            	default: 
-		            		throw new RuntimeException("Unknown Instance state: " + state);
+		            		throwRuntimeException("Unknown Instance state: " + state);
 		            }
 			        
 		        }
@@ -356,15 +354,15 @@ public class Util {
 		return instance.getKeyName().equals(keyPair);
 	}
 	
-	static void deleteKeyPair(AmazonEC2 ec2) {
+	static void deleteKeyPair(AmazonEC2 ec2, String keyPairName) {
 		print("Deleting Old Key Pair");
 		
 		DeleteKeyPairRequest deleteKeyPairRequest = new DeleteKeyPairRequest();
-		deleteKeyPairRequest.withKeyName(newKeyName);
+		deleteKeyPairRequest.withKeyName(keyPairName);
 
 		DeleteKeyPairResult deleteKeyPairResult = ec2.deleteKeyPair(deleteKeyPairRequest);
 		
-		printDone(newKeyName);
+		printDone(keyPairName);
 	}
 	
 	public static void checkNumInstances(int numInstances) {
@@ -376,7 +374,24 @@ public class Util {
 		throw new IllegalArgumentException("Invalid " + variableName + ": \"" + variableValue + "\" .... " + msg);
 	}
     
+    public static void throwRuntimeException(String msg) {
+        throw new RuntimeException(msg);
+    }
+    
     public static void throwRuntimeException(Exception ex) {
         throw new RuntimeException(ex);
+    }
+    
+    public static String getMyIp() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } 
+        catch (UnknownHostException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+    
+    public static String getUniqueKeyPairName(String uniquifier) {
+        return KEY_PAIR_PREFIX + "_" + uniquifier;
     }
 }
