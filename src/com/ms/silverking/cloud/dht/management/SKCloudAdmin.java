@@ -367,7 +367,7 @@ public class SKCloudAdmin {
     
     private void printNextSteps() {
         if (nextSteps.length() != 0) {
-            System.out.println("Next steps:");
+            System.out.println("\nNext steps:");
             System.out.println(nextSteps.toString());
         }
     }
