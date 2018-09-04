@@ -844,8 +844,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         }
     }
     
-    private static final int	workerPoolTargetSize = Runtime.getRuntime().availableProcessors() / 2;
-    private static final int	workerPoolMaxSize = Runtime.getRuntime().availableProcessors() / 2;
+    private static final int	workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+    private static final int	workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
     
     static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
     
