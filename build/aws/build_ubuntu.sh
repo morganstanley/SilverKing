@@ -18,7 +18,7 @@ function f_ubuntu_install_java {
     cd $LIB_ROOT
     f_ubuntu_aptgetInstall "openjdk-8-jdk" # 'default-jdk' works for 16.04, but for 14.04 it gets java7
     typeset java7_tar=jdk-7u80-linux-x64.tar.gz
-    f_aws_downloadTar "$java7_tar" "http://ftp.osuosl.org/pub/funtoo/distfiles/oracle-java/$java7_tar"
+    f_aws_downloadTar "$java7_tar" "https://build.funtoo.org/distfiles/oracle-java/$java7_tar"
 
     f_fillInBuildConfigVariable "JAVA_8_HOME" "/usr/lib/jvm/java-1.8.0-openjdk-amd64"
     f_fillInBuildConfigVariable "JAVA_7_HOME" "$LIB_ROOT/jdk1.7.0_80"
@@ -42,7 +42,8 @@ function f_ubuntu_symlink_boost {
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
 
-function f_ubuntu_fillin_build_skfs {   
+function f_ubuntu_fillin_build_skfs { 
+    cd $LIB_ROOT  
     f_ubuntu_aptgetInstall "python3" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_ubuntu_aptgetInstall "python3-pip" #(.h files, .so)
     pip3 install meson
