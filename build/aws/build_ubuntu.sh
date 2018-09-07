@@ -43,10 +43,28 @@ function f_ubuntu_symlink_boost {
 }
 
 function f_ubuntu_fillin_build_skfs {   
-    f_ubuntu_aptgetInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
-    f_ubuntu_aptgetInstall "libfuse-dev" #(.h files, .so)
-    f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
-    f_fillInBuildConfigVariable "FUSE_LIB"  "/usr/lib/x86_64-linux-gnu"
+    f_ubuntu_aptgetInstall "python3" #(/bin/fusermount, /etc/fuse.conf, etc.)
+    f_ubuntu_aptgetInstall "python3-pip" #(.h files, .so)
+    pip3 install meson
+    wget https://github.com/libfuse/libfuse/archive/fuse-3.2.6.tar.gz
+    tar -xvf fuse-3.2.6.tar.gz
+    cd libfuse-fuse-3.2.6
+    mkdir build
+    cd build
+    f_ubuntu_aptgetInstall "pkg-config"     # fixes in "meson ..": util/meson.build:27:2: ERROR:  Pkg-config not found.
+    f_ubuntu_aptgetInstall "ninja-build"    # fixes in "meson ..": ERROR: Could not detect Ninja v1.5 or newer. ***note it's 'install ninja-build', not 'install ninja' (https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages)
+    meson ..
+    
+    ninja
+    pip3 install -U pytest          # fixes in "sudo python3 -m pytest test/": /usr/bin/python3: No module named pytest
+    sudo python3 -m pytest test/
+    sudo ninja install
+    sudo mv /usr/local/etc/init.d/fuse3 /etc/init.d/    # from (https://github.com/libfuse/libfuse/issues/178)
+    sudo update-rc.d fuse3 start 34 S . start 41 0 6 .  #
+    sudo ninja install
+    
+    f_fillInBuildConfigVariable "FUSE_INC"  "$LIB_ROOT/libfuse-fuse-3.2.6/include"
+    f_fillInBuildConfigVariable "FUSE_LIB"  "$LIB_ROOT/libfuse-fuse-3.2.6/build/lib"
 
     f_ubuntu_aptgetInstall "zlib1g-dev" # zlib.h and libz.so
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
