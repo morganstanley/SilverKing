@@ -64,6 +64,9 @@ function f_ubuntu_fillin_build_skfs {
     sudo update-rc.d fuse3 start 34 S . start 41 0 6 .  #
     sudo ninja install
     
+    cd lib
+    ln -s libfuse3.so libfuse.so
+    
     f_fillInBuildConfigVariable "FUSE_INC"  "$LIB_ROOT/libfuse-fuse-3.2.6/include"
     f_fillInBuildConfigVariable "FUSE_LIB"  "$LIB_ROOT/libfuse-fuse-3.2.6/build/lib"
 
@@ -124,5 +127,6 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     echo "BUILD SKFS"
     f_ubuntu_fillin_build_skfs
 
+    export SKFS_CC_D_FLAGS="-DFUSE_USE_VERSION=30"
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
 } 2>&1 | tee $output_filename
