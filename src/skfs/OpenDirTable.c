@@ -212,7 +212,7 @@ int odt_readdir(OpenDirTable *odt, const char *path, void *buf, fuse_fill_dir_t 
 			//if (filler(buf, de_get_name(de), NULL, nextOffset)) {
             //srfsLog(LOG_WARNING, "de_get_name(de) %s %d", de_get_name(de), de_is_deleted(de));
             if (!de_is_deleted(de)) {
-                if (filler(buf, de_get_name(de), NULL, 0)) { // ignore offsets for now
+                if (filler(buf, de_get_name(de), NULL, 0 FILLER_TAIL)) { // ignore offsets for now
                     return 0;
                 }			
             }
