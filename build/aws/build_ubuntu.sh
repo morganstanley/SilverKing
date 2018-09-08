@@ -67,6 +67,8 @@ function f_ubuntu_fillin_build_skfs {
     cd lib
     ln -s libfuse3.so libfuse.so
     
+    f_aws_replaceLine "user_allow_other" "user_allow_other" "/usr/local/etc/fuse.conf" "sudo"
+    
     f_fillInBuildConfigVariable "FUSE_INC"  "$LIB_ROOT/libfuse-fuse-3.2.6/include"
     f_fillInBuildConfigVariable "FUSE_LIB"  "$LIB_ROOT/libfuse-fuse-3.2.6/build/lib"
 
@@ -127,6 +129,6 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     echo "BUILD SKFS"
     f_ubuntu_fillin_build_skfs
 
-    export SKFS_CC_D_FLAGS="-DFUSE_USE_VERSION=30"
+    export SKFS_CC_D_FLAGS="-DFUSE_USE_VERSION=30"  # https://github.com/libfuse/sshfs/commit/34146444ce20c477cba7e9fe113e4387da32ae94
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
 } 2>&1 | tee $output_filename
