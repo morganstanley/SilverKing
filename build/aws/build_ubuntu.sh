@@ -80,6 +80,11 @@ function f_ubuntu_fillin_build_skfs {
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
 
+function f_ubuntu_download_maven {
+    f_ubuntu_aptgetInstall "maven"
+    mvn --version
+}
+
 TRAVISCI="travisci"
 BUILD_TYPE=$1
 f_checkAndSetBuildTimestamp
@@ -128,6 +133,10 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
        
     echo "BUILD SKFS"
     f_ubuntu_fillin_build_skfs
+
+    f_aws_install_spark
+    f_ubuntu_download_maven
+    f_aws_compile_sample_app
 
     export SKFS_CC_D_FLAGS="-DFUSE_USE_VERSION=30"  # https://github.com/libfuse/sshfs/commit/34146444ce20c477cba7e9fe113e4387da32ae94
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
