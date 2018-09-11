@@ -101,7 +101,7 @@ class SKAdminOptions {
 	public String dirNSPutTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=12,constantTime_ms=60000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
 	
 	@Option(name="-fileBlockNSValueRetentionPolicy", usage="fileBlockNSValueRetentionPolicy", required=false)
-	public String fileBlockNSValueRetentionPolicy;
+	public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=3,timeSpanSeconds=5}";
 	
 	@Option(name="-defaultClassVars", usage="defaultClassVars", required=false)
 	public String defaultClassVars;
