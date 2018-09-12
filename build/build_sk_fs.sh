@@ -12,6 +12,7 @@ function f_checkParams {
 	echo "                            cc=$cc"
 	echo "                  fuse_inc_dir=$fuse_inc_dir"
 	echo "                  fuse_lib_dir=$fuse_lib_dir"
+	echo "                    cc_d_flags=$cc_d_flags"
 	echo "                       sk_root=$sk_root"
 	echo " install_arch_area_folder_name=$install_arch_area_folder_name"
 	  

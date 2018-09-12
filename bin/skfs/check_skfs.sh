@@ -542,7 +542,7 @@ echo "transientCacheSizeKB:  $transientCacheSizeKB"
 #done
 
 f_printSubSection "Making mount and starting fusectl"
-load_module="${fuseBin}/fusectl start > ${skfsLogs}/load.log 2>&1"
+load_module="${fuseBin}/fusectl start > ${skfsLogs}/fuse.load.$$ 2>&1"
 run_cmd="$load_module"
 echo "$run_cmd"
 eval $run_cmd
@@ -554,7 +554,7 @@ rm -v $tmpFile
 echo "writing to tmpFile: $tmpFile"
 echo "export PATH=${SK_JAVA_HOME}/bin:${PATH}:${fuseBin}:" >> $tmpFile
 # note -d option is currently in skfs.c
-export start_fuse="nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} ${nativeFileModeOption} ${brRemoteAddressFileOption}  ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} ${syncDirUpdatesOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.log.$$ 2>&1"
+export start_fuse="nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} ${nativeFileModeOption} ${brRemoteAddressFileOption}  ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} ${syncDirUpdatesOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.start.$$ 2>&1"
 #echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $tmpFile  
 #echo "export MALLOC_ARENA_MAX=4" >> $tmpFile
 #echo "export CLASSPATH=${CLASSPATH}" >> $tmpFile

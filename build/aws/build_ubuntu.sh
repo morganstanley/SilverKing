@@ -44,8 +44,8 @@ function f_ubuntu_symlink_boost {
 
 function f_ubuntu_fillin_build_skfs { 
     cd $LIB_ROOT  
-    f_ubuntu_aptgetInstall "python3" #(/bin/fusermount, /etc/fuse.conf, etc.)
-    f_ubuntu_aptgetInstall "python3-pip" #(.h files, .so)
+    f_ubuntu_aptgetInstall "python3"
+    f_ubuntu_aptgetInstall "python3-pip"
     pip3 install meson
     wget https://github.com/libfuse/libfuse/archive/fuse-3.2.6.tar.gz
     tar -xvf fuse-3.2.6.tar.gz
