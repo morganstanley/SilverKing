@@ -44,22 +44,23 @@ public class FileWriteWithDelayTest {
 	}
 	
 	@Test(timeout=45_000)
-	public void testWrite() throws InterruptedException {
+	public void testWrite_GiveWriter1AHeadstartExpectFileToBeAllWriter2Data() throws InterruptedException {
 		File f = new File(fileWriteWithDelayDir, "file1");
 		int size = 15_000_000;
 		int rateLimit = 1;
 		String className = FileWriteWithDelay.class.getCanonicalName();
-		// if you're going to run from cmdline and test, use abs path names and set SK_CLASSPATH=/abs/path/to/repo/bin-ide/eclipse:/abs/path/to/repo/lib/*
+		int delaySeconds = 3;
+		// if you're going to run from cmdline and test, use abs path names and set SK_CLASSPATH=/abs/path/to/repo/ide/eclipse/build-classes:/abs/path/to/repo/lib/*
 		// lib/* will work here, you don't have to list each jar one by one
-		String[] commands = ProcessExecutor.getSshCommandWithRedirectOutputFile(server2, javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false > /tmp/fwwd.out");
-		ProcessExecutor.runCmdNoWait(commands);
-		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});
-		
-		Thread.sleep(5_000);
+		String[] writer2Commands = ProcessExecutor.getSshCommandWithRedirectOutputFile(server2, "sleep " + delaySeconds + "; " + javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false > /tmp/fwwd.out");
+		ProcessExecutor.runCmdNoWait(writer2Commands);
+		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});	// writer1
+		Thread.sleep(5_000);	// wait/allow some time for writer2 to finish writing to the file
 		
 		// Strictly speaking, the result is undefined
-		// Practically speaking, I think that we will get what writer 2 wrote unless there is something going on to slow down writer 2's writes (rare; something like an overloaded server)
-		checkContentsEquals(f, size, FileWriteWithDelay.buffer2byteValue);
+		// Practically speaking, I think that we will get what writer2 wrote unless there is something going on to slow down writer1's writes (rare, but something like an overloaded server)
+		byte writer2ByteValue = FileWriteWithDelay.buffer2byteValue;
+		checkContentsEquals(f, size, writer2ByteValue);
 	}
 	
 	private void checkContentsEquals(File f, int size, byte expected) {

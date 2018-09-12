@@ -40,7 +40,7 @@ public class FileWriterTest {
 		setupAndCheckTestsDirectory(fileWriterDir);
 	}
 	
-	@Test(timeout=45_000)
+	@Test(timeout=60_000)
 	public void testWriteRead() {
 		long size = _5_GB;
 		FileWriter fw = new FileWriter(new File(fileWriterDir, "fw.out"), size);

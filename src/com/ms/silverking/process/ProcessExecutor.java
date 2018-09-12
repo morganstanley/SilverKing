@@ -138,7 +138,9 @@ public class ProcessExecutor {
 			else
 				p = runTime.exec(commands);
 			
-			// maybe need to put this (capturing output) after the wait below?
+			if (wait)
+				p.waitFor();
+
 			if (captureOutput) {
 		        InputStream inputStream = p.getInputStream();
 				BufferedReader stdInput = new BufferedReader(new InputStreamReader(inputStream));
@@ -148,12 +150,7 @@ public class ProcessExecutor {
 				inputStream.close();
 			}
 			
-			if (wait) 
-				p.waitFor();
-			else
-				p.waitFor(0, TimeUnit.SECONDS);
-			
-			if (0 != p.exitValue()) {
+			if (p.exitValue() != 0) {
 	        	System.out.println("Commands: " + Arrays.toString(commands) + "\nexited with code = " + p.exitValue());
 	        	InputStream errorStream = p.getErrorStream();
 	        	BufferedReader stdErr = new BufferedReader(new InputStreamReader(errorStream));
@@ -164,6 +161,8 @@ public class ProcessExecutor {
 	        }
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
+		} catch (IllegalThreadStateException e ) {
+			// if we don't wait and process is still running, we'll hit this
 		}
 		
 		return output.toString();
