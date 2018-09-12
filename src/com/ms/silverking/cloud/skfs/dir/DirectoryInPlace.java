@@ -17,6 +17,10 @@ public class DirectoryInPlace extends DirectoryBase {
 		this.limit = limit;
 	}
 	
+	public DirectoryInPlace(byte[] buf) {
+		this(buf, 0, buf.length);
+	}
+	
 	public Triple<byte[],Integer,Integer> getBufferOffsetLimit() {
 		return new Triple<>(buf, offset, limit);
 	}

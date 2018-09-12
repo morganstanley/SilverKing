@@ -1450,15 +1450,15 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
 
 static int skfs_mknod(const char *path, mode_t mode, dev_t rdev) {
     WritableFileReference    *wf_ref;
+    uint64_t    parentDirUpdateTimeMillis;
 	
+    parentDirUpdateTimeMillis = 0; // ignore parent update time for mknod; open will set this correctly
     srfsLogAsync(LOG_OPS, "_mn %s %x %x", path, mode, rdev);
 	wf_ref = wft_create_new_file(wft, path, mode);
 	if (wf_ref != NULL) {
         OpenDir *parentDir;
-        uint64_t    parentDirUpdateTimeMillis;
         
         parentDir = NULL;
-        parentDirUpdateTimeMillis = curTimeMillis();            
 		if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
 			srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
 		}
@@ -1881,20 +1881,24 @@ static void signal_handler(int signal) {
 
 
 static void segv_handler(int, siginfo_t*, void*) {
+    srfsLog(LOG_ERROR, "segv_handler");
 	print_stacktrace("segv_handler");
     exit(1);
 }
 
 static void abrt_handler(int, siginfo_t*, void*) {
+    srfsLog(LOG_ERROR, "abrt_handler");
 	print_stacktrace("abrt_handler");
     exit(1);
 }
 
 static void term_handler() {
+    srfsLog(LOG_ERROR, "terminate_handler");
 	print_stacktrace("terminate_handler");
 }
 
 static void unexpct_handler() {
+    srfsLog(LOG_ERROR, "Uncaught exception");
 	print_stacktrace("unexpected_handler");
     //skfs_destroy(NULL);
     //exit(1);
@@ -2021,11 +2025,13 @@ static struct fuse_operations skfs_oper = {
 	/* lock */ NULL,
 	/* utimens */ NULL,
 	/* bmap */ NULL
-#if  FUSE_USE_VERSION > 27
-	, /*flag_nullpath_ok*/ 0
-	, /*flag_reserved*/ 0
+#if FUSE_MAJOR_VERSION >= 3
 	, /*ioctl*/ NULL
 	, /*poll*/ NULL
+	, /*write_buf*/ NULL
+	, /*read_buf*/ NULL
+	, /*flock*/ NULL
+	, /*fallocate*/ NULL
 #endif	
 };
 
@@ -2592,11 +2598,9 @@ int main(int argc, char *argv[]) {
 	add_fuse_option("-ononempty");
     add_fuse_option("-ouse_ino");
     add_fuse_option("-oauto_cache");
-#if FUSE_KERNEL_VERSION >= 7
-#if FUSE_KERNEL_MINOR_VERSION >= 23
-    //add_fuse_option("-owriteback_cache");
-	//srfsLog(LOG_WARNING, "Writeback cache enabled");
-#endif
+#if FUSE_MAJOR_VERSION >= 3
+    add_fuse_option("-owriteback_cache");
+	srfsLog(LOG_WARNING, "Writeback cache enabled");
 #endif
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);

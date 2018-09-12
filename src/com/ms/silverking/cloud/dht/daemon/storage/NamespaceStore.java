@@ -85,6 +85,7 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.HashedSetMap;
+import com.ms.silverking.collection.LightLinkedBlockingQueue;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.SKImmutableList;
 import com.ms.silverking.collection.Triple;
@@ -98,6 +99,7 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.SystemTimeSource;
+import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
 
 public class NamespaceStore implements SSNamespaceStore {
@@ -697,8 +699,10 @@ public class NamespaceStore implements SSNamespaceStore {
         if (debugWaitFor) {
             System.out.println("handleTriggeredWaitFors");
         }
-        for (Waiter triggeredWaitFor : triggeredWaitFors) {
-            triggeredWaitFor.relayWaitForResults();
+        if (triggeredWaitFors != null) {
+	        for (Waiter triggeredWaitFor : triggeredWaitFors) {
+	            triggeredWaitFor.relayWaitForResults();
+	        }
         }
     }
     
@@ -710,9 +714,26 @@ public class NamespaceStore implements SSNamespaceStore {
         triggeredWaitFors = null;
         
         nsVersionMode = nsOptions.getVersionMode();
+
+        if (putTrigger != null && (!(resultListener instanceof KeyedOpResultMultiplexor))) { 
+        	// Pending puts currently only applied to server side code
+        	// Pending puts doesn't support userdata
+        	// Disallow puts to be deferred to the pending queue multiple times
+        	if (writeLock.tryLock()) {
+        		locked = true;
+        	} else {
+        		locked = false;
+        		addPendingPut(values, resultListener);
+        		return;
+        	}
+        } else {
+        	locked = false;
+        }
         
         //LWTThreadUtil.setBlocked();
-        writeLock.lock();
+        if (!locked) {
+        	writeLock.lock();
+        }
         try {
             // System.out.printf("NamespaceStore.put() group size: %d\n", values.size());
             for (StorageValueAndParameters value : values) {
@@ -745,122 +766,21 @@ public class NamespaceStore implements SSNamespaceStore {
             handleTriggeredWaitFors(triggeredWaitFors);
         }
     }
-    
-    /*
-     * 
-     * The PendingPut implementation is currently commented out. It's utility is yet to be determined. A more pressing optimization is to 
-     * allow a per-thread NamespaceStore so that RAM stores may be lockless.
-    
-    private static class PendingPut {
-    	final List<StorageValueAndParameters> values;
-    	final byte[] userData;
-    	final KeyedOpResultListener resultListener;
-    	
-    	PendingPut(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
-    		this.values = values;
-    		this.userData = userData;
-    		this.resultListener = resultListener;
-    	}
-    }
-    
-    private final LightLinkedBlockingQueue<PendingPut>	pendingPuts = new LightLinkedBlockingQueue<>();
-    private volatile	boolean	lockedWillPoll;
-    
-    public void put(List<StorageValueAndParameters> _values, byte[] _userData, KeyedOpResultListener _resultListener) {
-        boolean	locked;
-        PendingPut	storedPendingPut;
 
-        storedPendingPut = null;
-        //LWTThreadUtil.setBlocked();
-        locked = writeLock.tryLock();
-        if (!locked) {
-        	try {
-        		storedPendingPut = new PendingPut(_values, _userData, _resultListener);
-				pendingPuts.put(storedPendingPut);
-        		if (!lockedWillPoll) {
-        			writeLock.lock();
-        			locked = true;
-        		}
-			} catch (InterruptedException e) {
-				throw new RuntimeException("Panic");
-			}
-        }
-        if (locked) {
-	        try {
-	        	List<StorageValueAndParameters> values;
-	        	byte[] userData;
-	        	KeyedOpResultListener resultListener;
-
-	        	lockedWillPoll = true;
-	        	if (storedPendingPut != null) {
-		        	boolean	prevPendingPutFound;
-		        	
-	        		prevPendingPutFound = pendingPuts.remove(storedPendingPut);
-	        		if (!prevPendingPutFound) {
-			            PendingPut	pendingPut;
-			            
-	    	        	lockedWillPoll = false;
-		        		pendingPut = pendingPuts.poll();
-			            if (pendingPut == null) {
-		        			return;
-			            } else {
-				        	_values = pendingPut.values;
-				        	_userData = pendingPut.userData;
-				        	_resultListener = pendingPut.resultListener;
-			            }
-	        		}
-	        	}
-	        	values = _values;
-	        	userData = _userData;
-	        	resultListener = _resultListener;
-	        	do {
-		            PendingPut	pendingPut;
-		            
-	        		lockedWillPoll = true;
-	        		__put(values, userData, resultListener);
-
-	        		lockedWillPoll = false;
-	        		pendingPut = pendingPuts.poll();
-		            if (pendingPut == null) {
-			            writeLock.unlock();
-			            pendingPut = pendingPuts.poll();
-			            if (pendingPut == null) {
-			            	break;
-			            } else {
-			            	writeLock.lock();
-			            }
-		            } else {
-			        	values = pendingPut.values;
-			        	userData = pendingPut.userData;
-			        	resultListener = pendingPut.resultListener;
-		            }		            	
-	            } while (true);
-	        } finally {
-	        	if (((ReentrantReadWriteLock)rwLock).isWriteLockedByCurrentThread()) {
-	        		writeLock.unlock();
-	        	}
-	            //LWTThreadUtil.setNonBlocked();
-	        }
-        }
-    }
-
-    // lock must be held
-    private void __put(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
-        NamespaceVersionMode    nsVersionMode;
+    // for use by pending put code to notify waiters
+    // must hold lock
+    // must call handleTriggeredWaitFors() after releasing lock
+    public Set<Waiter> notifyAndCheckWaiters(Map<DHTKey,OpResult> results, KeyedOpResultListener resultListener) {
         Set<Waiter> triggeredWaitFors;
 
-        triggeredWaitFors = null;
-        nsVersionMode = nsOptions.getVersionMode();
+        triggeredWaitFors = null;        
         // System.out.printf("NamespaceStore.put() group size: %d\n", values.size());
-        for (StorageValueAndParameters value : values) {
-            OpResult storageResult;
-
-            storageResult = _put(value.getKey(), value.getValue(), value, userData, nsVersionMode);
-            resultListener.sendResult(value.getKey(), storageResult);
-            if (storageResult == OpResult.SUCCEEDED) {
+        for (Map.Entry<DHTKey,OpResult> result : results.entrySet()) {
+            resultListener.sendResult(result.getKey(), result.getValue());
+            if (result.getValue() == OpResult.SUCCEEDED) {
                 Set<Waiter> _triggeredWaitFors;
 
-                _triggeredWaitFors = checkPendingWaitFors(value.getKey());
+                _triggeredWaitFors = checkPendingWaitFors(result.getKey());
                 if (_triggeredWaitFors != null) {
                     if (triggeredWaitFors == null) {
                         triggeredWaitFors = new HashSet<>();
@@ -869,16 +789,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
             }
         }
-        if (triggeredWaitFors != null) {
-        	writeLock.unlock();
-        	try {
-        		handleTriggeredWaitFors(triggeredWaitFors);
-        	} finally {
-            	writeLock.lock();
-        	}
-        }
+        return triggeredWaitFors;
     }
-    */
     
     /**
      * Checks to see if this put() should be allowed to proceed on the basis that it is a duplicate of a previous
@@ -2911,7 +2823,129 @@ public class NamespaceStore implements SSNamespaceStore {
     
     ////////////////////////////////////
     // SSNamespaceStore implementation
+    
+    private static final LightLinkedBlockingQueue<PendingPut>	pendingPuts = new LightLinkedBlockingQueue<>();
+    private static final int	numPendingPutWorkers = 2;
+    private static final int	maxWorkBatchSize = 512;
+    
+    static {
+    	for (int i = 0; i < numPendingPutWorkers; i++) {
+    		new PendingPutWorker(i, pendingPuts);
+    	}
+    }
+    
+    static class PendingPut {
+    	final NamespaceStore	nsStore;
+        final List<StorageValueAndParameters>	values;
+        final KeyedOpResultListener	resultListener;
+        
+        PendingPut(NamespaceStore nsStore, List<StorageValueAndParameters> values, KeyedOpResultListener resultListener) {
+        	this.nsStore = nsStore;
+        	this.values = values;
+        	this.resultListener = resultListener;
+        }
+    }
+    
+    private void addPendingPut(List<StorageValueAndParameters> values, KeyedOpResultListener resultListener) {
+    	try {
+			pendingPuts.put(new PendingPut(this, values, resultListener));
+		} catch (InterruptedException e) {
+			Log.logErrorWarning(e);
+		}
+	}
+    
+    static class PendingPutWorker implements Runnable {
+    	private final LightLinkedBlockingQueue<PendingPut>	q;
+		private final PendingPut[]	work;
+    	
+    	PendingPutWorker(int index, LightLinkedBlockingQueue<PendingPut> q) {
+    		Thread	t;
+    		
+    		work = new PendingPut[maxWorkBatchSize];
+    		this.q = q;
+    		t = ThreadUtil.newDaemonThread(this, "PendingPutWorker."+ index);
+    		t.start();
+    	}
+    	
+    	private void process() {
+    		int	numTaken;
+    		
+    		try {
+				numTaken = q.takeMultiple(work);
+			} catch (InterruptedException e) {
+				numTaken = 0;
+			}
+    		if (numTaken > 0) {
+    			mergePendingPuts(work, numTaken);
+    			ArrayUtil.clear(work); // allow gc of completed work
+    		}
+    	}
 
+        private int numValues(PendingPut[] pendingPuts, int numPendingPuts) {
+        	int	numValues;
+        	
+        	numValues = 0;
+    		for (int i = 0; i < numPendingPuts; i++) {
+    			numValues += pendingPuts[i].values.size(); 
+    		}
+    		return numValues;
+        }
+        
+    	private void mergePendingPuts(PendingPut[] pendingPuts, int numPendingPuts) {
+    		int	maxValues;
+    		int	sIndex;
+    		
+    		maxValues = numValues(pendingPuts, numPendingPuts);
+    		sIndex = 0;
+    		while (sIndex < numPendingPuts) {
+	    		KeyedOpResultMultiplexor	resultListenerMultiplexor;
+	    		List<StorageValueAndParameters>	values;
+	    		NamespaceStore	nsStore;
+	    		
+	    		nsStore = pendingPuts[sIndex].nsStore;
+	    		values = new ArrayList<>(maxValues);
+	    		resultListenerMultiplexor = new KeyedOpResultMultiplexor();
+	    		while (sIndex < numPendingPuts && pendingPuts[sIndex].nsStore == nsStore) {
+	    			for (StorageValueAndParameters svp : pendingPuts[sIndex].values) {
+	    				values.add(svp);
+	    				resultListenerMultiplexor.addListener(svp.getKey(), pendingPuts[sIndex].resultListener);
+	    			}
+	    			sIndex++;
+	    		}
+	    		if (values.size() <= 0) {
+	    			throw new RuntimeException("Unexpected values.size() <= 0: "+ values.size());
+	    		}
+	    		if (nsStore.putTrigger != null && nsStore.putTrigger.supportsMerge()) {
+	    			Set<Waiter>				triggeredWaitFors;
+	    			Map<DHTKey,OpResult>	mergeResults;
+		    		
+	    			mergeResults = nsStore.putTrigger.mergePut(values);
+	    			nsStore.writeLock.lock();
+	    			try {
+		    			triggeredWaitFors = nsStore.notifyAndCheckWaiters(mergeResults, resultListenerMultiplexor);
+	    			} finally {
+	    				nsStore.writeLock.unlock();
+	    			}
+	    		    nsStore.handleTriggeredWaitFors(triggeredWaitFors);
+	    		} else {
+	    			nsStore.put(values, null, resultListenerMultiplexor); // Note: pending puts don't support userdata
+	    		}
+	    		maxValues -= values.size();
+    		}
+    	}
+    	    	
+    	public void run() {
+    		while (true) {
+    			try {
+    				process();
+    			} catch (Exception e) {
+    				Log.logErrorWarning(e);
+    				ThreadUtil.pauseAfterException();
+    			}
+    		}
+    	}
+    }
+    
 	@Override
 	public long getNamespaceHash() {
 		return ns;

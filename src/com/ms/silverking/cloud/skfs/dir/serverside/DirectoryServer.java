@@ -4,12 +4,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableSet;
@@ -20,14 +23,19 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.cloud.dht.daemon.storage.StorageValueAndParameters;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
+import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
+import com.ms.silverking.cloud.skfs.dir.DirectoryInMemory;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.compression.CompressionUtil;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.thread.ThreadUtil;
@@ -118,12 +126,12 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			return false;
 		}
 	}
-
-	private BaseDirectoryInMemorySS newDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
+	
+	private BaseDirectoryInMemorySS newDirectoryInMemorySS(DHTKey dirKey, DirectoryBase d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
 		return newDirectoryInMemorySS(dirKey, d, storageParams, sDir, nsOptions, true);
 	}
 	
-	private BaseDirectoryInMemorySS newDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
+	private BaseDirectoryInMemorySS newDirectoryInMemorySS(DHTKey dirKey, DirectoryBase d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
 		if (mode == Mode.Lazy) {
 			return new LazyDirectoryInMemorySS(dirKey, d, storageParams, sDir, nsOptions, reap);
 		} else {
@@ -172,30 +180,127 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			updateDir = new DirectoryInPlace(buf, bufOffset, bufLimit);
 			// put() holds a write lock so no concurrency needs to be handled. 
 			// We still, however, look for existing directories on disk
-			existingDir = getExistingDirectory(key, true);
-			if (existingDir == null) {
-				BaseDirectoryInMemorySS	newDir;
-				
-				newDir = newDirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
-				if (newDir instanceof LazyDirectoryInMemorySS) {
-					((LazyDirectoryInMemorySS)newDir).setUnserialized();
-				}
-				//newDir.update(updateDir, storageParams); // update extraneous, remove after verification
-				directories.put(key, newDir);
-			} else {
-				existingDir.update(updateDir, storageParams);
-			}
-			return OpResult.SUCCEEDED;
+			return _put(key, storageParams, updateDir);
 		//} finally {
 		//	sw.stop();
 		//	Log.warningf("DirectoryServer.put()\t%f", sw.getElapsedSeconds());
 		//}
 	}
 	
+	// must hold write lock
+	private OpResult _put(DHTKey key, SSStorageParameters storageParams, DirectoryBase updateDir) {
+		BaseDirectoryInMemorySS	existingDir;
+		
+		existingDir = getExistingDirectory(key, true);
+		if (existingDir == null) {
+			BaseDirectoryInMemorySS	newDir;
+			
+			newDir = newDirectoryInMemorySS(key, updateDir, storageParams, new File(logDir, KeyUtil.keyToString(key)), nsStore.getNamespaceOptions());
+			if (newDir instanceof LazyDirectoryInMemorySS) {
+				((LazyDirectoryInMemorySS)newDir).setUnserialized();
+			}
+			directories.put(key, newDir);
+		} else {
+			existingDir.update(updateDir, storageParams);
+		}
+		return OpResult.SUCCEEDED;
+	}
+	
 
 	@Override
 	public OpResult putUpdate(SSNamespaceStore nsStore, DHTKey key, long version, byte storageState) {
 		return OpResult.SUCCEEDED;
+	}
+	
+	@Override
+	public Map<DHTKey,OpResult> mergePut(List<StorageValueAndParameters> values) {
+		Map<DHTKey,Pair<DirectoryInMemory,MergedStorageParameters>>	mergedUpdates;
+		Map<DHTKey,OpResult>	results;
+		
+		Log.info("mergePut");
+		mergedUpdates = new HashMap<>();
+		for (StorageValueAndParameters svp: values) {
+			try {
+				Pair<DirectoryInMemory,MergedStorageParameters>	mergedDirAndSP;
+				DirectoryInMemory	update;
+				
+				update = svpToDirectoryInMemory(svp);			
+				mergedDirAndSP = mergedUpdates.get(svp.getKey());
+				if (mergedDirAndSP == null) {
+					MergedStorageParameters	mergedSP;
+				
+					if (Log.levelMet(Level.INFO)) {
+						Log.infof("new mergeSP %s %s", KeyUtil.keyToString(svp.getKey()), IPAddrUtil.addrToString(svp.getValueCreator(), 0));
+					}
+					mergedSP = new MergedStorageParameters(svp);
+					mergedUpdates.put(svp.getKey(), new Pair<>(update, mergedSP));
+				} else {
+					DirectoryInMemory		mergedDir;
+					MergedStorageParameters	mergedSP;
+					
+					if (Log.levelMet(Level.INFO)) {
+						Log.infof("merging into mergeSP %s %s", KeyUtil.keyToString(svp.getKey()), IPAddrUtil.addrToString(svp.getValueCreator(), 0));
+					}
+					mergedDir = mergedDirAndSP.getV1();
+					mergedDir.update(update);
+					mergedSP = mergedDirAndSP.getV2().merge(svp);
+					mergedUpdates.put(svp.getKey(), new Pair<>(mergedDir, mergedSP));
+				}
+			} catch (IOException ioe) {
+				Log.logErrorWarning(ioe, "Ignoring update due to compression error "+ svp);
+			}
+		}
+		
+		nsStore.getReadWriteLock().writeLock().lock();
+		try {
+			results = put(mergedUpdates);
+		} finally {
+			nsStore.getReadWriteLock().writeLock().unlock();
+		}
+		return results;
+	}
+	
+	@Override
+	public boolean supportsMerge() {
+		return true;
+	}
+	
+	private Map<DHTKey,OpResult> put(Map<DHTKey,Pair<DirectoryInMemory,MergedStorageParameters>> updates) {
+		Lock	writeLock;
+		Map<DHTKey,OpResult>	results;
+
+		results = new HashMap<>();
+		writeLock = nsStore.getReadWriteLock().writeLock();
+		writeLock.lock();
+		try {
+			for (Map.Entry<DHTKey,Pair<DirectoryInMemory,MergedStorageParameters>> entry : updates.entrySet()) {
+				OpResult	result;
+				
+				result = _put(entry.getKey(), entry.getValue().getV2(), entry.getValue().getV1());
+				results.put(entry.getKey(), result);
+			}
+		} finally {
+			writeLock.unlock();
+		}
+		return results;
+	}
+	
+	private DirectoryInMemory svpToDirectoryInMemory(StorageValueAndParameters svp) throws IOException {
+		ByteBuffer	value;
+		byte[]		buf;
+		SSStorageParameters	storageParams;
+		int	dataOffset;
+		
+		storageParams = svp;		
+		value = svp.getValue();
+		dataOffset = value.position();
+		if (storageParams.getCompression() == Compression.NONE) {
+			buf = new byte[svp.getUncompressedSize()];
+			System.arraycopy(value.array(), dataOffset, buf, 0, buf.length);
+		} else {
+			buf = CompressionUtil.decompress(storageParams.getCompression(), value.array(), dataOffset, storageParams.getCompressedSize(), storageParams.getUncompressedSize());
+		}
+		return new DirectoryInMemory(new DirectoryInPlace(buf));
 	}
 	
 	@Override

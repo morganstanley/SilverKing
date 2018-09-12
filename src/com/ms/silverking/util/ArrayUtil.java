@@ -239,4 +239,10 @@ public class ArrayUtil<T> {
     		a1[i] ^= a2[i];
     	}
     }
+    
+    public static <K> void clear(K[] a) {
+    	for (int i = 0; i < a.length; i++) {
+    		a[i] = null;
+    	}
+    }
 }
