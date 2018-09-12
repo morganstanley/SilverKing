@@ -168,7 +168,7 @@ public class IPAddrUtil {
 	}
 	
     private static void addrToString(StringBuilder sb, byte[] addr) {
-        addrToString(sb, addr);
+        addrToString(sb, addr, 0);
     }
     
     private static void addrToString(StringBuilder sb, byte[] addr, int offset) {
