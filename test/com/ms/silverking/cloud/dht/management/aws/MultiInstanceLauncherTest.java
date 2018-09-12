@@ -14,6 +14,9 @@ import com.ms.silverking.testing.Util.ExceptionChecker;
 
 public class MultiInstanceLauncherTest {
 
+	private static final String ip = null;
+	private static final List<String> nullList = nullList();
+	
 //	private MultiInstanceLauncher getNewTestLauncher() {
 //		return new MultiInstanceLauncher(AmazonEC2ClientBuilder.defaultClient(), ip, 1, null, null, true);
 //	}
@@ -29,9 +32,6 @@ public class MultiInstanceLauncherTest {
 		return Arrays.asList(ip);
 	}
 
-	private static final String ip = null;
-	private static final List<String> nullList = nullList();
-	
 	@Test
 	public void testConstructor_Exceptions() {
 		Object[][] testCases = {
@@ -56,6 +56,12 @@ public class MultiInstanceLauncherTest {
 //		MultiInstanceLauncher launcher = getNewTestLauncher();
 //		launcher.checkIamRoleIsAttached();
 //	}
+	
+	@Test
+	public void testGetKeyPairName() {
+		MultiInstanceLauncher launcher = getNewNullLauncher(1, true);
+		assertEquals("sk_key_null", launcher.getKeyPairName());
+	}
 	
 	@Test
 	public void testGetInstanceIps() {

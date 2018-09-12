@@ -20,20 +20,15 @@ import static org.junit.Assert.assertArrayEquals;
 
 public class SKCloudAdminTest {
 		
-    // can't go in testConstructor_Exceptions b/c the null won't get past, ec.check();, in com.ms.silverking.testing.Assert.exceptionNameChecker - since ec = null
-    @Test(expected = NullPointerException.class)
-    public void testConstructor_NullException() {
-		new SKCloudAdmin(null, SKCloudAdminOptions.defaultNumInstances, null, null, false, -1, null);
-    }
-    
 	@Test
 	public void testConstructor_Exceptions() {
 		Object[][] testCases = {
-			{"command = {}",                       new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommands(),                      1, null, null, false, 1, null); } }, IllegalArgumentException.class},
-			{"command = {null}",                   new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommand(null),                   1, null, null, false, 1, null); } }, IllegalArgumentException.class},
-			{"command = {LaunchInstancess, null}", new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommands(LaunchInstances, null), 1, null, null, false, 1, null); } }, IllegalArgumentException.class},
-			{"numInstances = 0",                   new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommand(LaunchInstances),        0, null, null, false, 1, null); } }, IllegalArgumentException.class},
-			{"replication = 0",                    new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommand(LaunchInstances),        1, null, null, false, 0, null); } }, IllegalArgumentException.class},
+			{"command = null",                     new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(null,                               null, 1, null, null, false, 1, null); } },     NullPointerException.class},
+			{"command = {}",                       new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommands(),                      null, 1, null, null, false, 1, null); } }, IllegalArgumentException.class},
+			{"command = {null}",                   new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommand(null),                   null, 1, null, null, false, 1, null); } }, IllegalArgumentException.class},
+			{"command = {LaunchInstancess, null}", new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommands(LaunchInstances, null), null, 1, null, null, false, 1, null); } }, IllegalArgumentException.class},
+			{"numInstances = 0",                   new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommand(LaunchInstances),        null, 0, null, null, false, 1, null); } }, IllegalArgumentException.class},
+			{"replication = 0",                    new ExceptionChecker() { @Override public void check() { new SKCloudAdmin(getCommand(LaunchInstances),        null, 1, null, null, false, 0, null); } }, IllegalArgumentException.class},
 		};
 		
 		test_SetterExceptions(testCases);
@@ -42,21 +37,22 @@ public class SKCloudAdminTest {
 	@Test
 	public void testLaunchCommand() {
 		Object[][] testCases = {
-			{getCommand(LaunchInstances),                1,     null,       null, true,  1, "/abc/123"},
-			{getCommand(LaunchInstances),              100, "bf5ddd", "i3.metal", false, 4, "/var/tmp/silverking2"},
-			{getCommands(LaunchInstances, StartSpark), 100, "bf5ddd", "i3.metal", false, 4, "/var/tmp/silverking2"},
+			{getCommand(LaunchInstances),              "sk_key_myIp1.2.3",   1,     null,       null, true,  1, "/abc/123"},
+			{getCommand(LaunchInstances),              "sk_key_myIp_blah", 100, "bf5ddd", "i3.metal", false, 4, "/var/tmp/silverking2"},
+			{getCommands(LaunchInstances, StartSpark), "sk_key_myIp_1111", 100, "bf5ddd", "i3.metal", false, 4, "/var/tmp/silverking2"},
 		};
 		
 		for (Object[] testCase : testCases) {
 			SKCloudAdminCommand[] commands = (SKCloudAdminCommand[])testCase[0];
-			int numInstances               =                   (int)testCase[1];
-			String amiId                   =                (String)testCase[2];
-			String instanceType            =                (String)testCase[3];
-			boolean includeMaster          =               (boolean)testCase[4];
-			int replication                =                   (int)testCase[5];
-			String dataBaseHome            =                (String)testCase[6];
+            String keyPairName             =                (String)testCase[1];
+			int numInstances               =                   (int)testCase[2];
+			String amiId                   =                (String)testCase[3];
+			String instanceType            =                (String)testCase[4];
+			boolean includeMaster          =               (boolean)testCase[5];
+			int replication                =                   (int)testCase[6];
+			String dataBaseHome            =                (String)testCase[7];
 			
-			SKCloudAdmin cloudAdmin = new SKCloudAdmin(commands, numInstances, amiId, instanceType, includeMaster, replication, dataBaseHome);
+			SKCloudAdmin cloudAdmin = new SKCloudAdmin(commands, keyPairName, numInstances, amiId, instanceType, includeMaster, replication, dataBaseHome);
 			checkCommands(cloudAdmin, commands);
 			checkVariables(cloudAdmin, numInstances, amiId, instanceType, includeMaster, replication, dataBaseHome);
 		}

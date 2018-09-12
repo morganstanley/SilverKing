@@ -41,8 +41,9 @@ function f_status {
 
 typeset servers=`echo $SK_SERVERS | tr "," " "`
 typeset skPattern=$SK_PROCESS_PATTERN
-if [[ -n $1 ]]; then
-    servers=`cat ~/SilverKing/bin/cloud_out/cloud_ip_list.txt`
+typeset cloudIpList="../../bin/cloud_out/cloud_ip_list.txt"  # "~/SilverKing/bin/cloud_out/cloud_ip_list.txt" doesn't work, says file is not found
+if [[ -f $cloudIpList ]]; then
+    servers=`cat $cloudIpList`
     skPattern="java.*SK_cloud.*/tmp/silverking"
 fi
 

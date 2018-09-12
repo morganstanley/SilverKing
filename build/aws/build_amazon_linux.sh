@@ -79,63 +79,6 @@ function f_amazon_linux_download_maven {
     mvn --version
 }
 
-function f_aws_compile_sample_app {
-    echo "
-    <project>
-      <groupId>edu.berkeley</groupId>
-      <artifactId>simple-project</artifactId>
-      <modelVersion>4.0.0</modelVersion>
-      <name>Simple Project</name>
-      <packaging>jar</packaging>
-      <version>1.0</version>
-      <dependencies>
-        <dependency> <!-- Spark dependency -->
-          <groupId>org.apache.spark</groupId>
-          <artifactId>spark-sql_2.11</artifactId>
-          <version>2.3.1</version>
-        </dependency>
-      </dependencies>
-      <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-      </properties>
-    </project>
-    " > ~/spark-2.3.1-bin-hadoop2.7/pom.xml
-    
-    mkdir -p ~/spark-2.3.1-bin-hadoop2.7/src/main/java
-    f_aws_sampleJavaFile "SimpleApp"     "$HOME/spark-2.3.1-bin-hadoop2.7/README.md"    # I would use '~' instead of '$HOME', but the java code assumes anything that doesn't start with '/' is a relative path, so it tacks on the cwd to the filename.. which gives us the wrong path
-    f_aws_sampleJavaFile "SimpleAppSkfs" "/var/tmp/silverking/skfs/skfs_mnt/skfs/README.md"
-    
-    cd ~/spark-2.3.1-bin-hadoop2.7
-    mvn package
-}
-
-function f_aws_sampleJavaFile {
-    typeset className=$1
-    typeset  fileName=$2
-
-    echo "
-    /* $className.java */
-    import org.apache.spark.sql.SparkSession;
-    import org.apache.spark.sql.Dataset;
-
-    public class $className {
-      public static void main(String[] args) {
-        String logFile = \"$fileName\"; // Should be some file on your system
-        SparkSession spark = SparkSession.builder().appName(\"Simple Application\").getOrCreate();
-        Dataset<String> logData = spark.read().textFile(logFile).cache();
-
-        long numAs = logData.filter(s -> s.contains(\"a\")).count();
-        long numBs = logData.filter(s -> s.contains(\"b\")).count();
-
-        System.out.println(\"Lines with a: \" + numAs + \", lines with b: \" + numBs);
-
-        spark.stop();
-      }
-    }
-    " > ~/spark-2.3.1-bin-hadoop2.7/src/main/java/$className.java
-}
-
 f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")

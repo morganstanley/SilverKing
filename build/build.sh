@@ -29,7 +29,7 @@ typeset output_filename=$(f_getBuild_RunOutputFilename)
 	./$TEST_SILVERKING_CLIENT_SCRIPT_NAME
 	
 	f_printStep "3" "Build Silverking FS"
-	./$BUILD_SILVERKING_FS_SCRIPT_NAME "$cc" "$FUSE_INC" "$FUSE_LIB"
+	./$BUILD_SILVERKING_FS_SCRIPT_NAME "$cc" "$FUSE_INC" "$FUSE_LIB" "$SKFS_CC_D_FLAGS"
 	f_startSkfs
 	./$TEST_SILVERKING_FS_SCRIPT_NAME
 

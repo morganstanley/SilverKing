@@ -549,7 +549,11 @@ static void displayArguments(CmdArgs *arguments) {
 
 // FUSE interface
 
-static int skfs_getattr(const char *path, struct stat *stbuf) {
+static int skfs_getattr(const char *path, struct stat *stbuf
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_ga %x %s", get_caller_pid(), path);
 	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
 		char nativePath[SRFS_MAX_PATH_LENGTH];
@@ -703,17 +707,29 @@ static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t
     }
 }
 
-static int skfs_chmod(const char *path, mode_t mode) {
+static int skfs_chmod(const char *path, mode_t mode
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_cm %s %x", path, mode);
     return modify_file_attr(path, "chmod", &mode, NULL, NULL);
 }
 
-static int skfs_chown(const char *path, uid_t uid, gid_t gid) {
+static int skfs_chown(const char *path, uid_t uid, gid_t gid
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_co %s %d %d", path, uid, gid);
     return modify_file_attr(path, "chown", NULL, &uid, &gid);
 }
 
-static int skfs_truncate(const char *path, off_t size) {
+static int skfs_truncate(const char *path, off_t size
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
     WritableFile            *wf;
     WritableFileReference   *wf_ref;
     int openedForTruncation;
@@ -766,7 +782,11 @@ static int skfs_truncate(const char *path, off_t size) {
     return rc;
 }
 
-static int skfs_utimens(const char *path, const struct timespec ts[2]) {
+static int skfs_utimens(const char *path, const struct timespec ts[2]
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
     struct timespec last_change_tp;
     
 	srfsLogAsync(LOG_OPS, "_ut %s", path);
@@ -907,7 +927,7 @@ static int nfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         memset(&st, 0, sizeof(st));
         st.st_ino = de->d_ino;
         st.st_mode = de->d_type << 12;
-		if (filler(buf, de->d_name, &st, 0)) {
+		if (filler(buf, de->d_name, &st, 0 FILLER_TAIL)) {
             break;
 		}
     }
@@ -917,7 +937,11 @@ static int nfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 }
 
 static int skfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-                       off_t offset, struct fuse_file_info *fi) {
+                       off_t offset, struct fuse_file_info *fi
+#if FUSE_MAJOR_VERSION >= 3
+	, enum fuse_readdir_flags flags
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_rd %s %ld", path, offset);
 	if (!is_writable_path(path) && !is_base_path(path)) {
 		if (path[1] != '\0') {
@@ -959,7 +983,11 @@ static int skfs_rmdir(const char *path) {
 //          For now, we perform best-effort rejection of
 //          overlapped operations.
 
-static int skfs_rename(const char *oldpath, const char *newpath) {
+static int skfs_rename(const char *oldpath, const char *newpath
+#if FUSE_MAJOR_VERSION >= 3
+	, unsigned int flags = 0 
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_rn %s %s", oldpath, newpath);
 	if (!is_writable_path(oldpath) || !is_writable_path(newpath)) {
 		return -EIO;
@@ -1927,7 +1955,11 @@ static int install_handler() {
 	return 0;
 }
 
-static void *skfs_init(struct fuse_conn_info *conn) {
+static void *skfs_init(struct fuse_conn_info *conn
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_config *cfg
+#endif
+) {
 	pthread_spin_init(destroyLock, 0);
 	srfsLogInitAsync(); // Important - this must be initialized here and not in main() due to fuse process configuration
 	srfsLogAsync(LOG_OPS, "LOG_OPS async check");
@@ -1989,7 +2021,9 @@ static void skfs_destroy(void* private_data) {
 static struct fuse_operations skfs_oper = {
 	/* getattr */ NULL,
 	/* readlink */ NULL,
+#if FUSE_MAJOR_VERSION < 3
 	/* getdir */ NULL,
+#endif
 	/* mknod */ NULL,
 	/* mkdir */ NULL,
 	/* unlink */ NULL,
@@ -2000,7 +2034,9 @@ static struct fuse_operations skfs_oper = {
 	/* chmod */ NULL,
 	/* chown */ NULL,
 	/* truncate */ NULL,
+#if FUSE_MAJOR_VERSION < 3
 	/* utime */ NULL,
+#endif
 	/* open */ NULL, //skfs_open,
 	/* read */ NULL, //skfs_read,
 	/* write */ NULL,
@@ -2020,8 +2056,10 @@ static struct fuse_operations skfs_oper = {
 	/* destroy */ NULL, //skfs_destroy,
 	/* access */ NULL,
 	/* create */ NULL,
+#if FUSE_MAJOR_VERSION < 3
 	/* ftruncate */ NULL,
 	/* fgetattr */ NULL,
+#endif
 	/* lock */ NULL,
 	/* utimens */ NULL,
 	/* bmap */ NULL
@@ -2600,7 +2638,7 @@ int main(int argc, char *argv[]) {
     add_fuse_option("-oauto_cache");
 #if FUSE_MAJOR_VERSION >= 3
     add_fuse_option("-owriteback_cache");
-	srfsLog(LOG_WARNING, "Writeback cache enabled");
+    srfsLog(LOG_WARNING, "Writeback cache enabled");
 #endif
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);

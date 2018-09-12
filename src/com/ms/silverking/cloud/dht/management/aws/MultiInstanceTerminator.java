@@ -5,7 +5,6 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.findRunningInstanc
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
-import static com.ms.silverking.cloud.dht.management.aws.Util.newKeyName;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printNoDot;
@@ -18,24 +17,26 @@ import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
 
 public class MultiInstanceTerminator {
 
 	private final AmazonEC2 ec2;
-	private final String keyPair;
+	private final String keyPairName;
 	private List<Instance> instances;
 	
-	public MultiInstanceTerminator(AmazonEC2 ec2, String keyPair) {
-		this.ec2     = ec2;
-		this.keyPair = keyPair;
+	public MultiInstanceTerminator(AmazonEC2 ec2, String launchHostIp) {
+		this.ec2         = ec2;
+		this.keyPairName = getUniqueKeyPairName(launchHostIp);
 		
 		instances = null;
 	}
 	
 	public void run() {
-		instances = findRunningInstancesWithKeyPair(ec2, keyPair);
+		instances = findRunningInstancesWithKeyPair(ec2, keyPairName);
 		terminateInstances();
-		deleteKeyPair(ec2);
+		deleteKeyPair(ec2, keyPairName);
 	}
 	
 	private void terminateInstances() {
@@ -58,8 +59,9 @@ public class MultiInstanceTerminator {
 	}
 	
     public static void main(String[] args) {
-        System.out.println("Attempting to terminate all instances with keypair: " + newKeyName);
-        MultiInstanceTerminator terminator = new MultiInstanceTerminator(AmazonEC2ClientBuilder.defaultClient(), newKeyName);
+        String launchHostIp = getMyIp();
+        System.out.println("Attempting to terminate all instances with keypair: " + getUniqueKeyPairName(launchHostIp));
+        MultiInstanceTerminator terminator = new MultiInstanceTerminator(AmazonEC2ClientBuilder.defaultClient(), launchHostIp);
         terminator.run();
 	}
 

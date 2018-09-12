@@ -1,6 +1,6 @@
 # Quick-Start Guide
 This guide covers:
-1. [Running  SilverKing on AWS](#running-simple-aws-based-instances) - try out SilverKing using our template ami
+1. [Running  SilverKing on AWS](#running-simple-aws-based-instances) - try out SilverKing using our template AMI
 2. [Building Silverking on AWS](#building-silverking-on-aws) - build SilverKing on your own instance(s) and try out SilverKing
 
 ## Running Simple AWS-based Instances
@@ -12,7 +12,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 &emsp;Username: ec2-user<br>
 &emsp;Region: US West (Oregon)<br>
 
-1. In the AWS console, right click on the instance you want to run and click "Launch"
+1. In the AWS console, right click on the selected AMI -> "Launch"
 2. Choose an Instance Type: choose atleast a t2.micro 
 3. Configure Instance:   
 ![Configure Details](img/step3_configure_instance_details.PNG)
@@ -21,7 +21,7 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
 ![VPC DNS](img/vpc_dns.PNG)<br>
 *You can view your [VPC's here](https://console.aws.amazon.com/vpc/home?region=us-west-2#vpcs:) (ctrl+click to open in new tab)
    - **Auto-assign Public IP**: we want this enabled so that we can ssh into this instance from a shell, like putty
-   - **IAM role**: we need to add a role so that we can programmatically call aws api's, which is required to run our silverking cloud script<br>
+   - **IAM role**: we need to add a role so that we can programmatically call AWS api's, which is required to run our silverking cloud script<br>
 <a name="CreateIAMRole"></a>
 *If you don't have an EC2 IAM role, you need to [create one](https://console.aws.amazon.com/iam/home?region=us-west-2#/roles) (ctrl+click to open in new tab):
       - Click "Create role"
@@ -31,25 +31,25 @@ If you'd like to give SilverKing a try, you can be up and running in minutes usi
       - Click "Create role" button
 4. Add Storage: I'm just using the defaults
 5. Add Tags: I skip this
-6. Configure Security Group: I select my normal security group that I use for all my aws usage<br>
+6. Configure Security Group: I select my normal security group that I use for all my AWS usage<br>
 *Make sure your security group contains an **Inbound Rule** for **All Traffic** with your _security group ID_ as the **Source**:
 ![Security Group Inbound Rule](img/sg_inbound_rule.png)<br>
 7. Review Instance Launch: Click "Launch"
 
 ### Starting SK/SKFS
-Once you have an AWS SilverKing AMI instance running, ssh into this instance (this is the master/launch host).<br>
+Once you have an instance running, ssh into this instance (this is the master/launch host).<br>
 You can run SilverKing on just this instance or on many instances.<br>
 ```ksh
 cd ~/SilverKing/bin/
 ```
 
-We tell SKCloudAdmin how many number of aws instances we want to run. If we pass in "-n 1", the script won't launch any more instances because we already have one, this instance, but if we pass in something like "-n 5", the script will launch 4 more instances for a total of 5.<br>
-Let's keep it relatively simple and use a total of 3 aws instances, including this launch host, so "-n 3":
+We tell SKCloudAdmin how many number of AWS instances we want to run. If we pass in "-n 1", the script won't launch any more instances because we already have one, this instance, but if we pass in something like "-n 5", the script will launch 4 more instances for a total of 5.<br>
+Let's keep it relatively simple and use a total of 3 AWS instances, including this launch host, so "-n 3":
 ```ksh
 ./SKCloudAdmin.sh -c LaunchInstances -n 3   # this fires up the instances, preps them i.e. wires up ssh'ing capability between instances, starts zookeeper, and does some SilverKing prep work
 ```
 
-You should now see 2 additional instances running in your aws console.<br>
+You should now see 2 additional instances running in your AWS console.<br>
 Once the script returns, it should inform us of what command we run to start the SilverKing cluster:
 ```ksh
 ./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StartNodes,CreateSKFSns,CheckSKFS  # this starts sk and skfs
@@ -85,9 +85,9 @@ cd ~/SilverKing/bin
 ./SKAdmin.sh -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud -c StopSKFS,StopNodes  # this stops sk and skfs
 ```
 
-To terminate the aws instances:
+To terminate the AWS instances:
 ```ksh
-./SKCloudAdmin.sh -c TerminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the aws console 
+./SKCloudAdmin.sh -c TerminateInstances    # this terminates all the worker instances. this current master/launcher instance will still be running, and you can terminate it using the AWS console 
 ```
 
 ## Building SilverKing on AWS

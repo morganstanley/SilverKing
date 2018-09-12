@@ -5,17 +5,13 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.deleteKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
 import static com.ms.silverking.cloud.dht.management.aws.Util.isRunning;
-import static com.ms.silverking.cloud.dht.management.aws.Util.newKeyName;
-import static com.ms.silverking.cloud.dht.management.aws.Util.newLine;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printInstance;
-import static com.ms.silverking.cloud.dht.management.aws.Util.userHome;
 import static com.ms.silverking.cloud.dht.management.aws.Util.waitForInstancesToBeReachable;
 import static com.ms.silverking.cloud.dht.management.aws.Util.waitForInstancesToBeRunning;
 import static com.ms.silverking.cloud.dht.management.aws.Util.writeToFile;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,22 +36,26 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.UserIdGroupPair;
 import com.ms.silverking.cloud.dht.management.SKCloudAdmin;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
+import static com.ms.silverking.cloud.dht.management.aws.Util.USER_HOME;
 
 public class MultiInstanceLauncher {
 
-	private final String masterIp;
 	private final AmazonEC2 ec2;
+	private final String launchHostIp;
+	private final String keyPairName;
 	private String amiId;
 	private String instanceType;
 	private final boolean includeMaster;
 	private int numWorkerInstances;
 	
 	private Instance launchInstance;
-	private String keyPairName;
+    private String launchKeyPairName;
 	private List<GroupIdentifier> securityGroups;
 	private String subnetId;
 
-	public static final String privateKeyFilename = userHome + "/.ssh/id_rsa";
+	public static final String privateKeyFilename = USER_HOME + "/.ssh/id_rsa";
 	public static final String ipsFilename        = SKCloudAdmin.cloudOutDir + "/cloud_ip_list.txt";
 	private String privateKey;
 	
@@ -63,13 +63,15 @@ public class MultiInstanceLauncher {
 	
 	private List<Instance> workerInstances;
 	
-	public MultiInstanceLauncher(AmazonEC2 ec2, String masterIp, int numInstances, String amiId, String instanceType, boolean includeMaster) {
-		this.masterIp      = masterIp;
+	public MultiInstanceLauncher(AmazonEC2 ec2, String launchHostIp, int numInstances, String amiId, String instanceType, boolean includeMaster) {
 		this.ec2           = ec2;
+		this.launchHostIp  = launchHostIp;
+        this.keyPairName   = getUniqueKeyPairName(launchHostIp);
 		this.amiId         = amiId;
 		this.instanceType  = instanceType;
 		this.includeMaster = includeMaster;
 		
+        // needs to be after includeMaster
 		Util.checkNumInstances(numInstances);
 		setNumWorkerInstances(numInstances);
 		
@@ -81,6 +83,10 @@ public class MultiInstanceLauncher {
 		if (includeMaster)
 			numWorkerInstances--;
 	}
+    
+    public String getKeyPairName() {
+        return keyPairName;
+    }
 	
 	public void run() {
 		System.out.println("Creating " + numWorkerInstances + " new instance(s)");
@@ -93,7 +99,7 @@ public class MultiInstanceLauncher {
 	//		addSecurityGroupToLaunchInstance();
 		}
 		
-		deleteKeyPair(ec2);
+		deleteKeyPair(ec2, keyPairName);
 		createKeyPair();
 		createPrivateKeyFile();
 		
@@ -157,7 +163,7 @@ public class MultiInstanceLauncher {
 	}
 	
 	private boolean ipMatchesThisMachine(Instance instance) {
-		return instance.getPrivateIpAddress().equals(masterIp);
+		return instance.getPrivateIpAddress().equals(launchHostIp);
 	}
 	
 	private void setLaunchInstance(Instance instance) {
@@ -171,9 +177,9 @@ public class MultiInstanceLauncher {
 		if (!isSet(instanceType))
 			instanceType = instance.getInstanceType();
 		
-    	keyPairName    = instance.getKeyName();
-    	securityGroups = instance.getSecurityGroups();
-    	subnetId       = instance.getSubnetId();
+    	launchKeyPairName = instance.getKeyName();
+    	securityGroups    = instance.getSecurityGroups();
+    	subnetId          = instance.getSubnetId();
     	printDetails();
     	printDone(instance.getInstanceId());
 	}
@@ -186,7 +192,7 @@ public class MultiInstanceLauncher {
 		debugPrint("set launch instance: " + launchInstance);
 		debugPrint("ami:    " + amiId);
 		debugPrint("type:   " + instanceType);
-		debugPrint("kp:     " + keyPairName);
+		debugPrint("kp:     " + launchKeyPairName);
 		debugPrint("sg:     " + securityGroups);
 		debugPrint("subnet: " + subnetId);
 	}
@@ -221,14 +227,14 @@ public class MultiInstanceLauncher {
 		print("Creating New Key Pair");
 		
 		CreateKeyPairRequest createKeyPairRequest = new CreateKeyPairRequest();
-		createKeyPairRequest.withKeyName(newKeyName);
+		createKeyPairRequest.withKeyName(keyPairName);
 
 		CreateKeyPairResult createKeyPairResult = ec2.createKeyPair(createKeyPairRequest);
 		
 		KeyPair keyPair = createKeyPairResult.getKeyPair();
 		privateKey = keyPair.getKeyMaterial();
 		
-		printDone(newKeyName);
+		printDone(keyPairName);
 	}
 	
 	private void createPrivateKeyFile() {
@@ -247,7 +253,7 @@ public class MultiInstanceLauncher {
 		                   .withInstanceType(instanceType)
 		                   .withMinCount(1)
 		                   .withMaxCount(numWorkerInstances)
-		                   .withKeyName(newKeyName)
+		                   .withKeyName(keyPairName)
 		                   .withSecurityGroupIds( getSecurityGroupIds(securityGroups) )	// for some reason this one works and below doesn't
 //		                   .withSecurityGroups( getNames(securityGroups) )	if you try to use .withSecurityGroups AND .withSubnetId, you will get Exception in thread "main" com.amazonaws.services.ec2.model.AmazonEC2Exception: The parameter groupName cannot be used with the parameter subnet (Service: AmazonEC2; Status Code: 400; Error Code: InvalidParameterCombination; Request ID: a230cc97-c84b-4253-bdf0-874c68759efd)
 		                   .withSubnetId(subnetId);
@@ -286,11 +292,11 @@ public class MultiInstanceLauncher {
 	
 	public List<String> getInstanceIps() {
 		if (isMasterOnlyInstance())
-			return Arrays.asList(masterIp);
+			return Arrays.asList(launchHostIp);
 		else {
 			List<String> instanceIps = getWorkerIps();
 			if (includeMaster)
-				instanceIps.add(0, masterIp);
+				instanceIps.add(0, launchHostIp);
 			
 			return instanceIps;
 		}
@@ -306,8 +312,7 @@ public class MultiInstanceLauncher {
         
         int numInstances = Integer.valueOf(args[0]);        
         System.out.println("Attempting to launch " + (numInstances-1) + " new instances, for a total of " + numInstances + " (this instance + those " + (numInstances-1) + ")");
-    	String masterIp = InetAddress.getLocalHost().getHostAddress();
-        MultiInstanceLauncher launcher = new MultiInstanceLauncher(AmazonEC2ClientBuilder.defaultClient(), masterIp, numInstances, null, null, true);
+        MultiInstanceLauncher launcher = new MultiInstanceLauncher(AmazonEC2ClientBuilder.defaultClient(), getMyIp(), numInstances, null, null, true);
         launcher.run();
 	}
 
