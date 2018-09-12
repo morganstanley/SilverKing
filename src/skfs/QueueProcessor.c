@@ -116,38 +116,42 @@ static void *qp_run(void *_qp) {
 	}
 	srfsLog(LOG_FINE, "qp_run getting work");
 	while (qp->running) {
-		void *batch[qp->batchLimit];
+        try {
+            void *batch[qp->batchLimit];
 
-		//srfsLog(LOG_FINE, "qp_run batchLimit %d %llx %llx", qp->batchLimit, qp, qp->abq);
-		if (!qp->isBatchProcessor) {
-			data = abq_take(qp->abq);
-			//srfsLog(LOG_FINE, "qp_run calling process element");
-			if(data) {
-				qp->processElement(data, curThreadIndex);
-			} else {
-				srfsLog(LOG_FINE, "qp_run null data");
-			}
-		} else {
-			int	batchSize;
+            //srfsLog(LOG_FINE, "qp_run batchLimit %d %llx %llx", qp->batchLimit, qp, qp->abq);
+            if (!qp->isBatchProcessor) {
+                data = abq_take(qp->abq);
+                //srfsLog(LOG_FINE, "qp_run calling process element");
+                if(data) {
+                    qp->processElement(data, curThreadIndex);
+                } else {
+                    srfsLog(LOG_FINE, "qp_run null data");
+                }
+            } else {
+                int	batchSize;
 
-			batchSize = abq_take_multi(qp->abq, batch, qp->batchLimit);
-			if (!batch[batchSize - 1]) {
-				//null element at the end notifies of process completion
-				if (batchSize > 1) {
-					batchSize--;
-					srfsLog(LOG_FINE, "qp_run calling process batch with last null");
-					qp->processBatch(batch, batchSize, curThreadIndex);
-				} else {
-					srfsLog(LOG_FINE, "qp_run empty batch");
-				}
-			} else {
-				//srfsLog(LOG_FINE, "qp_run calling process batch %llx %llx", qp, qp->abq);
-				qp->processBatch(batch, batchSize, curThreadIndex);
-			}
-		}
-		if (exitSignalReceived) { 
-			qp->running = FALSE;
-		}
+                batchSize = abq_take_multi(qp->abq, batch, qp->batchLimit);
+                if (!batch[batchSize - 1]) {
+                    //null element at the end notifies of process completion
+                    if (batchSize > 1) {
+                        batchSize--;
+                        srfsLog(LOG_FINE, "qp_run calling process batch with last null");
+                        qp->processBatch(batch, batchSize, curThreadIndex);
+                    } else {
+                        srfsLog(LOG_FINE, "qp_run empty batch");
+                    }
+                } else {
+                    //srfsLog(LOG_FINE, "qp_run calling process batch %llx %llx", qp, qp->abq);
+                    qp->processBatch(batch, batchSize, curThreadIndex);
+                }
+            }
+            if (exitSignalReceived) { 
+                qp->running = FALSE;
+            }
+        } catch (...) {
+            srfsLog(LOG_ERROR, "Ignoring uncaught exception in qp->run()");
+        }
 	}
 	SKClient::detach();
 	srfsLog(LOG_FINE, "qp_run exit");
