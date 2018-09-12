@@ -784,14 +784,23 @@ ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModification
 	return op;
 }
 
-static void fbr_cp_rVal_to_pbrr(PartialBlockReadRequest *pbrr, ActiveOpRef *aor, char *file, int line) {
+static int fbr_cp_rVal_to_pbrr(PartialBlockReadRequest *pbrr, ActiveOpRef *aor, char *file, int line) {
     size_t  rValLength;
     
     rValLength = aor_get_rValLength(aor);
     if (pbrr->readOffset + pbrr->readSize > rValLength) {
-        fatalError("pbrr->readOffset + pbrr->readSize > rValLength", file, line); 
+        char	fbid[SRFS_FBID_KEY_SIZE];
+
+        srfsLog(LOG_ERROR, "pbrr->readOffset + pbrr->readSize > rValLength in call from %s %d", file, line); 
+        srfsLog(LOG_ERROR, "pbrr->readOffset %d pbrr->readSize %d rValLength %d", pbrr->readOffset, pbrr->readSize, rValLength); 
+        fbid_to_string(pbrr->fbid, fbid);    
+        srfsLog(LOG_ERROR, "%llx %s", pbrr->fbid, fbid);
+        srfsLog(LOG_ERROR, "aor->ao %llx", aor->ao);
+        return -1;
+    } else {
+        memcpy(pbrr->dest, aor_get_rVal(aor) + pbrr->readOffset, pbrr->readSize);
+        return 0;
     }
-    memcpy(pbrr->dest, aor_get_rVal(aor) + pbrr->readOffset, pbrr->readSize);
 }
 
 // Main FileBlockReader function. Handles a group of partial block read requests.
@@ -931,7 +940,12 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
                     }
 				}
 			} else {
-                fbr_cp_rVal_to_pbrr(pbrrs[i], activeOpRefs[i], __FILE__, __LINE__);
+                int cpRes;
+                
+                cpRes = fbr_cp_rVal_to_pbrr(pbrrs[i], activeOpRefs[i], __FILE__, __LINE__);
+                if (cpRes != 0) {
+                    returnCode = -1;
+                }
                 cacheNumRead[i] = pbrrs[i]->readSize;
 				if (!statCounted[i]) {
 					statCounted[i] = TRUE;
@@ -975,17 +989,28 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
                     fbc_remove_active_op(fbr->fileBlockCache, pbrrs[i]->fbid);
                 }
 			} else {
-                fbr_cp_rVal_to_pbrr(pbrrs[i], activeOpRefs[i], __FILE__, __LINE__);
+                int cpRes;
+                
+                cpRes = fbr_cp_rVal_to_pbrr(pbrrs[i], activeOpRefs[i], __FILE__, __LINE__);
+                if (cpRes != 0) {
+                    returnCode = -1;
+                }
                 cacheNumRead[i] = pbrrs[i]->readSize;
             }
 		} else {
             if (aoResults[i] == AOResult_Success) {
                 if (activeOpRefs[i] != NULL) {
-                    fbr_cp_rVal_to_pbrr(pbrrs[i], activeOpRefs[i], __FILE__, __LINE__);
-                    cacheNumRead[i] = pbrrs[i]->readSize;
-                    if (!statCounted[i]) {
-                        statCounted[i] = TRUE;
-                        rs_dht_inc(fbr->rs);
+                    int cpRes;
+                    
+                    cpRes = fbr_cp_rVal_to_pbrr(pbrrs[i], activeOpRefs[i], __FILE__, __LINE__);
+                    if (cpRes != 0) {
+                        returnCode = -1;
+                    } else {
+                        cacheNumRead[i] = pbrrs[i]->readSize;
+                        if (!statCounted[i]) {
+                            statCounted[i] = TRUE;
+                            rs_dht_inc(fbr->rs);
+                        }
                     }
                 }
             } else if (aoResults[i] == AOResult_Error) {
