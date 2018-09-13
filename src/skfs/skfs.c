@@ -1964,6 +1964,12 @@ static void *skfs_init(struct fuse_conn_info *conn
 	srfsLogInitAsync(); // Important - this must be initialized here and not in main() due to fuse process configuration
 	srfsLogAsync(LOG_OPS, "LOG_OPS async check");
 	srfsLog(LOG_WARNING, "skfs_init()");
+    
+#if FUSE_MAJOR_VERSION >= 3
+    conn->want = FUSE_CAP_WRITEBACK_CACHE;
+    srfsLog(LOG_WARNING, "Writeback cache requested");
+#endif
+    
     install_handler();
 	initDHT();
 	fid_module_init();
@@ -2637,8 +2643,8 @@ int main(int argc, char *argv[]) {
     add_fuse_option("-ouse_ino");
     add_fuse_option("-oauto_cache");
 #if FUSE_MAJOR_VERSION >= 3
-    add_fuse_option("-owriteback_cache");
-    srfsLog(LOG_WARNING, "Writeback cache enabled");
+    //add_fuse_option("-owriteback_cache");
+    //srfsLog(LOG_WARNING, "Writeback cache enabled");
 #endif
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
