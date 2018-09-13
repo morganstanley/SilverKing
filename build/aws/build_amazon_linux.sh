@@ -111,6 +111,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     f_fillInBuildConfigVariable "GPP"     "$gpp_path"
     f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
     f_aws_install_gtest "$gpp_path"
+    f_aws_install_swig
        
     echo "BUILD SKFS"
     f_amazon_linux_fillin_build_skfs
