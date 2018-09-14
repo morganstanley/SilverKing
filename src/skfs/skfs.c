@@ -1968,6 +1968,16 @@ static void *skfs_init(struct fuse_conn_info *conn
 #if FUSE_MAJOR_VERSION >= 3
     conn->want = FUSE_CAP_WRITEBACK_CACHE;
     srfsLog(LOG_WARNING, "Writeback cache requested");
+    conn->max_write = 131072;
+    conn->max_read = 131072;
+    conn->max_readahead = 5242880;
+    conn->max_background = 8;
+    srfsLog(LOG_WARNING, "conn->capable %x", conn->capable);
+    srfsLog(LOG_WARNING, "conn->want    %x", conn->want);
+    srfsLog(LOG_WARNING, "conn->max_write      %d", conn->max_write);
+    srfsLog(LOG_WARNING, "conn->max_read       %d", conn->max_read);
+    srfsLog(LOG_WARNING, "conn->max_readahead  %d", conn->max_readahead);
+    srfsLog(LOG_WARNING, "conn->max_background %d", conn->max_background);
 #endif
     
     install_handler();
@@ -2642,10 +2652,6 @@ int main(int argc, char *argv[]) {
 	add_fuse_option("-ononempty");
     add_fuse_option("-ouse_ino");
     add_fuse_option("-oauto_cache");
-#if FUSE_MAJOR_VERSION >= 3
-    //add_fuse_option("-owriteback_cache");
-    //srfsLog(LOG_WARNING, "Writeback cache enabled");
-#endif
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
 	sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs);
@@ -2659,6 +2665,9 @@ int main(int argc, char *argv[]) {
 #if FUSE_MAJOR_VERSION < 3
 	addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=5242880");
 	addEnvToFuseArg("SKFS_MAX_WRITE", "-omax_write=", "-omax_write=262144");
+#endif
+#if FUSE_MAJOR_VERSION >= 3
+	addEnvToFuseArg("SKFS_MAX_READ", "-omax_read=", "-omax_read=131072");
 #endif
     direct_io_enabled = envToBool("SKFS_WRITE_DIRECT_IO", false);
     
