@@ -16,8 +16,10 @@ public class ProcessExecutor {
 	private String[] commands;
 	private ShellCommandExecutor shellCommandExecutor;
 	
+	private static final long noTimeout = 0L;
+	
 	public ProcessExecutor(String[] commands) {
-		this(commands, 0L/*0 timeout = no timeout*/);	
+		this(commands, noTimeout);	
 	}	
 	
 	public ProcessExecutor(String[] commands, long timeoutInSeconds) {
@@ -47,7 +49,7 @@ public class ProcessExecutor {
 	}
 
 	public static ProcessExecutor bashExecutor(String commands) {
-		return bashExecutor(commands, 0L);
+		return bashExecutor(commands, noTimeout);
 	}
 
 	public static ProcessExecutor bashExecutor(String commands, long timeoutInSeconds) {
