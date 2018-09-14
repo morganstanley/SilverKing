@@ -127,7 +127,20 @@ function f_aws_install_gtest {
     ar -rv libgtest.a gtest-all.o
 }
 
+function f_aws_install_swig {
+    echo "installing swig"
+    cd $LIB_ROOT
+    typeset swig_version="swig-3.0.12"
+    typeset swig_tar=$swig_version.tar.gz
+    f_aws_downloadTar "$swig_tar" "http://prdownloads.sourceforge.net/swig/$swig_tar"
+    
+    # f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
+}
+
 function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
+    typeset cores=$(( $(lscpu | awk '/^Core/{ print $4 }') * $(lscpu | awk '/^Socket/{ print $2 }') ))
+    f_overrideBuildConfigVariable "MAKE_JOBS" "$cores"
+    
     f_aws_buildConfig_check
     
     source $BUILD_CONFIG_FILE

@@ -130,6 +130,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     fi
     f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/$gcclib_number"
     f_aws_install_gtest "$gpp_path"
+    f_aws_install_swig
        
     echo "BUILD SKFS"
     f_ubuntu_fillin_build_skfs
