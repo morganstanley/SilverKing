@@ -85,6 +85,8 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
 {
     echo "AMI: Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type - ami-6b8cef13"
 
+    f_aws_fillInMakeJobs
+    
     echo "BUILD"
     f_aws_install_ant
     f_amazon_linux_install_java

@@ -96,7 +96,8 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     else
         echo "AMI: Ubuntu Server 16.04 LTS (HVM), SSD Volume Type - ami-4e79ed36"
     fi
- 
+    
+    f_aws_fillInMakeJobs
     f_ubuntu_aptgetInstall "make"
     f_overrideBuildConfigVariable "BASENAME" "/usr/bin/basename"
 
