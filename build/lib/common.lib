@@ -1207,7 +1207,7 @@ function f_overrideVariable_Helper {
 	typeset value=$3
 	
 	# we pretty much want to override everything after the '=' up until there is a possible comment starting with '#'
-	# FIXME: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
+	# FIXME:bph: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
 	sed -ri "s#(${variable}=)(\S+\s*.*)(\#)?#\1${value}\3#" $filename	# double quotes important so the variable will be expanded
 }
 

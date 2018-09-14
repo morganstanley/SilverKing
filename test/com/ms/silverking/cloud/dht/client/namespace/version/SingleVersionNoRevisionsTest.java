@@ -38,13 +38,13 @@ public class SingleVersionNoRevisionsTest {
         _checkGet(k1, v1);
 	}
 
-	// currently, failing, expecting exception, but operation is succeeding (shouldn't be able to pass in a version, when SINGLE_VERSION is set)
+	// FIXME:bph: currently, failing, expecting exception, but operation is succeeding (shouldn't be able to pass in a version, when SINGLE_VERSION is set)
 	@Test(expected = PutException.class)
 	public void test_Put_WithVersion() throws PutException {
         _putVersion(k2, v1, version1);
 	}
 
-	// currently, failing, should be write once
+	// FIXME:bph: currently, failing, should be write once
 	@Test(expected = PutException.class)
 	public void test_PutKeyTwice_SameValue() throws PutException {
         _put(k3, v1);

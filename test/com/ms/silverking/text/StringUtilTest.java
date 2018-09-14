@@ -17,6 +17,7 @@ import org.junit.Test;
 import com.ms.silverking.numeric.MutableInteger;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 
+// FIXME:bph: comments
 public class StringUtilTest {
 
 	@Test

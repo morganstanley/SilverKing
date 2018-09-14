@@ -227,7 +227,8 @@ public class NamespacePerspectiveOptionsTest {
 			checkStringAndParse(testCase);
 	}
 	
+	// FIXME:bph: not working, getting some error. need to look into it, commenting out for now
 	private void checkStringAndParse(NamespacePerspectiveOptions<?, ?> nspOptions) {
-// not working, getting some error. need to look into it, commenting out for now		assertEquals(nspOptions, nspOptions.parse( nspOptions.toString() ));
+// 		assertEquals(nspOptions, nspOptions.parse( nspOptions.toString() ));
 	}
 }

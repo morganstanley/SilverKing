@@ -50,7 +50,7 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 		checkGets(k3, v1, v1);
 	}
 
-	// failing
+	// FIXME:bph: failing
 	@Test
 	public void test_PutKeyTwice_DiffValue() throws PutException, RetrievalException {
 		_put(     k4, v1);
@@ -58,7 +58,7 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
         checkGets(k4, v1, v2);
 	}
 
-	// failing b/c of version
+	// FIXME:bph: failing b/c of version
 	@Test
 	public void test_PutKeyTwice_SameValue_WithVersion() throws PutException, RetrievalException {
 		_put(                k5, v1);
@@ -66,7 +66,7 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 		checkGetsWithVersion(k5, v1, v1, version1);
 	}
 
-	// failing on version
+	// FIXME:bph: failing on version
 	@Test
 	public void test_PutKeyTwice_DiffValue_WithVersion() throws PutException, RetrievalException {
 		_put(                k6, v1);
@@ -88,7 +88,7 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
         _checkGetGreatest(k, valueGreatest);
 	}
 
-	// failing on version
+	// FIXME:bph: failing on version
 	@Test
 	public void test_PutKeyTwice_DiffValue_WithVersion_Increasing_Linear() throws PutException, RetrievalException {
 		_putVersion(k7, v1, version1);
@@ -96,7 +96,7 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 		checkGets_Twice_Linear(k7);
 	}
 
-	// failing on version
+	// FIXME:bph: failing on version
 	@Test
 	public void test_PutKeyTwice_DiffValue_WithVersion_Decreasing_Linear() throws PutException, RetrievalException {
 		_putVersion(k8, v2, version2);
@@ -114,7 +114,7 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 		_checkGetExactMatchVersion(k, version2);
 	}
 
-	// failing on version
+	// FIXME:bph: failing on version
 	@Test
 	public void test_PutKeyThrice_DiffValue_WithVersion_Increasing_Skipping() throws PutException, RetrievalException {
 		_putVersion(k9, v1, version1);
@@ -123,7 +123,7 @@ public class ClientSpecifiedVersionUnrestrictedRevisionsTest {
 		checkGets_Thrice_Skipping(k9);
 	}
 
-	// failing on version
+	// FIXME:bph: failing on version
 	@Test
 	public void test_PutKeyThrice_DiffValue_WithVersion_Decreasing_Skipping() throws PutException, RetrievalException {
 		_putVersion(k10, v5, version5);

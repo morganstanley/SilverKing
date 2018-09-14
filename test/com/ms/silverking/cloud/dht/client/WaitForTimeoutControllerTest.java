@@ -24,6 +24,8 @@ public class WaitForTimeoutControllerTest {
 	private static final WaitForTimeoutController defaultControllerCopy = new WaitForTimeoutController(irisCopy);
 	private static final WaitForTimeoutController defaultControllerDiff = new WaitForTimeoutController(irisDiff);
 
+	// FUTURE:bph: comments
+	
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
