@@ -2656,9 +2656,10 @@ int main(int argc, char *argv[]) {
 	addEnvToFuseArg("SKFS_ATTR_TIMEOUT", "-oattr_timeout=", fuseAttrOption);
 	addEnvToFuseArg("SKFS_AC_ATTR_TIMEOUT", "-oac_attr_timeout=", fuseACAttrOption);
 	addEnvToFuseArg("SKFS_NEGATIVE_TIMEOUT", "-onegative_timeout=", fuseNegativeOption);
-	//addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=1048576");
+#if FUSE_MAJOR_VERSION < 3
 	addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=5242880");
 	addEnvToFuseArg("SKFS_MAX_WRITE", "-omax_write=", "-omax_write=262144");
+#endif
     direct_io_enabled = envToBool("SKFS_WRITE_DIRECT_IO", false);
     
 	//fuse_opt_add_arg(&fuseArgs, "-osubtype=SKFS");
