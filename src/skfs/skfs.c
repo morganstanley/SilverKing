@@ -1968,10 +1968,12 @@ static void *skfs_init(struct fuse_conn_info *conn
 #if FUSE_MAJOR_VERSION >= 3
     conn->want = FUSE_CAP_WRITEBACK_CACHE;
     srfsLog(LOG_WARNING, "Writeback cache requested");
+    cfg->use_ino = 1;
     conn->max_write = 131072;
     conn->max_read = 131072;
     conn->max_readahead = 5242880;
     conn->max_background = 8;
+    srfsLog(LOG_WARNING, "cfg->use_ino %d", cfg->use_ino);
     srfsLog(LOG_WARNING, "conn->capable %x", conn->capable);
     srfsLog(LOG_WARNING, "conn->want    %x", conn->want);
     srfsLog(LOG_WARNING, "conn->max_write      %d", conn->max_write);
