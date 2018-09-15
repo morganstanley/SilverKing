@@ -2645,14 +2645,17 @@ int main(int argc, char *argv[]) {
 	add_fuse_option("-odefault_permissions");
 	
 	if (args->enableBigWrites) {
+#if FUSE_MAJOR_VERSION < 3
         srfsLog(LOG_WARNING, "Enabling big writes");
 		add_fuse_option("-obig_writes");
+#endif        
 	}
     
     //add_fuse_option("-odirect_io"); // for debugging only    
-    
+#if FUSE_MAJOR_VERSION < 3
 	add_fuse_option("-ononempty");
     add_fuse_option("-ouse_ino");
+#endif
     add_fuse_option("-oauto_cache");
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
