@@ -24,6 +24,8 @@ public class AbsNanosVersionProviderTest {
 	private static final AbsNanosVersionProvider absNanosProviderCopy = new AbsNanosVersionProvider(antsCopy);
 	private static final AbsNanosVersionProvider absNanosProviderDiff = new AbsNanosVersionProvider(antsDiff);
 
+	// FUTURE:bph: comments
+	
 	@Test
 	public void testVersion() {
 		Object[][] testCases = {

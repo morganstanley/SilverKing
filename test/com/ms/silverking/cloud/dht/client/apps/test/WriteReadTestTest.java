@@ -18,8 +18,8 @@ public class WriteReadTestTest {
 			{1,      20,   200},
 			{17,     20,   200},
 			{25,    100,   100},
-//			{25,  1_000, 1_000},
-//			{100, 1_000, 1_000},
+//			{25,  1_000, 1_000}, FUTURE:bph: takes too much time for regression testing
+//			{100, 1_000, 1_000}, FUTURE:bph: takes too much time for regression testing
 		};
 		
 		for (int[] testCase : testCases) {

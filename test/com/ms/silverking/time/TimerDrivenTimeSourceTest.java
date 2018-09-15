@@ -20,7 +20,7 @@ public class TimerDrivenTimeSourceTest {
 	private static final TimerDrivenTimeSource timerSourceCopy =  new TimerDrivenTimeSource(defaultperiodMillisCopy);
 	private static final TimerDrivenTimeSource timerSourceDiff =  new TimerDrivenTimeSource(defaultperiodMillisDiff);
 
-	// ALL OF THIS IS COMMENTED OUT because the getters use variables that are dynamic, so too hard to test...
+	// FIXME:bph: ALL OF THIS IS COMMENTED OUT because the getters use variables that are dynamic, so too hard to test...
 	
 //	@Test
 //	public void testAbsTimeMillis() {

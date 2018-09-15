@@ -24,6 +24,8 @@ public class RelNanosVersionProviderTest {
 	private static final RelNanosVersionProvider relNanosProviderCopy = new RelNanosVersionProvider(rntsCopy);
 	private static final RelNanosVersionProvider relNanosProviderDiff = new RelNanosVersionProvider(rntsDiff);
 
+	// FUTURE:bph: comments
+	
 	@Test
 	public void testVersion() {
 		Object[][] testCases = {

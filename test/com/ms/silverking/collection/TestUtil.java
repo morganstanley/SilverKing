@@ -1,12 +1,5 @@
 package com.ms.silverking.collection;
 
-import static com.ms.silverking.testing.Util.createList;
-import static org.junit.Assert.assertEquals;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
 public class TestUtil {
 	
 	public static final int    expectedIntValue    = 0;

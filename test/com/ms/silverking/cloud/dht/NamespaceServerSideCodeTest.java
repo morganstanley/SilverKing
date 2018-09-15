@@ -65,7 +65,7 @@ public class NamespaceServerSideCodeTest {
 		checkHashCodeEquals(   defaultCode,      defaultCode);
 		checkHashCodeEquals(   defaultCode,      defaultCodeCopy);
 		checkHashCodeNotEquals(defaultCode,      defaultCodeDiff);
-		checkHashCodeEquals(   defaultCode,      defaultCodeNull1);	// strictly we would want checkHashNotEquals(), but this is fine for now since hashCode doesn't need to be unique, and both are corner cases
+		checkHashCodeEquals(   defaultCode,      defaultCodeNull1);	// TODO:bph: strictly we would want checkHashNotEquals(), but this is fine for now since hashCode doesn't need to be unique, and both are corner cases
 		checkHashCodeEquals(   defaultCodeNull1, defaultCodeNull2);
 	}
 	

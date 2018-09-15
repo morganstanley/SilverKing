@@ -76,12 +76,12 @@ public class PerspectiveTest {
         syncNsp.put("k", "v3");
         printKeyVals(syncNsp, "k", getOptions);
         
-        // this guy is not working as expected
+        // FIXME:bph: this guy is not working as expected
         syncNsp.setDefaultVersion(4);
         syncNsp.put("k", "v4");
         printKeyVals(syncNsp, "k", getOptions);        
 
-        // this guy is not working as expected
+        // FIXME:bph: this guy is not working as expected
         syncNsp.setDefaultVersionProvider(new ConstantVersionProvider(6));
         syncNsp.put("k", "v5");	
         printKeyVals(syncNsp, "k", getOptions);        

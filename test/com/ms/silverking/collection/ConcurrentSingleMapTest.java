@@ -35,8 +35,8 @@ public class ConcurrentSingleMapTest {
 		checkEqualsEmptySet(map.keySet());
 		checkEqualsEmptySet(map.values());
 		checkPutReturnsNull(null, null);
-//		checkEqualsEmptySet(map.keySet());
-//		checkEqualsEmptySet(map.values());
+//		checkEqualsEmptySet(map.keySet()); FIXME:bph: NPE b/c kvPair.key in keySet() is null
+//		checkEqualsEmptySet(map.values()); FIXME:bph: NPE b/c kvPair.key in keySet() is null
 	}
 	
 	@Test
@@ -70,7 +70,7 @@ public class ConcurrentSingleMapTest {
 	@Test
 	public void testEntrySet() {
 		checkEqualsEmptySet(map.entrySet());
-		// maybe should add more here
+		// FUTURE:bph: maybe should add more here
 	}
 	
 	private void putElement_1_1() {

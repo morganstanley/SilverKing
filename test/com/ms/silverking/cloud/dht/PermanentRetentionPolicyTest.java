@@ -1,12 +1,14 @@
 package com.ms.silverking.cloud.dht;
 
 import static com.ms.silverking.cloud.dht.TestUtil.getImplementationType;
-import static com.ms.silverking.testing.AssertFunction.*;
-import static org.junit.Assert.*;
+import static com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType.RetainAll;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
+import static com.ms.silverking.testing.AssertFunction.test_Equals;
+import static com.ms.silverking.testing.AssertFunction.test_Getters;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-
-import com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType;
 
 public class PermanentRetentionPolicyTest {
 
@@ -15,7 +17,7 @@ public class PermanentRetentionPolicyTest {
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{ImplementationType.RetainAll, getImplementationType(defaultPolicy)},
+			{RetainAll, getImplementationType(defaultPolicy)},
 		};
 		
 		test_Getters(testCases);

@@ -66,7 +66,7 @@ public class AlertTest {
 		};
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		
-		// equals doesn't check for instanceof right now
+		// FIXME:bph: equals doesn't check for instanceof right now
 //		test_NotEquals(new Object[][]{
 //			{alert, AlertReceiver.class},
 //		});

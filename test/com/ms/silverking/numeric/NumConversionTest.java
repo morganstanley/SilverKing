@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
+// FIXME:bph: comments
 public class NumConversionTest {
 	
 	private static final byte[] long_min      = {byte_minVal, byte_minVal, byte_minVal, byte_minVal, byte_minVal, byte_minVal, byte_minVal, byte_minVal};

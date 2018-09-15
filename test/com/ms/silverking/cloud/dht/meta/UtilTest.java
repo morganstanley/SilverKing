@@ -13,6 +13,7 @@ public class UtilTest {
 		assertTrue(port <= Util.portMax);
 	}
 	
+	// FUTURE:bph: hard to reliably test
 //	@Test
 //	public void testIsFree() {
 //		assertTrue( StaticDHTCreator.isFree(1_000_000));
