@@ -122,6 +122,8 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     f_amazon_linux_download_maven
     f_aws_compile_sample_app
     
+    f_aws_install_iozone
+    
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
 } 2>&1 | tee $output_filename
 
