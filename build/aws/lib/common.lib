@@ -147,6 +147,7 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     
     source $BUILD_CONFIG_FILE
     f_aws_edit_config_files
+    f_copySkfsConfig
     f_aws_symlink_skjar_for_skc
 
     $AWS_DIR/$ZK_START_SCRIPT_NAME
