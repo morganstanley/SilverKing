@@ -250,7 +250,7 @@ function f_aws_install_iozone {
     typeset iozone_tar=$iozone_version.tar
     f_aws_downloadTar "$iozone_tar" "http://www.iozone.org/src/current/$iozone_tar"
     
-    cd src/current
+    cd $iozone_version/src/current
     make linux-ia64
     
     f_fillInBuildConfigVariable "IOZONE_BIN" "`pwd`/iozone"
