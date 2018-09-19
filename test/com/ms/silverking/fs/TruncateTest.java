@@ -39,6 +39,7 @@ public class TruncateTest {
 		server2     = Util.getServer2();
 	}
 	
+	// FIXME:bph: /bin/cat: f1: Transport endpoint is not connected                                                                                                                                                 
 //	@Test
 	public void testTruncate() {
 		String fileName = "f1";

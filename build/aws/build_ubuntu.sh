@@ -139,6 +139,8 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     f_aws_install_spark
     f_ubuntu_download_maven
     f_aws_compile_sample_app
+    
+    f_aws_install_iozone
 
     export SKFS_CC_D_FLAGS="-DFUSE_USE_VERSION=30"  # https://github.com/libfuse/sshfs/commit/34146444ce20c477cba7e9fe113e4387da32ae94
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything

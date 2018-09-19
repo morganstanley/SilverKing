@@ -541,12 +541,15 @@ echo "transientCacheSizeKB:  $transientCacheSizeKB"
 #    ls ${mountMap[$key]}
 #done
 
-f_printSubSection "Making mount and starting fusectl"
-load_module="${fuseBin}/fusectl start > ${skfsLogs}/fuse.load.$$ 2>&1"
-run_cmd="$load_module"
-echo "$run_cmd"
-eval $run_cmd
-sleep 6 
+echo "rh5?: $isRh5"
+if [[ -n $isRh5 ]]; then    # for some reason rh5 needs this and rh6,7 and even other os's don't
+    f_printSubSection "Making mount and starting fusectl"
+    load_module="${fuseBin}/fusectl start > ${skfsLogs}/fuse.load.$$ 2>&1"
+    run_cmd="$load_module"
+    echo "$run_cmd"
+    eval $run_cmd
+    sleep 6 
+fi
 
 f_printSubSection "Writing to tmpFile"
 tmpFile=/tmp/$$.skfs.fuse.tmp
