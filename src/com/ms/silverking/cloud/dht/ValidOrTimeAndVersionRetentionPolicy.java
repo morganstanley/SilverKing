@@ -107,7 +107,7 @@ public class ValidOrTimeAndVersionRetentionPolicy implements ValueRetentionPolic
 			spanEndTimeNanos = mostRecentCreationTimeNanos;
 		}
 		deltaNanos = spanEndTimeNanos - creationTimeNanos;
-		//System.out.printf("%s %d %d %d\t%d\t%d\t%s\n", key, version, creationTimeNanos, spanEndTimeNanos, totalVersions, deltaNanos, totalVersions > 1 ? "_G_" : "_NG_");
+		//System.out.printf("%s %d %s %d %d\t%d\t%d\t%s\n", key, version, invalidated, creationTimeNanos, spanEndTimeNanos, totalVersions, deltaNanos, totalVersions > 1 ? "_G_" : "_NG_");
 		return (totalVersions <= 1 && !invalidated) // retain most recent value, if it's valid; for all other values, use time and version retention policy
 				|| totalVersions <= minVersions 
 				|| deltaNanos <= TimeUnit.NANOSECONDS.convert(timeSpanSeconds, TimeUnit.SECONDS);
