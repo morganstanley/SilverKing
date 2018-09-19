@@ -4,6 +4,7 @@ import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeOptions;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
 
 class SKAdminOptions {
 	static String	exclusionsTarget = "exclusions";
@@ -88,6 +89,19 @@ class SKAdminOptions {
 	@Option(name="-r", usage="disableReap", required=false)
 	boolean disableReap = false;
 	
+	@Option(name="-reapMode", usage="reapMode", required=false)
+	ReapMode reapMode = ReapMode.OnStartupAndIdle;	
+	
+	// temp legacy -r support
+	// remove once -r usage removed
+	public ReapMode getReapMode() {
+		if (disableReap) {
+			return ReapMode.None;
+		} else {
+			return reapMode;
+		}
+	}	
+	
 	@Option(name="-destructive", usage="destructive", required=false)
 	boolean	destructive = false;
 	
@@ -101,7 +115,7 @@ class SKAdminOptions {
 	public String dirNSPutTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=12,constantTime_ms=60000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
 	
 	@Option(name="-fileBlockNSValueRetentionPolicy", usage="fileBlockNSValueRetentionPolicy", required=false)
-	public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=3,timeSpanSeconds=5}";
+	public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=0,timeSpanSeconds=5}";
 	
 	@Option(name="-defaultClassVars", usage="defaultClassVars", required=false)
 	public String defaultClassVars;

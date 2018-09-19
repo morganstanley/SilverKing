@@ -60,7 +60,6 @@ public class DHTConstants {
     public static final int noCapacityLimit = -1;
     public static final int defaultFileSegmentCacheCapacity = noCapacityLimit;
     
-    private static final int				   defaultReapInterval = 10;
     public static final StorageModule.RetrievalImplementation	defaultRetrievalImplementation = StorageModule.RetrievalImplementation.Ungrouped;
     
     public static final String  systemClassBase = "com.ms.silverking";
@@ -124,7 +123,6 @@ public class DHTConstants {
 		defMap.put(killCommandVar, PropertiesHelper.envHelper.getString(killCommandEnvVar, UndefinedAction.ZeroOnUndefined));
 		defMap.put(clearDataCommandVar, "rm -rf");
 		defMap.put(checkSKFSCommandVar, PropertiesHelper.envHelper.getString(checkSKFSCommandEnvVar, UndefinedAction.ZeroOnUndefined));
-		defMap.put(reapIntervalVar, Integer.toString(defaultReapInterval));
 		defMap.put(retrievalImplementationVar, defaultRetrievalImplementation.toString());
 		defMap.put(fileSegmentCacheCapacityVar, Integer.toString(defaultFileSegmentCacheCapacity));
 		defMap.put(segmentIndexLocationVar, defaultSegmentIndexLocation.toString());

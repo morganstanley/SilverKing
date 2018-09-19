@@ -23,6 +23,8 @@ class NodeNamespaceStore extends DynamicNamespaceStore implements JVMMemoryObser
     private final DHTKey                nsTotalKeysKey;
     private final DHTKey                nsBytesUncompressedKey;
     private final DHTKey                nsBytesCompressedKey;
+    private final DHTKey                nsTotalPutsKey;
+    private final DHTKey                nsTotalRetrievalsKey;
     private final Iterable<NamespaceStore>  nsStoreIterator;
     
     private static final String nsName = Namespace.nodeName;
@@ -40,6 +42,8 @@ class NodeNamespaceStore extends DynamicNamespaceStore implements JVMMemoryObser
         nsTotalKeysKey = keyCreator.createKey("nsTotalKeys");
         nsBytesUncompressedKey = keyCreator.createKey("nsBytesUncompressed");
         nsBytesCompressedKey = keyCreator.createKey("nsBytesCompressed");
+        nsTotalPutsKey = keyCreator.createKey("nsTotalPuts");
+        nsTotalRetrievalsKey = keyCreator.createKey("nsTotalRetrievals");
         storeSystemKVPairs(mgBase, SystemTimeUtil.systemTimeSource.absTimeNanos());
         this.nsStoreIterator = nsStoreIterator;
     }
@@ -67,6 +71,10 @@ class NodeNamespaceStore extends DynamicNamespaceStore implements JVMMemoryObser
                     statValue = nsStore.getNamespaceStats().getBytesUncompressed();
                 } else if (key.equals(nsBytesCompressedKey)) {
                     statValue = nsStore.getNamespaceStats().getBytesCompressed();
+                } else if (key.equals(nsTotalPutsKey)) {
+                    statValue = nsStore.getNamespaceStats().getTotalPuts();
+                } else if (key.equals(nsTotalRetrievalsKey)) {
+                    statValue = nsStore.getNamespaceStats().getTotalRetrievals();
                 } else {
                     throw new RuntimeException("panic");
                 }

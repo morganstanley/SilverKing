@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
@@ -184,6 +185,8 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final double	compactionThreshold = 0.1;
     
     private static final int	maxFailedStores = 1000000;
+    
+    private static final long	nsIdleIntervalMillis = 1 * 60 * 1000;
     
     public enum DirCreationMode {
         CreateNSDir, DoNotCreateNSDir
@@ -437,6 +440,10 @@ public class NamespaceStore implements SSNamespaceStore {
                            && nsOptions.getAllowLinks()) {
             watchForLink(zk, nsLinkBasePath, linkCreationListener);
         }
+    }
+    
+    private boolean isIdle() {
+    	return SystemTimeUtil.timerDrivenTimeSource.absTimeMillis() - nsStats.getLastActivityMillis() > nsIdleIntervalMillis;
     }
     
     private void watchForLink(ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
@@ -724,6 +731,10 @@ public class NamespaceStore implements SSNamespaceStore {
         	} else {
         		locked = false;
         		addPendingPut(values, resultListener);
+        		// FUTURE - wait for actual operation result instead of presuming success
+        		for (StorageValueAndParameters svp : values) {
+        			resultListener.sendResult(svp.getKey(), OpResult.SUCCEEDED);
+        		}
         		return;
         	}
         } else {
@@ -735,6 +746,7 @@ public class NamespaceStore implements SSNamespaceStore {
         	writeLock.lock();
         }
         try {
+        	nsStats.addPuts(values.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
             // System.out.printf("NamespaceStore.put() group size: %d\n", values.size());
             for (StorageValueAndParameters value : values) {
                 OpResult storageResult;
@@ -865,7 +877,7 @@ public class NamespaceStore implements SSNamespaceStore {
             System.out.println("StorageParameters: " + storageParams);
         }
         if (debug) {
-            System.out.println("_put " + key + " " + value);
+            System.out.println("_put " + key + " " + value + " "+ storageParams.getChecksumType());
             System.out.println(userData == null ? "null" : userData.length);
         }
         
@@ -1225,6 +1237,7 @@ public class NamespaceStore implements SSNamespaceStore {
 	        if (debugVersion) {
 	            System.out.printf("retrieve internal options: %s\n", options);
 	        }        
+        	nsStats.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
 	        _keys = new DHTKey[keys.size()];
 	        for (int i = 0; i < _keys.length; i++) {
 	        	_keys[i] = keys.get(i);
@@ -2447,7 +2460,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
 
     
-    // FIXME - reminder: convergence implementation is currently only valid for SINGLE_VERSION
+    // FUTURE - reminder: convergence implementation is currently only valid for SINGLE_VERSION
     
     /** readLock() must be held while this is in use and readUnlock() must be called when complete */
     public Iterator<KeyAndVersionChecksum> keyAndVersionChecksumIterator(long minVersion, long maxVersion) {
@@ -2662,11 +2675,77 @@ public class NamespaceStore implements SSNamespaceStore {
     ////////////////////
     // Retention
     
+    private final ReapState	reapState = new ReapState();
+    private static final int	idleReapPauseMillis = 5;
+    
+    private class ReapState {
+    	private int	nextSegmentNumber;
+    	private ValueRetentionState	state;
+    	
+    	ReapState() {
+    		clear();
+    	}
+    	
+    	void initialize() {
+    		if (!isClear()) {
+    			throw new RuntimeException("Can't initialize state. Not clear.");
+    		} else {
+    			nextSegmentNumber = headSegment.getSegmentNumber();
+    			state = nsOptions.getValueRetentionPolicy().createInitialState();
+    		}
+    	}
+    	
+    	void clear() {
+    		nextSegmentNumber = -1;
+    		state = null;
+    	}
+    	
+    	boolean isClear() {
+    		return nextSegmentNumber < 0;
+    	}
+    	
+    	void decrementSegment() {
+    		--nextSegmentNumber;
+    	}
+    	
+    	int getNextSegmentNumber() {
+    		return nextSegmentNumber;
+    	}
+    	
+    	ValueRetentionState getState() {
+    		return state;
+    	}
+    }
+    
+    public void idleReap() {
+    	if (reapState.isClear()) {
+    		reapState.initialize();
+    	}
+    	while (isIdle() && reapState.getNextSegmentNumber() >= 0) {
+    		_reap(reapState.getNextSegmentNumber() > 0, reapState.getNextSegmentNumber(), reapState.getNextSegmentNumber(), reapState.getState(), false);
+    		reapState.decrementSegment();
+        	if (reapState.getNextSegmentNumber() >= 0) {
+        		ThreadUtil.sleep(idleReapPauseMillis);
+        	}
+    	}
+    	if (reapState.getNextSegmentNumber() < 0) {
+    		reapState.clear();
+    	} else {
+    		Log.info("idleReap() interrupted");
+    	}
+    }
+    
     public void reap(boolean leaveTrash) {
+    	_reap(true, headSegment.getSegmentNumber(), 0, nsOptions.getValueRetentionPolicy().createInitialState(), true);
+    }
+    
+    private void _reap(boolean leaveTrash, int startSegment, int endSegment, ValueRetentionState state, boolean verboseReap) {
     	ValueRetentionPolicy	vrp;
     	
     	vrp = nsOptions.getValueRetentionPolicy();
-    	Log.warningAsyncf("reap ns %x %s %s", ns, vrp, leaveTrash);
+    	if (verboseReap || Log.levelMet(Level.INFO)) {
+    		Log.warningAsyncf("_reap ns %x %s %s [%d, %d]", ns, vrp, leaveTrash, startSegment, endSegment);
+    	}
     	if (vrp != null) {
     		if (!leaveTrash) {
     			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
@@ -2679,7 +2758,7 @@ public class NamespaceStore implements SSNamespaceStore {
 	        	curTimeNanos = systemTimeSource.absTimeNanos();
 		    	switch (vrp.getImplementationType()) {
 		    	case SingleReverseSegmentWalk:
-		    		singleReverseSegmentWalk(vrp, vrp.createInitialState(), curTimeNanos);
+		    		singleReverseSegmentWalk(vrp, state, curTimeNanos, startSegment, endSegment, verboseReap);
 		    		break;
 		    	case RetainAll:
 		    		break;
@@ -2695,13 +2774,14 @@ public class NamespaceStore implements SSNamespaceStore {
     	}
     }
     
-	public <T extends ValueRetentionState> void singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos) {
+	private <T extends ValueRetentionState> void singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, 
+																		  int startSegment, int endSegment, boolean verboseReap) {
 		Set<Integer>			deletedSegments;
 		HashedSetMap<DHTKey,Triple<Long,Integer,Long>>	removedEntries;
 		
 		removedEntries = new HashedSetMap<>();
 		deletedSegments = new HashSet<>();
-        for (int i = headSegment.getSegmentNumber() - 1; i >= 0; i--) {
+        for (int i = startSegment; i >= endSegment; i--) {
         	if (segmentExists(i)) {
         		Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>	result; 
         		WritableSegmentBase		segment;
@@ -2727,9 +2807,17 @@ public class NamespaceStore implements SSNamespaceStore {
 		                	}
 		                }
 		    		}
-					Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", i, ccr.toString());
+			    	if (verboseReap || Log.levelMet(Level.INFO)) {
+						Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", i, ccr.toString());
+					}
+					
+					// Note that we need to walk through the head segment even if we always retain it
+					// since subsequent operations may depend on the state of that walk
+					
 					if (segment.getSegmentNumber() == headSegment.getSegmentNumber()) {
-						Log.warningAsyncf("Retaining head segment");
+				    	if (verboseReap || Log.levelMet(Level.INFO)) {
+							Log.warningAsyncf("Retaining head segment");
+						}
 					} else {
 						if (ccr.getValidEntries() == 0) {
 			            	try {
@@ -2755,7 +2843,9 @@ public class NamespaceStore implements SSNamespaceStore {
 						}
 					}
 					sw.stop();
-					Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
+			    	if (verboseReap || Log.levelMet(Level.INFO)) {
+						Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
+					}
 				} catch (Exception e) {
 					Log.logErrorWarning(e, "Skipping segment "+ i +" due to Exception");
 				}

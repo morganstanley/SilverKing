@@ -430,7 +430,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 }
             } else {
                 //storage.incomingSyncRetrievalResponse(message);
-                storage.asyncInvocation("incomingSyncRetrievalResponse", message);
+                storage.asyncInvocationNonBlocking("incomingSyncRetrievalResponse", message);
                 /*
                 Log.warning("Couldn't find activeRetrieval for ", message);
                 if (debugCompletion) {
@@ -698,13 +698,13 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         //storage.getChecksumTreeForRemote(message.getContext(), message.getUUID(), 
         //                        targetCP, sourceCP, connection, message.getOriginator(), region);
         if (!localFlag) {
-        	storage.asyncInvocation("getChecksumTreeForRemote", message.getContext(), message.getUUID(), 
+        	storage.asyncInvocationNonBlocking("getChecksumTreeForRemote", message.getContext(), message.getUUID(), 
                 targetCP, sourceCP, connection, message.getOriginator(), region);
         } else {
         	IPAndPort	replica;
         	
         	replica = ProtoChecksumTreeRequestMessageGroup.getReplica(message);
-        	storage.asyncInvocation("getChecksumTreeForLocal", message.getContext(), message.getUUID(), 
+        	storage.asyncInvocationBlocking("getChecksumTreeForLocal", message.getContext(), message.getUUID(), 
                     targetCP, sourceCP, connection, message.getOriginator(), region, replica, message.getDeadlineRelativeMillis());
         }
     }
@@ -715,7 +715,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             message.displayForDebug();
         }
         //storage.incomingChecksumTree(message, connection);
-        storage.asyncInvocation("incomingChecksumTree", message, connection);
+        storage.asyncInvocationNonBlocking("incomingChecksumTree", message, connection);
     }
     
     ////////////////////////////
@@ -726,7 +726,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     
     private void handleNamespaceResponse(MessageGroup message, MessageGroupConnection connection) {
         //storage.handleNamespaceResponse(message, connection);
-        storage.asyncInvocation("handleNamespaceResponse", message, connection);
+        storage.asyncInvocationNonBlocking("handleNamespaceResponse", message, connection);
     }
     
     private void handleSetConvergenceState(MessageGroup message, MessageGroupConnection connectionForRemote) {

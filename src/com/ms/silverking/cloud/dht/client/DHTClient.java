@@ -17,6 +17,7 @@ import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
@@ -213,7 +214,7 @@ public class DHTClient {
 		}
 		
 		DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
-		embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, false, false);
+		embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, ReapMode.OnStartupAndIdle, false);
 	}
 	
 	private ClientDHTConfiguration embedKVS() {

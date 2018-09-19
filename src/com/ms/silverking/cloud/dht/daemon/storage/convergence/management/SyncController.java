@@ -32,6 +32,7 @@ import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.SimpleTimer;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.Timer;
+import com.ms.silverking.util.PropertiesHelper;
 
 class SyncController {
 	private final MessageGroupBase		mgBase;
@@ -72,14 +73,19 @@ class SyncController {
 	private static final boolean	verbose = true;
 	private static final boolean	debug = false;
 	
-	private static final int	maxConcurrentNewOwnerRequests = 16;
-	private static final int	maxConcurrentOldOwnerRequests = 1;
+	// Care should be taken when adjusting the maximum convergence concurrency
+	private static final int	defaultMaxConcurrentNewOwnerRequests = 16; // generally should be < StorageModule.methodCallBlockingPoolMaxSize
+	private static final int	defaultMaxConcurrentOldOwnerRequests = 1; // tuned for a spinning disk; avoid sending the head all over
+	private static final String	maxConcurrentNewOwnerRequestsEnvVar = "SK_MAX_CONCURRENT_NEW_OWNER_REQUESTS";
+	private static final String	maxConcurrentOldOwnerRequestsEnvVar = "SK_MAX_CONCURRENT_OLD_OWNER_REQUESTS";
+	private static final int	maxConcurrentNewOwnerRequests;
+	private static final int	maxConcurrentOldOwnerRequests;
 	
 	static {
-		if (maxConcurrentNewOwnerRequests + maxConcurrentOldOwnerRequests > StorageModule.methodCallPoolMaxSize) {
-			// If this constraint is violated, the convergence may deadlock
-			throw new RuntimeException("maxConcurrentNewOwnerRequests + maxConcurrentOldOwnerRequests > StorageModule.methodCallPoolMaxSize");
-		}
+		maxConcurrentNewOwnerRequests = PropertiesHelper.envHelper.getInt(maxConcurrentNewOwnerRequestsEnvVar, defaultMaxConcurrentNewOwnerRequests);
+		maxConcurrentOldOwnerRequests = PropertiesHelper.envHelper.getInt(maxConcurrentOldOwnerRequestsEnvVar, defaultMaxConcurrentOldOwnerRequests);
+		Log.warningf("maxConcurrentNewOwnerRequests: %d", maxConcurrentNewOwnerRequests);
+		Log.warningf("maxConcurrentOldOwnerRequests: %d", maxConcurrentOldOwnerRequests);
 	}
 
 	SyncController(MessageGroupBase mgBase, ConvergencePoint curCP, ConvergencePoint targetCP, AbsMillisTimeSource absMillisTimeSource) {

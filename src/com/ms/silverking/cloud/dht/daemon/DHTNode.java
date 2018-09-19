@@ -6,6 +6,8 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergenceController2;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.BaseOperation;
@@ -67,7 +69,8 @@ public class DHTNode {
     static {
     	DHTConstants.isDaemon = true;
         AsyncGlobals.setVerbose(true);
-        absMillisTimeSource = new TimerDrivenTimeSource(new SafeTimer(timeSourceTimerName), timerDrivenTimeSourceResolutionMS);
+        SystemTimeUtil.timerDrivenTimeSource = new TimerDrivenTimeSource(new SafeTimer(timeSourceTimerName), timerDrivenTimeSourceResolutionMS);
+        absMillisTimeSource = SystemTimeUtil.timerDrivenTimeSource;
         daemonStateTimer = new SafeTimer();
         storageModuleTimer = new SafeTimer();
         messageModuleTimer = new SafeTimer();
@@ -77,7 +80,7 @@ public class DHTNode {
         ConvergenceController2.setAbsMillisTimeSource(absMillisTimeSource);
     }
     
-	public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, boolean disableReap, boolean leaveTrash) {
+	public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, ReapMode reapMode, boolean leaveTrash) {
 	    try {
 	        IPAndPort  daemonIPAndPort;
 	        //DHTRingCurTargetWatcher	dhtRingCurTargetWatcher;
@@ -94,6 +97,7 @@ public class DHTNode {
             ringMaster = new NodeRingMaster2(dhtName, zkConfig, daemonIPAndPort);
             //dmw.addListener(ringMaster);
             Log.warning("Using port: "+ serverPort);
+            Log.warning("ReapMode: ", reapMode);
             daemonStateZK = new DaemonStateZK(mc, daemonIPAndPort, daemonStateTimer);
             daemonStateZK.setState(DaemonState.INITIAL_MAP_WAIT);
 	        ringMaster.initializeMap(dhtConfig);
@@ -107,7 +111,7 @@ public class DHTNode {
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY, 
             		recoveryInactiveNodeTimeoutSeconds);
             nodeInfoZK = new NodeInfoZK(mc, daemonIPAndPort, daemonStateTimer);       
-            storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK);
+            storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapMode);
 	        msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort, 
 	                                      mc);
 	        memoryManager = new MemoryManager();
@@ -116,7 +120,7 @@ public class DHTNode {
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT, 
                                              inactiveNodeTimeoutSeconds);
             daemonStateZK.setState(DaemonState.ENABLING_COMMUNICATION);
-            if (!disableReap) {
+            if (reapMode.reapsOnStartup()) {
             	storage.initialReap(leaveTrash);
             }
             msgModule.enable();
@@ -177,7 +181,7 @@ public class DHTNode {
                 
                 dhtName = options.dhtName;
                 zkConfig = new ZooKeeperConfig(options.zkConfig);                
-                dhtNode = new DHTNode(dhtName, zkConfig, options.inactiveNodeTimeoutSeconds, options.disableReap, options.leaveTrash);
+                dhtNode = new DHTNode(dhtName, zkConfig, options.inactiveNodeTimeoutSeconds, options.getReapMode(), options.leaveTrash);
                 //Log.setLevelAll();
                 Log.initAsyncLogging();
                 dhtNode.run();

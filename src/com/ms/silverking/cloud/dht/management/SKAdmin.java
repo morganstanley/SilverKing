@@ -412,7 +412,7 @@ public class SKAdmin {
 				+ getTaskset(options)
 				+ getJavaCmdStart(options, classVars) 
 				+" "+ DHTNode.class.getCanonicalName()
-				+ (options.disableReap ? " -r " : "")
+				+ " -reapMode "+ options.getReapMode()
 				+ (options.leaveTrash ? " -leaveTrash " : "")
 				+" -n "+ gc.getClientDHTConfiguration().getName() 
 				+" -z "+ gc.getClientDHTConfiguration().getZKConfig()
