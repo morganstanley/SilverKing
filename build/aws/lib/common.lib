@@ -243,6 +243,19 @@ function f_aws_sampleJavaFile {
     " > ~/spark-2.3.1-bin-hadoop2.7/src/main/java/$className.java
 }
 
+function f_aws_install_iozone {
+    echo "installing iozone"
+    cd $LIB_ROOT
+    typeset iozone_version="iozone3_482"
+    typeset iozone_tar=$iozone_version.tar
+    f_aws_downloadTar "$iozone_tar" "http://www.iozone.org/src/current/$iozone_tar"
+    
+    cd $iozone_version/src/current
+    make linux-ia64
+    
+    f_fillInBuildConfigVariable "IOZONE_BIN" "`pwd`/iozone"
+}
+
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo
 # travis-ci sets LIB_ROOT
 if [[ -z $LIB_ROOT ]]; then
