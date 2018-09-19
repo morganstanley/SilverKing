@@ -22,7 +22,7 @@ typeset output_filename=$(f_getTestSkfs_RunOutputFilename)
 	               SK_SERVERS=$SK_SERVERS
 	                 JAVA_BIN=$JAVA_8
 	             SK_CLASSPATH=$skClasspath
-     SK_FILE_WRITER_FILE_SIZE=$SK_FILE_WRITE_FILE_SIZE
+     SK_FILE_WRITER_FILE_SIZE=$SK_FILE_WRITER_FILE_SIZE
 	"
 	f_runTestAntScript "testSkfsOnly-large" "$output_filename" "$TEST_SILVERKING_FS_LARGE_EXPECTED_COUNT" "$vars";
 	f_printTestSummary "$output_filename";
