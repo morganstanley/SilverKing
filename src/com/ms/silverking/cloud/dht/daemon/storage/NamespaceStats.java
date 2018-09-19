@@ -1,21 +1,24 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class NamespaceStats {
-    private AtomicInteger   totalKeys;
+    private volatile int    totalKeys; // meta write lock is held
     private AtomicLong      bytesUncompressed;
     private AtomicLong      bytesCompressed;
+    private volatile long	totalPuts; // write lock is held when updating puts
+    private AtomicLong      totalRetrievals; // only read lock is held; use atomic
+    private volatile long	lastPutMillis;
+    private volatile long	lastRetrievalMillis;
 
     public NamespaceStats() {
-        totalKeys = new AtomicInteger();
         bytesUncompressed = new AtomicLong();
         bytesCompressed = new AtomicLong();
+        totalRetrievals = new AtomicLong();
     }
     
     public int getTotalKeys() {
-        return totalKeys.get();
+        return totalKeys;
     }
     
     public long getBytesUncompressed() {
@@ -27,11 +30,41 @@ public class NamespaceStats {
     }
     
     public void incTotalKeys() {
-        totalKeys.incrementAndGet();
+        ++totalKeys;
     }
     
     public void addBytes(int bytesUncompressed, int bytesCompressed) {
         this.bytesUncompressed.addAndGet(bytesUncompressed);
         this.bytesCompressed.addAndGet(bytesCompressed);
+    }
+    
+    public void addPuts(int numPuts, long timeMillis) {
+    	totalPuts += numPuts;
+    	lastPutMillis = timeMillis;
+    }
+    
+    public void addRetrievals(int numRetrievals, long timeMillis) {
+    	totalRetrievals.addAndGet(numRetrievals);
+    	lastRetrievalMillis = timeMillis;
+    }
+    
+    public long getTotalPuts() {
+    	return totalPuts;
+    }
+    
+    public long getTotalRetrievals() {
+    	return totalRetrievals.get();
+    }
+    
+    public long getLastPutMillis() {
+    	return lastPutMillis;
+    }
+    
+    public long getLastRetrievalMillis() {
+    	return lastRetrievalMillis;
+    }
+    
+    public long getLastActivityMillis() {
+    	return Math.max(getLastPutMillis(), getLastRetrievalMillis());
     }
 }
