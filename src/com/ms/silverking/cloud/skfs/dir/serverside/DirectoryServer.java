@@ -248,6 +248,8 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 				}
 			} catch (IOException ioe) {
 				Log.logErrorWarning(ioe, "Ignoring update due to compression error "+ svp);
+			} catch (RuntimeException re) {
+				Log.logErrorWarning(re, "Ignoring update due to error "+ svp);
 			}
 		}
 		

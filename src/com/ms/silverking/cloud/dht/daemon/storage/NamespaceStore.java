@@ -38,6 +38,7 @@ import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.VersionConstraint.Mode;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
+import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
 import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
 import com.ms.silverking.cloud.dht.collection.IntCuckooConstants;
@@ -2936,9 +2937,33 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
     
+    private List<StorageValueAndParameters> fixupCompression(List<StorageValueAndParameters> values) {
+    	List<StorageValueAndParameters>	_values;
+    	
+    	_values = new ArrayList<>(values.size());
+    	for (StorageValueAndParameters svp : values) {
+    		int	compressedLength;
+    		
+            if (svp.compressedSizeSet()) {
+                compressedLength = svp.getCompressedSize();
+            } else {
+                compressedLength = svp.getValue().remaining();
+            }    		
+            // The client disallows any compression usage when the compressed size equals or exceeds the
+            // uncompressed size. As ccss is per message, and this compression check is per value, 
+            // we catch this case and modify the ccss for values where this applies.
+            if (compressedLength == svp.getUncompressedSize()) {
+                _values.add(svp.ccss(CCSSUtil.updateCompression(svp.getCCSS(), Compression.NONE)));
+            } else {
+            	_values.add(svp);
+            }
+    	}
+    	return _values;
+    }
+    
     private void addPendingPut(List<StorageValueAndParameters> values, KeyedOpResultListener resultListener) {
     	try {
-			pendingPuts.put(new PendingPut(this, values, resultListener));
+			pendingPuts.put(new PendingPut(this, fixupCompression(values), resultListener));
 		} catch (InterruptedException e) {
 			Log.logErrorWarning(e);
 		}
