@@ -39,6 +39,8 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.thread.ThreadUtil;
+import com.ms.silverking.time.SimpleStopwatch;
+import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
@@ -216,7 +218,15 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	public Map<DHTKey,OpResult> mergePut(List<StorageValueAndParameters> values) {
 		Map<DHTKey,Pair<DirectoryInMemory,MergedStorageParameters>>	mergedUpdates;
 		Map<DHTKey,OpResult>	results;
+		int	numMerged;
+		Stopwatch	sw;
 		
+		if (Log.levelMet(Level.INFO)) {
+			sw = new SimpleStopwatch();
+		} else {
+			sw = null;
+		}
+		numMerged = 0;
 		Log.info("mergePut");
 		mergedUpdates = new HashMap<>();
 		for (StorageValueAndParameters svp: values) {
@@ -230,7 +240,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 					MergedStorageParameters	mergedSP;
 				
 					if (Log.levelMet(Level.INFO)) {
-						Log.infof("new mergeSP %s %s", KeyUtil.keyToString(svp.getKey()), IPAddrUtil.addrToString(svp.getValueCreator(), 0));
+						Log.warningf("new mergeSP %s %s", KeyUtil.keyToString(svp.getKey()), IPAddrUtil.addrToString(svp.getValueCreator(), 0));
 					}
 					mergedSP = new MergedStorageParameters(svp);
 					mergedUpdates.put(svp.getKey(), new Pair<>(update, mergedSP));
@@ -238,8 +248,9 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 					DirectoryInMemory		mergedDir;
 					MergedStorageParameters	mergedSP;
 					
+					++numMerged;
 					if (Log.levelMet(Level.INFO)) {
-						Log.infof("merging into mergeSP %s %s", KeyUtil.keyToString(svp.getKey()), IPAddrUtil.addrToString(svp.getValueCreator(), 0));
+						Log.warningf("merging into mergeSP %s %s", KeyUtil.keyToString(svp.getKey()), IPAddrUtil.addrToString(svp.getValueCreator(), 0));
 					}
 					mergedDir = mergedDirAndSP.getV1();
 					mergedDir.update(update);
@@ -251,6 +262,10 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			} catch (RuntimeException re) {
 				Log.logErrorWarning(re, "Ignoring update due to error "+ svp);
 			}
+		}
+		if (Log.levelMet(Level.INFO)) {
+			sw.stop();
+			Log.warningf("merged %d of %d in %f", numMerged, values.size(), sw.getElapsedSeconds());
 		}
 		
 		nsStore.getReadWriteLock().writeLock().lock();

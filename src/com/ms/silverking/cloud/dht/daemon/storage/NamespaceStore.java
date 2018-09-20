@@ -13,6 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -87,7 +89,6 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.HashedSetMap;
-import com.ms.silverking.collection.LightLinkedBlockingQueue;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.SKImmutableList;
 import com.ms.silverking.collection.Triple;
@@ -2915,9 +2916,9 @@ public class NamespaceStore implements SSNamespaceStore {
     ////////////////////////////////////
     // SSNamespaceStore implementation
     
-    private static final LightLinkedBlockingQueue<PendingPut>	pendingPuts = new LightLinkedBlockingQueue<>();
-    private static final int	numPendingPutWorkers = 2;
-    private static final int	maxWorkBatchSize = 512;
+    private static final int	numPendingPutWorkers = 8;
+    private static final int	maxWorkBatchSize = 128;
+    private static final BlockingQueue<PendingPut>	pendingPuts = new ArrayBlockingQueue<>(numPendingPutWorkers * maxWorkBatchSize);
     
     static {
     	for (int i = 0; i < numPendingPutWorkers; i++) {
@@ -2970,10 +2971,10 @@ public class NamespaceStore implements SSNamespaceStore {
 	}
     
     static class PendingPutWorker implements Runnable {
-    	private final LightLinkedBlockingQueue<PendingPut>	q;
+    	private final BlockingQueue<PendingPut>	q;
 		private final PendingPut[]	work;
     	
-    	PendingPutWorker(int index, LightLinkedBlockingQueue<PendingPut> q) {
+    	PendingPutWorker(int index, BlockingQueue<PendingPut> q) {
     		Thread	t;
     		
     		work = new PendingPut[maxWorkBatchSize];
@@ -2982,11 +2983,38 @@ public class NamespaceStore implements SSNamespaceStore {
     		t.start();
     	}
     	
+    	private int takeMultiple() throws InterruptedException {
+    		int	numTaken;
+    		
+    		numTaken = 0;
+    		while (numTaken < maxWorkBatchSize) {
+    			if (numTaken == 0) {
+        			work[numTaken] = q.take();
+        			++numTaken;
+    			} else {
+    				PendingPut	p;
+    				
+    				p = q.poll();
+    				if (p != null) {
+    					work[numTaken] = p;
+    					++numTaken;
+    				} else {
+    					break;
+    				}
+    			}
+    		}
+    		return numTaken; 
+    	}
+    	
     	private void process() {
     		int	numTaken;
     		
     		try {
-				numTaken = q.takeMultiple(work);
+				//numTaken = q.takeMultiple(work);
+    			numTaken = takeMultiple();
+    			if (Log.levelMet(Level.INFO)) {
+    				Log.warningf("q.size() %d\tnumTaken %d", q.size(), numTaken);
+    			}
 			} catch (InterruptedException e) {
 				numTaken = 0;
 			}
