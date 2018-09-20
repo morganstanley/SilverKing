@@ -97,7 +97,6 @@ import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
@@ -150,6 +149,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final Set<Integer>	deletedSegments;
     private final PutTrigger	putTrigger;
     private final RetrieveTrigger	retrieveTrigger;
+    private volatile long	lastFullReapMillis;
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>	activeRegionSyncs;    
     
@@ -2721,20 +2721,30 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     public void idleReap() {
-    	if (reapState.isClear()) {
-    		reapState.initialize();
-    	}
-    	while (isIdle() && reapState.getNextSegmentNumber() >= 0) {
-    		_reap(reapState.getNextSegmentNumber() > 0, reapState.getNextSegmentNumber(), reapState.getNextSegmentNumber(), reapState.getState(), false);
-    		reapState.decrementSegment();
-        	if (reapState.getNextSegmentNumber() >= 0) {
-        		ThreadUtil.sleep(idleReapPauseMillis);
-        	}
-    	}
-    	if (reapState.getNextSegmentNumber() < 0) {
-    		reapState.clear();
+    	if (lastFullReapMillis > nsStats.getLastPutMillis()) {
+    		if (Log.levelMet(Level.INFO)) {
+    			Log.warningf("idleReap() not required for this ns %x", ns);
+    		}
     	} else {
-    		Log.info("idleReap() interrupted");
+    		if (Log.levelMet(Level.INFO)) {
+    			Log.warningf("idleReap() ns %x", ns);
+    		}
+	    	if (reapState.isClear()) {
+	    		reapState.initialize();
+	    	}
+	    	while (isIdle() && reapState.getNextSegmentNumber() >= 0) {
+	    		_reap(reapState.getNextSegmentNumber() > 0, reapState.getNextSegmentNumber(), reapState.getNextSegmentNumber(), reapState.getState(), false);
+	    		reapState.decrementSegment();
+	        	if (reapState.getNextSegmentNumber() >= 0) {
+	        		ThreadUtil.sleep(idleReapPauseMillis);
+	        	}
+	    	}
+	    	if (reapState.getNextSegmentNumber() < 0) {
+	    		reapState.clear();
+	    		lastFullReapMillis = SystemTimeUtil.timerDrivenTimeSource.absTimeMillis();
+	    	} else {
+	    		Log.info("idleReap() interrupted");
+	    	}
     	}
     }
     
