@@ -97,6 +97,7 @@ import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
@@ -2916,11 +2917,12 @@ public class NamespaceStore implements SSNamespaceStore {
     ////////////////////////////////////
     // SSNamespaceStore implementation
     
-    private static final int	numPendingPutWorkers = 8;
+    private static final int	numPendingPutWorkers = Math.min(8, Runtime.getRuntime().availableProcessors());
     private static final int	maxWorkBatchSize = 128;
     private static final BlockingQueue<PendingPut>	pendingPuts = new ArrayBlockingQueue<>(numPendingPutWorkers * maxWorkBatchSize);
     
     static {
+    	Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
     	for (int i = 0; i < numPendingPutWorkers; i++) {
     		new PendingPutWorker(i, pendingPuts);
     	}
