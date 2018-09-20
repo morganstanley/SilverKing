@@ -38,6 +38,12 @@ public class TruncateTest {
 		truncateBin = Util.getEnvVariable("TRUNCATE_BIN");
 		server2     = Util.getServer2();
 	}
+
+	// FIXME:bph
+//	@Test
+	public void FIXMEJustSoFileHasRunnableMethods() {
+		
+	}
 	
 	// FIXME:bph: /bin/cat: f1: Transport endpoint is not connected                                                                                                                                                 
 //	@Test

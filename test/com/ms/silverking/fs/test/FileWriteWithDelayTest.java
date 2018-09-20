@@ -52,9 +52,11 @@ public class FileWriteWithDelayTest {
 		int delaySeconds = 3;
 		// if you're going to run from cmdline and test, use abs path names and set SK_CLASSPATH=/abs/path/to/repo/ide/eclipse/build-classes:/abs/path/to/repo/lib/*
 		// lib/* will work here, you don't have to list each jar one by one
-		String[] writer2Commands = ProcessExecutor.getSshCommandWithRedirectOutputFile(server2, "sleep " + delaySeconds + "; " + javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false > /tmp/fwwd.out");
+		String[] writer2Commands = ProcessExecutor.getSshCommandWithRedirectOutputFile(server2, "date; sleep " + delaySeconds + "; " + javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false; date; > /tmp/fwwd_w2.out");	// fwwd_w2.out exists, but is empty.. check ssh.out
 		ProcessExecutor.runCmdNoWait(writer2Commands);
+		System.out.println( ProcessExecutor.runCmd("date") );
 		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});	// writer1
+		System.out.println( ProcessExecutor.runCmd("date") );
 		Thread.sleep(5_000);	// wait/allow some time for writer2 to finish writing to the file
 		
 		// Strictly speaking, the result is undefined
