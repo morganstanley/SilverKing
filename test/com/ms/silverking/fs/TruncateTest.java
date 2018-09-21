@@ -40,7 +40,7 @@ public class TruncateTest {
 	}
 
 	// FIXME:bph
-//	@Test
+	@Test
 	public void FIXMEJustSoFileHasRunnableMethods() {
 		
 	}
