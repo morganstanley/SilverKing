@@ -189,7 +189,7 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private static final int	maxFailedStores = 1000000;
     
-    private static final long	nsIdleIntervalMillis = 1 * 60 * 1000;
+    private static final long	nsIdleIntervalMillis = 4 * 60 * 1000;
     
     public enum DirCreationMode {
         CreateNSDir, DoNotCreateNSDir
