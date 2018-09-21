@@ -516,7 +516,7 @@ public class StorageModule implements LinkCreationListener {
     public void idleReap() {
     	Stopwatch	sw;
     	
-    	Log.warning("Idle reap");
+    	Log.warningAsync("Idle reap");
     	sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
         	if (!ns.isDynamic()) {
@@ -524,7 +524,7 @@ public class StorageModule implements LinkCreationListener {
         	}
         }
     	sw.stop();
-    	Log.warning("Idle reap complete: "+ sw);
+    	Log.warningAsyncf("Idle reap complete: %f", sw.getElapsedSeconds());
     }
     
     /////////////////////////
