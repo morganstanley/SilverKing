@@ -150,6 +150,7 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     f_copySkfsConfig
     f_aws_symlink_skjar_for_skc
 
+    export IS_OSS_BUILD="true"
     $AWS_DIR/$ZK_START_SCRIPT_NAME
     $BUILD_DIR/$BUILD_SCRIPT_NAME
     $AWS_DIR/$ZK_STOP_SCRIPT_NAME
