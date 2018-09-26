@@ -1,8 +1,11 @@
 package com.ms.silverking.cloud.dht.client;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+
 /**
  * Implemented by classes that listen for callbacks on operation completion or update.
  */
+@OmitGeneration // Omitting generation due to lack of circular reference resolution presently
 public interface AsyncOperationListener {
 	/**
 	 *  Issued when an asynchronous operation has updated in a 

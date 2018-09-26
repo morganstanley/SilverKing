@@ -2,6 +2,8 @@ package com.ms.silverking.cloud.dht.client;
 
 import java.util.concurrent.TimeUnit;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+
 /**
  * An asynchronous operation. May be polled for operation status, blocked on, or closed.
  */
@@ -40,6 +42,7 @@ public interface AsyncOperation {
 	 * This operation will notify this listener at most once.
 	 * @param listener	completion listener
 	 */
+	@OmitGeneration // Omitting generation due to lack of circular reference resolution presently
 	public void addListener(AsyncOperationListener listener);
 	/**
 	 * Adds an operation listener. If the operation is already complete, the callback will be 
@@ -50,6 +53,7 @@ public interface AsyncOperation {
 	 * @param listener	update listener
 	 * @param listenStates	states to generate updates for
 	 */
+	@OmitGeneration // Omitting generation due to lack of circular reference resolution presently
 	public void addListener(AsyncOperationListener listener, OperationState... listenStates);
 	/**
 	 * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
@@ -58,6 +62,7 @@ public interface AsyncOperation {
 	 * This operation will notify this listener at most once.
 	 * @param listeners	update listeners
 	 */
+	@OmitGeneration // Omitting generation due to lack of circular reference resolution presently
 	public void addListeners(Iterable<AsyncOperationListener> listeners);
 	/**
 	 * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
@@ -68,5 +73,6 @@ public interface AsyncOperation {
 	 * @param listeners	update listeners
 	 * @param listenStates	states to generate updates for
 	 */
+	@OmitGeneration // Omitting generation due to lack of circular reference resolution presently
 	public void addListeners(Iterable<AsyncOperationListener> listeners, OperationState... listenStates);
 }
