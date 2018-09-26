@@ -15,7 +15,7 @@ public class ValidOrTimeAndVersionRetentionPolicy implements ValueRetentionPolic
 	
 	public enum Mode {wallClock, mostRecentValue};
 	
-	static final ValidOrTimeAndVersionRetentionPolicy	template = new ValidOrTimeAndVersionRetentionPolicy(Mode.wallClock, 1, 86400);
+	private static final ValidOrTimeAndVersionRetentionPolicy	template = new ValidOrTimeAndVersionRetentionPolicy(Mode.wallClock, 1, 86400);
 	
     static {
         ObjectDefParser2.addParser(template);
