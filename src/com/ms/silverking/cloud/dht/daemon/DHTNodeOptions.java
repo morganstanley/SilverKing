@@ -2,7 +2,10 @@ package com.ms.silverking.cloud.dht.daemon;
 
 import org.kohsuke.args4j.Option;
 
-import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
+import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
+import com.ms.silverking.text.ObjectDefParser2;
 
 public class DHTNodeOptions {
     public static final int	defaultInactiveNodeTimeoutSeconds = Integer.MAX_VALUE;
@@ -16,22 +19,14 @@ public class DHTNodeOptions {
     @Option(name="-into", usage="inactiveNodeTimeoutSeconds", required=false)
     public int inactiveNodeTimeoutSeconds = defaultInactiveNodeTimeoutSeconds;
     
-    @Option(name="-r", usage="disableReap", required=false)
-    public boolean disableReap = false;
-    
-	@Option(name="-reapMode", usage="reapMode", required=false)
-	ReapMode reapMode = ReapMode.OnStartup;	
+	@Option(name="-reapPolicy", usage="reapPolicy", required=false)
+	String reapPolicy = new ReapOnIdlePolicy().toString();
 	
-	// temp legacy -r support
-	// remove once -r usage removed
-	public ReapMode getReapMode() {
-		if (disableReap) {
-			return ReapMode.None;
+	public ReapPolicy getReapPolicy() {
+		if (reapPolicy.contains("idleReapPauseMillis")) { // FUTURE - remove workaround when parser support available
+			return (ReapPolicy)ObjectDefParser2.parse(ReapOnIdlePolicy.class, reapPolicy);
 		} else {
-			return reapMode;
+			return NeverReapPolicy.instance;
 		}
-	}	
-    
-    @Option(name="-leaveTrash", usage="leaveTrash", required=false)
-    public boolean leaveTrash = false;
+	}
 }

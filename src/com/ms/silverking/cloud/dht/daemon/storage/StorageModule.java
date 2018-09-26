@@ -79,7 +79,7 @@ public class StorageModule implements LinkCreationListener {
     private final Timer				timer;
     private final ValueCreator      myOriginatorID;
     private final NodeInfoZK		nodeInfoZK;
-    private final ReapMode			reapMode;
+    private final ReapPolicy		reapPolicy;
     
     private NamespaceStore  metaNamespaceStore; // used to bootstrap the meta NS store
                                                 // reference held here merely to ensure no GC
@@ -87,10 +87,7 @@ public class StorageModule implements LinkCreationListener {
     private static final int    sessionTimeoutMillis = 5 * 60 * 1000;
     
     private static final int    cleanupPeriodMillis = 5 * 1000;
-    private static final int    defaultReapPeriodSeconds = 5 * TimeUtils.SECONDS_PER_MINUTE;
-    private static final int    reapPeriodMillis;
     private static final int    reapMaxInitialDelayMillis = 1 * 60 * 1000;
-    private static final int    reapInitialDelayMillis;
     
     //private static final int    primaryConvergencePeriodMillis = 60 * 1000;
     //private static final int    secondaryConvergencePeriodMillis = 60 * 1000;
@@ -120,22 +117,18 @@ public class StorageModule implements LinkCreationListener {
     private static final RetrievalImplementation	retrievalImplementation;
     
     static {
-    	reapPeriodMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.reapIntervalProperty, defaultReapPeriodSeconds) * 1000;
-    	reapInitialDelayMillis = Math.min(reapPeriodMillis, reapMaxInitialDelayMillis);
-    	Log.warningf("reapInitialDelayMillis:\t%d", reapInitialDelayMillis);
-    	Log.warningf("reapPeriodMillis:\t%d", reapPeriodMillis);
     	retrievalImplementation = RetrievalImplementation.valueOf(
     			PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
     	Log.warningf("retrievalImplementation: %s", retrievalImplementation);
     }
     
-    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK, ReapMode reapMode) {
+    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy) {
         ClientDHTConfiguration  clientDHTConfiguration;
         
         this.timer = timer;
         this.ringMaster = ringMaster;
         this.nodeInfoZK = nodeInfoZK;
-        this.reapMode = reapMode;
+        this.reapPolicy = reapPolicy;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
         baseDir = new File(DHTNodeConfiguration.dataBasePath, dhtName);
@@ -195,13 +188,9 @@ public class StorageModule implements LinkCreationListener {
         addDynamicNamespace(systemNSStore);
         
         timer.scheduleAtFixedRate(new Cleaner(), cleanupPeriodMillis, cleanupPeriodMillis);
-        if (reapMode.reapsOnIdle()) {
-        	timer.scheduleAtFixedRate(new Reaper(), reapInitialDelayMillis, reapPeriodMillis);
+        if (reapPolicy.supportsLiveReap()) {
+        	timer.scheduleAtFixedRate(new Reaper(), reapPolicy.getReapIntervalMillis(), reapPolicy.getReapIntervalMillis());
         }
-    }
-    
-    public void initialReap(boolean leaveTrash) {
-    	reap(leaveTrash);
     }
     
     private void createMetaNSStore() {
@@ -279,7 +268,7 @@ public class StorageModule implements LinkCreationListener {
                 parent = null;
             }
             nsStore = NamespaceStore.recoverExisting(ns, nsDir, parent, null, mgBase, ringMaster, 
-                    activeRetrievals, zk, nsLinkBasePath, this);
+                    activeRetrievals, zk, nsLinkBasePath, this, reapPolicy);
             namespaces.put(ns, nsStore);
             nsStore.startWatches(zk, nsLinkBasePath, this);            
             Log.warning("\t\tDone recovering: "+ nsDir.getName());
@@ -377,7 +366,8 @@ public class StorageModule implements LinkCreationListener {
                                             NamespaceStore.DirCreationMode.CreateNSDir,
                                             nsProperties,//spGroup.getRootPolicy(),
                                             parent,
-                                            mgBase, ringMaster, false, activeRetrievals);
+                                            mgBase, ringMaster, false, activeRetrievals,
+                                            reapPolicy);
                 } else {
                     created = false;
                 }
@@ -499,32 +489,32 @@ public class StorageModule implements LinkCreationListener {
         }
     }
     
-    public void reap(boolean leaveTrash) {
+    public void startupReap() {
     	Stopwatch	sw;
     	
-    	Log.warning("Reap");
+    	Log.warning("Startup reap");
     	sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
         	if (!ns.isDynamic()) {
-        		ns.reap(leaveTrash);
+        		ns.startupReap();
         	}
         }
     	sw.stop();
-    	Log.warning("Reap complete: "+ sw);
+    	Log.warning("Startup reap complete: "+ sw);
     }
     
-    public void idleReap() {
+    public void liveReap() {
     	Stopwatch	sw;
     	
-    	Log.warningAsync("Idle reap");
+    	Log.warningAsync("Live reap");
     	sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
         	if (!ns.isDynamic()) {
-        		ns.idleReap();
+        		ns.liveReap();
         	}
         }
     	sw.stop();
-    	Log.warningAsyncf("Idle reap complete: %f", sw.getElapsedSeconds());
+    	Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
     }
     
     /////////////////////////
@@ -685,7 +675,7 @@ public class StorageModule implements LinkCreationListener {
         
         @Override
         public void run() {
-            idleReap();
+            liveReap();
         }
     }
     

@@ -337,10 +337,6 @@ public class SKAdmin {
 		return "-Xms"+ heapLimits.getV1() +" -Xmx"+ heapLimits.getV2();
 	}
 	
-	private String getReapInterval(ClassVars classVars) {
-		return classVars.getVarMap().get(DHTConstants.reapIntervalVar);
-	}
-	
 	private String getFileSegmentCacheCapacity(ClassVars classVars) {
 		return classVars.getVarMap().get(DHTConstants.fileSegmentCacheCapacityVar);
 	}
@@ -360,7 +356,6 @@ public class SKAdmin {
 	private String getDHTOptions(SKAdminOptions options, ClassVars classVars) {
 		return "-Dcom.ms.silverking.Log="+ options.logLevel
 				+" -D"+ DHTConstants.dataBasePathProperty +"="+ getDataDir(classVars)
-				+" -D"+ DHTConstants.reapIntervalProperty +"="+ getReapInterval(classVars)
 				+" -D"+ DHTConstants.fileSegmentCacheCapacityProperty +"="+ getFileSegmentCacheCapacity(classVars)
 				+" -D"+ DHTConstants.retrievalImplementationProperty +"="+ getRetrievalImplementation(classVars)
 				+" -D"+ DHTConstants.segmentIndexLocationProperty +"="+ getSegmentIndexLocation(classVars)
@@ -403,7 +398,6 @@ public class SKAdmin {
 		return  (destructive ? "" : "netstat -tulpn | grep tcp.*:"+ dhtConfig.getPort() +" ; ") +
 				(destructive ? "" : "if [ \\$? -ne 0 ]; then { ") +
 				(destructive ? createStopCommand(dhtConfig, classVars) +"; " : "")
-				//+"mkdir -p "+ getDataDir(classVars) +"; " // StorageModule worries about this creation
 				+"mkdir -p "+ daemonLogDir +"; "
 				+"rm "+ getHeapDumpFile(classVars) +"; "
 				+"mv "+ daemonLogFile +" "+ prevDaemonLogFile +"; "
@@ -412,8 +406,7 @@ public class SKAdmin {
 				+ getTaskset(options)
 				+ getJavaCmdStart(options, classVars) 
 				+" "+ DHTNode.class.getCanonicalName()
-				+ " -reapMode "+ options.getReapMode()
-				+ (options.leaveTrash ? " -leaveTrash " : "")
+				+ " -reapPolicy "+ options.getReapPolicy()
 				+" -n "+ gc.getClientDHTConfiguration().getName() 
 				+" -z "+ gc.getClientDHTConfiguration().getZKConfig()
 				+" -into "+ options.inactiveNodeTimeoutSeconds

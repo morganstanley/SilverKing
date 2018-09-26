@@ -18,6 +18,7 @@ import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
 import com.ms.silverking.cloud.dht.common.Context;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
@@ -237,6 +238,12 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
                 new NamespacePerspectiveOptionsImpl<>(getDefaultNSPOptions(keyClass, valueClass), serializationRegistry));
 	}
 	
+	@Override
+	public AsynchronousNamespacePerspective<String,byte[]> openAsyncPerspective() {
+		return openAsyncPerspective(DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
+	}
+	
+	
     @Override
     public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
                                                                     NamespacePerspectiveOptions<K,V> nspOptions) {
@@ -251,6 +258,10 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
                 new NamespacePerspectiveOptionsImpl<>(getDefaultNSPOptions(keyClass, valueClass), serializationRegistry));
 	}
     
+	@Override
+	public SynchronousNamespacePerspective<String,byte[]> openSyncPerspective() {
+		return openSyncPerspective(DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
+	}
     
     // misc.
 

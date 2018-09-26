@@ -68,9 +68,6 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private SynchronousNamespacePerspective<String,String>	systemNSP;
     private ExclusionSet	exclusionSet;
     
-    private static final Class<String>	defaultKeyClass = String.class;
-    private static final Class<byte[]>	defaultValueClass = byte[].class;
-    
     /*
      * FUTURE - This class can be improved significantly. It contains remnants of the ActiveOperation* implementation.
      * Also to be decided is whether or not the server will share common functionality with the client
@@ -335,7 +332,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 
 	@Override
 	public AsynchronousNamespacePerspective<String,byte[]> openAsyncNamespacePerspective(String namespace) {
-		return openAsyncNamespacePerspective(namespace, defaultKeyClass, defaultValueClass);
+		return openAsyncNamespacePerspective(namespace, DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
 	}
 	
 	@Override
@@ -357,7 +354,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 	
 	@Override
 	public SynchronousNamespacePerspective<String,byte[]> openSyncNamespacePerspective(String namespace) {
-		return openSyncNamespacePerspective(namespace, defaultKeyClass, defaultValueClass);
+		return openSyncNamespacePerspective(namespace, DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
 	}
 
 	@Override

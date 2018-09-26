@@ -149,7 +149,8 @@ public class NamespaceStore implements SSNamespaceStore {
     private final Set<Integer>	deletedSegments;
     private final PutTrigger	putTrigger;
     private final RetrieveTrigger	retrieveTrigger;
-    private volatile long	lastFullReapMillis;
+    private final ReapPolicy		reapPolicy;
+    private final ReapPolicyState	reapPolicyState;
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>	activeRegionSyncs;    
     
@@ -190,6 +191,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final int	maxFailedStores = 1000000;
     
     private static final long	nsIdleIntervalMillis = 4 * 60 * 1000;
+    private static final long	minFullReapIntervalMillis = 4 * 60 * 60 * 1000;
     
     public enum DirCreationMode {
         CreateNSDir, DoNotCreateNSDir
@@ -272,7 +274,8 @@ public class NamespaceStore implements SSNamespaceStore {
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
             NamespaceStore parent,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
-            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
+            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
+            ReapPolicy reapPolicy) {
         this.ns = ns;
         this.nsDir = nsDir;
         ssDir = new File(nsDir, DHTConstants.ssSubDirName);
@@ -284,6 +287,8 @@ public class NamespaceStore implements SSNamespaceStore {
         this.mgBase = mgBase;
         this.ringMaster = ringMaster;
         checksumTreeServer = new ChecksumTreeServer(this, mgBase.getAbsMillisTimeSource());
+        this.reapPolicy = reapPolicy;
+        reapPolicyState = reapPolicy.createInitialState();
         switch (dirCreationMode) {
         case CreateNSDir:
             if (!nsDir.mkdirs()) {
@@ -429,7 +434,7 @@ public class NamespaceStore implements SSNamespaceStore {
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
-        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals);
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, NeverReapPolicy.instance);
     }
     
     private void initRAMSegments() {
@@ -443,6 +448,10 @@ public class NamespaceStore implements SSNamespaceStore {
                            && nsOptions.getAllowLinks()) {
             watchForLink(zk, nsLinkBasePath, linkCreationListener);
         }
+    }
+    
+    public File getDir() {
+    	return nsDir;
     }
     
     private boolean isIdle() {
@@ -749,11 +758,20 @@ public class NamespaceStore implements SSNamespaceStore {
         	writeLock.lock();
         }
         try {
-        	nsStats.addPuts(values.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
+        	int	numPuts;
+        	int	numInvalidations;
+        	
+        	numPuts = 0;
+        	numInvalidations = 0;
             // System.out.printf("NamespaceStore.put() group size: %d\n", values.size());
             for (StorageValueAndParameters value : values) {
                 OpResult storageResult;
 
+                //if (MetaDataUtil.isInvalidated(value.getValue(), value.getValue().position())) {
+                //	++numInvalidations;
+                //} else {
+                	++numPuts;
+                //}
                 if (putTrigger != null) {
                 	storageResult = putTrigger.put(this, value.getKey(), value.getValue(), new SSStorageParametersImpl(value, value.getValue().remaining()), userData, nsVersionMode);
                 } else {
@@ -773,6 +791,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     }
                 }
             }
+        	nsStats.addPuts(numPuts, numInvalidations, SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
         } finally {
             writeLock.unlock();
             //LWTThreadUtil.setNonBlocked();
@@ -2253,7 +2272,8 @@ public class NamespaceStore implements SSNamespaceStore {
     static NamespaceStore recoverExisting(long ns, File nsDir, NamespaceStore parent, StoragePolicy storagePolicy, 
             MessageGroupBase mgBase,
             NodeRingMaster2 ringMaster, ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
-            ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
+            ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener,
+            ReapPolicy reapPolicy) {
         NamespaceStore nsStore;
         NamespaceProperties nsProperties;
         int	numSegmentsToPreread;
@@ -2270,7 +2290,8 @@ public class NamespaceStore implements SSNamespaceStore {
             }
         }
         nsStore = new NamespaceStore(ns, nsDir, NamespaceStore.DirCreationMode.DoNotCreateNSDir, 
-                                     nsProperties, parent, mgBase, ringMaster, true, activeRetrievals);
+                                     nsProperties, parent, mgBase, ringMaster, true, activeRetrievals,
+                                     reapPolicy);
         if (nsProperties.getOptions().getStorageType() != StorageType.RAM) {
             List<Integer> segmentNumbers;
         	
@@ -2678,14 +2699,13 @@ public class NamespaceStore implements SSNamespaceStore {
     ////////////////////
     // Retention
     
-    private final ReapState	reapState = new ReapState();
-    private static final int	idleReapPauseMillis = 5;
+    private final ReapImplState	reapImplState = new ReapImplState();
     
-    private class ReapState {
+    private class ReapImplState {
     	private int	nextSegmentNumber;
-    	private ValueRetentionState	state;
+    	private ValueRetentionState	vrState;
     	
-    	ReapState() {
+    	ReapImplState() {
     		clear();
     	}
     	
@@ -2694,13 +2714,13 @@ public class NamespaceStore implements SSNamespaceStore {
     			throw new RuntimeException("Can't initialize state. Not clear.");
     		} else {
     			nextSegmentNumber = headSegment.getSegmentNumber();
-    			state = nsOptions.getValueRetentionPolicy().createInitialState();
+    			vrState = nsOptions.getValueRetentionPolicy().createInitialState();
     		}
     	}
     	
     	void clear() {
     		nextSegmentNumber = -1;
-    		state = null;
+    		vrState = null;
     	}
     	
     	boolean isClear() {
@@ -2715,54 +2735,67 @@ public class NamespaceStore implements SSNamespaceStore {
     		return nextSegmentNumber;
     	}
     	
-    	ValueRetentionState getState() {
-    		return state;
+    	ValueRetentionState getVRState() {
+    		return vrState;
     	}
     }
     
-    public void idleReap() {
-    	if (lastFullReapMillis > nsStats.getLastPutMillis()) {
+    public void startupReap() {
+    	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeInitialReap 
+    			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
+			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    	}
+    	if (reapPolicy.reapAllowed(reapPolicyState, this, true)) {
+    		_reap(headSegment.getSegmentNumber(), 0, nsOptions.getValueRetentionPolicy().createInitialState(), true);
+    	}
+    	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
+			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    	}
+    }
+    
+    public void liveReap() {
+    	int	currentBatchSize;
+    	
+    	currentBatchSize = 0;
+    	if (reapPolicy.reapAllowed(reapPolicyState, this, false)) {
     		if (Log.levelMet(Level.INFO)) {
-    			Log.warningf("idleReap() not required for this ns %x", ns);
+    			Log.warningf("liveReap() ns %x", ns);
     		}
-    	} else {
-    		if (Log.levelMet(Level.INFO)) {
-    			Log.warningf("idleReap() ns %x", ns);
-    		}
-	    	if (reapState.isClear()) {
-	    		reapState.initialize();
+	    	if (reapImplState.isClear()) {
+	    		reapImplState.initialize();
 	    	}
-	    	while (isIdle() && reapState.getNextSegmentNumber() >= 0) {
-	    		_reap(reapState.getNextSegmentNumber() > 0, reapState.getNextSegmentNumber(), reapState.getNextSegmentNumber(), reapState.getState(), false);
-	    		reapState.decrementSegment();
-	        	if (reapState.getNextSegmentNumber() >= 0) {
-	        		ThreadUtil.sleep(idleReapPauseMillis);
+	    	while (reapPolicy.reapAllowed(reapPolicyState, this, false) && reapImplState.getNextSegmentNumber() >= 0 && currentBatchSize < reapPolicy.getBatchLimit()) {
+	    		_reap(reapImplState.getNextSegmentNumber(), reapImplState.getNextSegmentNumber(), reapImplState.getVRState(), false);
+	    		++currentBatchSize;
+	    		reapImplState.decrementSegment();
+	        	if (reapImplState.getNextSegmentNumber() >= 0) {
+	        		ThreadUtil.sleep(reapPolicy.getIdleReapPauseMillis());
 	        	}
 	    	}
-	    	if (reapState.getNextSegmentNumber() < 0) {
-	    		reapState.clear();
-	    		lastFullReapMillis = SystemTimeUtil.timerDrivenTimeSource.absTimeMillis();
+	    	if (reapImplState.getNextSegmentNumber() < 0) {
+	    		reapImplState.clear();
+	    		reapPolicyState.fullReapComplete(this);
+	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap
+	        			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
+	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+	        	}
 	    	} else {
 	    		Log.info("idleReap() interrupted");
+	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
+	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+	        	}
 	    	}
     	}
     }
     
-    public void reap(boolean leaveTrash) {
-    	_reap(true, headSegment.getSegmentNumber(), 0, nsOptions.getValueRetentionPolicy().createInitialState(), true);
-    }
-    
-    private void _reap(boolean leaveTrash, int startSegment, int endSegment, ValueRetentionState state, boolean verboseReap) {
+    private void _reap(int startSegment, int endSegment, ValueRetentionState state, boolean verboseReap) {
     	ValueRetentionPolicy	vrp;
     	
     	vrp = nsOptions.getValueRetentionPolicy();
     	if (verboseReap || Log.levelMet(Level.INFO)) {
-    		Log.warningAsyncf("_reap ns %x %s %s [%d, %d]", ns, vrp, leaveTrash, startSegment, endSegment);
+    		Log.warningAsyncf("_reap ns %x %s [%d, %d]", ns, vrp, startSegment, endSegment);
     	}
     	if (vrp != null) {
-    		if (!leaveTrash) {
-    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-    		}
 	    	writeLock.lock();
 	    	metaWriteLock.lock();
 	    	try {
@@ -2781,9 +2814,6 @@ public class NamespaceStore implements SSNamespaceStore {
 		    	metaWriteLock.unlock();
 		    	writeLock.unlock();
 	    	}
-    		if (!leaveTrash) {
-    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-    		}
     	}
     }
     

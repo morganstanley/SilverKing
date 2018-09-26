@@ -41,4 +41,9 @@ public class NeverReapPolicy implements ReapPolicy<ReapPolicyState> {
 	public int getReapIntervalMillis() {
 		return Integer.MAX_VALUE;
 	}
+	
+	@Override
+	public int getBatchLimit() {
+		return 0;
+	}
 }

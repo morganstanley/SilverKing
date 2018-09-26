@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
-import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.DHTRingCurTargetZK;
@@ -123,7 +123,7 @@ public class EmbeddedSK {
 			
 			// 4) Start DHTNode
 			Log.warning("Starting DHTNode");
-			new DHTNode(dhtName, zkConfig, 0, ReapMode.OnStartupAndIdle, false);
+			new DHTNode(dhtName, zkConfig, 0, new ReapOnIdlePolicy());
 			Log.warning("DHTNode started");
 			
 			// 5) Return the configuration to the caller

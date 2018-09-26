@@ -132,5 +132,10 @@ public class ReapOnIdlePolicy implements ReapPolicy<ReapOnIdleState> {
 	@Override
 	public int getReapIntervalMillis() {
 		return reapIntervalMillis;
+	}
+	
+	@Override
+	public int getBatchLimit() {
+		return batchLimit;
 	}	
 }

@@ -86,8 +86,6 @@ public class DHTConstants {
 	public static final String	clearDataCommandVar = "clearDataCommand";
 	public static final String	checkSKFSCommandVar = "checkSKFSCommand";
 	public static final String	checkSKFSCommandEnvVar = "skCheckSKFSCommand";	
-	public static final String	reapIntervalVar = "reapInterval";
-	public static final String	reapIntervalProperty = daemonPackageBase +".ReapInterval";
 	public static final String	fileSegmentCacheCapacityVar = "fileSegmentCacheCapacity";
 	public static final String	fileSegmentCacheCapacityProperty = daemonPackageBase +".FileSegmentCacheCapacity";
 	public static final String	retrievalImplementationVar = "retrievalImplementation";
@@ -164,6 +162,8 @@ public class DHTConstants {
                                           .consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT)
                                           .versionMode(NamespaceVersionMode.CLIENT_SPECIFIED);
     
+    public static final Class<String>	defaultKeyClass = String.class;
+    public static final Class<byte[]>	defaultValueClass = byte[].class;
                                                 
    /**
     * Default NamespaceCreationOptions. Subject to change. Recommended practice is for each SilverKing instance

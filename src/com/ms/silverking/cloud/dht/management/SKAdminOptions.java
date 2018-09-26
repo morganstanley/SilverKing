@@ -4,7 +4,11 @@ import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeOptions;
+import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
+import com.ms.silverking.text.ObjectDefParser2;
 
 class SKAdminOptions {
 	static String	exclusionsTarget = "exclusions";
@@ -90,23 +94,35 @@ class SKAdminOptions {
 	boolean disableReap = false;
 	
 	@Option(name="-reapMode", usage="reapMode", required=false)
-	ReapMode reapMode = ReapMode.OnStartupAndIdle;	
+	ReapMode reapMode = null;
 	
-	// temp legacy -r support
-	// remove once -r usage removed
-	public ReapMode getReapMode() {
+	@Option(name="-reapPolicy", usage="reapPolicy", required=false)
+	String reapPolicy = new ReapOnIdlePolicy().toString();	
+	
+	public ReapPolicy getReapPolicy() {
 		if (disableReap) {
-			return ReapMode.None;
+			return new NeverReapPolicy();
 		} else {
-			return reapMode;
+			if (reapMode == null) {
+				return (ReapPolicy)ObjectDefParser2.parse(ReapOnIdlePolicy.class, reapPolicy);
+			} else {
+				switch (reapMode) {
+				case None:
+					return NeverReapPolicy.instance;
+				case OnStartup:
+					return new ReapOnIdlePolicy().reapOnIdle(false);
+				case OnIdle:
+					return new ReapOnIdlePolicy().reapOnStartup(false);
+				case OnStartupAndIdle:
+					return new ReapOnIdlePolicy();
+				default: throw new RuntimeException("Panic");
+				}
+			}
 		}
-	}	
+	}
 	
 	@Option(name="-destructive", usage="destructive", required=false)
 	boolean	destructive = false;
-	
-	@Option(name="-leaveTrash", usage="leaveTrash", required=false)
-	boolean leaveTrash = false;
 	
 	@Option(name="-opTimeoutController", usage="opTimeoutController", required=false)
 	public String opTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=5,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";

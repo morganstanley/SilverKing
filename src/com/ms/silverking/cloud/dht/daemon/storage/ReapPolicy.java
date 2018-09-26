@@ -9,4 +9,5 @@ public interface ReapPolicy<T extends ReapPolicyState> {
 	public int getIdleReapPauseMillis();
 	public boolean supportsLiveReap();
 	public int getReapIntervalMillis();
+	public int getBatchLimit();
 }

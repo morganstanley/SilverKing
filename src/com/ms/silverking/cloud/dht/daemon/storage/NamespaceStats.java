@@ -7,6 +7,7 @@ public class NamespaceStats {
     private AtomicLong      bytesUncompressed;
     private AtomicLong      bytesCompressed;
     private volatile long	totalPuts; // write lock is held when updating puts
+    private volatile long	totalInvalidations; // write lock is held when updating puts
     private AtomicLong      totalRetrievals; // only read lock is held; use atomic
     private volatile long	lastPutMillis;
     private volatile long	lastRetrievalMillis;
@@ -38,8 +39,9 @@ public class NamespaceStats {
         this.bytesCompressed.addAndGet(bytesCompressed);
     }
     
-    public void addPuts(int numPuts, long timeMillis) {
+    public void addPuts(int numPuts, int numInvalidations, long timeMillis) {
     	totalPuts += numPuts;
+    	totalInvalidations += numInvalidations;
     	lastPutMillis = timeMillis;
     }
     
@@ -50,6 +52,10 @@ public class NamespaceStats {
     
     public long getTotalPuts() {
     	return totalPuts;
+    }
+    
+    public long getTotalInvalidations() {
+    	return totalInvalidations;
     }
     
     public long getTotalRetrievals() {
