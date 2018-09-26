@@ -79,9 +79,11 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename)
 	f_installHeaderFiles;
 	f_buildTestApp        "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_4" "testdht";
 	f_buildGtestFramework "$cc" "$cc_opts" "$inc_opts_with_proxy" "$ld" "$ld_opts" "$lib_opts_4" "testdht" "$GTEST_FOLDER_NAME"
-	f_buildKdbQ  "$cc" "$ld_opts" "$lib_opts_3" "$rpath_dir";
-	f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_3" "$rpath_dir";
-	f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_3" "$gcc_r_lib";
+	if [[ -z $IS_OSS_BUILD ]]; then
+        f_buildKdbQ  "$cc" "$ld_opts" "$lib_opts_3" "$rpath_dir";
+        f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_3" "$rpath_dir";
+        f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_3" "$gcc_r_lib";
+    fi
 	f_buildWrapperApps "$cc" "$cc_opts" "$INC_OPTS" "$ld" "$ld_opts" "$lib_opts_5";
 	f_printSummary "$output_filename";
 	f_printLocalElapsed;
