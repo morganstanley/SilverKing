@@ -23,7 +23,7 @@ import com.ms.silverking.util.ArrayUtil;
  */
 public class SubnetAwareReplicaPrioritizer implements ReplicaPrioritizer {
 	private final IPAndPort	myIPAndPort;
-	private final int		subnetSuffixLength;
+	private final int		subnetPrefixLength;
 	private final int		localSubnet;
 	private final Encrypter	encrypter;
 	
@@ -47,8 +47,8 @@ public class SubnetAwareReplicaPrioritizer implements ReplicaPrioritizer {
 		} catch (IOException ioe) {
 			Log.logErrorWarning(ioe, "Error finding local subnet");
 		}
-		subnetSuffixLength = _subnetPrefixLength;
-		localSubnet = myIPAndPort.getSubnetAsInt(subnetSuffixLength);
+		subnetPrefixLength = _subnetPrefixLength;
+		localSubnet = myIPAndPort.getSubnetAsInt(subnetPrefixLength);
 	}
 
 	@Override
@@ -85,7 +85,7 @@ public class SubnetAwareReplicaPrioritizer implements ReplicaPrioritizer {
 	}
 
 	private boolean inLocalSubnet(IPAndPort o1) {
-		return o1.getSubnetAsInt(subnetSuffixLength) == localSubnet;
+		return o1.getSubnetAsInt(subnetPrefixLength) == localSubnet;
 	}
 	
 	private int compareRandomly(IPAndPort o1, IPAndPort o2) {
