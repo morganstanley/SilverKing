@@ -111,6 +111,13 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
         return (int)(ipAndPort >>> 32);
     }
     
+    public int getSubnetAsInt(int bits) {
+    	int	ip;
+    	
+    	ip = getIPAsInt();
+    	return ip & ~((int)(1L << (IPAddrUtil.IPV4_BYTES * 8 - bits)) - 1);
+    }
+    
     public String getIPAsString() {
         return IPAddrUtil.addrToString(getIP());
     }

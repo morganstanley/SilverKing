@@ -30,7 +30,6 @@ import com.ms.silverking.cloud.storagepolicy.StoragePolicyGroup;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.NodeClass;
 import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
-import com.ms.silverking.cloud.toporing.InvalidRingException;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingTree;
 import com.ms.silverking.cloud.toporing.RingTreeBuilder;
@@ -81,8 +80,6 @@ public class RingMapState2 {
     
     private static final int    exclusionCheckInitialIntervalMillis = 0;    
     private static final int    exclusionCheckIntervalMillis = 1 * 60 * 1000;
-    
-    private static final int	defaultIPDistanceMask = 0xffffff00;
     
     private static final boolean    verboseStateTransition = true;
     static final boolean    debug = true;
@@ -163,7 +160,7 @@ public class RingMapState2 {
 	        Log.logErrorWarning(e);
 	        throw new RuntimeException(e);
 	    }
-	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SimpleIPDistancePrioritizer(nodeID, defaultIPDistanceMask));
+	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SubnetAwareReplicaPrioritizer(nodeID));
 	    ringTreeMinusExclusions = newRingTree;
 	    resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
 	    if (Log.levelMet(Level.INFO)) {
@@ -390,7 +387,7 @@ public class RingMapState2 {
 	                throw new RuntimeException(e);
 	            }
 	
-	            newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SimpleIPDistancePrioritizer(nodeID, defaultIPDistanceMask));            
+	    	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SubnetAwareReplicaPrioritizer(nodeID));
 	            ringTreeMinusExclusions = newRingTree;
 	            resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
 	    	    if (Log.levelMet(Level.INFO)) {
@@ -410,22 +407,6 @@ public class RingMapState2 {
             	*/
         	}
         }
-    }
-    
-    // FUTURE - deprecate this
-    public void newExclusionSet(ExclusionSet exclusionSet, ReplicaPrioritizer replicaPrioritizer) throws InvalidRingException {
-        RingTree            newRingTree;
-        ResolvedReplicaMap  newResolvedReplicaMap;
-        
-        newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, exclusionSet);
-        newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), replicaPrioritizer);            
-        ringTreeMinusExclusions = newRingTree;
-        resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-        /*
-        System.out.println("\tResolved Map");
-        resolvedReplicaMapMinusExclusions.display();
-        System.out.println("\tEnd Resolved Map");
-        */
     }
     
     ///////////////
