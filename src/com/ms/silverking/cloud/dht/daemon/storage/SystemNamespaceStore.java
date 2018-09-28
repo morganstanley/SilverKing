@@ -135,7 +135,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
 		
 		currentOwnedFraction = ringMaster.getCurrentOwnedFraction(node, OwnerQueryMode.Primary);
 		if (currentOwnedFraction == 0.0) {
-			Log.warning("getNodeEstimate(%s) unable to find any owned fraction. Ignoring", node.toString());
+			Log.warningf("getNodeEstimate(%s) unable to find any owned fraction. Ignoring", node.toString());
 			return null;
 		} else {
 			totalSystemBytesEstimate = (long)((double)info.getFSTotalBytes() / currentOwnedFraction);
