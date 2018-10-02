@@ -543,7 +543,7 @@ echo "transientCacheSizeKB:  $transientCacheSizeKB"
 
 # for some reason rh5 needs this and rh6,7 and even other os's (ubuntu) don't
 # treadmill also needs this
-# this is the rh5 error you'll get when trying to start fuse below w/o this 'if': "fuse: device not found, try 'modprobe fuse' first"
+# this is the error you'll get when trying to start fuse below w/o this 'if': "fuse: device not found, try 'modprobe fuse' first"
 echo "rh5 or tm?: $isRh5 $TREADMILL"
 if [[ -n $isRh5 || -n $TREADMILL ]]; then    
     f_printSubSection "Making mount and starting fusectl"
