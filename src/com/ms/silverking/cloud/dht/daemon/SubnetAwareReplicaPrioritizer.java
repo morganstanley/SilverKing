@@ -38,10 +38,14 @@ public class SubnetAwareReplicaPrioritizer implements ReplicaPrioritizer {
 		_subnetPrefixLength = defaultPrefixLength;
 		try {
 			localNIC = NetworkInterface.getByInetAddress(myIPAndPort.toInetSocketAddress().getAddress());
-			for (InterfaceAddress a : localNIC.getInterfaceAddresses()) {
-				if (a.getNetworkPrefixLength() <= IPAddrUtil.IPV4_BYTES * 8) {
-					_subnetPrefixLength = a.getNetworkPrefixLength();
-					break;
+			if (localNIC == null) {
+				Log.warning("SubnetAwareReplicaPrioritizer can't find local subnet");
+			} else {
+				for (InterfaceAddress a : localNIC.getInterfaceAddresses()) {
+					if (a.getNetworkPrefixLength() <= IPAddrUtil.IPV4_BYTES * 8) {
+						_subnetPrefixLength = a.getNetworkPrefixLength();
+						break;
+					}
 				}
 			}
 		} catch (IOException ioe) {
