@@ -8,6 +8,15 @@ function f_aws_fillInMakeJobs {
     f_overrideBuildConfigVariable "MAKE_JOBS" "$cores"
 }
 
+function f_checkExitCode {
+    typeset msg=$1
+    
+    if [[ $? -ne 0 ]]; then
+        echo "FAILED: $msg"
+        exit 1
+    fi
+}
+
 function f_aws_downloadTar {
 	typeset tar=$1
 	typeset url=$2

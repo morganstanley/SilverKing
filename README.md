@@ -5,7 +5,7 @@
 
 ## Introduction
 
-SilverKing is a simple, scalable, high-throughput data **storage** and 
+SilverKing is a scalable, high-throughput data **storage** and 
 **coordination** mechanism designed for use in distributed applications. 
 SilverKing provides both a distributed key-value store and a distributed file system.
 
@@ -17,7 +17,8 @@ Follow the [Quick Start Guide](Quick-Start-Guide.md)
 SilverKing has several unique features that make it an attractive solution for many use-cases.
 
 * **Extreme scale** - SilverKing supports many tens of thousands of simultaneous clients, 
-  at least thousands of storage servers, and storage limited by the aggregate capacity of the server disks. 
+at least thousands of storage servers, and storage limited by the aggregate capacity of the server disks.
+SilverKing is in active use by tens of thousands of clients running on thousands of servers in production.   
 * **Rich topology support** - Users can directly specify high-level storage policies such as: 
 "primary replicas in New York and London. Secondary replicas in all other regions. 
 Within each regional data center, each primary value must be stored in two racks, and every rack must have a 
@@ -44,15 +45,12 @@ Linda-like coordination primitives simplify distributed application development.
 ### File System
 
 The SilverKing File System (SKFS) provides a highly-scalable file system by leveraging the SilverKing DHT. 
-SKFS is the successor to the SRFS project.
-
 
 ## Topology Support
 
 SilverKing provides rich inter and intra-datacenter topology support as well as support
 for both primary and secondary replicas (writes are always reflected in primary replicas,
 and will eventually be reflected in secondary replicas.)
-
 
 ## Scale and Performance
 
@@ -69,8 +67,6 @@ Specifically, SilverKing provides scale and performance along many dimensions su
 * **Clients**: at least tens of thousands of concurrent writers (and readers) for large instances
 * **Storage**: limited by the aggregate capacity of all hard drives in use
 
-
-
 ## Topology Changes and Failure Handling
 
 SilverKing supports live topology and configuration changes. For instance, it is possible to add or
@@ -78,11 +74,9 @@ remove servers while SilverKing is running. It is also possible to change the re
 fraction of data stored on each server, the topology structure, etc. all without the need to restart
 SilverKing.
 
-
 The same mechanisms that make it possible to support live topology changes, also enable 
 SilverKing to function in the presence of failures (within the realm of what is 
 feasible given the storage policy and level of failure.)
-
 
 ## Client APIs
 
