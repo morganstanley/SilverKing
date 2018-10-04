@@ -4,6 +4,7 @@ function f_aws_getBuild_RunOutputFilename {
 }
 
 function f_aws_fillInMakeJobs {
+    echo "filling in make jobs"
     typeset cores=$(( $(lscpu | awk '/^Core/{ print $4 }') * $(lscpu | awk '/^Socket/{ print $2 }') ))
     f_overrideBuildConfigVariable "MAKE_JOBS" "$cores"
 }
@@ -60,6 +61,7 @@ function f_aws_replaceLine {
 }
 
 function f_aws_generatePrivateKey {
+    echo "generating private key"
 	cd ~/.ssh
 	typeset publicKeyFilename="id_rsa.pub"
 	if [[ ! -f $publicKeyFilename ]]; then
@@ -92,7 +94,8 @@ function f_aws_install_zk {
     clientPort=2181" > zoo.cfg
 }
 
-function f_aws_fillin_vars {        
+function f_aws_fillin_vars {       
+    echo "filling in vars"
     f_fillInBuildConfigVariable "SK_REPO_HOME" "$sk_repo_home"
     f_fillInBuildConfigVariable "PERL_5_8"     "/usr/bin/perl"
 }
@@ -129,6 +132,7 @@ function f_aws_install_jace {
 }
 
 function f_aws_symlink_jace {
+    echo "symlinking jace"
     cd $LIB_ROOT
     typeset jace_lib=libs/jace
     mkdir -p $jace_lib
@@ -176,6 +180,7 @@ function f_aws_install_swig {
 }
 
 function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
+    echo "checking build config, filling in configs, running everything"
     f_aws_buildConfig_check
     
     source $BUILD_CONFIG_FILE

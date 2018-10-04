@@ -43,6 +43,7 @@ function f_amazon_linux_install_java {
 }
 
 function f_amazon_linux_symlink_boost {
+    echo "symlinking boost"
     f_amazon_linux_yumInstall "boost"
     cd $LIB_ROOT
     typeset boost_lib=libs/boost
@@ -57,6 +58,7 @@ function f_amazon_linux_symlink_boost {
 }
 
 function f_amazon_linux_fillin_build_skfs { 
+    echo "filling in build skfs"
     f_amazon_linux_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_amazon_linux_yumInstall "fuse-devel" #(.h files, .so)
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
@@ -73,6 +75,7 @@ function f_amazon_linux_fillin_build_skfs {
 }
 
 function f_amazon_linux_download_maven {
+    echo "downloading maven"
     typeset name="epel-apache-maven.repo"
     typeset redirectFile=/etc/yum.repos.d/$name
     sudo wget https://repos.fedorapeople.org/repos/dchen/apache-maven/$name -O $redirectFile

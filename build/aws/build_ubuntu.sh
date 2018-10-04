@@ -26,6 +26,7 @@ function f_ubuntu_install_java {
 }
 
 function f_ubuntu_symlink_boost {
+    echo "symlinking boost"
     f_ubuntu_aptgetInstall "libboost-all-dev" # sudo apt-get install 'libboost-dev' isn't sufficient, doesn't have the .so's
     cd $LIB_ROOT
     typeset boost_lib=libs/boost
@@ -91,6 +92,7 @@ function f_ubuntu_install_fuse {
 }
 
 function f_ubuntu_fillin_build_skfs { 
+    echo "filling in build skfs"
     f_ubuntu_aptgetInstall "zlib1g-dev" # zlib.h and libz.so
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
     f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib/x86_64-linux-gnu"
@@ -100,6 +102,7 @@ function f_ubuntu_fillin_build_skfs {
 }
 
 function f_ubuntu_download_maven {
+    echo "downloading maven"
     f_ubuntu_aptgetInstall "maven"
     mvn --version
     f_aws_checkExitCode "mvn"
