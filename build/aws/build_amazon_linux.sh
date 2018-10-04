@@ -50,9 +50,9 @@ function f_amazon_linux_symlink_boost {
     mkdir -p $boost_lib
     cd $boost_lib
     
-    f_aws_symlink /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
-    f_aws_symlink /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
-    f_aws_symlink /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
+    f_aws_symlink libboost_thread.so    /usr/lib64/libboost_thread-mt.so.1.53.0    
+    f_aws_symlink libboost_date_time.so /usr/lib64/libboost_date_time-mt.so.1.53.0 
+    f_aws_symlink libboost_system.so    /usr/lib64/libboost_system-mt.so.1.53.0    
 
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }

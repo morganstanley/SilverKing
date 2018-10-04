@@ -38,9 +38,9 @@ function f_ubuntu_symlink_boost {
         boost_number=54
     fi
     
-    f_aws_symlink  /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.${boost_number}.0    libboost_thread.so
-    f_aws_symlink  /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.${boost_number}.0 libboost_date_time.so
-    f_aws_symlink  /usr/lib/x86_64-linux-gnu/libboost_system.so.1.${boost_number}.0    libboost_system.so
+    f_aws_symlink libboost_thread.so    /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.${boost_number}.0    
+    f_aws_symlink libboost_date_time.so /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.${boost_number}.0 
+    f_aws_symlink libboost_system.so    /usr/lib/x86_64-linux-gnu/libboost_system.so.1.${boost_number}.0    
         
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
@@ -83,7 +83,7 @@ function f_ubuntu_install_fuse {
     f_aws_checkExitCode "ninja install"
     
     cd lib
-    f_aws_symlink libfuse3.so libfuse.so
+    f_aws_symlink libfuse.so libfuse3.so 
     
     f_aws_replaceLine "user_allow_other" "user_allow_other" "/usr/local/etc/fuse.conf" "sudo"
     

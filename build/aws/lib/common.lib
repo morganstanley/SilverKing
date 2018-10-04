@@ -137,11 +137,11 @@ function f_aws_symlink_jace {
     typeset jace_lib=libs/jace
     mkdir -p $jace_lib
     cd $jace_lib
-    f_aws_symlink $sk_repo_home/src/jace/include include
+    f_aws_symlink include $sk_repo_home/src/jace/include 
     mkdir lib
     cd lib
-    f_aws_symlink ../../../$JACE_RUNTIME_JAR jace-runtime.jar
-    f_aws_symlink ../../../$JACE_CORE_JAR    jace-core.jar
+    f_aws_symlink jace-runtime.jar ../../../$JACE_RUNTIME_JAR 
+    f_aws_symlink jace-core.jar    ../../../$JACE_CORE_JAR    
     mv $INSTALL_ARCH_LIB_DIR/jace/dynamic .
     f_aws_checkExitCode "mv"
     f_fillInBuildConfigVariable "JACE_HOME" "$LIB_ROOT/$jace_lib"
