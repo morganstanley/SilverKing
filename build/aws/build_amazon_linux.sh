@@ -11,6 +11,7 @@ source lib/common.lib
 
 function f_amazon_linux_yumInstall {
 	sudo yum -y install $1
+    f_aws_checkExitCode "yum install: $1"
 }
 
 function f_amazon_linux_install_java {
@@ -47,9 +48,10 @@ function f_amazon_linux_symlink_boost {
     typeset boost_lib=libs/boost
     mkdir -p $boost_lib
     cd $boost_lib
-    ln -s /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
-    ln -s /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
-    ln -s /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
+    
+    f_aws_symlink /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
+    f_aws_symlink /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
+    f_aws_symlink /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
 
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
@@ -77,6 +79,7 @@ function f_amazon_linux_download_maven {
     sudo sed -i s#\$releasever#6#g $redirectFile
     f_amazon_linux_yumInstall "apache-maven"
     mvn --version
+    f_aws_checkExitCode "mvn"
 }
 
 f_checkAndSetBuildTimestamp

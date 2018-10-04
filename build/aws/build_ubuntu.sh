@@ -11,6 +11,7 @@ source lib/common.lib
 
 function f_ubuntu_aptgetInstall {
 	sudo apt-get -qq install $1
+    f_aws_checkExitCode "apt-get install: $1"
 }
 
 function f_ubuntu_install_java {
@@ -35,43 +36,61 @@ function f_ubuntu_symlink_boost {
     if [[ $BUILD_TYPE == $TRAVISCI ]]; then
         boost_number=54
     fi
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.${boost_number}.0    libboost_thread.so
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.${boost_number}.0 libboost_date_time.so
-    ln -s /usr/lib/x86_64-linux-gnu/libboost_system.so.1.${boost_number}.0    libboost_system.so
+    
+    f_aws_symlink  /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.${boost_number}.0    libboost_thread.so
+    f_aws_symlink  /usr/lib/x86_64-linux-gnu/libboost_date_time.so.1.${boost_number}.0 libboost_date_time.so
+    f_aws_symlink  /usr/lib/x86_64-linux-gnu/libboost_system.so.1.${boost_number}.0    libboost_system.so
         
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
 
-function f_ubuntu_fillin_build_skfs { 
+function f_ubuntu_install_fuse {
+    echo "installing fuse"
     cd $LIB_ROOT  
+    
     f_ubuntu_aptgetInstall "python3"
     f_ubuntu_aptgetInstall "python3-pip"
     pip3 install meson
-    wget https://github.com/libfuse/libfuse/archive/fuse-3.2.6.tar.gz
-    tar -xvf fuse-3.2.6.tar.gz
-    cd libfuse-fuse-3.2.6
+    f_aws_checkExitCode "pip3: install meson"
+    
+    typeset fuse_version="fuse-3.2.6"
+    typeset fuse_tar=$fuse_version.tar.gz
+    f_aws_downloadTar "$fuse_tar" "https://github.com/libfuse/libfuse/archive/$fuse_tar"
+    
+    typeset fuse_folder="libfuse-${fuse_version}"
+    cd $fuse_folder
     mkdir build
     cd build
     f_ubuntu_aptgetInstall "pkg-config"     # fixes in "meson ..": util/meson.build:27:2: ERROR:  Pkg-config not found.
     f_ubuntu_aptgetInstall "ninja-build"    # fixes in "meson ..": ERROR: Could not detect Ninja v1.5 or newer. ***note it's 'install ninja-build', not 'install ninja' (https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages)
     meson ..
+    f_aws_checkExitCode "meson"
     
     ninja
+    f_aws_checkExitCode "ninja"
     pip3 install -U pytest          # fixes in "sudo python3 -m pytest test/": /usr/bin/python3: No module named pytest
+    f_aws_checkExitCode "pip3: install pytest"
     sudo python3 -m pytest test/
+    f_aws_checkExitCode "pyton3: pytest"
     sudo ninja install
+    f_aws_checkExitCode "ninja install"
     sudo mv /usr/local/etc/init.d/fuse3 /etc/init.d/    # from (https://github.com/libfuse/libfuse/issues/178)
+    f_aws_checkExitCode "mv"
     sudo update-rc.d fuse3 start 34 S . start 41 0 6 .  #
+    f_aws_checkExitCode "update-rc.d"
     sudo ninja install
+    f_aws_checkExitCode "ninja install"
     
     cd lib
-    ln -s libfuse3.so libfuse.so
+    f_aws_symlink libfuse3.so libfuse.so
     
     f_aws_replaceLine "user_allow_other" "user_allow_other" "/usr/local/etc/fuse.conf" "sudo"
     
-    f_fillInBuildConfigVariable "FUSE_INC"  "$LIB_ROOT/libfuse-fuse-3.2.6/include"
-    f_fillInBuildConfigVariable "FUSE_LIB"  "$LIB_ROOT/libfuse-fuse-3.2.6/build/lib"
+    f_fillInBuildConfigVariable "FUSE_INC"  "$LIB_ROOT/$fuse_folder/include"
+    f_fillInBuildConfigVariable "FUSE_LIB"  "$LIB_ROOT/$fuse_folder/build/lib"
+}
 
+function f_ubuntu_fillin_build_skfs { 
     f_ubuntu_aptgetInstall "zlib1g-dev" # zlib.h and libz.so
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
     f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib/x86_64-linux-gnu"
@@ -83,6 +102,7 @@ function f_ubuntu_fillin_build_skfs {
 function f_ubuntu_download_maven {
     f_ubuntu_aptgetInstall "maven"
     mvn --version
+    f_aws_checkExitCode "mvn"
 }
 
 TRAVISCI="travisci"
@@ -134,6 +154,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     f_aws_install_swig
        
     echo "BUILD SKFS"
+    f_ubuntu_install_fuse
     f_ubuntu_fillin_build_skfs
 
     f_aws_install_spark

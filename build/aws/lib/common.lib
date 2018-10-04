@@ -8,14 +8,19 @@ function f_aws_fillInMakeJobs {
     f_overrideBuildConfigVariable "MAKE_JOBS" "$cores"
 }
 
-function f_checkExitCode {
-    typeset msg=$1
+function f_aws_checkExitCode {
+    typeset exitCode=$?
+    typeset      msg=$1
     
-    if [[ $? -ne 0 ]]; then
-        echo "FAILED: $msg"
-        exit 1
+    if [[ $exitCode -ne 0 ]]; then
+        f_aws_fail "$msg"
     fi
 }
+
+function f_aws_fail {
+    echo "FAILED: '$msg'"
+    exit 1
+} 
 
 function f_aws_downloadTar {
 	typeset tar=$1
@@ -31,14 +36,18 @@ function f_aws_downloadTar {
     
 	cd $LIB_ROOT
 	wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
+    f_aws_checkExitCode "wget: $url"
 	tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
-	rm $tar
+	f_aws_checkExitCode "tar: $tar"
+    rm $tar
+    f_aws_checkExitCode "rm: $tar"
 }
 
 function f_aws_downloadJar {
 	typeset url=$1
 	
 	curl -O $url
+    f_aws_checkExitCode "curl: $url"
 }
 
 function f_aws_replaceLine {
@@ -98,6 +107,18 @@ function f_aws_install_boost {
     f_overrideBuildConfigVariable "BOOST_INC" "$LIB_ROOT/$boost_version"
 }
 
+function f_aws_symlink  {
+    typeset  name=$1
+    typeset value=$2
+    
+    if [[ ! -e $value ]]; then
+        f_aws_fail "symlink: value doesn't exist '$value'"
+    else 
+        ln -s $value $name
+        f_aws_checkExitCode "symlink: $name -> $value"
+    fi
+}
+
 function f_aws_install_jace {
     echo "installing jace"
     cd $LIB_ROOT
@@ -112,12 +133,13 @@ function f_aws_symlink_jace {
     typeset jace_lib=libs/jace
     mkdir -p $jace_lib
     cd $jace_lib
-    ln -s $sk_repo_home/src/jace/include include
+    f_aws_symlink $sk_repo_home/src/jace/include include
     mkdir lib
     cd lib
-    ln -s ../../../$JACE_RUNTIME_JAR jace-runtime.jar
-    ln -s ../../../$JACE_CORE_JAR    jace-core.jar
+    f_aws_symlink ../../../$JACE_RUNTIME_JAR jace-runtime.jar
+    f_aws_symlink ../../../$JACE_CORE_JAR    jace-core.jar
     mv $INSTALL_ARCH_LIB_DIR/jace/dynamic .
+    f_aws_checkExitCode "mv"
     f_fillInBuildConfigVariable "JACE_HOME" "$LIB_ROOT/$jace_lib"
 }
 
@@ -138,7 +160,9 @@ function f_aws_install_gtest {
     mkdir lib
     cd lib
     $gpp_path -isystem $gtest_home/include -I$gtest_home -pthread -c $gtest_home/src/gtest-all.cc
+    f_aws_checkExitCode "$gpp_path"
     ar -rv libgtest.a gtest-all.o
+    f_aws_checkExitCode "ar"
 }
 
 function f_aws_install_swig {
@@ -191,8 +215,7 @@ function f_aws_symlink_skjar_for_skc {
 function f_aws_install_spark {
     echo "installing spark"
     cd $LIB_ROOT
-    typeset spark_version="spark-2.3.1-bin-hadoop2.7"
-    typeset spark_tar=$spark_version.tgz
+    typeset spark_tar=$SPARK_VERSION.tgz
     f_aws_downloadTar "$spark_tar" "http://mirror.cc.columbia.edu/pub/software/apache/spark/spark-2.3.1/$spark_tar"
 }
 
@@ -217,28 +240,30 @@ function f_aws_compile_sample_app {
         <maven.compiler.target>1.8</maven.compiler.target>
       </properties>
     </project>
-    " > ~/spark-2.3.1-bin-hadoop2.7/pom.xml
+    " > ~/$SPARK_VERSION/pom.xml
+    f_aws_checkExitCode "writing to pom"
     
-    mkdir -p ~/spark-2.3.1-bin-hadoop2.7/src/main/java
-    f_aws_sampleJavaFile "SimpleApp"     "$HOME/spark-2.3.1-bin-hadoop2.7/README.md"    # I would use '~' instead of '$HOME', but the java code assumes anything that doesn't start with '/' is a relative path, so it tacks on the cwd to the filename.. which gives us the wrong path
+    mkdir -p ~/$SPARK_VERSION/src/main/java
+    f_aws_sampleJavaFile "SimpleApp"     "$HOME/$SPARK_VERSION/README.md"    # I would use '~' instead of '$HOME', but the java code assumes anything that doesn't start with '/' is a relative path, so it tacks on the cwd to the filename.. which gives us the wrong path
     f_aws_sampleJavaFile "SimpleAppSkfs" "/var/tmp/silverking/skfs/skfs_mnt/skfs/README.md"
     
-    cd ~/spark-2.3.1-bin-hadoop2.7
+    cd ~/$SPARK_VERSION
     mvn package
+    f_aws_checkExitCode "mvn package"
 }
 
 function f_aws_sampleJavaFile {
-    typeset className=$1
-    typeset  fileName=$2
+    typeset class_name=$1
+    typeset  file_name=$2
 
     echo "
-    /* $className.java */
+    /* $class_name.java */
     import org.apache.spark.sql.SparkSession;
     import org.apache.spark.sql.Dataset;
 
-    public class $className {
+    public class $class_name {
       public static void main(String[] args) {
-        String logFile = \"$fileName\"; // Should be some file on your system
+        String logFile = \"$file_name\"; // Should be some file on your system
         SparkSession spark = SparkSession.builder().appName(\"Simple Application\").getOrCreate();
         Dataset<String> logData = spark.read().textFile(logFile).cache();
 
@@ -250,7 +275,9 @@ function f_aws_sampleJavaFile {
         spark.stop();
       }
     }
-    " > ~/spark-2.3.1-bin-hadoop2.7/src/main/java/$className.java
+    " > ~/$SPARK_VERSION/src/main/java/$class_name.java
+    
+    f_aws_checkExitCode "writing to $class_name"
 }
 
 function f_aws_install_iozone {
@@ -262,6 +289,7 @@ function f_aws_install_iozone {
     
     cd $iozone_version/src/current
     make linux-ia64
+    f_aws_checkExitCode "make"
     
     f_fillInBuildConfigVariable "IOZONE_BIN" "`pwd`/iozone"
 }
@@ -277,6 +305,7 @@ JACE_RUNTIME_JAR=$JACE_RUNTIME-1.2.22.jar
 JACE_CORE_JAR=$JACE_CORE-1.2.22.jar
 
 ZK_VERSION="zookeeper-3.4.12"
+SPARK_VERSION="spark-2.3.1-bin-hadoop2.7"
     
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
 # SSH_OPTIONS="-v -x -o StrictHostKeyChecking=no"
