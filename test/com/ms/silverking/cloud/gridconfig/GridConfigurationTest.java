@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.gridconfig;
 
+import static com.ms.silverking.cloud.gridconfig.GridConfiguration.defaultBaseProperty;
+import static com.ms.silverking.cloud.gridconfig.GridConfiguration.envSuffixProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -13,10 +15,10 @@ import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.testing.Util;
 
-import static com.ms.silverking.cloud.gridconfig.GridConfiguration.*;
-
+@OmitGeneration
 public class GridConfigurationTest {
 
 	private static final String testFilesDirName = "testFiles";
