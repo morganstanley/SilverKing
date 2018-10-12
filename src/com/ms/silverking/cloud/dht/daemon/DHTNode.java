@@ -129,8 +129,9 @@ public class DHTNode {
             daemonStateZK.setState(DaemonState.PRIMING);
 	        msgModule.start();
 	        cleanVM();
-            daemonStateZK.setState(DaemonState.RUNNING);
+            daemonStateZK.setState(DaemonState.INITIAL_REAP);
             storage.startupReap();
+            daemonStateZK.setState(DaemonState.RUNNING);
 	    } catch (Exception e) {
 	        throw new RuntimeException(e);
 	    }
