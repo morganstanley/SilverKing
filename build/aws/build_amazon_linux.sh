@@ -11,6 +11,7 @@ source lib/common.lib
 
 function f_amazon_linux_yumInstall {
 	sudo yum -y install $1
+    f_aws_checkExitCode "yum install: $1"
 }
 
 function f_amazon_linux_install_java {
@@ -42,19 +43,22 @@ function f_amazon_linux_install_java {
 }
 
 function f_amazon_linux_symlink_boost {
+    echo "symlinking boost"
     f_amazon_linux_yumInstall "boost"
     cd $LIB_ROOT
     typeset boost_lib=libs/boost
     mkdir -p $boost_lib
     cd $boost_lib
-    ln -s /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
-    ln -s /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
-    ln -s /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
+    
+    f_aws_symlink libboost_thread.so    /usr/lib64/libboost_thread-mt.so.1.53.0    
+    f_aws_symlink libboost_date_time.so /usr/lib64/libboost_date_time-mt.so.1.53.0 
+    f_aws_symlink libboost_system.so    /usr/lib64/libboost_system-mt.so.1.53.0    
 
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
 
 function f_amazon_linux_fillin_build_skfs { 
+    echo "filling in build skfs"
     f_amazon_linux_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_amazon_linux_yumInstall "fuse-devel" #(.h files, .so)
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
@@ -71,12 +75,14 @@ function f_amazon_linux_fillin_build_skfs {
 }
 
 function f_amazon_linux_download_maven {
+    echo "downloading maven"
     typeset name="epel-apache-maven.repo"
     typeset redirectFile=/etc/yum.repos.d/$name
     sudo wget https://repos.fedorapeople.org/repos/dchen/apache-maven/$name -O $redirectFile
     sudo sed -i s#\$releasever#6#g $redirectFile
     f_amazon_linux_yumInstall "apache-maven"
     mvn --version
+    f_aws_checkExitCode "mvn"
 }
 
 f_checkAndSetBuildTimestamp
