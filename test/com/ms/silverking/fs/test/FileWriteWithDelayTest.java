@@ -45,7 +45,7 @@ public class FileWriteWithDelayTest {
 	
 	@Test(timeout=45_000)
 	public void testWrite_GiveWriter1AHeadstartExpectFileToBeAllWriter2Data() throws InterruptedException {
-		File f = new File(fileWriteWithDelayDir, "file1");
+		File f = new File(fileWriteWithDelayDir, "this_file_should_be_the_data_of_the_remote_delayed_writer_aka_server2");
 		int size = 15_000_000;
 		int rateLimit = 1;
 		String className = FileWriteWithDelay.class.getCanonicalName();
