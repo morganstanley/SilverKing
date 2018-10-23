@@ -130,7 +130,7 @@ old_dir=`pwd`
 cd `dirname $0`
 curDir=`pwd`
 
-hostname
+echo "host: "`hostname`
 
 # Initialize values from the environment.
 # Any command line parameters will override these.
@@ -226,6 +226,8 @@ f_exitIfUndefined "GC_DEFAULT_BASE" $GC_DEFAULT_BASE
 fullGcFilePath=$GC_DEFAULT_BASE/$GCName.env
 if [[ ! -e $fullGcFilePath ]] ; then
     echo "Can't find configuration file: '$fullGcFilePath'"
+    echo "If it exists, maybe user '$USER' doesn't have permissions?"
+    ls -l $fullGcFilePath
 	f_printFail
     exit
 fi
