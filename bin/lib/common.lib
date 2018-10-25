@@ -72,7 +72,7 @@ function f_logStop {
 
 # 2> /dev/null - routes errors to /dev/null, important to be before >>
 function f_logStat {
-    typeset scriptName=`echo "$1" | rev | cut -d'.' -f 1 | rev`
+    typeset scriptName=`echo "$1" | rev | cut -d '.' -f 1 | rev`
     if [[ -n $STATS_FILE && -e $STATS_FILE ]]; then
         echo `date +"%Y%m%d%H%M%S"`",$USER,"`hostname`","`pwd`",$scriptName,$2,\"$3\",$$" 2> /dev/null >> $STATS_FILE    
     fi

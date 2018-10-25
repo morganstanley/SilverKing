@@ -26,23 +26,18 @@ public class HelloWorldTest {
 	}
 
 	@Test
+	public void testDht() {
+		TestUtil.checkValueIs("world!", HelloDHT.runExample(gridConfig));
+	}
+
+	@Test
 	public void testEmbeddedDht() {
-		checkValueIsWorld(HelloEmbeddedDHT.runExample());
+		TestUtil.checkValueIs("embedded world!", HelloEmbeddedDHT.runExample());
 	}
 	
 	@Test
 	public void testEmbeddedDht2() {
-		checkValueIsWorld(HelloEmbeddedDHT2.runExample());
-	}
-
-	@Test
-	public void testDht() {
-		checkValueIsWorld(HelloDHT.runExample(gridConfig));
-	}
-	
-	@Test
-	public void testAsyncDht() {
-		TestUtil.checkValueIs("async world!", HelloAsyncDHT.runExample(gridConfig));
+		TestUtil.checkValueIs("embedded2 world!", HelloEmbeddedDHT2.runExample());
 	}
 	
 	@Test
@@ -56,6 +51,11 @@ public class HelloWorldTest {
 	}
 	
 	@Test
+	public void testAsyncDht() {
+		TestUtil.checkValueIs("async world!", HelloAsyncDHT.runExample(gridConfig));
+	}
+	
+	@Test
 	public void testMap() {
 		Map<String, String> expectedMap = ImmutableMap.of(
 			"George Washington", "1789-1797", 
@@ -65,10 +65,6 @@ public class HelloWorldTest {
             "James Monroe",      "1817-1825"
         );
 		checkValueIs(expectedMap, HelloMap.runExample(gridConfig));
-	}
-	
-	private void checkValueIsWorld(String actual) {
-		TestUtil.checkValueIs("world!", actual);
 	}
 	
 	private void checkValueIs(Map<String, String> expected, Map<String,String> actual) {
