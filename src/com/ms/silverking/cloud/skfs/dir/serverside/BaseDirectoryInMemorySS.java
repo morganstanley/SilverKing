@@ -26,6 +26,7 @@ import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
+import com.ms.silverking.cloud.dht.daemon.PeerHealthIssue;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
@@ -359,6 +360,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 		try {
 			writeToDisk(sp, serializedDirData);
 		} catch (IOException e) {
+			peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
 			Log.logErrorWarning(e);
 		}
 	}

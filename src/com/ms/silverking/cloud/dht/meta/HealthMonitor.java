@@ -160,7 +160,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         		IPAndPort	ineligibleNode;
         		
         		ineligibleNode = new IPAndPort(ineligibleServer, port);
-        		activeServers.remove(ineligibleNode);
+        		activeNodes.remove(ineligibleNode);
         	}
     	}
     }
@@ -237,7 +237,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             suspectAccusers = CollectionUtil.transposeSetMultimap(accuserSuspects);
             
             // Read the current active nodes from ZK
-            newActiveNodes = suspectsZK.readActiveNodesFromZK();
+            newActiveNodes = new HashSet<>(suspectsZK.readActiveNodesFromZK());
             // Now compute newlyInactiveNodes as the set difference of the previously active nodes minus the active nodes in ZK
             newlyInactiveNodes = new HashSet<>(activeNodes); 
             newlyInactiveNodes.removeAll(newActiveNodes);
@@ -277,6 +277,9 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 if (!activeServers.contains(suspect)) {
                     Log.warning(String.format("Guilty 1: %s (at least one accuser, and no ephemeral node)", suspect));
                     guiltySuspects.add(suspect);
+                } else if (accusers.contains(suspect)) {
+                    Log.warning(String.format("Guilty 4: %s (self-accusation)", suspect));
+                    guiltySuspects.add(suspect);
                 } else {
                     Log.warning(String.format("suspectAccusers contains suspect %s, maps to %s", 
                             suspect, suspectAccusers.get(suspect)));
@@ -288,6 +291,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                     }
                 }
             }
+            
+            newActiveNodes.removeAll(guiltySuspects);
             
             if (!disableAddition) {
             	removeFromConvictionTimes(newActiveNodes);

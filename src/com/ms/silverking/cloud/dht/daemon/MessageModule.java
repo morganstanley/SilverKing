@@ -26,6 +26,7 @@ import com.ms.silverking.cloud.dht.common.EnumValues;
 import com.ms.silverking.cloud.dht.common.NamespaceMetaStore.NamespaceOptionsRetrievalMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.OpResult;
+import com.ms.silverking.cloud.dht.daemon.storage.NamespaceStore;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergenceController2;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
@@ -56,6 +57,7 @@ import com.ms.silverking.cloud.dht.net.ProtoSnapshotMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoVersionedBasicOpMessageGroup;
 import com.ms.silverking.cloud.dht.net.PutResult;
 import com.ms.silverking.cloud.ring.RingRegion;
+import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
@@ -160,6 +162,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         PeerStateWatcher.setPeerHealthMonitor(peerHealthMonitor);
         mgBase.setPeerHealthMonitor(peerHealthMonitor);
         ringMaster.setPeerHealthMonitor(peerHealthMonitor);
+        NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
+        DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
         
         storage.setMessageGroupBase(mgBase);
         storage.setActiveRetrievals(activeRetrievals);

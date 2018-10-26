@@ -115,6 +115,10 @@ public class PeerHealthMonitor implements SuspectAddressListener {
     	addSuspect(new IPAndPort(peer), issue);
     }
     	
+    public void addSelfAsSuspect(PeerHealthIssue issue) {
+    	addSuspect(localIPAndPort, issue);
+    }
+    
     public void addSuspect(IPAndPort peer, PeerHealthIssue issue) {
         Log.warning("addSuspect: "+ peer +" "+ issue);
         switch (issue) {
@@ -132,6 +136,8 @@ public class PeerHealthMonitor implements SuspectAddressListener {
             checkForStrongSuspect(peer);
         	break;
         case CommunicationError:
+        	// fall through
+        case StorageError:
         	// fall through
         default:
         	addStrongSuspect(peer, issue.toString());

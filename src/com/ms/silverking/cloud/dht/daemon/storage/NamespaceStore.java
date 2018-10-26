@@ -65,6 +65,8 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.common.ValueUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
+import com.ms.silverking.cloud.dht.daemon.PeerHealthIssue;
+import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
 import com.ms.silverking.cloud.dht.daemon.Waiter;
 import com.ms.silverking.cloud.dht.daemon.storage.FileSegment.SegmentPrereadMode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ActiveRegionSync;
@@ -215,6 +217,12 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     
+    private static PeerHealthMonitor	peerHealthMonitor;
+    
+    public static void setPeerHealthMonitor(PeerHealthMonitor _peerHealthMonitor) {
+    	peerHealthMonitor = _peerHealthMonitor; 
+    }
+    
     /////////////////////////////////
     /*
     private static final int	ssWorkerPoolTargetSize = 2;
@@ -301,6 +309,7 @@ public class NamespaceStore implements SSNamespaceStore {
             try {
                 NamespacePropertiesIO.write(nsDir, nsProperties);
             } catch (IOException ioe) {
+            	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                 throw new RuntimeException(ioe);
             }
             break;
@@ -381,6 +390,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 headSegment = FileSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
                                                  nsOptions.getSegmentSize(), syncMode, nsOptions);
             } catch (IOException ioe) {
+            	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                 throw new RuntimeException(ioe);
             }
             break;
@@ -553,6 +563,7 @@ public class NamespaceStore implements SSNamespaceStore {
             oldHead = headSegment;
             headSegment = newHead;
         } catch (IOException ioe) {
+        	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
             throw new RuntimeException(ioe);
         //} finally {
             //headCreationLock.unlock();
@@ -566,6 +577,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     Log.warning("persisted segment: " + oldHead.getSegmentNumber());
                 }
             } catch (IOException ioe) {
+            	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                 throw new RuntimeException(ioe);
             }
             // FUTURE - consider persisting in another thread - would need to handle mutual exclusion, consistency, etc.
@@ -1239,6 +1251,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         }
                     }
                 } catch (IOException ioe) {
+                	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                     Log.logErrorWarning(ioe);
                     return OpResult.ERROR;
                 }
@@ -1772,6 +1785,7 @@ public class NamespaceStore implements SSNamespaceStore {
 		                        }
 		                    }
 		                } catch (IOException ioe) {
+		                	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
 		                    Log.logErrorWarning(ioe);
 		                    return null;
 		                }
@@ -1878,6 +1892,7 @@ public class NamespaceStore implements SSNamespaceStore {
 		                        }
 		                    }
 		                } catch (IOException ioe) {
+		                	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
 		                    Log.logErrorWarning(ioe);
 		                    return null;
 		                }
@@ -2041,6 +2056,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
             }
         } catch (IOException ioe) {
+        	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
             Log.logErrorWarning(ioe);
             throw new RuntimeException(ioe);
         }
