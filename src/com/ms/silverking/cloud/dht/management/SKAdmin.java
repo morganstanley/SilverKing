@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
@@ -56,8 +57,10 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.numeric.NumUtil;
+import com.ms.silverking.process.ProcessExecutor;
 import com.ms.silverking.pssh.TwoLevelParallelSSHMaster;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
@@ -114,6 +117,8 @@ public class SKAdmin {
 	private static final String	logFileName = "SKAdmin.out";
 	
 	public static boolean	exitOnCompletion = true;
+	
+	private static final int	localCommandErrorCode = 127;
 	
 	public SKAdmin(SKGridConfiguration gc, SKAdminOptions options) throws IOException, KeeperException {
 		Pair<RingConfiguration,InstantiatedRingTree>	ringConfigAndTree;
@@ -1026,16 +1031,39 @@ public class SKAdmin {
 	private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts, HostGroupTable hostGroups) throws IOException {
 		TwoLevelParallelSSHMaster	sshMaster;
 		boolean	result;
+		String		localServer;
+		String[]	localCommand;
 		
+		localServer = null;
+		localCommand = null;
 		Log.warningf("serverCommands.size() %d", serverCommands.size());
-		sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
-		Log.warning("Starting workers");
-		sshMaster.startWorkers(hostGroups);
-		Log.warning("Waiting for workers");
-		result = sshMaster.waitForWorkerCompletion();
-		sshMaster.terminate();
-		Log.warning("Workers complete");
+		if (serverCommands.size() == 1) {
+			Entry<String,String[]>	entry;
+			
+			entry = serverCommands.entrySet().iterator().next();
+			localServer = entry.getKey();
+			localCommand = entry.getValue();
+		}
+		if (isLocalServer(localServer)) { // if this command is solely for the local server
+			ProcessExecutor	pExec;
+			
+			pExec = ProcessExecutor.bashExecutor(localCommand, options.workerTimeoutSeconds);
+			pExec.execute();
+			result = pExec.getExitCode() != localCommandErrorCode;
+		} else {
+			sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
+			Log.warning("Starting workers");
+			sshMaster.startWorkers(hostGroups);
+			Log.warning("Waiting for workers");
+			result = sshMaster.waitForWorkerCompletion();
+			sshMaster.terminate();
+			Log.warning("Workers complete");
+		}
 		return result;
+	}
+	
+	private boolean isLocalServer(String ip) {
+		return ip != null && ip.equals(IPAddrUtil.localIPString());
 	}
 
 	private Map<String, ClassVars> getHostGroupToClassVarsMap(DHTConfiguration dhtConfig) throws KeeperException {

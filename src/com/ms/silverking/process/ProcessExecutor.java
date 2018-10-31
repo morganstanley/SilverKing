@@ -6,10 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.zookeeper.Shell.ShellCommandExecutor;
 
+import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.time.TimeUtils;
 
 public class ProcessExecutor {
@@ -55,6 +55,10 @@ public class ProcessExecutor {
 	public static ProcessExecutor bashExecutor(String commands, long timeoutInSeconds) {
 //		return new ProcessExecutor(new String[]{"/bin/bash", "-c", "'" + commands + "'"}, timeoutInSeconds);	// quotes messes it up
 		return new ProcessExecutor(new String[]{"/bin/bash", "-c", commands}, timeoutInSeconds);
+	}
+	
+	public static ProcessExecutor bashExecutor(String[] commands, long timeoutInSeconds) {
+		return bashExecutor(StringUtil.arrayToString(commands, ' '), timeoutInSeconds);
 	}
 	
 	public static ProcessExecutor sshExecutor(String server, String commands) {
