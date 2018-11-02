@@ -55,6 +55,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     private final int doctorRoundIntervalSeconds;
     private final boolean	forceInclusionOfUnsafeExcludedServers;
     private final ConvictionLimits	convictionLimits;
+    private final ConvictionLimits	convictionWarningThresholds;
     private final Map<IPAndPort,Long>	convictionTimes;
     private volatile long	lastCheckMillis;
     private Set<IPAndPort>	activeNodesInMap;
@@ -75,7 +76,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     // FUTURE: just pass in the options...
     public HealthMonitor(SKGridConfiguration gc, ZooKeeperConfig zkConfig, int watchIntervalSeconds, int guiltThreshold, 
     					 int doctorRoundIntervalSeconds, boolean forceInclusionOfUnsafeExcludedServers,
-    					 ConvictionLimits convictionLimits, int doctorNodeStartupTimeoutSeconds,
+    					 ConvictionLimits convictionLimits, ConvictionLimits convictionWarningThresholds, 
+    					 int doctorNodeStartupTimeoutSeconds,
     					 boolean disableAddition)
                          throws IOException, KeeperException {
     	String	dhtName;
@@ -89,6 +91,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         this.doctorRoundIntervalSeconds = doctorRoundIntervalSeconds;
         this.forceInclusionOfUnsafeExcludedServers = forceInclusionOfUnsafeExcludedServers;
         this.convictionLimits = convictionLimits;
+        this.convictionWarningThresholds = convictionWarningThresholds;
         convictionTimes = new HashMap<>();
         this.disableAddition = disableAddition;
         
@@ -297,6 +300,24 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             if (!disableAddition) {
             	removeFromConvictionTimes(newActiveNodes);
             }
+            
+            // conviction warning check
+            if (convictionWarningThresholds != null) {
+	            if (guiltySuspects.size() > convictionWarningThresholds.getTotalGuiltyServers()) {
+	            	Log.severe("guiltySuspects.size() > convictionWarningThresholds.getTotalGuiltyServers()");
+	            	Log.severef("%d > %d", guiltySuspects.size(), convictionWarningThresholds.getTotalGuiltyServers());
+	            } else {
+	            	int	convictionsWithinOneHour;
+	            	
+	            	convictionsWithinOneHour = getConvictionsWithinTimeWindow(oneHourMillis);            	
+	            	if (convictionsWithinOneHour > convictionWarningThresholds.getGuiltyServersPerHour()) {
+	                	Log.severe("convictionsWithinOneHour > convictionWarningThresholds.getGuiltyServersPerHour()");
+	                	Log.severef("%d > %d", convictionsWithinOneHour, convictionWarningThresholds.getGuiltyServersPerHour());
+	            	}
+	            }
+            }
+            
+            // conviction limit check
             if (guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()) {
             	Log.severe("guiltySuspects.size() > convictionLimits.getTotalGuiltyServers()");
             	Log.severef("%d > %d", guiltySuspects.size(), convictionLimits.getTotalGuiltyServers());
@@ -528,10 +549,16 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             parser = new CmdLineParser(options);
             try {
             	ConvictionLimits	convictionLimits;
+            	ConvictionLimits	convictionWarningThresholds;
             	
                 parser.parseArgument(args);
                 gc = SKGridConfiguration.parseFile(options.gridConfig);
             	convictionLimits = ConvictionLimits.parse(options.convictionLimits);
+            	if (options.convictionWarningThresholds != null) {
+            		convictionWarningThresholds = ConvictionLimits.parse(options.convictionWarningThresholds);
+            	} else {
+            		convictionWarningThresholds = null;
+            	}
                 LogStreamConfig.configureLogStreams(gc, logFileName);
                 healthMonitor = new HealthMonitor(gc, 
                                                   gc.getClientDHTConfiguration().getZKConfig(), 
@@ -539,7 +566,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                                                   options.guiltThreshold,
                                                   options.doctorRoundIntervalSeconds,
                                                   options.forceInclusionOfUnsafeExcludedServers,
-                                                  convictionLimits,
+                                                  convictionLimits, convictionWarningThresholds,
                                                   options.doctorNodeStartupTimeoutSeconds,
                                                   options.disableAddition);
                 healthMonitor.monitor();
