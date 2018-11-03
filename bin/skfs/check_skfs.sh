@@ -406,8 +406,9 @@ fi
 f_exitIfUndefined "fuseLibKO" $fuseLibKO
 f_exitIfUndefined "fuseLib"   $fuseLib
 
-# removing either of these two will cause a core on rh5
+# build works fine without these, but removing either of these three will cause a core on rh5 for a release
 export LD_LIBRARY_PATH=\
+$fuseLibKO:\
 $SK_JACE_HOME/lib/dynamic:\
 $SK_JAVA_HOME/jre/lib/amd64/server
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
