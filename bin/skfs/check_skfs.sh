@@ -326,11 +326,8 @@ fi
 f_printSection "TEARING DOWN OLD SKFS"
 f_printSubSection "Unmounting FUSE"
 # Must be set in conf:
-#useBigWrites="";
-#fuseLib
 #fuseBin
-#fuseLibKO
-#gccPath
+#useBigWrites="";
 
 f_exitIfUndefined "fuseBin"   $fuseBin
 f_exitIfUndefined "skfsMount" $skfsMount
@@ -402,16 +399,9 @@ else
 	touch $nativeFSOnlyFile
 fi
 
-# f_exitIfUndefined "gccPath"   $gccPath
-f_exitIfUndefined "fuseLibKO" $fuseLibKO
-f_exitIfUndefined "fuseLib"   $fuseLib
-
-# build works fine without these, but removing either of these three will cause a core on rh5 for a release
-export LD_LIBRARY_PATH=\
-$fuseLibKO:\
-$SK_JACE_HOME/lib/dynamic:\
-$SK_JAVA_HOME/jre/lib/amd64/server
-echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+# no need for this b/c skfsd is being linked with the -Wl,--rpath absolute .so values
+# export LD_LIBRARY_PATH=\
+# echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
 echo "Core limit:      $coreLimit"
 ulimit -c $coreLimit
