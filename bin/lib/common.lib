@@ -77,7 +77,7 @@ function f_logStat {
         ultimateFile="readlink_error"
     fi
     
-    typeset scriptName=`echo "$1" | rev | cut -d '.' -f 1 | rev`
+    typeset scriptName=`echo "$1" | rev | cut -d '.' -f 1 | rev`    # get whatevers after the last '.', e.g. com.ms.silverking.cloud.dht.management.SKAdmin = SKAdmin
     if [[ -n $STATS_FILE && -e $STATS_FILE ]]; then
         echo `date +"%Y%m%d%H%M%S"`",$USER,"`hostname`",$ultimateFile,"`pwd`",$scriptName,$2,\"$3\",$$" 2> /dev/null >> $STATS_FILE     # 2> /dev/null - routes errors to /dev/null, important to be before >>   
     fi
