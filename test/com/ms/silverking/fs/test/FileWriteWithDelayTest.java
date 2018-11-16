@@ -71,7 +71,7 @@ public class FileWriteWithDelayTest {
 	
 			for (int i = 0; i < size; i++) {
 				byte actual = (byte)out.read();
-				assertEquals("byte: " + i, expected, actual);
+				assertEquals("byte " + i + ":", expected, actual);
 			}
 			out.close();
 		} catch (IOException e) {
