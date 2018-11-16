@@ -178,6 +178,7 @@ echo "GCName:                    $GCName"
 echo "Compression:               $Compression"
 echo "forceSKFSDirCreation:      $forceSKFSDirCreation"
 echo "waitForSkfsdBeforeExiting: $waitForSkfsdBeforeExiting"
+echo "skGlobalCodebase:          $skGlobalCodebase"
 
 SKFSD_PATTERN="skfsd.*${GCName}"
    
@@ -229,14 +230,14 @@ if [[ ! -e $fullGcFilePath ]] ; then
     echo "If it exists, maybe user '$USER' doesn't have permissions?"
     ls -l $fullGcFilePath
 	f_printFail
-    exit
+    exit -1
 fi
 echo "FOUND - $fullGcFilePath"
 source $fullGcFilePath
 if [[ -z $GC_SK_NAME ]] ; then
     echo "Error in $fullGcFilePath - can't find 'GC_SK_NAME'"
 	f_printFail
-    exit
+    exit -1
 fi
 
 SK_PATTERN="DHTNode.*${GC_SK_NAME}"
@@ -263,6 +264,12 @@ echo "curDir: $curDir"
 if [[ -z $skGlobalCodebase ]]; then
 	cp=$(f_getClasspath "../../lib" "$curDir")
 else
+    wildcardPattern="\*+"
+    if [[ $skGlobalCodebase =~ $wildcardPattern ]] ; then
+        echo "skGlobalCodebase can't have a wildcard, skfs won't work. You need to use the full paths to the class files or jars."
+		f_printFail
+        exit -1
+    fi
 	cp=$skGlobalCodebase
 fi
 
@@ -288,7 +295,7 @@ $utilCmd
 if [[ $? != 0 ]] ; then
 	echo "MetaUtil failed to get '$GCName' configuration from '$zkEnsemble' into '$tmpfile', exiting" ;
 	f_printFail
-	exit 1 ;
+	exit -1;
 fi
 
 f_printSubSection "Renaming '$tmpfile' -> '$tmpfileConf'"
@@ -326,11 +333,8 @@ fi
 f_printSection "TEARING DOWN OLD SKFS"
 f_printSubSection "Unmounting FUSE"
 # Must be set in conf:
-#useBigWrites="";
-#fuseLib
 #fuseBin
-#fuseLibKO
-#gccPath
+#useBigWrites="";
 
 f_exitIfUndefined "fuseBin"   $fuseBin
 f_exitIfUndefined "skfsMount" $skfsMount
@@ -388,9 +392,6 @@ if [[ ! -e $skfsMount ]] ; then
 	mkdir -m 777 -p $skfsMount
 fi
 
-echo
-echo "skGlobalCodebase: $skGlobalCodebase"
-
 ##nativeFSOnlyFile - file with csv files/dirs list that will be accessed only from native FS
 if [[ -n $nativeFSOnlyFile ]] ; then
 	if [[ ! -f $nativeFSOnlyFile ]] ; then
@@ -402,11 +403,9 @@ else
 	touch $nativeFSOnlyFile
 fi
 
-# f_exitIfUndefined "gccPath"   $gccPath
-f_exitIfUndefined "fuseLibKO" $fuseLibKO
-f_exitIfUndefined "fuseLib"   $fuseLib
-
-echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+# no need for this b/c skfsd is being linked with the -Wl,--rpath absolute .so values
+# export LD_LIBRARY_PATH=\
+# echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
 echo "Core limit:      $coreLimit"
 ulimit -c $coreLimit
@@ -456,7 +455,7 @@ echo "skfsd path: $FS_EXEC"
 if [[ ! -e $FS_EXEC ]]; then
 	echo "'$FS_EXEC' doesn't exist. How am I supposed to start skfs w/o a valid binary? Quitting..."
 	f_printFail
-	exit
+	exit -1
 fi
 
 fbwQOption="--fbwReliableQueue=TRUE"

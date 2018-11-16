@@ -205,7 +205,6 @@ function f_aws_buildConfig_check {
 }
 
 function f_aws_edit_config_files {
-    f_fillInSkfsConfigVariable  "fuseLib" "$FUSE_LIB"
     f_fillInSkfsConfigVariable  "fuseBin" "/bin"   # for /bin/fusermount
     f_fillInSkConfig
 

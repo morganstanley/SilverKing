@@ -23,7 +23,7 @@ my $workerScript="TwoLevelParallel";
 my $skfsLauncherScript="CheckSKFS.sh";
 my $starterScript="SKAdmin.sh";
 
-open(PS, "ps -eo user,pid,ppid,command |");
+open(PS, "ps -ewwo user,pid,ppid,command |");
 my @ps = <PS>;
 close(PS);
 

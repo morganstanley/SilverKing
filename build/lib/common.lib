@@ -811,7 +811,7 @@ function f_runMakeCmd {
 	make -f $tmpFile -j $MAKE_JOBS
 }
 
-# normally would have have that same command minus the eval statement 
+# normally would run that same command minus the eval statement 
 #    i.e. env -i $variables $command
 # but if variables have a name with multiple values
 #    i.e. BLAH=\"123 123\"
