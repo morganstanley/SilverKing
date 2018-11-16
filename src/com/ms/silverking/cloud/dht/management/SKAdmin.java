@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -795,30 +796,45 @@ public class SKAdmin {
 		return true;
 	}
 	
-	private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers, Set<String> targetServers) {
+	private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers, Set<String> _targetServers, HostGroupTable hostGroupTable) {
 		Set<String>	_servers;
+		Set<String>	targetServers;
+		boolean		retainExclusions;
 		
 		_servers = new HashSet<>(servers);
-		if (!options.includeExcludedHosts && !options.targetsEqualsExclusionsTarget() && ! options.targetsEqualsActiveDaemonsTarget()) {
-			_servers.removeAll(exclusionSet.getServers());
-		}
-		if (options.targets != null) {
-			Set<String>	_s;
-			
-			_s = new HashSet<>(_servers);
-			if (options.targetsEqualsExclusionsTarget()) {
-				_s.retainAll(exclusionSet.getServers());
+		
+		retainExclusions = false;
+		targetServers = new HashSet<>();
+		for (String s : _targetServers) {
+			if (IPAddrUtil.isValidIP(s)) {
+				targetServers.add(s);
 			} else {
-				if (options.targetsEqualsActiveDaemonsTarget()) {
-					_s = IPAndPort.copyServerIPsAsMutableSet(_getActiveDaemons().getV2());
+				if (options.isReservedTarget(s)) {
+					if (s.equalsIgnoreCase(SKAdminOptions.activeDaemonsTarget)) {
+						targetServers.addAll(IPAndPort.copyServerIPsAsMutableSet(_getActiveDaemons().getV2()));
+						retainExclusions = true;
+					} else if (s.equalsIgnoreCase(SKAdminOptions.exclusionsTarget)) {
+						targetServers.addAll(exclusionSet.getServers());
+						retainExclusions = true;
+					} else {
+						throw new RuntimeException("Panic");
+					}
 				} else {
-					_s.retainAll(targetServers);
+					for (InetAddress addr : hostGroupTable.getHosts(s)) {
+						targetServers.add(addr.getHostAddress());
+					}
 				}
 			}
-			return _s;
-		} else {
-			return _servers;
-		}		
+		}
+		
+		if (!options.includeExcludedHosts && !retainExclusions) {
+			_servers.removeAll(exclusionSet.getServers());
+		}
+		
+		if (options.targets != null) {
+			_servers.retainAll(targetServers);
+		}
+		return _servers;
 	}
 	
 	private void verifyServerEligibility(Set<String> servers, SKAdminCommand[] commands) throws KeeperException {
@@ -904,7 +920,7 @@ public class SKAdmin {
 		// active and passive, the ring from containing servers without class vars, etc.
 		
 		validActiveServers = findValidActiveServers(activeHostGroupNames, hostGroupTable, ringTree);
-		validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers);
+		validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers, hostGroupTable);
 		verifyServerEligibility(validActiveServers, commands);
 		Log.warning("validActiveServers: ", CollectionUtil.toString(validActiveServers));
 		
@@ -935,7 +951,7 @@ public class SKAdmin {
 		} else {
 			validPassiveServers = findValidPassiveServers(passiveNodeHostGroupNames, hostGroupTable);
 		}
-		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers);
+		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers, null);
 		Log.warning("validPassiveServers: ", CollectionUtil.toString(validPassiveServers));
 		
 		if (Arrays.contains(commands, SKAdminCommand.ClearData) && !options.targetsEqualsExclusionsTarget()) {
@@ -1155,34 +1171,38 @@ public class SKAdmin {
 	private ClassVars getServerClassVars(String server, HostGroupTable hostGroupTable, Set<String> activeHostGroupNames,
 										 Set<String> passiveNodeHostGroupNames,
 										 Map<String,ClassVars> hostGroupToClassVars) {
-		Set<String>	serverHostGroups;
-		Set<String>	acceptableHostGroups;
-		String		serverHostGroup;
-		Set<String>	activeAndPassiveHostGroupNames;
-		ClassVars	serverClassVars;
-		
-		serverHostGroups = hostGroupTable.getHostGroups(server);
-		acceptableHostGroups = new HashSet<>(serverHostGroups);
-		activeAndPassiveHostGroupNames = new HashSet<>();
-		activeAndPassiveHostGroupNames.addAll(activeHostGroupNames);
-		activeAndPassiveHostGroupNames.addAll(passiveNodeHostGroupNames);
-		acceptableHostGroups.retainAll(activeAndPassiveHostGroupNames);
-		if (acceptableHostGroups.size() == 1) {
-			serverHostGroup = acceptableHostGroups.iterator().next();
-		} else if (acceptableHostGroups.size() > 1) {
-			// FUTURE - Could select a "best". For now, just pick the first.
-			Log.warning(server +" has more than one valid host group ");
-			serverHostGroup = acceptableHostGroups.iterator().next();
+		if (options.explicitClassVarDef != null) {
+			return defaultClassVars.overrideWith(ClassVars.parse(options.explicitClassVarDef.replace(',', '\n'), 0));
 		} else {
-			Log.warning(server +" has no valid host group ");
-			return defaultClassVars;
-		}
-		serverClassVars = hostGroupToClassVars.get(serverHostGroup);
-		if (serverClassVars != null) {
-			return defaultClassVars.overrideWith(serverClassVars);
-		} else {
-			Log.warning(server +" has no ClassVars for group "+ serverHostGroup);
-			return defaultClassVars;
+			Set<String>	serverHostGroups;
+			Set<String>	acceptableHostGroups;
+			String		serverHostGroup;
+			Set<String>	activeAndPassiveHostGroupNames;
+			ClassVars	serverClassVars;
+			
+			serverHostGroups = hostGroupTable.getHostGroups(server);
+			acceptableHostGroups = new HashSet<>(serverHostGroups);
+			activeAndPassiveHostGroupNames = new HashSet<>();
+			activeAndPassiveHostGroupNames.addAll(activeHostGroupNames);
+			activeAndPassiveHostGroupNames.addAll(passiveNodeHostGroupNames);
+			acceptableHostGroups.retainAll(activeAndPassiveHostGroupNames);
+			if (acceptableHostGroups.size() == 1) {
+				serverHostGroup = acceptableHostGroups.iterator().next();
+			} else if (acceptableHostGroups.size() > 1) {
+				// FUTURE - Could select a "best". For now, just pick the first.
+				Log.warning(server +" has more than one valid host group ");
+				serverHostGroup = acceptableHostGroups.iterator().next();
+			} else {
+				Log.warning(server +" has no valid host group ");
+				return defaultClassVars;
+			}
+			serverClassVars = hostGroupToClassVars.get(serverHostGroup);
+			if (serverClassVars != null) {
+				return defaultClassVars.overrideWith(serverClassVars);
+			} else {
+				Log.warning(server +" has no ClassVars for group "+ serverHostGroup);
+				return defaultClassVars;
+			}
 		}
 	}
 	

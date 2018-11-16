@@ -12,6 +12,8 @@ public class IPAddrUtil {
     public static final int IPV4_PORT_BYTES = 2;
     public static final int IPV4_IP_AND_PORT_BYTES = IPV4_BYTES + IPV4_PORT_BYTES;
     
+    private static final int	MAX_IP_INT_VALUE = 255;
+    
     private static Lock   classLock;
     
     private static final String ipProperty = "com.ms.silverking.net.IP";
@@ -138,7 +140,23 @@ public class IPAddrUtil {
 			int	val;
 			
 			val = Integer.parseInt(tokens[i]);
+			if (val > MAX_IP_INT_VALUE) {
+				throw new RuntimeException("Invalid IP: "+ s);
+			}
 			addr[i] = (byte)val;
+		}
+	}
+	
+	/**
+	 * Checks to see if the string is a valid IP. Does not check to see if the IP actually exists.
+	 * @return
+	 */
+	public static boolean isValidIP(String s) {
+		try {
+			stringToAddr(s);
+			return true;
+		} catch (Exception e) {
+			return false;
 		}
 	}
 	
