@@ -123,7 +123,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 		MatchResult matchResult;
 		Set<KeyAndVersionChecksum> keysToFetch;
 		List<KeyAndVersionChecksum> keysToFetchList;
-		boolean		initialSRRSent;
+		SyncRetrievalRequest initialSRR;
 
 		lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
 		if (verbose) {
@@ -194,7 +194,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 			keysToFetch.add(kvc);
 		}
 
-		initialSRRSent = false;
+		initialSRR = null;
 		keysToFetchList = new ArrayList<>(keysToFetch);
 		Collections.sort(keysToFetchList, KeyAndVersionChecksumSegmentNumberComparator.descendingSort);
 		while (keysToFetchList.size() > 0) {
@@ -215,14 +215,20 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 			srr = new SyncRetrievalRequest(uuid, batchKeys, cp.getDataVersion(), connection);
 			activeRegionSyncs.put(uuid, this);
 			outstandingSyncRetrievalRequests.put(uuid, srr);
-			if (!initialSRRSent) {
-				initialSRRSent = true;
-				sendSyncRetrievalRequest(srr);
+			if (initialSRR == null) {
+				initialSRR = srr;
 			}
 			checksumTreeProcessed = true;
 		}
 		if (debug) {
 			System.out.println("no more keysToFetch");
+		}
+		if (initialSRR != null) {
+			sendSyncRetrievalRequest(initialSRR);
+		} else {
+			if (outstandingSyncRetrievalRequests.size() != 0) {
+				throw new RuntimeException("Panic");
+			}
 		}
 		checksumTreeProcessed = true;
 		checkForCompletion();
