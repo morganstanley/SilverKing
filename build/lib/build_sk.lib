@@ -25,7 +25,7 @@ function f_runBuildAntScript {
 function f_runBuildChecks {
 	f_printSection "CHECKS"
 	
-	typeset expectedNumClasses=1400
+	typeset expectedNumClasses=1420
 	f_testGreaterThanOrEquals "$OUT_CLASSES_SRC_DIR" "*" "$expectedNumClasses"
 	typeset expectedTestCount=$((TEST_SILVERKING_EXPECTED_COUNT+TEST_SILVERKING_FS_EXPECTED_COUNT))
 	f_testEquals "$OUT_CLASSES_TEST_DIR" "*Test.class" "$expectedTestCount"
