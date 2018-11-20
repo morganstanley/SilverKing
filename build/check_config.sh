@@ -41,7 +41,7 @@ function f_check_CREATE_STATIC_LIBS {
 function f_check_MAKE_JOBS {
 	typeset varName=${!MAKE_JOBS}
 	f_check_defined $varName
-	# cores = 'Cores per socket' x 'Sockets'	#https://unix.stackexchange.com/questions/218074/how-to-know-number-of-cores-of-a-system-in-linux
+	# cores = 'Cores per socket' x 'Sockets'	# https://unix.stackexchange.com/questions/218074/how-to-know-number-of-cores-of-a-system-in-linux
 	typeset cores=$(( $(lscpu | awk '/^Core/{ print $4 }') * $(lscpu | awk '/^Socket/{ print $2 }') ))
 	f_check_range $varName 1 $cores
 	f_printResult $varName
