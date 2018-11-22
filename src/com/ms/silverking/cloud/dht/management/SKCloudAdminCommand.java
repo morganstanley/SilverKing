@@ -9,7 +9,7 @@ public enum SKCloudAdminCommand {
     StartSpark, StopSpark;
     
     static void checkCommands(SKCloudAdminCommand[] commands) {
-        if (0 == commands.length)   // should never happen
+        if (0 == commands.length)   // should never happen b/c it's required in SKCloudAdminOptions
             Util.throwIllegalArgumentException("command", "", "you need to pass in a command");
             
         for (SKCloudAdminCommand command : commands)

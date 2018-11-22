@@ -41,7 +41,7 @@ public class SKCloudAdmin {
     
 	public  static final String cloudOutDir = USER_HOME + "/SilverKing/bin/cloud_out";
 	private static final String cloudGcName = "GC_SK_cloud";
-	private static final String sparkHome   = "~/spark-2.3.1-bin-hadoop2.7"; 
+	private static final String sparkHome   = "~/spark-2.4.0-bin-hadoop2.7"; 
     
 	private final SKCloudAdminCommand[] commands;
     private final String  launchHostIp;
