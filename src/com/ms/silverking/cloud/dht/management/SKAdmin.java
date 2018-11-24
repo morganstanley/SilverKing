@@ -951,7 +951,7 @@ public class SKAdmin {
 		} else {
 			validPassiveServers = findValidPassiveServers(passiveNodeHostGroupNames, hostGroupTable);
 		}
-		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers, null);
+		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers, hostGroupTable);
 		Log.warning("validPassiveServers: ", CollectionUtil.toString(validPassiveServers));
 		
 		if (Arrays.contains(commands, SKAdminCommand.ClearData) && !options.targetsEqualsExclusionsTarget()) {
