@@ -52,6 +52,7 @@ import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.DHTKeyComparator;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
+import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.cloud.dht.common.KeyAndInteger;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataConstants;
@@ -209,11 +210,15 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final SegmentPrereadMode	readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     private static final SegmentPrereadMode	updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     
+    private static final int	minFinalizationIntervalMillis;
+    
     static {
     	segmentIndexLocation = SegmentIndexLocation.valueOf(PropertiesHelper.systemHelper.getString(DHTConstants.segmentIndexLocationProperty, DHTConstants.defaultSegmentIndexLocation.toString()));
     	Log.warningf("segmentIndexLocation: %s", segmentIndexLocation);
     	nsPrereadGB = PropertiesHelper.systemHelper.getInt(DHTConstants.nsPrereadGBProperty, DHTConstants.defaultNSPrereadGB);
     	Log.warningf("nsPrereadGB: %s", nsPrereadGB);
+    	minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
+    	Log.warningf("minFinalizationIntervalMillis %d", minFinalizationIntervalMillis);
     }
     
     
@@ -2186,10 +2191,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
                 if (oom) {
                     Log.warning("OOM attempting to open mapped file. Calling gc and finalization.");
-                    System.gc();
-                    Log.warning("GC complete.");
-                    System.runFinalization();
-                    Log.warning("Finalization complete.");
+                    JVMUtil.finalization.forceFinalization(0);
+                    Log.warning("GC & finalization complete.");
                     fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
                 } else {
                     throw e;
@@ -2794,11 +2797,13 @@ public class NamespaceStore implements SSNamespaceStore {
 	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap
 	        			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
 	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+	    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
 	        	}
 	    	} else {
 	    		Log.info("idleReap() interrupted");
 	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
 	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+	    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
 	        	}
 	    	}
     	}

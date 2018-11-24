@@ -8,6 +8,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
+import com.ms.silverking.util.jvm.Finalization;
 
 /**
  * Monitor JVM memory.
@@ -26,6 +27,7 @@ public class JVMMonitor implements Runnable {
 	private final Stopwatch	sw;
 	private final AtomicBoolean	cleanupHinted;
 	private final List<JVMMemoryObserver>	memoryObservers;
+	private final Finalization	finalization;
 	
 	private boolean	deltaTriggered;
 	
@@ -42,7 +44,8 @@ public class JVMMonitor implements Runnable {
 	
 	public JVMMonitor(int minUpdateIntervalMillis, int maxUpdateIntervalMillis, 
 					int finalizationIntervalMillis, boolean display,
-					double lowMemoryThresholdMB) {
+					double lowMemoryThresholdMB,
+					Finalization finalization) {
 		this.minUpdateIntervalMillis = minUpdateIntervalMillis;
 		this.maxUpdateIntervalMillis = maxUpdateIntervalMillis;
 		this.finalizationIntervalMillis = finalizationIntervalMillis;
@@ -58,13 +61,14 @@ public class JVMMonitor implements Runnable {
 		finalizationSW = new SimpleStopwatch();
 		sw = new SimpleStopwatch();
 		memoryObservers = new Vector<JVMMemoryObserver>();
+		this.finalization = finalization;
 		new Thread(this, "JVMMonitor").start();
 	}
 	
 	public JVMMonitor(int minUpdateIntervalMillis, int maxUpdateIntervalMillis, 
 			int finalizationIntervalMillis, boolean display) {
 		this(minUpdateIntervalMillis, maxUpdateIntervalMillis,
-				finalizationIntervalMillis, display, 0);
+				finalizationIntervalMillis, display, 0, null);
 	}
 	
 	public void addMemoryObserver(JVMMemoryObserver memoryObserver) {
@@ -97,7 +101,11 @@ public class JVMMonitor implements Runnable {
 		if (finalizationSW.getSplitMillis() > finalizationIntervalMillis || cleanupHinted.get()) {
 			finalizationSW.reset();
 			Log.warning("Forcing finalization");
-			System.runFinalization();
+			if (finalization == null) {
+				System.runFinalization();
+			} else {
+				finalization.forceFinalization(0);
+			}
 			System.gc();
 			cleanupHinted.set(false);
 		}

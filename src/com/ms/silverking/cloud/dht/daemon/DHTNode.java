@@ -6,6 +6,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
@@ -25,7 +26,6 @@ import com.ms.silverking.net.async.OutgoingData;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
-import com.ms.silverking.time.TimerDrivenTimeSource;
 import com.ms.silverking.util.SafeTimer;
 
 /**
@@ -62,14 +62,11 @@ public class DHTNode {
     private static final Timer                  daemonStateTimer;
     private static final Timer                  storageModuleTimer;
     private static final Timer                  messageModuleTimer;
-    private static final int					timerDrivenTimeSourceResolutionMS = 5;
-    private static final String					timeSourceTimerName = "TimeSourceTimer";
     private static final AbsMillisTimeSource    absMillisTimeSource;
     
     static {
     	DHTConstants.isDaemon = true;
         AsyncGlobals.setVerbose(true);
-        SystemTimeUtil.timerDrivenTimeSource = new TimerDrivenTimeSource(new SafeTimer(timeSourceTimerName), timerDrivenTimeSourceResolutionMS);
         absMillisTimeSource = SystemTimeUtil.timerDrivenTimeSource;
         daemonStateTimer = new SafeTimer();
         storageModuleTimer = new SafeTimer();
@@ -138,8 +135,7 @@ public class DHTNode {
 	}
 	
     private void cleanVM() {
-    	Runtime.getRuntime().runFinalization();
-    	System.gc();
+    	JVMUtil.finalization.forceFinalization(0);
 	}
 
 	public void run() {

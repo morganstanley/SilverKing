@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.ms.silverking.cloud.dht.client.OperationState;
+import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
@@ -111,7 +112,7 @@ public class ActiveClientOperationTable {
                 (lwtPool.getLoad().getLoad() < finalizationLoadThreshold 
                 || finalizationSW.getSplitSeconds() > finalizationForceIntervalSeconds)) {
             System.gc();
-            System.runFinalization();
+            JVMUtil.finalization.forceFinalization((int)(finalizationForceIntervalSeconds * 1000.0));
             finalizationSW.reset();
         }
         

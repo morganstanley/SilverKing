@@ -53,6 +53,7 @@ public class DHTConstants {
     public static final SegmentIndexLocation   defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
     public static final int					   defaultNSPrereadGB = 0;
     public static final int					   defaultMinPrimaryUnderFailure = 1;
+    public static final int					   defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
     
 	public static final String	defaultDataBasePath = "/var/tmp/silverking/data";
 	public static final String	defaultSKInstanceLogBasePath = "/tmp/silverking";
@@ -93,7 +94,8 @@ public class DHTConstants {
 	public static final String	segmentIndexLocationVar = "segmentIndexLocation";
 	public static final String	segmentIndexLocationProperty = daemonPackageBase +".SegmentIndexLocation";
 	public static final String	nsPrereadGBVar = "nsPrereadGB";
-	public static final String	nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";
+	public static final String	nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";	
+	public static final String	minFinalizationIntervalMillisProperty = daemonPackageBase +".MinFinalizationIntervalMillis";
 	
 	public static final String	ssSubDirName = "ss";
 	

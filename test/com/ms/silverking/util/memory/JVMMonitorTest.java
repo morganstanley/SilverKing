@@ -14,7 +14,7 @@ public class JVMMonitorTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		jm = new JVMMonitor(0, 0, 0, true, 0);
+		jm = new JVMMonitor(0, 0, 0, true, 0, null);
 	}
 
 	@Test

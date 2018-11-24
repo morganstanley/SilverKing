@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
@@ -133,7 +134,7 @@ public class PersistentAsyncServer<T extends Connection>
 		}
 		asyncServer.shutdown();
 		ThreadUtil.sleep(shutdownDelayMillis);
-		Runtime.getRuntime().runFinalization();
+		JVMUtil.finalization.forceFinalization(0);
 	}
 	
 	//////////////////////////////////////////////////////////////////////

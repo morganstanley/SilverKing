@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.daemon;
 
+import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.util.memory.JVMMemoryObserver;
 import com.ms.silverking.util.memory.JVMMonitor;
@@ -22,7 +23,8 @@ public class MemoryManager implements JVMMemoryObserver {
                                  jvmMonitorMaxIntervalMillis, 
                                  jvmFinalizationIntervalMillis,
                                  true,
-                                 jvmMonitorLowMemoryThresholdMB);
+                                 jvmMonitorLowMemoryThresholdMB,
+                                 JVMUtil.finalization);
         monitor.addMemoryObserver(this);
     }
 
