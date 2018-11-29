@@ -12,7 +12,7 @@ public class SystemTimeUtil {
     public static final SystemTimeSource systemTimeSource 
                             = SystemTimeSource.createWithMillisOrigin(DHTConstants.nanoOriginTimeInMillis);  
     
-    public static final TimerDrivenTimeSource	timerDrivenTimeSource = new TimerDrivenTimeSource(new SafeTimer(timeSourceTimerName), timerDrivenTimeSourceResolutionMS);
+    public static final TimerDrivenTimeSource	timerDrivenTimeSource = new TimerDrivenTimeSource(new SafeTimer(timeSourceTimerName, true), timerDrivenTimeSourceResolutionMS);
     
     public static final long systemTimeNanosToEpochMillis(long nanos) {
 		//absTimeNanos = (absTimeMillis - nanoOriginTimeMillis) * nanosPerMilli;
