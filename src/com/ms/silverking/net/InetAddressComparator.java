@@ -13,6 +13,6 @@ public class InetAddressComparator implements Comparator<InetAddress> {
     
     @Override
     public int compare(InetAddress a1, InetAddress a2) {
-        return ArrayUtil.compare(a1.getAddress(), a2.getAddress());
+        return ArrayUtil.compareSigned(a1.getAddress(), a2.getAddress());
     }
 }

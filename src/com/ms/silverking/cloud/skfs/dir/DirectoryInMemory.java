@@ -88,6 +88,8 @@ public class DirectoryInMemory extends DirectoryBase {
 		// copy so that the source can be garbage collected
 		entries.put(name.duplicateBuffer(), entry.duplicate());
 		entryBytes += entry.getLengthBytes();
+		//System.out.printf("name %s name.length() %d\n", name.toString(), name.toString().length());
+		//System.out.printf("entryBytes %d entry.getLengthBytes() %d\n", entryBytes, entry.getLengthBytes());
 	}
 	
 	/**
@@ -184,9 +186,12 @@ public class DirectoryInMemory extends DirectoryBase {
 		DirectoryEntryInPlace[]	updateEntries;
 		
 		if (debug) {
-			System.out.printf("in largeUpdate()");
+			System.out.printf("in largeUpdate()\n");
 		}
 		directoryInMemory = update instanceof DirectoryInMemory;
+		if (debug) {
+			System.out.printf("update is directoryInMemory %s\n", directoryInMemory);
+		}
 		mutated = false;
 		entriesToAdd = null;
 		localEntries = entries.values().iterator();
@@ -294,7 +299,7 @@ public class DirectoryInMemory extends DirectoryBase {
 		}
 		// Record index offset
 		indexOffset = offset - dataOffset;
-		//System.out.printf("indexOffset %d %x\n", indexOffset, indexOffset);
+		//System.out.printf("indexOffset/totalBytesWritten decimal: %d hex: %x\n", indexOffset, indexOffset);
 		totalBytesWritten = offset - dataOffset;
 		if (totalBytesWritten != entryBytes) {
 			throw new RuntimeException(String.format("SerializationException: totalBytesWritten != entryBytes %d != %d", totalBytesWritten, entryBytes));

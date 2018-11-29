@@ -69,24 +69,24 @@ public class ArrayUtil<T> {
         return true;
     }
     
-    public static int compare(byte[] a, byte[] b) {
-    	return compare(a, b, MismatchedLengthMode.Exception);
+    public static int compareSigned(byte[] a, byte[] b) {
+    	return compareSigned(a, b, MismatchedLengthMode.Exception);
     }
     
-    public static int compare(byte[] a, byte[] b, MismatchedLengthMode mismatchedLengthMode) {
+    public static int compareSigned(byte[] a, byte[] b, MismatchedLengthMode mismatchedLengthMode) {
         if (a.length != b.length) {
         	if (mismatchedLengthMode == MismatchedLengthMode.Exception) {
         		throw new RuntimeException("Mismatched lengths "+ a.length +" "+ b.length);
         	}
         }
-        return compare(a, 0, b, 0, a.length);
+        return compareSigned(a, 0, b, 0, a.length);
     }
     
     /**
      * Compare two byte arrays. Handle degenerate cases so that we impose a total
      * ordering on all byte arrays.
      */
-    public static int compareForOrdering(byte[] a, byte[] b) {
+    public static int compareSignedForOrdering(byte[] a, byte[] b) {
         if (a == null) {
             if (b == null) {
                 return 0;
@@ -100,7 +100,7 @@ public class ArrayUtil<T> {
                 if (a.length != b.length) {
                     int c;
                     
-                    c = compare(a, 0, b, 0, Math.min(a.length, b.length));
+                    c = compareSigned(a, 0, b, 0, Math.min(a.length, b.length));
                     if (c != 0) {
                         return c;
                     } else {
@@ -111,17 +111,17 @@ public class ArrayUtil<T> {
                         }
                     }
                 } else {
-                    return compare(a, 0, b, 0, a.length);
+                    return compareSigned(a, 0, b, 0, a.length);
                 }
             }
         }
     }
     
-    private static int compare(byte[] a, int startA, byte[] b) {
-        return compare(a, startA, b, 0, b.length);
+    private static int compareSigned(byte[] a, int startA, byte[] b) {
+        return compareSigned(a, startA, b, 0, b.length);
     }
     
-    private static int compare(byte[] a, int startA, byte[] b, int startB, int length) {
+    private static int compareSigned(byte[] a, int startA, byte[] b, int startB, int length) {
         int    ai;
         int    bi;
         
@@ -139,10 +139,52 @@ public class ArrayUtil<T> {
         return 0;
     }
     
-    public static int compare(byte[] a, int startA, int lengthA, byte[] b, int startB, int lengthB) {
+    private static int compareUnsigned(byte[] a, int startA, byte[] b, int startB, int length) {
+        int    ai;
+        int    bi;
+        
+        ai = startA;
+        bi = startB;
+        for (int i = 0; i < length; i++) {
+        	int	ua;
+        	int	ub;
+        	
+        	ua = Byte.toUnsignedInt(a[ai]);
+        	ub = Byte.toUnsignedInt(b[bi]);
+            if (ua < ub) {
+                return -1;
+            } else if (ua != ub) {
+                return 1;
+            }
+            ai++;
+            bi++;
+        }
+        return 0;
+    }
+    
+    public static int compareSigned(byte[] a, int startA, int lengthA, byte[] b, int startB, int lengthB) {
     	int	result;
     	
-    	result = compare(a, startA, b, startB, Math.min(lengthA, lengthB));
+    	result = compareSigned(a, startA, b, startB, Math.min(lengthA, lengthB));
+    	if (result != 0) {
+    		return result;
+    	} else {
+    		if (lengthA == lengthB) {
+    			return 0;
+    		} else {
+    			if (lengthA < lengthB) {
+    				return -1;
+    			} else {
+    				return 1;
+    			}
+    		}
+    	}
+    }
+    
+    public static int compareUnsigned(byte[] a, int startA, int lengthA, byte[] b, int startB, int lengthB) {
+    	int	result;
+    	
+    	result = compareUnsigned(a, startA, b, startB, Math.min(lengthA, lengthB));
     	if (result != 0) {
     		return result;
     	} else {

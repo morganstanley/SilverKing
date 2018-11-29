@@ -98,7 +98,7 @@ public class SubnetAwareReplicaPrioritizer implements ReplicaPrioritizer {
 			return 0;
 		} else {
 			//System.out.println("Comparing randomly");
-			return ArrayUtil.compare(encrypter.encrypt(o1.getIP()), encrypter.encrypt(o2.getIP()));
+			return ArrayUtil.compareSigned(encrypter.encrypt(o1.getIP()), encrypter.encrypt(o2.getIP()));
 		}
 	}	
 	

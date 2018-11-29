@@ -31,6 +31,10 @@ public class ByteString implements Comparable<ByteString> {
 		return copy(buf, offset, length);
 	}
 	
+	public int length() {
+		return length;
+	}
+	
 	@Override
 	public int hashCode() {
 		return hashCode;
@@ -58,7 +62,7 @@ public class ByteString implements Comparable<ByteString> {
 	
 	@Override
 	public int compareTo(ByteString o) {
-		return ArrayUtil.compare(buf, offset, length, o.buf, o.offset, o.length);
+		return ArrayUtil.compareUnsigned(buf, offset, length, o.buf, o.offset, o.length);
 	}
 	
 	@Override

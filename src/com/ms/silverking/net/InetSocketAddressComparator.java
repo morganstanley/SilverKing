@@ -15,7 +15,7 @@ public class InetSocketAddressComparator implements Comparator<InetSocketAddress
     public int compare(InetSocketAddress a1, InetSocketAddress a2) {
         int result;
         
-        result = ArrayUtil.compare(a1.getAddress().getAddress(), a2.getAddress().getAddress());
+        result = ArrayUtil.compareSigned(a1.getAddress().getAddress(), a2.getAddress().getAddress());
         if (result != 0) {
             return result;
         } else {
