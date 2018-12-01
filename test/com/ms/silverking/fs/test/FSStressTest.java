@@ -25,7 +25,7 @@ public class FSStressTest {
 	}
 	
 	private static final String fsStressDirName = "fs-stress";
-	private final static File fsStressDir = new File(testsDirPath, fsStressDirName);
+	private static final File   fsStressDir     = new File(testsDirPath, fsStressDirName);
 
 	@BeforeClass
 	public static void setUpBeforeClass() {

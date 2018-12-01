@@ -31,7 +31,7 @@ public class RewriteTestTest {
 	}
 	
 	private static final String rewriteDirName = "re-write";
-	private final static File rewriteDir = new File(testsDirPath, rewriteDirName);
+	private static final File   rewriteDir     = new File(testsDirPath, rewriteDirName);
 
 	private RewriteTest rt;
 	private byte byte_A = 'A';

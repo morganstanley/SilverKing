@@ -28,7 +28,7 @@ public class FileWriteWithDelayTest {
 	}
 	
 	private static final String fileWriteWithDelayDirName = "file-write-with-delay";
-	private final static File fileWriteWithDelayDir = new File(testsDirPath, fileWriteWithDelayDirName);
+	private static final File   fileWriteWithDelayDir     = new File(testsDirPath, fileWriteWithDelayDirName);
 
 	private static String skClasspath;
 	private static String javaBin;

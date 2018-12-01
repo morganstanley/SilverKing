@@ -24,7 +24,7 @@ public class IozoneTest {
 	}
 	
 	private static final String iozoneDirName = "iozone";
-	private final static File iozoneDir = new File(testsDirPath, iozoneDirName);
+	private static final File   iozoneDir     = new File(testsDirPath, iozoneDirName);
 
 	private ProcessExecutor pe;
 	private static String iozoneBin;

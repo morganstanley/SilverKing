@@ -23,7 +23,7 @@ public class SparseFileCreatorTest {
 	}
 	
 	private static final String sfcDirName = "sparse-file-creator";
-	private final static File sfcDir = new File(testsDirPath, sfcDirName);
+	private static final File   sfcDir     = new File(testsDirPath, sfcDirName);
 
 	@BeforeClass
 	public static void setUpBeforeClass() {

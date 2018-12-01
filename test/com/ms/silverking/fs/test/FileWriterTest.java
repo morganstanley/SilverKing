@@ -33,7 +33,7 @@ public class FileWriterTest {
 	}
 	
 	private static final String fileWriterDirName = "file-writer";
-	private final static File fileWriterDir = new File(testsDirPath, fileWriterDirName);
+	private static final File   fileWriterDir     = new File(testsDirPath, fileWriterDirName);
 
 	@BeforeClass
 	public static void setUpBeforeClass() {
