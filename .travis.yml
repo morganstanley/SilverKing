@@ -1,13 +1,10 @@
 language: java
+dist: xenial
 env:
     - LIB_ROOT=$TRAVIS_BUILD_DIR/.. QUIET_OUTPUT=true
 before_install:
-    - sudo apt-get update -qq   
+    - sudo apt-get update -qq           # qq to reduce output, since we have a limit on travis servers
     - sudo apt-get install -qq git ksh  # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
-    # these are from the output of a travis.yml file if the file has "language: python" and "python: 3.5"
-    - curl -sSf -o python-3.5.tar.bz2 https://s3.amazonaws.com/travis-python-archives/binaries/ubuntu/14.04/x86_64/python-3.5.tar.bz2
-    - sudo tar xjf python-3.5.tar.bz2 --directory /
-    - source ~/virtualenv/python3.5/bin/activate
 install: true
 script:
     - build/aws/build_ubuntu.sh "travisci"
