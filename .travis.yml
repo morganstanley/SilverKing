@@ -1,6 +1,4 @@
 language: python
-python:
-    - "3.5"
 env:
     - LIB_ROOT=$TRAVIS_BUILD_DIR/.. QUIET_OUTPUT=true
 before_install:
@@ -11,6 +9,9 @@ script:
     - which python3
     - python3 -V
     - sudo apt-get -qq install python3
+    - python3 -V
+    - curl -sSf -o python-3.5.tar.bz2 https://s3.amazonaws.com/travis-python-archives/binaries/ubuntu/14.04/x86_64/python-3.5.tar.bz2
+    - sudo tar xjf python-3.5.tar.bz2 --directory /
     - python3 -V
     - sudo apt-get -qq install python3-pip
     - python3 -V
