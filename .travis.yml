@@ -1,4 +1,5 @@
-language: python
+language: java
+dist: xenial
 env:
     - LIB_ROOT=$TRAVIS_BUILD_DIR/.. QUIET_OUTPUT=true
 before_install:
