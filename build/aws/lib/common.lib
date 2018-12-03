@@ -3,6 +3,26 @@ function f_aws_getBuild_RunOutputFilename {
 	echo $(f_getRunOutputFilename_Helper "$1")
 }
 
+function f_aws_fillInMakeJobs {
+    echo "filling in make jobs"
+    typeset cores=$(( $(lscpu | awk '/^Core/{ print $4 }') * $(lscpu | awk '/^Socket/{ print $2 }') ))
+    f_overrideBuildConfigVariable "MAKE_JOBS" "$cores"
+}
+
+function f_aws_checkExitCode {
+    typeset exitCode=$?
+    typeset      msg=$1
+    
+    if [[ $exitCode -ne 0 ]]; then
+        f_aws_fail "$msg"
+    fi
+}
+
+function f_aws_fail {
+    echo "FAILED: '$1'"
+    exit 1
+} 
+
 function f_aws_downloadTar {
 	typeset tar=$1
 	typeset url=$2
@@ -17,14 +37,18 @@ function f_aws_downloadTar {
     
 	cd $LIB_ROOT
 	wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
+    f_aws_checkExitCode "wget: $url"
 	tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
-	rm $tar
+	f_aws_checkExitCode "tar: $tar"
+    rm $tar
+    f_aws_checkExitCode "rm: $tar"
 }
 
 function f_aws_downloadJar {
 	typeset url=$1
 	
 	curl -O $url
+    f_aws_checkExitCode "curl: $url"
 }
 
 function f_aws_replaceLine {
@@ -37,6 +61,7 @@ function f_aws_replaceLine {
 }
 
 function f_aws_generatePrivateKey {
+    echo "generating private key"
 	cd ~/.ssh
 	typeset publicKeyFilename="id_rsa.pub"
 	if [[ ! -f $publicKeyFilename ]]; then
@@ -61,7 +86,7 @@ function f_aws_install_zk {
     echo "installing zk"
     cd $LIB_ROOT
     typeset zk_tar=$ZK_VERSION.tar.gz
-    f_aws_downloadTar "$zk_tar" "http://apache.claz.org/zookeeper/$ZK_VERSION/$zk_tar"
+    f_aws_downloadTar "$zk_tar" "https://archive.apache.org/dist/zookeeper/$ZK_VERSION/$zk_tar"
 
     cd $ZK_VERSION/conf
     echo "tickTime=2000
@@ -69,7 +94,8 @@ function f_aws_install_zk {
     clientPort=2181" > zoo.cfg
 }
 
-function f_aws_fillin_vars {        
+function f_aws_fillin_vars {       
+    echo "filling in vars"
     f_fillInBuildConfigVariable "SK_REPO_HOME" "$sk_repo_home"
     f_fillInBuildConfigVariable "PERL_5_8"     "/usr/bin/perl"
 }
@@ -84,6 +110,18 @@ function f_aws_install_boost {
     f_overrideBuildConfigVariable "BOOST_INC" "$LIB_ROOT/$boost_version"
 }
 
+function f_aws_symlink  {
+    typeset  name=$1
+    typeset value=$2
+    
+    if [[ ! -e $value ]]; then
+        f_aws_fail "symlink: value doesn't exist '$value'"
+    else 
+        ln -s $value $name
+        f_aws_checkExitCode "symlink: $name -> $value"
+    fi
+}
+
 function f_aws_install_jace {
     echo "installing jace"
     cd $LIB_ROOT
@@ -94,16 +132,18 @@ function f_aws_install_jace {
 }
 
 function f_aws_symlink_jace {
+    echo "symlinking jace"
     cd $LIB_ROOT
     typeset jace_lib=libs/jace
     mkdir -p $jace_lib
     cd $jace_lib
-    ln -s $sk_repo_home/src/jace/include include
+    f_aws_symlink include $sk_repo_home/src/jace/include 
     mkdir lib
     cd lib
-    ln -s ../../../$JACE_RUNTIME_JAR jace-runtime.jar
-    ln -s ../../../$JACE_CORE_JAR    jace-core.jar
+    f_aws_symlink jace-runtime.jar ../../../$JACE_RUNTIME_JAR 
+    f_aws_symlink jace-core.jar    ../../../$JACE_CORE_JAR    
     mv $INSTALL_ARCH_LIB_DIR/jace/dynamic .
+    f_aws_checkExitCode "mv"
     f_fillInBuildConfigVariable "JACE_HOME" "$LIB_ROOT/$jace_lib"
 }
 
@@ -124,16 +164,31 @@ function f_aws_install_gtest {
     mkdir lib
     cd lib
     $gpp_path -isystem $gtest_home/include -I$gtest_home -pthread -c $gtest_home/src/gtest-all.cc
+    f_aws_checkExitCode "$gpp_path"
     ar -rv libgtest.a gtest-all.o
+    f_aws_checkExitCode "ar"
+}
+
+function f_aws_install_swig {
+    echo "installing swig"
+    cd $LIB_ROOT
+    typeset swig_version="swig-3.0.12"
+    typeset swig_tar=$swig_version.tar.gz
+    f_aws_downloadTar "$swig_tar" "http://prdownloads.sourceforge.net/swig/$swig_tar"
+    
+    # f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
 }
 
 function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
+    echo "checking build config, filling in configs, running everything"
     f_aws_buildConfig_check
     
     source $BUILD_CONFIG_FILE
     f_aws_edit_config_files
+    f_copySkfsConfig
     f_aws_symlink_skjar_for_skc
 
+    export IS_OSS_BUILD="true"
     $AWS_DIR/$ZK_START_SCRIPT_NAME
     $BUILD_DIR/$BUILD_SCRIPT_NAME
     $AWS_DIR/$ZK_STOP_SCRIPT_NAME
@@ -150,7 +205,6 @@ function f_aws_buildConfig_check {
 }
 
 function f_aws_edit_config_files {
-    f_fillInSkfsConfigVariable  "fuseLib" "$FUSE_LIB"
     f_fillInSkfsConfigVariable  "fuseBin" "/bin"   # for /bin/fusermount
     f_fillInSkConfig
 
@@ -162,24 +216,86 @@ function f_aws_symlink_skjar_for_skc {
     ln -s $SILVERKING_JAR
 }
 
-function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
-    f_aws_buildConfig_check
-    
-    source $BUILD_CONFIG_FILE
-    
-    ls -l $FUSE_INC
-    ls -l $FUSE_LIB    
-    ls -l $LIB_ROOT/SilverKing
-    ls -l $LIB_ROOT
-    ls -l $LIB_ROOT/jdk1.7.0_80/
-    ls -l $GCC_LIB/
-    
-    f_aws_edit_config_files
-    f_aws_symlink_skjar_for_skc
+function f_aws_install_spark {
+    echo "installing spark"
+    cd $LIB_ROOT
+    typeset spark_tar=$SPARK_VERSION.tgz
+    f_aws_downloadTar "$spark_tar" "https://archive.apache.org/dist/spark/spark-2.4.0/$spark_tar"
+}
 
-    $AWS_DIR/$ZK_START_SCRIPT_NAME
-    $BUILD_DIR/$BUILD_SCRIPT_NAME
-    $AWS_DIR/$ZK_STOP_SCRIPT_NAME
+function f_aws_compile_sample_app {
+    echo "
+    <project>
+      <groupId>edu.berkeley</groupId>
+      <artifactId>simple-project</artifactId>
+      <modelVersion>4.0.0</modelVersion>
+      <name>Simple Project</name>
+      <packaging>jar</packaging>
+      <version>1.0</version>
+      <dependencies>
+        <dependency> <!-- Spark dependency -->
+          <groupId>org.apache.spark</groupId>
+          <artifactId>spark-sql_2.11</artifactId>
+          <version>2.3.1</version>
+        </dependency>
+      </dependencies>
+      <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+      </properties>
+    </project>
+    " > ~/$SPARK_VERSION/pom.xml
+    f_aws_checkExitCode "writing to pom"
+    
+    mkdir -p ~/$SPARK_VERSION/src/main/java
+    f_aws_sampleJavaFile "SimpleApp"     "$HOME/$SPARK_VERSION/README.md"    # I would use '~' instead of '$HOME', but the java code assumes anything that doesn't start with '/' is a relative path, so it tacks on the cwd to the filename.. which gives us the wrong path
+    f_aws_sampleJavaFile "SimpleAppSkfs" "/var/tmp/silverking/skfs/skfs_mnt/skfs/README.md"
+    
+    cd ~/$SPARK_VERSION
+    mvn package
+    f_aws_checkExitCode "mvn package"
+}
+
+function f_aws_sampleJavaFile {
+    typeset class_name=$1
+    typeset  file_name=$2
+
+    echo "
+    /* $class_name.java */
+    import org.apache.spark.sql.SparkSession;
+    import org.apache.spark.sql.Dataset;
+
+    public class $class_name {
+      public static void main(String[] args) {
+        String logFile = \"$file_name\"; // Should be some file on your system
+        SparkSession spark = SparkSession.builder().appName(\"Simple Application\").getOrCreate();
+        Dataset<String> logData = spark.read().textFile(logFile).cache();
+
+        long numAs = logData.filter(s -> s.contains(\"a\")).count();
+        long numBs = logData.filter(s -> s.contains(\"b\")).count();
+
+        System.out.println(\"Lines with a: \" + numAs + \", lines with b: \" + numBs);
+
+        spark.stop();
+      }
+    }
+    " > ~/$SPARK_VERSION/src/main/java/$class_name.java
+    
+    f_aws_checkExitCode "writing to $class_name"
+}
+
+function f_aws_install_iozone {
+    echo "installing iozone"
+    cd $LIB_ROOT
+    typeset iozone_version="iozone3_482"
+    typeset iozone_tar=$iozone_version.tar
+    f_aws_downloadTar "$iozone_tar" "http://www.iozone.org/src/current/$iozone_tar"
+    
+    cd $iozone_version/src/current
+    make linux-ia64
+    f_aws_checkExitCode "make"
+    
+    f_fillInBuildConfigVariable "IOZONE_BIN" "`pwd`/iozone"
 }
 
 # LIB_ROOT should be at the same level as the cloned "SilverKing" repo
@@ -192,7 +308,8 @@ JACE_CORE="jace-core-java"
 JACE_RUNTIME_JAR=$JACE_RUNTIME-1.2.22.jar
 JACE_CORE_JAR=$JACE_CORE-1.2.22.jar
 
-ZK_VERSION="zookeeper-3.4.12"
+ZK_VERSION="zookeeper-3.4.13"
+SPARK_VERSION="spark-2.4.0-bin-hadoop2.7"
     
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
 # SSH_OPTIONS="-v -x -o StrictHostKeyChecking=no"

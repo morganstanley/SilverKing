@@ -26,11 +26,13 @@ import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
+import com.ms.silverking.cloud.dht.daemon.PeerHealthIssue;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSUtil;
+import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInMemory;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.collection.Pair;
@@ -90,7 +92,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 		Log.warningf("BaseDirectoryInMemorySS dimSSCompression %s", dimSSCompression);
 	}
 
-	BaseDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap, boolean lockReaps) {
+	BaseDirectoryInMemorySS(DHTKey dirKey, DirectoryBase d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap, boolean lockReaps) {
 		super(d);
 		
 		boolean	dirCreated;
@@ -358,6 +360,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 		try {
 			writeToDisk(sp, serializedDirData);
 		} catch (IOException e) {
+			peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
 			Log.logErrorWarning(e);
 		}
 	}
@@ -464,6 +467,6 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 		}
 	}
 	
-	public abstract void update(DirectoryInPlace update, SSStorageParameters sp);
+	public abstract void update(DirectoryBase update, SSStorageParameters sp);
 	public abstract ByteBuffer retrieve(SSRetrievalOptions options);
 }

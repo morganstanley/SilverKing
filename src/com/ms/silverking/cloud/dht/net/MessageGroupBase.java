@@ -26,6 +26,7 @@ import com.ms.silverking.net.HostAndPort;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.MultipleConnectionQueueLengthListener;
+import com.ms.silverking.net.async.NewConnectionTimeoutController;
 import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.net.async.QueueingConnectionLimitListener;
 import com.ms.silverking.net.async.SelectorController;
@@ -47,15 +48,16 @@ public class MessageGroupBase {
     public MessageGroupBase(int port, int incomingConnectionBacklog,  
                             MessageGroupReceiver messageGroupReceiver, 
                             AbsMillisTimeSource deadlineTimeSource,
+                            NewConnectionTimeoutController newConnectionTimeoutController, 
                             QueueingConnectionLimitListener limitListener, 
-                            int queueLimit, 
-                            int numSelectorControllers, String controllerClass,
-                            MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
+                            int queueLimit, int numSelectorControllers,
+                            String controllerClass, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
         byte[] myIP;
         
         this.deadlineTimeSource = deadlineTimeSource;
         paServer = new PersistentAsyncServer<>(port, 
                              new MessageGroupConnectionCreator(messageGroupReceiver, limitListener, queueLimit), 
+                             newConnectionTimeoutController,
                              numSelectorControllers, controllerClass, mqListener, mqUUID,
                              SelectorController.defaultSelectionThreadWorkLimit);
         if (port == 0) {
@@ -76,11 +78,11 @@ public class MessageGroupBase {
     public MessageGroupBase(int port, 
             MessageGroupReceiver messageGroupReceiver, 
             AbsMillisTimeSource deadlineTimeSource,
+            NewConnectionTimeoutController newConnectionTimeoutController, 
             QueueingConnectionLimitListener limitListener, 
-            int queueLimit, 
-            int numSelectorControllers, String controllerClass) throws IOException {
+            int queueLimit, int numSelectorControllers, String controllerClass) throws IOException {
     	this(port, PersistentAsyncServer.useDefaultBacklog, messageGroupReceiver, deadlineTimeSource, 
-    		limitListener, queueLimit, numSelectorControllers, controllerClass, null, null);
+    		newConnectionTimeoutController, limitListener, queueLimit, numSelectorControllers, controllerClass, null, null);
     }
     
     private Map<AddrAndPort,AddrAndPort[]> readAliases(int port) {
@@ -171,6 +173,10 @@ public class MessageGroupBase {
                 throw new RuntimeException(uhe);
             }
         }
+    }
+    
+    public void ensureConnected(AddrAndPort dest) throws ConnectException {
+    	paServer.ensureConnected(dest);
     }
     
 	public MessageGroupConnection getConnection(AddrAndPort dest, long deadline) throws ConnectException {

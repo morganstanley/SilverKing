@@ -4,6 +4,12 @@
 #define _SRFS_CONSTANTS_H_
 
 ////////////
+// includes
+
+#include <fuse.h>
+
+
+////////////
 // defines
 
 #define SRFS_HOME "/var/tmp/silverking/skfs"
@@ -112,6 +118,8 @@
 
 #define FBW_DHT_THREADS	2
 #define FBW_DHT_QUEUE_SIZE	1024
+#define FBW_DHT_DELETION_THREADS	2
+#define FBW_DHT_DELETION_QUEUE_SIZE	32768
 #define FBW_MAX_BATCH_SIZE	128
 #define FBW_DHT_SESSIONS	8
 
@@ -141,5 +149,11 @@
 #define SKFS_DEF_ENTRY_TIMEOUT_SECS	10
 #define SKFS_DEF_ATTR_TIMEOUT_SECS	10
 #define SKFS_DEF_NEGATIVE_TIMEOUT_SECS	10
+
+#if FUSE_MAJOR_VERSION >= 3
+#define FILLER_TAIL ,(enum fuse_fill_dir_flags)0
+#else
+#define FILLER_TAIL
+#endif
 
 #endif

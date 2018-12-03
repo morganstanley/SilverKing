@@ -17,7 +17,7 @@ import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSUtil;
-import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
+import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 
@@ -31,12 +31,12 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 	
 	private static final boolean	debug = false;
 	
-	LazyDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
+	LazyDirectoryInMemorySS(DHTKey dirKey, DirectoryBase d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
 		super(dirKey, d, storageParams, sDir, nsOptions, reap, false);
 		serializationLock = new ReentrantLock();
 	}
 	
-	public LazyDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
+	public LazyDirectoryInMemorySS(DHTKey dirKey, DirectoryBase d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
 		this(dirKey, d, storageParams, sDir, nsOptions, true);
 	}
 
@@ -51,7 +51,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 	 *  - no retrieve() calls in progress
 	 *  - Persister() may be in progress
 	 */
-	public void update(DirectoryInPlace update, SSStorageParameters sp) {
+	public void update(DirectoryBase update, SSStorageParameters sp) {
 		boolean	mutated;
 		
 		mutated = update(update);

@@ -34,7 +34,7 @@ class PutOptionsComparator implements Comparator<PutOptions> {
                     if (c != 0) {
                         return c;
                     } else {
-                        return ArrayUtil.compareForOrdering(o1.getUserData(), o2.getUserData());
+                        return ArrayUtil.compareSignedForOrdering(o1.getUserData(), o2.getUserData());
                     }
                 }
             }

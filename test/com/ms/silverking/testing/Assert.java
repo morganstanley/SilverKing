@@ -2,9 +2,7 @@ package com.ms.silverking.testing;
 
 import static com.ms.silverking.testing.Util.createList;
 import static com.ms.silverking.testing.Util.createSet;
-import static com.ms.silverking.testing.Util.getTestMessage;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 

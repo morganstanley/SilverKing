@@ -15,7 +15,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.NodeInfo;
-import com.ms.silverking.collection.Triple;
+import com.ms.silverking.collection.Quadruple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.os.linux.fs.DF;
@@ -119,11 +119,11 @@ public class NodeInfoZK implements Watcher {
         }
         
         public NodeInfo getNodeInfo() {
-        	Triple<Long,Long,Integer>	dfInfo;
+        	Quadruple<Long,Long,Long,Integer>	dfInfo;
         	
         	try {
 				dfInfo = DF.df(DHTNodeConfiguration.dataBasePath, dfTimeoutSeconds);
-				return new NodeInfo(dfInfo.getV1(), dfInfo.getV2(), dfInfo.getV3());
+				return new NodeInfo(dfInfo.getV1(), dfInfo.getV2(), dfInfo.getV3(), dfInfo.getV4());
 			} catch (Exception e) {
 				Log.logErrorWarning(e, "Unable to getNodeInfo(");
 				return null;

@@ -8,6 +8,9 @@ function f_printSkfsCheckWithResult {
 		
 		# leave this script running until skfs exits; currently being used by treadmill
 		if [[ -n $waitForSkfsdBeforeExiting ]]; then
+            f_printProcessInfo
+            sleep 15; # give the process time to show up in /proc/. sometimes tm skfsd is restarting b/c check_skfs.sh is exiting, and I think it's b/c /proc/$id doesn't exist yet
+            
 			typeset count=0
 			typeset secondsToSleep=10
 			typeset twoMinuteIntervals=$((120 / $secondsToSleep))
@@ -19,7 +22,9 @@ function f_printSkfsCheckWithResult {
 				fi
 				sleep $secondsToSleep
 			done
-			
+            
+            echo "check_skfs will soon exit"
+            f_printProcessInfo
 			f_printSkfsdStatus "$id" "dead"
 		fi
 		
@@ -29,6 +34,14 @@ function f_printSkfsCheckWithResult {
 		f_printFail
 		exit -1
 	fi
+}
+
+function f_printProcessInfo {
+    echo
+    ps auxww
+    echo
+    ls -l /proc
+    echo
 }
 
 function f_printSkfsCheckWithResultOnlyIfFound {
@@ -117,7 +130,7 @@ old_dir=`pwd`
 cd `dirname $0`
 curDir=`pwd`
 
-hostname
+echo "host: "`hostname`
 
 # Initialize values from the environment.
 # Any command line parameters will override these.
@@ -165,6 +178,7 @@ echo "GCName:                    $GCName"
 echo "Compression:               $Compression"
 echo "forceSKFSDirCreation:      $forceSKFSDirCreation"
 echo "waitForSkfsdBeforeExiting: $waitForSkfsdBeforeExiting"
+echo "skGlobalCodebase:          $skGlobalCodebase"
 
 SKFSD_PATTERN="skfsd.*${GCName}"
    
@@ -200,8 +214,7 @@ id=$(f_getSkfsPid)
 if [[ -n $id ]]; then
     f_printSkfsFound
 	if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
-		f_printPass
-		exit
+		f_printSkfsCheckWithResult  # this will print f_printSkfsFound again, but that's ok..
 	fi
 else
 	f_printSkfsNotFound
@@ -214,15 +227,17 @@ f_exitIfUndefined "GC_DEFAULT_BASE" $GC_DEFAULT_BASE
 fullGcFilePath=$GC_DEFAULT_BASE/$GCName.env
 if [[ ! -e $fullGcFilePath ]] ; then
     echo "Can't find configuration file: '$fullGcFilePath'"
+    echo "If it exists, maybe user '$USER' doesn't have permissions?"
+    ls -l $fullGcFilePath
 	f_printFail
-    exit
+    exit -1
 fi
 echo "FOUND - $fullGcFilePath"
 source $fullGcFilePath
 if [[ -z $GC_SK_NAME ]] ; then
     echo "Error in $fullGcFilePath - can't find 'GC_SK_NAME'"
 	f_printFail
-    exit
+    exit -1
 fi
 
 SK_PATTERN="DHTNode.*${GC_SK_NAME}"
@@ -249,6 +264,12 @@ echo "curDir: $curDir"
 if [[ -z $skGlobalCodebase ]]; then
 	cp=$(f_getClasspath "../../lib" "$curDir")
 else
+    wildcardPattern="\*+"
+    if [[ $skGlobalCodebase =~ $wildcardPattern ]] ; then
+        echo "skGlobalCodebase can't have a wildcard, skfs won't work. You need to use the full paths to the class files or jars."
+		f_printFail
+        exit -1
+    fi
 	cp=$skGlobalCodebase
 fi
 
@@ -274,7 +295,7 @@ $utilCmd
 if [[ $? != 0 ]] ; then
 	echo "MetaUtil failed to get '$GCName' configuration from '$zkEnsemble' into '$tmpfile', exiting" ;
 	f_printFail
-	exit 1 ;
+	exit -1;
 fi
 
 f_printSubSection "Renaming '$tmpfile' -> '$tmpfileConf'"
@@ -312,11 +333,8 @@ fi
 f_printSection "TEARING DOWN OLD SKFS"
 f_printSubSection "Unmounting FUSE"
 # Must be set in conf:
-#useBigWrites="";
-#fuseLib
 #fuseBin
-#fuseLibKO
-#gccPath
+#useBigWrites="";
 
 f_exitIfUndefined "fuseBin"   $fuseBin
 f_exitIfUndefined "skfsMount" $skfsMount
@@ -374,9 +392,6 @@ if [[ ! -e $skfsMount ]] ; then
 	mkdir -m 777 -p $skfsMount
 fi
 
-echo
-echo "skGlobalCodebase: $skGlobalCodebase"
-
 ##nativeFSOnlyFile - file with csv files/dirs list that will be accessed only from native FS
 if [[ -n $nativeFSOnlyFile ]] ; then
 	if [[ ! -f $nativeFSOnlyFile ]] ; then
@@ -388,17 +403,9 @@ else
 	touch $nativeFSOnlyFile
 fi
 
-# f_exitIfUndefined "gccPath"   $gccPath
-f_exitIfUndefined "fuseLibKO" $fuseLibKO
-f_exitIfUndefined "fuseLib"   $fuseLib
-
-export LD_LIBRARY_PATH=\
-$gccPath:\
-$fuseLibKO:\
-$fuseLib:\
-$SK_JACE_HOME/lib/dynamic:\
-$SK_JAVA_HOME/jre/lib/amd64/server
-echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+# no need for this b/c skfsd is being linked with the -Wl,--rpath absolute .so values
+# export LD_LIBRARY_PATH=\
+# echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
 echo "Core limit:      $coreLimit"
 ulimit -c $coreLimit
@@ -448,7 +455,7 @@ echo "skfsd path: $FS_EXEC"
 if [[ ! -e $FS_EXEC ]]; then
 	echo "'$FS_EXEC' doesn't exist. How am I supposed to start skfs w/o a valid binary? Quitting..."
 	f_printFail
-	exit
+	exit -1
 fi
 
 fbwQOption="--fbwReliableQueue=TRUE"
@@ -529,12 +536,18 @@ echo "transientCacheSizeKB:  $transientCacheSizeKB"
 #    ls ${mountMap[$key]}
 #done
 
-f_printSubSection "Making mount and starting fusectl"
-load_module="${fuseBin}/fusectl start > ${skfsLogs}/load.log 2>&1"
-run_cmd="$load_module"
-echo "$run_cmd"
-eval $run_cmd
-sleep 6 
+# for some reason rh5 needs this and rh6,7 and even other os's (ubuntu) don't
+# treadmill also needs this
+# this is the error you'll get when trying to start fuse below w/o this 'if': "fuse: device not found, try 'modprobe fuse' first"
+echo "rh5 or tm?: $isRh5 $TREADMILL"
+if [[ -n $isRh5 || -n $TREADMILL ]]; then    
+    f_printSubSection "Making mount and starting fusectl"
+    load_module="${fuseBin}/fusectl start > ${skfsLogs}/fuse.load.$$ 2>&1"
+    run_cmd="$load_module"
+    echo "$run_cmd"
+    eval $run_cmd
+    sleep 6 
+fi
 
 f_printSubSection "Writing to tmpFile"
 tmpFile=/tmp/$$.skfs.fuse.tmp
@@ -542,7 +555,7 @@ rm -v $tmpFile
 echo "writing to tmpFile: $tmpFile"
 echo "export PATH=${SK_JAVA_HOME}/bin:${PATH}:${fuseBin}:" >> $tmpFile
 # note -d option is currently in skfs.c
-export start_fuse="nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} ${nativeFileModeOption} ${brRemoteAddressFileOption}  ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} ${syncDirUpdatesOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.log.$$ 2>&1"
+export start_fuse="nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} ${nativeFileModeOption} ${brRemoteAddressFileOption}  ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} ${syncDirUpdatesOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.start.$$ 2>&1"
 #echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $tmpFile  
 #echo "export MALLOC_ARENA_MAX=4" >> $tmpFile
 #echo "export CLASSPATH=${CLASSPATH}" >> $tmpFile

@@ -12,6 +12,8 @@ public class IPAddrUtil {
     public static final int IPV4_PORT_BYTES = 2;
     public static final int IPV4_IP_AND_PORT_BYTES = IPV4_BYTES + IPV4_PORT_BYTES;
     
+    private static final int	MAX_IP_INT_VALUE = 255;
+    
     private static Lock   classLock;
     
     private static final String ipProperty = "com.ms.silverking.net.IP";
@@ -138,7 +140,23 @@ public class IPAddrUtil {
 			int	val;
 			
 			val = Integer.parseInt(tokens[i]);
+			if (val > MAX_IP_INT_VALUE) {
+				throw new RuntimeException("Invalid IP: "+ s);
+			}
 			addr[i] = (byte)val;
+		}
+	}
+	
+	/**
+	 * Checks to see if the string is a valid IP. Does not check to see if the IP actually exists.
+	 * @return
+	 */
+	public static boolean isValidIP(String s) {
+		try {
+			stringToAddr(s);
+			return true;
+		} catch (Exception e) {
+			return false;
 		}
 	}
 	
@@ -150,6 +168,14 @@ public class IPAddrUtil {
         return addrToString(addr);
     }
     
+	public static String addrToString(byte[] addr, int offset) {
+		StringBuilder	sb;
+		
+		sb = new StringBuilder();
+		addrToString(sb, addr, offset);
+		return sb.toString();
+	}
+	
 	public static String addrToString(byte[] addr) {
 		StringBuilder	sb;
 		
@@ -160,7 +186,11 @@ public class IPAddrUtil {
 	}
 	
     private static void addrToString(StringBuilder sb, byte[] addr) {
-        addrToString(sb, addr[0], addr[1], addr[2], addr[3]);
+        addrToString(sb, addr, 0);
+    }
+    
+    private static void addrToString(StringBuilder sb, byte[] addr, int offset) {
+        addrToString(sb, addr[offset + 0], addr[offset + 1], addr[offset + 2], addr[offset + 3]);
     }
     
     private static void addrToString(StringBuilder sb, byte a0, byte a1, byte a2, byte a3) {

@@ -549,7 +549,11 @@ static void displayArguments(CmdArgs *arguments) {
 
 // FUSE interface
 
-static int skfs_getattr(const char *path, struct stat *stbuf) {
+static int skfs_getattr(const char *path, struct stat *stbuf
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_ga %x %s", get_caller_pid(), path);
 	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
 		char nativePath[SRFS_MAX_PATH_LENGTH];
@@ -703,17 +707,29 @@ static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t
     }
 }
 
-static int skfs_chmod(const char *path, mode_t mode) {
+static int skfs_chmod(const char *path, mode_t mode
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_cm %s %x", path, mode);
     return modify_file_attr(path, "chmod", &mode, NULL, NULL);
 }
 
-static int skfs_chown(const char *path, uid_t uid, gid_t gid) {
+static int skfs_chown(const char *path, uid_t uid, gid_t gid
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_co %s %d %d", path, uid, gid);
     return modify_file_attr(path, "chown", NULL, &uid, &gid);
 }
 
-static int skfs_truncate(const char *path, off_t size) {
+static int skfs_truncate(const char *path, off_t size
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
     WritableFile            *wf;
     WritableFileReference   *wf_ref;
     int openedForTruncation;
@@ -766,7 +782,11 @@ static int skfs_truncate(const char *path, off_t size) {
     return rc;
 }
 
-static int skfs_utimens(const char *path, const struct timespec ts[2]) {
+static int skfs_utimens(const char *path, const struct timespec ts[2]
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_file_info *fi 
+#endif
+) {
     struct timespec last_change_tp;
     
 	srfsLogAsync(LOG_OPS, "_ut %s", path);
@@ -907,7 +927,7 @@ static int nfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         memset(&st, 0, sizeof(st));
         st.st_ino = de->d_ino;
         st.st_mode = de->d_type << 12;
-		if (filler(buf, de->d_name, &st, 0)) {
+		if (filler(buf, de->d_name, &st, 0 FILLER_TAIL)) {
             break;
 		}
     }
@@ -917,7 +937,11 @@ static int nfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 }
 
 static int skfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-                       off_t offset, struct fuse_file_info *fi) {
+                       off_t offset, struct fuse_file_info *fi
+#if FUSE_MAJOR_VERSION >= 3
+	, enum fuse_readdir_flags flags
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_rd %s %ld", path, offset);
 	if (!is_writable_path(path) && !is_base_path(path)) {
 		if (path[1] != '\0') {
@@ -959,7 +983,11 @@ static int skfs_rmdir(const char *path) {
 //          For now, we perform best-effort rejection of
 //          overlapped operations.
 
-static int skfs_rename(const char *oldpath, const char *newpath) {
+static int skfs_rename(const char *oldpath, const char *newpath
+#if FUSE_MAJOR_VERSION >= 3
+	, unsigned int flags = 0 
+#endif
+) {
 	srfsLogAsync(LOG_OPS, "_rn %s %s", oldpath, newpath);
 	if (!is_writable_path(oldpath) || !is_writable_path(newpath)) {
 		return -EIO;
@@ -1450,15 +1478,15 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
 
 static int skfs_mknod(const char *path, mode_t mode, dev_t rdev) {
     WritableFileReference    *wf_ref;
+    uint64_t    parentDirUpdateTimeMillis;
 	
+    parentDirUpdateTimeMillis = 0; // ignore parent update time for mknod; open will set this correctly
     srfsLogAsync(LOG_OPS, "_mn %s %x %x", path, mode, rdev);
 	wf_ref = wft_create_new_file(wft, path, mode);
 	if (wf_ref != NULL) {
         OpenDir *parentDir;
-        uint64_t    parentDirUpdateTimeMillis;
         
         parentDir = NULL;
-        parentDirUpdateTimeMillis = curTimeMillis();            
 		if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
 			srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
 		}
@@ -1881,20 +1909,24 @@ static void signal_handler(int signal) {
 
 
 static void segv_handler(int, siginfo_t*, void*) {
+    srfsLog(LOG_ERROR, "segv_handler");
 	print_stacktrace("segv_handler");
     exit(1);
 }
 
 static void abrt_handler(int, siginfo_t*, void*) {
+    srfsLog(LOG_ERROR, "abrt_handler");
 	print_stacktrace("abrt_handler");
     exit(1);
 }
 
 static void term_handler() {
+    srfsLog(LOG_ERROR, "terminate_handler");
 	print_stacktrace("terminate_handler");
 }
 
 static void unexpct_handler() {
+    srfsLog(LOG_ERROR, "Uncaught exception");
 	print_stacktrace("unexpected_handler");
     //skfs_destroy(NULL);
     //exit(1);
@@ -1923,11 +1955,33 @@ static int install_handler() {
 	return 0;
 }
 
-static void *skfs_init(struct fuse_conn_info *conn) {
+static void *skfs_init(struct fuse_conn_info *conn
+#if FUSE_MAJOR_VERSION >= 3
+	, struct fuse_config *cfg
+#endif
+) {
 	pthread_spin_init(destroyLock, 0);
 	srfsLogInitAsync(); // Important - this must be initialized here and not in main() due to fuse process configuration
 	srfsLogAsync(LOG_OPS, "LOG_OPS async check");
 	srfsLog(LOG_WARNING, "skfs_init()");
+    
+#if FUSE_MAJOR_VERSION >= 3
+    conn->want = FUSE_CAP_WRITEBACK_CACHE;
+    srfsLog(LOG_WARNING, "Writeback cache requested");
+    cfg->use_ino = 1;
+    conn->max_write = 131072;
+    conn->max_read = 131072;
+    conn->max_readahead = 5242880;
+    conn->max_background = 8;
+    srfsLog(LOG_WARNING, "cfg->use_ino %d", cfg->use_ino);
+    srfsLog(LOG_WARNING, "conn->capable %x", conn->capable);
+    srfsLog(LOG_WARNING, "conn->want    %x", conn->want);
+    srfsLog(LOG_WARNING, "conn->max_write      %d", conn->max_write);
+    srfsLog(LOG_WARNING, "conn->max_read       %d", conn->max_read);
+    srfsLog(LOG_WARNING, "conn->max_readahead  %d", conn->max_readahead);
+    srfsLog(LOG_WARNING, "conn->max_background %d", conn->max_background);
+#endif
+    
     install_handler();
 	initDHT();
 	fid_module_init();
@@ -1985,7 +2039,9 @@ static void skfs_destroy(void* private_data) {
 static struct fuse_operations skfs_oper = {
 	/* getattr */ NULL,
 	/* readlink */ NULL,
+#if FUSE_MAJOR_VERSION < 3
 	/* getdir */ NULL,
+#endif
 	/* mknod */ NULL,
 	/* mkdir */ NULL,
 	/* unlink */ NULL,
@@ -1996,7 +2052,9 @@ static struct fuse_operations skfs_oper = {
 	/* chmod */ NULL,
 	/* chown */ NULL,
 	/* truncate */ NULL,
+#if FUSE_MAJOR_VERSION < 3
 	/* utime */ NULL,
+#endif
 	/* open */ NULL, //skfs_open,
 	/* read */ NULL, //skfs_read,
 	/* write */ NULL,
@@ -2016,16 +2074,20 @@ static struct fuse_operations skfs_oper = {
 	/* destroy */ NULL, //skfs_destroy,
 	/* access */ NULL,
 	/* create */ NULL,
+#if FUSE_MAJOR_VERSION < 3
 	/* ftruncate */ NULL,
 	/* fgetattr */ NULL,
+#endif
 	/* lock */ NULL,
 	/* utimens */ NULL,
 	/* bmap */ NULL
-#if  FUSE_USE_VERSION > 27
-	, /*flag_nullpath_ok*/ 0
-	, /*flag_reserved*/ 0
+#if FUSE_MAJOR_VERSION >= 3
 	, /*ioctl*/ NULL
 	, /*poll*/ NULL
+	, /*write_buf*/ NULL
+	, /*read_buf*/ NULL
+	, /*flock*/ NULL
+	, /*fallocate*/ NULL
 #endif	
 };
 
@@ -2583,16 +2645,18 @@ int main(int argc, char *argv[]) {
 	add_fuse_option("-odefault_permissions");
 	
 	if (args->enableBigWrites) {
+#if FUSE_MAJOR_VERSION < 3
         srfsLog(LOG_WARNING, "Enabling big writes");
 		add_fuse_option("-obig_writes");
+#endif        
 	}
     
     //add_fuse_option("-odirect_io"); // for debugging only    
-    
+#if FUSE_MAJOR_VERSION < 3
 	add_fuse_option("-ononempty");
     add_fuse_option("-ouse_ino");
+#endif
     add_fuse_option("-oauto_cache");
-    //add_fuse_option("-owriteback_cache");
     
 	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
 	sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs);
@@ -2603,9 +2667,13 @@ int main(int argc, char *argv[]) {
 	addEnvToFuseArg("SKFS_ATTR_TIMEOUT", "-oattr_timeout=", fuseAttrOption);
 	addEnvToFuseArg("SKFS_AC_ATTR_TIMEOUT", "-oac_attr_timeout=", fuseACAttrOption);
 	addEnvToFuseArg("SKFS_NEGATIVE_TIMEOUT", "-onegative_timeout=", fuseNegativeOption);
-	//addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=1048576");
+#if FUSE_MAJOR_VERSION < 3
 	addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=5242880");
 	addEnvToFuseArg("SKFS_MAX_WRITE", "-omax_write=", "-omax_write=262144");
+#endif
+#if FUSE_MAJOR_VERSION >= 3
+	addEnvToFuseArg("SKFS_MAX_READ", "-omax_read=", "-omax_read=131072");
+#endif
     direct_io_enabled = envToBool("SKFS_WRITE_DIRECT_IO", false);
     
 	//fuse_opt_add_arg(&fuseArgs, "-osubtype=SKFS");

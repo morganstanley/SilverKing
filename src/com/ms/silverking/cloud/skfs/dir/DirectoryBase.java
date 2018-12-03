@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.skfs.dir;
 
+import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
 import com.ms.silverking.numeric.NumConversion;
 
 public abstract class DirectoryBase implements Directory {
@@ -22,6 +23,12 @@ public abstract class DirectoryBase implements Directory {
 	protected static final int	DEI_MAGIC = 0xaaddaabb;
 	protected static final int	DEI_ENTRY_SIZE = NumConversion.BYTES_PER_INT;
 	protected static final int	headerSize = dataOffset;
+	
+    protected static PeerHealthMonitor	peerHealthMonitor;
+    
+    public static void setPeerHealthMonitor(PeerHealthMonitor _peerHealthMonitor) {
+    	peerHealthMonitor = _peerHealthMonitor; 
+    }
 	
 	protected int writeHeader(byte[] buf, int offset, int length, int indexOffset, int numEntries) {
 		NumConversion.intToBytesLittleEndian(OD_MAGIC, buf, offset + magicOffset);

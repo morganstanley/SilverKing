@@ -214,7 +214,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                     
                     existingChecksum = getChecksum(existingOffset);
                     newChecksum = getChecksum(offset);
-                    if (ArrayUtil.compare(existingChecksum, newChecksum, ArrayUtil.MismatchedLengthMode.Ignore) == 0) {
+                    if (ArrayUtil.compareSigned(existingChecksum, newChecksum, ArrayUtil.MismatchedLengthMode.Ignore) == 0) {
                         return SegmentStorageResult.stored;
                     } else {
                         if (debugPut) {
@@ -276,7 +276,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                             
                             existingChecksum = getChecksum(existingOffset);
                             newChecksum = getChecksum(offset);
-                            if (ArrayUtil.compare(existingChecksum, newChecksum) == 0) {
+                            if (ArrayUtil.compareSigned(existingChecksum, newChecksum) == 0) {
                             	//Log.warningf("pkc.getTotalEntries() %d", pkc.getTotalEntries());
                             	//Log.warningf("%s %d %d", key, existingOffset, offset);
                             	//Log.warningf("%s %d %d", key, existingVersion, version);

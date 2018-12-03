@@ -46,6 +46,7 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.OutgoingData;
+import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
@@ -136,8 +137,8 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
         
         dhtMetaReader = new DHTMetaReader(zkConfig, dhtName, enableLogging);
         
-        mgBase = new MessageGroupBase(mgBasePort, this, SystemTimeUtil.systemTimeSource, null, 
-        							  queueLimit, numSelectorControllers, selectorControllerClass);
+        mgBase = new MessageGroupBase(mgBasePort, this, SystemTimeUtil.systemTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, 
+        							  null, queueLimit, numSelectorControllers, selectorControllerClass);
         mode = Mode.Automatic;
         new RingMasterControlImpl(this);
     }

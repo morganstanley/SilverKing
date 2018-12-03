@@ -17,6 +17,8 @@ import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
+import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
@@ -162,7 +164,6 @@ public class DHTClient {
 			session = null; // FUTURE - this forces a new session
 			                // think about whether we want to use multiple or cache to common
 			if (session == null) {
-				DHTSession  prev;
 				int         serverPort;
 
 				try {
@@ -193,12 +194,6 @@ public class DHTClient {
                     throw new ClientException(ioe);
 				}
 				Log.info("session returned: ", session);
-				/*
-				prev = dhtNameToSessionMap.put(dhtConfig.getName(), session);
-				if (prev != null) {
-				    throw new RuntimeException("panic");
-				}
-				*/
 			}
 			return session;
 		} finally {
@@ -220,7 +215,7 @@ public class DHTClient {
 		}
 		
 		DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
-		embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, false, false);
+		embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
 	}
 	
 	private ClientDHTConfiguration embedKVS() {

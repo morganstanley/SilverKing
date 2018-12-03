@@ -13,6 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -22,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
@@ -37,6 +40,7 @@ import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.VersionConstraint.Mode;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
+import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
 import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
 import com.ms.silverking.cloud.dht.collection.IntCuckooConstants;
@@ -48,6 +52,7 @@ import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.DHTKeyComparator;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
+import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.cloud.dht.common.KeyAndInteger;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataConstants;
@@ -61,6 +66,8 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.common.ValueUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
+import com.ms.silverking.cloud.dht.daemon.PeerHealthIssue;
+import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
 import com.ms.silverking.cloud.dht.daemon.Waiter;
 import com.ms.silverking.cloud.dht.daemon.storage.FileSegment.SegmentPrereadMode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ActiveRegionSync;
@@ -98,6 +105,7 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.SystemTimeSource;
+import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
 
 public class NamespaceStore implements SSNamespaceStore {
@@ -144,6 +152,8 @@ public class NamespaceStore implements SSNamespaceStore {
     private final Set<Integer>	deletedSegments;
     private final PutTrigger	putTrigger;
     private final RetrieveTrigger	retrieveTrigger;
+    private final ReapPolicy		reapPolicy;
+    private final ReapPolicyState	reapPolicyState;
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>	activeRegionSyncs;    
     
@@ -183,6 +193,9 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private static final int	maxFailedStores = 1000000;
     
+    private static final long	nsIdleIntervalMillis = 4 * 60 * 1000;
+    private static final long	minFullReapIntervalMillis = 4 * 60 * 60 * 1000;
+    
     public enum DirCreationMode {
         CreateNSDir, DoNotCreateNSDir
     };
@@ -197,17 +210,85 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final SegmentPrereadMode	readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     private static final SegmentPrereadMode	updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     
+    private static final int	minFinalizationIntervalMillis;
+    
     static {
     	segmentIndexLocation = SegmentIndexLocation.valueOf(PropertiesHelper.systemHelper.getString(DHTConstants.segmentIndexLocationProperty, DHTConstants.defaultSegmentIndexLocation.toString()));
     	Log.warningf("segmentIndexLocation: %s", segmentIndexLocation);
     	nsPrereadGB = PropertiesHelper.systemHelper.getInt(DHTConstants.nsPrereadGBProperty, DHTConstants.defaultNSPrereadGB);
     	Log.warningf("nsPrereadGB: %s", nsPrereadGB);
+    	minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
+    	Log.warningf("minFinalizationIntervalMillis %d", minFinalizationIntervalMillis);
     }
+    
+    
+    private static PeerHealthMonitor	peerHealthMonitor;
+    
+    public static void setPeerHealthMonitor(PeerHealthMonitor _peerHealthMonitor) {
+    	peerHealthMonitor = _peerHealthMonitor; 
+    }
+    
+    /////////////////////////////////
+    /*
+    private static final int	ssWorkerPoolTargetSize = 2;
+    private static final int	ssWorkerPoolMaxSize = 2;
+    
+    static LWTPool ssWorkerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("NamespaceStorePool").targetSize(ssWorkerPoolTargetSize).maxSize(ssWorkerPoolMaxSize));
+    
+    class SSWorker extends BaseWorker<Object> {
+        SSWorker() {
+            super(ssWorkerPool, true, 0);
+        }
+        
+        @Override
+        public void doWork(Object[] o) {
+        }
+        
+        @
+    }
+    
+    class KeyedOpResultRelay implements KeyedOpResultListener {
+    	private final Map<DHTKey, KeyedOpResultListener>	listeners;
+    	
+    	KeyedOpResultRelay() {
+    		
+    	}
+
+		@Override
+		public void sendResult(DHTKey key, OpResult result) {
+			KeyedOpResultListener	listener;
+			
+			listener = listeners.get(key);
+			if (listener != null) {
+				listener.sendResult(key, result);
+			} else {
+				Log.warningf("KeyedOpResultRelay can't find listener for %s", key);
+			}
+		}    	
+    }
+    
+    class PutWork {
+    	final List<StorageValueAndParameters>	values;
+    	final byte[] userData;
+    	final KeyedOpResultListener resultListener;
+    	
+    	PutWork(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
+    		this.values = values;
+    		this.userData = userData;
+    		this.resultListener = resultListener;
+    	}
+    }
+    */
+    
+    
+    /////////////////////////////////
+
     
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
             NamespaceStore parent,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
-            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
+            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
+            ReapPolicy reapPolicy) {
         this.ns = ns;
         this.nsDir = nsDir;
         ssDir = new File(nsDir, DHTConstants.ssSubDirName);
@@ -219,6 +300,8 @@ public class NamespaceStore implements SSNamespaceStore {
         this.mgBase = mgBase;
         this.ringMaster = ringMaster;
         checksumTreeServer = new ChecksumTreeServer(this, mgBase.getAbsMillisTimeSource());
+        this.reapPolicy = reapPolicy;
+        reapPolicyState = reapPolicy.createInitialState();
         switch (dirCreationMode) {
         case CreateNSDir:
             if (!nsDir.mkdirs()) {
@@ -231,6 +314,7 @@ public class NamespaceStore implements SSNamespaceStore {
             try {
                 NamespacePropertiesIO.write(nsDir, nsProperties);
             } catch (IOException ioe) {
+            	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                 throw new RuntimeException(ioe);
             }
             break;
@@ -311,6 +395,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 headSegment = FileSegment.create(nsDir, nextSegmentID.getAndIncrement(), 
                                                  nsOptions.getSegmentSize(), syncMode, nsOptions);
             } catch (IOException ioe) {
+            	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                 throw new RuntimeException(ioe);
             }
             break;
@@ -364,7 +449,7 @@ public class NamespaceStore implements SSNamespaceStore {
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
-        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals);
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, NeverReapPolicy.instance);
     }
     
     private void initRAMSegments() {
@@ -378,6 +463,14 @@ public class NamespaceStore implements SSNamespaceStore {
                            && nsOptions.getAllowLinks()) {
             watchForLink(zk, nsLinkBasePath, linkCreationListener);
         }
+    }
+    
+    public File getDir() {
+    	return nsDir;
+    }
+    
+    private boolean isIdle() {
+    	return SystemTimeUtil.timerDrivenTimeSource.absTimeMillis() - nsStats.getLastActivityMillis() > nsIdleIntervalMillis;
     }
     
     private void watchForLink(ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
@@ -475,6 +568,7 @@ public class NamespaceStore implements SSNamespaceStore {
             oldHead = headSegment;
             headSegment = newHead;
         } catch (IOException ioe) {
+        	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
             throw new RuntimeException(ioe);
         //} finally {
             //headCreationLock.unlock();
@@ -488,6 +582,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     Log.warning("persisted segment: " + oldHead.getSegmentNumber());
                 }
             } catch (IOException ioe) {
+            	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                 throw new RuntimeException(ioe);
             }
             // FUTURE - consider persisting in another thread - would need to handle mutual exclusion, consistency, etc.
@@ -640,8 +735,10 @@ public class NamespaceStore implements SSNamespaceStore {
         if (debugWaitFor) {
             System.out.println("handleTriggeredWaitFors");
         }
-        for (Waiter triggeredWaitFor : triggeredWaitFors) {
-            triggeredWaitFor.relayWaitForResults();
+        if (triggeredWaitFors != null) {
+	        for (Waiter triggeredWaitFor : triggeredWaitFors) {
+	            triggeredWaitFor.relayWaitForResults();
+	        }
         }
     }
     
@@ -653,14 +750,45 @@ public class NamespaceStore implements SSNamespaceStore {
         triggeredWaitFors = null;
         
         nsVersionMode = nsOptions.getVersionMode();
+
+        if (putTrigger != null && (!(resultListener instanceof KeyedOpResultMultiplexor))) { 
+        	// Pending puts currently only applied to server side code
+        	// Pending puts doesn't support userdata
+        	// Disallow puts to be deferred to the pending queue multiple times
+        	if (writeLock.tryLock()) {
+        		locked = true;
+        	} else {
+        		locked = false;
+        		addPendingPut(values, resultListener);
+        		// FUTURE - wait for actual operation result instead of presuming success
+        		for (StorageValueAndParameters svp : values) {
+        			resultListener.sendResult(svp.getKey(), OpResult.SUCCEEDED);
+        		}
+        		return;
+        	}
+        } else {
+        	locked = false;
+        }
         
         //LWTThreadUtil.setBlocked();
-        writeLock.lock();
+        if (!locked) {
+        	writeLock.lock();
+        }
         try {
+        	int	numPuts;
+        	int	numInvalidations;
+        	
+        	numPuts = 0;
+        	numInvalidations = 0;
             // System.out.printf("NamespaceStore.put() group size: %d\n", values.size());
             for (StorageValueAndParameters value : values) {
                 OpResult storageResult;
 
+                //if (MetaDataUtil.isInvalidated(value.getValue(), value.getValue().position())) {
+                //	++numInvalidations;
+                //} else {
+                	++numPuts;
+                //}
                 if (putTrigger != null) {
                 	storageResult = putTrigger.put(this, value.getKey(), value.getValue(), new SSStorageParametersImpl(value, value.getValue().remaining()), userData, nsVersionMode);
                 } else {
@@ -680,6 +808,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     }
                 }
             }
+        	nsStats.addPuts(numPuts, numInvalidations, SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
         } finally {
             writeLock.unlock();
             //LWTThreadUtil.setNonBlocked();
@@ -688,122 +817,21 @@ public class NamespaceStore implements SSNamespaceStore {
             handleTriggeredWaitFors(triggeredWaitFors);
         }
     }
-    
-    /*
-     * 
-     * The PendingPut implementation is currently commented out. It's utility is yet to be determined. A more pressing optimization is to 
-     * allow a per-thread NamespaceStore so that RAM stores may be lockless.
-    
-    private static class PendingPut {
-    	final List<StorageValueAndParameters> values;
-    	final byte[] userData;
-    	final KeyedOpResultListener resultListener;
-    	
-    	PendingPut(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
-    		this.values = values;
-    		this.userData = userData;
-    		this.resultListener = resultListener;
-    	}
-    }
-    
-    private final LightLinkedBlockingQueue<PendingPut>	pendingPuts = new LightLinkedBlockingQueue<>();
-    private volatile	boolean	lockedWillPoll;
-    
-    public void put(List<StorageValueAndParameters> _values, byte[] _userData, KeyedOpResultListener _resultListener) {
-        boolean	locked;
-        PendingPut	storedPendingPut;
 
-        storedPendingPut = null;
-        //LWTThreadUtil.setBlocked();
-        locked = writeLock.tryLock();
-        if (!locked) {
-        	try {
-        		storedPendingPut = new PendingPut(_values, _userData, _resultListener);
-				pendingPuts.put(storedPendingPut);
-        		if (!lockedWillPoll) {
-        			writeLock.lock();
-        			locked = true;
-        		}
-			} catch (InterruptedException e) {
-				throw new RuntimeException("Panic");
-			}
-        }
-        if (locked) {
-	        try {
-	        	List<StorageValueAndParameters> values;
-	        	byte[] userData;
-	        	KeyedOpResultListener resultListener;
-
-	        	lockedWillPoll = true;
-	        	if (storedPendingPut != null) {
-		        	boolean	prevPendingPutFound;
-		        	
-	        		prevPendingPutFound = pendingPuts.remove(storedPendingPut);
-	        		if (!prevPendingPutFound) {
-			            PendingPut	pendingPut;
-			            
-	    	        	lockedWillPoll = false;
-		        		pendingPut = pendingPuts.poll();
-			            if (pendingPut == null) {
-		        			return;
-			            } else {
-				        	_values = pendingPut.values;
-				        	_userData = pendingPut.userData;
-				        	_resultListener = pendingPut.resultListener;
-			            }
-	        		}
-	        	}
-	        	values = _values;
-	        	userData = _userData;
-	        	resultListener = _resultListener;
-	        	do {
-		            PendingPut	pendingPut;
-		            
-	        		lockedWillPoll = true;
-	        		__put(values, userData, resultListener);
-
-	        		lockedWillPoll = false;
-	        		pendingPut = pendingPuts.poll();
-		            if (pendingPut == null) {
-			            writeLock.unlock();
-			            pendingPut = pendingPuts.poll();
-			            if (pendingPut == null) {
-			            	break;
-			            } else {
-			            	writeLock.lock();
-			            }
-		            } else {
-			        	values = pendingPut.values;
-			        	userData = pendingPut.userData;
-			        	resultListener = pendingPut.resultListener;
-		            }		            	
-	            } while (true);
-	        } finally {
-	        	if (((ReentrantReadWriteLock)rwLock).isWriteLockedByCurrentThread()) {
-	        		writeLock.unlock();
-	        	}
-	            //LWTThreadUtil.setNonBlocked();
-	        }
-        }
-    }
-
-    // lock must be held
-    private void __put(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
-        NamespaceVersionMode    nsVersionMode;
+    // for use by pending put code to notify waiters
+    // must hold lock
+    // must call handleTriggeredWaitFors() after releasing lock
+    public Set<Waiter> notifyAndCheckWaiters(Map<DHTKey,OpResult> results, KeyedOpResultListener resultListener) {
         Set<Waiter> triggeredWaitFors;
 
-        triggeredWaitFors = null;
-        nsVersionMode = nsOptions.getVersionMode();
+        triggeredWaitFors = null;        
         // System.out.printf("NamespaceStore.put() group size: %d\n", values.size());
-        for (StorageValueAndParameters value : values) {
-            OpResult storageResult;
-
-            storageResult = _put(value.getKey(), value.getValue(), value, userData, nsVersionMode);
-            resultListener.sendResult(value.getKey(), storageResult);
-            if (storageResult == OpResult.SUCCEEDED) {
+        for (Map.Entry<DHTKey,OpResult> result : results.entrySet()) {
+            resultListener.sendResult(result.getKey(), result.getValue());
+            if (result.getValue() == OpResult.SUCCEEDED) {
                 Set<Waiter> _triggeredWaitFors;
 
-                _triggeredWaitFors = checkPendingWaitFors(value.getKey());
+                _triggeredWaitFors = checkPendingWaitFors(result.getKey());
                 if (_triggeredWaitFors != null) {
                     if (triggeredWaitFors == null) {
                         triggeredWaitFors = new HashSet<>();
@@ -812,16 +840,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
             }
         }
-        if (triggeredWaitFors != null) {
-        	writeLock.unlock();
-        	try {
-        		handleTriggeredWaitFors(triggeredWaitFors);
-        	} finally {
-            	writeLock.lock();
-        	}
-        }
+        return triggeredWaitFors;
     }
-    */
     
     /**
      * Checks to see if this put() should be allowed to proceed on the basis that it is a duplicate of a previous
@@ -896,7 +916,7 @@ public class NamespaceStore implements SSNamespaceStore {
             System.out.println("StorageParameters: " + storageParams);
         }
         if (debug) {
-            System.out.println("_put " + key + " " + value);
+            System.out.println("_put " + key + " " + value + " "+ storageParams.getChecksumType());
             System.out.println(userData == null ? "null" : userData.length);
         }
         
@@ -1236,6 +1256,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         }
                     }
                 } catch (IOException ioe) {
+                	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
                     Log.logErrorWarning(ioe);
                     return OpResult.ERROR;
                 }
@@ -1256,6 +1277,7 @@ public class NamespaceStore implements SSNamespaceStore {
 	        if (debugVersion) {
 	            System.out.printf("retrieve internal options: %s\n", options);
 	        }        
+        	nsStats.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
 	        _keys = new DHTKey[keys.size()];
 	        for (int i = 0; i < _keys.length; i++) {
 	        	_keys[i] = keys.get(i);
@@ -1768,6 +1790,7 @@ public class NamespaceStore implements SSNamespaceStore {
 		                        }
 		                    }
 		                } catch (IOException ioe) {
+		                	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
 		                    Log.logErrorWarning(ioe);
 		                    return null;
 		                }
@@ -1874,6 +1897,7 @@ public class NamespaceStore implements SSNamespaceStore {
 		                        }
 		                    }
 		                } catch (IOException ioe) {
+		                	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
 		                    Log.logErrorWarning(ioe);
 		                    return null;
 		                }
@@ -2037,6 +2061,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
             }
         } catch (IOException ioe) {
+        	peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
             Log.logErrorWarning(ioe);
             throw new RuntimeException(ioe);
         }
@@ -2166,10 +2191,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
                 if (oom) {
                     Log.warning("OOM attempting to open mapped file. Calling gc and finalization.");
-                    System.gc();
-                    Log.warning("GC complete.");
-                    System.runFinalization();
-                    Log.warning("Finalization complete.");
+                    JVMUtil.finalization.forceFinalization(0);
+                    Log.warning("GC & finalization complete.");
                     fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
                 } else {
                     throw e;
@@ -2268,7 +2291,8 @@ public class NamespaceStore implements SSNamespaceStore {
     static NamespaceStore recoverExisting(long ns, File nsDir, NamespaceStore parent, StoragePolicy storagePolicy, 
             MessageGroupBase mgBase,
             NodeRingMaster2 ringMaster, ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
-            ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
+            ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener,
+            ReapPolicy reapPolicy) {
         NamespaceStore nsStore;
         NamespaceProperties nsProperties;
         int	numSegmentsToPreread;
@@ -2285,7 +2309,8 @@ public class NamespaceStore implements SSNamespaceStore {
             }
         }
         nsStore = new NamespaceStore(ns, nsDir, NamespaceStore.DirCreationMode.DoNotCreateNSDir, 
-                                     nsProperties, parent, mgBase, ringMaster, true, activeRetrievals);
+                                     nsProperties, parent, mgBase, ringMaster, true, activeRetrievals,
+                                     reapPolicy);
         if (nsProperties.getOptions().getStorageType() != StorageType.RAM) {
             List<Integer> segmentNumbers;
         	
@@ -2478,7 +2503,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
 
     
-    // FIXME - reminder: convergence implementation is currently only valid for SINGLE_VERSION
+    // FUTURE - reminder: convergence implementation is currently only valid for SINGLE_VERSION
     
     /** readLock() must be held while this is in use and readUnlock() must be called when complete */
     public Iterator<KeyAndVersionChecksum> keyAndVersionChecksumIterator(long minVersion, long maxVersion) {
@@ -2693,15 +2718,105 @@ public class NamespaceStore implements SSNamespaceStore {
     ////////////////////
     // Retention
     
-    public void reap(boolean leaveTrash) {
+    private final ReapImplState	reapImplState = new ReapImplState();
+    
+    private class ReapImplState {
+    	private int	nextSegmentNumber;
+    	private ValueRetentionState	vrState;
+    	
+    	ReapImplState() {
+    		clear();
+    	}
+    	
+    	void initialize() {
+    		if (!isClear()) {
+    			throw new RuntimeException("Can't initialize state. Not clear.");
+    		} else {
+    			nextSegmentNumber = headSegment.getSegmentNumber();
+    			vrState = nsOptions.getValueRetentionPolicy().createInitialState();
+    		}
+    	}
+    	
+    	void clear() {
+    		nextSegmentNumber = -1;
+    		vrState = null;
+    	}
+    	
+    	boolean isClear() {
+    		return nextSegmentNumber < 0;
+    	}
+    	
+    	void decrementSegment() {
+    		--nextSegmentNumber;
+    	}
+    	
+    	int getNextSegmentNumber() {
+    		return nextSegmentNumber;
+    	}
+    	
+    	ValueRetentionState getVRState() {
+    		return vrState;
+    	}
+    }
+    
+    public void startupReap() {
+    	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeInitialReap 
+    			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
+			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    	}
+    	if (reapPolicy.reapAllowed(reapPolicyState, this, true)) {
+    		_reap(headSegment.getSegmentNumber(), 0, nsOptions.getValueRetentionPolicy().createInitialState(), true);
+    	}
+    	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
+			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    	}
+    }
+    
+    public void liveReap() {
+    	int	currentBatchSize;
+    	
+    	currentBatchSize = 0;
+    	if (reapPolicy.reapAllowed(reapPolicyState, this, false)) {
+    		if (Log.levelMet(Level.INFO)) {
+    			Log.warningf("liveReap() ns %x", ns);
+    		}
+	    	if (reapImplState.isClear()) {
+	    		reapImplState.initialize();
+	    	}
+	    	while (reapPolicy.reapAllowed(reapPolicyState, this, false) && reapImplState.getNextSegmentNumber() >= 0 && currentBatchSize < reapPolicy.getBatchLimit()) {
+	    		_reap(reapImplState.getNextSegmentNumber(), reapImplState.getNextSegmentNumber(), reapImplState.getVRState(), false);
+	    		++currentBatchSize;
+	    		reapImplState.decrementSegment();
+	        	if (reapImplState.getNextSegmentNumber() >= 0) {
+	        		ThreadUtil.sleep(reapPolicy.getIdleReapPauseMillis());
+	        	}
+	    	}
+	    	if (reapImplState.getNextSegmentNumber() < 0) {
+	    		reapImplState.clear();
+	    		reapPolicyState.fullReapComplete(this);
+	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap
+	        			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
+	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+	    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
+	        	}
+	    	} else {
+	    		Log.info("idleReap() interrupted");
+	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
+	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+	    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
+	        	}
+	    	}
+    	}
+    }
+    
+    private void _reap(int startSegment, int endSegment, ValueRetentionState state, boolean verboseReap) {
     	ValueRetentionPolicy	vrp;
     	
     	vrp = nsOptions.getValueRetentionPolicy();
-    	Log.warningAsyncf("reap ns %x %s %s", ns, vrp, leaveTrash);
+    	if (verboseReap || Log.levelMet(Level.INFO)) {
+    		Log.warningAsyncf("_reap ns %x %s [%d, %d]", ns, vrp, startSegment, endSegment);
+    	}
     	if (vrp != null) {
-    		if (!leaveTrash) {
-    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-    		}
 	    	writeLock.lock();
 	    	metaWriteLock.lock();
 	    	try {
@@ -2710,7 +2825,7 @@ public class NamespaceStore implements SSNamespaceStore {
 	        	curTimeNanos = systemTimeSource.absTimeNanos();
 		    	switch (vrp.getImplementationType()) {
 		    	case SingleReverseSegmentWalk:
-		    		singleReverseSegmentWalk(vrp, vrp.createInitialState(), curTimeNanos);
+		    		singleReverseSegmentWalk(vrp, state, curTimeNanos, startSegment, endSegment, verboseReap);
 		    		break;
 		    	case RetainAll:
 		    		break;
@@ -2720,19 +2835,17 @@ public class NamespaceStore implements SSNamespaceStore {
 		    	metaWriteLock.unlock();
 		    	writeLock.unlock();
 	    	}
-    		if (!leaveTrash) {
-    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-    		}
     	}
     }
     
-	public <T extends ValueRetentionState> void singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos) {
+	private <T extends ValueRetentionState> void singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, 
+																		  int startSegment, int endSegment, boolean verboseReap) {
 		Set<Integer>			deletedSegments;
 		HashedSetMap<DHTKey,Triple<Long,Integer,Long>>	removedEntries;
 		
 		removedEntries = new HashedSetMap<>();
 		deletedSegments = new HashSet<>();
-        for (int i = headSegment.getSegmentNumber() - 1; i >= 0; i--) {
+        for (int i = startSegment; i >= endSegment; i--) {
         	if (segmentExists(i)) {
         		Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>	result; 
         		WritableSegmentBase		segment;
@@ -2758,9 +2871,17 @@ public class NamespaceStore implements SSNamespaceStore {
 		                	}
 		                }
 		    		}
-					Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", i, ccr.toString());
+			    	if (verboseReap || Log.levelMet(Level.INFO)) {
+						Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", i, ccr.toString());
+					}
+					
+					// Note that we need to walk through the head segment even if we always retain it
+					// since subsequent operations may depend on the state of that walk
+					
 					if (segment.getSegmentNumber() == headSegment.getSegmentNumber()) {
-						Log.warningAsyncf("Retaining head segment");
+				    	if (verboseReap || Log.levelMet(Level.INFO)) {
+							Log.warningAsyncf("Retaining head segment");
+						}
 					} else {
 						if (ccr.getValidEntries() == 0) {
 			            	try {
@@ -2786,7 +2907,9 @@ public class NamespaceStore implements SSNamespaceStore {
 						}
 					}
 					sw.stop();
-					Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
+			    	if (verboseReap || Log.levelMet(Level.INFO)) {
+						Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
+					}
 				} catch (Exception e) {
 					Log.logErrorWarning(e, "Skipping segment "+ i +" due to Exception");
 				}
@@ -2854,7 +2977,181 @@ public class NamespaceStore implements SSNamespaceStore {
     
     ////////////////////////////////////
     // SSNamespaceStore implementation
+    
+    private static final int	numPendingPutWorkers = Math.min(8, Runtime.getRuntime().availableProcessors());
+    private static final int	maxWorkBatchSize = 128;
+    private static final BlockingQueue<PendingPut>	pendingPuts = new ArrayBlockingQueue<>(numPendingPutWorkers * maxWorkBatchSize);
+    
+    static {
+    	Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
+    	for (int i = 0; i < numPendingPutWorkers; i++) {
+    		new PendingPutWorker(i, pendingPuts);
+    	}
+    }
+    
+    static class PendingPut {
+    	final NamespaceStore	nsStore;
+        final List<StorageValueAndParameters>	values;
+        final KeyedOpResultListener	resultListener;
+        
+        PendingPut(NamespaceStore nsStore, List<StorageValueAndParameters> values, KeyedOpResultListener resultListener) {
+        	this.nsStore = nsStore;
+        	this.values = values;
+        	this.resultListener = resultListener;
+        }
+    }
+    
+    private List<StorageValueAndParameters> fixupCompression(List<StorageValueAndParameters> values) {
+    	List<StorageValueAndParameters>	_values;
+    	
+    	_values = new ArrayList<>(values.size());
+    	for (StorageValueAndParameters svp : values) {
+    		int	compressedLength;
+    		
+            if (svp.compressedSizeSet()) {
+                compressedLength = svp.getCompressedSize();
+            } else {
+                compressedLength = svp.getValue().remaining();
+            }    		
+            // The client disallows any compression usage when the compressed size equals or exceeds the
+            // uncompressed size. As ccss is per message, and this compression check is per value, 
+            // we catch this case and modify the ccss for values where this applies.
+            if (compressedLength == svp.getUncompressedSize()) {
+                _values.add(svp.ccss(CCSSUtil.updateCompression(svp.getCCSS(), Compression.NONE)));
+            } else {
+            	_values.add(svp);
+            }
+    	}
+    	return _values;
+    }
+    
+    private void addPendingPut(List<StorageValueAndParameters> values, KeyedOpResultListener resultListener) {
+    	try {
+			pendingPuts.put(new PendingPut(this, fixupCompression(values), resultListener));
+		} catch (InterruptedException e) {
+			Log.logErrorWarning(e);
+		}
+	}
+    
+    static class PendingPutWorker implements Runnable {
+    	private final BlockingQueue<PendingPut>	q;
+		private final PendingPut[]	work;
+    	
+    	PendingPutWorker(int index, BlockingQueue<PendingPut> q) {
+    		Thread	t;
+    		
+    		work = new PendingPut[maxWorkBatchSize];
+    		this.q = q;
+    		t = ThreadUtil.newDaemonThread(this, "PendingPutWorker."+ index);
+    		t.start();
+    	}
+    	
+    	private int takeMultiple() throws InterruptedException {
+    		int	numTaken;
+    		
+    		numTaken = 0;
+    		while (numTaken < maxWorkBatchSize) {
+    			if (numTaken == 0) {
+        			work[numTaken] = q.take();
+        			++numTaken;
+    			} else {
+    				PendingPut	p;
+    				
+    				p = q.poll();
+    				if (p != null) {
+    					work[numTaken] = p;
+    					++numTaken;
+    				} else {
+    					break;
+    				}
+    			}
+    		}
+    		return numTaken; 
+    	}
+    	
+    	private void process() {
+    		int	numTaken;
+    		
+    		try {
+				//numTaken = q.takeMultiple(work);
+    			numTaken = takeMultiple();
+    			if (Log.levelMet(Level.INFO)) {
+    				Log.warningf("q.size() %d\tnumTaken %d", q.size(), numTaken);
+    			}
+			} catch (InterruptedException e) {
+				numTaken = 0;
+			}
+    		if (numTaken > 0) {
+    			mergePendingPuts(work, numTaken);
+    			ArrayUtil.clear(work); // allow gc of completed work
+    		}
+    	}
 
+        private int numValues(PendingPut[] pendingPuts, int numPendingPuts) {
+        	int	numValues;
+        	
+        	numValues = 0;
+    		for (int i = 0; i < numPendingPuts; i++) {
+    			numValues += pendingPuts[i].values.size(); 
+    		}
+    		return numValues;
+        }
+        
+    	private void mergePendingPuts(PendingPut[] pendingPuts, int numPendingPuts) {
+    		int	maxValues;
+    		int	sIndex;
+    		
+    		maxValues = numValues(pendingPuts, numPendingPuts);
+    		sIndex = 0;
+    		while (sIndex < numPendingPuts) {
+	    		KeyedOpResultMultiplexor	resultListenerMultiplexor;
+	    		List<StorageValueAndParameters>	values;
+	    		NamespaceStore	nsStore;
+	    		
+	    		nsStore = pendingPuts[sIndex].nsStore;
+	    		values = new ArrayList<>(maxValues);
+	    		resultListenerMultiplexor = new KeyedOpResultMultiplexor();
+	    		while (sIndex < numPendingPuts && pendingPuts[sIndex].nsStore == nsStore) {
+	    			for (StorageValueAndParameters svp : pendingPuts[sIndex].values) {
+	    				values.add(svp);
+	    				resultListenerMultiplexor.addListener(svp.getKey(), pendingPuts[sIndex].resultListener);
+	    			}
+	    			sIndex++;
+	    		}
+	    		if (values.size() <= 0) {
+	    			throw new RuntimeException("Unexpected values.size() <= 0: "+ values.size());
+	    		}
+	    		if (nsStore.putTrigger != null && nsStore.putTrigger.supportsMerge()) {
+	    			Set<Waiter>				triggeredWaitFors;
+	    			Map<DHTKey,OpResult>	mergeResults;
+		    		
+	    			mergeResults = nsStore.putTrigger.mergePut(values);
+	    			nsStore.writeLock.lock();
+	    			try {
+		    			triggeredWaitFors = nsStore.notifyAndCheckWaiters(mergeResults, resultListenerMultiplexor);
+	    			} finally {
+	    				nsStore.writeLock.unlock();
+	    			}
+	    		    nsStore.handleTriggeredWaitFors(triggeredWaitFors);
+	    		} else {
+	    			nsStore.put(values, null, resultListenerMultiplexor); // Note: pending puts don't support userdata
+	    		}
+	    		maxValues -= values.size();
+    		}
+    	}
+    	    	
+    	public void run() {
+    		while (true) {
+    			try {
+    				process();
+    			} catch (Exception e) {
+    				Log.logErrorWarning(e);
+    				ThreadUtil.pauseAfterException();
+    			}
+    		}
+    	}
+    }
+    
 	@Override
 	public long getNamespaceHash() {
 		return ns;

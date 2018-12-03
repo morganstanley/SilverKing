@@ -2,7 +2,7 @@ package com.ms.silverking.os.linux.fs;
 
 import java.io.IOException;
 
-import com.ms.silverking.collection.Triple;
+import com.ms.silverking.collection.Quadruple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.ProcessExecutor;
 
@@ -19,11 +19,11 @@ public class DF {
 	 * 
 	 */
 	
-	public static Triple<Long,Long,Integer> df(String path) throws IOException, RuntimeException {
+	public static Quadruple<Long,Long,Long,Integer> df(String path) throws IOException, RuntimeException {
 		return df(path, noTimeout);
 	}
 	
-	public static Triple<Long,Long,Integer> df(String path, int timeoutInSeconds) throws IOException, RuntimeException {
+	public static Quadruple<Long,Long,Long,Integer> df(String path, int timeoutInSeconds) throws IOException, RuntimeException {
 		ProcessExecutor	pe;
 		String[]		commands;
 		String			rawOutput;
@@ -55,10 +55,12 @@ public class DF {
 				try {
 					long	totalBlocks;
 					long	usedBlocks;
+					long	freeBlocks;
 					
 					totalBlocks = Long.parseLong(output[1]);
 					usedBlocks = Long.parseLong(output[2]);
-					return new Triple<>(totalBlocks, usedBlocks, blockSize);
+					freeBlocks = Long.parseLong(output[3]);
+					return new Quadruple<>(totalBlocks, usedBlocks, freeBlocks, blockSize);
 				} catch (RuntimeException re) {
 					Log.logErrorWarning(re);
 					throw new RuntimeException("Exception parsing output: "+ rawOutput, re);
@@ -69,13 +71,13 @@ public class DF {
 
 	public static void main(String[] args) {
 		try {
-			Triple<Long,Long,Integer>	df;
+			Quadruple<Long,Long,Long,Integer>	df;
 			
 			df = df(args[0]);
 			if (df != null) {
 				System.out.printf("Total: %d\n", df.getV1());
 				System.out.printf("Used:  %d\n", df.getV2());
-				System.out.printf("Free:  %d\n", df.getV1() - df.getV2());
+				System.out.printf("Free:  %d\n", df.getV3());
 			} else {
 				System.out.printf("Error running df\n");
 			}

@@ -20,10 +20,10 @@ public class AESEncrypterDecrypterTest {
 	private static final AESEncrypterDecrypter m2mAES        = createAES(byte_minToMax);
 	
 	private static final AESEncrypterDecrypter[][] testCasesEquals = {
-//		{negOneAES, negOneAESCopy},
+//FIXME:bph: why are these commented out?		{negOneAES, negOneAESCopy},
 		{emptyAES,  emptyAES},
 		{posOneAES, posOneAES},
-//		{m2mAES,    m2mAESCopy},
+//FIXME:bph: why are these commented out?		{m2mAES,    m2mAESCopy},
 	};
 	private static final EncrypterDecrypter[][] testCasesNotEquals = {
 		{negOneAES, emptyAES},

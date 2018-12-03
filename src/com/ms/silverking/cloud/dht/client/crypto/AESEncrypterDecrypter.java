@@ -1,21 +1,16 @@
 package com.ms.silverking.cloud.dht.client.crypto;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.spec.KeySpec;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
 
 import com.ms.silverking.io.FileUtil;
-import com.ms.silverking.io.StreamUtil;
 
 /**
  * AES EncrypterDecrypter

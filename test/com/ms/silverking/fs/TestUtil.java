@@ -1,7 +1,7 @@
 package com.ms.silverking.fs;
 
 import static com.ms.silverking.process.ProcessExecutor.runCmd;
-import static com.ms.silverking.process.ProcessExecutor.sep;
+import static com.ms.silverking.process.ProcessExecutor.separator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -24,7 +24,7 @@ public class TestUtil {
 	}
 	
 	public static String getTestsDir(String dir) {
-		return dir + sep + testsFolderName;
+		return dir + separator + testsFolderName;
 	}
 	
 	static String getDefaultSkfsRootPath() {

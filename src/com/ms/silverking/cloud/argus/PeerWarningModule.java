@@ -130,7 +130,7 @@ public class PeerWarningModule {
 	}
 	
 	private void sendUDPWarning() {
-		if (broadcastAddr != null) {
+		if (broadcastAddr != null && socket != null) {
 			try {
 				DatagramPacket	p;
 				

@@ -69,8 +69,8 @@ function f_cleanOrMakeDirectory {
 }
 
 function f_makeAndCopy {
-	typeset src=$1;
-	typeset dest=$2;
+	typeset src=$1
+	typeset dest=$2
 	echo "from: $src"
 	echo "  to: $dest" 
 	f_makeWithParents $dest
@@ -544,8 +544,8 @@ function f_printResult {
 }
 
 function f_getEqualsResult {
-	typeset actualSize=$1;
-	typeset expectedSize=$2;
+	typeset actualSize=$1
+	typeset expectedSize=$2
 	
 	if [[ $actualSize -eq $expectedSize ]]; then
 		echo $PASS_TEXT
@@ -555,8 +555,8 @@ function f_getEqualsResult {
 }
 
 function f_getGreaterThanOrEqualsResult {
-	typeset actualSize=$1;
-	typeset expectedSize=$2;
+	typeset actualSize=$1
+	typeset expectedSize=$2
 	
 	if [[ $actualSize -ge $expectedSize ]]; then
 		echo $PASS_TEXT
@@ -811,7 +811,7 @@ function f_runMakeCmd {
 	make -f $tmpFile -j $MAKE_JOBS
 }
 
-# normally would have have that same command minus the eval statement 
+# normally would run that same command minus the eval statement 
 #    i.e. env -i $variables $command
 # but if variables have a name with multiple values
 #    i.e. BLAH=\"123 123\"
@@ -821,8 +821,6 @@ function f_runCmdInEvalEnv {
 	typeset variables=$1
 	typeset command=$2
 	
-	#echo "eval env -i $variables "
-	#eval env -i $variables $command
 	f_runCmd "eval env -i $variables $command"
 }
 
@@ -982,7 +980,7 @@ function f_startSilverking_Helper {
 function f_runStaticInstanceCreator {
     f_printSubSection "StaticInstanceCreator"
 	
-	typeset vars=$(f_getBinScriptVars)
+	typeset vars=$(f_getUserAndBinScriptVars)
 	f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE"
 }
 
@@ -1029,36 +1027,44 @@ function f_runSkAdmin {
 	typeset command=$1
 	
 	f_printSubSection "SKAdmin"
-	# currently failing on kerberos issue, if i pass in kerberos ticket it will "wait for nodes" and loop forever
-	# typeset vars=$(f_getBinScriptVars)
-	# f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command"
-	f_exportSilverkingCodebaseVars
-	f_runCmd "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command -uwc 1"
-}
-
-function f_exportSilverkingCodebaseVars {
-	typeset skClasspath=$(f_getSkClasspath)
-	
-	# if you set skGlobalCodebase you need to set skDevJavaHome as well. this is used when calling any script in bin/
-	export skGlobalCodebase=$skClasspath
-	export    skDevJavaHome=$JAVA_8_HOME	
-	# export     SK_JACE_HOME=$JACE_HOME	# getting set already in bin/lib/sk.config
-	unset SK_JAVA_HOME					# if not set, SKAdmin.java will set default for us. unsetting just to be sure, if user has theirs set in dev env
+	typeset userAndBinScriptVars=$(f_getUserAndBinScriptVars)
+	typeset sshVarForParallelSSH=$(f_getSshVar)
+    # why we need PATH, I'm not exactly sure. I haven't traced it down even more. If I do "PATH=/bin", it'll still error out.
+    # I think it's something to do with ParallelSSH workers running the commands
+    # I thought maybe these needed it, but I'm not sure: netstat, grep, mkdir, rm, mv
+    typeset vars="
+	     $userAndBinScriptVars
+	     PATH=$PATH
+	     $sshVarForParallelSSH
+	"
+	f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command -uwc 1"
 }
 
 # for StaticInstanceCreator
 # for SKAdmin
-function f_getBinScriptVars {
+function f_getUserAndBinScriptVars {
 	typeset skClasspath=$(f_getSkClasspath)
 	
+    # USER - so that the stats file will have a user to log instead of being empty: ',,'
+    
 	# if you set skGlobalCodebase you need to set skDevJavaHome as well. skDevJavaHome is used to launch all the scripts in bin/
 	# SK_JACE_HOME needs to be set, but it's getting set and picked up automatically in bin/lib/sk.config
 	# SK_JAVA_HOME doesn't need to be set. it's optional. if not set, SKAdmin.java will set default for us 
 	# formatted this way (newlines in vars), for when looking at the output file
 	echo "
+                    USER=$USER
 		skGlobalCodebase=$skClasspath
 		   skDevJavaHome=$JAVA_8_HOME
 	"
+}
+
+# for SKAdmin - so that it doesn't loop on "WARNING: 2018:11:16 21:33:05 EST workerSSH.numCompleted(): 0    numWorkers: 1"
+# for FileWriteWithDelayTest - so that FileWriteWithDelayTest will be able to ssh and not report: "holstben@10.102.242.220's password:"
+# for ms. unfortunately here in oss code..
+function f_getSshVar {
+    echo "
+        KRB5CCNAME=$KRB5CCNAME
+    "
 }
 
 function f_addBinSkfsD {
@@ -1207,7 +1213,7 @@ function f_overrideVariable_Helper {
 	typeset value=$3
 	
 	# we pretty much want to override everything after the '=' up until there is a possible comment starting with '#'
-	# FIXME: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
+	# FIXME:bph: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
 	sed -ri "s#(${variable}=)(\S+\s*.*)(\#)?#\1${value}\3#" $filename	# double quotes important so the variable will be expanded
 }
 

@@ -44,6 +44,7 @@ public interface Namespace {
      */
     public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective(
     											Class<K> keyClass, Class<V> valueClass);
+    public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective();
     /**
      * Open an SynchronousNamespacePerspective for the given key, value types
      * @param nspOptions options for the NamespacePerspective
@@ -60,6 +61,7 @@ public interface Namespace {
      */
     public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
     											Class<K> keyClass, Class<V> valueClass);
+    public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective();
     /**
      * Create a clone of this namespace. For user-defined versioned namespaces,
      * the version of this method that accepts a version must be used.

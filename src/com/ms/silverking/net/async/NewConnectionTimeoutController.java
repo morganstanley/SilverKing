@@ -2,6 +2,9 @@ package com.ms.silverking.net.async;
 
 import com.ms.silverking.net.AddrAndPort;
 
+/**
+ * Controls retry and timeout behavior of new connections
+ */
 public interface NewConnectionTimeoutController {
     /**
      * Return the maximum number of times that this connection establishment should be attempted.

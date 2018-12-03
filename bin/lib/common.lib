@@ -1,12 +1,14 @@
 #!/bin/bash
 
 function f_sourceSkConfigAndConfigureClasspath {
-	f_exitIfUndefined "bin_dir" $bin_dir
+	typeset classpathType=$1
+    
+    f_exitIfUndefined "bin_dir" $bin_dir
 	cd $bin_dir
 	source lib/sk.config
 	
 	if [[ -z $skGlobalCodebase ]]; then  
-		classpath=$(f_getClasspath "../lib" "$bin_dir")
+		classpath=$(f_getClasspath "../lib" "$bin_dir" "$classpathType")
 	else    
 		echo "Using skGlobalCodebase"		
 		
@@ -19,14 +21,17 @@ function f_sourceSkConfigAndConfigureClasspath {
 	
 	f_exitIfUndefined "skJavaHome" $skJavaHome
 	
-	echo "cp=$classpath"
-	echo "skJavaHome=$skJavaHome"
-	echo
+	if [[ -z $SK_QUIET_LAUNCH ]]; then
+		echo "cp=$classpath"
+		echo "skJavaHome=$skJavaHome"
+		echo
+	fi
 }
 
 function f_getClasspath {
 	typeset libDir=$1
 	typeset binDir=$2
+    typeset classpathType=$3
 	
 	f_exitIfUndefined "bin_dir" $binDir
 	
@@ -34,11 +39,15 @@ function f_getClasspath {
 	typeset cpBase=`pwd`
 	typeset cp=""
 	typeset count=1;
-	for f in `ls $cpBase/*.jar`; do
+    typeset jars=`ls $cpBase/*.jar`
+    if [[ $classpathType == "cloud" ]]; then
+        jars=`find -L $cpBase -name "*.jar"`    # -L is needed b/c if we run from merged-repo, the aws jars are symlinked
+    fi
+	for jar in $jars; do    
 		if [[ $count -ne 1 ]] ; then
 			cp+=":"
 		fi
-		cp+=$f
+		cp+=$jar
 		((count++))
 	done
 	
@@ -50,6 +59,27 @@ function f_exitIfUndefined {
 	if [[ -z $2 ]]; then
 		echo "Undefined: $1"
 		exit -1
+    fi
+}
+
+function f_logStart {
+    f_logStat "$1" "start" "$2"
+}
+
+function f_logStop {
+    f_logStat "$1" "stop " "$2" # 'stop ' with a space, so the output lines up with the start's output
+}
+
+function f_logStat {
+    typeset possibleSymlinkFile=`pwd`/`basename $0` # $0 should be ./ToolExec.sh
+    typeset        ultimateFile=`readlink $possibleSymlinkFile 2> /dev/null`  
+    if [[ -z $ultimateFile ]]; then
+        ultimateFile="readlink_error"
+    fi
+    
+    typeset scriptName=`echo "$1" | rev | cut -d '.' -f 1 | rev`    # get whatevers after the last '.', e.g. com.ms.silverking.cloud.dht.management.SKAdmin = SKAdmin
+    if [[ -n $STATS_FILE && -e $STATS_FILE ]]; then
+        echo `date +"%Y%m%d%H%M%S"`",$USER,"`hostname`",$ultimateFile,"`pwd`",$scriptName,$2,\"$3\",$$" 2> /dev/null >> $STATS_FILE     # 2> /dev/null - routes errors to /dev/null, important to be before >>   
     fi
 }
 

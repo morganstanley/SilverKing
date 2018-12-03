@@ -45,7 +45,7 @@ public class JNIUtil {
 			sb.append(typeString(p.getType()));
 		}
 		sb.append(')');
-		sb.append(typeString(m.getReturnType()));
+		sb.append(returnTypeString(m.getReturnType()));
 		return sb.toString();
 	}
 	
@@ -57,6 +57,17 @@ public class JNIUtil {
 		return sb.toString();
 	}
 
+	private static String returnTypeString(Class<?> type) {
+		String	s;
+		
+		s = typeString(type);
+		if (s.length() > 0) {
+			return s;
+		} else {
+			return "V";
+		}
+	}
+	
 	private static String typeString(Class<?> type) {
 		StringBuffer	sb;
 		
@@ -100,7 +111,7 @@ public class JNIUtil {
 		} else if (type == double.class) {
 			return "D";
 		} else if (type == void.class) {
-			return "";
+			return "V";
 		} else {
 			throw new RuntimeException("Unknown primitive type: "+ type);
 		}

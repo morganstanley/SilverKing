@@ -32,9 +32,11 @@ import com.ms.silverking.cloud.dht.client.KeyDigestType;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 import com.ms.silverking.time.ConstantAbsMillisTimeSource;
 
+@OmitGeneration
 public class NamespacePerspectiveOptionsTest {
 
 	// *Copy: copies the values of nspOptions (copies the object values, rather than re-using the same object from defaultNspOptions, important for comparing reference vs value, i.e. hashCode and equals)
@@ -227,7 +229,8 @@ public class NamespacePerspectiveOptionsTest {
 			checkStringAndParse(testCase);
 	}
 	
+	// FIXME:bph: not working, getting some error. need to look into it, commenting out for now
 	private void checkStringAndParse(NamespacePerspectiveOptions<?, ?> nspOptions) {
-// not working, getting some error. need to look into it, commenting out for now		assertEquals(nspOptions, nspOptions.parse( nspOptions.toString() ));
+// 		assertEquals(nspOptions, nspOptions.parse( nspOptions.toString() ));
 	}
 }

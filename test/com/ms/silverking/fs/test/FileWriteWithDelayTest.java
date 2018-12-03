@@ -28,7 +28,7 @@ public class FileWriteWithDelayTest {
 	}
 	
 	private static final String fileWriteWithDelayDirName = "file-write-with-delay";
-	private final static File fileWriteWithDelayDir = new File(testsDirPath, fileWriteWithDelayDirName);
+	private static final File   fileWriteWithDelayDir     = new File(testsDirPath, fileWriteWithDelayDirName);
 
 	private static String skClasspath;
 	private static String javaBin;
@@ -44,22 +44,25 @@ public class FileWriteWithDelayTest {
 	}
 	
 	@Test(timeout=45_000)
-	public void testWrite() throws InterruptedException {
-		File f = new File(fileWriteWithDelayDir, "file1");
+	public void testWrite_GiveWriter1AHeadstartExpectFileToBeAllWriter2Data() throws InterruptedException {
+		File f = new File(fileWriteWithDelayDir, "this_file_should_be_the_data_of_the_remote_delayed_writer_aka_server2");
 		int size = 15_000_000;
 		int rateLimit = 1;
 		String className = FileWriteWithDelay.class.getCanonicalName();
-		// if you're going to run from cmdline and test, use abs path names and set SK_CLASSPATH=/abs/path/to/repo/bin-ide/eclipse:/abs/path/to/repo/lib/*
+		int delaySeconds = 3;
+		// if you're going to run from cmdline and test, use abs path names and set SK_CLASSPATH=/abs/path/to/repo/ide/eclipse/build-classes:/abs/path/to/repo/lib/*
 		// lib/* will work here, you don't have to list each jar one by one
-		String[] commands = ProcessExecutor.getSshCommands(server2, javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false > /tmp/fwwd.out");
-		ProcessExecutor.runCmdNoWait(commands);
-		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});
-		
-		Thread.sleep(5_000);
+		String[] writer2Commands = ProcessExecutor.getSshCommandWithRedirectOutputFile(server2, "date; sleep " + delaySeconds + "; " + javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false; date; > /tmp/fwwd_w2.out");	// fwwd_w2.out exists, but is empty.. check ssh.out
+		ProcessExecutor.runCmdNoWait(writer2Commands);
+		System.out.println( ProcessExecutor.runCmd("date") );
+		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});	// writer1
+		System.out.println( ProcessExecutor.runCmd("date") );
+		Thread.sleep(5_000);	// wait/allow some time for writer2 to finish writing to the file
 		
 		// Strictly speaking, the result is undefined
-		// Practically speaking, I think that we will get what writer 2 wrote unless there is something going on to slow down writer 2's writes (rare; something like an overloaded server)
-		checkContentsEquals(f, size, FileWriteWithDelay.buffer2byteValue);
+		// Practically speaking, I think that we will get what writer2 wrote unless there is something going on to slow down writer1's writes (rare, but something like an overloaded server)
+		byte writer2ByteValue = FileWriteWithDelay.buffer2byteValue;
+		checkContentsEquals(f, size, writer2ByteValue);
 	}
 	
 	private void checkContentsEquals(File f, int size, byte expected) {
@@ -68,7 +71,7 @@ public class FileWriteWithDelayTest {
 	
 			for (int i = 0; i < size; i++) {
 				byte actual = (byte)out.read();
-				assertEquals("byte: " + i, expected, actual);
+				assertEquals("byte " + i + ":", expected, actual);
 			}
 			out.close();
 		} catch (IOException e) {

@@ -47,8 +47,12 @@ public class Argus implements PeerWarningListener {    private static final Str
         peerWarningResponseIntervalMillis = ph.getLong(peerWarningResponseIntervalSeconds, defaultPeerWarningResponseIntervalSeconds) * 1000;
         
         port = ph.getInt(udpPort, 0);
-        wf = ph.getString(warningFile);
-        wfi = ph.getInt(warningFileIntervalSeconds, defaultWarningFileIntervalSeconds);
+        wf = ph.getString(warningFile, (String)null);
+        if (wf != null) {
+        	wfi = ph.getInt(warningFileIntervalSeconds, defaultWarningFileIntervalSeconds);
+        } else {
+        	wfi = defaultWarningFileIntervalSeconds;
+        }
         
        	peerWarningModule = new PeerWarningModule(port, this, wf != null ? new File(wf) : null, wfi);
                 if (terminator == null) {            String	eventsLogDir;

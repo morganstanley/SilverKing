@@ -8,5 +8,6 @@ public enum DaemonState {
     ENABLING_COMMUNICATION,
     COMMUNICATION_ENABLED,
     PRIMING,
+    INITIAL_REAP,
     RUNNING
 }

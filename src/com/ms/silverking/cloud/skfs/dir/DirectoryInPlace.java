@@ -17,6 +17,10 @@ public class DirectoryInPlace extends DirectoryBase {
 		this.limit = limit;
 	}
 	
+	public DirectoryInPlace(byte[] buf) {
+		this(buf, 0, buf.length);
+	}
+	
 	public Triple<byte[],Integer,Integer> getBufferOffsetLimit() {
 		return new Triple<>(buf, offset, limit);
 	}
@@ -56,7 +60,7 @@ public class DirectoryInPlace extends DirectoryBase {
 		
 		offset = getEntryOffset(index);
 		if (offset >= 0) {
-			//System.out.printf("getEntry %d %d %s\n", index, offset, getEntryAtOffset(offset).getV1());
+			//System.out.printf(">> getEntry %d %d %s\n", index, offset, getEntryAtOffset(offset).getV1());
 			return getEntryAtOffset(offset).getV1();
 		} else {
 			Log.warning("Bad entry offset in DirectoryInPlace.getEntry()");

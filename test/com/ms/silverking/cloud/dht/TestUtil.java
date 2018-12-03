@@ -8,8 +8,10 @@ import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController;
 import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 
+@OmitGeneration
 public class TestUtil {
 	 
     // using ImmutableSet.of() to add variety of param testing   

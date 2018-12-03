@@ -32,7 +32,7 @@ public class HelloCallbackDHT2 implements AsyncOperationListener {
                     .openAsyncNamespacePerspective("_MyNamespace" + System.currentTimeMillis(), String.class, String.class);
             v1 = new HashMap<>();
             for (int i = 0; i < numValues; i++) {
-            	v1.put(Integer.toString(i), Integer.toString(i));
+            	v1.put("Hello callback2 " + Integer.toString(i), "callback2 world! " + Integer.toString(i));
             }
             asyncPut = asyncNSP.put(v1);
             asyncPut.addListener(this, OperationState.SUCCEEDED, OperationState.FAILED, OperationState.INCOMPLETE);

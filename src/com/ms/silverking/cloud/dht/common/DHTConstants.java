@@ -53,6 +53,7 @@ public class DHTConstants {
     public static final SegmentIndexLocation   defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
     public static final int					   defaultNSPrereadGB = 0;
     public static final int					   defaultMinPrimaryUnderFailure = 1;
+    public static final int					   defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
     
 	public static final String	defaultDataBasePath = "/var/tmp/silverking/data";
 	public static final String	defaultSKInstanceLogBasePath = "/tmp/silverking";
@@ -60,7 +61,6 @@ public class DHTConstants {
     public static final int noCapacityLimit = -1;
     public static final int defaultFileSegmentCacheCapacity = noCapacityLimit;
     
-    private static final int				   defaultReapInterval = 10;
     public static final StorageModule.RetrievalImplementation	defaultRetrievalImplementation = StorageModule.RetrievalImplementation.Ungrouped;
     
     public static final String  systemClassBase = "com.ms.silverking";
@@ -87,8 +87,6 @@ public class DHTConstants {
 	public static final String	clearDataCommandVar = "clearDataCommand";
 	public static final String	checkSKFSCommandVar = "checkSKFSCommand";
 	public static final String	checkSKFSCommandEnvVar = "skCheckSKFSCommand";	
-	public static final String	reapIntervalVar = "reapInterval";
-	public static final String	reapIntervalProperty = daemonPackageBase +".ReapInterval";
 	public static final String	fileSegmentCacheCapacityVar = "fileSegmentCacheCapacity";
 	public static final String	fileSegmentCacheCapacityProperty = daemonPackageBase +".FileSegmentCacheCapacity";
 	public static final String	retrievalImplementationVar = "retrievalImplementation";
@@ -96,7 +94,8 @@ public class DHTConstants {
 	public static final String	segmentIndexLocationVar = "segmentIndexLocation";
 	public static final String	segmentIndexLocationProperty = daemonPackageBase +".SegmentIndexLocation";
 	public static final String	nsPrereadGBVar = "nsPrereadGB";
-	public static final String	nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";
+	public static final String	nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";	
+	public static final String	minFinalizationIntervalMillisProperty = daemonPackageBase +".MinFinalizationIntervalMillis";
 	
 	public static final String	ssSubDirName = "ss";
 	
@@ -124,7 +123,6 @@ public class DHTConstants {
 		defMap.put(killCommandVar, PropertiesHelper.envHelper.getString(killCommandEnvVar, UndefinedAction.ZeroOnUndefined));
 		defMap.put(clearDataCommandVar, "rm -rf");
 		defMap.put(checkSKFSCommandVar, PropertiesHelper.envHelper.getString(checkSKFSCommandEnvVar, UndefinedAction.ZeroOnUndefined));
-		defMap.put(reapIntervalVar, Integer.toString(defaultReapInterval));
 		defMap.put(retrievalImplementationVar, defaultRetrievalImplementation.toString());
 		defMap.put(fileSegmentCacheCapacityVar, Integer.toString(defaultFileSegmentCacheCapacity));
 		defMap.put(segmentIndexLocationVar, defaultSegmentIndexLocation.toString());
@@ -166,6 +164,8 @@ public class DHTConstants {
                                           .consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT)
                                           .versionMode(NamespaceVersionMode.CLIENT_SPECIFIED);
     
+    public static final Class<String>	defaultKeyClass = String.class;
+    public static final Class<byte[]>	defaultValueClass = byte[].class;
                                                 
    /**
     * Default NamespaceCreationOptions. Subject to change. Recommended practice is for each SilverKing instance

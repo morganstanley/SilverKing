@@ -18,8 +18,8 @@ public class HelloEmbeddedDHT2 {
   
 			syncNSP = new DHTClient().openSession(dhtConfig)
 					.openSyncNamespacePerspective("_MyNamespace", String.class, String.class);
-			syncNSP.put("Hello", "world!");
-			return syncNSP.get("Hello");
+			syncNSP.put("Hello embedded2", "embedded2 world!");
+			return syncNSP.get("Hello embedded2");
 		} catch (Exception e) {
             throw new RuntimeException(e);
 		}

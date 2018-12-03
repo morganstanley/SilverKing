@@ -1,10 +1,8 @@
 package com.ms.silverking.thread.lwt;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import com.ms.silverking.log.Log;
-import com.ms.silverking.thread.ThreadUtil;
 
 /**
  * Nearly-complete implementation of Worker. Users extend and 

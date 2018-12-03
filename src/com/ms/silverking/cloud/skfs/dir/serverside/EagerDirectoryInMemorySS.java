@@ -13,7 +13,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSUtil;
-import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
+import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 
@@ -25,16 +25,16 @@ public class EagerDirectoryInMemorySS extends BaseDirectoryInMemorySS {
 		fileDeletionWorker = DirectoryServer.fileDeletionWorker;
 	}
 	
-	EagerDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
+	EagerDirectoryInMemorySS(DHTKey dirKey, DirectoryBase d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions, boolean reap) {
 		super(dirKey, d, storageParams, sDir, nsOptions, reap, true);
 	}
 	
-	public EagerDirectoryInMemorySS(DHTKey dirKey, DirectoryInPlace d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
+	public EagerDirectoryInMemorySS(DHTKey dirKey, DirectoryBase d, SSStorageParameters storageParams, File sDir, NamespaceOptions nsOptions) {
 		this(dirKey, d, storageParams, sDir, nsOptions, true);
 	}
 	
 
-	public void update(DirectoryInPlace update, SSStorageParameters sp) {
+	public void update(DirectoryBase update, SSStorageParameters sp) {
 		Pair<SSStorageParameters,byte[]>	sd;
 		
 		this.latestUpdateSP = sp;

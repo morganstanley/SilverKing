@@ -45,7 +45,7 @@ public class FileSegmentUtil {
 				        	}
 		                }
 		            } else {
-			        	System.out.printf("%s\t%d\n", entry.getKey(), offset);
+			        	System.out.printf("%s\t%d\t%d\n", entry.getKey(), KeyUtil.keyToCoordinate(entry.getKey()), offset);
 			        	if (displayValues) {
 			        		displayValue(segment.retrieveForDebug(key, offset));
 			        	}

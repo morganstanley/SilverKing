@@ -24,7 +24,7 @@ public class TruncateTest {
 	}
 	
 	private static final String truncateDirName = "truncate";
-	private final static File truncateDir = new File(testsDirPath, truncateDirName);
+	private static final File   truncateDir     = new File(testsDirPath, truncateDirName);
 
 	private ProcessExecutor pe;
 
@@ -38,7 +38,14 @@ public class TruncateTest {
 		truncateBin = Util.getEnvVariable("TRUNCATE_BIN");
 		server2     = Util.getServer2();
 	}
+
+	// FIXME:bph
+	@Test
+	public void FIXMEJustSoFileHasRunnableMethods() {
+		
+	}
 	
+	// FIXME:bph: /bin/cat: f1: Transport endpoint is not connected                                                                                                                                                 
 //	@Test
 	public void testTruncate() {
 		String fileName = "f1";

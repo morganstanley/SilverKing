@@ -26,6 +26,7 @@ import com.ms.silverking.cloud.dht.common.EnumValues;
 import com.ms.silverking.cloud.dht.common.NamespaceMetaStore.NamespaceOptionsRetrievalMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.OpResult;
+import com.ms.silverking.cloud.dht.daemon.storage.NamespaceStore;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergenceController2;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
@@ -56,12 +57,14 @@ import com.ms.silverking.cloud.dht.net.ProtoSnapshotMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoVersionedBasicOpMessageGroup;
 import com.ms.silverking.cloud.dht.net.PutResult;
 import com.ms.silverking.cloud.ring.RingRegion;
+import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
@@ -135,9 +138,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, 
                          AbsMillisTimeSource absMillisTimeSource,
                          Timer timer, int serverPort, MetaClient mc) throws IOException {
-        mgBase = new MessageGroupBase(serverPort, incomingConnectionBacklog, this, absMillisTimeSource, null,
-                                     Integer.MAX_VALUE, numSelectorControllers, selectorControllerClass,
-                                     ConvergenceController2.mqListener, ConvergenceController2.mqUUID);
+        mgBase = new MessageGroupBase(serverPort, incomingConnectionBacklog, this, absMillisTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController,
+                                     null, Integer.MAX_VALUE, numSelectorControllers,
+                                     selectorControllerClass, ConvergenceController2.mqListener, ConvergenceController2.mqUUID);
         this.ringMaster = ringMaster;
         this.storage = storage;
         this.absMillisTimeSource = absMillisTimeSource;
@@ -159,6 +162,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         PeerStateWatcher.setPeerHealthMonitor(peerHealthMonitor);
         mgBase.setPeerHealthMonitor(peerHealthMonitor);
         ringMaster.setPeerHealthMonitor(peerHealthMonitor);
+        NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
+        DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
         
         storage.setMessageGroupBase(mgBase);
         storage.setActiveRetrievals(activeRetrievals);
@@ -217,13 +222,21 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     @Override
     public void receive(MessageGroup message, MessageGroupConnection connection) {
         int maxDirectCallDepth;
+        NamespaceProperties	nsProperties;
         
-        if (storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.LocalCheckOnly) == null) {
+        nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.LocalCheckOnly);
+        if (nsProperties == null) {
             // If we're using a SelectorThread to do this work, we can't allow this thread to block since we
         	// don't have any properties
             maxDirectCallDepth = 0;
         } else {
-            maxDirectCallDepth = Integer.MAX_VALUE;
+        	if (message.getForwardingMode() == ForwardingMode.DO_NOT_FORWARD && nsProperties.getOptions().getNamespaceServerSideCode() != null) {
+        		// For non-forwarded messages, disallow all potential server side code usage of SelectorThreads
+        		// We don't want communication to be dependent on server side code operation
+                maxDirectCallDepth = 0;
+        	} else {
+        		maxDirectCallDepth = Integer.MAX_VALUE;
+        	}
         }
         worker.addWork(new MessageAndConnection(message, createProxyForConnection(connection, message.getDeadlineAbsMillis(absMillisTimeSource), message.getPeer())), maxDirectCallDepth, Integer.MAX_VALUE);
     }
@@ -421,7 +434,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 }
             } else {
                 //storage.incomingSyncRetrievalResponse(message);
-                storage.asyncInvocation("incomingSyncRetrievalResponse", message);
+                storage.asyncInvocationNonBlocking("incomingSyncRetrievalResponse", message);
                 /*
                 Log.warning("Couldn't find activeRetrieval for ", message);
                 if (debugCompletion) {
@@ -689,13 +702,13 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         //storage.getChecksumTreeForRemote(message.getContext(), message.getUUID(), 
         //                        targetCP, sourceCP, connection, message.getOriginator(), region);
         if (!localFlag) {
-        	storage.asyncInvocation("getChecksumTreeForRemote", message.getContext(), message.getUUID(), 
+        	storage.asyncInvocationNonBlocking("getChecksumTreeForRemote", message.getContext(), message.getUUID(), 
                 targetCP, sourceCP, connection, message.getOriginator(), region);
         } else {
         	IPAndPort	replica;
         	
         	replica = ProtoChecksumTreeRequestMessageGroup.getReplica(message);
-        	storage.asyncInvocation("getChecksumTreeForLocal", message.getContext(), message.getUUID(), 
+        	storage.asyncInvocationBlocking("getChecksumTreeForLocal", message.getContext(), message.getUUID(), 
                     targetCP, sourceCP, connection, message.getOriginator(), region, replica, message.getDeadlineRelativeMillis());
         }
     }
@@ -706,7 +719,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             message.displayForDebug();
         }
         //storage.incomingChecksumTree(message, connection);
-        storage.asyncInvocation("incomingChecksumTree", message, connection);
+        storage.asyncInvocationNonBlocking("incomingChecksumTree", message, connection);
     }
     
     ////////////////////////////
@@ -717,7 +730,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     
     private void handleNamespaceResponse(MessageGroup message, MessageGroupConnection connection) {
         //storage.handleNamespaceResponse(message, connection);
-        storage.asyncInvocation("handleNamespaceResponse", message, connection);
+        storage.asyncInvocationNonBlocking("handleNamespaceResponse", message, connection);
     }
     
     private void handleSetConvergenceState(MessageGroup message, MessageGroupConnection connectionForRemote) {
@@ -835,10 +848,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         }
     }
     
-    private static final int	workerPoolTargetSize = 2;
-    private static final int	workerPoolMaxSize = Runtime.getRuntime().availableProcessors();
+    private static final int	workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+    private static final int	workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
     
-    static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModuleNSPPool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
+    static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
     
     class Worker extends BaseWorker<MessageAndConnection> {
         Worker() {

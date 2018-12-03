@@ -115,11 +115,11 @@ void od_setLastWriteMillis(OpenDir *od, uint64_t lastWriteMillis) {
 }    
 
 void od_waitForWrite(OpenDir *od, uint64_t writeTimeMillis) {
-    srfsLog(LOG_INFO, "Waiting for write %s %lu", od->path, writeTimeMillis);
+    srfsLog(LOG_INFO, "Waiting for write %s %lu %lu", od->path, writeTimeMillis, od->lastWriteMillis);
 	while (od->lastWriteMillis < writeTimeMillis) {
 		pthread_cond_wait(od->cv, od->mutex);
 	}
-    srfsLog(LOG_INFO, "Wait for write complete %s %lu", od->path, writeTimeMillis);
+    srfsLog(LOG_INFO, "Wait for write complete %s %lu %lu", od->path, writeTimeMillis, od->lastWriteMillis);
 }
     
 void od_mark_deleted(OpenDir *od) {

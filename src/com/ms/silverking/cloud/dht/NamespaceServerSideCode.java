@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.object.ObjectUtil;
 import com.ms.silverking.text.ObjectDefParser2;
 
@@ -18,6 +19,7 @@ public class NamespaceServerSideCode {
     /**
      * internal use only
      */
+    @OmitGeneration
     public static void init() {
     }
 	

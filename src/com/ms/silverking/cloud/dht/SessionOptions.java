@@ -1,9 +1,14 @@
 package com.ms.silverking.cloud.dht;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
 import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.SimpleSessionEstablishmentTimeoutController;
+import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
+import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
@@ -22,10 +27,25 @@ public final class SessionOptions {
 	private static final String defaultTimeoutControllerProperty = 
 			SessionEstablishmentTimeoutController.class.getName() + ".DefaultSETimeoutController";
 	private static final SessionEstablishmentTimeoutController	defaultDefaultTimeoutController = 
-			new SimpleSessionEstablishmentTimeoutController(4, 2 * 60 * 1000, 8 * 60 * 1000);
+			new SimpleSessionEstablishmentTimeoutController(14, 2 * 60 * 1000, 8 * 60 * 1000);
 	
 	private static SessionEstablishmentTimeoutController	defaultTimeoutController;
 	private static final boolean	debugDefaultTimeoutController = false;
+	
+	private static final Map<String,String>	dummyGCMap;
+	
+	static {
+		dummyGCMap = new HashMap<>();
+		dummyGCMap.put(ClientDHTConfiguration.nameVar, "dummyname");
+		dummyGCMap.put(ClientDHTConfiguration.portVar, "80");
+		dummyGCMap.put(ClientDHTConfiguration.zkLocVar, "localhost:0");
+	}
+	
+    private static final SessionOptions template = new SessionOptions(new SKGridConfiguration("dummygc", dummyGCMap), "localhost", defaultDefaultTimeoutController);
+
+	static {
+		ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
+	}
 	
 	static {
 		String	def;
@@ -89,7 +109,7 @@ public final class SessionOptions {
     }
     
     /**
-     * Create a SessionOptions instance with the default preferredServer ad timeout controller
+     * Create a SessionOptions instance with the default preferredServer and timeout controller
      * @param dhtConfigProvider
      */
     public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider) {
@@ -97,11 +117,30 @@ public final class SessionOptions {
     }
     
     /**
-     * Create a SessionOptions like this one, but with the specified preferredServer
-     * @param preferredServer the preferredServer to use
+     * Return a new SessionOptions object with the specified dhtConfig
+     * @param dhtConfig the new dhtConfig
+     * @return a modified SessionOptions object
+     */
+    public SessionOptions dhtConfig(ClientDHTConfiguration dhtConfig) {
+    	return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+    }
+    
+    /**
+     * Return a new SessionOptions object with the specified preferredServer
+     * @param preferredServer the new preferredServer
+     * @return a modified SessionOptions object
      */
     public SessionOptions preferredServer(String preferredServer) {
-        return new SessionOptions(dhtConfig, preferredServer);
+    	return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+    }
+    
+    /**
+     * Return a new SessionOptions object with the specified timeoutController
+     * @param timeoutController the new timeoutController
+     * @return a modified SessionOptions object
+     */
+    public SessionOptions timeoutController(SessionEstablishmentTimeoutController timeoutController) {
+    	return new SessionOptions(dhtConfig, preferredServer, timeoutController);
     }    
     
     /**
@@ -127,7 +166,7 @@ public final class SessionOptions {
     public SessionEstablishmentTimeoutController getTimeoutController() {
     	return timeoutController;
     }
-    
+
     @Override
     public int hashCode() {
         return dhtConfig.hashCode() ^ preferredServer.hashCode() ^ timeoutController.hashCode();
@@ -142,8 +181,12 @@ public final class SessionOptions {
         		&& this.timeoutController.equals(o.timeoutController);
     }
 
-    @Override
-    public String toString() {
-        return dhtConfig +":"+ preferredServer;
+	@Override
+	public String toString() {
+	    return ObjectDefParser2.objectToString(this);
+	}
+	
+    public static SessionOptions parse(String def) {
+        return ObjectDefParser2.parse(SessionOptions.class, def);
     }
 }

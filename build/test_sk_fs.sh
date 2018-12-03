@@ -16,12 +16,15 @@ typeset output_filename=$(f_getTestSkfs_RunOutputFilename)
 	f_runTestAntScript "testSkfsOnly-small" "$output_filename" "$TEST_SILVERKING_FS_SMALL_EXPECTED_COUNT" "$vars";
 		
 	typeset skClasspath=$(f_getSkClasspath)
+    typeset sshVarForFileWriteWithDelayTest=$(f_getSshVar)
 	vars+="
-	     IOZONE_BIN=$IOZONE_BIN
-	   TRUNCATE_BIN=$TRUNCATE_BIN
-	     SK_SERVERS=$SK_SERVERS
-	       JAVA_BIN=$JAVA_8
-	   SK_CLASSPATH=$skClasspath
+	               IOZONE_BIN=$IOZONE_BIN
+	             TRUNCATE_BIN=$TRUNCATE_BIN
+	               SK_SERVERS=$SK_SERVERS
+	                 JAVA_BIN=$JAVA_8
+	             SK_CLASSPATH=$skClasspath
+     SK_FILE_WRITER_FILE_SIZE=$SK_FILE_WRITER_FILE_SIZE
+                   $sshVarForFileWriteWithDelayTest
 	"
 	f_runTestAntScript "testSkfsOnly-large" "$output_filename" "$TEST_SILVERKING_FS_LARGE_EXPECTED_COUNT" "$vars";
 	f_printTestSummary "$output_filename";

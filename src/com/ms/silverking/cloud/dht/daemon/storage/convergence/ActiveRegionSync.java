@@ -57,8 +57,8 @@ public class ActiveRegionSync implements KeyedOpResultListener {
     private final Map<UUIDBase,SyncRetrievalRequest>	outstandingSyncRetrievalRequests;	
 	private boolean	isComplete;
 	private volatile long	lastUpdateMillis;
+	private volatile boolean	checksumTreeProcessed;
 
-	
 	public static boolean	debug = false;
 	private static final boolean	verbose = true;
 	
@@ -77,7 +77,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
     	activeRegionSyncs = new MapMaker().weakValues().makeMap();
     }
 	
-	public ActiveRegionSync(NamespaceStore nsStore, long namespace, ChecksumTreeServer checksumTreeServer, MessageGroupBase mgBase, ChecksumTreeRequest ctr) {
+	private ActiveRegionSync(NamespaceStore nsStore, long namespace, ChecksumTreeServer checksumTreeServer, MessageGroupBase mgBase, ChecksumTreeRequest ctr) {
 		uuid = UUIDBase.random();
 		this.nsStore = nsStore;
 		this.namespace = namespace;
@@ -95,6 +95,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 		this(nsStore, nsStore.getNamespace(), checksumTreeServer, mgBase, ctr);
 	}
 	
+	// for testing
 	public ActiveRegionSync(long namespace, ChecksumTreeServer checksumTreeServer, MessageGroupBase mgBase, ChecksumTreeRequest ctr) {
 		this(null, namespace, checksumTreeServer, mgBase, ctr);
 	}
@@ -122,7 +123,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 		MatchResult matchResult;
 		Set<KeyAndVersionChecksum> keysToFetch;
 		List<KeyAndVersionChecksum> keysToFetchList;
-		boolean		initialSRRSent;
+		SyncRetrievalRequest initialSRR;
 
 		lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
 		if (verbose) {
@@ -131,9 +132,10 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 					(remoteTree != null ? Integer.toString(remoteTree.estimatedKeys()) : "null remoteTree") );
 		}
 		if (remoteTree == null) {
-			if (debug) {
-				Log.warning("null incomingChecksumTree");
+			if (verbose) {
+				Log.warningAsyncf("ars null remote tree %s", uuid);
 			}
+			checksumTreeProcessed = true;
 			checkForCompletion();
 			return;
 		}
@@ -156,6 +158,10 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 			//System.out.println(remoteTree + "\n\nlocalTree\n" + localTree);
 		}
 		if (localTree == null) {
+			if (verbose) {
+				Log.warningAsyncf("ars null local tree %s", uuid);
+			}
+			checksumTreeProcessed = true;
 			checkForCompletion();
 			return;
 		}
@@ -187,28 +193,16 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 			}
 			keysToFetch.add(kvc);
 		}
-		/*
-		 * Queue<DHTKey> keysToFetchQueue;
-		 * 
-		 * keysToFetchQueue = keysToFetchMap.get(cp); if (keysToFetchQueue ==
-		 * null) { Queue<DHTKey> prev;
-		 * 
-		 * keysToFetchQueue = new ConcurrentLinkedQueue<>(); prev =
-		 * keysToFetchMap.putIfAbsent(cp, keysToFetchQueue); if (prev != null) {
-		 * keysToFetchQueue = prev; } } keysToFetchQueue.addAll(keysToFetch);
-		 */
-		initialSRRSent = false;
+
+		initialSRR = null;
 		keysToFetchList = new ArrayList<>(keysToFetch);
 		Collections.sort(keysToFetchList, KeyAndVersionChecksumSegmentNumberComparator.descendingSort);
 		while (keysToFetchList.size() > 0) {
 			Set<DHTKey> batchKeys;
 			int batchSize;
-			RetrievalOptions retrievalOptions;
 			UUIDBase uuid;
-			// MessageGroup mg;
 			SyncRetrievalRequest srr;
 
-			// batchKeys = new HashSet<>(retrievalBatchSize);
 			batchKeys = new ConcurrentSkipListSet<DHTKey>();
 			batchSize = 0;
 			while (keysToFetchList.size() > 0 && batchSize < retrievalBatchSize) {
@@ -217,23 +211,26 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 			}
 
 			// FUTURE - could consider sending SourceNotInDest
-			retrievalOptions = OptionsHelper.newRetrievalOptions(
-					RetrievalType.VALUE_AND_META_DATA, WaitMode.GET,
-					checksumVersionConstraint(cp.getDataVersion()));
-			// new VersionConstraint(Long.MIN_VALUE + 1, version, Mode.NEWEST));
 			uuid = UUIDBase.random();
 			srr = new SyncRetrievalRequest(uuid, batchKeys, cp.getDataVersion(), connection);
 			activeRegionSyncs.put(uuid, this);
 			outstandingSyncRetrievalRequests.put(uuid, srr);
-			if (!initialSRRSent) {
-				initialSRRSent = true;
-				sendSyncRetrievalRequest(srr);
+			if (initialSRR == null) {
+				initialSRR = srr;
 			}
+			checksumTreeProcessed = true;
 		}
-		//checkMGQueue();
 		if (debug) {
 			System.out.println("no more keysToFetch");
 		}
+		if (initialSRR != null) {
+			sendSyncRetrievalRequest(initialSRR);
+		} else {
+			if (outstandingSyncRetrievalRequests.size() != 0) {
+				throw new RuntimeException("Panic");
+			}
+		}
+		checksumTreeProcessed = true;
 		checkForCompletion();
 	}
 	
@@ -247,13 +244,8 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 			lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
 	        srr = outstandingSyncRetrievalRequests.get(message.getUUID());
 	        
-	        //outstandingMessages.decrementAndGet();
-	        //if (outstandingMessages.get() < 0) {
-	       //     outstandingMessages.set(0);
-	        //}
-	        
-	        if (debug) {
-	            Log.warning("incomingSyncRetrievalResponse");
+	        if (verbose) {
+	            Log.warningAsyncf("incoming srr %s %d", message.getUUID(), message.estimatedKeys());
 	        }
 	        svpList = new ArrayList<>();
 	        for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
@@ -286,7 +278,6 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 	            outstandingSyncRetrievalRequests.remove(srr.getUUID());
 	            inprocessSyncRetrievalRequests.remove(srr.getUUID());
 	        }
-	        //checkMGQueue();
 	        checkForCompletion();
     	} catch (RuntimeException re) {
     		Log.warningf("Exception in ars for ns %x", namespace);
@@ -310,8 +301,8 @@ public class ActiveRegionSync implements KeyedOpResultListener {
 	
     private static VersionConstraint checksumVersionConstraint(long max) {
         return new VersionConstraint(checksumVCMin, Long.MAX_VALUE, VersionConstraint.Mode.GREATEST);
-        //return new VersionConstraint(checksumVCMin, max, VersionConstraint.Mode.NEWEST);
-        //return VersionConstraint.newest;
+        // FUTURE - consider max; for now; always greatest
+        //return new VersionConstraint(checksumVCMin, max, VersionConstraint.Mode.GREATEST);
     }
 	
     private void sendSyncRetrievalRequest(SyncRetrievalRequest srr) {
@@ -324,7 +315,6 @@ public class ActiveRegionSync implements KeyedOpResultListener {
                 checksumVersionConstraint(srr.dataVersion));
         mg = new ProtoRetrievalMessageGroup(srr.uuid, namespace, new InternalRetrievalOptions(retrievalOptions),
                 mgBase.getMyID(), srr.outstandingKeys, convergenceRelativeDeadlineMillis).toMessageGroup();
-        //outgoingMessages.add(new OutgoingMessage(mg, new IPAndPort(srr.connection.getRemoteSocketAddress())));
         mgBase.send(mg, srr.connection.getRemoteIPAndPort());
     }
     
@@ -336,7 +326,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
     // completion check
     
     private void checkForCompletion() {
-        if (outstandingSyncRetrievalRequests.isEmpty()) {
+        if (checksumTreeProcessed && outstandingSyncRetrievalRequests.isEmpty()) {
         	setComplete();
         } else {
         	int	inprocessSize;

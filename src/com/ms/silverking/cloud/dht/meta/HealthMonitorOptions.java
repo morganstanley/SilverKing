@@ -9,6 +9,8 @@ public class HealthMonitorOptions {
     public String gridConfig;
     @Option(name="-c", usage="convictionLimits", required=true)
     public String convictionLimits;
+    @Option(name="-w", usage="convictionWarningThresholds", required=false)
+    public String convictionWarningThresholds;
     @Option(name="-i", usage="intervalSeconds", required=false)
     public int  watchIntervalSeconds = 15;
     @Option(name="-G", usage="guiltThreshold", required=false)

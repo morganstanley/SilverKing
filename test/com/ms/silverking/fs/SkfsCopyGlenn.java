@@ -38,7 +38,7 @@ public class SkfsCopyGlenn {
 	private static File testsDir;
 	private static File parentDir;
 
-	private final static String testFilesDirName = "testFiles";
+	private static final String testFilesDirName = "testFiles";
 	private final File testFilesDir = new File(getClass().getResource(testFilesDirName).getPath());
 
 	

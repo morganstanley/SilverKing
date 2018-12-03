@@ -2,11 +2,13 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
@@ -56,8 +58,10 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.numeric.NumUtil;
+import com.ms.silverking.process.ProcessExecutor;
 import com.ms.silverking.pssh.TwoLevelParallelSSHMaster;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
@@ -114,6 +118,8 @@ public class SKAdmin {
 	private static final String	logFileName = "SKAdmin.out";
 	
 	public static boolean	exitOnCompletion = true;
+	
+	private static final int	localCommandErrorCode = 127;
 	
 	public SKAdmin(SKGridConfiguration gc, SKAdminOptions options) throws IOException, KeeperException {
 		Pair<RingConfiguration,InstantiatedRingTree>	ringConfigAndTree;
@@ -184,6 +190,7 @@ public class SKAdmin {
 
 		dirNSValueRetentionPolicy = "valueRetentionPolicy=<TimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=1,timeSpanSeconds=86400}";
 		fileBlockNSValueRetentionPolicy = options.fileBlockNSValueRetentionPolicy != null ? ","+ options.fileBlockNSValueRetentionPolicy : "";
+		Log.warningf("fileBlockNSValueRetentionPolicy %s", fileBlockNSValueRetentionPolicy);
 		skfsNSOptions = NamespaceOptions.parse("versionMode=SINGLE_VERSION,"+ commonNSOptions +","+ opOptions);
 		skfsMutableNSOptions =                   NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions);
 		skfsFileBlockNSOptions =                 NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions + fileBlockNSValueRetentionPolicy);
@@ -336,10 +343,6 @@ public class SKAdmin {
 		return "-Xms"+ heapLimits.getV1() +" -Xmx"+ heapLimits.getV2();
 	}
 	
-	private String getReapInterval(ClassVars classVars) {
-		return classVars.getVarMap().get(DHTConstants.reapIntervalVar);
-	}
-	
 	private String getFileSegmentCacheCapacity(ClassVars classVars) {
 		return classVars.getVarMap().get(DHTConstants.fileSegmentCacheCapacityVar);
 	}
@@ -359,7 +362,6 @@ public class SKAdmin {
 	private String getDHTOptions(SKAdminOptions options, ClassVars classVars) {
 		return "-Dcom.ms.silverking.Log="+ options.logLevel
 				+" -D"+ DHTConstants.dataBasePathProperty +"="+ getDataDir(classVars)
-				+" -D"+ DHTConstants.reapIntervalProperty +"="+ getReapInterval(classVars)
 				+" -D"+ DHTConstants.fileSegmentCacheCapacityProperty +"="+ getFileSegmentCacheCapacity(classVars)
 				+" -D"+ DHTConstants.retrievalImplementationProperty +"="+ getRetrievalImplementation(classVars)
 				+" -D"+ DHTConstants.segmentIndexLocationProperty +"="+ getSegmentIndexLocation(classVars)
@@ -402,7 +404,6 @@ public class SKAdmin {
 		return  (destructive ? "" : "netstat -tulpn | grep tcp.*:"+ dhtConfig.getPort() +" ; ") +
 				(destructive ? "" : "if [ \\$? -ne 0 ]; then { ") +
 				(destructive ? createStopCommand(dhtConfig, classVars) +"; " : "")
-				//+"mkdir -p "+ getDataDir(classVars) +"; " // StorageModule worries about this creation
 				+"mkdir -p "+ daemonLogDir +"; "
 				+"rm "+ getHeapDumpFile(classVars) +"; "
 				+"mv "+ daemonLogFile +" "+ prevDaemonLogFile +"; "
@@ -411,8 +412,7 @@ public class SKAdmin {
 				+ getTaskset(options)
 				+ getJavaCmdStart(options, classVars) 
 				+" "+ DHTNode.class.getCanonicalName()
-				+ (options.disableReap ? " -r " : "")
-				+ (options.leaveTrash ? " -leaveTrash " : "")
+				+ " -reapPolicy "+ options.getReapPolicy()
 				+" -n "+ gc.getClientDHTConfiguration().getName() 
 				+" -z "+ gc.getClientDHTConfiguration().getZKConfig()
 				+" -into "+ options.inactiveNodeTimeoutSeconds
@@ -530,7 +530,7 @@ public class SKAdmin {
 	private String getCheckSKFSBaseCommand(ClassVars classVars, String command) {
 		return (skGlobalCodebase == null ? "" : "export skGlobalCodebase="+ skGlobalCodebase +"; ")
 				+"export "+ GridConfiguration.defaultBaseEnvVar +"="+ 
-					(options.gridConfigBase == null ? GridConfiguration.getDefaultBase() : new File(options.gridConfigBase)) +"; " 
+					(options.gridConfigBase == null ? GridConfiguration.getDefaultBase() : new File(options.gridConfigBase).getAbsolutePath()) +"; " 
 				+"export "+ DHTConstants.jaceHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.jaceHomeEnv, UndefinedAction.ExceptionOnUndefined) +"; "
 				+"export "+ DHTConstants.javaHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.javaHomeEnv, getSystemJavaHome()) +"; "
 				+"export "+ DHTConstants.classpathEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.classpathEnv, System.getProperty(DHTConstants.classpathProperty)) +"; "
@@ -796,30 +796,45 @@ public class SKAdmin {
 		return true;
 	}
 	
-	private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers, Set<String> targetServers) {
+	private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers, Set<String> _targetServers, HostGroupTable hostGroupTable) {
 		Set<String>	_servers;
+		Set<String>	targetServers;
+		boolean		retainExclusions;
 		
 		_servers = new HashSet<>(servers);
-		if (!options.includeExcludedHosts && !options.targetsEqualsExclusionsTarget() && ! options.targetsEqualsActiveDaemonsTarget()) {
-			_servers.removeAll(exclusionSet.getServers());
-		}
-		if (options.targets != null) {
-			Set<String>	_s;
-			
-			_s = new HashSet<>(_servers);
-			if (options.targetsEqualsExclusionsTarget()) {
-				_s.retainAll(exclusionSet.getServers());
+		
+		retainExclusions = false;
+		targetServers = new HashSet<>();
+		for (String s : _targetServers) {
+			if (IPAddrUtil.isValidIP(s)) {
+				targetServers.add(s);
 			} else {
-				if (options.targetsEqualsActiveDaemonsTarget()) {
-					_s = IPAndPort.copyServerIPsAsMutableSet(_getActiveDaemons().getV2());
+				if (options.isReservedTarget(s)) {
+					if (s.equalsIgnoreCase(SKAdminOptions.activeDaemonsTarget)) {
+						targetServers.addAll(IPAndPort.copyServerIPsAsMutableSet(_getActiveDaemons().getV2()));
+						retainExclusions = true;
+					} else if (s.equalsIgnoreCase(SKAdminOptions.exclusionsTarget)) {
+						targetServers.addAll(exclusionSet.getServers());
+						retainExclusions = true;
+					} else {
+						throw new RuntimeException("Panic");
+					}
 				} else {
-					_s.retainAll(targetServers);
+					for (InetAddress addr : hostGroupTable.getHosts(s)) {
+						targetServers.add(addr.getHostAddress());
+					}
 				}
 			}
-			return _s;
-		} else {
-			return _servers;
-		}		
+		}
+		
+		if (!options.includeExcludedHosts && !retainExclusions) {
+			_servers.removeAll(exclusionSet.getServers());
+		}
+		
+		if (options.targets != null) {
+			_servers.retainAll(targetServers);
+		}
+		return _servers;
 	}
 	
 	private void verifyServerEligibility(Set<String> servers, SKAdminCommand[] commands) throws KeeperException {
@@ -905,7 +920,7 @@ public class SKAdmin {
 		// active and passive, the ring from containing servers without class vars, etc.
 		
 		validActiveServers = findValidActiveServers(activeHostGroupNames, hostGroupTable, ringTree);
-		validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers);
+		validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers, hostGroupTable);
 		verifyServerEligibility(validActiveServers, commands);
 		Log.warning("validActiveServers: ", CollectionUtil.toString(validActiveServers));
 		
@@ -936,7 +951,7 @@ public class SKAdmin {
 		} else {
 			validPassiveServers = findValidPassiveServers(passiveNodeHostGroupNames, hostGroupTable);
 		}
-		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers);
+		validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers, hostGroupTable);
 		Log.warning("validPassiveServers: ", CollectionUtil.toString(validPassiveServers));
 		
 		if (Arrays.contains(commands, SKAdminCommand.ClearData) && !options.targetsEqualsExclusionsTarget()) {
@@ -1032,16 +1047,39 @@ public class SKAdmin {
 	private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts, HostGroupTable hostGroups) throws IOException {
 		TwoLevelParallelSSHMaster	sshMaster;
 		boolean	result;
+		String		localServer;
+		String[]	localCommand;
 		
+		localServer = null;
+		localCommand = null;
 		Log.warningf("serverCommands.size() %d", serverCommands.size());
-		sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
-		Log.warning("Starting workers");
-		sshMaster.startWorkers(hostGroups);
-		Log.warning("Waiting for workers");
-		result = sshMaster.waitForWorkerCompletion();
-		sshMaster.terminate();
-		Log.warning("Workers complete");
+		if (serverCommands.size() == 1) {
+			Entry<String,String[]>	entry;
+			
+			entry = serverCommands.entrySet().iterator().next();
+			localServer = entry.getKey();
+			localCommand = entry.getValue();
+		}
+		if (isLocalServer(localServer)) { // if this command is solely for the local server
+			ProcessExecutor	pExec;
+			
+			pExec = ProcessExecutor.bashExecutor(localCommand, options.workerTimeoutSeconds);
+			pExec.execute();
+			result = pExec.getExitCode() != localCommandErrorCode;
+		} else {
+			sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
+			Log.warning("Starting workers");
+			sshMaster.startWorkers(hostGroups);
+			Log.warning("Waiting for workers");
+			result = sshMaster.waitForWorkerCompletion();
+			sshMaster.terminate();
+			Log.warning("Workers complete");
+		}
 		return result;
+	}
+	
+	private boolean isLocalServer(String ip) {
+		return ip != null && ip.equals(IPAddrUtil.localIPString());
 	}
 
 	private Map<String, ClassVars> getHostGroupToClassVarsMap(DHTConfiguration dhtConfig) throws KeeperException {
@@ -1133,34 +1171,38 @@ public class SKAdmin {
 	private ClassVars getServerClassVars(String server, HostGroupTable hostGroupTable, Set<String> activeHostGroupNames,
 										 Set<String> passiveNodeHostGroupNames,
 										 Map<String,ClassVars> hostGroupToClassVars) {
-		Set<String>	serverHostGroups;
-		Set<String>	acceptableHostGroups;
-		String		serverHostGroup;
-		Set<String>	activeAndPassiveHostGroupNames;
-		ClassVars	serverClassVars;
-		
-		serverHostGroups = hostGroupTable.getHostGroups(server);
-		acceptableHostGroups = new HashSet<>(serverHostGroups);
-		activeAndPassiveHostGroupNames = new HashSet<>();
-		activeAndPassiveHostGroupNames.addAll(activeHostGroupNames);
-		activeAndPassiveHostGroupNames.addAll(passiveNodeHostGroupNames);
-		acceptableHostGroups.retainAll(activeAndPassiveHostGroupNames);
-		if (acceptableHostGroups.size() == 1) {
-			serverHostGroup = acceptableHostGroups.iterator().next();
-		} else if (acceptableHostGroups.size() > 1) {
-			// FUTURE - Could select a "best". For now, just pick the first.
-			Log.warning(server +" has more than one valid host group ");
-			serverHostGroup = acceptableHostGroups.iterator().next();
+		if (options.explicitClassVarDef != null) {
+			return defaultClassVars.overrideWith(ClassVars.parse(options.explicitClassVarDef.replace(',', '\n'), 0));
 		} else {
-			Log.warning(server +" has no valid host group ");
-			return defaultClassVars;
-		}
-		serverClassVars = hostGroupToClassVars.get(serverHostGroup);
-		if (serverClassVars != null) {
-			return defaultClassVars.overrideWith(serverClassVars);
-		} else {
-			Log.warning(server +" has no ClassVars for group "+ serverHostGroup);
-			return defaultClassVars;
+			Set<String>	serverHostGroups;
+			Set<String>	acceptableHostGroups;
+			String		serverHostGroup;
+			Set<String>	activeAndPassiveHostGroupNames;
+			ClassVars	serverClassVars;
+			
+			serverHostGroups = hostGroupTable.getHostGroups(server);
+			acceptableHostGroups = new HashSet<>(serverHostGroups);
+			activeAndPassiveHostGroupNames = new HashSet<>();
+			activeAndPassiveHostGroupNames.addAll(activeHostGroupNames);
+			activeAndPassiveHostGroupNames.addAll(passiveNodeHostGroupNames);
+			acceptableHostGroups.retainAll(activeAndPassiveHostGroupNames);
+			if (acceptableHostGroups.size() == 1) {
+				serverHostGroup = acceptableHostGroups.iterator().next();
+			} else if (acceptableHostGroups.size() > 1) {
+				// FUTURE - Could select a "best". For now, just pick the first.
+				Log.warning(server +" has more than one valid host group ");
+				serverHostGroup = acceptableHostGroups.iterator().next();
+			} else {
+				Log.warning(server +" has no valid host group ");
+				return defaultClassVars;
+			}
+			serverClassVars = hostGroupToClassVars.get(serverHostGroup);
+			if (serverClassVars != null) {
+				return defaultClassVars.overrideWith(serverClassVars);
+			} else {
+				Log.warning(server +" has no ClassVars for group "+ serverHostGroup);
+				return defaultClassVars;
+			}
 		}
 	}
 	

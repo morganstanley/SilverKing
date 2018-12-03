@@ -7,7 +7,7 @@
 <p><b>Scalable, high-throughput storage and coordination</b></p>
 <h2>Introduction</h2>
 <p>
-SilverKing is a simple, scalable, high-throughput data <b>storage</b> and 
+SilverKing is a scalable, high-throughput data <b>storage</b> and 
 <b>coordination</b> mechanism designed for use in distributed applications. 
 SilverKing provides both a distributed key-value store and a distributed file system.
 </p>
@@ -19,9 +19,7 @@ that make it an attractive solution for many use-cases.
 <ul>
 <li><b>Extreme scale</b> - SilverKing supports many tens of thousands of simultaneous clients, 
   at least thousands of storage servers, and storage limited by the aggregate capacity of the server disks. 
-  SilverKing is in active use by tens of thousands of clients in production, and runs on two clusters of 418 servers each. 
-  (SilverKing's predecessor ran on two clusters of 2,500 servers each in production); 
-  each cluster is used by tens of thousands of active clients.</li>
+  SilverKing is in active use by tens of thousands of clients running on thousands of servers in production.</li>
 <li><b>Rich topology support</b> - Users can directly specify high-level storage policies such as: 
 "primary replicas in New York and London. Secondary replicas in all other regions. 
 Within each regional data center, each primary value must be stored in two racks, and every rack must have a 
@@ -60,7 +58,6 @@ Linda-like coordination primitives simplify distributed application development.
 <h3>File System</h2>
 <p>
 The SilverKing File System (SKFS) provides a highly-scalable file system by leveraging the SilverKing DHT. 
-SKFS is the successor to the SRFS project.
 </p>
 
 <h2>Topology Support</h2>

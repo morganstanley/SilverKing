@@ -351,11 +351,11 @@ int g2tor_readdir(G2TaskOutputReader *g2tor, char *path, void *buf,
 			st.st_mtime = BIRTHDAY_2;
 			st.st_ctime = BIRTHDAY_3;
 			sprintf(outputFileName, "%s.stdout", od->entries[i]->name);
-			if (filler(buf, outputFileName, &st, 0)) {
+			if (filler(buf, outputFileName, &st, 0 FILLER_TAIL)) {
 				break;
 			}
 			sprintf(outputFileName, "%s.stderr", od->entries[i]->name);
-			if (filler(buf, outputFileName, &st, 0)) {
+			if (filler(buf, outputFileName, &st, 0 FILLER_TAIL)) {
 				break;
 			}
 		}

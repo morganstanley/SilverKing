@@ -25,7 +25,7 @@ import com.ms.silverking.testing.annotations.SkfsLarge;
 @SkfsLarge
 public class FileWriterTest {
 
-	private static final long _5_GB = 5_000_000_000L;
+	private static long size;
 	private static String testsDirPath;
 
 	static {
@@ -33,16 +33,17 @@ public class FileWriterTest {
 	}
 	
 	private static final String fileWriterDirName = "file-writer";
-	private final static File fileWriterDir = new File(testsDirPath, fileWriterDirName);
+	private static final File   fileWriterDir     = new File(testsDirPath, fileWriterDirName);
 
 	@BeforeClass
 	public static void setUpBeforeClass() {
 		setupAndCheckTestsDirectory(fileWriterDir);
+		
+		size = Long.parseLong( Util.getEnvVariable("SK_FILE_WRITER_FILE_SIZE").replace("_", "") );
 	}
 	
-	@Test(timeout=45_000)
+	@Test(timeout=60_000)
 	public void testWriteRead() {
-		long size = _5_GB;
 		FileWriter fw = new FileWriter(new File(fileWriterDir, "fw.out"), size);
 		
 		try {

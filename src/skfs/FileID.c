@@ -86,6 +86,14 @@ FileID *fid_new_native(struct stat *_stat) {
 	return fid;
 }
 
+FileID *fid_dup(FileID *_fid) {
+	FileID	*fid;
+
+	fid = (FileID *)mem_alloc(1, sizeof(FileID));
+	memcpy(fid, _fid, sizeof(FileID));
+	return fid;
+}
+
 void fid_init_skfs(FileID *fid, uint64_t instance, uint64_t sequence) {
 	fid->fileSystem = fsSKFS;
 	fid->skfs.instance = instance;

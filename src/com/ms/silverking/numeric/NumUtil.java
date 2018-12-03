@@ -195,6 +195,16 @@ public class NumUtil {
 		}
 		return vals;
     }
+    
+    public static int bound(int v, int min, int max) {
+    	if (v <= min) {
+    		return min;
+    	} else if (v >= max) {
+    		return max;
+    	} else {
+    		return v;
+    	}
+    }
 	
     public static void main(String[] args) {
         for (int i = 0; i <= 16; i++) {

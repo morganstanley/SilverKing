@@ -18,7 +18,7 @@ public class DirectoryInMemory extends DirectoryBase {
 	
 	private static final boolean	debug = false;
 	
-	public DirectoryInMemory(DirectoryInPlace d) {
+	public DirectoryInMemory(DirectoryBase d) {
 		int	numEntries;
 		
 		entries = new TreeMap<>();
@@ -39,6 +39,19 @@ public class DirectoryInMemory extends DirectoryBase {
 
 	public DirectoryInMemory() {
 		entries = new TreeMap<>();
+	}
+	
+	protected DirectoryEntryInPlace[] _createEntryIndex() {
+		DirectoryEntryInPlace[]	indexedEntries;
+		int	i;
+		
+		indexedEntries = new DirectoryEntryInPlace[getNumEntries()];
+		i = 0;
+		for (DirectoryEntryInPlace entry : entries.values()) {
+			indexedEntries[i] = entry;
+			i++;
+		}
+		return indexedEntries;
 	}
 	
 	@Override
@@ -75,6 +88,8 @@ public class DirectoryInMemory extends DirectoryBase {
 		// copy so that the source can be garbage collected
 		entries.put(name.duplicateBuffer(), entry.duplicate());
 		entryBytes += entry.getLengthBytes();
+		//System.out.printf("name %s name.length() %d\n", name.toString(), name.toString().length());
+		//System.out.printf("entryBytes %d entry.getLengthBytes() %d\n", entryBytes, entry.getLengthBytes());
 	}
 	
 	/**
@@ -82,7 +97,7 @@ public class DirectoryInMemory extends DirectoryBase {
 	 * @param update
 	 * @return true if the update resulted in a state change; false if it is redundant
 	 */
-	protected boolean update(DirectoryInPlace update) {
+	public boolean update(DirectoryBase update) {
 		if (debug) {
 			System.out.printf("in update()\n");
 		}
@@ -103,22 +118,31 @@ public class DirectoryInMemory extends DirectoryBase {
 	 * @param update
 	 * @return true if the update resulted in a state change; false if it is redundant
 	 */
-	private boolean smallUpdate(DirectoryInPlace update) {
+	private boolean smallUpdate(DirectoryBase update) {
 		boolean	mutated;
 		
 		if (debug) {
 			System.out.printf("in smallUpdate()\n");
 		}
 		mutated = false;
-		for (int i = 0; i < update.getNumEntries(); i++) {
-			mutated = update((DirectoryEntryInPlace)update.getEntry(i)) || mutated;
-			if (debug) {
-				System.out.printf("smallUpdate %s\n", mutated);
+		if (update instanceof DirectoryInMemory) {
+			for (DirectoryEntryInPlace entry : ((DirectoryInMemory)update).entries.values()) {
+				mutated = update(entry) || mutated;
+				if (debug) {
+					System.out.printf("smallUpdate %s\n", mutated);
+				}
+			}
+		} else {
+			for (int i = 0; i < update.getNumEntries(); i++) {
+				mutated = update((DirectoryEntryInPlace)update.getEntry(i)) || mutated;
+				if (debug) {
+					System.out.printf("smallUpdate %s\n", mutated);
+				}
 			}
 		}
 		return mutated;
 	}
-	
+
 	/**
 	 * Update this directory entry with the incoming update. 
 	 * @param update
@@ -150,7 +174,7 @@ public class DirectoryInMemory extends DirectoryBase {
 	 * @param update
 	 * @return true if the update resulted in a state change; false if it is redundant
 	 */
-	private boolean largeUpdate(DirectoryInPlace update) {
+	private boolean largeUpdate(DirectoryBase update) {
 		int	i1; // index into update
 		DirectoryEntryInPlace	e0; // entry in this object
 		DirectoryEntry			e1; // entry in update
@@ -158,20 +182,37 @@ public class DirectoryInMemory extends DirectoryBase {
 		int	numUpdateEntries;
 		List<DirectoryEntryInPlace>	entriesToAdd;
 		boolean	mutated;
+		boolean	directoryInMemory;
+		DirectoryEntryInPlace[]	updateEntries;
 		
 		if (debug) {
-			System.out.printf("in largeUpdate()");
+			System.out.printf("in largeUpdate()\n");
+		}
+		directoryInMemory = update instanceof DirectoryInMemory;
+		if (debug) {
+			System.out.printf("update is directoryInMemory %s\n", directoryInMemory);
 		}
 		mutated = false;
 		entriesToAdd = null;
 		localEntries = entries.values().iterator();
 		e0 = localEntries.hasNext() ? localEntries.next() : null;
 		i1 = 0;
-		numUpdateEntries = update.getNumEntries();
+
+		if (directoryInMemory) {
+			updateEntries = ((DirectoryInMemory)update)._createEntryIndex();
+			numUpdateEntries = updateEntries.length;
+		} else {
+			updateEntries = null;
+			numUpdateEntries = update.getNumEntries();
+		}
 		while (i1 < numUpdateEntries) {
 			int	comp;
 			
-			e1 = update.getEntry(i1);
+			if (directoryInMemory) {
+				e1 = updateEntries[i1];
+			} else {
+				e1 = update.getEntry(i1);
+			}
 			comp = compareForUpdate(e0, e1);
 			if (debug) {
 				System.out.printf("##\t%s\t%d\t%s\t%d\t%s\n", e0, i1, e1, comp, mutated);
@@ -205,7 +246,7 @@ public class DirectoryInMemory extends DirectoryBase {
 		}
 		return mutated;
 	}
-	
+
 	private int compareForUpdate(DirectoryEntryInPlace e0, DirectoryEntry e1) {
 		ByteString	n0;
 		ByteString	n1;
@@ -217,7 +258,7 @@ public class DirectoryInMemory extends DirectoryBase {
 			throw new RuntimeException("Unexpected null update entry name");
 		} else {
 			if (n0 == null) {
-				return 1; // to force addition/itereation through updates
+				return 1; // to force addition/iteration through updates
 			} else {
 				return n0.compareTo(n1);
 			}
@@ -258,7 +299,7 @@ public class DirectoryInMemory extends DirectoryBase {
 		}
 		// Record index offset
 		indexOffset = offset - dataOffset;
-		//System.out.printf("indexOffset %d %x\n", indexOffset, indexOffset);
+		//System.out.printf("indexOffset/totalBytesWritten decimal: %d hex: %x\n", indexOffset, indexOffset);
 		totalBytesWritten = offset - dataOffset;
 		if (totalBytesWritten != entryBytes) {
 			throw new RuntimeException(String.format("SerializationException: totalBytesWritten != entryBytes %d != %d", totalBytesWritten, entryBytes));

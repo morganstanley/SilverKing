@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht;
 
 import com.google.common.base.Preconditions;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.code.Constraint;
 import com.ms.silverking.object.ObjectUtil;
@@ -59,6 +60,7 @@ public class NamespaceOptions {
     /**
      * internal use only
      */
+    @OmitGeneration
     public static void init() {
     }
     
@@ -466,6 +468,7 @@ public class NamespaceOptions {
                 && ObjectUtil.equal(namespaceServerSideCode, other.namespaceServerSideCode);
     }
     
+    @OmitGeneration
     public void debugEquality(Object o) {
         NamespaceOptions    oNamespaceOptions;
         

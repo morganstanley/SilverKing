@@ -39,6 +39,8 @@ import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.OperationException;
 import com.ms.silverking.cloud.dht.client.PutException;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
+import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
+import com.ms.silverking.cloud.dht.client.SimpleSessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.StoredValue;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.crypto.AESEncrypterDecrypter;
@@ -89,13 +91,15 @@ public class SilverKingClient {
     private static final String    defaultValueMapDisplay = "basic";
     private static final String    defaultValueFormat = "raw";
     
-	public SilverKingClient(ClientDHTConfigurationProvider dhtConfigProvider, String preferredServer,
+    private static final int	defaultSessionAttempts = 10;
+    
+	public SilverKingClient(SessionOptions sessionOptions,
 	        InputStream in, PrintStream out, PrintStream err) throws IOException, ClientException {
         this.in = new BufferedReader(new InputStreamReader(in));
         this.out = out;
         this.err = err;
 		dhtClient = new DHTClient();        
-        session = dhtClient.openSession(new SessionOptions(dhtConfigProvider, preferredServer));
+        session = dhtClient.openSession(sessionOptions);
         if (session == null) {
             throw new RuntimeException("null session");
         }
@@ -866,6 +870,7 @@ public class SilverKingClient {
     		SilverKingClientOptions	options;
     		CmdLineParser	        parser;
     		ClientDHTConfigurationProvider	configProvider;
+    		SessionOptions	sessionOptions;
     		
     		args = repairArgs(args);
     		
@@ -896,18 +901,34 @@ public class SilverKingClient {
     		//    Log.setLevelAll();
     		//}
     		
-    		if (options.gridConfig != null) {
-        		if (options.gridConfigBase != null) {
-        			configProvider = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
-        		} else {
-        			configProvider = SKGridConfiguration.parseFile(options.gridConfig);
-        		}
-    		} else if (options.clientDHTConfiguration != null) {
-    			configProvider = ClientDHTConfiguration.parse(options.clientDHTConfiguration);
-    		} else {
-    			configProvider = null;
-    		}
-    		skc = new SilverKingClient(configProvider, options.server, System.in, System.out, System.err);
+    		//if (options.sessionOptions != null) {
+	    	//	sessionOptions = new SessionOptions(null, null); // Force class initialization
+    		//	sessionOptions = ((SessionOptions)ObjectDefParser2.parse(SessionOptions.class, options.sessionOptions));
+    		//} else {
+	    		if (options.gridConfig != null) {
+	        		if (options.gridConfigBase != null) {
+	        			configProvider = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
+	        		} else {
+	        			configProvider = SKGridConfiguration.parseFile(options.gridConfig);
+	        		}
+	    		} else if (options.clientDHTConfiguration != null) {
+	    			configProvider = ClientDHTConfiguration.parse(options.clientDHTConfiguration);
+	    		} else {
+	    			configProvider = null;
+	    		}
+	    		sessionOptions = new SessionOptions(configProvider, options.server);
+	    		if (options.sessionTimeoutSeconds != 0) {
+	    			SessionEstablishmentTimeoutController	timeoutController; 
+	    			int	maxTimeoutMillis;
+	    			
+	    			maxTimeoutMillis = options.sessionTimeoutSeconds * 1000;
+	    			timeoutController = 
+	    					new SimpleSessionEstablishmentTimeoutController(defaultSessionAttempts, maxTimeoutMillis / defaultSessionAttempts, maxTimeoutMillis);
+	    			sessionOptions = sessionOptions.timeoutController(timeoutController);
+	    		}
+    		//}
+    		
+    		skc = new SilverKingClient(sessionOptions, System.in, System.out, System.err);
             //System.out.println(options.namespace +":"+ options.key);
     		if (options.namespace != null) {
     		    skc.doSetNamespace(wrapOneArg(options.namespace));

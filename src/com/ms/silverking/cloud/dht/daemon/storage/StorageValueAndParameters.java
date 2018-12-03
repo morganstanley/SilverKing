@@ -47,6 +47,10 @@ public class StorageValueAndParameters extends StorageParameters {
         return value;
     }
     
+    public StorageValueAndParameters ccss(short ccss) {
+    	return new StorageValueAndParameters(key, value, getVersion(), getUncompressedSize(), getCompressedSize(), ccss, getChecksum(), getValueCreator(), getCreationTime());
+    }
+    
     public static StorageValueAndParameters createSVP(MessageGroupRetrievalResponseEntry entry) {
         try {
             RawRetrievalResult  rawRetrievalResult;

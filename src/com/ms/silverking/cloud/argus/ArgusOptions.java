@@ -14,6 +14,7 @@ public class ArgusOptions {
     @Option(name="-s", usage="singleUser", required=false)
     boolean	singleUser = false;
     
+    // deprecated - FUTURE - remove
     @Option(name="-p", usage="productionUsers", required=false)
     String  productionUsers;
     

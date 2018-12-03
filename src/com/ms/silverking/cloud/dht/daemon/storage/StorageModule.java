@@ -2,7 +2,6 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -51,11 +50,10 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.numeric.NumConversion;
-import com.ms.silverking.thread.lwt.BaseWorker;
-import com.ms.silverking.thread.lwt.LWTPool;
+import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.thread.lwt.LWTPoolParameters;
-import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
+import com.ms.silverking.thread.lwt.asyncmethod.MethodCallWorker;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.TimeUtils;
@@ -76,11 +74,12 @@ public class StorageModule implements LinkCreationListener {
     private Lock    nsCreationLock;
     private final ZooKeeperExtended zk;
     private final String            nsLinkBasePath;
-    private final MethodCallWorker  methodCallWorker;
-    private final LWTPool           methodCallPool;
+    private final MethodCallWorker  methodCallBlockingWorker;
+    private final MethodCallWorker  methodCallNonBlockingWorker;
     private final Timer				timer;
     private final ValueCreator      myOriginatorID;
     private final NodeInfoZK		nodeInfoZK;
+    private final ReapPolicy		reapPolicy;
     
     private NamespaceStore  metaNamespaceStore; // used to bootstrap the meta NS store
                                                 // reference held here merely to ensure no GC
@@ -88,10 +87,7 @@ public class StorageModule implements LinkCreationListener {
     private static final int    sessionTimeoutMillis = 5 * 60 * 1000;
     
     private static final int    cleanupPeriodMillis = 5 * 1000;
-    private static final int    defaultReapPeriodSeconds = TimeUtils.MINUTES_PER_HOUR * TimeUtils.SECONDS_PER_MINUTE;
-    private static final int    reapPeriodMillis;
     private static final int    reapMaxInitialDelayMillis = 1 * 60 * 1000;
-    private static final int    reapInitialDelayMillis;
     
     //private static final int    primaryConvergencePeriodMillis = 60 * 1000;
     //private static final int    secondaryConvergencePeriodMillis = 60 * 1000;
@@ -121,21 +117,18 @@ public class StorageModule implements LinkCreationListener {
     private static final RetrievalImplementation	retrievalImplementation;
     
     static {
-    	reapPeriodMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.reapIntervalProperty, defaultReapPeriodSeconds) * 1000;
-    	reapInitialDelayMillis = Math.min(reapPeriodMillis, reapMaxInitialDelayMillis);
-    	Log.warningf("reapInitialDelayMillis:\t%d", reapInitialDelayMillis);
-    	Log.warningf("reapPeriodMillis:\t%d", reapPeriodMillis);
     	retrievalImplementation = RetrievalImplementation.valueOf(
     			PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
     	Log.warningf("retrievalImplementation: %s", retrievalImplementation);
     }
     
-    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK) {
+    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy) {
         ClientDHTConfiguration  clientDHTConfiguration;
         
         this.timer = timer;
         this.ringMaster = ringMaster;
         this.nodeInfoZK = nodeInfoZK;
+        this.reapPolicy = reapPolicy;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
         baseDir = new File(DHTNodeConfiguration.dataBasePath, dhtName);
@@ -144,7 +137,7 @@ public class StorageModule implements LinkCreationListener {
         //spGroup = createTestPolicy();
         spGroup = null;
         myOriginatorID = SimpleValueCreator.forLocalProcess();
-        // FIXME commented out temporarily
+        // FUTURE re-enable periodic convergence
         // We may need to ensure that this runs during relatively quiet times
         /*
         timer.scheduleAtFixedRate(new ConvergenceChecker(OwnerQueryMode.Primary), 
@@ -156,11 +149,13 @@ public class StorageModule implements LinkCreationListener {
                                                         secondaryConvergencePeriodMillis * 2), 
                     secondaryConvergencePeriodMillis);
                     */
-        methodCallPool = LWTPoolProvider.createPool(LWTPoolParameters.create(methodCallPoolName)
-                .maxSize(methodCallPoolMaxSize).targetSize(methodCallPoolTargetSize)
-                .workUnit(methodCallPoolWorkUnit).commonQueue(true));
-        methodCallWorker = new MethodCallWorker(methodCallPool, this);
-        Log.warning("methodCallPool created");
+        methodCallNonBlockingWorker = new MethodCallWorker(LWTPoolParameters.create(methodCallNonBlockingPoolName)
+                .maxSize(methodCallNonBlockingPoolMaxSize).targetSize(methodCallNonBlockingPoolTargetSize)
+                .workUnit(methodCallPoolWorkUnit).commonQueue(true), this);
+        methodCallBlockingWorker = new MethodCallWorker(LWTPoolParameters.create(methodCallBlockingPoolName)
+                .maxSize(methodCallBlockingPoolMaxSize).targetSize(methodCallBlockingPoolTargetSize)
+                .workUnit(methodCallPoolWorkUnit).commonQueue(true), this);
+        Log.warning("methodCallPools created");
         
         nsCreationLock = new ReentrantLock();
         
@@ -181,25 +176,21 @@ public class StorageModule implements LinkCreationListener {
     }
     
     public void setReady() {
-        // meta ns
         createMetaNSStore();
-        // node ns
+        
         nodeNSStore = new NodeNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values());
         addDynamicNamespace(nodeNSStore);
-        // replicas ns
+        
         replicasNSStore = new ReplicasNamespaceStore(mgBase, ringMaster, activeRetrievals);
         addDynamicNamespace(replicasNSStore);
-        // system ns
+        
         systemNSStore = new SystemNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values(), nodeInfoZK);
         addDynamicNamespace(systemNSStore);
         
         timer.scheduleAtFixedRate(new Cleaner(), cleanupPeriodMillis, cleanupPeriodMillis);
-        // For now, reap must come from external
-        //timer.scheduleAtFixedRate(new Reaper(), reapInitialDelayMillis, reapPeriodMillis);        
-    }
-    
-    public void initialReap(boolean leaveTrash) {
-    	reap(leaveTrash);
+        if (reapPolicy.supportsLiveReap()) {
+        	timer.scheduleAtFixedRate(new Reaper(), reapPolicy.getReapIntervalMillis(), reapPolicy.getReapIntervalMillis());
+        }
     }
     
     private void createMetaNSStore() {
@@ -277,7 +268,7 @@ public class StorageModule implements LinkCreationListener {
                 parent = null;
             }
             nsStore = NamespaceStore.recoverExisting(ns, nsDir, parent, null, mgBase, ringMaster, 
-                    activeRetrievals, zk, nsLinkBasePath, this);
+                    activeRetrievals, zk, nsLinkBasePath, this, reapPolicy);
             namespaces.put(ns, nsStore);
             nsStore.startWatches(zk, nsLinkBasePath, this);            
             Log.warning("\t\tDone recovering: "+ nsDir.getName());
@@ -375,7 +366,8 @@ public class StorageModule implements LinkCreationListener {
                                             NamespaceStore.DirCreationMode.CreateNSDir,
                                             nsProperties,//spGroup.getRootPolicy(),
                                             parent,
-                                            mgBase, ringMaster, false, activeRetrievals);
+                                            mgBase, ringMaster, false, activeRetrievals,
+                                            reapPolicy);
                 } else {
                     created = false;
                 }
@@ -497,18 +489,32 @@ public class StorageModule implements LinkCreationListener {
         }
     }
     
-    public void reap(boolean leaveTrash) {
+    public void startupReap() {
     	Stopwatch	sw;
     	
-    	Log.warning("Reap");
+    	Log.warning("Startup reap");
     	sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
         	if (!ns.isDynamic()) {
-        		ns.reap(leaveTrash);
+        		ns.startupReap();
         	}
         }
     	sw.stop();
-    	Log.warning("Reap complete: "+ sw);
+    	Log.warning("Startup reap complete: "+ sw);
+    }
+    
+    public void liveReap() {
+    	Stopwatch	sw;
+    	
+    	Log.warningAsync("Live reap");
+    	sw = new SimpleStopwatch();
+        for (NamespaceStore ns : namespaces.values()) {
+        	if (!ns.isDynamic()) {
+        		ns.liveReap();
+        	}
+        }
+    	sw.stop();
+    	Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
     }
     
     /////////////////////////
@@ -626,7 +632,7 @@ public class StorageModule implements LinkCreationListener {
 		OpResult	result;
 		ProtoOpResponseMessageGroup	response;
 		
-        asyncInvocation("reap");
+        asyncInvocationNonBlocking("reap");
 		result = OpResult.SUCCEEDED;
 		response = new ProtoOpResponseMessageGroup(message.getUUID(), 0, result, myOriginatorID.getBytes(), message.getDeadlineRelativeMillis());
 		try {
@@ -638,68 +644,38 @@ public class StorageModule implements LinkCreationListener {
 	
     /////////////////////////////////
 	
-    private static final String methodCallPoolName = "StorageMethodCallPool";
-    private static final int    methodCallPoolTargetSize = 26;
-    public static final int     methodCallPoolMaxSize = 26;
+    private static final String methodCallBlockingPoolName = "StorageBlockingMethodCallPool";
+    private static final String methodCallNonBlockingPoolName = "StorageNonBlockingMethodCallPool";
+    private static final int	_methodCallPoolSize = NumUtil.bound(20, 2, Runtime.getRuntime().availableProcessors() / 2);
+    private static final int    methodCallBlockingPoolTargetSize = _methodCallPoolSize;
+    private static final int    methodCallBlockingPoolMaxSize = _methodCallPoolSize;
+    private static final int    methodCallNonBlockingPoolTargetSize = _methodCallPoolSize;
+    private static final int    methodCallNonBlockingPoolMaxSize = _methodCallPoolSize;
     private static final int    methodCallPoolWorkUnit = 16;
     
-    public void asyncInvocation(String methodName, Object... parameters) {
-        methodCallWorker.addWork(new MethodCallWork(methodName, parameters));
+    static {
+    	Log.warningf("_methodCallPoolSize: %d", _methodCallPoolSize);
     }
     
-    static class MethodCallWorker extends BaseWorker<MethodCallWork> {
-        private final Object    target;
-        
-        MethodCallWorker(LWTPool methodCallPool, Object target) {
-            super(methodCallPool, true, 0);
-            this.target = target;
-        }
-        
-        @Override
-        public void doWork(MethodCallWork mcw) {
-            Method  method;
-            
-            try {
-                method = target.getClass().getMethod(mcw.methodName, parameterTypes(mcw.parameters));
-                method.invoke(target, mcw.parameters);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        private Class<?>[] parameterTypes(Object[] parameters) {
-            Class<?>[] types;
-            
-            types = new Class[parameters.length];
-            for (int i = 0; i < parameters.length; i++) {
-                types[i] = parameters[i].getClass();
-            }
-            return types;
-        }
+    // methods called from here may block on a local or remote async invocation
+    public void asyncInvocationBlocking(String methodName, Object... parameters) {
+        methodCallBlockingWorker.asyncInvocation(methodName, parameters);
     }
     
-    static class MethodCallWork {
-        final String    methodName;
-        final Object[]  parameters;
-        
-        MethodCallWork(String methodName, Object[] parameters) {
-            this.methodName = methodName;
-            this.parameters = parameters;
-        }
+    // methods called from here must not block on another async invocation on this node or any remote node
+    public void asyncInvocationNonBlocking(String methodName, Object... parameters) {
+        methodCallNonBlockingWorker.asyncInvocation(methodName, parameters);
     }
     
     /////////////////////////////////
     
     class Reaper extends TimerTask {
-    	private final boolean	leaveTrash;
-    	
-        Reaper(boolean leaveTrash) {
-        	this.leaveTrash = leaveTrash;
+        Reaper() {
         }
         
         @Override
         public void run() {
-            reap(leaveTrash);
+            liveReap();
         }
     }
     

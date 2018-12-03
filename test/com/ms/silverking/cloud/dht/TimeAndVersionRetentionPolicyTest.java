@@ -1,6 +1,12 @@
 package com.ms.silverking.cloud.dht;
 
-import static com.ms.silverking.testing.AssertFunction.*;
+import static com.ms.silverking.cloud.dht.TestUtil.getImplementationType;
+import static com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType.SingleReverseSegmentWalk;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_Getters;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -45,7 +51,7 @@ public class TimeAndVersionRetentionPolicyTest {
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-//			{ImplementationType.SingleReverseSegmentWalk, getImplementationType(defaultPolicy)},
+			{SingleReverseSegmentWalk, getImplementationType(defaultPolicy)},
 			{Mode.wallClock,           getMode(defaultPolicy)},
 			{1,                        getMinVersions(defaultPolicy)},
 			{86_400L,                  getTimeSpanSeconds(defaultPolicy)},

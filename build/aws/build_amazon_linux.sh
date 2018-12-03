@@ -11,6 +11,7 @@ source lib/common.lib
 
 function f_amazon_linux_yumInstall {
 	sudo yum -y install $1
+    f_aws_checkExitCode "yum install: $1"
 }
 
 function f_amazon_linux_install_java {
@@ -18,31 +19,46 @@ function f_amazon_linux_install_java {
     cd $LIB_ROOT
     typeset java8=java-1.8.0
     typeset java7=java-1.7.0
-    f_amazon_linux_yumInstall "$java8-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
-    f_amazon_linux_yumInstall "$java7-openjdk-devel.x86_64" 
+    f_amazon_linux_yumInstall "${java8}-openjdk-devel.x86_64" # you don't want java-1.8.0-openjdk.x86_64! It really only has the jre's
+    f_amazon_linux_yumInstall "${java7}-openjdk-devel.x86_64" 
     typeset java8home=/usr/lib/jvm/$java8
     f_fillInBuildConfigVariable "JAVA_8_HOME" "$java8home"
     f_fillInBuildConfigVariable "JAVA_7_HOME" "/usr/lib/jvm/$java7"
     
     # make java 8 the default
-    # sudo alternatives --set java  $java8home/bin/java
-    # sudo alternatives --set javac $java8home/bin/javac
+    # you can see what java's are available with: alternatives --config java
+    sudo alternatives --set java  /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+    sudo alternatives --set javac ${java8home}-openjdk.x86_64/bin/javac
+    
+    ### this manually does what 'sudo alternatives --set' would do above
+    # sudo rm /etc/alternatives/java
+    # sudo ln -s $java8home/bin/java /etc/alternatives/java
+    
+    # sudo rm /etc/alternatives/javac
+    # sudo ln -s $java8home/bin/javac /etc/alternatives/javac
+    
+    # this is for JAVA_HOME
+    # sudo rm /etc/alternatives/jre
+    # sudo ln -s /etc/alternatives/jre_1.8.0 /etc/alternatives/jre
 }
 
 function f_amazon_linux_symlink_boost {
+    echo "symlinking boost"
     f_amazon_linux_yumInstall "boost"
     cd $LIB_ROOT
     typeset boost_lib=libs/boost
     mkdir -p $boost_lib
     cd $boost_lib
-    ln -s /usr/lib64/libboost_thread-mt.so.1.53.0    libboost_thread.so
-    ln -s /usr/lib64/libboost_date_time-mt.so.1.53.0 libboost_date_time.so
-    ln -s /usr/lib64/libboost_system-mt.so.1.53.0    libboost_system.so
+    
+    f_aws_symlink libboost_thread.so    /usr/lib64/libboost_thread-mt.so.1.53.0    
+    f_aws_symlink libboost_date_time.so /usr/lib64/libboost_date_time-mt.so.1.53.0 
+    f_aws_symlink libboost_system.so    /usr/lib64/libboost_system-mt.so.1.53.0    
 
     f_overrideBuildConfigVariable "BOOST_LIB" "$LIB_ROOT/$boost_lib"
 }
 
 function f_amazon_linux_fillin_build_skfs { 
+    echo "filling in build skfs"
     f_amazon_linux_yumInstall "fuse" #(/bin/fusermount, /etc/fuse.conf, etc.)
     f_amazon_linux_yumInstall "fuse-devel" #(.h files, .so)
     f_fillInBuildConfigVariable "FUSE_INC"  "/usr/include/fuse"
@@ -58,12 +74,25 @@ function f_amazon_linux_fillin_build_skfs {
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
 
+function f_amazon_linux_download_maven {
+    echo "downloading maven"
+    typeset name="epel-apache-maven.repo"
+    typeset redirectFile=/etc/yum.repos.d/$name
+    sudo wget https://repos.fedorapeople.org/repos/dchen/apache-maven/$name -O $redirectFile
+    sudo sed -i s#\$releasever#6#g $redirectFile
+    f_amazon_linux_yumInstall "apache-maven"
+    mvn --version
+    f_aws_checkExitCode "mvn"
+}
+
 f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
 {
     echo "AMI: Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type - ami-6b8cef13"
 
+    f_aws_fillInMakeJobs
+    
     echo "BUILD"
     f_aws_install_ant
     f_amazon_linux_install_java
@@ -90,10 +119,17 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     f_fillInBuildConfigVariable "GPP"     "$gpp_path"
     f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-amazon-linux/4.8.5"
     f_aws_install_gtest "$gpp_path"
+    f_aws_install_swig
        
     echo "BUILD SKFS"
     f_amazon_linux_fillin_build_skfs
 
+    f_aws_install_spark
+    f_amazon_linux_download_maven
+    f_aws_compile_sample_app
+    
+    f_aws_install_iozone
+    
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
 } 2>&1 | tee $output_filename
 

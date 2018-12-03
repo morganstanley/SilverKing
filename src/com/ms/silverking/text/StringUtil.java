@@ -271,6 +271,10 @@ public class StringUtil {
 //		return sBuf.toString();
 	}
 
+	public static String arrayToString(Object[] sArray, char _delim) {
+    	return getToString(Arrays.asList(sArray), _delim);
+	}
+	
 	public static String arrayToQuotedString(String[] sArray) {
     	return getToStringQuoted(Arrays.asList(sArray), delim);
 //	    StringBuilder	sBuf;
