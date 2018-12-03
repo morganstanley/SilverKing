@@ -1,4 +1,6 @@
 language: java
+python:
+    - 3.5
 env:
     - LIB_ROOT=$TRAVIS_BUILD_DIR/.. QUIET_OUTPUT=true
 before_install:
