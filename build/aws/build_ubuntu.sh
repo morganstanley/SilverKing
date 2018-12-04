@@ -34,7 +34,7 @@ function f_ubuntu_symlink_boost {
     cd $boost_lib
     
     typeset boost_number=58
-    if [[ $BUILD_TYPE == $TRAVISCI ]]; then
+    if [[ $BUILD_TYPE == $TRUSTY ]]; then
         boost_number=54
     fi
     
@@ -51,6 +51,10 @@ function f_ubuntu_install_fuse {
     
     f_ubuntu_aptgetInstall "python3"
     f_ubuntu_aptgetInstall "python3-pip"
+    if [[ $BUILD_TYPE == "travisci" ]]; then
+        sudo pip3 install --upgrade setuptools
+        sudo pip3 install --upgrade wheel
+    fi
     pip3 install meson
     f_aws_checkExitCode "pip3: install meson"
     
@@ -108,13 +112,13 @@ function f_ubuntu_download_maven {
     f_aws_checkExitCode "mvn"
 }
 
-TRAVISCI="travisci"
+TRUSTY="trusty"
 BUILD_TYPE=$1
 f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 {
-    if [[ $BUILD_TYPE == $TRAVISCI ]]; then
+    if [[ $BUILD_TYPE == $TRUSTY ]]; then
         echo "AMI: Ubuntu 14.04.5 LTS, 14.04, trusty"
     else
         echo "AMI: Ubuntu Server 16.04 LTS (HVM), SSD Volume Type - ami-4e79ed36"
@@ -149,7 +153,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     echo "BUILD CLIENT"
     f_fillInBuildConfigVariable "GPP"     "$gpp_path"
     typeset gcclib_number="6.0.0"
-    if [[ $BUILD_TYPE == $TRAVISCI ]]; then
+    if [[ $BUILD_TYPE == $TRUSTY ]]; then
         gcclib_number="4.8.5"
     fi
     f_fillInBuildConfigVariable "GCC_LIB" "/usr/lib/gcc/x86_64-linux-gnu/$gcclib_number"

@@ -24,7 +24,7 @@ public class TruncateTest {
 	}
 	
 	private static final String truncateDirName = "truncate";
-	private final static File truncateDir = new File(testsDirPath, truncateDirName);
+	private static final File   truncateDir     = new File(testsDirPath, truncateDirName);
 
 	private ProcessExecutor pe;
 
