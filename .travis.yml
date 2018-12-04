@@ -5,6 +5,7 @@ env:
 before_install:
     - sudo apt-get update -qq           # qq to reduce output, since we have a limit on travis servers
     - sudo apt-get install -qq git ksh  # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
+    - sudo apt-get install python3-setuptools # to avoid 'ImportError: No module named 'setuptools'' during "pip3 install meson"
 install: true
 script:
     - build/aws/build_ubuntu.sh
