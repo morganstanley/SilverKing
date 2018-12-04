@@ -51,6 +51,9 @@ function f_ubuntu_install_fuse {
     
     f_ubuntu_aptgetInstall "python3"
     f_ubuntu_aptgetInstall "python3-pip"
+    if [[ $BUILD_TYPE == "travisci" ]]; then
+        sudo pip3 install --upgrade setuptools
+    fi
     pip3 install meson
     f_aws_checkExitCode "pip3: install meson"
     
