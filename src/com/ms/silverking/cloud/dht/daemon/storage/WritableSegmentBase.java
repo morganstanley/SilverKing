@@ -323,6 +323,9 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                         }
                         offsetList.putOffset(version, offset, creationTime);                    
                     } else {
+                    	if (debugPut) {
+                    		Log.warningf("version %d offsetList.getLatestVersion() %d", version, offsetList.getLatestVersion());
+                    	}
                         return SegmentStorageResult.invalidVersion;
                     }
                 }

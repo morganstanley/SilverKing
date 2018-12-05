@@ -12,6 +12,7 @@ import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.daemon.storage.FileSegment.SegmentPrereadMode;
+import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocolUtil;
 import com.ms.silverking.collection.HashedSetMap;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
@@ -97,29 +98,35 @@ public class FileSegmentCompactor {
 	                if (verbose) {
 	                    System.out.println(entry);
 	                }
-	                if (retentionCheck.shouldRetain(segmentNumber, entry)) {
-		                if (verbose) {
-		                    System.out.println("setting: "+ entry.getOffset());
-		                    System.out.println("sanity check: "+ sourceSegment.getPKC().get(entry.getKey()));
-		                	Log.warning("Retaining:\t", entry.getKey());
-		                }
-		                
-		                storageResult = destSegment.putFormattedValue(entry.getKey(), entry.getStoredFormat(), entry.getStorageParameters(), nsOptions);
-		                if (storageResult != SegmentStorageResult.stored) {
-		                	// FUTURE - think about duplicate stores, and the duplicate store WritableSegmentBase
-		                	if (storageResult != SegmentStorageResult.duplicateStore) {
-		                		throw new RuntimeException("Compaction failed: "+ storageResult);
-		                	} else {
-		                		if (Log.levelMet(Level.FINE)) {
-		                			Log.finef("Duplicate store in compaction %s", entry.getKey());
-		                		}
-		                	}
-		                }
+	                if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), entry.getStorageState())) {
+	                	if (verbose) {
+	                		Log.warningf("Ignoring invalid storage state %s %d", entry.getKey(), entry.getStorageState());
+	                	}
 	                } else {
-		                if (verbose) {
-		                	Log.warning("Dropping: \t", entry.getKey());
+		                if (retentionCheck.shouldRetain(segmentNumber, entry)) {
+			                if (verbose) {
+			                    System.out.println("setting: "+ entry.getOffset());
+			                    System.out.println("sanity check: "+ sourceSegment.getPKC().get(entry.getKey()));
+			                	Log.warning("Retaining:\t", entry.getKey());
+			                }
+			                
+			                storageResult = destSegment.putFormattedValue(entry.getKey(), entry.getStoredFormat(), entry.getStorageParameters(), nsOptions);
+			                if (storageResult != SegmentStorageResult.stored) {
+			                	// FUTURE - think about duplicate stores, and the duplicate store WritableSegmentBase
+			                	if (storageResult != SegmentStorageResult.duplicateStore) {
+			                		throw new RuntimeException("Compaction failed: "+ storageResult);
+			                	} else {
+			                		if (Log.levelMet(Level.FINE)) {
+			                			Log.finef("Duplicate store in compaction %s", entry.getKey());
+			                		}
+			                	}
+			                }
+		                } else {
+			                if (verbose) {
+			                	Log.warning("Dropping: \t", entry.getKey());
+			                }
+			                removedEntries.addValue(entry.getKey(), new Triple<>(entry.getVersion(), segmentNumber, includeStorageTime ? entry.getCreationTime() : 0));
 		                }
-		                removedEntries.addValue(entry.getKey(), new Triple<>(entry.getVersion(), segmentNumber, includeStorageTime ? entry.getCreationTime() : 0));
 	                }
 	            }
             } finally {

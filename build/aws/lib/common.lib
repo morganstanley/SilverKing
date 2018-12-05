@@ -244,15 +244,15 @@ function f_aws_compile_sample_app {
         <maven.compiler.target>1.8</maven.compiler.target>
       </properties>
     </project>
-    " > ~/$SPARK_VERSION/pom.xml
+    " > $LIB_ROOT/$SPARK_VERSION/pom.xml
     f_aws_checkExitCode "writing to pom"
     
-    mkdir -p ~/$SPARK_VERSION/src/main/java
+    mkdir -p $LIB_ROOT/$SPARK_VERSION/src/main/java
     f_aws_sampleJavaFile "SimpleApp"     "$HOME/$SPARK_VERSION/README.md"    # I would use '~' instead of '$HOME', but the java code assumes anything that doesn't start with '/' is a relative path, so it tacks on the cwd to the filename.. which gives us the wrong path
     f_aws_sampleJavaFile "SimpleAppSkfs" "/var/tmp/silverking/skfs/skfs_mnt/skfs/README.md"
     
-    cd ~/$SPARK_VERSION
-    mvn package
+    cd $LIB_ROOT/$SPARK_VERSION
+    mvn -q package
     f_aws_checkExitCode "mvn package"
 }
 
@@ -279,7 +279,7 @@ function f_aws_sampleJavaFile {
         spark.stop();
       }
     }
-    " > ~/$SPARK_VERSION/src/main/java/$class_name.java
+    " > $LIB_ROOT/$SPARK_VERSION/src/main/java/$class_name.java
     
     f_aws_checkExitCode "writing to $class_name"
 }
