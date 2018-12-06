@@ -43,7 +43,7 @@ public class ProducerConsumerTimeoutTest {
     @Test(expected = TimeoutException.class)
 	public void testConsumer_WaitForValueNeverWritten() throws ClientException, IOException {
     	String nsSuffix = "Timeout";
-		new ProducerConsumer(Util.getTestGridConfig(), nsSuffix).consumer(2, 2);
+		new ProducerConsumer(Util.getTestGridConfig(), nsSuffix, 1).consumer(2, 2);
 	}
 	
 	public static void main(String[] args) {

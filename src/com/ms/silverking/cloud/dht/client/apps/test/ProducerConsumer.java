@@ -90,7 +90,7 @@ public class ProducerConsumer {
         }
         syncNSP.put(myKey, "v"+ i, syncNSP.getNamespace().getOptions().getDefaultPutOptions().version(i));
         if (i % displayUnit == 0) {
-            System.out.println("...produced");
+            System.out.println("...produced" + i);
         }
     }
 

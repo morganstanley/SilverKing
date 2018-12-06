@@ -71,7 +71,7 @@ public class ProducerConsumerTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws ClientException, IOException {
-		pc = new ProducerConsumer( Util.getTestGridConfig() );
+		pc = new ProducerConsumer( Util.getTestGridConfig(), (Util.isSetQuietMode())? 500 : 1 );
 	}
 	
 	@Test

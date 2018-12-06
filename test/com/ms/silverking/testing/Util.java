@@ -250,4 +250,14 @@ public class Util {
 		
 		return value;
 	}
+	
+	public static boolean isSetQuietMode() {
+		try {
+			if (getEnvVariable("QUIET_OUTPUT").equals("true"))
+				return true;
+		}
+		catch (RuntimeException ex) {}
+		
+		return false;
+	}
 }
