@@ -26,6 +26,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
+import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
@@ -587,6 +588,32 @@ public class NamespaceStore implements SSNamespaceStore {
             }
             // FUTURE - consider persisting in another thread - would need to handle mutual exclusion, consistency, etc.
         }
+    }
+    
+    public List<Integer> getKeySegments(DHTKey key) {
+        metaReadLock.lock();
+		try {
+            Integer newestSegment;
+            
+            newestSegment = valueSegments.get(key);
+            if (newestSegment == IntCuckooConstants.noSuchValue) {
+                newestSegment = null;
+            }
+            if (newestSegment != null) {
+                if (newestSegment >= 0) {
+                    return ImmutableList.of(newestSegment);
+                } else {
+                    OffsetList offsetList;
+    
+                    offsetList = offsetListStore.getOffsetList(-newestSegment);
+                    return ImmutableList.copyOf(offsetList);
+                }
+            } else {
+                return ImmutableList.of();
+            }
+		} finally {
+	        metaReadLock.unlock();
+		}
     }
 
     // lock must be held
@@ -2923,15 +2950,19 @@ public class NamespaceStore implements SSNamespaceStore {
     	
     	ols = (RAMOffsetListStore)offsetListStore;
     	
+    	// First, remove references to deleted segments
     	if (deletedSegments.size() > 0) {
 	    	Set<DHTKey>	singleKeysInDeletedSegments;
 	    	
+	    	// Remove deleted segments form offset lists
 	    	for (int i = 1; i <= ols.getNumLists(); i++) { // offset list indexing is 1-based
 	    		RAMOffsetList	ol;
 	    		
 	    		ol = (RAMOffsetList)ols.getOffsetList(i);
 	    		ol.removeEntriesByValue(deletedSegments);
 	    	}
+	    	// Remove deleted segments from single-key (non-offset-list) mappings
+	    	// (Iteration and deletion must be performed independently)
 	    	singleKeysInDeletedSegments = new HashSet<>();
 	    	for (DHTKeyIntEntry keyAndSegment : valueSegments) {
 	    		if (keyAndSegment.getValue() >= 0 && deletedSegments.contains(keyAndSegment.getValue())) {
@@ -2943,6 +2974,7 @@ public class NamespaceStore implements SSNamespaceStore {
 	    	}
     	}
     	
+    	// Now, remove references to entries deleted during compaction
     	for (DHTKey key : removedEntries.getKeys()) {
             int				rawSegmentNumber;
     
