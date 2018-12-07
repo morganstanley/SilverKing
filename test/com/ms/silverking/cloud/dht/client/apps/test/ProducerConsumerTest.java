@@ -72,7 +72,7 @@ public class ProducerConsumerTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws ClientException, IOException {
 		String ns = com.ms.silverking.cloud.dht.client.example.ProducerConsumer.pcNamespace+"2";	// ns needs to be unique across all tests running (ProducerConsumerTest in cloud.dht.client.example is already using pcNamespace)
-		pc = new ProducerConsumer( Util.getTestGridConfig(), ns, null, 1 );
+		pc = new ProducerConsumer( Util.getTestGridConfig(), ns, null, (Util.isSetQuietMode())? 0 : 1 );
 	}
 	
 	@Test

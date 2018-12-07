@@ -10,7 +10,14 @@ cd -
 source lib/common.lib
 
 function f_ubuntu_aptgetInstall {
-	sudo apt-get -qq install $1
+    typeset aptGetOption;
+    if [[ $QUIET_OUTPUT == "true" ]]; then
+        aptGetOption="-qq"
+    else
+        aptGetOption="-y"
+    fi
+    
+	sudo apt-get $aptGetOption install $1
     f_aws_checkExitCode "apt-get install: $1"
 }
 

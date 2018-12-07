@@ -252,7 +252,11 @@ function f_aws_compile_sample_app {
     f_aws_sampleJavaFile "SimpleAppSkfs" "/var/tmp/silverking/skfs/skfs_mnt/skfs/README.md"
     
     cd $LIB_ROOT/$SPARK_VERSION
-    mvn package
+    typeset mvnOption;
+    if [[ $QUIET_OUTPUT == "true" ]]; then
+        mvnOption="-q"
+    fi
+    mvn $mvnOption package
     f_aws_checkExitCode "mvn package"
 }
 

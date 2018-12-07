@@ -15,6 +15,7 @@ typeset output_filename=$(f_getTestSk_RunOutputFilename)
 	     GC_DEFAULT_BASE=$SK_GRID_CONFIG_DIR
 	 SK_GRID_CONFIG_NAME=$SK_GRID_CONFIG_NAME
 	          SK_SERVERS=$SK_SERVERS
+            QUIET_OUTPUT=$QUIET_OUTPUT
 	"
 	f_runTestAntScript "testSkOnly-large" "$output_filename" "$TEST_SILVERKING_LARGE_EXPECTED_COUNT" "$vars";
 	f_printTestSummary "$output_filename";

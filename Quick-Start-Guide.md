@@ -103,8 +103,8 @@ git clone https://github.com/Morgan-Stanley/SilverKing.git
 
 ### Ubuntu
 ```ksh
-sudo apt-get update 
-sudo apt-get install git ksh    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
+sudo apt-get -y update 
+sudo apt-get -y install git ksh    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
 cd ~
 git clone https://github.com/Morgan-Stanley/SilverKing.git
 ~/SilverKing/build/aws/build_ubuntu.sh
