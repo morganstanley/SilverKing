@@ -135,7 +135,7 @@ class SKAdminOptions {
 	public String dirNSPutTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=12,constantTime_ms=60000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
 	
 	@Option(name="-fileBlockNSValueRetentionPolicy", usage="fileBlockNSValueRetentionPolicy", required=false)
-	public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=0,timeSpanSeconds=3600}";
+	public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=0,timeSpanSeconds=300}";
 	
 	@Option(name="-defaultClassVars", usage="defaultClassVars", required=false)
 	public String defaultClassVars;
@@ -154,6 +154,9 @@ class SKAdminOptions {
 	
 	@Option(name="-skfsNegativeTimeoutSecs", usage="skfsNegativeTimeoutSecs", required=false)
 	public int	skfsNegativeTimeoutSecs = skfsTimeoutNotSet;
+	
+	@Option(name="-checkSKFSOptions", usage="checkSKFSOptions", required=false)
+	public String checkSKFSOptions;
 	
 	@Option(name="-pinToNICLocalCPUs", usage="pinToNICLocalCPUs", required=false)
 	public String pinToNICLocalCPUs;

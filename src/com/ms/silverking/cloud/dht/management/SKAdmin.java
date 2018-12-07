@@ -465,10 +465,15 @@ public class SKAdmin {
 				+" -C "+ options.compression
 				+" -l "+ options.logLevel
 				+(options.coreLimit == null ? "" : " -L "+ options.coreLimit)
+				+(options.checkSKFSOptions == null ? "" : " "+ translateOptionEncoding(options.checkSKFSOptions))
 				//+" -n "+ options.fsNativeOnlyFile
 				+" 1>"+ logFile +" 2>&1 &";
 	}
 	
+	private String translateOptionEncoding(String o) {
+		return o.replace('~', '-').replace('_', ' ').replace('#', '"');
+	}
+
 	private String createStopSKFSCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
 		String	logDir;
 		String	logFile;
