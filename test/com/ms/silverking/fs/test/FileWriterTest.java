@@ -90,7 +90,6 @@ public class FileWriterTest {
 //			StringBuffer readBytes = fw.read2();
 //			assertEquals(expected.toString(), readBytes.toString());
 //		} catch (IOException e) {
-//			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
 	}
