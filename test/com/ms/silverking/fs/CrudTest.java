@@ -44,7 +44,7 @@ public class CrudTest {
 	private static final String parentFileName = "parentFile.txt";
 	private static final String parentFilePath = crudDirPath + separator + parentFileName;
 
-	private final static File crudDir   = new File(testsDirPath, crudDirName);
+	private static final File crudDir   = new File(testsDirPath, crudDirName);
 	
 	private final File parentDir        = new File(crudDirPath, parentDirName);
 	private final File parentDirRename  = new File(crudDirPath, parentDirName+"Rename");
@@ -52,8 +52,18 @@ public class CrudTest {
 	private final File parentFile       = new File(crudDirPath, parentFileName);
 	private final File parentFileRename = new File(crudDirPath, parentFileName+"Rename");
 
-	private final static String testFilesDirName = "testFiles";
+	// https://www.ascii-code.com/
+	// https://stackoverflow.com/questions/17874584/java-string-and-hex-character-representation
+//	private static final String unicode_0xc2a0_0x0a = "_comMktData" + new String(new byte[] { 0x31, 0x32, 0x33, 0x0a });
+	private static final String unicode_delete_nonBreakingSpace_latinCapitalLetterAWithCircumflex      = "_comMktData" + (char)'\u007f' + (char)'\u00a0' + (char)'\u00c2';
+	private static final String unicode_delete_nonBreakingSpace_latinCapitalLetterAWithCircumflex_null = unicode_delete_nonBreakingSpace_latinCapitalLetterAWithCircumflex + (char)'\u0000';	// this works with every other ascii control character 1-31, 0 makes it fail
+	private final File goodDirName      = new File(crudDirPath, parentDirName  + unicode_delete_nonBreakingSpace_latinCapitalLetterAWithCircumflex);
+	private final File goodFileName     = new File(crudDirPath, parentFileName + unicode_delete_nonBreakingSpace_latinCapitalLetterAWithCircumflex);
+	private final File badDirName       = new File(crudDirPath, parentDirName  + unicode_delete_nonBreakingSpace_latinCapitalLetterAWithCircumflex_null);
+	private final File badFileName      = new File(crudDirPath, parentFileName + unicode_delete_nonBreakingSpace_latinCapitalLetterAWithCircumflex_null);
 
+	private static final String testFilesDirName = "testFiles";
+	
 	private final File testFilesDir = Util.getFile(getClass(), testFilesDirName, "");
 	private final File singleLine   = Util.getFile(getClass(), testFilesDirName, "singleLineFile.txt");
 	private final File multipleLine = Util.getFile(getClass(), testFilesDirName, "multipleLineFile.txt");
@@ -156,6 +166,28 @@ public class CrudTest {
 		assertEquals(crudDirPath,    parentFile.getParent());
 		assertEquals(parentFilePath, parentFile.getPath());
 		assertEquals(parentFileName, parentFile.getName());
+	}
+	
+	@Test
+	public void testCreateDirectoryWithGoodUnicodeCharactersInName() {
+		TestUtil.createAndCheckDir(goodDirName);
+		TestUtil.deleteAndCheck(goodDirName);
+	}
+	
+	@Test
+	public void testCreateFileWithGoodUnicodeCharactersInName() {
+		TestUtil.createAndCheckFile(goodFileName);
+		TestUtil.deleteAndCheck(goodFileName);
+	}
+	
+	@Test
+	public void testCreateDirectoryWithBadUnicodeCharactersInName() {
+		TestUtil.createAndCheckDirFail(badDirName);
+	}
+	
+	@Test
+	public void testCreateFileWithBadUnicodeCharactersInName() {
+		TestUtil.createAndCheckFileFail(badFileName);
 	}
 	
 	@Test
@@ -268,14 +300,22 @@ public class CrudTest {
 	
 	private void testLoop(LoopType lt) {
 		for (int i = 0; i < NUMBER_OF_TIMES_TO_RENAME; i++)
-			if (lt == RENAME_DIR)
-				testRename_Directory();
-			else if (lt == RENAME_FILE)
-				testRename_File();
-			else if (lt == DOUBLE_RENAME_DIR)
-				testDoubleRename_Directory();
-			else if (lt == DOUBLE_RENAME_FILE)
-				testDoubleRenameLoop_File();
+			switch (lt) {
+				case RENAME_DIR:			
+					testRename_Directory();
+					break;
+				case RENAME_FILE:			
+					testRename_File();
+					break;
+				case DOUBLE_RENAME_DIR:		
+					testDoubleRename_Directory();
+					break;
+				case DOUBLE_RENAME_FILE:	
+					testDoubleRenameLoop_File();
+					break;
+				default:
+					throw new RuntimeException("unknown loop case: " + lt);
+			}
 	}
 	
 	@Test
