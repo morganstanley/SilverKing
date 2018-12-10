@@ -111,6 +111,10 @@ public class TestUtil {
 	static void createAndCheckDir(File f) {
 		assertTrue("" + f, f.mkdir());
 	}
+
+	static void createAndCheckDirFail(File f) {
+		assertFalse("" + f, f.mkdir());
+	}
 	
 	static void deleteRecursive(File dir) {
 		if (dir.exists()) {
@@ -127,6 +131,14 @@ public class TestUtil {
 			assertTrue("" + f, f.createNewFile());
 		} catch (IOException e) {
 			fail(e.getMessage());
+		}
+	}
+	
+	static void createAndCheckFileFail(File f) {
+		try {
+			assertFalse("" + f, f.createNewFile());
+		} catch (IOException e) {
+			com.ms.silverking.testing.Assert.assertPass(e.getMessage());
 		}
 	}
 	

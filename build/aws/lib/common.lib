@@ -176,7 +176,8 @@ function f_aws_install_swig {
     typeset swig_tar=$swig_version.tar.gz
     f_aws_downloadTar "$swig_tar" "http://prdownloads.sourceforge.net/swig/$swig_tar"
     
-    # f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
+    # TODO:bph: above downloads swig, now we need to fill in below (and more) to use swig
+    # f_fillInBuildConfigVariable "SWIG_HOME" "I-am-Incomplete"
 }
 
 function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
