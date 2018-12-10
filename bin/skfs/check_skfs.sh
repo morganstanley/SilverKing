@@ -111,7 +111,7 @@ function f_printHelper {
 
 usage() 
 {
-  echo "usage      : $0 -c <command> -z <zkEnsemble> -g <GCName> [ -C <Compression> -s <skGlobalCodebase> -l <logLevel> -n <fsNativeOnlyFile> -L <coreLimit>] -f <forceSKFSDirCreation> -E <skfsEntryTimeoutSecs> -A <skfsAttrTimeoutSecs> -N <skfsNegativeTimeoutSecs> -T <transientCacheSizeKB>"
+  echo "usage      : $0 -c <command> -z <zkEnsemble> -g <GCName> [ -C <Compression> -s <skGlobalCodebase> -l <logLevel> -n <fsNativeOnlyFile> -L <coreLimit>] -f <forceSKFSDirCreation> -E <skfsEntryTimeoutSecs> -A <skfsAttrTimeoutSecs> -N <skfsNegativeTimeoutSecs> -T <transientCacheSizeKB> -J <jvmOptions>"
   echo "    command         : Command to apply {$CHECK_SKFS_COMMAND, $STOP_SKFS_COMMAND}"
   echo "    zkEnsemble      : ZooKeeper ensemble definition"
   echo "    GCName          : GridConfig Name"
@@ -149,7 +149,7 @@ coreLimit="unlimited"
 forceSKFSDirCreation="false"
 waitForSkfsdBeforeExiting=""
 
-while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:w" opt; do
+while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:J:w" opt; do
     case $opt in
     c) nodeControlCommand="$OPTARG";;
     z) zkEnsemble="$OPTARG" ;;
@@ -164,6 +164,7 @@ while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:w" opt; do
 	A) _skfsAttrTimeoutSecs="$OPTARG" ;;
 	N) _skfsNegativeTimeoutSecs="$OPTARG" ;;
 	T) _transientCacheSizeKB="$OPTARG" ;;
+	J) _jvmOptions="$OPTARG" ;;
 	w) waitForSkfsdBeforeExiting="true" ;;
     *) usage
     esac
@@ -474,6 +475,9 @@ if [[ -n "${_skfsNegativeTimeoutSecs}" ]] ; then
 fi
 if [[ -n "${_transientCacheSizeKB}" ]] ; then
     transientCacheSizeKB=${_transientCacheSizeKB}
+fi
+if [[ -n "${_jvmOptions}" ]] ; then
+    jvmOptions=${_jvmOptions}
 fi
 
 # now set the options
