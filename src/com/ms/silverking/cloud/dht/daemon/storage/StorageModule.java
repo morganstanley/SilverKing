@@ -131,7 +131,7 @@ public class StorageModule implements LinkCreationListener {
         this.reapPolicy = reapPolicy;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
-        baseDir = new File(DHTNodeConfiguration.dataBasePath, dhtName);
+        baseDir = new File(DHTNodeConfiguration.dataBasePath);
         clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
         nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
         //spGroup = createTestPolicy();
