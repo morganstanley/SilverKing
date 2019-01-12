@@ -63,6 +63,7 @@ import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.process.ProcessExecutor;
 import com.ms.silverking.pssh.TwoLevelParallelSSHMaster;
+import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
 import com.ms.silverking.util.ArrayUtil;
@@ -1306,13 +1307,20 @@ public class SKAdmin {
     		skAdmin = new SKAdmin(gc, options);
     		commands = SKAdminCommand.parseCommands(options.commands);
     		success = skAdmin.execCommand(commands);
+
+    		Log.warning("SKAdmin exiting success="+ success);
+    		
+    		if (options.sleepForeverOnCompletion) {
+    			System.out.println("sleeping forever");
+                ThreadUtil.sleepForever();
+    		}
     	} catch (IneligibleServerException ise) {
     		throw ise;
     	} catch (Exception e) {
     		e.printStackTrace();
             System.exit(-1);
     	}
-		Log.warning("SKAdmin exiting success="+ success);
+    	
 		if (exitOnCompletion) {
 			System.exit(success ? 0 : -1);
 		}

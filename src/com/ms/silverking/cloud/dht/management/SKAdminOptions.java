@@ -163,4 +163,7 @@ class SKAdminOptions {
 
 	@Option(name="-uwc", usage="unsafeWarningCountdownSecs", required=false)
 	int unsafeWarningCountdownSecs = 10;
+
+	@Option(name="-sfoc", usage="sleepForeverOnCompletion", required=false)
+	boolean sleepForeverOnCompletion = false;
 }
