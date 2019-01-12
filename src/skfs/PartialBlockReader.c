@@ -239,8 +239,9 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
 		if (dest != NULL && totalRead != actualReadSize) {
 			srfsLog(LOG_WARNING, "totalRead %d actualReadSize %d", totalRead, actualReadSize);
 			if (totalRead != -1) {
-				//fatalError("totalRead != actualReadSize", __FILE__, __LINE__);
-				srfsLog(LOG_WARNING, "totalRead != actualReadSize");
+				// Reads < the desired size can occur if a file is mutated concurrent with the read
+                // We warn on this case for what we can detect
+				srfsLog(LOG_WARNING, "Warning: totalRead != actualReadSize");
 			} else {
 				srfsLog(LOG_WARNING, "pbr_read received error from fbr_read");
                 if (!is_writable_path(path)) {

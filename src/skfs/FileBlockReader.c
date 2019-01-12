@@ -856,9 +856,22 @@ int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrrs, int numReque
 				statCounted[i] = TRUE;
                 aoResults[i] = AOResult_Success;
 			} else {
-                srfsLog(LOG_WARNING, "1) cacheNumRead[%d] (%d) != pbrrs[%d]->readSize (%d)", 
-                                     i, cacheNumRead[i], i, pbrrs[i]->readSize);
-                fatalError("Error: cacheNumRead[i] != pbrrs[i]->readSize", __FILE__, __LINE__);
+                if ((unsigned int)cacheNumRead[i] < pbrrs[i]->readSize) {
+                    // If a value is mutated, we may get back less than we expected
+                    // We log this as a heads up that mutations are occurring during reads.
+                    // We don't detect all mutations, just some shrinkage
+                    srfsLog(LOG_WARNING, "1) cacheNumRead[%d] (%d) < pbrrs[%d]->readSize (%d)", 
+                                         i, cacheNumRead[i], i, pbrrs[i]->readSize);
+                    rs_cache_inc(fbr->rs);
+                    statCounted[i] = TRUE;
+                    aoResults[i] = AOResult_Success;
+                } else {
+                    // We can never sanely get back more than we asked for, because
+                    // cache_read() will limit the bytes returned to what we ask for
+                    srfsLog(LOG_WARNING, "1) cacheNumRead[%d] (%d) > pbrrs[%d]->readSize (%d)", 
+                                         i, cacheNumRead[i], i, pbrrs[i]->readSize);
+                    fatalError("Error: cacheNumRead[i] > pbrrs[i]->readSize", __FILE__, __LINE__);
+                }
 			}
 		}
 	}
