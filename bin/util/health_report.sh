@@ -71,8 +71,7 @@ function f_findErrorsHelper {
     typeset file="${host}_${fileEnding}"
     typeset startLineNumber=$(f_getStartLineNumber "$file")
     
-    echo "$host $sshCmd $startLineNumber" >> $TMP_OUTPUT_RUN_DIR/ssh.cmds
-    
+    f_logSshCmd "$host $sshCmd $startLineNumber"    
     $TIMEOUT_SSH $host "$sshCmd $startLineNumber" </dev/null > $RUN_DIR/$file 2>/dev/null &
 }
 
@@ -100,7 +99,7 @@ function f_getPreviousLineNumber {
         previousLineNumber=`head -n 2 $previousRunDir/$file | tail -n 1`
     else
         previousLineNumber="previousLineNumberError: $file"
-        ERRORS+="f_getPreviousLineNumber: $file\n"
+        f_logError "f_getPreviousLineNumber: $file"
     fi
       
     echo $previousLineNumber      
@@ -114,12 +113,12 @@ function f_getPreviousRunDir {
     if [[ $count -eq 2 ]]; then
         typeset isCurrentRunDirTheRunDir=`echo "$currentRunDir" | grep -c "$RUN_DIR"`
         if [[ $isCurrentRunDirTheRunDir -ne 1 ]]; then
-            ERRORS+="expected currentRunDir: '$RUN_DIR', actual: '$currentRunDir'\n"
+            f_logError "expected currentRunDir: '$RUN_DIR', actual: '$currentRunDir'"
         fi
     elif [[ $count -eq 1 ]]; then
         previousRunDir=""
     else
-        ERRORS+="f_getPreviousRunDir: couldn't find correctly\n"
+        f_logError "f_getPreviousRunDir: couldn't find correctly"
     fi
     
     echo $previousRunDir
@@ -160,7 +159,7 @@ function f_checkForAnyZeroSizeFiles {
     for file in `ls $dir`; do
         typeset numOfLines=$(f_getNumberOfLines "$dir/$file")
         if [[ $numOfLines -eq 0 ]]; then
-            echo "$file" >> $EMPTY_FILES
+            f_logEmptyFile "$file"
         fi
     done 
 }
@@ -201,37 +200,63 @@ function f_checkFilename {
     fi
     
     if [[ ! -e $file ]]; then
-        ERRORS+="'$filenameOnly' doesn't exist: Did it timeout? Is it ssh'able?\n"
+        f_logError "'$filenameOnly' doesn't exist: Did it timeout? Is it ssh'able?"
     else     
         typeset numOfLines=$(f_getNumberOfLines "$file")
         if [[ $numOfLines -lt 0 ]]; then
-            ERRORS+="'$filenameOnly' has a negative # of lines\n"
+            f_logError "'$filenameOnly' has a negative # of lines"
         elif [[ $numOfLines -eq 0 ]]; then
-            ERRORS+="'$filenameOnly' has 0 lines ($numOfLines). Did it timeout? Is it ssh'able?\n"
+            f_logError "'$filenameOnly' has 0 lines ($numOfLines). Did it timeout? Is it ssh'able?"
         elif [[ $numOfLines -eq 1 ]]; then
-            ERRORS+="'$filenameOnly' has only 1 line: `cat $file`\n"
+            f_logError "'$filenameOnly' has only 1 line: `cat $file`"
         else               
             # compare log filenames
             if [[ -n $previousFileExists ]]; then
                 typeset  currentLogFilename=`head -n 1 $file`
                 typeset previousLogFilename=`head -n 1 $previousRunDir/$filenameOnly`
                 if [[ $currentLogFilename != $previousLogFilename ]]; then
-                    ERRORS+="'$filenameOnly' skfs log file changed. current='$currentLogFilename', prev='$previousLogFilename'\n"
+                    f_logError "'$filenameOnly' skfs log file changed. current='$currentLogFilename', prev='$previousLogFilename'"
                 fi
             fi
         
             if [[ $numOfLines -gt 2 ]]; then
-                FAILS+="$filenameOnly\n"
-                DETAILS+="> $filenameOnly\n"
-                DETAILS+=`tail -n +3 $file`
-                DETAILS+="\n\n"
+                f_logFail "$filenameOnly"
+                f_logDetail "> $filenameOnly"
+                f_logDetail "`tail -n +3 $file`"
+                f_logDetail "\n"
             elif [[ $numOfLines -eq 2 ]]; then
-                # fixme
+                # fixme - this is the passing case, do I need to do something here?
                 typeset fixme;
-                # ERRORS+="hi\n"
             fi
         fi
     fi
+}
+
+function f_logError {
+    f_logHelper "$1" "$ERRORS_FILE"
+}
+
+function f_logFail {
+    f_logHelper "$1" "$FAILS_FILE"
+}
+
+function f_logDetail {
+    f_logHelper "$1" "$DETAILS_FILE"
+}
+
+function f_logEmptyFile {
+    f_logHelper "$1" "$EMPTY_FILES"
+}
+
+function f_logSshCmd {
+    f_logHelper "$1" "$TMP_OUTPUT_RUN_DIR/ssh.cmds"
+}
+
+function f_logHelper {
+    typeset  msg=$1
+    typeset file=$2
+    
+    echo -e "$msg" >> $file
 }
 
 function f_runDiffOnHostFiles {
@@ -257,27 +282,33 @@ function f_sendEmail {
 	typeset subject=$3
 	typeset attachments=$4
     
+	typeset     errorsLineCount=$(f_getNumberOfLines "$ERRORS_FILE")
+	typeset      failsLineCount=$(f_getNumberOfLines "$FAILS_FILE")
+	typeset    detailsLineCount=$(f_getNumberOfLines "$DETAILS_FILE")
     typeset diffOutputLineCount=$(f_getNumberOfLines "$attachments")
-    typeset result;
-    typeset reportFile=$TMP_OUTPUT_RUN_DIR/report.out
     
+    typeset reportFile=$TMP_OUTPUT_RUN_DIR/report.out
     touch $reportFile
-	
-    if [[ $diffOutputLineCount -eq 0 && -z $FAILS && -z $ERRORS && -z $DETAILS ]] ; then
+    
+    typeset result;
+    if [[ ($errorsLineCount -eq 0) && ($failsLineCount -eq 0) && ($detailsLineCount -eq 0) && ($diffOutputLineCount -eq 0) ]] ; then
 		attachments=""
         result="PASS ($HOST_COUNT)"
     else
-        typeset failHostCount=`echo -en "$FAILS" | cut -d '_' -f 1 | sort -n | uniq | wc -l`
+        typeset failHostCount=`cut -d '_' -f 1 $FAILS_FILE | sort -n | uniq | wc -l`
         result="FAIL ($failHostCount/$HOST_COUNT)"
         # for whatever reason, '\n' at the end of the echo's aren't doing anything in the email... but putting them at the beginning is having an affect
-        if [[ -n $ERRORS ]]; then
-            echo    "ERRORS:"   >> $reportFile
-            echo -e "$ERRORS\n" >> $reportFile
+        if [[ $errorsLineCount -gt 0 ]]; then
+            echo "ERRORS:"   >> $reportFile
+            cat $ERRORS_FILE >> $reportFile
         fi
+        
         echo "FAILS ($failHostCount/$HOST_COUNT):" >> $reportFile
-        echo -e "$FAILS" >> $reportFile
-        echo    "DETAILS:" >> $reportFile
-        echo -e "$DETAILS\n"  >> $reportFile
+        cat $FAILS_FILE >> $reportFile
+        
+        echo "\nDETAILS:"   >> $reportFile
+        cat $DETAILS_FILE >> $reportFile
+        
         if [[ -e $HOST_DIFF_OUTPUT_FILE ]]; then
             cat $HOST_DIFF_OUTPUT_FILE >> $reportFile
         fi
@@ -309,7 +340,12 @@ function f_sendEmailHelper {
 function f_getNumberOfLines {
     typeset file=$1
     
-    wc -l $file | cut -f 1 -d ' '
+    typeset numOfLines=0;
+    if [[ -e $file ]]; then
+        numOfLines=`wc -l $file | cut -f 1 -d ' '`
+    fi
+    
+    echo $numOfLines
 }
 
         HOSTS_FILE=$1
@@ -328,12 +364,12 @@ typeset   SK_SSH_CMD="$findErrorsScript   $SK_LOG_DIR"
 typeset SKFS_SSH_CMD="$findErrorsScript $SKFS_LOG_DIR"
 
 typeset   ALL_RUNS_OUTPUT_DIR=`dirname $RUN_DIR`
-typeset HOST_DIFF_OUTPUT_FILE=$TMP_OUTPUT_RUN_DIR/diff_hosts.out
+typeset HOST_DIFF_OUTPUT_FILE="$TMP_OUTPUT_RUN_DIR/diff_hosts.out"
 typeset            HOST_COUNT=$(f_getNumberOfLines "$HOSTS_FILE")
-typeset           EMPTY_FILES=$TMP_OUTPUT_RUN_DIR/empty_files.out
-typeset ERRORS;
-typeset FAILS;
-typeset DETAILS;
+typeset           EMPTY_FILES="$TMP_OUTPUT_RUN_DIR/empty_files.out"
+typeset           ERRORS_FILE="$TMP_OUTPUT_RUN_DIR/run.errors"
+typeset            FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
+typeset          DETAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.details"
 
 f_checkIfAnySshCommandsAreStillRunning
 f_findErrorsOnHosts

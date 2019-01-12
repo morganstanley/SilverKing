@@ -10,7 +10,7 @@ if [[ $dir =~ logs$ ]]; then
     logType=skfs
     typeset latestLogFile=`ls -rt $dir/* | tail -n 1`   # /* so we get absolute filenames
     file="$latestLogFile"
-    grepLine="timeout|fbr_read| fail |failed |failure|exception|error|terminate"
+    grepLine="timeout|fbr_read| fail |failed |failure|exception|error|terminate| warning"
     
     if [[ ! `basename $file` =~ ^fuse.log. ]]; then
         echo "Error $file: file doesn't start with 'fuse.log.'"
