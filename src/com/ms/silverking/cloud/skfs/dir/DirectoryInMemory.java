@@ -24,11 +24,20 @@ public class DirectoryInMemory extends DirectoryBase {
 		entries = new TreeMap<>();
 		if (d != null) {
 			numEntries = d.getNumEntries();
-			for (int i = 0; i < numEntries; i++) {
-				DirectoryEntryInPlace	entry;
+			if (!(d instanceof DirectoryInMemory)) {
+				for (int i = 0; i < numEntries; i++) {
+					DirectoryEntryInPlace	entry;
+					
+					entry = (DirectoryEntryInPlace)d.getEntry(i);
+					addEntry(entry.getNameAsByteString(), entry);
+				}
+			} else {
+				DirectoryInMemory	_d;
 				
-				entry = (DirectoryEntryInPlace)d.getEntry(i);
-				addEntry(entry.getNameAsByteString(), entry);
+				_d = (DirectoryInMemory)d;
+				for (DirectoryEntryInPlace entry : _d.entries.values()) {
+					addEntry(entry.getNameAsByteString(), entry);
+				}
 			}
 		}
 	}
