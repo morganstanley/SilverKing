@@ -43,6 +43,7 @@ public class RingInfo {
 		Map<IPAndPort,Long>	aMap;
 		
 		rMap = readReplicaMap(ring);
+		rMap.display();
 		aMap = getAllocationMap(rMap);
 		for (Map.Entry<IPAndPort, Long> e : aMap.entrySet()) {
 			out.printf("%s\t%d\n", e.getKey(), e.getValue());
