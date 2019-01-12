@@ -21,6 +21,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingState;
 import com.ms.silverking.cloud.dht.meta.DHTMetaUpdate;
 import com.ms.silverking.cloud.dht.net.SecondaryTargetSerializer;
 import com.ms.silverking.cloud.meta.ExclusionSet;
+import com.ms.silverking.cloud.meta.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.meta.ExclusionZK;
 import com.ms.silverking.cloud.meta.MetaClient;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
@@ -58,6 +59,7 @@ public class RingMapState2 {
     private TransitionReplicaSources  readTargets;
     private final RingConfiguration     ringConfig;
     private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
+    private ExclusionSetAddressStatusProvider	exclusionSetAddressStatusProvider;
     
     /*
      * secondarySets are used to specify subsets of secondary nodes within 
@@ -86,6 +88,17 @@ public class RingMapState2 {
     
     private static final boolean	ignoreReaddition = false;	// Previously, we ignored all re-addition. 
     															// Leave capability to go back to that, but turn off.
+    
+    private static volatile boolean	localNodeIsExcluded;
+    
+    private static void setLocalNodeIsExcluded(boolean _localNodeIsExcluded) {
+    	localNodeIsExcluded = _localNodeIsExcluded;
+    	Log.warningAsyncf("localNodeIsExcluded %s", localNodeIsExcluded);
+    }
+    
+    public static boolean localNodeIsExcluded() {
+    	return localNodeIsExcluded;
+    }    
     
     RingMapState2(IPAndPort nodeID, DHTMetaUpdate dhtMetaUpdate, RingID ringID, 
             StoragePolicyGroup storagePolicyGroup, com.ms.silverking.cloud.toporing.meta.MetaClient ringMC, 
@@ -378,6 +391,13 @@ public class RingMapState2 {
 	            	}
 	            	
 	            	curUnionExclusionSet = ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+	            	// Small race here between the value of curUnionExclusionSet and setLocalNodeIsExcluded()
+	            	// and in StorageModule.liveReap() between the state of the same two. We live with this
+	            	// for now as the impact should be rare and limited.
+	            	setLocalNodeIsExcluded(curUnionExclusionSet.contains(nodeID.getIPAsString()));
+	            	if (exclusionSetAddressStatusProvider != null) {
+	            		exclusionSetAddressStatusProvider.setExclusionSet(curUnionExclusionSet);
+	            	}
 	            	Log.warningf("curUnionExclusionSet updated: %s", curUnionExclusionSet);
 	
 	                // Compute the new ringTree
@@ -479,4 +499,8 @@ public class RingMapState2 {
         node = rawRingTree.getTopology().getNodeByID(nodeID.getIPAsString());
         return nodeListToIPAndPortSet(node.getAllDescendants(NodeClass.server));
     }
+
+	public void setExclusionSetAddressStatusProvider(ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider) {
+		this.exclusionSetAddressStatusProvider = exclusionSetAddressStatusProvider;
+	}
 }

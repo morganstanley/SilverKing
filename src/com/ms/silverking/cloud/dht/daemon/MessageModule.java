@@ -64,6 +64,7 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.net.async.AddressStatusProvider;
 import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
@@ -134,6 +135,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     //private static final long	minPingPeriodMillis = 1 * 1000;
     //private static final long	targetPingsPerSecond = 2;
     private static final long	interPingDelayMillis = 100;
+    
+    public static final String	nodePingerThreadName = "NodePinger";
     
     public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, 
                          AbsMillisTimeSource absMillisTimeSource,
@@ -216,7 +219,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         pingTimer.scheduleAtFixedRate(new Pinger(), pingPeriodMillis, pingPeriodMillis);
         */
     	Log.warning("Starting Pinger");
-    	new SafeThread(new Pinger(), "NodePinger", true).start();
+    	new SafeThread(new Pinger(), nodePingerThreadName, true).start();
+    }
+    
+    public void setAddressStatusProvider(AddressStatusProvider addressStatusProvider) {
+    	mgBase.setAddressStatusProvider(addressStatusProvider);
     }
     
     @Override

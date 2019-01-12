@@ -25,6 +25,7 @@ import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.HostAndPort;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.net.async.AddressStatusProvider;
 import com.ms.silverking.net.async.MultipleConnectionQueueLengthListener;
 import com.ms.silverking.net.async.NewConnectionTimeoutController;
 import com.ms.silverking.net.async.PersistentAsyncServer;
@@ -131,6 +132,10 @@ public class MessageGroupBase {
     
     public HostAndPort getHostAndPort() {
         return myHostAndPort;
+    }
+    
+    public void setAddressStatusProvider(AddressStatusProvider addressStatusProvider) {
+    	paServer.setAddressStatusProvider(addressStatusProvider);
     }
     
     /*

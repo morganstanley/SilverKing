@@ -18,6 +18,7 @@ import com.ms.silverking.cloud.dht.meta.DaemonStateZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
+import com.ms.silverking.cloud.meta.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
@@ -83,6 +84,7 @@ public class DHTNode {
 	        //DHTRingCurTargetWatcher	dhtRingCurTargetWatcher;
 	        MetaClient	mc;
 	        DHTConfiguration	dhtConfig;
+	        ExclusionSetAddressStatusProvider	exclusionSetAddressStatusProvider;
 	        
             Log.warning("LogLevel: ", Log.getLevel());
 	        this.dhtName = dhtName;
@@ -91,7 +93,9 @@ public class DHTNode {
             Log.warning("DHTConfiguration: ", dhtConfig);
             serverPort = dhtConfig.getPort();
             daemonIPAndPort = MessageGroupBase.createLocalIPAndPort(serverPort);
+	        exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName);
             ringMaster = new NodeRingMaster2(dhtName, zkConfig, daemonIPAndPort);
+	        ringMaster.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
             //dmw.addListener(ringMaster);
             Log.warning("Using port: "+ serverPort);
             Log.warning("ReapPolicy: ", reapPolicy);
@@ -111,6 +115,7 @@ public class DHTNode {
             storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy);
 	        msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort, 
 	                                      mc);
+	        msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
 	        memoryManager = new MemoryManager();
             storage.addMemoryObservers(memoryManager.getJVMMonitor());
             daemonStateZK.setState(DaemonState.QUORUM_WAIT);

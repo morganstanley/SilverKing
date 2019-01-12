@@ -36,6 +36,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.ProtoOpResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoSetConvergenceStateMessageGroup;
 import com.ms.silverking.cloud.meta.ExclusionSet;
+import com.ms.silverking.cloud.meta.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.cloud.toporing.RingEntry;
@@ -63,6 +64,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
     private boolean                 convergenceEnabled;
     private PeerHealthMonitor		peerHealthMonitor;
     private ReplicaPrioritizer		replicaPrioritizer;
+    private ExclusionSetAddressStatusProvider	exclusionSetAddressStatusProvider;
     
     private volatile RingMapState2  curMapState;
     private volatile RingMapState2  targetMapState;
@@ -97,6 +99,10 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
     	this.peerHealthMonitor = peerHealthMonitor;
         replicaPrioritizer = new ReplicaHealthPrioritizer(peerHealthMonitor);
     }
+    
+	public void setExclusionSetAddressStatusProvider(ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider) {
+		this.exclusionSetAddressStatusProvider = exclusionSetAddressStatusProvider;
+	}
     
 	@Override
 	public void dhtMetaUpdate(DHTMetaUpdate dhtMetaUpdate) {
@@ -623,6 +629,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
 	private void setCurMapState(RingMapState2 _curMapState) {
 		Log.warningf("curMapState was %s", curMapState != null ? curMapState.getConvergencePoint() : "null");
 		curMapState = _curMapState;
+		curMapState.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
 		Log.warningf("setCurMapState %s", curMapState != null ? curMapState.getConvergencePoint() : "null");
 	}
 

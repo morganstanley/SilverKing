@@ -31,6 +31,7 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
+import com.ms.silverking.cloud.dht.daemon.RingMapState2;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
 import com.ms.silverking.cloud.dht.meta.LinkCreationListener;
@@ -56,7 +57,6 @@ import com.ms.silverking.thread.lwt.LWTThreadUtil;
 import com.ms.silverking.thread.lwt.asyncmethod.MethodCallWorker;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
-import com.ms.silverking.time.TimeUtils;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.memory.JVMMonitor;
 
@@ -504,17 +504,21 @@ public class StorageModule implements LinkCreationListener {
     }
     
     public void liveReap() {
-    	Stopwatch	sw;
-    	
-    	Log.warningAsync("Live reap");
-    	sw = new SimpleStopwatch();
-        for (NamespaceStore ns : namespaces.values()) {
-        	if (!ns.isDynamic()) {
-        		ns.liveReap();
-        	}
-        }
-    	sw.stop();
-    	Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
+    	if (!RingMapState2.localNodeIsExcluded()) {
+	    	Stopwatch	sw;
+	    	
+	    	Log.warningAsync("Live reap");
+	    	sw = new SimpleStopwatch();
+	        for (NamespaceStore ns : namespaces.values()) {
+	        	if (!ns.isDynamic()) {
+	        		ns.liveReap();
+	        	}
+	        }
+	    	sw.stop();
+	    	Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
+    	} else {
+	    	Log.warningAsync("Skipping live reap. Local node is excluded.");
+    	}
     }
     
     /////////////////////////

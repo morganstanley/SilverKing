@@ -153,9 +153,11 @@ public class PersistentAsyncServer<T extends Connection>
 			throw new RuntimeException("Unexpected mutation of addressStatusProvider");
 		}
 		this.addressStatusProvider = addressStatusProvider;
-		// FUTURE - MAKE THIS CLEANER
+		/*
+		// FUTURE - make this cleaner or consider removing
 		suspectAddressListener = (SuspectAddressListener)addressStatusProvider;
 		asyncServer.setSuspectAddressListener(suspectAddressListener);
+		*/
 	}
 	
 	//////////////////////////////////////////////////////////////////////
@@ -303,11 +305,6 @@ public class PersistentAsyncServer<T extends Connection>
 		IPAndPort		_dest;
 
 	    Log.info("createConnection: ", dest);
-		if (addressStatusProvider != null 
-		        && !addressStatusProvider.isAddressStatusProviderThread() 
-				&& !addressStatusProvider.isHealthy(dest)) {
-			throw new UnhealthyConnectionAttemptException("Connection attempted to unhealthy address: "+ dest);
-		}
 		
 		_dest = new IPAndPort(dest);
 		
@@ -315,6 +312,12 @@ public class PersistentAsyncServer<T extends Connection>
 		
 		backoff = null;
 		while (true) {
+			if (addressStatusProvider != null 
+			        && !addressStatusProvider.isAddressStatusProviderThread() 
+					&& !addressStatusProvider.isHealthy(dest)) {
+				throw new UnhealthyConnectionAttemptException("Connection attempted to unhealthy address: "+ dest);
+			}
+			
 			try {
 				T	connection;
 				
