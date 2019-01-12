@@ -166,7 +166,7 @@ function f_checkForAnyZeroSizeFiles {
 
 function f_scrubFilesForIgnorableErrors {
     echo "Removing ignorable errors from files"
-    find $RUN_DIR -name '*_sk*' -type f | xargs sed -i -r -e '/WARNING: 20..:..:.. ..:..:.. EST addSuspect: [[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}:[[:digit:]]+ ReplicaTimeout$/d'  
+    find $RUN_DIR -name '*_sk' -type f | xargs sed -i -r -e '/WARNING: 20..:..:.. ..:..:.. EST addSuspect: [[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}:[[:digit:]]+ ReplicaTimeout$/d'  
 }
 
 function f_runErrorReport {
@@ -215,7 +215,7 @@ function f_checkFilename {
                 typeset  currentLogFilename=`head -n 1 $file`
                 typeset previousLogFilename=`head -n 1 $previousRunDir/$filenameOnly`
                 if [[ $currentLogFilename != $previousLogFilename ]]; then
-                    f_logError "'$filenameOnly' skfs log file changed. current='$currentLogFilename', prev='$previousLogFilename'"
+                    f_logError "'$filenameOnly' log file changed. current='$currentLogFilename', prev='$previousLogFilename'"
                 fi
             fi
         
@@ -266,13 +266,22 @@ function f_runDiffOnHostFiles {
     echo -en "\tDiffing '`basename $oldDir`' v '`basename $newDir`'..."
     typeset oldTmpDir=$TMP_OUTPUT_RUN_DIR/diff/old
     typeset newTmpDir=$TMP_OUTPUT_RUN_DIR/diff/new
-    rm -rf $oldTmpDir/* $newTmpDir/*
-    mkdir -p $oldTmpDir $newTmpDir
+    
+    rm -rf   $oldTmpDir/* $newTmpDir/*
+    mkdir -p $oldTmpDir   $newTmpDir
+    
     cp $oldDir/*.txt $oldTmpDir
     cp $newDir/*.txt $newTmpDir
+    
     diff $oldTmpDir $newTmpDir > $HOST_DIFF_OUTPUT_FILE
-    sed -E -i "s#(^diff .*)#\n\1#g"           $HOST_DIFF_OUTPUT_FILE    # -E so I don't have to escape the parenthesis for the capture groups. there's also this (https://unix.stackexchange.com/questions/121161/how-to-insert-text-after-a-certain-string-in-a-file), but I preferred to go with substitution.
-    sed    -i "s#$TMP_OUTPUT_RUN_DIR/diff##g" $HOST_DIFF_OUTPUT_FILE
+    typeset numOfLines=$(f_getNumberOfLines "$HOST_DIFF_OUTPUT_FILE")
+    if [[ $numOfLines -gt 0 ]]; then
+        sed -E -i "s#(^diff .*)#\n\1#g"           $HOST_DIFF_OUTPUT_FILE    # -E so I don't have to escape the parenthesis for the capture groups. there's also this (https://unix.stackexchange.com/questions/121161/how-to-insert-text-after-a-certain-string-in-a-file), but I preferred to go with substitution.
+        sed    -i "s#$TMP_OUTPUT_RUN_DIR/diff##g" $HOST_DIFF_OUTPUT_FILE
+    else
+        rm $HOST_DIFF_OUTPUT_FILE
+    fi
+    
     echo "done"
 }
 
@@ -280,42 +289,62 @@ function f_sendEmail {
 	typeset to=$1
 	typeset from=$2
 	typeset subject=$3
-	typeset attachments=$4
     
-	typeset     errorsLineCount=$(f_getNumberOfLines "$ERRORS_FILE")
-	typeset      failsLineCount=$(f_getNumberOfLines "$FAILS_FILE")
-	typeset    detailsLineCount=$(f_getNumberOfLines "$DETAILS_FILE")
-    typeset diffOutputLineCount=$(f_getNumberOfLines "$attachments")
-    
-    typeset reportFile=$TMP_OUTPUT_RUN_DIR/report.out
-    touch $reportFile
+    touch $REPORT_FILE
     
     typeset result;
-    if [[ ($errorsLineCount -eq 0) && ($failsLineCount -eq 0) && ($detailsLineCount -eq 0) && ($diffOutputLineCount -eq 0) ]] ; then
-		attachments=""
+    if [[ (! -e $ERRORS_FILE) && (! -e $FAILS_FILE) && (! -e $DETAILS_FILE) && (! -e $HOST_DIFF_OUTPUT_FILE) ]]; then
         result="PASS ($HOST_COUNT)"
     else
         typeset failHostCount=`cut -d '_' -f 1 $FAILS_FILE | sort -n | uniq | wc -l`
         result="FAIL ($failHostCount/$HOST_COUNT)"
-        # for whatever reason, '\n' at the end of the echo's aren't doing anything in the email... but putting them at the beginning is having an affect
-        if [[ $errorsLineCount -gt 0 ]]; then
-            echo "ERRORS:"   >> $reportFile
-            cat $ERRORS_FILE >> $reportFile
-        fi
         
-        echo "FAILS ($failHostCount/$HOST_COUNT):" >> $reportFile
-        cat $FAILS_FILE >> $reportFile
-        
-        echo "\nDETAILS:"   >> $reportFile
-        cat $DETAILS_FILE >> $reportFile
+        f_logReportSection "ERRORS"  "$ERRORS_FILE"
+        f_logReportSection "FAILS"   "$FAILS_FILE" " ($failHostCount/$HOST_COUNT)"
+        f_logReportSection "DETAILS" "$DETAILS_FILE"
         
         if [[ -e $HOST_DIFF_OUTPUT_FILE ]]; then
-            cat $HOST_DIFF_OUTPUT_FILE >> $reportFile
+            result+="(-)"
+            cat $HOST_DIFF_OUTPUT_FILE >> $REPORT_FILE
         fi
 	fi
     
-    typeset body=`cat $reportFile`
-    f_sendEmailHelper "$to" "$from" "$subject - $result - `basename $RUN_DIR`" "$body" "$reportFile"
+    echo -e "\tresult: $result"
+    
+    typeset reportFileSize=$(f_getFileSize "$REPORT_FILE")
+    typeset tenMegabytes=10000000
+    typeset body;
+    typeset attachment;
+    if [[ $reportFileSize -lt $tenMegabytes ]]; then
+        body=`cat $REPORT_FILE`
+        attachment="$REPORT_FILE"
+    else 
+        typeset reportFileSnapshot="$TMP_OUTPUT_RUN_DIR/report_snapshot.out"
+        head -n 50000 $REPORT_FILE > $reportFileSnapshot
+        body=`echo "reportFile is too big (size=$reportFileSize). Here's a snippet below. Check '$REPORT_FILE' for the full details."`
+        body+=`cat $reportFileSnapshot`
+        attachment="$reportFileSnapshot"
+    fi
+    
+    
+    f_sendEmailHelper "$to" "$from" "$subject - $result - `basename $RUN_DIR`" "$body" "$attachment"
+}
+
+function f_logReportSection {
+    typeset sectionName=$1
+    typeset sectionFile=$2
+    typeset sectionExtra=$3
+
+    if [[ -e $sectionFile ]]; then
+        echo "${sectionName}${sectionExtra}:" >> $REPORT_FILE
+        cat $sectionFile                      >> $REPORT_FILE
+        echo ""                               >> $REPORT_FILE
+    fi
+}
+
+function f_getFileSize {
+    typeset file=$1
+    ls -l "$file" | cut -d ' ' -f 5
 }
 
 function f_sendEmailHelper {
@@ -328,7 +357,7 @@ function f_sendEmailHelper {
     echo -n "Sending email..."
     
 	typeset attachmentsList;
-	if [[ -n $attachments ]] ; then
+	if [[ -n $attachments ]]; then
 		attachmentsList="-a $attachments"
 	fi
 	
@@ -358,8 +387,8 @@ TMP_OUTPUT_RUN_DIR=$6
             EMAILS=$8
 
 typeset findErrorsScript=$PWD/find_errors.sh
-typeset tenMinsInSecs=600
-typeset TIMEOUT_SSH="timeout $tenMinsInSecs ssh"
+typeset fiveMinsInSecs=300
+typeset TIMEOUT_SSH="timeout $fiveMinsInSecs ssh"
 typeset   SK_SSH_CMD="$findErrorsScript   $SK_LOG_DIR"
 typeset SKFS_SSH_CMD="$findErrorsScript $SKFS_LOG_DIR"
 
@@ -370,6 +399,7 @@ typeset           EMPTY_FILES="$TMP_OUTPUT_RUN_DIR/empty_files.out"
 typeset           ERRORS_FILE="$TMP_OUTPUT_RUN_DIR/run.errors"
 typeset            FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
 typeset          DETAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.details"
+typeset           REPORT_FILE="$TMP_OUTPUT_RUN_DIR/report.out"
 
 f_checkIfAnySshCommandsAreStillRunning
 f_findErrorsOnHosts
@@ -377,4 +407,4 @@ f_waitForAllErrorsToBeCollected
 f_rerunAnyZeroSizeFiles
 f_scrubFilesForIgnorableErrors
 f_runErrorReport
-f_sendEmail "$EMAILS" "sk_health_check_${RUN_ID}_2@the_real_silverking.com" "SK Health Report - $RUN_ID" "$HOST_DIFF_OUTPUT_FILE"
+f_sendEmail "$EMAILS" "sk_health_check_${RUN_ID}_2@the_real_silverking.com" "SK Health Report - $RUN_ID"
