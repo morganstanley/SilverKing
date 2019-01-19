@@ -8,7 +8,7 @@ function f_checkIfAnySshCommandsAreStillRunningHelper {
     typeset msg=$1
     typeset printCount=$2
 
-    echo "$1"
+    echo "$msg"
     
     typeset previousCount=0
     typeset stillRunningCount=$(f_getStillRunningCount)
@@ -68,60 +68,91 @@ function f_findErrorsHelper {
     typeset fileEnding=$2
     typeset     sshCmd=$3
     
-    typeset file="${host}_${fileEnding}"
-    typeset startLineNumber=$(f_getStartLineNumber "$file")
+    typeset filename="${host}_${fileEnding}"
+    typeset startLineNumber=$(f_getStartLineNumber "$filename")
     
-    f_logSshCmd "$host $sshCmd $startLineNumber"    
-    $TIMEOUT_SSH $host "$sshCmd $startLineNumber" </dev/null > $RUN_DIR/$file 2>/dev/null &
+    f_logSshCmd "$TIMEOUT_SSH $host $sshCmd $startLineNumber"    
+    $TIMEOUT_SSH $host "$sshCmd $startLineNumber" </dev/null > $RUN_DIR/$filename 2>/dev/null &
 }
 
 function f_getStartLineNumber {
-    typeset file=$1
+    typeset filename=$1
     
     typeset startLineNumber;
-    typeset previousLineNumber=$(f_getPreviousLineNumber "$file")
+    typeset previousLineNumber=$(f_getPreviousLineNumber "$filename")
     if [[ -n $previousLineNumber && $previousLineNumber -gt 0 ]]; then
         startLineNumber=$((previousLineNumber+1))
     else
-        startLineNumber=1
+        startLineNumber=$START_LINE_NUMBER
     fi 
     
     echo $startLineNumber
 }
 
 function f_getPreviousLineNumber {
-    typeset file=$1
+    typeset filename=$1
     
     typeset previousLineNumber;
-    typeset previousRunDir=$(f_getPreviousRunDir)
-    if [[ -n $previousRunDir && -e $previousRunDir/$file ]]; then
-        # get the second line
-        previousLineNumber=`head -n 2 $previousRunDir/$file | tail -n 1`
+    typeset previousRunDir=$(f_getPreviousRunDir "$filename")
+    if [[ -n $previousRunDir ]]; then
+        # get the line number line
+        previousLineNumber=`head -n $NUM_OF_META_DATA_LINES $previousRunDir/$filename | tail -n 1`
     else
-        previousLineNumber="previousLineNumberError: $file"
-        f_logError "f_getPreviousLineNumber: $file"
+        previousLineNumber="previousLineNumberError: $filename"
+        f_logError "f_getPreviousLineNumber: $filename"
     fi
       
     echo $previousLineNumber      
 }
 
 function f_getPreviousRunDir {
-    typeset lastTwoRunDirs=`ls -rtd $ALL_RUNS_OUTPUT_DIR/*/ | tail -n 2`    # /* is important so we get absolute names. and ending '/' is important b/c if only '$ALL_RUNS_OUTPUT_DIR/*', that doesn't work with -d it still lists all the files too, so we need /*/
-    typeset          count=`echo "$lastTwoRunDirs" | wc -l`
-    typeset previousRunDir=`echo "$lastTwoRunDirs" | head -n 1`
-    typeset  currentRunDir=`echo "$lastTwoRunDirs" | tail -n 1`
-    if [[ $count -eq 2 ]]; then
+    typeset filename=$1
+    typeset maxNumOfPreviousDirectoriesToWalkBack=8
+
+    typeset desiredNumOfDirectories=$((maxNumOfPreviousDirectoriesToWalkBack + 1))    # +1 b/c includes the current
+    typeset             lastRunDirs=`ls -td $ALL_RUNS_OUTPUT_DIR/*/ | head -n $desiredNumOfDirectories`    # /* is important so we get absolute names. and ending '/' is important b/c if only '$ALL_RUNS_OUTPUT_DIR/*', that doesn't work with -d it still lists all the files too, so we need /*/
+    typeset  actualDirectoriesCount=`echo "$lastRunDirs" | wc -l`
+    
+    typeset previousRunDir="";
+    if [[ $actualDirectoriesCount -eq 0 ]]; then
+        f_logError "f_getPreviousRunDir: didn't find any directories at all. not even the running dir."
+    elif [[ $actualDirectoriesCount -eq 1 ]]; then
+        typeset filler_so_this_if_statement_can_exist   # this is the case when it's the first run
+    else
+        typeset            currentRunDir=`echo "$lastRunDirs" | head -n 1`
         typeset isCurrentRunDirTheRunDir=`echo "$currentRunDir" | grep -c "$RUN_DIR"`
         if [[ $isCurrentRunDirTheRunDir -ne 1 ]]; then
             f_logError "expected currentRunDir: '$RUN_DIR', actual: '$currentRunDir'"
+        else
+            typeset actualNumOfPreviousDirs=$((actualDirectoriesCount - 1))    # -1 to exclude the current
+            if [[ -z $filename ]]; then
+                previousRunDir=$(f_parsePreviousDirectoryFrom "$lastRunDirs" "$actualNumOfPreviousDirs")
+                typeset filler_so_this_if_statement_can_exist   # this is the case where we only want the immediate previous directory
+            else
+                typeset previousDirNumber=1
+                typeset         dirsCount=$actualNumOfPreviousDirs
+                while [[ $previousDirNumber -le $actualNumOfPreviousDirs ]]; do
+                    previousRunDir=$(f_parsePreviousDirectoryFrom "$lastRunDirs" "$dirsCount")
+                    if [[ -e $previousRunDir/$filename && $(f_getNumberOfLines "$previousRunDir/$filename") -ge $NUM_OF_META_DATA_LINES ]]; then
+                        # found it
+                        break;
+                    fi
+                    previousRunDir=""
+                    ((previousDirNumber++))
+                    ((dirsCount--))
+                done
+            fi
         fi
-    elif [[ $count -eq 1 ]]; then
-        previousRunDir=""
-    else
-        f_logError "f_getPreviousRunDir: couldn't find correctly"
     fi
     
     echo $previousRunDir
+}
+
+function f_parsePreviousDirectoryFrom {
+    typeset dirsList=$1
+    typeset numOfDirsToGrabStartingFromTheBottom=$2
+    
+    echo "$dirsList" | tail -n $numOfDirsToGrabStartingFromTheBottom | head -n 1
 }
 
 function f_waitForAllErrorsToBeCollected {
@@ -135,15 +166,15 @@ function f_rerunAnyZeroSizeFiles {
     if [[ -e $EMPTY_FILES ]]; then
         echo -e "\tRerunning files on hosts"
         typeset count=1
-        while read file; do
-            echo -e "\t\t$count - $file"
-            typeset host=`echo "$file" | cut -d '_' -f 1`
-            if [[ $file =~ sk$ ]]; then
+        while read filename; do
+            echo -e "\t\t$count - $filename"
+            typeset host=`echo "$filename" | cut -d '_' -f 1`
+            if [[ $filename =~ sk$ ]]; then
                 f_findSkErrors   "$host"
-            elif [[ $file =~ skfs$ ]]; then
+            elif [[ $filename =~ skfs$ ]]; then
                 f_findSkfsErrors "$host"
             else
-                echo "we have an issue: $file"
+                echo "we have an issue: $filename"
             fi
             usleep 100000
             ((count++))
@@ -156,10 +187,10 @@ function f_rerunAnyZeroSizeFiles {
 function f_checkForAnyZeroSizeFiles {
     typeset dir=$1
         
-    for file in `ls $dir`; do
-        typeset numOfLines=$(f_getNumberOfLines "$dir/$file")
+    for filename in `ls $dir`; do
+        typeset numOfLines=$(f_getNumberOfLines "$dir/$filename")
         if [[ $numOfLines -eq 0 ]]; then
-            f_logEmptyFile "$file"
+            f_logEmptyFile "$filename"
         fi
     done 
 }
@@ -173,8 +204,8 @@ function f_runErrorReport {
     echo "Running error report"
     
     while read host; do
-        f_checkFilename "$RUN_DIR/${host}_sk"
-        f_checkFilename "$RUN_DIR/${host}_skfs"
+        f_checkFile "$RUN_DIR/${host}_sk"
+        f_checkFile "$RUN_DIR/${host}_skfs"
     done < $HOSTS_FILE
     
     typeset previousRunDir=$(f_getPreviousRunDir)
@@ -186,45 +217,39 @@ function f_runErrorReport {
 # if oldExist and no exist For current
 # if currentExist and no exists for previous = server got re-included, or last run timedout 
 # check if line ranges are good, if startOld > startPrev, chance file changed
-function f_checkFilename {
+function f_checkFile {
     typeset file=$1
 
-    typeset filenameOnly=`basename $file`
-        
-    typeset previousFileExists=""
-    typeset previousRunDir=$(f_getPreviousRunDir)
-    if [[ -n $previousRunDir ]]; then
-        if [[ -e $previousRunDir/$filenameOnly ]]; then
-            previousFileExists="true"
-        fi
-    fi
+    typeset filename=`basename $file`
     
     if [[ ! -e $file ]]; then
-        f_logError "'$filenameOnly' doesn't exist: Did it timeout? Is it ssh'able?"
+        f_logError "'$filename' doesn't exist: Did it timeout? Is it ssh'able?"
     else     
         typeset numOfLines=$(f_getNumberOfLines "$file")
         if [[ $numOfLines -lt 0 ]]; then
-            f_logError "'$filenameOnly' has a negative # of lines"
+            f_logError "'$filename' has a negative # of lines"
         elif [[ $numOfLines -eq 0 ]]; then
-            f_logError "'$filenameOnly' has 0 lines ($numOfLines). Did it timeout? Is it ssh'able?"
+            f_logError "'$filename' has 0 lines ($numOfLines). Did it timeout? Is it ssh'able?"
         elif [[ $numOfLines -eq 1 ]]; then
-            f_logError "'$filenameOnly' has only 1 line: `cat $file`"
-        else               
+            f_logError "'$filename' has only 1 line: `cat $file`"
+        else           
+            typeset previousRunDir=$(f_getPreviousRunDir "$filename")
             # compare log filenames
-            if [[ -n $previousFileExists ]]; then
+            if [[ -n $previousRunDir ]]; then
                 typeset  currentLogFilename=`head -n 1 $file`
-                typeset previousLogFilename=`head -n 1 $previousRunDir/$filenameOnly`
+                typeset previousLogFilename=`head -n 1 $previousRunDir/$filename`
                 if [[ $currentLogFilename != $previousLogFilename ]]; then
-                    f_logError "'$filenameOnly' log file changed. current='$currentLogFilename', prev='$previousLogFilename'"
+                    f_logError "'$filename' log file changed. current='$currentLogFilename', prev='$previousLogFilename'"
+                    sed -i "${LINE_NUMBER_LINE}s#.*#$START_LINE_NUMBER#" $file # override old line number back to start
                 fi
             fi
         
-            if [[ $numOfLines -gt 2 ]]; then
-                f_logFail "$filenameOnly"
-                f_logDetail "> $filenameOnly"
-                f_logDetail "`tail -n +3 $file`"
+            if [[ $numOfLines -gt $NUM_OF_META_DATA_LINES ]]; then
+                f_logFail "$filename"
+                f_logDetail "> $filename"
+                f_logDetail "`tail -n +$((NUM_OF_META_DATA_LINES+1)) $file`"
                 f_logDetail "\n"
-            elif [[ $numOfLines -eq 2 ]]; then
+            elif [[ $numOfLines -eq $NUM_OF_META_DATA_LINES ]]; then
                 # fixme - this is the passing case, do I need to do something here?
                 typeset fixme;
             fi
@@ -276,8 +301,8 @@ function f_runDiffOnHostFiles {
     diff $oldTmpDir $newTmpDir > $HOST_DIFF_OUTPUT_FILE
     typeset numOfLines=$(f_getNumberOfLines "$HOST_DIFF_OUTPUT_FILE")
     if [[ $numOfLines -gt 0 ]]; then
-        sed -E -i "s#(^diff .*)#\n\1#g"           $HOST_DIFF_OUTPUT_FILE    # -E so I don't have to escape the parenthesis for the capture groups. there's also this (https://unix.stackexchange.com/questions/121161/how-to-insert-text-after-a-certain-string-in-a-file), but I preferred to go with substitution.
-        sed    -i "s#$TMP_OUTPUT_RUN_DIR/diff##g" $HOST_DIFF_OUTPUT_FILE
+        sed -ri "s#(^diff .*)#\n\1#g"           $HOST_DIFF_OUTPUT_FILE    # -E so I don't have to escape the parenthesis for the capture groups. there's also this (https://unix.stackexchange.com/questions/121161/how-to-insert-text-after-a-certain-string-in-a-file), but I preferred to go with substitution.
+        sed -i  "s#$TMP_OUTPUT_RUN_DIR/diff##g" $HOST_DIFF_OUTPUT_FILE
     else
         rm $HOST_DIFF_OUTPUT_FILE
     fi
@@ -288,7 +313,6 @@ function f_runDiffOnHostFiles {
 function f_sendEmail {
 	typeset to=$1
 	typeset from=$2
-	typeset subject=$3
     
     touch $REPORT_FILE
     
@@ -296,8 +320,19 @@ function f_sendEmail {
     if [[ (! -e $ERRORS_FILE) && (! -e $FAILS_FILE) && (! -e $DETAILS_FILE) && (! -e $HOST_DIFF_OUTPUT_FILE) ]]; then
         result="PASS ($HOST_COUNT)"
     else
-        typeset failHostCount=`cut -d '_' -f 1 $FAILS_FILE | sort -n | uniq | wc -l`
-        result="FAIL ($failHostCount/$HOST_COUNT)"
+        typeset failHostCount=0
+        if [[ -e $FAILS_FILE ]]; then
+            failHostCount=`cut -d '_' -f 1 $FAILS_FILE | sort -n | uniq | wc -l`
+            result="FAIL ($failHostCount/$HOST_COUNT)"
+            
+            typeset thresholdPercent=10
+            typeset actualPercent=$((failHostCount / HOST_COUNT))
+            if [[ $actualPercent -ge $thresholdPercent ]]; then
+                result+="(${actualPercent}%)"
+            fi
+        else
+            result="ERROR ($HOST_COUNT)"
+        fi
         
         f_logReportSection "ERRORS"  "$ERRORS_FILE"
         f_logReportSection "FAILS"   "$FAILS_FILE" " ($failHostCount/$HOST_COUNT)"
@@ -321,13 +356,13 @@ function f_sendEmail {
     else 
         typeset reportFileSnapshot="$TMP_OUTPUT_RUN_DIR/report_snapshot.out"
         head -n 50000 $REPORT_FILE > $reportFileSnapshot
-        body=`echo "reportFile is too big (size=$reportFileSize). Here's a snippet below. Check '$REPORT_FILE' for the full details."`
+        typeset reportFileSizeInMb=$((reportFileSize/(1024*1024)))
+        body=`echo "reportFile is too big (size=${reportFileSizeInMb}MB). Here's a snippet below. Check '$REPORT_FILE' on \`hostname\` for the full details."`
         body+=`cat $reportFileSnapshot`
         attachment="$reportFileSnapshot"
     fi
     
-    
-    f_sendEmailHelper "$to" "$from" "$subject - $result - `basename $RUN_DIR`" "$body" "$attachment"
+    f_sendEmailHelper "$to" "$from" "$RUN_ID $result - `basename $RUN_DIR`" "$body" "$attachment"
 }
 
 function f_logReportSection {
@@ -361,7 +396,7 @@ function f_sendEmailHelper {
 		attachmentsList="-a $attachments"
 	fi
 	
-	echo -e "$body" | $MUTT -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
+	echo -e "$body" | $MUTT -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
     
     echo "done"
 }
@@ -401,10 +436,15 @@ typeset            FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
 typeset          DETAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.details"
 typeset           REPORT_FILE="$TMP_OUTPUT_RUN_DIR/report.out"
 
+typeset NUM_OF_META_DATA_LINES=2
+typeset   FILE_NAME_LINE=1
+typeset LINE_NUMBER_LINE=2
+typeset START_LINE_NUMBER=1
+
 f_checkIfAnySshCommandsAreStillRunning
 f_findErrorsOnHosts
 f_waitForAllErrorsToBeCollected
 f_rerunAnyZeroSizeFiles
 f_scrubFilesForIgnorableErrors
 f_runErrorReport
-f_sendEmail "$EMAILS" "sk_health_check_${RUN_ID}_2@the_real_silverking.com" "SK Health Report - $RUN_ID"
+f_sendEmail "$EMAILS" "sk_health_check_${RUN_ID}@the_real_silverking.com"
