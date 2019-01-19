@@ -187,7 +187,7 @@ function f_rerunAnyZeroSizeFiles {
 function f_checkForAnyZeroSizeFiles {
     typeset dir=$1
         
-    for filename in `ls $dir`; do
+    for filename in `ls $dir | grep -v '.txt$'`; do
         typeset numOfLines=$(f_getNumberOfLines "$dir/$filename")
         if [[ $numOfLines -eq 0 ]]; then
             f_logEmptyFile "$filename"

@@ -41,8 +41,7 @@ function f_findErrorsOnHosts {
     typeset count=1
     while read host; do
         echo -n "$count "
-        f_logSshCmd "$TIMEOUT_SSH $host $SSH_CMD"   
-        $TIMEOUT_SSH $host "$SSH_CMD" </dev/null > $RUN_DIR/$host 2>/dev/null &
+        f_findErrors "$host"
         usleep 100000
         ((count++))
     done < $HOSTS_FILE
@@ -50,20 +49,64 @@ function f_findErrorsOnHosts {
     echo
 }
 
-function f_runErrorReport {
+function f_findErrors {
+    typeset   host=$1
+
+    f_logSshCmd "$TIMEOUT_SSH $host $SSH_CMD"    
+    $TIMEOUT_SSH $host "$SSH_CMD" </dev/null > $RUN_DIR/$host 2>/dev/null &
+}
+
+function f_waitForAllErrorsToBeCollected {
+    f_checkIfAnySshCommandsAreStillRunningHelper "Waiting for all hosts to complete" 3
+}
+
+function f_rerunAnyZeroSizeFiles {
     echo "Checking for zero size files in '`basename $RUN_DIR`'..."
     f_checkForAnyZeroSizeFiles "$RUN_DIR"
-}
     
+    if [[ -e $EMPTY_FILES ]]; then
+        echo -e "\tRerunning files on hosts"
+        typeset count=1
+        while read filename; do
+            echo -e "\t\t$count - $filename"
+            f_findErrors "$host"
+            usleep 100000
+            ((count++))
+        done < $EMPTY_FILES
+        
+        f_waitForAllErrorsToBeCollected
+    fi
+}
+
 function f_checkForAnyZeroSizeFiles {
     typeset dir=$1
         
-    for file in `ls $dir`; do
-        typeset numOfLines=$(f_getNumberOfLines "$dir/$file")
+    for filename in `ls $dir | grep -v '.txt$'`; do
+        typeset numOfLines=$(f_getNumberOfLines "$dir/$filename")
         if [[ $numOfLines -eq 0 ]]; then
-            f_logFailFile "$file"
+            f_logEmptyFile "$filename"
         fi
     done 
+}
+
+function f_runErrorReport {
+    echo "Checking for zero size files in '`basename $RUN_DIR`'..."
+    f_checkForAnyZeroSizeFiles2 "$RUN_DIR"
+}
+    
+function f_checkForAnyZeroSizeFiles2 {
+    typeset dir=$1
+        
+    for filename in `ls $dir | grep -v ".txt$"`; do
+        typeset numOfLines=$(f_getNumberOfLines "$dir/$filename")
+        if [[ $numOfLines -eq 0 ]]; then
+            f_logFailFile "$filename"
+        fi
+    done 
+}
+
+function f_logEmptyFile {
+    f_logHelper "$1" "$EMPTY_FILES"
 }
 
 function f_logFailFile {
@@ -160,15 +203,18 @@ function f_getNumberOfLines {
 TMP_OUTPUT_RUN_DIR=$5
               MUTT=$6
             EMAILS=$7
-typeset fifteenSecs=15
-typeset TIMEOUT_SSH="timeout $fifteenSecs ssh"
+typeset sixtySecs=60
+typeset TIMEOUT_SSH="timeout $sixtySecs ssh"
 typeset   SSH_CMD="ls $SKFS_MNT_PATH"
 
 typeset HOST_COUNT=$(f_getNumberOfLines "$HOSTS_FILE")
+typeset           EMPTY_FILES="$TMP_OUTPUT_RUN_DIR/empty_files.out"
 typeset            FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
 typeset           REPORT_FILE="$TMP_OUTPUT_RUN_DIR/report.out"
 
 f_checkIfAnySshCommandsAreStillRunning
 f_findErrorsOnHosts
+f_waitForAllErrorsToBeCollected
+f_rerunAnyZeroSizeFiles
 f_runErrorReport
 f_sendEmail "$EMAILS" "sk_health_report_mount-check_${RUN_ID}@the_real_silverking.com"

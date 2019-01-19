@@ -27,11 +27,16 @@ function f_checkIfAnySshCommandsAreStillRunningHelper {
 }
 
 function f_getStillRunning {
-    ps uxww | grep "$TIMEOUT_SSH" | grep "$SSH_CMD"
+    ps uxww | grep "$TIMEOUT_SSH" | grep   "$SK_SSH_CMD"
+    ps uxww | grep "$TIMEOUT_SSH" | grep "$SKFS_SSH_CMD"
 }
 
 function f_getStillRunningCount {
-    ps uxww | grep "$TIMEOUT_SSH" | grep -c "$SSH_CMD"
+    typeset   skRunningCount=`ps uxww | grep "$TIMEOUT_SSH" | grep -c   "$SK_SSH_CMD"`
+    typeset skfsRunningCount=`ps uxww | grep "$TIMEOUT_SSH" | grep -c "$SKFS_SSH_CMD"`
+    typeset totalRunningCount=$((skRunningCount+skfsRunningCount))
+    
+    echo $totalRunningCount
 }
 
 function f_findErrorsOnHosts {
@@ -41,8 +46,8 @@ function f_findErrorsOnHosts {
     typeset count=1
     while read host; do
         echo -n "$count "
-        f_logSshCmd "$TIMEOUT_SSH $host $SSH_CMD"   
-        $TIMEOUT_SSH $host "$SSH_CMD" </dev/null > $RUN_DIR/$host 2>/dev/null &
+        f_findSkErrors   "$host"
+        f_findSkfsErrors "$host"
         usleep 100000
         ((count++))
     done < $HOSTS_FILE
@@ -50,20 +55,83 @@ function f_findErrorsOnHosts {
     echo
 }
 
-function f_runErrorReport {
+function f_findSkErrors {
+    f_findErrorsHelper "$1" "sk" "$SK_SSH_CMD"
+}
+
+function f_findSkfsErrors {
+    f_findErrorsHelper "$1" "skfs" "$SKFS_SSH_CMD"
+}
+
+function f_findErrorsHelper {
+    typeset       host=$1
+    typeset fileEnding=$2
+    typeset     sshCmd=$3
+    
+    typeset filename="${host}_${fileEnding}"
+    
+    f_logSshCmd "$TIMEOUT_SSH $host $sshCmd"    
+    $TIMEOUT_SSH $host "$sshCmd" </dev/null > $RUN_DIR/$filename 2>/dev/null &
+}
+
+function f_waitForAllErrorsToBeCollected {
+    f_checkIfAnySshCommandsAreStillRunningHelper "Waiting for all hosts to complete" 3
+}
+
+function f_rerunAnyZeroSizeFiles {
     echo "Checking for zero size files in '`basename $RUN_DIR`'..."
     f_checkForAnyZeroSizeFiles "$RUN_DIR"
-}
     
+    if [[ -e $EMPTY_FILES ]]; then
+        echo -e "\tRerunning files on hosts"
+        typeset count=1
+        while read filename; do
+            echo -e "\t\t$count - $filename"
+            typeset host=`echo "$filename" | cut -d '_' -f 1`
+            if [[ $filename =~ sk$ ]]; then
+                f_findSkErrors   "$host"
+            elif [[ $filename =~ skfs$ ]]; then
+                f_findSkfsErrors "$host"
+            else
+                echo "we have an issue: $filename"
+            fi
+            usleep 100000
+            ((count++))
+        done < $EMPTY_FILES
+        
+        f_waitForAllErrorsToBeCollected
+    fi
+}
+
 function f_checkForAnyZeroSizeFiles {
     typeset dir=$1
         
-    for file in `ls $dir | grep -v ".txt$"`; do
-        typeset numOfLines=$(f_getNumberOfLines "$dir/$file")
-        if [[ $numOfLines -ne 3 ]]; then
-            f_logFailFile "$file"
+    for filename in `ls $dir | grep -v '.txt$'`; do
+        typeset numOfLines=$(f_getNumberOfLines "$dir/$filename")
+        if [[ $numOfLines -eq 0 ]]; then
+            f_logEmptyFile "$filename"
         fi
     done 
+}
+
+function f_runErrorReport {
+    echo "Checking for zero size files in '`basename $RUN_DIR`'..."
+    f_checkForAnyZeroSizeFiles2 "$RUN_DIR"
+}
+    
+function f_checkForAnyZeroSizeFiles2 {
+    typeset dir=$1
+        
+    for filename in `ls $dir | grep -v ".txt$"`; do
+        typeset numOfLines=$(f_getNumberOfLines "$dir/$filename")
+        if [[ $numOfLines -ne 1 ]]; then
+            f_logFailFile "$filename"
+        fi
+    done 
+}
+
+function f_logEmptyFile {
+    f_logHelper "$1" "$EMPTY_FILES"
 }
 
 function f_logFailFile {
@@ -91,7 +159,7 @@ function f_sendEmail {
     if [[ ! -e $FAILS_FILE ]]; then
         result="PASS ($HOST_COUNT)"
     else
-        typeset failHostCount=$(f_getNumberOfLines "$FAILS_FILE")
+        typeset failHostCount=`cut -d '_' -f 1 $FAILS_FILE | sort -n | uniq | wc -l`
         result="FAIL ($failHostCount/$HOST_COUNT)"
         
         typeset thresholdPercent=10
@@ -160,15 +228,19 @@ function f_getNumberOfLines {
 TMP_OUTPUT_RUN_DIR=$5
               MUTT=$6
             EMAILS=$7
-typeset fifteenSecs=15
-typeset TIMEOUT_SSH="timeout $fifteenSecs ssh"
-typeset   SSH_CMD="pgrep -fl com.ms.silverking.cloud.dht.daemon.DHTNode; pgrep -fl 'skfsd --mount=$SKFS_MNT_PATH'"
+typeset  ninetySecs=90
+typeset  TIMEOUT_SSH="timeout $ninetySecs ssh"
+typeset   SK_SSH_CMD="pgrep -fl com.ms.silverking.cloud.dht.daemon.DHTNode"
+typeset SKFS_SSH_CMD="pgrep -fl 'skfsd --mount=$SKFS_MNT_PATH'"
 
 typeset HOST_COUNT=$(f_getNumberOfLines "$HOSTS_FILE")
+typeset           EMPTY_FILES="$TMP_OUTPUT_RUN_DIR/empty_files.out"
 typeset            FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
 typeset           REPORT_FILE="$TMP_OUTPUT_RUN_DIR/report.out"
 
 f_checkIfAnySshCommandsAreStillRunning
 f_findErrorsOnHosts
+f_waitForAllErrorsToBeCollected
+f_rerunAnyZeroSizeFiles
 f_runErrorReport
 f_sendEmail "$EMAILS" "sk_health_report_process-check_${RUN_ID}@the_real_silverking.com"
