@@ -421,7 +421,7 @@ TMP_OUTPUT_RUN_DIR=$6
               MUTT=$7
             EMAILS=$8
 
-typeset findErrorsScript=$PWD/find_errors.sh
+typeset findErrorsScript=$PWD/find_log_errors.sh
 typeset fiveMinsInSecs=300
 typeset TIMEOUT_SSH="timeout $fiveMinsInSecs ssh"
 typeset   SK_SSH_CMD="$findErrorsScript   $SK_LOG_DIR"
