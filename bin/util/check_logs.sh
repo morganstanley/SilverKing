@@ -322,16 +322,17 @@ function f_sendEmail {
     else
         typeset failHostCount=0
         if [[ -e $FAILS_FILE ]]; then
-            failHostCount=`cut -d '_' -f 1 $FAILS_FILE | sort -n | uniq | wc -l`
+            failHostCount=$(f_getUniqueHosts "$FAILS_FILE")
             result="FAIL ($failHostCount/$HOST_COUNT)"
             
             typeset thresholdPercent=10
-            typeset actualPercent=$((failHostCount / HOST_COUNT))
+            typeset actualPercent=$((failHostCount*100 / HOST_COUNT))   # *100 is to get a percentage - if you *100 at the end, the failHostCount / HOST_COUNT will be 0 *100
             if [[ $actualPercent -ge $thresholdPercent ]]; then
                 result+="(${actualPercent}%)"
             fi
         else
-            result="ERROR ($HOST_COUNT)"
+            typeset errorHostCount=$(f_getUniqueHosts "$ERRORS_FILE")
+            result="ERROR ($errorHostCount/$HOST_COUNT)"
         fi
         
         f_logReportSection "ERRORS"  "$ERRORS_FILE"
@@ -343,6 +344,13 @@ function f_sendEmail {
             cat $HOST_DIFF_OUTPUT_FILE >> $REPORT_FILE
         fi
 	fi
+    
+    typeset fatalFails="wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|pbr_read received error from fbr_read|fbr_read failed|terminate called after throwing an instance of|TIMEOUT"
+    # typeset fatalFails="*** check this machine"
+    typeset fatalCount=`grep -Pc "$fatalFails" "$REPORT_FILE"`
+    if [[ $fatalCount -gt 0 ]]; then
+        result="FATAL ($fatalCount) $result"
+    fi
     
     echo -e "\tresult: $result"
     
@@ -363,6 +371,10 @@ function f_sendEmail {
     fi
     
     f_sendEmailHelper "$to" "$from" "$RUN_ID $result - `basename $RUN_DIR`" "$body" "$attachment"
+}
+
+function f_getUniqueHosts {
+    cut -d '_' -f 1 $1 | sort -n | uniq | wc -l
 }
 
 function f_logReportSection {
