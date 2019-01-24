@@ -1062,14 +1062,20 @@ static int skfs_rename(const char *oldpath, const char *newpath
                     }
                 } else {
                     SKOperationState::SKOperationState  writeResult;
+                    SKFailureCause::SKFailureCause  cause;
                 
+                    cause = SKFailureCause::ERROR;
                     fa.stat.st_ctime = curEpochTimeSeconds;
                     fa.stat.st_ctim.tv_nsec = curTimeNanos;
                     // Link the new file to the old file blocks
-                    writeResult = aw_write_attr_direct(aw, newpath, &fa, ar->attrCache);
+                    writeResult = aw_write_attr_direct(aw, newpath, &fa, ar->attrCache, 1, &cause);
                     if (writeResult != SKOperationState::SUCCEEDED) {
                         srfsLog(LOG_ERROR, "aw_write_attr_direct failed in skfs_rename %s", newpath);
-                        return -EIO;
+                        if (cause == SKFailureCause::INVALID_VERSION) {
+                            return -EEXIST;
+                        } else {
+                            return -EIO;
+                        }
                     } else {
                         // Create a directory entry for the new file
                         if (odt_add_entry_to_parent_dir(odt, (char *)newpath)) {

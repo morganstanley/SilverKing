@@ -212,7 +212,7 @@ static void aw_process_dht_batch(void **requests, int numRequests, int curThread
 	srfsLog(LOG_FINE, "out aw_process_dht_batch");
 }
 
-SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, AttrCache *ac, int maxAttempts) {
+SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, AttrCache *ac, int maxAttempts, SKFailureCause::SKFailureCause *cause) {
 	SKOperationState::SKOperationState	result;
 	SKVal		*pVal;
 	SKAsyncPut	*pPut;
@@ -233,11 +233,14 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
             } else {
                 pPut = aw->ansp->invalidate(path);
             }
-             pPut->waitForCompletion();
+            pPut->waitForCompletion();
 			result = pPut->getState();
 		} catch (exception &e) {
 			srfsLog(LOG_WARNING, "aw_write_attr_direct exception %s", e.what());
 			result = SKOperationState::FAILED;
+            if (cause != NULL) {
+				*cause = pPut->getFailureCause();
+            }
 		}	
 		if (pPut) {
 			delete pPut;
