@@ -323,12 +323,25 @@ function f_sendEmail {
         typeset failHostCount=0
         if [[ -e $FAILS_FILE ]]; then
             failHostCount=$(f_getUniqueHosts "$FAILS_FILE")
-            result="FAIL ($failHostCount/$HOST_COUNT)"
+            result="INFO ($failHostCount/$HOST_COUNT)"
             
             typeset thresholdPercent=10
             typeset actualPercent=$((failHostCount*100 / HOST_COUNT))   # *100 is to get a percentage - if you *100 at the end, the failHostCount / HOST_COUNT will be 0 *100
             if [[ $actualPercent -ge $thresholdPercent ]]; then
                 result+="(${actualPercent}%)"
+            fi
+            
+            typeset fatalFails="pbr_read received error from fbr_read|TIMEOUT"
+            # typeset fatalFails="*** check this machine"
+            typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
+                
+            typeset   fatalCount=`grep -Pc "$fatalFails"   "$REPORT_FILE"`
+            typeset warningCount=`grep -Pc "$warningFails" "$REPORT_FILE"`
+            
+            if [[ $fatalCount -gt 0 ]]; then
+                result="FATAL ($fatalCount) ($HOST_COUNT)"
+            elif [[ $warningCount -gt 0 ]]; then
+                result="WARNING ($warningCount) ($HOST_COUNT)"
             fi
         else
             typeset errorHostCount=$(f_getUniqueHosts "$ERRORS_FILE")
@@ -344,13 +357,6 @@ function f_sendEmail {
             cat $HOST_DIFF_OUTPUT_FILE >> $REPORT_FILE
         fi
 	fi
-    
-    typeset fatalFails="wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|pbr_read received error from fbr_read|fbr_read failed|terminate called after throwing an instance of|TIMEOUT"
-    # typeset fatalFails="*** check this machine"
-    typeset fatalCount=`grep -Pc "$fatalFails" "$REPORT_FILE"`
-    if [[ $fatalCount -gt 0 ]]; then
-        result="FATAL ($fatalCount) $result"
-    fi
     
     echo -e "\tresult: $result"
     
@@ -459,4 +465,4 @@ f_waitForAllErrorsToBeCollected
 f_rerunAnyZeroSizeFiles
 f_scrubFilesForIgnorableErrors
 f_runErrorReport
-f_sendEmail "$EMAILS" "sk_health_check_${RUN_ID}@the_real_silverking.com"
+f_sendEmail "$EMAILS" "sk_health_report_log-check_${RUN_ID}@the_real_silverking.com"
