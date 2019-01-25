@@ -33,7 +33,7 @@ echo $file
 echo $lastLine
 
 typeset errorStreakThreshold=2
-typeset counterFile=/tmp/cvaCounterFile.$logType
+typeset counterFile=/tmp/logCounterFile.$logType
 if [[ $startLine -gt $lastLine ]]; then
     typeset currentStreak;
     if [[ -e $counterFile ]]; then
