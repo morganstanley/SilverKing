@@ -13,6 +13,7 @@ import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.management.MetaUtil;
 import com.ms.silverking.cloud.dht.management.MetaUtilOptions;
+import com.ms.silverking.cloud.dht.meta.DHTRingCurTargetZK;
 import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingEntry;
@@ -28,6 +29,8 @@ public class RingInfo {
 	private final MetaUtil				metaUtil;
 	private final com.ms.silverking.cloud.dht.meta.MetaClient	dhtMC;
 	private final String				ringParentName; // FUTURE - remove to make functional
+	private final DHTRingCurTargetZK	dhtRingCurTargetZK;
+	private final Triple<String, Long, Long>	curRingAndVersionPair;
 	
 	public RingInfo(SKGridConfiguration gc) throws IOException, KeeperException, ClientException {
 		this.gc = gc;
@@ -36,12 +39,18 @@ public class RingInfo {
 		metaUtil = new MetaUtil(gc.getClientDHTConfiguration().getName(), gc.getClientDHTConfiguration().getZKConfig(), MetaUtilOptions.dhtVersionUnspecified);
 		dhtMC = metaUtil.getDHTMC();
 		ringParentName = metaUtil.getRingConfiguration().getRingParentName();
+		
+		dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
+		curRingAndVersionPair = dhtRingCurTargetZK.getCurRingAndVersionPair();
 	}
 	
 	public void getRingInfo(Triple<String, Long, Long> ring) throws IOException, KeeperException, ClientException {
 		ResolvedReplicaMap	rMap;
 		Map<IPAndPort,Long>	aMap;
 		
+		if (ring == null) {
+			ring = curRingAndVersionPair;
+		}
 		rMap = readReplicaMap(ring);
 		rMap.display();
 		aMap = getAllocationMap(rMap);
@@ -103,8 +112,8 @@ public class RingInfo {
 	}	
 	
 	public static void main(String[] args) {
-		if (args.length < 2) {
-			System.err.println("args: <gridConfig> <ring...>");
+		if (args.length < 1) {
+			System.err.println("args: <gridConfig> [ring...]");
 		} else {
 			try {
 				SKGridConfiguration	gc;
@@ -112,8 +121,12 @@ public class RingInfo {
 				
 				gc = SKGridConfiguration.parseFile(args[0]);
 				ringInfo = new RingInfo(gc);
-				for (int i = 1; i < args.length; i++) {
-					ringInfo.getRingInfo(getRingAndVersionPair(args[i]));
+				if (args.length == 1) {
+					ringInfo.getRingInfo(null);
+				} else {
+					for (int i = 1; i < args.length; i++) {
+						ringInfo.getRingInfo(getRingAndVersionPair(args[i]));
+					}
 				}
 				System.exit(0);
 			} catch (Exception e) {
