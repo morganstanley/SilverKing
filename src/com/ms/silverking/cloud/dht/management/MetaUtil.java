@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -25,7 +24,6 @@ import com.ms.silverking.cloud.dht.meta.NamedDHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.NamespaceLinksZK;
 import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.cloud.meta.HostGroupTableZK;
-import com.ms.silverking.cloud.meta.PassiveNodeSet;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.NodeClass;
@@ -36,7 +34,6 @@ import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.io.IOUtil;
-import com.ms.silverking.log.Log;
 
 /*
  * Given a DHT name, this utility can provide:
@@ -54,7 +51,6 @@ public class MetaUtil {
     private final DHTConfigurationZK  dhtConfZk;
     private final ZooKeeperExtended   zk;
     private final ExclusionSet exclusions;
-    private final PassiveNodeSet passiveNodes;
     private final PrintStream  out;
     
     //readRingFromZk
@@ -74,7 +70,6 @@ public class MetaUtil {
         String  dhtVersionPath;
         long    cloudConfigVersion;
         long    exclusionsVersion;
-        long    passiveNodesVersion;
         MetaClient  _mc;
         NamedDHTConfiguration   namedDHTConfig;
         
@@ -130,22 +125,6 @@ public class MetaUtil {
         System.err.printf("%s\t%d\n", ringMC.getMetaPaths().getExclusionsPath(), exclusionsVersion);
         exclusions = new ExclusionSet( 
                 new ServerSetExtensionZK(ringMC, ringMC.getMetaPaths().getExclusionsPath()).readFromZK(exclusionsVersion, null) );
-        
-        if (dhtConfig.hasPassiveNodeHostGroups()) {
-        	PassiveNodeSet	_passiveNodes;
-        	
-        	try {
-		        passiveNodesVersion = getVersionPriorTo_floored(mc.getMetaPaths().getPassiveNodesPath(), dhtConfZkId);
-		        _passiveNodes = new PassiveNodeSet( 
-		                new ServerSetExtensionZK(mc, mc.getMetaPaths().getPassiveNodesPath()).readFromZK(passiveNodesVersion, null) );
-        	} catch (NoNodeException nne) {
-        		Log.logErrorWarning(nne);
-            	_passiveNodes = PassiveNodeSet.emptySet();
-        	}
-        	passiveNodes = _passiveNodes;
-        } else {
-        	passiveNodes = PassiveNodeSet.emptySet();
-        }
         
         configInstanceVersion = getVersionPriorTo_floored(ringMC.getMetaPaths().getConfigInstancePath(ringConfigVersion), dhtConfZkId);
         
@@ -251,12 +230,6 @@ public class MetaUtil {
         }
     }
     
-    private void displayDHTPassiveNodes() {
-        for (String server : passiveNodes.getServers()) {
-            displayForFiltering(server);
-        }
-    }
-    
     private void displayDHTHostGroupServers(Iterable<String> hostGroups, FilterOption filterOption, 
             String workersFile, String exclusionsFile) throws KeeperException, IOException {
         Set<String>     allowedHostAddresses;
@@ -313,9 +286,6 @@ public class MetaUtil {
         case GetDHTExcludedServers:
             displayDHTExcludedServers();
             break;
-        case GetDHTPassiveNodes:
-            displayDHTPassiveNodes();
-            break;
         case ClearLinks:
             clearLinks();
             break;
@@ -357,11 +327,6 @@ public class MetaUtil {
                     }
                     break;
                 case GetDHTExcludedServers:
-                    break;
-                case GetDHTPassiveNodes:
-                    if (options.filterOption == null) {
-                        throw new CmdLineException("GetDHTPassiveNodes requires -f filterOption option");
-                    }
                     break;
                 case ClearLinks:
                     break;

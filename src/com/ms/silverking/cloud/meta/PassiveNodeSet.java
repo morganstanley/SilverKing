@@ -11,6 +11,8 @@ import com.google.common.collect.ImmutableSet;
 /**
  * Servers that passively participate in the DHT. These servers may 
  * communicate with clients, but do not actively store any data.
+ * 
+ * FUTURE - this class is deprecated; remove
  */
 public class PassiveNodeSet extends ServerSetExtension {
 	private static final Set<String>	emptyStringSet = ImmutableSet.of();
