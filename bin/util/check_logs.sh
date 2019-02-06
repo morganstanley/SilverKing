@@ -324,25 +324,6 @@ function f_sendEmail {
         if [[ -e $FAILS_FILE ]]; then
             failHostCount=$(f_getUniqueHosts "$FAILS_FILE")
             result="INFO ($failHostCount/$HOST_COUNT)"
-            
-            typeset thresholdPercent=10
-            typeset actualPercent=$((failHostCount*100 / HOST_COUNT))   # *100 is to get a percentage - if you *100 at the end, the failHostCount / HOST_COUNT will be 0 *100
-            if [[ $actualPercent -ge $thresholdPercent ]]; then
-                result+="(${actualPercent}%)"
-            fi
-            
-            typeset fatalFails="pbr_read received error from fbr_read|TIMEOUT"
-            # typeset fatalFails="*** check this machine"
-            typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
-                
-            typeset   fatalCount=`grep -Pc "$fatalFails"   "$REPORT_FILE"`
-            typeset warningCount=`grep -Pc "$warningFails" "$REPORT_FILE"`
-            
-            if [[ $fatalCount -gt 0 ]]; then
-                result="FATAL ($fatalCount) ($HOST_COUNT)"
-            elif [[ $warningCount -gt 0 ]]; then
-                result="WARNING ($warningCount) ($HOST_COUNT)"
-            fi
         else
             typeset errorHostCount=$(f_getUniqueHosts "$ERRORS_FILE")
             result="ERROR ($errorHostCount/$HOST_COUNT)"
@@ -352,11 +333,32 @@ function f_sendEmail {
         f_logReportSection "FAILS"   "$FAILS_FILE" " ($failHostCount/$HOST_COUNT)"
         f_logReportSection "DETAILS" "$DETAILS_FILE"
         
-        if [[ -e $HOST_DIFF_OUTPUT_FILE ]]; then
-            result+="(-)"
-            cat $HOST_DIFF_OUTPUT_FILE >> $REPORT_FILE
+        typeset   fatalFails="pbr_read received error from fbr_read| TIMEOUT" # add "*** check this machine" ?
+        typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
+            
+        typeset   fatalCount=`grep -Pc "$fatalFails"   "$REPORT_FILE"`
+        typeset warningCount=`grep -Pc "$warningFails" "$REPORT_FILE"`
+        
+        if [[ $fatalCount -gt 0 ]]; then
+            result="FATAL ($fatalCount) ($HOST_COUNT)"
+        elif [[ $warningCount -gt 0 ]]; then
+            result="WARNING ($warningCount) ($HOST_COUNT)"
         fi
-	fi
+        
+        typeset failIndicators;
+        if [[ -e $HOST_DIFF_OUTPUT_FILE ]]; then
+            failIndicators="(-)"
+            f_logReportSection "HOST_EXCLUSIONS" "$HOST_DIFF_OUTPUT_FILE"
+        fi
+        
+        typeset thresholdPercent=10
+        typeset actualPercent=$((failHostCount*100 / HOST_COUNT))   # *100 is to get a percentage - if you *100 at the end, the failHostCount / HOST_COUNT will be 0 *100
+        if [[ $actualPercent -ge $thresholdPercent ]]; then
+            failIndicators+="(${actualPercent}%)"
+        fi
+        
+        result+="$failIndicators"
+    fi
     
     echo -e "\tresult: $result"
     
