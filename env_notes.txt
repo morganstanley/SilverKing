@@ -1,0 +1,60 @@
+
+##### my variables
+            git=/fixme/path
+eclipse_classes=${git}/github/SilverKing/ide/eclipse/build-classes
+      jars_path=${eclipse_classes}/../../../lib
+
+##### aliases
+alias ll='ls -AlFh'
+alias lr='ls -AltrFh'
+alias ..='cd ..'
+alias topten='ps aux --sort=-pcpu,+pmem | head -n 10'
+alias      checksk='pgrep -f "tmp/silverking" | while read pid; do ps aux | grep -P "^\w+\s+$pid\s+"; done'
+alias  checkskfull='pgrep -f "tmp/silverking" | while read pid; do ps p $pid ww; done'
+
+###############
+##### git
+###############
+##### dev setup
+
+#export skGlobalCodebase=$eclipse_classes:\
+#$eclipse_classes/../../../lib/args4j-2.0.12.jar:\
+#$eclipse_classes/../../../lib/asm-3.2.jar:\
+#$eclipse_classes/../../../lib/asm-tree-3.2.jar:\
+#$eclipse_classes/../../../lib/caliper-r356.jar:\
+#$eclipse_classes/../../../lib/fastutil-6.4.2.jar:\
+#$eclipse_classes/../../../lib/guava-20.0.jar:\
+#$eclipse_classes/../../../lib/hadoop-common-2.5.1.jar:\
+#$eclipse_classes/../../../lib/hamcrest-core-1.3.0.jar:\
+#$eclipse_classes/../../../lib/hibernate-validator-5.2.4.jar:\
+#$eclipse_classes/../../../lib/jline-2.14.3.jar:\
+#$eclipse_classes/../../../lib/junit-4.12.jar:\
+#$eclipse_classes/../../../lib/log4j-1.2.15.jar:\
+#$eclipse_classes/../../../lib/lz4-1.2.0.jar:\
+#$eclipse_classes/../../../lib/netty-3.9.0.jar:\
+#$eclipse_classes/../../../lib/slf4j-simple-1.6.1.jar:\
+#$eclipse_classes/../../../lib/slf4j-api-1.6.1.jar:\
+#$eclipse_classes/../../../lib/ycsb-0.1.3.jar:\
+#$eclipse_classes/../../../lib/zookeeper-3.4.8.jar
+
+#jars=""
+#for j in `ls $jars_path/*.jar`; do
+#    jars+="$j:"
+#done
+
+#export skGlobalCodebase=$eclipse_classes:$jars
+
+aws_folder=$jars_path/aws-java-sdk-1.11.333
+#aws_libs=$aws_folder/lib/*:$aws_folder/third-party/lib/*   # currently causing CheckSKFS to fail b/c the classpath is so long, that when pgrep -l in check_skfs searches for the SK that's running, it's full output is getting cut short
+export skGlobalCodebase=$eclipse_classes:$jars_path/*:$aws_libs   # this WILL NOT work if I'm trying to run c++/c code from my dev area, but java is fine
+
+# if you set skGlobalCodebase you need to set skDevJavaHome as well. skDevJavaHome is used to launch all the scripts in bin/
+# if we set skDevJavaHome, we should set SK_JAVA_HOME as well to == skDevJavaHome, so that bin/ AND also the java code (SKAdmin.java, etc..), will both use the same java version 
+# if we don't set SK_JAVA_HOME, SKAdmin.java will set a default for us, which is actually the java used to launch the scripts (skDevJavaHome), so it really doesn't matter that we set SK_JAVA_HOME
+export skDevJavaHome=/fixme/path/to/oraclejdk/1.8.0_162
+export  SK_JAVA_HOME=$skDevJavaHome						# optional. sk/skfs used. SK_JAVA_HOME is used by SKAdmin and ParallelSsh'ing, but if you don't set one, the java code will set one for us			
+#export  SK_JACE_HOME=/fixme/path/to/jace/base	# required. skfs used.    only necessary for skfs (starting/stopping), sk doesn't need this set. automatically getting set and picked up in bin/lib/sk.config
+#export   skDevExecv2=/fixme/path/to/bin/execv2
+export GC_DEFAULT_BASE=/fixme/path/to/env/folder/if/there/is/one
+
+
