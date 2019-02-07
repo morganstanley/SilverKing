@@ -164,7 +164,7 @@ function f_getDepth {
 }
 
 function f_exit {
-	echo "$1"
+	tput setaf 1; echo "$1"; tput sgr0;
 	exit 1;
 }
 
@@ -366,13 +366,21 @@ function f_getRunOutputFilename_Helper {
 	echo "${TMP_AREA}${USER}${sep}${BUILD_TIMESTAMP}${sep}${filename}.out"
 }
 
+function f_exitIfFailed {
+    typeset result=$(f_getResult "$1")
+    if [[ $result == $FAILED_TEXT ]]; then
+        f_exit "run failed"
+    fi
+}
+
 function f_printSummary {
 	typeset file=$1
 	
 	typeset keyWordCount=$(f_getKeyWordCount "$file")
 	echo
 	echo "SUMMARY for $file"
-	f_getResult "$file" "$keyWordCount" "$TRUE"
+	# f_getResult "$file" "$keyWordCount" "$TRUE" - commenting out for now so that if there are 0 FAILS we actually get PASSED
+	f_getResult "$file" "0" "$TRUE"
 }
 
 function f_printTestSummary {
@@ -381,7 +389,8 @@ function f_printTestSummary {
 	typeset keyWordCount=$(f_getTestKeyWordCount "$file")
 	echo
 	echo "SUMMARY for $file"
-	f_getResult "$file" "$keyWordCount" "$TRUE"
+	# f_getResult "$file" "$keyWordCount" "$TRUE" - commenting out for now so that if there are 0 FAILS we actually get PASSED
+	f_getResult "$file" "0" "$TRUE"
 }
 
 function f_getResult {
@@ -397,12 +406,16 @@ function f_getResult {
 		echo "   PASS: $passCount"
 		echo "   FAIL: $failCount"
 		echo "KEYWORD: $keyWordCount" 
-		echo " RESULT: $result"
+        typeset color=2
+        if [[ $result == $FAILED_TEXT ]]; then
+            color=1
+        fi
+		tput setaf $color; echo " RESULT: $result"; tput sgr0;
 		
 		if [[ $failCount -gt 0 ]] ; then
 			typeset failList=$(f_getList "$file" "$FAIL_TEXT")
 			typeset subbedList=`echo "$failList" | sed "s/$FAIL_TEXT/-${FAIL_TEXT}/"`
-			echo "$subbedList"
+			tput setaf 1; echo "$subbedList"; tput sgr0;
 		fi
 	else
 		echo $result

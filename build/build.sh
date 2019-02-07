@@ -40,4 +40,6 @@ typeset output_filename=$(f_getBuild_RunOutputFilename)
 
 	f_printGlobalElapsed
 	f_printFileOutputLine "$output_filename"
+    
+    f_exitIfFailed "$output_filename"
 } 2>&1 | tee $output_filename
