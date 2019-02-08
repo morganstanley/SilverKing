@@ -192,13 +192,7 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     export IS_OSS_BUILD="true"
     $AWS_DIR/$ZK_START_SCRIPT_NAME
     $BUILD_DIR/$BUILD_SCRIPT_NAME
-    typeset build_exit_code=$?
     $AWS_DIR/$ZK_STOP_SCRIPT_NAME
-    
-    if [[ $build_exit_code -ne 0 ]]; then
-        echo "Build had an error: ec=$build_exit_code"
-        exit $build_exit_code
-    fi
 }
 
 function f_aws_buildConfig_check {

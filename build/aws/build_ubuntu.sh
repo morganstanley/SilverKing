@@ -180,3 +180,6 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
     export SKFS_CC_D_FLAGS="-DFUSE_USE_VERSION=30"  # https://github.com/libfuse/sshfs/commit/34146444ce20c477cba7e9fe113e4387da32ae94
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
 } 2>&1 | tee $output_filename
+
+# needs to be outside the {} or else exit code won't be picked up. I think the tee still runs something even if we exit, which then turns the code to 0
+f_exitIfFailed "$output_filename"

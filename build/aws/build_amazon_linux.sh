@@ -133,4 +133,5 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     f_aws_checkBuildConfig_fillInConfigs_andRunEverything
 } 2>&1 | tee $output_filename
 
-
+# needs to be outside the {} or else exit code won't be picked up. I think the tee still runs something even if we exit, which then turns the code to 0
+f_exitIfFailed "$output_filename"
