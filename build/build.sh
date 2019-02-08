@@ -40,6 +40,7 @@ typeset output_filename=$(f_getBuild_RunOutputFilename)
 
 	f_printGlobalElapsed
 	f_printFileOutputLine "$output_filename"
-    
-    f_exitIfFailed "$output_filename"
 } 2>&1 | tee $output_filename
+    
+# needs to be outside the {} or else exit code won't be picked up. I think the tee still runs something even if we exit, which then turns the code to 0
+f_exitIfFailed "$output_filename"
