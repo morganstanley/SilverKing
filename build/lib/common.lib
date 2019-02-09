@@ -30,17 +30,17 @@ function f_printHeader {
 }
 
 function f_printHeaderHelper {
-	echo "##### $1 $2 #####"
+	tput setaf 4; echo "##### $1 $2 #####"; tput sgr 0;
 }
 
 function f_printSubSection {
 	echo
-	echo "  ---> $1 "
+	tput setaf 5; echo "  ---> $1 "; tput sgr 0;
 }
 
 function f_printStep {
 	echo
-	echo " ($1) $2"
+	tput setaf 6; echo " ($1) $2"; tput sgr 0;
 }
 
 function f_getSectionItemId {
@@ -987,7 +987,6 @@ function f_startSilverking_Helper {
 	f_runSkAdmin "StartNodes"
 	
     f_skUserProcessCheck "1"
-	f_listSkProcesses
 }
 
 function f_runStaticInstanceCreator {
@@ -1016,7 +1015,6 @@ function f_startSkfs_Helper {
 	f_runSkAdmin "CreateSKFSns,CheckSKFS"
 	
     f_skfsUserProcessCheck "1"
-	f_listSkfsProcesses
 	
 	f_mountAccessibleCheck "0"
 }
@@ -1132,23 +1130,8 @@ function f_userProcessCheck {
 	f_printResult "$result" "process $expectingText with \"$processName\"" "$actualCount  $userProcessInfo";
 }
 
-# its important to quote anything that will be multi-line!, and used in commands, like echo
-function f_listSkProcesses {
-	echo 
-	echo "$(f_getProcesses "$SK_PROCESS_NAME")"
-}
-
-function f_listSkfsProcesses {
-	echo
-	echo "$(f_getProcesses "$SKFS_PROCESS_NAME")"
-}
-
-function f_getAllProcesses {
-	echo "$(f_getProcesses "$1" "a")"
-}
-
 function f_getProcesses {
-	echo "`pgrep -f $1 | while read x; do ps ${2}ux | grep -P "^\S+\s+$x\s+"; done`"
+    ps auxww | grep "$1" | grep -v "grep $1"    # grep -v b/c the first grep, gets picked up in the ps line
 }
 
 function f_getProcessCount {

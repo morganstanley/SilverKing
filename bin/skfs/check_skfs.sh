@@ -181,6 +181,7 @@ echo "forceSKFSDirCreation:      $forceSKFSDirCreation"
 echo "waitForSkfsdBeforeExiting: $waitForSkfsdBeforeExiting"
 echo "skGlobalCodebase:          $skGlobalCodebase"
 
+   SK_PATTERN="DHTNode .*${GC_SK_NAME}"
 SKFSD_PATTERN="skfsd.*${GCName}"
    
   CHECK_SKFS_COMMAND="CheckSKFS"
@@ -209,6 +210,11 @@ else
 	verbosity="false";
 fi
 
+f_printSection "CHECKING required exports to be set"
+f_exitIfUndefined "GC_DEFAULT_BASE" $GC_DEFAULT_BASE
+f_exitIfUndefined "SK_JAVA_HOME"    $SK_JAVA_HOME
+f_exitIfUndefined "SK_JACE_HOME"    $SK_JACE_HOME
+
 f_printSection "PRE-EXISTING CHECKS"
 f_printSubSection "Checking for skfs"
 id=$(f_getSkfsPid)
@@ -222,8 +228,6 @@ else
 fi
 
 f_printSubSection "Checking GC File"
-
-f_exitIfUndefined "GC_DEFAULT_BASE" $GC_DEFAULT_BASE
 
 fullGcFilePath=$GC_DEFAULT_BASE/$GCName.env
 if [[ ! -e $fullGcFilePath ]] ; then
@@ -241,9 +245,8 @@ if [[ -z $GC_SK_NAME ]] ; then
     exit -1
 fi
 
-SK_PATTERN="DHTNode.*${GC_SK_NAME}"
 f_printSubSection "Checking for sk"
-id=`pgrep -f $SK_PATTERN`
+id=`$SK_JAVA_HOME/bin/jps -m | grep "$SK_PATTERN" | cut -d ' ' -f 1`
 if [[ -n $id ]]; then
     echo "FOUND - '$GC_SK_NAME' $id"
 else
@@ -257,9 +260,6 @@ fi
 
 f_printSection "DOING SKFS inits"
 f_printSubSection "Configuring CLASSPATH and SK VARS"
-
-f_exitIfUndefined "SK_JAVA_HOME" $SK_JAVA_HOME
-f_exitIfUndefined "SK_JACE_HOME" $SK_JACE_HOME
 
 echo "curDir: $curDir"
 if [[ -z $skGlobalCodebase ]]; then
