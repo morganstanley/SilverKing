@@ -58,6 +58,10 @@ public class MapUtil {
 		return map;
 	}
 	
+	public static <K,V> Pair<K,V> mapEntryToPair(Map.Entry<K,V> entry) {
+		return new Pair<>(entry.getKey(), entry.getValue());
+	}
+	
 	private static class StringParser implements Function<String,String> {
 		@Override
 		public String apply(String s) {

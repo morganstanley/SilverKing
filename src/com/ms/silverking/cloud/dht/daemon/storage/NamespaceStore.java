@@ -10,9 +10,12 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -93,6 +96,7 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.HashedSetMap;
+import com.ms.silverking.collection.MapUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.SKImmutableList;
 import com.ms.silverking.collection.Triple;
@@ -155,7 +159,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final RetrieveTrigger	retrieveTrigger;
     private final ReapPolicy		reapPolicy;
     private final ReapPolicyState	reapPolicyState;
-
+    
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>	activeRegionSyncs;    
     
     private static final byte[] emptyUserData = new byte[0];
@@ -2745,28 +2749,97 @@ public class NamespaceStore implements SSNamespaceStore {
     ////////////////////
     // Retention
     
-    private final ReapImplState	reapImplState = new ReapImplState();
+    private final ReapImplState				reapImplState = new ReapImplState();
+    private final CompactAndDeleteImplState	cdImplState = new CompactAndDeleteImplState();
     
-    private class ReapImplState {
+	void initializeReapImplState() {
+		if (!reapImplState.isClear()) {
+			throw new RuntimeException("Can't initialize state. Not clear.");
+		} else {
+	    	int	nextSegmentNumber;
+	    	ValueRetentionState	vrState;
+	    	
+			nextSegmentNumber = headSegment.getSegmentNumber();
+			vrState = nsOptions.getValueRetentionPolicy().createInitialState();
+			reapImplState.initialize(nextSegmentNumber, vrState);
+		}
+	}
+	
+    static enum ReapPhase {reap, compactAndDelete};
+    private ReapPhase	reapPhase = ReapPhase.reap;
+    
+	public void setReapPhase(ReapPhase reapPhase) {
+		if (this.reapPhase == reapPhase) {
+			throw new RuntimeException("Phase already "+ reapPhase);
+		} else {
+			this.reapPhase = reapPhase;
+		}
+		Log.warningAsync("reapPhase: "+ this.reapPhase);
+	}
+	
+	private static class CompactAndDeleteImplState {
+    	private List<Pair<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>>>	reapResults;
+    	
+    	void initialize(List<Pair<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>>>	reapResults) {
+    		if (!isClear()) {
+    			throw new RuntimeException("Can't initialize state. Not clear.");
+    		} else {
+        		this.reapResults = new LinkedList<>();
+        		this.reapResults.addAll(reapResults);
+    		}
+    	}
+    	
+    	void clear() {
+    		reapResults = null;
+    	}
+    	
+    	boolean isClear() {
+    		return reapResults == null;
+    	}
+    	
+    	Pair<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>> nextReapResult() {
+    		if (reapResults == null) {
+    			throw new RuntimeException("Unexpected nextReapResult() called on clear result");
+    		} else {
+	    		if (reapResults.isEmpty()) {
+	    			return null;
+	    		} else {
+	    			return reapResults.remove(0);
+	    		}
+    		}
+    	}
+    	
+    	boolean hasReapResults() {
+    		if (reapResults == null) {
+    			throw new RuntimeException("Unexpected hasReapResults() called on clear result");
+    		} else {
+    			return !reapResults.isEmpty();
+    		}
+    	}
+	}
+	
+    private static class ReapImplState {
     	private int	nextSegmentNumber;
     	private ValueRetentionState	vrState;
-    	
+        private SortedMap<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>> curReapResults;
+        
     	ReapImplState() {
     		clear();
     	}
     	
-    	void initialize() {
+    	void initialize(int nextSegmentNumber, ValueRetentionState vrState) {
     		if (!isClear()) {
     			throw new RuntimeException("Can't initialize state. Not clear.");
     		} else {
-    			nextSegmentNumber = headSegment.getSegmentNumber();
-    			vrState = nsOptions.getValueRetentionPolicy().createInitialState();
+    			this.nextSegmentNumber = nextSegmentNumber;
+    			this.vrState = vrState;
     		}
     	}
     	
     	void clear() {
     		nextSegmentNumber = -1;
     		vrState = null;
+			curReapResults = new TreeMap<>();
     	}
     	
     	boolean isClear() {
@@ -2784,6 +2857,24 @@ public class NamespaceStore implements SSNamespaceStore {
     	ValueRetentionState getVRState() {
     		return vrState;
     	}
+    	
+    	void addReapResult(int segment, Triple<CompactionCheckResult,Set<Integer>,Set<Integer>> result) {
+    		curReapResults.put(segment, result);
+    	}
+    	
+    	List<Pair<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>>> curReapResultsToList() {
+    		if (curReapResults == null) {
+    			return new ArrayList<>();
+    		} else {
+	    		List<Pair<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>>>	resultsList;
+	    		
+	    		resultsList = new ArrayList<>(curReapResults.size());
+	    		for (Map.Entry<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>> entry : curReapResults.entrySet()) {
+	    			resultsList.add(MapUtil.mapEntryToPair(entry));
+	    		}
+	    		return resultsList;
+    		}
+    	}
     }
     
     public void startupReap() {
@@ -2793,6 +2884,9 @@ public class NamespaceStore implements SSNamespaceStore {
     	}
     	if (reapPolicy.reapAllowed(reapPolicyState, this, true)) {
     		_reap(headSegment.getSegmentNumber(), 0, nsOptions.getValueRetentionPolicy().createInitialState(), true);
+    		transitionToCompactAndDeletePhase();
+    		startupCompactAndDelete();
+        	transitionToReapPhase();
     	}
     	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
 			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
@@ -2800,84 +2894,156 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     public void liveReap() {
-    	int	currentBatchSize;
-    	
-    	currentBatchSize = 0;
     	if (reapPolicy.reapAllowed(reapPolicyState, this, false)) {
     		if (Log.levelMet(Level.INFO)) {
     			Log.warningf("liveReap() ns %x", ns);
     		}
-	    	if (reapImplState.isClear()) {
-	    		reapImplState.initialize();
-	    	}
-	    	while (reapPolicy.reapAllowed(reapPolicyState, this, false) && reapImplState.getNextSegmentNumber() >= 0 && currentBatchSize < reapPolicy.getBatchLimit()) {
-	    		_reap(reapImplState.getNextSegmentNumber(), reapImplState.getNextSegmentNumber(), reapImplState.getVRState(), false);
-	    		++currentBatchSize;
-	    		reapImplState.decrementSegment();
-	        	if (reapImplState.getNextSegmentNumber() >= 0) {
-	        		ThreadUtil.sleep(reapPolicy.getIdleReapPauseMillis());
-	        	}
-	    	}
-	    	if (reapImplState.getNextSegmentNumber() < 0) {
-	    		reapImplState.clear();
-	    		reapPolicyState.fullReapComplete(this);
-	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap
-	        			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
-	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-	    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
-	        	}
-	    	} else {
-	    		Log.info("idleReap() interrupted");
-	        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
-	    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-	    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
-	        	}
-	    	}
+    		if (reapPhase == ReapPhase.reap) {
+    			_liveReap();
+    		} 
+    		// _leaveReap() may change the phase to compactAndDelete.
+    		// We catch this condition in a separate if statement to 
+    		// allow execution to fall through immediately to that phase
+    		// when the change occurs.
+    		if (reapPhase == ReapPhase.compactAndDelete) {
+    			liveCompactAndDelete();
+    		}
     	}
     }
     
-    private void _reap(int startSegment, int endSegment, ValueRetentionState state, boolean verboseReap) {
-    	ValueRetentionPolicy	vrp;
+    private void transitionToCompactAndDeletePhase() {
+    	if (reapPhase != ReapPhase.reap) {
+    		throw new RuntimeException("Unexpected phase");
+    	}
+		cdImplState.initialize(reapImplState.curReapResultsToList());
+		reapImplState.clear();
+		setReapPhase(ReapPhase.compactAndDelete);
+    }
+    
+    private void transitionToReapPhase() {
+    	if (reapPhase != ReapPhase.compactAndDelete) {
+    		throw new RuntimeException("Unexpected phase");
+    	}
+		cdImplState.clear();
+		setReapPhase(ReapPhase.reap);
+    }    
+    
+    public void _liveReap() {
+    	int	currentBatchSize;
     	
+    	currentBatchSize = 0;
+    	if (reapImplState.isClear()) {
+    		initializeReapImplState();
+    	}
+    	while (reapPolicy.reapAllowed(reapPolicyState, this, false) && reapImplState.getNextSegmentNumber() >= 0 && currentBatchSize < reapPolicy.getBatchLimit()) {
+    		int	segmentsReaped;
+    		
+    		segmentsReaped = _reap(reapImplState.getNextSegmentNumber(), reapImplState.getNextSegmentNumber(), reapImplState.getVRState(), false);
+    		currentBatchSize += segmentsReaped;
+    		reapImplState.decrementSegment();
+        	if (reapImplState.getNextSegmentNumber() >= 0 && segmentsReaped > 0) {
+        		ThreadUtil.sleep(reapPolicy.getIdleReapPauseMillis());
+        	}
+    	}
+    	if (reapImplState.getNextSegmentNumber() < 0) {
+    		transitionToCompactAndDeletePhase();
+    	} else {
+    		Log.info("_liveReap() interrupted");
+    	}
+    }
+    
+    private void startupCompactAndDelete() {
+    	Pair<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>>	nextReapResult;
+    	
+    	Log.warning("startupCompactAndDelete");
+    	nextReapResult = cdImplState.nextReapResult();
+    	while (nextReapResult != null) {
+    		compactAndDelete(nextReapResult.getV1(), nextReapResult.getV2(), false);
+        	nextReapResult = cdImplState.nextReapResult();
+    	}
+    }
+    
+    private void liveCompactAndDelete() {
+    	int	currentBatchSize;
+    	Pair<Integer,Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>>	nextReapResult;
+    	
+    	currentBatchSize = 0;
+    	if (cdImplState.isClear()) {
+    		throw new RuntimeException("Unexpected cdImplState.isClear()");
+    	}
+    	nextReapResult = null;
+    	while (reapPolicy.reapAllowed(reapPolicyState, this, false) && cdImplState.hasReapResults() && currentBatchSize < reapPolicy.getBatchLimit()) {
+        	nextReapResult = cdImplState.nextReapResult();
+        	if (nextReapResult != null) {
+	    		compactAndDelete(nextReapResult.getV1(), nextReapResult.getV2(), false);
+	    		++currentBatchSize;
+        		ThreadUtil.sleep(reapPolicy.getIdleReapPauseMillis());
+        	}
+    	}
+    	if (!cdImplState.hasReapResults()) {
+    		reapPolicyState.fullReapComplete(this);
+        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap
+        			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
+    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
+        	}
+        	transitionToReapPhase();
+    	} else {
+    		Log.info("liveCompactAndDelete() interrupted");
+        	if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
+    			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+    			JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis);
+        	}
+    	}
+    }
+    
+    private int _reap(int startSegment, int endSegment, ValueRetentionState state, boolean verboseReap) {
+    	ValueRetentionPolicy	vrp;
+    	int						segmentsReaped;
+    	
+    	segmentsReaped = 0;
     	vrp = nsOptions.getValueRetentionPolicy();
     	if (verboseReap || Log.levelMet(Level.INFO)) {
     		Log.warningAsyncf("_reap ns %x %s [%d, %d]", ns, vrp, startSegment, endSegment);
     	}
     	if (vrp != null) {
-	    	writeLock.lock();
-	    	metaWriteLock.lock();
+	    	readLock.lock();
+	    	metaReadLock.lock();
 	    	try {
 	        	long	curTimeNanos;
 	        	
 	        	curTimeNanos = systemTimeSource.absTimeNanos();
 		    	switch (vrp.getImplementationType()) {
 		    	case SingleReverseSegmentWalk:
-		    		singleReverseSegmentWalk(vrp, state, curTimeNanos, startSegment, endSegment, verboseReap);
+		    		segmentsReaped += singleReverseSegmentWalk(vrp, state, curTimeNanos, startSegment, endSegment, verboseReap);
 		    		break;
 		    	case RetainAll:
 		    		break;
 				default: throw new RuntimeException("Unsupported ValueRetentionPolicy ImplementationType: "+ vrp.getImplementationType());
 		    	}
 	    	} finally {
-		    	metaWriteLock.unlock();
-		    	writeLock.unlock();
+		    	metaReadLock.unlock();
+		    	readLock.unlock();
 	    	}
     	}
+    	return segmentsReaped;
     }
     
-	private <T extends ValueRetentionState> void singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, 
+	private <T extends ValueRetentionState> int singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, 
 																		  int startSegment, int endSegment, boolean verboseReap) {
 		Set<Integer>			deletedSegments;
 		HashedSetMap<DHTKey,Triple<Long,Integer,Long>>	removedEntries;
+    	int segmentsReaped;
 		
+    	segmentsReaped = 0;
 		removedEntries = new HashedSetMap<>();
 		deletedSegments = new HashSet<>();
         for (int i = startSegment; i >= endSegment; i--) {
         	if (segmentExists(i)) {
         		Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>	result; 
         		WritableSegmentBase		segment;
-        		CompactionCheckResult	ccr;
         		
+        		++segmentsReaped;
         		try {
                 	Stopwatch	sw;
                 	
@@ -2890,7 +3056,18 @@ public class NamespaceStore implements SSNamespaceStore {
         			}
 					try {
 						result = segment.singleReverseSegmentWalk(vrp, valueRetentionState, curTimeNanos, ringMaster);
-						ccr = result.getV1();
+						if (i == headSegment.getSegmentNumber()) {
+					    	if (verboseReap || Log.levelMet(Level.INFO)) {
+								Log.warningAsyncf("Retaining head segment");
+							}
+						} else {
+			        		CompactionCheckResult	ccr;
+			        		
+							ccr = result.getV1();
+							if (ccr.getValidEntries() == 0 || ccr.getInvalidFraction() >= compactionThreshold) {
+								reapImplState.addReapResult(i, result);
+							}
+						}
 		    		} finally {
 		                if (nsOptions.getStorageType() == StorageType.FILE) {
 		                	if (segment.getSegmentNumber() != headSegment.getSegmentNumber()) {
@@ -2898,41 +3075,6 @@ public class NamespaceStore implements SSNamespaceStore {
 		                	}
 		                }
 		    		}
-			    	if (verboseReap || Log.levelMet(Level.INFO)) {
-						Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", i, ccr.toString());
-					}
-					
-					// Note that we need to walk through the head segment even if we always retain it
-					// since subsequent operations may depend on the state of that walk
-					
-					if (segment.getSegmentNumber() == headSegment.getSegmentNumber()) {
-				    	if (verboseReap || Log.levelMet(Level.INFO)) {
-							Log.warningAsyncf("Retaining head segment");
-						}
-					} else {
-						if (ccr.getValidEntries() == 0) {
-			            	try {
-			            		recentFileSegments.remove(i);
-			            		FileSegmentCompactor.delete(nsDir, i);
-			            		deletedSegments.add(i);
-			            		if (FileSegment.mapEverything) {
-			                		((FileSegment)segment).close();
-			            		}
-			            	} catch (IOException ioe) {
-			            		Log.logErrorWarning(ioe, "Failed to delete segment: "+ i);
-			            	}
-						} else if (ccr.getInvalidFraction() >= compactionThreshold) {
-			            	try {
-								HashedSetMap<DHTKey,Triple<Long,Integer,Long>>	segmentRemovedEntries;
-								
-			            		recentFileSegments.remove(i);
-			            		segmentRemovedEntries = FileSegmentCompactor.compact(nsDir, i, nsOptions, new RetainedOffsetMapCheck(result.getV2(), result.getV3()));
-			            		removedEntries.addAll(segmentRemovedEntries);
-			            	} catch (IOException ioe) {
-			            		Log.logErrorWarning(ioe, "IOException compacting segment: "+ i);
-			            	}
-						}
-					}
 					sw.stop();
 			    	if (verboseReap || Log.levelMet(Level.INFO)) {
 						Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
@@ -2943,7 +3085,72 @@ public class NamespaceStore implements SSNamespaceStore {
         	}
         }
         updateOffsetLists(deletedSegments, removedEntries);
+        return segmentsReaped;
     }
+	
+	private void compactAndDelete(int curSegment, Triple<CompactionCheckResult,Set<Integer>,Set<Integer>> result, boolean verboseReap) {
+    	//Log.warning("compactAndDelete");
+    	writeLock.lock();
+    	metaWriteLock.lock();
+    	try {
+			Set<Integer> deletedSegments;
+			HashedSetMap<DHTKey, Triple<Long, Integer, Long>> removedEntries;
+	
+			removedEntries = new HashedSetMap<>();
+			deletedSegments = new HashSet<>();
+			if (result != null) {
+				CompactionCheckResult ccr;
+				
+				ccr = result.getV1();
+				try {
+					Stopwatch sw;
+	
+					sw = new SimpleStopwatch();
+					if (verboseReap || Log.levelMet(Level.INFO)) {
+						Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", curSegment, ccr.toString());
+					}
+	
+					if (ccr.getValidEntries() == 0) {
+						try {
+							FileSegment	segment;
+							
+							segment = recentFileSegments.remove(curSegment);
+							if (segment != null) {
+								segment.close();
+								segment = null;
+							}
+							FileSegmentCompactor.delete(nsDir, curSegment);
+							deletedSegments.add(curSegment);
+						} catch (IOException ioe) {
+							Log.logErrorWarning(ioe, "Failed to delete segment: " + curSegment);
+						}
+					} else if (ccr.getInvalidFraction() >= compactionThreshold) {
+						try {
+							HashedSetMap<DHTKey, Triple<Long, Integer, Long>> segmentRemovedEntries;
+	
+							recentFileSegments.remove(curSegment);
+							segmentRemovedEntries = FileSegmentCompactor.compact(nsDir, curSegment, nsOptions,
+									new RetainedOffsetMapCheck(result.getV2(), result.getV3()));
+							removedEntries.addAll(segmentRemovedEntries);
+						} catch (IOException ioe) {
+							Log.logErrorWarning(ioe, "IOException compacting segment: " + curSegment);
+						}
+					}
+					sw.stop();
+					if (verboseReap || Log.levelMet(Level.INFO)) {
+						Log.warningAsyncf("\t\t%d %f", curSegment, sw.getElapsedSeconds());
+					}
+				} catch (Exception e) {
+					Log.logErrorWarning(e, "Skipping segment " + curSegment + " due to Exception");
+				}
+			}
+			updateOffsetLists(deletedSegments, removedEntries);
+    	} finally {
+	    	metaWriteLock.unlock();
+	    	writeLock.unlock();
+    	}
+    	//Log.warning("out compactAndDelete");
+	}
 
     private void updateOffsetLists(Set<Integer> deletedSegments, HashedSetMap<DHTKey, Triple<Long, Integer, Long>> removedEntries) {
     	RAMOffsetListStore	ols;
