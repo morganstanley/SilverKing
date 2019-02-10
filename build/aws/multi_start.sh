@@ -95,7 +95,6 @@ f_aws_symlinkSkfsD
 f_printSection "STARTING"
 f_runSkAdmin "StartNodes"
 f_skUserProcessCheck "1"
-f_listSkProcesses
 
 f_startSkfs
 
