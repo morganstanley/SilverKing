@@ -791,10 +791,6 @@ public class NamespaceStore implements SSNamespaceStore {
         	} else {
         		locked = false;
         		addPendingPut(values, resultListener);
-        		// FUTURE - wait for actual operation result instead of presuming success
-        		for (StorageValueAndParameters svp : values) {
-        			resultListener.sendResult(svp.getKey(), OpResult.SUCCEEDED);
-        		}
         		return;
         	}
         } else {
