@@ -1,6 +1,7 @@
 package com.ms.silverking.numeric;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -205,6 +206,22 @@ public class NumUtil {
     		return v;
     	}
     }
+    
+    // rudimentary factorial implementation
+    public static BigInteger factorial(int n) {
+    	BigInteger	nf;
+    	
+    	nf = BigInteger.ONE;
+    	for (int i = 2; i <= n; i++) {
+    		nf = nf.multiply(BigInteger.valueOf(i));
+    	}
+    	return nf;
+    }
+    
+    // rudimentary combinations
+    public static long combinations(int n, int r) {
+    	return factorial(n).divide(factorial(n - r).multiply(factorial(r))).longValue();
+    }
 	
     public static void main(String[] args) {
         for (int i = 0; i <= 16; i++) {
@@ -218,6 +235,8 @@ public class NumUtil {
             //}
             System.out.println(pow(2, i));
         }
+        System.out.printf("%d\n", factorial(4).longValue());
+        System.out.printf("%d\n", combinations(1000, 20));
     }
 }
 
