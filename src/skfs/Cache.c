@@ -282,7 +282,11 @@ CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned cha
 				if (end > pRVal->m_len) {
 					end = pRVal->m_len;
 				}
-				numToRead = end - sourceOffset;
+                if (end >= sourceOffset) {
+                    numToRead = end - sourceOffset;
+                } else {
+                    numToRead = 0;
+                }
 				if (cacheNumRead != NULL) {
 					*cacheNumRead = numToRead;
 					if (_cache_logging_in_critical_section) {
