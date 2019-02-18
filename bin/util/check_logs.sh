@@ -155,6 +155,17 @@ function f_parsePreviousDirectoryFrom {
     echo "$dirsList" | tail -n $numOfDirsToGrabStartingFromTheBottom | head -n 1
 }
 
+function f_getNumberOfLines {
+    typeset file=$1
+    
+    typeset numOfLines=0;
+    if [[ -e $file ]]; then
+        numOfLines=`wc -l $file | cut -f 1 -d ' '`
+    fi
+    
+    echo $numOfLines
+}
+
 function f_waitForAllErrorsToBeCollected {
     f_checkIfAnySshCommandsAreStillRunningHelper "Waiting for all hosts to complete" 3
 }
@@ -197,7 +208,7 @@ function f_checkForAnyZeroSizeFiles {
 
 function f_scrubFilesForIgnorableErrors {
     echo "Removing ignorable errors from files"
-    find $RUN_DIR -name '*_sk' -type f | xargs sed -i -r -e '/WARNING: 20..:..:.. ..:..:.. EST addSuspect: [[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}:[[:digit:]]+ ReplicaTimeout$/d'  
+    find $RUN_DIR -name '*_sk' -type f | xargs sed -i -r -e '/WARNING: 20..:..:.. ..:..:.. \S+ addSuspect: [[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}:[[:digit:]]+ ReplicaTimeout$/d'  
 }
 
 function f_runErrorReport {
@@ -317,32 +328,38 @@ function f_sendEmail {
     touch $REPORT_FILE
     
     typeset result;
+    typeset resultInfo;
     if [[ (! -e $ERRORS_FILE) && (! -e $FAILS_FILE) && (! -e $DETAILS_FILE) && (! -e $HOST_DIFF_OUTPUT_FILE) ]]; then
-        result="PASS ($HOST_COUNT)"
+        result="PASS"
+        resultInfo="($HOST_COUNT)"
     else
-        typeset failHostCount=0
+        typeset  failHostCount=$(f_getUniqueHosts "$FAILS_FILE")
+        typeset errorHostCount=$(f_getUniqueHosts "$ERRORS_FILE")
         if [[ -e $FAILS_FILE ]]; then
-            failHostCount=$(f_getUniqueHosts "$FAILS_FILE")
-            result="INFO ($failHostCount/$HOST_COUNT)"
+            result="INFO"
+            resultInfo="($failHostCount/$HOST_COUNT)"
         else
-            typeset errorHostCount=$(f_getUniqueHosts "$ERRORS_FILE")
-            result="ERROR ($errorHostCount/$HOST_COUNT)"
+            result="ERROR"
+            resultInfo="($errorHostCount/$HOST_COUNT)"
         fi
         
-        f_logReportSection "ERRORS"  "$ERRORS_FILE"
-        f_logReportSection "FAILS"   "$FAILS_FILE" " ($failHostCount/$HOST_COUNT)"
+        f_logReportSection "ERRORS"  "$ERRORS_FILE" " ($errorHostCount)"
+        f_logReportSection "FAILS"   "$FAILS_FILE"  " ($failHostCount)"
         f_logReportSection "DETAILS" "$DETAILS_FILE"
         
-        typeset   fatalFails="pbr_read received error from fbr_read| TIMEOUT" # add "*** check this machine" ?
+        typeset   fatalFails="pbr_read received error from fbr_read|\s+TIMEOUT" # add "*** check this machine" ?
         typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
             
         typeset   fatalCount=`grep -Pc "$fatalFails"   "$REPORT_FILE"`
         typeset warningCount=`grep -Pc "$warningFails" "$REPORT_FILE"`
         
         if [[ $fatalCount -gt 0 ]]; then
-            result="FATAL ($fatalCount) ($HOST_COUNT)"
+            result="FATAL"
+            resultInfo="($fatalCount) | ($failHostCount/$HOST_COUNT)"
+            to+=",$FATAL_EMAILS"
         elif [[ $warningCount -gt 0 ]]; then
-            result="WARNING ($warningCount) ($HOST_COUNT)"
+            result="WARNING)"
+            resultInfo="($warningCount) | ($failHostCount/$HOST_COUNT)"
         fi
         
         typeset failIndicators;
@@ -357,10 +374,12 @@ function f_sendEmail {
             failIndicators+="(${actualPercent}%)"
         fi
         
-        result+="$failIndicators"
+        resultInfo+="$failIndicators"
     fi
     
-    echo -e "\tresult: $result"
+    echo "$result" >> $RESULT_FILE
+    typeset resultLine="$result $resultInfo"
+    echo -e "\tresult: $resultLine"
     
     typeset reportFileSize=$(f_getFileSize "$REPORT_FILE")
     typeset tenMegabytes=10000000
@@ -374,15 +393,26 @@ function f_sendEmail {
         head -n 50000 $REPORT_FILE > $reportFileSnapshot
         typeset reportFileSizeInMb=$((reportFileSize/(1024*1024)))
         body=`echo "reportFile is too big (size=${reportFileSizeInMb}MB). Here's a snippet below. Check '$REPORT_FILE' on \`hostname\` for the full details."`
+        body+=`echo ""`
         body+=`cat $reportFileSnapshot`
         attachment="$reportFileSnapshot"
     fi
     
-    f_sendEmailHelper "$to" "$from" "$RUN_ID $result - `basename $RUN_DIR`" "$body" "$attachment"
+    typeset subject="$RUN_ID $resultLine - `basename $RUN_DIR`"
+    # echo "$subject" > "$TMP_OUTPUT_RUN_DIR/email.subject"
+    
+    f_sendEmailHelper "$to" "$from" "$subject" "$body" "$attachment" "email"
 }
 
 function f_getUniqueHosts {
-    cut -d '_' -f 1 $1 | sort -n | uniq | wc -l
+    typeset file=$1
+    
+    typeset numUniqHosts=0;
+    if [[ -e $file ]]; then
+        numUniqHosts=`cut -d '_' -f 1 $file | sort -n | uniq | wc -l`
+    fi
+    
+    echo $numUniqHosts
 }
 
 function f_logReportSection {
@@ -408,8 +438,9 @@ function f_sendEmailHelper {
 	typeset subject=$3
 	typeset body=$4
 	typeset attachments=$5
+    typeset emailType=$6
 	
-    echo -n "Sending email..."
+    echo -n "Sending $emailType..."
     
 	typeset attachmentsList;
 	if [[ -n $attachments ]]; then
@@ -421,15 +452,15 @@ function f_sendEmailHelper {
     echo "done"
 }
 
-function f_getNumberOfLines {
-    typeset file=$1
+function f_sendText {
+    typeset to=$1
+    typeset from=$2
     
-    typeset numOfLines=0;
-    if [[ -e $file ]]; then
-        numOfLines=`wc -l $file | cut -f 1 -d ' '`
+    if [[ -n $to ]]; then
+        if [[ `cat $RESULT_FILE` == "FATAL" ]]; then 
+            f_sendEmailHelper "$to" "$from" "Fatal" "check it" "" "text" 
+        fi
     fi
-    
-    echo $numOfLines
 }
 
         HOSTS_FILE=$1
@@ -440,6 +471,8 @@ function f_getNumberOfLines {
 TMP_OUTPUT_RUN_DIR=$6
               MUTT=$7
             EMAILS=$8
+      FATAL_EMAILS=$9
+     PHONE_NUMBERS=${10}
 
 typeset findErrorsScript=$PWD/find_log_errors.sh
 typeset fiveMinsInSecs=300
@@ -451,15 +484,16 @@ typeset   ALL_RUNS_OUTPUT_DIR=`dirname $RUN_DIR`
 typeset HOST_DIFF_OUTPUT_FILE="$TMP_OUTPUT_RUN_DIR/diff_hosts.out"
 typeset            HOST_COUNT=$(f_getNumberOfLines "$HOSTS_FILE")
 typeset           EMPTY_FILES="$TMP_OUTPUT_RUN_DIR/empty_files.out"
+typeset           RESULT_FILE="$TMP_OUTPUT_RUN_DIR/run.result"
 typeset           ERRORS_FILE="$TMP_OUTPUT_RUN_DIR/run.errors"
 typeset            FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
 typeset          DETAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.details"
 typeset           REPORT_FILE="$TMP_OUTPUT_RUN_DIR/report.out"
 
 typeset NUM_OF_META_DATA_LINES=2
-typeset   FILE_NAME_LINE=1
-typeset LINE_NUMBER_LINE=2
-typeset START_LINE_NUMBER=1
+typeset         FILE_NAME_LINE=1
+typeset       LINE_NUMBER_LINE=2
+typeset      START_LINE_NUMBER=1
 
 f_checkIfAnySshCommandsAreStillRunning
 f_findErrorsOnHosts
@@ -468,3 +502,4 @@ f_rerunAnyZeroSizeFiles
 f_scrubFilesForIgnorableErrors
 f_runErrorReport
 f_sendEmail "$EMAILS" "sk_health_report_log-check_${RUN_ID}@the_real_silverking.com"
+# f_sendText "$PHONE_NUMBERS" "alerts@silverking.com"

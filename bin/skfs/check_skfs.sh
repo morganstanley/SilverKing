@@ -214,6 +214,7 @@ f_printSection "CHECKING required exports to be set"
 f_exitIfUndefined "GC_DEFAULT_BASE" $GC_DEFAULT_BASE
 f_exitIfUndefined "SK_JAVA_HOME"    $SK_JAVA_HOME
 f_exitIfUndefined "SK_JACE_HOME"    $SK_JACE_HOME
+# f_exitIfUndefined "SK_CLASSPATH"    $SK_CLASSPATH FIXME:bph: we aren't using this anymore, we set it ourselves below. We can delete it from SKAdmin.java and other repo grep 'SK_CLASSPATH' hits
 
 f_printSection "PRE-EXISTING CHECKS"
 f_printSubSection "Checking for skfs"
