@@ -142,13 +142,6 @@ function f_logSshCmd {
     f_logHelper "$1" "$TMP_OUTPUT_RUN_DIR/ssh.cmds"
 }
 
-function f_logHelper {
-    typeset  msg=$1
-    typeset file=$2
-    
-    echo -e "$msg" >> $file
-}
-
 function f_sendEmail {
 	typeset to=$1
 	typeset from=$2
@@ -168,7 +161,7 @@ function f_sendEmail {
             result+="(${actualPercent}%)"
         fi
         
-        f_logReportSection "FAILS" "$FAILS_FILE"
+        f_logReportSection "$REPORT_FILE" "FAILS" "$FAILS_FILE"
 	fi
     
     echo -e "\tresult: $result"
@@ -176,49 +169,7 @@ function f_sendEmail {
     typeset body=`cat $REPORT_FILE`
     typeset attachment="$REPORT_FILE"
     
-    f_sendEmailHelper "$to" "$from" "$RUN_ID pc $result - `basename $RUN_DIR`" "$body" "$attachment"
-}
-
-function f_logReportSection {
-    typeset sectionName=$1
-    typeset sectionFile=$2
-    typeset sectionExtra=$3
-
-    if [[ -e $sectionFile ]]; then
-        echo "${sectionName}${sectionExtra}:" >> $REPORT_FILE
-        cat $sectionFile                      >> $REPORT_FILE
-        echo ""                               >> $REPORT_FILE
-    fi
-}
-
-function f_sendEmailHelper {
-	typeset to=$1
-	typeset from=$2
-	typeset subject=$3
-	typeset body=$4
-	typeset attachments=$5
-	
-    echo -n "Sending email..."
-    
-	typeset attachmentsList;
-	if [[ -n $attachments ]]; then
-		attachmentsList="-a $attachments"
-	fi
-	
-	echo -e "$body" | $MUTT -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
-    
-    echo "done"
-}
-
-function f_getNumberOfLines {
-    typeset file=$1
-    
-    typeset numOfLines=0;
-    if [[ -e $file ]]; then
-        numOfLines=`wc -l $file | cut -f 1 -d ' '`
-    fi
-    
-    echo $numOfLines
+    f_sendEmailHelper "$to" "$from" "$RUN_ID pc $result - `basename $RUN_DIR`" "$body" "$attachment" "$MUTT"
 }
 
         HOSTS_FILE=$1

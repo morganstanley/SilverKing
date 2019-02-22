@@ -1,0 +1,98 @@
+#!/bin/bash
+
+function f_getNumberOfLines {
+    typeset file=$1
+    
+    typeset numOfLines=0;
+    if [[ -e $file ]]; then
+        numOfLines=`wc -l $file | cut -f 1 -d ' '`
+    fi
+    
+    echo $numOfLines
+}
+
+function f_runDiff {
+    typeset      oldDir=$1
+    typeset      newDir=$2
+    typeset   filenames=$3
+    typeset  diffFolder=$4
+    typeset diffOutFile=$5
+
+    echo -en "\tDiffing '`basename $oldDir`' v '`basename $newDir`'..."
+    typeset oldTmpDir=$diffFolder/old
+    typeset newTmpDir=$diffFolder/new
+    
+    mkdir -p $oldTmpDir $newTmpDir
+    
+    # not using this right now, since we are only using a single filename for filenames param, if we do change to using the loop, we need to make sure "in $filenames" works with something like '*.txt' passed as the filenames param
+    # for filename in $filenames; do  # important not to quote "$filenames", in case there are multiple space separated names "a.txt b.txt c.txt", if they are newline separated we need quotes
+        # cp $oldDir/$filename $oldTmpDir
+        # cp $newDir/$filename $newTmpDir
+    # done
+    cp $oldDir/$filenames $oldTmpDir
+    cp $newDir/$filenames $newTmpDir
+    
+    diff $oldTmpDir $newTmpDir > $diffOutFile
+    typeset numOfLines=$(f_getNumberOfLines "$diffOutFile")
+    if [[ $numOfLines -gt 0 ]]; then
+        sed -ri "s#(^diff .*)#\n\1#g" $diffOutFile    # -E so I don't have to escape the parenthesis for the capture groups. there's also this (https://unix.stackexchange.com/questions/121161/how-to-insert-text-after-a-certain-string-in-a-file), but I preferred to go with substitution.
+        sed -i  "s#$diffFolder##g"    $diffOutFile
+    else
+        rm $diffOutFile
+    fi
+    
+    echo "done"
+}
+
+function f_logError {
+    f_logHelper "$1" "$ERRORS_FILE"
+}
+
+function f_logHelper {
+    typeset  msg=$1
+    typeset file=$2
+    
+    echo -e "$msg" >> $file
+}
+
+function f_logReportSection {
+    typeset   reportFile=$1
+    typeset  sectionName=$2
+    typeset  sectionFile=$3
+    typeset sectionExtra=$4
+
+    if [[ -e $sectionFile ]]; then
+        echo "${sectionName}${sectionExtra}:" >> $reportFile
+        cat $sectionFile                      >> $reportFile
+        echo ""                               >> $reportFile
+    fi
+}
+
+function f_sendEmailHelper {
+    f_sendMessageHelper "$1" "$2" "$3" "$4" "$5" "email" "$6"
+}
+
+function f_sendTextHelper {
+    f_sendMessageHelper "$1" "$2" "$3" "$4" "$5" "text" "$6"
+}
+
+function f_sendMessageHelper {
+	typeset          to=$1
+	typeset        from=$2
+	typeset     subject=$3
+	typeset        body=$4
+	typeset attachments=$5
+    typeset   emailType=$6
+    typeset        mutt=$7
+	
+    echo -n "Sending $emailType..."
+    
+	typeset attachmentsList;
+	if [[ -n $attachments ]]; then
+		attachmentsList="-a $attachments"
+	fi
+	
+	echo -e "$body" | $mutt -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
+    
+    echo "done"
+}

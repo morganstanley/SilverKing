@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source lib/common.lib
+
 function f_checkIfAnySshCommandsAreStillRunning {
     f_checkIfAnySshCommandsAreStillRunningHelper "Checking if any ssh cmd's are still running" 5
 }
@@ -155,17 +157,6 @@ function f_parsePreviousDirectoryFrom {
     echo "$dirsList" | tail -n $numOfDirsToGrabStartingFromTheBottom | head -n 1
 }
 
-function f_getNumberOfLines {
-    typeset file=$1
-    
-    typeset numOfLines=0;
-    if [[ -e $file ]]; then
-        numOfLines=`wc -l $file | cut -f 1 -d ' '`
-    fi
-    
-    echo $numOfLines
-}
-
 function f_waitForAllErrorsToBeCollected {
     f_checkIfAnySshCommandsAreStillRunningHelper "Waiting for all hosts to complete" 3
 }
@@ -221,7 +212,8 @@ function f_runErrorReport {
     
     typeset previousRunDir=$(f_getPreviousRunDir)
     if [[ -n $previousRunDir ]]; then
-        f_runDiffOnHostFiles "$previousRunDir" "$RUN_DIR"
+        typeset hostFiles="*.txt"
+        f_runDiff "$previousRunDir" "$RUN_DIR" "$hostFiles" "$TMP_OUTPUT_RUN_DIR/diff_hosts" "$HOST_DIFF_OUTPUT_FILE"
     fi
 }
 
@@ -268,10 +260,6 @@ function f_checkFile {
     fi
 }
 
-function f_logError {
-    f_logHelper "$1" "$ERRORS_FILE"
-}
-
 function f_logFail {
     f_logHelper "$1" "$FAILS_FILE"
 }
@@ -288,41 +276,8 @@ function f_logSshCmd {
     f_logHelper "$1" "$TMP_OUTPUT_RUN_DIR/ssh.cmds"
 }
 
-function f_logHelper {
-    typeset  msg=$1
-    typeset file=$2
-    
-    echo -e "$msg" >> $file
-}
-
-function f_runDiffOnHostFiles {
-    typeset oldDir=$1
-    typeset newDir=$2
-
-    echo -en "\tDiffing '`basename $oldDir`' v '`basename $newDir`'..."
-    typeset oldTmpDir=$TMP_OUTPUT_RUN_DIR/diff/old
-    typeset newTmpDir=$TMP_OUTPUT_RUN_DIR/diff/new
-    
-    rm -rf   $oldTmpDir/* $newTmpDir/*
-    mkdir -p $oldTmpDir   $newTmpDir
-    
-    cp $oldDir/*.txt $oldTmpDir
-    cp $newDir/*.txt $newTmpDir
-    
-    diff $oldTmpDir $newTmpDir > $HOST_DIFF_OUTPUT_FILE
-    typeset numOfLines=$(f_getNumberOfLines "$HOST_DIFF_OUTPUT_FILE")
-    if [[ $numOfLines -gt 0 ]]; then
-        sed -ri "s#(^diff .*)#\n\1#g"           $HOST_DIFF_OUTPUT_FILE    # -E so I don't have to escape the parenthesis for the capture groups. there's also this (https://unix.stackexchange.com/questions/121161/how-to-insert-text-after-a-certain-string-in-a-file), but I preferred to go with substitution.
-        sed -i  "s#$TMP_OUTPUT_RUN_DIR/diff##g" $HOST_DIFF_OUTPUT_FILE
-    else
-        rm $HOST_DIFF_OUTPUT_FILE
-    fi
-    
-    echo "done"
-}
-
 function f_sendEmail {
-	typeset to=$1
+	typeset   to=$1
 	typeset from=$2
     
     touch $REPORT_FILE
@@ -343,11 +298,11 @@ function f_sendEmail {
             resultInfo="($errorHostCount/$HOST_COUNT)"
         fi
         
-        f_logReportSection "ERRORS"  "$ERRORS_FILE" " ($errorHostCount)"
-        f_logReportSection "FAILS"   "$FAILS_FILE"  " ($failHostCount)"
-        f_logReportSection "DETAILS" "$DETAILS_FILE"
+        f_logReportSection "$REPORT_FILE" "ERRORS"  "$ERRORS_FILE" " ($errorHostCount)"
+        f_logReportSection "$REPORT_FILE" "FAILS"   "$FAILS_FILE"  " ($failHostCount)"
+        f_logReportSection "$REPORT_FILE" "DETAILS" "$DETAILS_FILE"
         
-        typeset   fatalFails="pbr_read received error from fbr_read|\s+TIMEOUT" # add "*** check this machine" ?
+        typeset   fatalFails="pbr_read received error from fbr_read| TIMEOUT" # add "*** check this machine" ? # FIXME:bph: change " TIMEOUT" -> "\s+TIMEOUT" so we actually match these as FATAL
         typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
             
         typeset   fatalCount=`grep -Pc "$fatalFails"   "$REPORT_FILE"`
@@ -365,7 +320,7 @@ function f_sendEmail {
         typeset failIndicators;
         if [[ -e $HOST_DIFF_OUTPUT_FILE ]]; then
             failIndicators="(-)"
-            f_logReportSection "HOST_EXCLUSIONS" "$HOST_DIFF_OUTPUT_FILE"
+            f_logReportSection "$REPORT_FILE" "HOST_EXCLUSIONS" "$HOST_DIFF_OUTPUT_FILE"
         fi
         
         typeset thresholdPercent=10
@@ -399,9 +354,9 @@ function f_sendEmail {
     fi
     
     typeset subject="$RUN_ID $resultLine - `basename $RUN_DIR`"
-    # echo "$subject" > "$TMP_OUTPUT_RUN_DIR/email.subject"
+    echo "$subject" > "$TMP_OUTPUT_RUN_DIR/email.subject"
     
-    f_sendEmailHelper "$to" "$from" "$subject" "$body" "$attachment" "email"
+    f_sendEmailHelper "$to" "$from" "$subject" "$body" "$attachment" "$MUTT"
 }
 
 function f_getUniqueHosts {
@@ -415,41 +370,9 @@ function f_getUniqueHosts {
     echo $numUniqHosts
 }
 
-function f_logReportSection {
-    typeset sectionName=$1
-    typeset sectionFile=$2
-    typeset sectionExtra=$3
-
-    if [[ -e $sectionFile ]]; then
-        echo "${sectionName}${sectionExtra}:" >> $REPORT_FILE
-        cat $sectionFile                      >> $REPORT_FILE
-        echo ""                               >> $REPORT_FILE
-    fi
-}
-
 function f_getFileSize {
     typeset file=$1
     ls -l "$file" | cut -d ' ' -f 5
-}
-
-function f_sendEmailHelper {
-	typeset to=$1
-	typeset from=$2
-	typeset subject=$3
-	typeset body=$4
-	typeset attachments=$5
-    typeset emailType=$6
-	
-    echo -n "Sending $emailType..."
-    
-	typeset attachmentsList;
-	if [[ -n $attachments ]]; then
-		attachmentsList="-a $attachments"
-	fi
-	
-	echo -e "$body" | $MUTT -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
-    
-    echo "done"
 }
 
 function f_sendText {
@@ -458,7 +381,7 @@ function f_sendText {
     
     if [[ -n $to ]]; then
         if [[ `cat $RESULT_FILE` == "FATAL" ]]; then 
-            f_sendEmailHelper "$to" "$from" "Fatal" "check it" "" "text" 
+            f_sendTextHelper "$to" "$from" "Fatal" "check it" "" "$MUTT" 
         fi
     fi
 }
@@ -501,5 +424,5 @@ f_waitForAllErrorsToBeCollected
 f_rerunAnyZeroSizeFiles
 f_scrubFilesForIgnorableErrors
 f_runErrorReport
-f_sendEmail "$EMAILS" "sk_health_report_log-check_${RUN_ID}@the_real_silverking.com"
+f_sendEmail "$EMAILS" "sk_health_report_log-check_${RUN_ID}@ms_silverking.com"
 # f_sendText "$PHONE_NUMBERS" "alerts@silverking.com"
