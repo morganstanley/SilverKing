@@ -24,7 +24,7 @@ function f_runDiff {
     
     mkdir -p $oldTmpDir $newTmpDir
     
-    # not using this right now, since we are only using a single filename for filenames param, if we do change to using the loop, we need to make sure "in $filenames" works with something like '*.txt' passed as the filenames param
+    # not using for now b/c we are only passing in a single filename for the filenames param. if that changes, we need to make sure the for loop below can handle a single filename '*.txt' passed in as the filenames param.
     # for filename in $filenames; do  # important not to quote "$filenames", in case there are multiple space separated names "a.txt b.txt c.txt", if they are newline separated we need quotes
         # cp $oldDir/$filename $oldTmpDir
         # cp $newDir/$filename $newTmpDir
