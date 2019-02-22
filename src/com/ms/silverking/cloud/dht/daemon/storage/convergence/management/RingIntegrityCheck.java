@@ -93,7 +93,11 @@ public class RingIntegrityCheck {
 	private int checkIntegrity(ResolvedReplicaMap rMap, ExclusionSet exclusionSet, boolean verbose) {
 		int	setsExcluded;
 		int	minReplicaSetSize;
-		
+
+		Map<Integer, Integer> originalReplicaSetCounts = new HashMap<>();
+		Map<Integer, Integer>  currentReplicaSetCounts = new HashMap<>();
+		Map<Integer, Integer> excludedReplicaSetCounts = new HashMap<>();
+		List<Set<IPAndPort>> excludedSets = new ArrayList<>();
 		minReplicaSetSize = Integer.MAX_VALUE;
 		setsExcluded = 0;
 		for (Set<IPAndPort> replicaSet : rMap.getReplicaSets()) {
@@ -116,21 +120,62 @@ public class RingIntegrityCheck {
 			}
 			if (setSize < minReplicaSetSize) {
 				minReplicaSetSize = setSize;
+				if (verbose) {
+					System.out.printf("new minReplicaSet of %s: %s\t%d\n", minReplicaSetSize, replicaSet, numExcluded);
+				}
 			}
+			
+			int count = 1;
+			int originalSize = setSize + numExcluded;
+			if (originalReplicaSetCounts.containsKey(originalSize)) {
+				count = originalReplicaSetCounts.get(originalSize) + 1;
+			}
+			originalReplicaSetCounts.put(originalSize, count);
+			
+			count = 1;
+			if (currentReplicaSetCounts.containsKey(setSize)) {
+				count = currentReplicaSetCounts.get(setSize) + 1;
+			}
+			currentReplicaSetCounts.put(setSize, count);
+			
+			count = 1;
+			if (excludedReplicaSetCounts.containsKey(numExcluded)) {
+				count = excludedReplicaSetCounts.get(numExcluded) + 1;
+			}
+			excludedReplicaSetCounts.put(numExcluded, count);
+			
 			if (verbose) {
-				System.out.printf("%s\t%d\n", replicaSet, numExcluded);
+				System.out.printf("%s\t%d\t%d\n", replicaSet, numExcluded, setSize);
 			}
 			if (allExcluded) {
 				++setsExcluded;
+				excludedSets.add(replicaSet);
 				if (verbose) {
 					System.out.printf("Set is excluded: %s\n", replicaSet);
 				}
 			}
 		}
 		if (verbose) {
-			System.out.printf("setsExcluded: %d\n", setsExcluded);
+			System.out.printf("setsExcluded:      %d\n", setsExcluded);
+			System.out.printf("minReplicaSetSize: %d\n", minReplicaSetSize);
+		}
+		if (verbose) {
+			System.out.println("REPLICA SET DETAILS:\n---------------");
+			printSet("Original", originalReplicaSetCounts);
+			printSet("Current",   currentReplicaSetCounts);
+			printSet("Excluded", excludedReplicaSetCounts);
+			
+			System.out.println("Excluded sets: " + setsExcluded);
+			for (Set<IPAndPort> s : excludedSets)
+				System.out.print("\t" + s);
 		}
 		return minReplicaSetSize;
+	}
+	
+	private void printSet(String setName, Map<Integer, Integer> counts) {
+		System.out.println(setName + " set sizes:");
+		for (Map.Entry<Integer, Integer> entry : counts.entrySet())
+			System.out.printf("\t%6d sets have %d replicas\n", entry.getValue(), entry.getKey());
 	}
 	
 	private Map<IPAndPort,Long> getAllocationMap(ResolvedReplicaMap map) {
@@ -311,7 +356,7 @@ public class RingIntegrityCheck {
 				exclusionSet = ringIntegrityCheck.getCurrentExclusionSet();
     		}
     		
-			ringIntegrityCheck.checkIntegrity(exclusionSet, false);
+			ringIntegrityCheck.checkIntegrity(exclusionSet, true);
 			
 			lossEstimationParameters = options.getLossEstimationParameters();
 			pLoss = ringIntegrityCheck.estimateAndDisplayLoss(lossEstimationParameters, exclusionSet);
