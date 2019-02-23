@@ -95,10 +95,10 @@ function f_sendEmail {
     fi
     resultInfo="($RING_SEGMENTS_COUNT)"
         
-    f_logReportSection "$REPORT_FILE" "DETAILS" "$DETAILS_FILE"
     f_logDiffResult "$REPORT_FILE" "ZEROS" "$DIFF_ZEROS_FILE" "$ZEROS_FILE"
     f_logDiffResult "$REPORT_FILE" "ONES"  "$DIFF_ONES_FILE"  "$ONES_FILE"
     f_logDiffResult "$REPORT_FILE" "TWOS"  "$DIFF_TWOS_FILE"  "$TWOS_FILE"
+    f_logReportSection "$REPORT_FILE" "DETAILS" "$DETAILS_FILE"
     
     echo "$result" >> $RESULT_FILE
     typeset resultLine="$result $resultInfo"
