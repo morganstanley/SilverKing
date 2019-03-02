@@ -433,12 +433,10 @@ function f_getResultHelper {
 	
 	typeset totalCount=$((passCount+failCount+keyWordCount))
 	
-	if [[ $totalCount -eq 0 ]] ; then
-		echo $NEUTRAL_TEXT
-	elif [[ $failCount -eq 0 && $keyWordCount -eq 0 ]] ; then
-		echo $PASSED_TEXT
-	else
+	if [[ $totalCount -eq 0 || $failCount -ne 0 || $keyWordCount -ne 0 ]]; then
 		echo $FAILED_TEXT
+	else
+		echo $PASSED_TEXT
 	fi
 }
 
