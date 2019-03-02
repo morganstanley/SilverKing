@@ -29,5 +29,6 @@ FileIDToPathMap *f2p_new();
 void f2p_delete(FileIDToPathMap **f2p);
 void f2p_put(FileIDToPathMap *f2p, FileID *fid, char *path);
 PathListEntry *f2p_get(FileIDToPathMap *f2p, FileID *fid);
+void f2p_display_stats(FileIDToPathMap *f2p);
 
 #endif

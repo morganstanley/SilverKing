@@ -3,6 +3,7 @@
 /////////////
 // includes
 
+#include "FileAttr.h"
 #include "FileIDToPathMap.h"
 #include "SRFSConstants.h"
 #include "Util.h"
@@ -83,4 +84,8 @@ PathListEntry *f2p_get(FileIDToPathMap *f2p, FileID *fid) {
 		srfsLog(LOG_FINE, "f2p_get returning %llx %s %s", fid, _fid, entry);
 	}
 	return pathListEntry;
+}
+
+void f2p_display_stats(FileIDToPathMap *f2p) {
+    srfsLog(LOG_WARNING, "f2p size %d", hashtable_count(f2p->ht));
 }

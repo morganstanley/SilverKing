@@ -1085,6 +1085,7 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
 			if (!added) {
 				aor_delete(&aor);
 			}
+            aor = NULL; // This reference is for the queue processor. NULL it out so that it isn't used any further here.
 			if (isNativePath) {
 				timeout = sd_get_dht_timeout(ar->sd, ar->rtsDHT, ar->rtsNFS, 1);
 				srfsLog(LOG_FINE, "waiting for op dht stage completion %s %u", nativePath, timeout);
@@ -1130,6 +1131,7 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
             default:
                 fatalError("panic", __FILE__, __LINE__);
             }
+            aor_delete(&activeOpRef); // ADDED - DOUBLE CHECK BEFORE COMMITTING
 		} else {
 			srfsLog(LOG_FINE, "sd not enabled. skipping dht");
             ac_remove_active_op(ar->attrCache, nativePath);
@@ -1378,4 +1380,5 @@ void ar_display_stats(AttrReader *ar, int detailedStats) {
 	rts_display(ar->rtsDHT);
 	srfsLog(LOG_WARNING, "ar ResponseTimeStats: NFS");
 	rts_display(ar->rtsNFS);
+    f2p_display_stats(ar->f2p);
 }
