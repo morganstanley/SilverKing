@@ -58,6 +58,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     private final ConvictionLimits	convictionWarningThresholds;
     private final Map<IPAndPort,Long>	convictionTimes;
     private volatile long	lastCheckMillis;
+    private volatile long	lastUpdateMillis;
+    private final long	minUpdateIntervalMillis;
     private Set<IPAndPort>	activeNodesInMap;
     private final boolean	disableAddition;
     
@@ -71,6 +73,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     private static final int    forcedCheckIntervalMillis = 1 * 60 * 1000;
     
     private static final long	oneHourMillis = TimeUtils.MINUTES_PER_HOUR * TimeUtils.SECONDS_PER_MINUTE * TimeUtils.MILLIS_PER_SECOND;
+    
+    private static final long	max_minUpdateIntervalMillis = 10 * TimeUtils.SECONDS_PER_MINUTE * TimeUtils.MILLIS_PER_SECOND; // used as a sanity check on updates
 
     
     // FUTURE: just pass in the options...
@@ -78,7 +82,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     					 int doctorRoundIntervalSeconds, boolean forceInclusionOfUnsafeExcludedServers,
     					 ConvictionLimits convictionLimits, ConvictionLimits convictionWarningThresholds, 
     					 int doctorNodeStartupTimeoutSeconds,
-    					 boolean disableAddition)
+    					 boolean disableAddition, long minUpdateIntervalMillis)
                          throws IOException, KeeperException {
     	String	dhtName;
     	com.ms.silverking.cloud.meta.MetaClient	cloudMC;
@@ -94,7 +98,16 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         this.convictionWarningThresholds = convictionWarningThresholds;
         convictionTimes = new HashMap<>();
         this.disableAddition = disableAddition;
+        this.minUpdateIntervalMillis = minUpdateIntervalMillis;
         
+        Log.warningf("guiltThreshold %d", guiltThreshold);
+        Log.warningf("watchIntervalSeconds %d", watchIntervalSeconds);
+        Log.warningf("doctorRoundIntervalSeconds %d", doctorRoundIntervalSeconds);
+        Log.warningf("convictionLimits %s", convictionLimits);
+        Log.warningf("convictionWarningThresholds %s", convictionWarningThresholds);
+        Log.warningf("doctorNodeStartupTimeoutSeconds %d", doctorNodeStartupTimeoutSeconds);
+        Log.warningf("disableAddition %s", disableAddition);
+        Log.warningf("minUpdateIntervalMillis %d", minUpdateIntervalMillis);
         if (doctorRoundIntervalSeconds != HealthMonitorOptions.NO_DOCTOR) {
         	doctor = new Doctor(gc, forceInclusionOfUnsafeExcludedServers, doctorNodeStartupTimeoutSeconds);
         } else {
@@ -220,6 +233,9 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     }
     
     public void check() {
+    	boolean 	exclusionSetWritten;
+    	
+    	exclusionSetWritten = false;
     	lastCheckMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
     	checkMutex.lock();
         try {
@@ -230,6 +246,17 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             Set<IPAndPort>  newlyInactiveNodes;
             Pair<Set<IPAndPort>,SetMultimap<IPAndPort,IPAndPort>>	activeServersAndAccuserSuspects;
             Set<IPAndPort>	activeServers;
+            long	updateDeltaMillis;
+            
+            updateDeltaMillis = SystemTimeUtil.systemTimeSource.absTimeMillis() - lastUpdateMillis;
+            if (updateDeltaMillis < minUpdateIntervalMillis) {
+            	long	sleepMillis;
+            	
+            	sleepMillis = Math.min(minUpdateIntervalMillis - updateDeltaMillis, max_minUpdateIntervalMillis);
+            	Log.warningf("Check rate control sleeping for %d", sleepMillis);
+            	ThreadUtil.sleep(sleepMillis);
+            	Log.warningf("Awake");
+            }
             
             guiltySuspects = new HashSet<>();
             
@@ -329,6 +356,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 	Log.severe("convictionsWithinOneHour > convictionLimits.getGuiltyServersPerHour()");
                 	Log.severef("%d > %d", convictionsWithinOneHour, convictionLimits.getGuiltyServersPerHour());
             	} else {
+            		boolean	updated;
+            		
 	            	addToConvictionTimes(guiltySuspects, SystemTimeUtil.systemTimeSource.absTimeMillis());
 		            if (doctor != null) {
 		            	doctor.admitPatients(guiltySuspects);
@@ -341,7 +370,10 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
 		            // remove them so that they are not activated.
 		            // We can't allow them to become active as this could result in data loss. 
 		            
-		            updateInstanceExclusionSet(guiltySuspects, disableAddition ? ImmutableSet.of() : newActiveNodes);
+		            updated = updateInstanceExclusionSet(guiltySuspects, disableAddition ? ImmutableSet.of() : newActiveNodes);
+		            if (updated) {
+		            	lastUpdateMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
+		            }
             	}
             }
         } catch (Exception e) {
@@ -402,7 +434,10 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         return ss.build();
     }
     
-    private void updateInstanceExclusionSet(Set<IPAndPort> guiltySuspects, Set<IPAndPort> newActiveNodes) {
+    private boolean updateInstanceExclusionSet(Set<IPAndPort> guiltySuspects, Set<IPAndPort> newActiveNodes) {
+    	boolean	exclusionSetWritten;
+    	
+    	exclusionSetWritten = false;
         try {
             if (instanceExclusionZK != null) { 
                 ExclusionSet    oldExclusionSet;
@@ -438,6 +473,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 if (!newExclusionSet.equals(oldExclusionSet)) {
                     Log.warning(String.format("Writing exclusion set"));
                     instanceExclusionZK.writeToZK(newExclusionSet);
+                    exclusionSetWritten = true;
                     Log.warning(String.format("Latest exclusion set path after write %s", instanceExclusionZK.getLatestZKPath()));
                 } else {
                     Log.warning(String.format("No change in exclusion set"));
@@ -448,6 +484,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         } catch (Exception e) {
             Log.logErrorWarning(e, "Exception in updateInstanceExclusionSet");
         }
+        return exclusionSetWritten;
     }
 
     public void monitor() {
@@ -568,7 +605,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                                                   options.forceInclusionOfUnsafeExcludedServers,
                                                   convictionLimits, convictionWarningThresholds,
                                                   options.doctorNodeStartupTimeoutSeconds,
-                                                  options.disableAddition);
+                                                  options.disableAddition,
+                                                  options.minUpdateIntervalSeconds * 1000);
                 healthMonitor.monitor();
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());

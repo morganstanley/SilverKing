@@ -23,6 +23,8 @@ public class HealthMonitorOptions {
     public int  doctorNodeStartupTimeoutSeconds = 5 * 60;
     @Option(name="-da", usage="disableAddition", required=false)
     public boolean  disableAddition;
+    @Option(name="-m", usage="minUpdateIntervalSeconds", required=false)
+    public int  minUpdateIntervalSeconds = 10;
     
     public boolean doctorRequested() {
     	return doctorRoundIntervalSeconds != NO_DOCTOR;
