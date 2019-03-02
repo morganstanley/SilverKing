@@ -87,6 +87,7 @@ char **str_alloc_array(int r, size_t size);
 void str_free_array(char ***a, int r);
 
 void mutex_init(pthread_mutex_t *mutex, pthread_mutex_t **mutexPtr);
+void spinlock_init(pthread_spinlock_t *spinlock, pthread_spinlock_t **spinlockPtr);
 void cv_init(pthread_cond_t *cv, pthread_cond_t **cvPtr);
 void mutex_destroy(pthread_mutex_t **mutexPtr);
 void cv_destroy(pthread_cond_t **cvPtr);
@@ -140,7 +141,10 @@ pid_t get_caller_pid();
 void bytesToString(char *dest, unsigned char *src, int length);
 						   
 time_t epoch_time_seconds();
+int msleep(uint64_t millis);
 void sleep_random_millis(uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp);
+void cond_timedwait_random_millis(pthread_cond_t *cond, pthread_mutex_t *mutex, 
+                                  uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp);
 
 uint64_t offsetToBlock(off_t offset);
 

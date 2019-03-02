@@ -44,6 +44,11 @@ typedef struct OpenDir {
 	uint64_t	lastGetAttr;
 	uint64_t	lastPrefetch;
     uint64_t    lastWriteMillis;
+    uint64_t    lastMutationMillis;
+    uint64_t    lastReconciliationTriggerMillis;
+    uint64_t    lastReconciliationCompleteMillis;
+    pthread_spinlock_t  timeSpinlockInstance;
+    pthread_spinlock_t  *timeSpinlock;
 	int		needsReconciliation;
 } OpenDir;
 
@@ -69,5 +74,8 @@ int od_set_queued_for_write(OpenDir *od, int queuedForWrite);
 void od_display(OpenDir *od, FILE *file = stdout);
 int od_record_get_attr(OpenDir *od, char *child, uint64_t curTime);
 void od_check_for_remove_from_reconciliation(OpenDir *od, uint64_t _curTimeMillis);
+void od_recordReconciliationTrigger(OpenDir *od);
+void od_recordReconciliationComplete(OpenDir *od);
+int od_needs_reconciliation(OpenDir *od);
 
 #endif /* _OPEN_DIR_H_ */

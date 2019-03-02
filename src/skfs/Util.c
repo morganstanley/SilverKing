@@ -51,7 +51,7 @@
 
 // Below is for debugging memory allocation/deallocation
 // Normally this is commented out
-//#define DEBUG_MEMORY
+// #define DEBUG_MEMORY
 
 ////////////////////
 // private members
@@ -258,6 +258,21 @@ uint64_t curTimeMicros() {
 	return rVal;
 }
 
+void curTimePlusTimeMillis(uint64_t timeMillis, struct timespec *ts) {
+    struct timeval	tv;
+	uint64_t	rVal;
+    uint64_t    seconds;
+    uint64_t    nanos;
+    uint64_t    carry;
+
+    memset(ts, 0, sizeof(struct timespec));
+	gettimeofday(&tv, NULL);
+    nanos = tv.tv_usec * 1000 + (timeMillis % 1000) * 1000000;
+    seconds = tv.tv_sec + (timeMillis / 1000);
+    ts->tv_nsec = nanos % 1000000000;
+    ts->tv_sec = seconds + nanos / 1000000000;
+}
+
 // error handling
 
 void setFatalErrorWarnOnly(int warnOnly) {
@@ -417,6 +432,16 @@ void mutex_init(pthread_mutex_t *mutex, pthread_mutex_t **mutexPtr) {
 	*mutexPtr = mutex;
 }
 
+void spinlock_init(pthread_spinlock_t *spinlock, pthread_spinlock_t **spinlockPtr) {
+    int rc;
+    
+	rc = pthread_spin_init(spinlock, PTHREAD_PROCESS_PRIVATE);
+    if (rc != 0) {
+        fatalError("pthread_spinlock_init() failed", __FILE__, __LINE__);
+    }
+	*spinlockPtr = spinlock;
+}
+
 void cv_init(pthread_cond_t *cv, pthread_cond_t **cvPtr) {
     int rc;
     
@@ -457,14 +482,18 @@ void cv_wait_abs(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline) 
 	cv_wait_abs_given_time(mutex, cv, deadline, curTimeMillis());
 }
 
+static void millis_to_timespec(struct timespec *ts, uint64_t millis) {
+    memset(ts, 0, sizeof(struct timespec));
+    ts->tv_sec = millis / 1000;
+    ts->tv_nsec = (millis % 1000) * 1000000;
+}
+
 static void cv_wait_abs_given_time(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline, uint64_t currentTime) {
 	srfsLog(LOG_FINE, "cv_wait_abs %llu %llu", deadline, currentTime);
 	if (deadline > currentTime) {
 		struct timespec	ts;
 
-		memset(&ts, 0, sizeof(struct timespec));
-		ts.tv_sec = deadline / 1000;
-		ts.tv_nsec = (deadline % 1000) * 1000000;
+        millis_to_timespec(&ts, deadline);
 		srfsLog(LOG_FINE, "pthread_cond_timedwait %d %d", ts.tv_sec, ts.tv_nsec);
 		pthread_cond_timedwait(cv, mutex, &ts);
 	}
@@ -985,8 +1014,38 @@ time_t epoch_time_seconds() {
 	return time(NULL);
 }
 
+int msleep(uint64_t millis) {
+    return usleep(millis * 1000);
+}
+
+static uint64_t random_sleep_time(uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp) {
+    if (minMillis > maxMillis) {
+        fatalError("minMillis > maxMillis", __FILE__, __LINE__);
+        return 0;
+    } else {
+        return (rand_r(seedp) % (maxMillis - minMillis + 1)) + minMillis;
+    }
+}
+
 void sleep_random_millis(uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp) {
-	usleep( (rand_r(seedp) % (maxMillis - minMillis + 1) + minMillis) * 1000 );
+	msleep( random_sleep_time(minMillis, maxMillis, seedp) );
+}
+
+void cond_timedwait_random_millis(pthread_cond_t *cond, pthread_mutex_t *mutex, 
+                                  uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp) {
+    struct timespec   sleepTime;
+    uint64_t    sleepTimeMillis;
+    
+    //srfsLog(LOG_WARNING, "minMillis %d maxMillis %d", minMillis, maxMillis);
+	sleepTimeMillis = random_sleep_time(minMillis, maxMillis, seedp);
+    //srfsLog(LOG_WARNING, "sleepTimeMillis %d", sleepTimeMillis);
+    curTimePlusTimeMillis(sleepTimeMillis, &sleepTime);
+    //srfsLog(LOG_WARNING, "waiting %d", curTimeMillis());
+    //srfsLog(LOG_WARNING, "%d %d", sleepTime.tv_sec, sleepTime.tv_nsec);
+    pthread_mutex_lock(mutex);
+    pthread_cond_timedwait(cond, mutex, &sleepTime);
+    pthread_mutex_unlock(mutex);
+    //srfsLog(LOG_WARNING, "awake %d", curTimeMillis());
 }
 
 uid_t get_uid() {

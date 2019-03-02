@@ -6,8 +6,17 @@
 /////////////
 // includes
 
+#include <pthread.h>
+
 #include <set>
 #include <string>
+
+
+///////////////////
+// public globals
+
+extern pthread_mutex_t			*rcstMutex;
+extern pthread_cond_t			*rcstCV;
 
 
 //////////////////////

@@ -738,7 +738,7 @@ void ddr_check_for_reconciliation(DirDataReader *ddr, char *path) {
 	od = NULL;
 	result = ddr_get_OpenDir(ddr, path, &od, DDR_NO_AUTO_CREATE);
 	if (result == 0) {
-		if (od->needsReconciliation > 0) { // unsafe access, using as a hint
+		if (od_needs_reconciliation(od)) {
 			srfsLog(LOG_INFO, "Reconciliation required %s", path);
 			ddr_update_OpenDir(ddr, od);
 		} else {
@@ -757,6 +757,7 @@ void ddr_update_OpenDir(DirDataReader *ddr, OpenDir *od) {
 	DirDataReadRequest	*ddrr;
 	ActiveOpRef	*aor;
 	
+    od_recordReconciliationTrigger(od);
 	path = od->path;
 	srfsLog(LOG_FINE, "ddr_update_OpenDir %s", path);		
 	srfsLog(LOG_FINE, "ddr requesting DirData update for %s", path);
@@ -775,6 +776,7 @@ void ddr_update_OpenDir(DirDataReader *ddr, OpenDir *od) {
 	}
 	aor_delete(&aor);
 	srfsLog(LOG_FINE, "out1 ddr_update_OpenDir %s", path);
+    od_recordReconciliationComplete(od);
 }
 
 int ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int createIfNotFound) {

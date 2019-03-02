@@ -25,6 +25,8 @@
 #define _ODT_OPENDIR_RETRIES    10
 #define _ODT_OPENDIR_RETRY_INTERVAL_SECONDS 1
 
+#define _ODT_DIR_RECONCILIATION_SLEEP_MILLIS   10
+
 
 ////////////
 // externs
@@ -112,6 +114,11 @@ static void odt_set_reconciliation_sleep(OpenDirTable *odt, char *reconciliation
     }
     if (_max > _maxMaxReconciliationSleepMillis) {
         _max = _maxMaxReconciliationSleepMillis;
+    }
+    if (_min > _max) {
+        srfsLog(LOG_WARNING, "reconciliationSleep %s", reconciliationSleep);
+        srfsLog(LOG_WARNING, "minReconciliationSleepMillis > maxReconciliationSleepMillis. Forcing min to max");
+        _min = _max;
     }
     odt->minReconciliationSleepMillis = _min;
     odt->maxReconciliationSleepMillis = _max;
@@ -678,8 +685,9 @@ static void *odt_od_reconciliation_run(void *_odt) {
 	srfsLog(LOG_FINE, "Starting odt_od_reconciliation_run");
 	running = TRUE;
 	while (running) {
-		sleep_random_millis(odt->minReconciliationSleepMillis, odt->maxReconciliationSleepMillis, &_reconciliationSeed);
+		cond_timedwait_random_millis(rcstCV, rcstMutex, odt->minReconciliationSleepMillis, odt->maxReconciliationSleepMillis, &_reconciliationSeed);
 		odt_od_reconciliation(odt);
+        msleep(_ODT_DIR_RECONCILIATION_SLEEP_MILLIS);
 	}
     return NULL;
 }

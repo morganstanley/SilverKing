@@ -35,6 +35,9 @@ static void od_merge_DirData_pendingUpdates(OpenDir *od);
 static void od_clear_pending_updates(OpenDir *od);
 static void od_remove_from_reconciliation(OpenDir *od);
 static void od_set_server_update_DirData(OpenDir *od, DirData *su_dd);
+static void od_setTimeToCurrentTime(OpenDir *od, uint64_t *timePtr);
+static void od_setTimeIfGreater(OpenDir *od, uint64_t *timePtr, uint64_t newTime);
+static uint64_t od_getTime(OpenDir *od, uint64_t *timePtr);
 
 
 ///////////////
@@ -62,6 +65,9 @@ OpenDir *od_new(const char *path, DirData *dirData) {
         fatalError("\n mutex init failed", __FILE__, __LINE__);
 	}
 	cv_init(&od->cvInstance, &od->cv);
+    spinlock_init(&od->timeSpinlockInstance, &od->timeSpinlock);
+	od->lastMutationMillis = 0;
+	od->lastReconciliationTriggerMillis = 0;
     // Force an update
 	od->lastUpdateMillis = 0;
 	od->needsReconciliation = TRUE;
@@ -227,11 +233,64 @@ static void od_add_update(OpenDir *od, char *name, int type, uint64_t version) {
 		mem_realloc((void **)&od->pendingUpdates, od->numPendingUpdates, od->numPendingUpdates + 1, sizeof(OpenDirUpdate));
 		odu_init(&od->pendingUpdates[od->numPendingUpdates], type, version, name);
 		od->numPendingUpdates++;
-		rcst_add_to_reconciliation_set(od->path);
+        /*
+        od_setTimeToCurrentTime(od, &od->lastMutationMillis);
+		rcst_add_to_reconciliation_set(od->path); // notifies waiting update thread
 		od->needsReconciliation = TRUE;
+        */
 	}
+    od_setTimeToCurrentTime(od, &od->lastMutationMillis);
+    rcst_add_to_reconciliation_set(od->path); // notifies waiting update thread
+    od->needsReconciliation = TRUE;
 	// unlock
-    pthread_mutex_unlock(od->mutex);	
+    pthread_mutex_unlock(od->mutex);
+}
+
+void od_recordReconciliationTrigger(OpenDir *od) {
+    od_setTimeToCurrentTime(od, &od->lastReconciliationTriggerMillis);
+}
+
+void od_recordReconciliationComplete(OpenDir *od) {
+    od_setTimeToCurrentTime(od, &od->lastReconciliationCompleteMillis);
+}
+
+int od_needs_reconciliation(OpenDir *od) {
+    uint64_t    lastMutationMillis;
+    uint64_t    lastReconciliationTriggerMillis;
+    
+    lastMutationMillis = od_getTime(od, &od->lastMutationMillis);
+    lastReconciliationTriggerMillis = od_getTime(od, &od->lastReconciliationTriggerMillis);
+    if (lastMutationMillis >= lastReconciliationTriggerMillis) {
+        uint64_t    lastReconciliationCompleteMillis;
+        
+        lastReconciliationCompleteMillis = od_getTime(od, &od->lastReconciliationCompleteMillis);
+        return lastReconciliationTriggerMillis < lastReconciliationCompleteMillis;
+        // NOTE above assumes that any reconciliation will take measurably > 1 ms
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+static void od_setTimeToCurrentTime(OpenDir *od, uint64_t *timePtr) {
+    od_setTimeIfGreater(od, timePtr, curTimeMillis());
+}
+
+static void od_setTimeIfGreater(OpenDir *od, uint64_t *timePtr, uint64_t newTime) {
+    pthread_spin_lock(od->timeSpinlock);
+    if (newTime > *timePtr) {
+        *timePtr = newTime;
+    }
+    pthread_spin_unlock(od->timeSpinlock);
+}
+
+static uint64_t od_getTime(OpenDir *od, uint64_t *timePtr) {
+    uint64_t    timeVal;
+    
+    pthread_spin_lock(od->timeSpinlock);
+    timeVal = *timePtr;
+    pthread_spin_unlock(od->timeSpinlock);
+    return timeVal;
 }
 
 void od_rm_entry(OpenDir *od, char *name, uint64_t version) {
