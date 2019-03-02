@@ -436,8 +436,25 @@ public final class MessageGroup {
 
     @Override
     public String toString() {
-        return String.format("%s:%s:%x:%s", messageType, uuid, context, 
-                new SimpleValueCreator(originator));
+        return String.format("%s:%s:%x:%s:%s", messageType, uuid, context, 
+                new SimpleValueCreator(originator), getBufferLengthsString());
+    }
+    
+    private String getBufferLengthsString() {
+    	StringBuilder	sb;
+    	
+    	sb = new StringBuilder();
+    	if (buffers != null) {
+	    	for (ByteBuffer buf : buffers) {
+	    		if (buf != null) {
+		    		if (sb.length() > 0) {
+		    			sb.append(',');
+		    		}
+		    		sb.append(buf.limit());
+	    		}
+	    	}
+    	}
+    	return sb.toString();
     }
     
     public static MessageGroup clone(MessageGroup mg) {

@@ -257,12 +257,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         try {
             if (debugReceivedMessages) {
                 Log.warningf("\t*** Received: %s\n%s", message, Thread.currentThread().getName());
-                message.displayForDebug(true);
+                //message.displayForDebug(true);
             }
             if (debugShortTimeMessages) {
                 if (message.getDeadlineRelativeMillis() < shortTimeWarning) {
                     Log.warning("\t*** Received short time message: ", message);
-                    message.displayForDebug(true);
+                    //message.displayForDebug(true);
                 }
             }
         	if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
@@ -518,10 +518,16 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     protected void sendPutResults(MessageGroup message, long version, 
                                MessageGroupConnectionProxy connection, List<PutResult> results, byte storageState, 
                                int deadlineRelativeMillis) {
+    	sendPutResults(message.getUUID(), message.getContext(), version, connection, results, storageState, deadlineRelativeMillis);
+    }
+    
+    protected void sendPutResults(UUIDBase uuid, long context, long version, 
+                               MessageGroupConnectionProxy connection, List<PutResult> results, byte storageState, 
+                               int deadlineRelativeMillis) {
         ProtoPutResponseMessageGroup    response;
         
         if (results.size() > 0) {
-            response = new ProtoPutResponseMessageGroup(message.getUUID(), message.getContext(), 
+            response = new ProtoPutResponseMessageGroup(uuid, context, 
                                     version, // FUTURE - does ProtoPutResponseMessageGroup really need version when we're using the uuid now? 
                                     results.size(), 
                                     mgBase.getMyID(), storageState, deadlineRelativeMillis); // FUTURE - allow constructor without this?
@@ -547,7 +553,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 Log.logErrorWarning(ioe);
             }
         }
-    }    
+    }
+    
     
     ///////////////////////////////////
     

@@ -58,6 +58,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	private static final Mode	mode;
 	
 	private static final boolean	debug = false;
+	private static final boolean	debugMergePut = false;
 	
 	static FileDeletionWorker	fileDeletionWorker = new FileDeletionWorker();
 	
@@ -221,7 +222,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 		int	numMerged;
 		Stopwatch	sw;
 		
-		if (Log.levelMet(Level.INFO)) {
+		if (debugMergePut || Log.levelMet(Level.INFO)) {
 			sw = new SimpleStopwatch();
 		} else {
 			sw = null;
@@ -263,9 +264,10 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 				Log.logErrorWarning(re, "Ignoring update due to error "+ svp);
 			}
 		}
-		if (Log.levelMet(Level.INFO)) {
+		if (debugMergePut || Log.levelMet(Level.INFO)) {
 			sw.stop();
 			Log.warningf("merged %d of %d in %f", numMerged, values.size(), sw.getElapsedSeconds());
+			sw.reset();
 		}
 		
 		nsStore.getReadWriteLock().writeLock().lock();
@@ -273,6 +275,11 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			results = put(mergedUpdates);
 		} finally {
 			nsStore.getReadWriteLock().writeLock().unlock();
+		}
+		if (debugMergePut || Log.levelMet(Level.INFO)) {
+			sw.stop();
+			Log.warningf("put for merge complete in %f", sw.getElapsedSeconds());
+			sw.reset();
 		}
 		return results;
 	}

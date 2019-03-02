@@ -79,6 +79,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumTreeRequest;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumTreeServer;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
+import com.ms.silverking.cloud.dht.daemon.storage.protocol.PutCommunicator;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocolUtil;
 import com.ms.silverking.cloud.dht.meta.LinkCreationListener;
 import com.ms.silverking.cloud.dht.meta.LinkCreationWatcher;
@@ -214,6 +215,8 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final int	nsPrereadGB;
     private static final SegmentPrereadMode	readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     private static final SegmentPrereadMode	updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
+    
+    private static final boolean	enablePendingPuts = true;
     
     private static final int	minFinalizationIntervalMillis;
     
@@ -782,7 +785,7 @@ public class NamespaceStore implements SSNamespaceStore {
         
         nsVersionMode = nsOptions.getVersionMode();
 
-        if (putTrigger != null && (!(resultListener instanceof KeyedOpResultMultiplexor))) { 
+        if (enablePendingPuts && putTrigger != null && (!(resultListener instanceof KeyedOpResultMultiplexor))) { 
         	// Pending puts currently only applied to server side code
         	// Pending puts doesn't support userdata
         	// Disallow puts to be deferred to the pending queue multiple times
@@ -3262,6 +3265,7 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private void addPendingPut(List<StorageValueAndParameters> values, KeyedOpResultListener resultListener) {
     	try {
+    		//Log.warningf("Adding pending put %d", values.size());
 			pendingPuts.put(new PendingPut(this, fixupCompression(values), resultListener));
 		} catch (InterruptedException e) {
 			Log.logErrorWarning(e);
@@ -3316,8 +3320,22 @@ public class NamespaceStore implements SSNamespaceStore {
 			} catch (InterruptedException e) {
 				numTaken = 0;
 			}
+
     		if (numTaken > 0) {
-    			mergePendingPuts(work, numTaken);
+    			mergePendingPuts(work, numTaken); // merge puts
+    			
+    			// send results (actual send)
+				for (int i = 0; i < numTaken; i++) {
+					if (work[i].resultListener instanceof PutCommunicator) {
+						PutCommunicator	putCommunicator;
+						
+						putCommunicator = (PutCommunicator)work[i].resultListener;
+						putCommunicator.getPutOperationContainer().sendInitialResults(putCommunicator);
+					} else {
+						Log.warningf("not PutCommunicator %s", work[i].resultListener.getClass().getName());
+					}
+				}
+				
     			ArrayUtil.clear(work); // allow gc of completed work
     		}
     	}
@@ -3368,6 +3386,10 @@ public class NamespaceStore implements SSNamespaceStore {
 	    				nsStore.writeLock.unlock();
 	    			}
 	    		    nsStore.handleTriggeredWaitFors(triggeredWaitFors);
+	    		    
+	    		    for (Map.Entry<DHTKey, OpResult> resultEntry : mergeResults.entrySet()) {
+	    		    	resultListenerMultiplexor.sendResult(resultEntry.getKey(), resultEntry.getValue());
+	    		    }
 	    		} else {
 	    			nsStore.put(values, null, resultListenerMultiplexor); // Note: pending puts don't support userdata
 	    		}

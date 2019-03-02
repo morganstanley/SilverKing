@@ -10,4 +10,5 @@ public interface PutOperationContainer extends OperationContainer {
     public byte[] getUserData();
     public short getCCSS();
     public Set<SecondaryTarget> getSecondaryTargets();
+	public void sendInitialResults(PutCommunicator pComm);
 }

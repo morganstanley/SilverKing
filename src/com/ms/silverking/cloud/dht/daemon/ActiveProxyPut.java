@@ -30,6 +30,7 @@ import com.ms.silverking.cloud.dht.net.ProtoPutResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPutUpdateMessageGroup;
 import com.ms.silverking.cloud.dht.net.PutResult;
 import com.ms.silverking.cloud.dht.net.protocol.PutMessageFormat;
+import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.time.SystemTimeSource;
 
@@ -42,6 +43,9 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     private final long version;
     private final int   stLength;
     private final Set<SecondaryTarget>  secondaryTargets;
+    private final UUIDBase msg_uuid;
+    private final long	msg_context; 
+    private final int	msg_deadline;
 
     ActiveProxyPut(MessageGroup message, MessageGroupConnectionProxy connection, MessageModule messageModule,
             StorageProtocol storageProtocol, long absDeadlineMillis, boolean local, NamespaceOptions nsOptions) {
@@ -49,6 +53,9 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
         long    _version;
         SystemTimeSource    systemTimeSource;
         
+        msg_uuid = message.getUUID();
+        msg_context = message.getContext();
+        msg_deadline = message.getDeadlineRelativeMillis();
         systemTimeSource = SystemTimeUtil.systemTimeSource;
         _version = ProtoPutMessageGroup.getPutVersion(message);
         if (_version == DHTConstants.unspecifiedVersion) {
@@ -238,14 +245,19 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
         return storageOperation.getOpResult();
     }
     
+    @Override
+    public void sendInitialResults(PutCommunicator pComm) {
+    	sendResults(pComm.takeResults());
+    }
+    
     /**
      * sendResults on initial operation startup
      */
     @Override
     protected void sendResults(List<PutResult> results) {
         // FUTURE - remove this method from ActiveOperation?
-        messageModule.sendPutResults(message, version, connection, results, StorageProtocolUtil.initialStorageStateOrdinal, 
-                message.getDeadlineRelativeMillis());
+        messageModule.sendPutResults(msg_uuid, msg_context, version, connection, results, StorageProtocolUtil.initialStorageStateOrdinal, 
+                msg_deadline);
     }    
     
     /////////////////////////////////////////

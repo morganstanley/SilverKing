@@ -26,6 +26,10 @@ public class PutCommunicator extends OpCommunicator<MessageGroupKeyEntry,PutResu
         replicaUpdateMessageLists = new HashMap<>(typicalReplication);
     }
     
+    public PutOperationContainer getPutOperationContainer() {
+    	return putOperationContainer;
+    }
+    
     public void sendResult(DHTKey key, OpResult result) {
         super.sendResult(new PutResult(key, result));
     }
