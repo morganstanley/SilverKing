@@ -54,15 +54,19 @@ public class FileWriteWithDelayTest {
 		// lib/* will work here, you don't have to list each jar one by one
 		String[] writer2Commands = ProcessExecutor.getSshCommandWithRedirectOutputFile(server2, "date; sleep " + delaySeconds + "; " + javaBin + " -cp " + skClasspath + " " + className + " " + f.getAbsolutePath() + " " + size + " " + rateLimit + " false; date; > /tmp/fwwd_w2.out");	// fwwd_w2.out exists, but is empty.. check ssh.out
 		ProcessExecutor.runCmdNoWait(writer2Commands);
-		System.out.println( ProcessExecutor.runCmd("date") );
+		printDate();
 		FileWriteWithDelay.main(new String[]{f.getAbsolutePath(), size+"", rateLimit+"", "true"});	// writer1
-		System.out.println( ProcessExecutor.runCmd("date") );
+		printDate();
 		Thread.sleep(5_000);	// wait/allow some time for writer2 to finish writing to the file
 		
 		// Strictly speaking, the result is undefined
 		// Practically speaking, I think that we will get what writer2 wrote unless there is something going on to slow down writer1's writes (rare, but something like an overloaded server)
 		byte writer2ByteValue = FileWriteWithDelay.buffer2byteValue;
 		checkContentsEquals(f, size, writer2ByteValue);
+	}
+	
+	private void printDate() {
+		System.out.println( ProcessExecutor.runCmd("date") );
 	}
 	
 	private void checkContentsEquals(File f, int size, byte expected) {
