@@ -100,8 +100,10 @@ function f_getPreviousLineNumber {
         # get the line number line
         previousLineNumber=`head -n $NUM_OF_META_DATA_LINES $previousRunDir/$filename | tail -n 1`
     else
-        previousLineNumber="previousLineNumberError: $filename"
+        previousLineNumber=-1
         f_logError "f_getPreviousLineNumber: $filename"
+        # printf -u2 "no previousLineNumber: $filename"         # not working # this way we can still get this to the screen/output, but not picked up in the return value by people who call this function
+        # echo "no previousLineNumber: $filename" /dev/stderr   # not working # since above isn't working: getting 'print: command not found'
     fi
       
     echo $previousLineNumber      
