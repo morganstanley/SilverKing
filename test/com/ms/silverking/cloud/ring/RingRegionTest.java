@@ -12,7 +12,7 @@ public class RingRegionTest {
 	private static final RingRegion twoTwo     = new RingRegion(2, 2);
 	private static final RingRegion fullRing   = new RingRegion(LongRingspaceTest.start, LongRingspaceTest.end);
 	private static final RingRegion endToStart = new RingRegion(LongRingspaceTest.end, LongRingspaceTest.start);
-	private static final RingRegion endToStartExpanded = new RingRegion(LongRingspaceTest.end+1, LongRingspaceTest.start+1);
+//	private static final RingRegion endToStartExpanded = new RingRegion(LongRingspaceTest.end+1, LongRingspaceTest.start+1);
 
 	@Test
 	public void testGetSize() {
@@ -134,8 +134,8 @@ public class RingRegionTest {
 			{zeroOne,            oneOne,             true},
 			{zeroOne,            twoTwo,             false},
 			{endToStart,         zeroZero,           false},
-			{endToStart,         endToStartExpanded, true},
-			{endToStartExpanded, endToStart,         true},
+//			{endToStart,         endToStartExpanded, true},
+//			{endToStartExpanded, endToStart,         true},
 		};
 			
 		for (Object[] testCase : testCases) {
