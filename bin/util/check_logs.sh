@@ -394,14 +394,15 @@ function f_sendText {
            RUN_DIR=$4
             RUN_ID=$5
 TMP_OUTPUT_RUN_DIR=$6
-              MUTT=$7
-            EMAILS=$8
-      FATAL_EMAILS=$9
-     PHONE_NUMBERS=${10}
+           SSH_CMD=$7
+              MUTT=$8
+            EMAILS=$9
+      FATAL_EMAILS=${10}
+     PHONE_NUMBERS=${11}
 
 typeset findErrorsScript=$PWD/find_log_errors.sh
 typeset fiveMinsInSecs=300
-typeset TIMEOUT_SSH="timeout $fiveMinsInSecs ssh"
+typeset TIMEOUT_SSH="timeout $fiveMinsInSecs $SSH_CMD"
 typeset   SK_SSH_CMD="$findErrorsScript   $SK_LOG_DIR"
 typeset SKFS_SSH_CMD="$findErrorsScript $SKFS_LOG_DIR"
 
