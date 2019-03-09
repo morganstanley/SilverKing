@@ -180,10 +180,30 @@ public class LongRingspaceTest {
 	}
 
 	@Test
+	public void testInRingspace() {
+		Object[][] testCases = {
+			{Long.MIN_VALUE, false},
+			{start,          true},
+			{-1L,            true},
+			{0L,             true},
+			{1L,             true},
+			{end,            true},
+			{Long.MAX_VALUE, false},
+		};
+			
+		for (Object[] testCase : testCases) {
+			long p           =    (long)testCase[0];
+			boolean expected = (boolean)testCase[1];
+
+			assertEquals(expected, LongRingspace.inRingspace(p));
+		}
+	}
+
+	@Test
 	public void testMapRegionPointToRingspace() {
 		Object[][] testCases = {
 //			{LongRingspace.globalRegion, start-1, end},
-			{LongRingspace.globalRegion, start,  start},
+//			{LongRingspace.globalRegion, start,  start},
 //			{LongRingspace.globalRegion, 0,  0},
 //			{LongRingspace.globalRegion, end,  end},
 //			{LongRingspace.globalRegion, end+1,  start},
