@@ -10,7 +10,7 @@ function f_createDummyDirIfItDoesntExist  {
 }
 
 function f_runRingIntegrityCheck {
-    ../RingIntegrityCheck.sh -g $GC_NAME > $RUN_OUTFILE
+    export GC_DEFAULT_BASE=$GC_DEFAULT_BASE_PATH; ../RingIntegrityCheck.sh -g $GC_NAME > $RUN_OUTFILE
 }
 
 function f_getNumberOfSegments {
@@ -129,11 +129,12 @@ function f_logDiffResult {
     f_logReportSection "$reportFile" "$sectionName" "$sectionFile"
 }
 
-   RUN_DIR=$1
-   GC_NAME=$2
-    RUN_ID=$3
-      MUTT=$4
-    EMAILS=$5
+             RUN_DIR=$1
+             GC_NAME=$2
+GC_DEFAULT_BASE_PATH=$3
+              RUN_ID=$4
+                MUTT=$5
+              EMAILS=$6
 
 typeset ALL_RUNS_OUTPUT_DIR=`dirname $RUN_DIR`
 typeset           DUMMY_DIR=$ALL_RUNS_OUTPUT_DIR/dummy
