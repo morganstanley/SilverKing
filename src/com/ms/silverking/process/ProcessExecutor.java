@@ -74,14 +74,12 @@ public class ProcessExecutor {
 		System.out.println( runCmd(new String[]{"/bin/sh", "-c", "ls -lR " + dirPath}) );
 	}
 
-	private static String runSumCmd(String cmd, File f) {
-		String absPath = f.getAbsolutePath() + separator;
-		System.out.println(absPath);
-		System.out.println( runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\;"}));
-		System.out.println( runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\; | sed s#"+absPath+"##"}));
-		String out =        runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\; | sed s#"+absPath+"## | sort "});
-		System.out.println(out);
-		return out;
+	// runs either cksum or md5sum on a directory
+	public static String runDirSumCmd(String cmd, File dir) {
+		String absPath = dir.getAbsolutePath() + separator;
+		String out = runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\; | sed s#"+absPath+"## | sort | " + cmd});
+//		System.out.println(out);
+		return out.trim();
 	}
 	
 	////////////
@@ -126,7 +124,7 @@ public class ProcessExecutor {
 		return runCmd(command.split(" "));
 	}
 
-	private static String runCmd(String[] commands) {
+	public static String runCmd(String[] commands) {
 		return runCmd(commands, true, true);
 	}
 	

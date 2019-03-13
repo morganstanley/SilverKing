@@ -17,6 +17,33 @@ import com.ms.silverking.testing.annotations.SkfsSmall;
 
 import static com.ms.silverking.fs.CrudTest.LoopType.*;
 
+/**
+ * - Each @Test needs to cleanup what they generate or else it could cause the next @Test to fail
+ * - If a @Test does actually fail, and the junit run reports multiple fails of @Tests, you want to look at the first fail first. The first fail could be causing the other fails. 
+ * 		e.g. if you have something like 2 fails reported below: 
+ * 				testCopy_Directory(com.ms.silverking.fs.CrudTest)
+					org.junit.ComparisonFailure: expected:<1617524310 67[]> but was:<1617524310 67[
+				]>
+        		at org.junit.Assert.assertEquals(Assert.java:115)
+        		
+        		and then have
+        		
+        		testRenameLoop_Directory(com.ms.silverking.fs.CrudTest)
+				java.lang.AssertionError: expected:<0> but was:<1>
+				        at org.junit.Assert.fail(Assert.java:88)
+				        at org.junit.Assert.failNotEquals(Assert.java:834)
+				        at org.junit.Assert.assertEquals(Assert.java:645)
+				        at org.junit.Assert.assertEquals(Assert.java:631)
+				        at com.ms.silverking.fs.CrudTest.checkDirIsEmpty(CrudTest.java:147)
+				        at com.ms.silverking.fs.CrudTest.rename_PreChecks_Directory(CrudTest.java:231)
+				        at com.ms.silverking.fs.CrudTest.testRename_Directory(CrudTest.java:225)
+				        at com.ms.silverking.fs.CrudTest.testLoop(CrudTest.java:310)
+				        at com.ms.silverking.fs.CrudTest.testRenameLoop_Directory(CrudTest.java:270)
+				        
+	        	the first fail testCopy_Directory() is causing the testRenameLoop_Directory() fail b/c since the method failed on the assert, it wasn't able to clean up, so then when the next test case ran it failed it's pre-checks.
+ * @author holstben
+ *
+ */
 @SkfsSmall
 public class CrudTest {
 
@@ -25,6 +52,8 @@ public class CrudTest {
 		RENAME_FILE,
 		DOUBLE_RENAME_DIR,
 		DOUBLE_RENAME_FILE,
+		COPY_DIR,
+		COPY_FILE,
 	}
 	
 	private static final int NUMBER_OF_TIMES_TO_RENAME = 400;
@@ -260,12 +289,12 @@ public class CrudTest {
 		checkDoesntExist(parentFileRename);
 	}
 	
-//	@Test
+	@Test
 	public void testRenameLoop_Directory() {
 		testLoop(RENAME_DIR);
 	}
 	
-//	@Test
+	@Test
 	public void testRenameLoop_File() {
 		testLoop(RENAME_FILE);
 	}
@@ -288,14 +317,54 @@ public class CrudTest {
 		rename_PostChecks_File(parentFile);
 	}
 	
-//	@Test
+	@Test
 	public void testDoubleRenameLoop_Directory() {
 		testLoop(DOUBLE_RENAME_DIR);
 	}
 	
-//	@Test
+	@Test
 	public void testDoubleRenameLoop_File() {
 		testLoop(DOUBLE_RENAME_FILE);
+	}
+	
+	@Test
+	public void testCopy_Directory() {
+//		printName("testCopy_Directory");
+//		printDirContents("before check", crudDir);
+		createAndCheckDir();
+		copyDirectories(testFilesDir, parentDir);
+		checkChecksumDir(parentDir, "1617524310 67");
+		checkMd5sumDir(  parentDir, "c61fd2d58a878faa10fca21a4313c355");
+		assertFalse(parentDir.delete());	// equivalent to rmdir, and "rmdir of a non-empty directory should return an error"
+		deleteRecursive(parentDir);
+	}
+	
+	@Test
+	public void testCopy_File() {
+//		printName("testCopy_File");
+		createAndCheckDir();
+		checkCopyAndRead(singleLine,   copy1, "this is a test file with one line",                                                                                         "3402096896 33", "ffbe0d65deeba5b3abe46b0369372336");
+		checkCopyAndRead(multipleLine, copy2, "this is a test file with multiple lines"+newline+"and I'm spanning"+newline+"multiple lines"+newline+"great"+newline+"EOF", "286419593 81",  "efee80a1e02ee54237b3484ab1657d50");
+		deleteAndCheckDir();
+	}
+	
+	private void checkCopyAndRead(File from, File to, String expectedContents, String expectedChecksum, String expectedMd5sum) {
+		checkCopy(from, to);
+		checkEquals(from, to);
+		TestUtil.checkRead(to, expectedContents);
+		checkChecksum(to, expectedChecksum);
+		checkMd5sum(  to, expectedMd5sum);
+		deleteAndCheck(to);
+	}
+	
+	@Test
+	public void testCopyLoop_Directory() {
+		testLoop(COPY_DIR);
+	}
+	
+	@Test
+	public void testCopyLoop_File() {
+		testLoop(COPY_FILE);
 	}
 	
 	private void testLoop(LoopType lt) {
@@ -311,41 +380,17 @@ public class CrudTest {
 					testDoubleRename_Directory();
 					break;
 				case DOUBLE_RENAME_FILE:	
-					testDoubleRenameLoop_File();
+					testDoubleRename_File();
+					break;
+				case COPY_DIR:	
+					testCopy_Directory();
+					break;
+				case COPY_FILE:	
+					testCopy_File();
 					break;
 				default:
 					throw new RuntimeException("unknown loop case: " + lt);
 			}
-	}
-	
-	@Test
-	public void testCopy_Directory() {
-//		printName("testCopy_Directory");
-//		printDirContents("before check", crudDir);
-		createAndCheckDir();
-		copyDirectories(testFilesDir, parentDir);
-//		checkChecksumDir(parentDir, "1617524310 67");
-//		checkMd5sumDir(  parentDir, "7b309302eed5b6d6d8da561e1e0826e5");
-		assertFalse(parentDir.delete());	// equivalent to rmdir, and "rmdir of a non-empty directory should return an error"
-		deleteRecursive(parentDir);
-	}
-
-	@Test
-	public void testCopy_File() {
-//		printName("testCopy_File");
-		createAndCheckDir();
-		checkCopyAndRead(singleLine,   copy1, "this is a test file with one line",                                                                     "3402096896 33", "ffbe0d65deeba5b3abe46b0369372336");
-		checkCopyAndRead(multipleLine, copy2, "this is a test file with multiple lines"+newline+"and I'm spanning"+newline+"multiple lines"+newline+"great"+newline+"EOF",  "286419593 81", "efee80a1e02ee54237b3484ab1657d50");
-		deleteAndCheckDir();
-	}
-	
-	private void checkCopyAndRead(File from, File to, String expectedContents, String expectedChecksum, String expectedMd5sum) {
-		checkCopy(from, to);
-		checkEquals(from, to);
-		TestUtil.checkRead(to, expectedContents);
-		checkChecksum(to, expectedChecksum);
-		checkMd5sum(  to, expectedMd5sum);
-		deleteAndCheck(to);
 	}
 	
 	public static void main(String[] args) {
