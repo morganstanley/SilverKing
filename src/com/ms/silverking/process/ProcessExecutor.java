@@ -83,7 +83,7 @@ public class ProcessExecutor {
 	}
 	
 	////////////
-	// useful for chained commands
+	// useful for chained commands: |, >, etc.
 	////////////
 	public static String runBashCmd(String commands) {
 		return runCmd( getBashCmd(commands) );

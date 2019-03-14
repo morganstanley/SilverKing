@@ -49,7 +49,7 @@ public class OpTimeoutStateTest {
 			int expected         =            (int)testCase[0];
 			OpTimeoutState state = (OpTimeoutState)testCase[1];
 			
-			assertEquals( getTestMessage("opHasTimedOut", state, "expected = " + expected), expected, state.getCurRelTimeoutMillis());
+			assertEquals( getTestMessage("opHasTimedOut", state), expected, state.getCurRelTimeoutMillis());
 		}
 	}
 	
@@ -97,7 +97,7 @@ public class OpTimeoutStateTest {
 	}
 	
 	private void checkOpHasTimedOut(boolean expected, OpTimeoutState state, long curTimeMillis) {
-		assertEquals( getTestMessage("opHasTimedOut", state, curTimeMillis, "expected = " + expected), expected, state.opHasTimedOut(curTimeMillis));
+		assertEquals( getTestMessage("opHasTimedOut", state, curTimeMillis), expected, state.opHasTimedOut(curTimeMillis));
 	}
 	
 	@Test
@@ -119,7 +119,7 @@ public class OpTimeoutStateTest {
 			long curTimeMillis   =           (long)testCase[1];
 			boolean expected     =        (boolean)testCase[2];
 
-			assertEquals( getTestMessage("attemptHasTimedOut", state, curTimeMillis, "expected = " + expected), expected, state.attemptHasTimedOut(curTimeMillis));
+			assertEquals( getTestMessage("attemptHasTimedOut", state, curTimeMillis), expected, state.attemptHasTimedOut(curTimeMillis));
 		}
 	}
 	
@@ -142,7 +142,7 @@ public class OpTimeoutStateTest {
 			long curTimeMillis   =           (long)testCase[1];
 			boolean expected     =        (boolean)testCase[2];
 
-			assertEquals( getTestMessage("retryOnExclusionChange", state, curTimeMillis, "expected = " + expected), expected, state.retryOnExclusionChange(curTimeMillis));
+			assertEquals( getTestMessage("retryOnExclusionChange", state, curTimeMillis), expected, state.retryOnExclusionChange(curTimeMillis));
 		}
 	}
 	
