@@ -84,6 +84,7 @@ public class LongRingspace {
     }
 	
 	public static long add(long p, long a) {
+        Preconditions.checkArgument(a >= 0);
 		long	r;
 		
 		r = p + a;
@@ -94,6 +95,7 @@ public class LongRingspace {
 	}
 	
 	public static long subtract(long p, long a) {
+        Preconditions.checkArgument(a >= 0);
 		long	r;
 		
 		r = p - a;
