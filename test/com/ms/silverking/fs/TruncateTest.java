@@ -39,17 +39,10 @@ public class TruncateTest {
 		server2     = Util.getServer2();
 	}
 
-	// FIXME:bph
 	@Test
-	public void FIXMEJustSoFileHasRunnableMethods() {
-		
-	}
-	
-	// FIXME:bph: /bin/cat: f1: Transport endpoint is not connected                                                                                                                                                 
-//	@Test
 	public void testTruncate() {
-		String fileName = "f1";
-		String cdToDir="cd " + truncateDir.getAbsolutePath();
+		String fileName = "file1.txt";
+		String cdToDir  = "cd " + truncateDir.getAbsolutePath();
 		
 		TestUtil.testExecutionWasGood( ProcessExecutor.bashExecutor(        cdToDir + "; /bin/echo 11111111111111111111111111111111111111 > " + fileName) );
 		TestUtil.testExecutionWasGood( ProcessExecutor.sshExecutor(server2, cdToDir + "; " + truncateBin + " 4 " + fileName) );
@@ -59,7 +52,7 @@ public class TruncateTest {
 	}
 	
 	private void testOutput() {
-		assertEquals("1111", pe.getOutput());
+		assertEquals("1111", pe.getOutput().trim());
 	}
 	
 	public static void main(String[] args) throws IOException {
