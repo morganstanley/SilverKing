@@ -171,7 +171,7 @@ public class RingTree {
 	        if (node == null) {
 	        	throw new RuntimeException("Unable to getNodeByID "+ ringParentName);
 	        }
-	        entryList = project(node, LongRingspace.globalRegion);
+	        entryList = project(node, RingRegion.allRingspace);
 	        for (RingEntry entry : entryList) {
 	            resolvedMap.addEntry(entry);
 	        }
@@ -525,7 +525,7 @@ public class RingTree {
         }
         projectedList = new ArrayList<>();
         for (RingEntry entry : entryList) {
-            projectedRegion = LongRingspace.mapChildRegionToParentRegion(LongRingspace.globalRegion, entry.getRegion(), parent);
+            projectedRegion = LongRingspace.mapChildRegionToParentRegion(RingRegion.allRingspace, entry.getRegion(), parent);
             projectedList.add(entry.replaceRegion(projectedRegion));
         }
         if (debug) {
