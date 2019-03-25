@@ -39,7 +39,7 @@ public class TruncateTest {
 		server2     = Util.getServer2();
 	}
 
-	@Test
+	@Test(timeout=60_000)
 	public void testTruncate() {
 		String fileName = "file1.txt";
 		String cdToDir  = "cd " + truncateDir.getAbsolutePath();
