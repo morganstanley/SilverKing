@@ -1,9 +1,12 @@
 package com.ms.silverking.cloud.ring;
 
 import static org.junit.Assert.assertEquals;
+import static com.ms.silverking.testing.Assert.exceptionNameChecker;
 import static com.ms.silverking.testing.Util.getTestMessage;
 
 import org.junit.Test;
+
+import com.ms.silverking.testing.Util.ExceptionChecker;
 
 public class LongRingspaceTest {
 
@@ -75,13 +78,27 @@ public class LongRingspaceTest {
 			assertEquals(getTestMessage("fractionToLong", f), expected, LongRingspace.fractionToLong(f));
 		}
 	}
+
+	@Test
+	public void testAddRingspace_Exceptions() {
+		long[][] testCases = {
+			{Long.MIN_VALUE,  1},
+			{-1,              0},
+			{0,              -1},
+		};
+		
+		for (long[] testCase : testCases) {
+			long a = testCase[0];
+			long b = testCase[1];
+			String testMessage = getTestMessage("addRingspace_Exceptions", a, b); 
+			ExceptionChecker ec = new ExceptionChecker() { @Override public void check(){ LongRingspace.addRingspace(a, b); } };
+			exceptionNameChecker(ec, testMessage, IllegalArgumentException.class);
+		}
+	}
 	 
 	@Test
 	public void testAddRingspace() {
 		long[][] testCases = {
-//			{Long.MIN_VALUE,  1, 1},	add these to exception test cases sometime, not spending the time right now to do that
-//			{-1,              0, 1},
-//			{0,               -1},
 			{0,                           0,     0},
 			{1,                           0,     1},
 			{0,                           1,     1},
@@ -101,11 +118,20 @@ public class LongRingspaceTest {
 			assertEquals(getTestMessage("addRingspace", a, b), expected, LongRingspace.addRingspace(a, b));
 		}
 	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testAdd_Exceptions() {
+		LongRingspace.add(start, -1);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testSubtract_Exceptions() {
+		LongRingspace.subtract(start-1, -1);
+	}
 	 
 	@Test
 	public void testAddAndSubtract() {
 		long[][] testCases = {
-			{start,  -1, start-1},	// should this be possible?
 			{start, end,      -1},
 			{0,       0,       0},
 			{0,       1,       1},
@@ -203,11 +229,11 @@ public class LongRingspaceTest {
 	@Test
 	public void testMapRegionPointToRingspace() {
 		Object[][] testCases = {
-//			{LongRingspace.globalRegion, start-1, end},
-//			{LongRingspace.globalRegion, start,  start},
-//			{LongRingspace.globalRegion, 0,  0},
-//			{LongRingspace.globalRegion, end,  end},
-//			{LongRingspace.globalRegion, end+1,  start},
+//			{RingRegion.allRingspace, start-1, start-1}, // start-1, end?
+//			{RingRegion.allRingspace, start,   start},
+//			{RingRegion.allRingspace, 0L,      0L},
+//			{RingRegion.allRingspace, end,     end},
+//			{RingRegion.allRingspace, end+1,   end+1},	// end+1, start?
 			// add a smaller region like 1-1000, and 
 		};
 			
