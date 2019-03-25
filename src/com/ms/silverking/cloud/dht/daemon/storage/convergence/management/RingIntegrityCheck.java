@@ -163,7 +163,7 @@ public class RingIntegrityCheck {
 			System.out.println("REPLICA SET DETAILS:\n---------------");
 			printSet("Original", originalReplicaSetCounts);
 			printSet("Current",   currentReplicaSetCounts);
-			printSet("Excluded", excludedReplicaSetCounts);
+			printSet("Excluded", excludedReplicaSetCounts, "excluded");
 			
 			System.out.println("Excluded sets: " + setsExcluded);
 			for (Set<IPAndPort> s : excludedSets)
@@ -173,9 +173,13 @@ public class RingIntegrityCheck {
 	}
 	
 	private void printSet(String setName, Map<Integer, Integer> counts) {
+		printSet(setName, counts, "replicas");
+	}
+	
+	private void printSet(String setName, Map<Integer, Integer> counts, String description) {
 		System.out.println(setName + " set sizes:");
 		for (Map.Entry<Integer, Integer> entry : counts.entrySet())
-			System.out.printf("\t%6d sets have %d replicas\n", entry.getValue(), entry.getKey());
+			System.out.printf("\t%6d sets have %d %s\n", entry.getValue(), entry.getKey(), description);
 	}
 	
 	private Map<IPAndPort,Long> getAllocationMap(ResolvedReplicaMap map) {
