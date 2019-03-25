@@ -19,20 +19,42 @@ public class RingRegionTest {
 	private static final RingRegion zeroOne            = new RingRegion(0, 1);
 	private static final RingRegion oneOne             = new RingRegion(1, 1);
 	private static final RingRegion twoTwo             = new RingRegion(2, 2);
-	private static final RingRegion startToEnd         = new RingRegion(LongRingspaceTest.start, LongRingspaceTest.end);
-	private static final RingRegion endToStart         = new RingRegion(LongRingspaceTest.end, LongRingspaceTest.start);
-	private static final RingRegion startStart         = new RingRegion(LongRingspaceTest.start, LongRingspaceTest.start);
-	private static final RingRegion endEnd             = new RingRegion(LongRingspaceTest.end, LongRingspaceTest.end);
+	private static final RingRegion startToEnd         = new RingRegion(LongRingspaceTest.start,   LongRingspaceTest.end);
+	private static final RingRegion endToStart         = new RingRegion(LongRingspaceTest.end,     LongRingspaceTest.start);
+	private static final RingRegion startStart         = new RingRegion(LongRingspaceTest.start,   LongRingspaceTest.start);
+	private static final RingRegion endEnd             = new RingRegion(LongRingspaceTest.end,     LongRingspaceTest.end);
 	private static final RingRegion startToEndShrunk   = new RingRegion(LongRingspaceTest.start+1, LongRingspaceTest.end-1);
-	private static final RingRegion endToStartExpanded = new RingRegion(LongRingspaceTest.end-1, LongRingspaceTest.start+1);
+	private static final RingRegion endToStartExpanded = new RingRegion(LongRingspaceTest.end-1,   LongRingspaceTest.start+1);
+	private static final RingRegion startToEndRotated  = new RingRegion(2, 1);
+
+	@Test
+	public void testStart_and_End() {
+		Object[][] testCases = {
+			{zeroZero,   0L, 0L},
+			{zeroOne,    0L, 1L},
+			{startToEnd,        LongRingspaceTest.start, LongRingspaceTest.end},
+			{startToEndRotated, LongRingspaceTest.start, LongRingspaceTest.end},
+			{endToStart,        LongRingspaceTest.end,   LongRingspaceTest.start},
+		};
+			
+		for (Object[] testCase : testCases) {
+			RingRegion region  = (RingRegion)testCase[0];
+			long expectedStart =       (long)testCase[1];
+			long expectedEnd   =       (long)testCase[2];
+
+			assertEquals(getTestMessage("testStart", region), expectedStart, region.getStart());
+			assertEquals(getTestMessage("testEnd",   region), expectedEnd,   region.getEnd());
+		}
+	}
 
 	@Test
 	public void testGetSize() {
 		Object[][] testCases = {
-			{zeroZero,                       1L},
-			{zeroOne,                        2L},
-			{startToEnd, LongRingspaceTest.size},
-			{endToStart,                     2L},	// is 2 right?
+			{zeroZero,                              1L},
+			{zeroOne,                               2L},
+			{startToEnd,        LongRingspaceTest.size},
+			{endToStart,                            2L},
+			{startToEndRotated, LongRingspaceTest.size},
 		};
 			
 		for (Object[] testCase : testCases) {
@@ -56,6 +78,8 @@ public class RingRegionTest {
 			{zeroOne,  -1L, -1L, false, false},
 			{zeroOne,  -1L,  0L, false, true},	// ??
 			{zeroOne,   0L, -1L, true,  false},	// ??
+			{endToStart,         LongRingspaceTest.end,   LongRingspaceTest.start,  true,  false},
+			{endToStartExpanded, LongRingspaceTest.start, LongRingspaceTest.end,   false,   true},
 		};
 			
 		for (Object[] testCase : testCases) {
@@ -209,8 +233,8 @@ public class RingRegionTest {
 			{startToEnd, LongRingspaceTest.end+1,   false},
 			{endToStart, LongRingspaceTest.end-1,   false},
 			{endToStart, LongRingspaceTest.end,     true},
-			{endToStart, LongRingspaceTest.end+1,   true},// ??
-			{endToStart, LongRingspaceTest.start-1, true},// ??
+			{endToStart, LongRingspaceTest.end+1,   true},// FIXME:bph: should be false
+			{endToStart, LongRingspaceTest.start-1, true},// FIXME:bph: should be false
 			{endToStart, LongRingspaceTest.start,   true},
 			{endToStart, LongRingspaceTest.start+1, false},
 		};
