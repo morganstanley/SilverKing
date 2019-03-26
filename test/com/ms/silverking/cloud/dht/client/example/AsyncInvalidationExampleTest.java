@@ -8,15 +8,15 @@ import com.ms.silverking.testing.Util;
 import com.ms.silverking.testing.annotations.SkLarge;
 
 @SkLarge
-public class AsyncWaitForCompletionTest {
+public class AsyncInvalidationExampleTest {
 
 	@Test
-	public void testWaitForCompletion() throws IOException {
-		TestUtil.checkValueIs("awfc.value.1", AsyncWaitForCompletion.runExample( Util.getTestGridConfig() ));
+	public void testInvalidation() throws IOException {
+		TestUtil.checkValueIs(null, AsyncInvalidationExample.runExample( Util.getTestGridConfig() ));
 	}
 	
 	public static void main(String[] args) {
-		Util.runTests(AsyncWaitForCompletionTest.class);
+		Util.runTests(AsyncInvalidationExampleTest.class);
 	}
 
 }
