@@ -1,16 +1,24 @@
 package com.ms.silverking.cloud.dht;
 
-import static com.ms.silverking.cloud.dht.NamespaceCreationOptions.Mode.*;
-import static org.junit.Assert.*;
-
-import static com.ms.silverking.testing.Util.*;
+import static com.ms.silverking.cloud.dht.NamespaceCreationOptions.Mode.OptionalAutoCreation_AllowMatches;
+import static com.ms.silverking.cloud.dht.NamespaceCreationOptions.Mode.OptionalAutoCreation_DisallowMatches;
+import static com.ms.silverking.cloud.dht.NamespaceCreationOptions.Mode.RequireAutoCreation;
+import static com.ms.silverking.cloud.dht.NamespaceCreationOptions.Mode.RequireExplicitCreation;
+import static com.ms.silverking.testing.Util.getTestMessage;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions.Mode;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 
 public class NamespaceCreationOptionsTest {
 
+	private static final NamespaceCreationOptions defaultOptions           = NamespaceCreationOptions.defaultOptions;
+	private static final NamespaceCreationOptions defaultOptionsCopy       = new NamespaceCreationOptions(Mode.OptionalAutoCreation_AllowMatches,    "^_.*", DHTConstants.defaultNamespaceOptions);
+	private static final NamespaceCreationOptions defaultOptionsAlmostCopy = new NamespaceCreationOptions(Mode.OptionalAutoCreation_AllowMatches,    "^_.*", null);
+	private static final NamespaceCreationOptions defaultOptionsDiff       = new NamespaceCreationOptions(Mode.OptionalAutoCreation_DisallowMatches, "",     DHTConstants.defaultNamespaceOptions);
+	
 	@Test
 	public void testCanBeExplicitlyCreated() {
 		Object[][] testCases = {
@@ -54,6 +62,23 @@ public class NamespaceCreationOptionsTest {
 	
 	private NamespaceCreationOptions createOptions(Mode m, String regex, NamespaceOptions options) {
 		return new NamespaceCreationOptions(m, regex, options);
+	}
+
+//	@Test
+	public void testToStringAndParse() {
+		NamespaceCreationOptions[] testCases = {
+//			defaultOptions,
+//			defaultOptionsCopy,
+//			defaultOptionsAlmostCopy,
+//			defaultOptionsDiff,
+		};
+		
+		for (NamespaceCreationOptions testCase : testCases)
+			checkStringAndParse(testCase);
+	}
+	
+	private void checkStringAndParse(NamespaceCreationOptions options) {
+		assertEquals(options, NamespaceCreationOptions.parse( options.toString() ));
 	}
 
 }
