@@ -551,6 +551,9 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
     	return curMapState.getCurrentExclusionSet();
     }    
     
+    public RingHealth getRingHealth() {
+    	return curMapState.getRingHealth();
+    }    
     ///////////////////////////////////////////////////////////////////////////
     
     private String getRingNameFromCP(ConvergencePoint cp) throws KeeperException {
