@@ -253,21 +253,27 @@ public class FileSegmentRecoverer {
     
     public static void main(String[] args) {
         try {
-            if (args.length < 2 || args.length > 3) {
-                System.out.println("args: <nsDir> <segmentNumber> [maxSegmentNumber]");
+            if (args.length < 2 || args.length > 4) {
+                System.out.println("args: <nsDir> <segmentNumber> [maxSegmentNumber] [persist]");
                 return;
             } else {
                 FileSegmentRecoverer   segmentReader;
                 File            nsDir;
                 int             minSegmentNumber;
                 int             maxSegmentNumber;
+                boolean			persist;
                 
                 nsDir = new File(args[0]);
                 minSegmentNumber = Integer.parseInt(args[1]);
-                if (args.length == 3) {
+                if (args.length >= 3) {
                     maxSegmentNumber = Integer.parseInt(args[2]);
                 } else {
                 	maxSegmentNumber = minSegmentNumber;
+                }
+                if (args.length >= 4) {
+                	persist = Boolean.parseBoolean(args[3]);
+                } else {
+                	persist = false;
                 }
                 segmentReader = new FileSegmentRecoverer(nsDir);
                 FileSegment	segment;
@@ -279,7 +285,9 @@ public class FileSegmentRecoverer {
 	                	e.printStackTrace();
 	                	System.out.printf("Exception reading full segment. Reading partial.\n");
 	                    segment = segmentReader.readPartialSegment(segmentNumber, true);
-	                    //segment.persist();
+	                    if (persist) {
+	                    	segment.persist();
+	                    }
 	                }
                 }
             }
