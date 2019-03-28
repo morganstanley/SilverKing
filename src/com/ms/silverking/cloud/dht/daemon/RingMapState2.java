@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
@@ -19,12 +20,15 @@ import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingID;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingIDAndVersionPair;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingState;
 import com.ms.silverking.cloud.dht.meta.DHTMetaUpdate;
+import com.ms.silverking.cloud.dht.meta.RingHealthZK;
 import com.ms.silverking.cloud.dht.net.SecondaryTargetSerializer;
 import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.cloud.meta.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.meta.ExclusionZK;
 import com.ms.silverking.cloud.meta.MetaClient;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
+import com.ms.silverking.cloud.meta.ValueListener;
+import com.ms.silverking.cloud.meta.ValueWatcher;
 import com.ms.silverking.cloud.meta.VersionListener;
 import com.ms.silverking.cloud.meta.VersionWatcher;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicyGroup;
@@ -35,6 +39,7 @@ import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingTree;
 import com.ms.silverking.cloud.toporing.RingTreeBuilder;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
@@ -46,10 +51,12 @@ public class RingMapState2 {
     private final IPAndPort       nodeID;
     private final long            dhtConfigVersion;
     private final RingIDAndVersionPair  ringIDAndVersionPair;
+    private final Triple<String,Long,Long>	ringNameAndVersionPair;
     private final InstantiatedRingTree        rawRingTree;
     private RingTree              ringTreeMinusExclusions;
     private ResolvedReplicaMap    resolvedReplicaMapMinusExclusions;
     private final ExclusionWatcher  exclusionWatcher;
+    private final HealthWatcher		healthWatcher;
     private final ConvergencePoint  cp;
     private volatile ExclusionSet   curInstanceExclusionSet;
     private volatile ExclusionSet   curExclusionSet;
@@ -82,6 +89,7 @@ public class RingMapState2 {
     
     private static final int    exclusionCheckInitialIntervalMillis = 0;    
     private static final int    exclusionCheckIntervalMillis = 1 * 60 * 1000;
+    private static final int    ringHealthCheckIntervalMillis = 20 * 1000;
     
     private static final boolean    verboseStateTransition = true;
     static final boolean    debug = true;
@@ -109,6 +117,7 @@ public class RingMapState2 {
         ringConfig = dhtMetaUpdate.getNamedRingConfiguration().getRingConfiguration();
         this.rawRingTree = dhtMetaUpdate.getRingTree();
         this.ringIDAndVersionPair = new RingIDAndVersionPair(ringID, rawRingTree.getRingVersionPair());
+        ringNameAndVersionPair = Triple.of(dhtMetaUpdate.getDHTConfig().getRingName(), rawRingTree.getRingVersionPair());
         this.dhtMC = dhtMC;
         
         curInstanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
@@ -133,6 +142,11 @@ public class RingMapState2 {
         } catch (Exception e) {
             throw new RuntimeException("Exception creating ExclusionWatcher", e);
         }        
+        try {
+        	healthWatcher = new HealthWatcher(dhtMC);
+	    } catch (Exception e) {
+	        throw new RuntimeException("Exception creating ExclusionWatcher", e);
+	    }        
     }
     
     private void readInitialExclusions(MetaClient mc) throws KeeperException {
@@ -310,6 +324,42 @@ public class RingMapState2 {
     
     ExclusionSet getCurrentExclusionSet() {
     	return ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+    }
+    
+    RingHealth getRingHealth() {
+    	return healthWatcher.getRingHealth();
+    }
+    
+    class HealthWatcher implements ValueListener {
+    	private final ValueWatcher	valueWatcher;
+    	private RingHealth	ringHealth;
+    	
+    	HealthWatcher(com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) throws KeeperException {
+    		RingHealthZK	ringHealthZK;
+    		
+    		ringHealthZK = new RingHealthZK(dhtMC, ringNameAndVersionPair);
+    		valueWatcher = new ValueWatcher(dhtMC, ringHealthZK.getRingInstanceHealthPath(), this, ringHealthCheckIntervalMillis);
+    	}
+    	
+        public void stop() { // FIXME - ensure that this is used
+            valueWatcher.stop();
+        }
+        
+    	RingHealth getRingHealth() {
+			Log.warningf("Getting ring health %s", ringHealth);
+    		return ringHealth;
+    	}
+    	
+		@Override
+		public void newValue(String basePath, byte[] value, Stat stat) {
+			RingHealth	_ringHealth;
+			
+			_ringHealth = RingHealth.valueOf(new String(value));
+			if (_ringHealth != null) {
+				Log.warningf("New ring health %s", ringHealth);
+				ringHealth = _ringHealth;
+			}
+		}
     }
     
     class ExclusionWatcher implements VersionListener {
