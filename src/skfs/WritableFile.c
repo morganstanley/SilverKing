@@ -143,7 +143,8 @@ void wf_sanityCheckNumBlocks(WritableFile *wf, char *file, int line) {
 }
 
 WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
-                     AttrWriter *aw, FileAttr *fa, PartialBlockReader *pbr) {
+                     AttrWriter *aw, FileAttr *fa, PartialBlockReader *pbr,
+                     int *retryFlag) {
 	WritableFile	*wf;
     struct timespec tp;
 	struct fuse_context	*fuseContext;	
@@ -190,6 +191,11 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
         wf->numBlocks = wf->fa.stat.st_size / SRFS_BLOCK_SIZE + 1;
         
         if (wf_init_cur_block(wf, pbr) != 0) {
+            // wf_init_cur_block can currently fail if we're given an old file attribute
+            // Work around this
+            if (retryFlag != NULL) {
+                *retryFlag = TRUE;
+            }
             return NULL; // FIXME - FREE RESOURCES...
         }
         wf->blockList = abl_new(WF_INITIAL_BLOCK_SIZE, WF_MAX_BLOCK_SIZE, WF_BLOCK_INCREMENT, TRUE);

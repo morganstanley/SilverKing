@@ -75,7 +75,7 @@ static HashTableAndLock *wft_get_htl(WritableFileTable *wft, const char *path) {
 }
 
 WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *name, mode_t mode, 
-                                      FileAttr *fa, PartialBlockReader *pbr) {
+                                      FileAttr *fa, PartialBlockReader *pbr, int *retryFlag) {
 	HashTableAndLock	*htl;
 	WritableFile		*existingWF;
     WritableFileReference    *wf_userRef;
@@ -93,7 +93,7 @@ WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *n
         // wf_new can issue remove ops; we must drop the wft lock 
         // to avoid blocking wft access while the op proceeds
         pthread_rwlock_unlock(&htl->rwLock);
-		createdWF = wf_new(name, mode, htl, wft->aw, fa, pbr);
+		createdWF = wf_new(name, mode, htl, wft->aw, fa, pbr, retryFlag);
         if (createdWF == NULL) {
             // creation failed; no lock held; exit
             return NULL;

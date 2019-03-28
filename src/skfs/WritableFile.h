@@ -66,7 +66,7 @@ typedef struct WritableFile {
 // public prototypes
 
 WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl, AttrWriter *aw, 
-                     FileAttr *fa = NULL, PartialBlockReader *pbr = NULL);
+                     FileAttr *fa = NULL, PartialBlockReader *pbr = NULL, int *retryFlag = NULL);
 void wf_delete(WritableFile **wf);
 void wf_set_parent_dir(WritableFile *, OpenDir *parentDir, uint64_t parentDirUpdateTimeMillis);
 WritableFileReference *wf_add_reference(WritableFile *wf, char *file, int line);

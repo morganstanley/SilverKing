@@ -50,6 +50,7 @@
 #include "ResponseTimeStats.h"
 #include "skfs.h"
 #include "SKFSOpenFile.h"
+#include "SKHealthMonitor.h"
 #include "SRFSConstants.h"
 #include "SRFSDHT.h"
 #include "Util.h"
@@ -155,6 +156,7 @@
 #define _DEFAULT_NATIVE_FILE_MODE nf_readRelay_localPreread
 #define _PREREAD_SIZE 1
 
+#define _MAX_FILE_CREATION_ATTEMPTS 4
 
 ///////////////////////
 // private prototypes
@@ -249,6 +251,7 @@ static AttrWriter	*awSKFS;
 static FileBlockWriter	*fbwCompress;
 static FileBlockWriter	*fbwRaw;
 static FileBlockWriter	*fbwSKFS;
+static SKHealthMonitor  *skHealthMonitor;
 static SRFSDHT	*sd;
 static ResponseTimeStats	*rtsAR_DHT;
 static ResponseTimeStats	*rtsAR_NFS;
@@ -713,6 +716,10 @@ static int skfs_chmod(const char *path, mode_t mode
 #endif
 ) {
 	srfsLogAsync(LOG_OPS, "_cm %s %x", path, mode);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to chmod %s", path);
+        return -EROFS;
+    }
     return modify_file_attr(path, "chmod", &mode, NULL, NULL);
 }
 
@@ -722,6 +729,10 @@ static int skfs_chown(const char *path, uid_t uid, gid_t gid
 #endif
 ) {
 	srfsLogAsync(LOG_OPS, "_co %s %d %d", path, uid, gid);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to chown %s", path);
+        return -EROFS;
+    }
     return modify_file_attr(path, "chown", NULL, &uid, &gid);
 }
 
@@ -736,6 +747,10 @@ static int skfs_truncate(const char *path, off_t size
     int rc;
     
 	srfsLogAsync(LOG_OPS, "_t %s %lu", path, size);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to truncate %s", path);
+        return -EROFS;
+    }
     wf_ref = wft_get(wft, path);
 	if (wf_ref != NULL) { // file is currently open; we're good
         openedForTruncation = FALSE;
@@ -790,6 +805,10 @@ static int skfs_utimens(const char *path, const struct timespec ts[2]
     struct timespec last_change_tp;
     
 	srfsLogAsync(LOG_OPS, "_ut %s", path);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to utimens %s", path);
+        return -EROFS;
+    }
     // get time outside of the critical section
     if (clock_gettime(CLOCK_REALTIME, &last_change_tp)) {
         fatalError("clock_gettime failed", __FILE__, __LINE__);
@@ -970,11 +989,19 @@ static int skfs_releasedir(const char* path, struct fuse_file_info *fi) {
 
 static int skfs_mkdir(const char *path, mode_t mode) {
 	srfsLogAsync(LOG_OPS, "_mkd %s", path);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to mkdir %s", path);
+        return -EROFS;
+    }
 	return odt_mkdir(odt, (char *)path, mode);
 }
 
 static int skfs_rmdir(const char *path) {
 	srfsLogAsync(LOG_OPS, "_rmd %s", path);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to rmdir %s", path);
+        return -EROFS;
+    }
 	return odt_rmdir(odt, (char *)path);
 }
 
@@ -989,6 +1016,10 @@ static int skfs_rename(const char *oldpath, const char *newpath
 #endif
 ) {
 	srfsLogAsync(LOG_OPS, "_rn %s %s", oldpath, newpath);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to rename %s", oldpath);
+        return -EROFS;
+    }
 	if (!is_writable_path(oldpath) || !is_writable_path(newpath)) {
 		return -EIO;
     } else {    
@@ -1363,6 +1394,10 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
             OpenDir *parentDir;
             uint64_t    parentDirUpdateTimeMillis;
             
+            if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+                srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to open %s", path);
+                return -EROFS;
+            }
             if (direct_io_enabled) {
                 fi->direct_io = 1;
             }
@@ -1408,49 +1443,77 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                 } else {
                     FileAttr	fa;
                     int statResult;
+                    int attempt;
+                    int complete;
 
                     // O_TRUNC *not* specified; we need to keep the old data blocks
                     
-                    // Check to see if file exists...
-                    memset(&fa, 0, sizeof(FileAttr));
-                    statResult = ar_get_attr(ar, (char *)path, &fa);
-                    if (statResult != 0 && statResult != ENOENT) {
-                        // Error checking for existing attr => fail
-                        srfsLog(LOG_ERROR, "statResult %d caused EIO from %s %d", statResult, __FILE__, __LINE__);
-                        sof_delete(&sof);
-                        return -EIO;
-                    } else {
-                        if (statResult != ENOENT) {
-                            // File exists
-                            if (((fi->flags & O_CREAT) != 0) && ((fi->flags & O_EXCL) != 0)) {
-                                // Exclusive creation requested, but file already exists => fail
-                                sof_delete(&sof);
-                                return -EEXIST;
+                    attempt = 0;
+                    complete = TRUE;
+                    do {
+                        uint64_t    minModificationTimeMicros;
+                        
+                        // Check to see if file exists...
+                        memset(&fa, 0, sizeof(FileAttr));
+                        if (complete) {
+                            // This is an initial attempt
+                            // (Initial attempt has completion flag set)
+                            minModificationTimeMicros = 0;
+                        } else {
+                            // This is a retry. Work around the cached old attribute bug
+                            minModificationTimeMicros = curTimeMicros();
+                            complete = TRUE; // reset so that we exit unless we hit the bug again
+                        }
+                        statResult = ar_get_attr(ar, (char *)path, &fa, minModificationTimeMicros);
+                        if (statResult != 0 && statResult != ENOENT) {
+                            // Error checking for existing attr => fail
+                            srfsLog(LOG_ERROR, "statResult %d caused EIO from %s %d", statResult, __FILE__, __LINE__);
+                            sof_delete(&sof);
+                            return -EIO;
+                        } else {
+                            if (statResult != ENOENT) {
+                                // File exists
+                                if (((fi->flags & O_CREAT) != 0) && ((fi->flags & O_EXCL) != 0)) {
+                                    // Exclusive creation requested, but file already exists => fail
+                                    sof_delete(&sof);
+                                    return -EEXIST;
+                                } else {
+                                    WritableFileReference    *wf_ref;
+                                    int retryFlag;
+                                    
+                                    retryFlag = FALSE;
+                                    wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666, &fa, pbr, &retryFlag);
+                                    if (!retryFlag) {
+                                        if (wf_ref != NULL) {
+                                            result = skfs_associate_new_file(path, fi, wf_ref);
+                                        } else {
+                                            sof_delete(&sof);
+                                            return -EIO;
+                                        }
+                                    } else {
+                                        if (wf_ref != NULL) {
+                                            fatalError("wf_ref != NULL", __FILE__, __LINE__);
+                                        }
+                                        // Trigger a retry. The retry will get a fresh file attribute
+                                        complete = FALSE;
+                                        srfsLog(LOG_WARNING, "File creation retry triggered %s", path);
+                                    }
+                                }
                             } else {
                                 WritableFileReference    *wf_ref;
                                 
-                                wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666, &fa, pbr);
+                                // File does not exist; create new file
+                                wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666);
                                 if (wf_ref != NULL) {
                                     result = skfs_associate_new_file(path, fi, wf_ref);
                                 } else {
+                                    srfsLog(LOG_ERROR, "EIO from %s %d", __FILE__, __LINE__);
                                     sof_delete(&sof);
                                     return -EIO;
                                 }
                             }
-                        } else {
-                            WritableFileReference    *wf_ref;
-                            
-                            // File does not exist; create new file
-                            wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666);
-                            if (wf_ref != NULL) {
-                                result = skfs_associate_new_file(path, fi, wf_ref);
-                            } else {
-                                srfsLog(LOG_ERROR, "EIO from %s %d", __FILE__, __LINE__);
-                                sof_delete(&sof);
-                                return -EIO;
-                            }
                         }
-                    }
+                    } while (!complete && attempt++ < _MAX_FILE_CREATION_ATTEMPTS);
                 }
             } else {
                 // wf already exists in wft...(file is currently being written on this node)
@@ -1488,6 +1551,10 @@ static int skfs_mknod(const char *path, mode_t mode, dev_t rdev) {
 	
     parentDirUpdateTimeMillis = 0; // ignore parent update time for mknod; open will set this correctly
     srfsLogAsync(LOG_OPS, "_mn %s %x %x", path, mode, rdev);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to mknod %s", path);
+        return -EROFS;
+    }
 	wf_ref = wft_create_new_file(wft, path, mode);
 	if (wf_ref != NULL) {
         OpenDir *parentDir;
@@ -1516,6 +1583,10 @@ static int _skfs_unlink(const char *path, int deleteBlocks) {
 
 static int skfs_unlink(const char *path) {
 	srfsLogAsync(LOG_OPS, "_ul %s", path);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to unlink %s", path);
+        return -EROFS;
+    }
     // FUTURE - below is best-effort. enforce
     if (wft_contains(wft, path)) {
         srfsLog(LOG_ERROR, "Can't unlink writable file");
@@ -1668,6 +1739,10 @@ int skfs_write(const char *path, const char *src, size_t writeSize, off_t writeO
     size_t  totalBytesWritten;
     
 	srfsLogAsync(LOG_OPS, "_w %s %d %ld", path, writeSize, writeOffset);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to write %s", path);
+        return -EROFS;
+    }
 	wf = wf_fuse_fi_fh_to_wf(fi);
 	if (wf == NULL) {
 		srfsLog(LOG_ERROR, "skfs_write. No valid fi->fh found for %s", path);			
@@ -1759,6 +1834,7 @@ static void init_util_sk() {
     systemNS = pUtilSession->getNamespace(SK_SYSTEM_NS);
     nspOptions = systemNS->getDefaultNSPOptions();
     systemNSP = systemNS->openSyncPerspective(nspOptions);
+    skHealthMonitor = shm_new(systemNSP);
     delete systemNS;
 }
 
@@ -1812,6 +1888,10 @@ static int skfs_statfs(const char *path, struct statvfs *s) {
 
 static int skfs_symlink(const char* to, const char* from) {
 	srfsLogAsync(LOG_OPS, "_sl %s %s", to, from);
+    if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to symlink %s", to);
+        return -EROFS;
+    }
 	if (!is_writable_path(from)) {
 		return -EIO;
 	} else {
