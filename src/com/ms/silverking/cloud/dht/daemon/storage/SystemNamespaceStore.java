@@ -18,6 +18,7 @@ import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeInfo;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
+import com.ms.silverking.cloud.dht.daemon.RingHealth;
 import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.meta.ExclusionSet;
@@ -29,7 +30,7 @@ import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.time.SystemTimeSource;
 
 /**
- * Provides information regarding the local DHT Node
+ * Provides information regarding the dht system as a whole
  */
 class SystemNamespaceStore extends DynamicNamespaceStore {
 	private final NodeInfoZK			nodeInfoZK;
@@ -41,6 +42,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     private final DHTKey                allReplicasFreeDiskBytesKey;
     private final DHTKey                allReplicasFreeSystemDiskBytesEstimateKey;
     private final DHTKey                exclusionSetKey;
+    private final DHTKey                ringHealthKey;
     private final Set<DHTKey>			knownKeys;
     
     private Map<IPAndPort,NodeInfo>	cachedAllNodeInfo;
@@ -67,6 +69,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         allReplicasFreeDiskBytesKey = keyCreator.createKey("allReplicasFreeDiskBytes");
         allReplicasFreeSystemDiskBytesEstimateKey = keyCreator.createKey("allReplicasFreeSystemDiskBytesEstimate");
         exclusionSetKey = keyCreator.createKey("exclusionSet");
+        ringHealthKey = keyCreator.createKey("ringHealth");
         knownKeys = new HashSet<>();
         knownKeys.add(totalDiskBytesKey);
         knownKeys.add(usedDiskBytesKey);
@@ -75,6 +78,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         knownKeys.add(allReplicasFreeDiskBytesKey);
         knownKeys.add(allReplicasFreeSystemDiskBytesEstimateKey);
         knownKeys.add(exclusionSetKey);
+        knownKeys.add(ringHealthKey);
     }
         
     /*
@@ -200,6 +204,17 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     	}
     }
     
+    private byte[] getRingHealth() {
+    	RingHealth	ringHealth;
+    	
+    	ringHealth = ringMaster.getRingHealth();
+    	if (ringHealth != null) {
+    		return ringHealth.toString().getBytes();
+    	} else {
+    		return null;
+    	}
+    }
+    
     public byte[] pairedResultsToBytes(List<Pair<IPAndPort,Long>> results) {
     	StringBuffer	sBuf;
     	
@@ -253,6 +268,8 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
 	            	return getAllReplicasFreeSystemDiskBytesEstimate();
 	            } else if (key.equals(exclusionSetKey)) {
 	            	return getExclusionSet();
+	            } else if (key.equals(ringHealthKey)) {
+	            	return getRingHealth();
 	            } else {
 	            	throw new RuntimeException("panic");
 	            }
