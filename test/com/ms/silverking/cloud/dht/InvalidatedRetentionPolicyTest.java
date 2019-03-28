@@ -11,6 +11,8 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.common.DHTKey;
+
 public class InvalidatedRetentionPolicyTest {
 
 	private static final int irisCopy = 0;
@@ -23,13 +25,25 @@ public class InvalidatedRetentionPolicyTest {
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{SingleReverseSegmentWalk, getImplementationType(defaultPolicy)},
-			{SingleReverseSegmentWalk, getImplementationType(defaultPolicyDiff)},
+			{SingleReverseSegmentWalk,        getImplementationType(defaultPolicy)},
+//			{new InvalidatedRetentionState(), getInitialState(defaultPolicy)},	// FIXME:bph: currently no equals on InvalidatedRetentionState so this will assert !equal
 		};
 		
 		test_Getters(testCases);
 	}
 
+	@Test
+	public void testRetains() {
+		long irisCopyLong = (long)irisCopy;
+		Object[][] testCases = {
+			{defaultPolicy, null, irisCopyLong, irisCopyLong,   false, new InvalidatedRetentionState(), 0L, true},	
+			{defaultPolicy, null, irisCopyLong, irisCopyLong,   true,  new InvalidatedRetentionState(), 0L, false},	
+			{defaultPolicy, null, irisCopyLong, irisCopyLong+1, true,  new InvalidatedRetentionState(), 0L, true},	
+		};
+		
+		TestUtil.checkRetains(testCases);
+	}
+	
 	@Test
 	public void testHashCode() {
 		checkHashCodeEquals(   defaultPolicy, defaultPolicy);

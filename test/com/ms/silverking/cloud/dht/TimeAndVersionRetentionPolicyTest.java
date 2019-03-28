@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
+import com.ms.silverking.cloud.dht.common.DHTKey;
 
 public class TimeAndVersionRetentionPolicyTest {
 
@@ -19,52 +20,62 @@ public class TimeAndVersionRetentionPolicyTest {
 	private static final Mode mDiff = Mode.mostRecentValue;
 	
 	private static final int mvCopy = 1;
-	private static final int mvDiff = 2;
+	private static final int mvDiff = 0;
 	
 	private static final long tssCopy = 86_400;
 	private static final long tssDiff = 86_399;
 	
-	private static final TimeAndVersionRetentionPolicy defaultPolicy     =     TimeAndVersionRetentionPolicy.template;
-	private static final TimeAndVersionRetentionPolicy defaultPolicyCopy = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssCopy);
-	private static final TimeAndVersionRetentionPolicy defaultPolicyDiff = new TimeAndVersionRetentionPolicy(mDiff, mvDiff, tssDiff);
-	
-	private Mode getMode(TimeAndVersionRetentionPolicy policy) {
-		return policy.getMode();
-	}
-	
-	private int getMinVersions(TimeAndVersionRetentionPolicy policy) {
-		return policy.getMinVersions();
-	}
-	
-	private long getTimeSpanSeconds(TimeAndVersionRetentionPolicy policy) {
-		return policy.getTimeSpanSeconds();
-	}
-	
-	private long getTimeSpanMillis(TimeAndVersionRetentionPolicy policy) {
-		return policy.getTimeSpanMillis();
-	}
-
-	private long getTimeSpanNanos(TimeAndVersionRetentionPolicy policy) {
-		return policy.getTimeSpanNanos();
-	}
+	private static final TimeAndVersionRetentionPolicy defaultPolicy           =     TimeAndVersionRetentionPolicy.template;
+	private static final TimeAndVersionRetentionPolicy defaultPolicyCopy       = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssCopy);
+//	private static final TimeAndVersionRetentionPolicy defaultPolicyAlmostCopy = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssDiff);
+	private static final TimeAndVersionRetentionPolicy defaultPolicyDiff       = new TimeAndVersionRetentionPolicy(mDiff, mvDiff, tssDiff);
 	
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{SingleReverseSegmentWalk, getImplementationType(defaultPolicy)},
-			{Mode.wallClock,           getMode(defaultPolicy)},
-			{1,                        getMinVersions(defaultPolicy)},
-			{86_400L,                  getTimeSpanSeconds(defaultPolicy)},
-			{86_400_000L,              getTimeSpanMillis(defaultPolicy)},
-			{86_400_000_000_000L,      getTimeSpanNanos(defaultPolicy)},
-			{mDiff,                    getMode(defaultPolicyDiff)},
-			{mvDiff,                   getMinVersions(defaultPolicyDiff)},
-			{tssDiff,                  getTimeSpanSeconds(defaultPolicyDiff)},
-			{tssDiff * 1_000L,         getTimeSpanMillis(defaultPolicyDiff)},
-			{tssDiff * 1_000_000_000L, getTimeSpanNanos(defaultPolicyDiff)},
+			{SingleReverseSegmentWalk,           getImplementationType(defaultPolicy)},
+//			{new TimeAndVersionRetentionState(), getInitialState(defaultPolicy)},	// FIXME:bph: currently no equals on TimeAndVersionRetentionState so this will assert !equal
 		};
 		
 		test_Getters(testCases);
+		
+		Object[][] testCases2 = {
+			{defaultPolicy,     mCopy, mvCopy, tssCopy},
+			{defaultPolicyDiff, mDiff, mvDiff, tssDiff},
+		};
+		
+		for (Object[] testCase : testCases2) {
+			TimeAndVersionRetentionPolicy policy = (TimeAndVersionRetentionPolicy)testCase[0];
+			Mode expectedMode                    =                          (Mode)testCase[1];
+			int  expectedMinVersions             =                           (int)testCase[2];
+			long expectedTimeSpanSeconds         =                          (long)testCase[3];
+
+			assertEquals(expectedMode,                          policy.getMode());
+			assertEquals(expectedMinVersions,                   policy.getMinVersions());
+			assertEquals(expectedTimeSpanSeconds,               policy.getTimeSpanSeconds());
+			assertEquals(expectedTimeSpanSeconds*1_000,         policy.getTimeSpanMillis());
+			assertEquals(expectedTimeSpanSeconds*1_000_000_000, policy.getTimeSpanNanos());
+		}
+	}
+
+	@Test
+	public void testRetains() {
+		DHTKey key = null;
+				
+		Object[][] testCases = {
+			{defaultPolicy,     key, 0L,   0L, false, new TimeAndVersionRetentionState(), 0L,  true},	// minVersion condition
+			{defaultPolicyDiff, key, 0L, 100L, true,  new TimeAndVersionRetentionState(), 0L,  true},	// delta      condition
+		};
+		
+		TestUtil.checkRetains(testCases);
+		
+		TimeAndVersionRetentionState state = new TimeAndVersionRetentionState();
+		state.processValue(key, defaultPolicyDiff.getTimeSpanSeconds()*1_000_000_000+1);
+		Object[][] testCasesFalse = {
+			{defaultPolicyDiff, key, 0L, 0L, true, state, 0L, false},
+		};
+		
+		TestUtil.checkRetains(testCasesFalse);
 	}
 
 	@Test
