@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht.meta;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -15,7 +16,10 @@ import org.kohsuke.args4j.CmdLineParser;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import com.ms.silverking.cloud.dht.client.ClientException;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.cloud.dht.daemon.RingHealth;
+import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.RingIntegrityCheck;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.management.LogStreamConfig;
 import com.ms.silverking.cloud.meta.ChildrenListener;
@@ -62,6 +66,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     private final long	minUpdateIntervalMillis;
     private Set<IPAndPort>	activeNodesInMap;
     private final boolean	disableAddition;
+    private final RingIntegrityCheck	ringIntegrityCheck;
+    private boolean	ringHealthNodeCheckedForInitialization;
     
     private static final String	logFileName = "HealthMonitor.out";
     private static final String	doctorThreadName = "DoctorRunner";
@@ -83,7 +89,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     					 ConvictionLimits convictionLimits, ConvictionLimits convictionWarningThresholds, 
     					 int doctorNodeStartupTimeoutSeconds,
     					 boolean disableAddition, long minUpdateIntervalMillis)
-                         throws IOException, KeeperException {
+                         throws IOException, KeeperException, ClientException {
     	String	dhtName;
     	com.ms.silverking.cloud.meta.MetaClient	cloudMC;
     	
@@ -132,6 +138,8 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         } else {
         	doctorRunner = null;
         }
+        
+        ringIntegrityCheck = new RingIntegrityCheck(gc);
     }
     
     @Override
@@ -471,12 +479,48 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 Log.warning(String.format("Old exclusion set %d %s", oldExclusionSet.size(), oldExclusionSet));
                 Log.warning(String.format("New exclusion set %d %s", newExclusionSet.size(), newExclusionSet));
                 if (!newExclusionSet.equals(oldExclusionSet)) {
-                    Log.warning(String.format("Writing exclusion set"));
-                    instanceExclusionZK.writeToZK(newExclusionSet);
-                    exclusionSetWritten = true;
-                    Log.warning(String.format("Latest exclusion set path after write %s", instanceExclusionZK.getLatestZKPath()));
+                	int	minReplicaSet;
+                	
+                	minReplicaSet = ringIntegrityCheck.checkIntegrity(newExclusionSet, false);
+                	Log.warningf("minReplicaSet: %d", minReplicaSet);
+                	if (minReplicaSet > 0) {
+	                    Log.warning(String.format("Writing exclusion set"));
+	                    
+	                    if (!ringHealthNodeCheckedForInitialization) {
+	                	    RingHealthZK	ringHealthZK;
+	                	    
+	                    	ringHealthNodeCheckedForInitialization = true;
+	                	    ringHealthZK = new RingHealthZK(mc, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
+	                		ringHealthZK.writeHealth(RingHealth.Healthy);
+	                    }
+	                    
+	                    instanceExclusionZK.writeToZK(newExclusionSet);
+	                    exclusionSetWritten = true;
+	                    Log.warning(String.format("Latest exclusion set path after write %s", instanceExclusionZK.getLatestZKPath()));
+                	} else {
+                	    RingHealthZK	ringHealthZK;
+                	    
+                		Log.severe("Not writing exclusion set as a replica set would be completely excluded");
+                		List<Set<IPAndPort>>	lastExcludedSets;
+                		
+                	    ringHealthZK = new RingHealthZK(mc, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
+                		ringHealthZK.writeHealth(RingHealth.Unhealthy);
+                		lastExcludedSets = ringIntegrityCheck.getLastExcludedSets();
+                		if (lastExcludedSets != null) {
+                			for (Set<IPAndPort> excludedSet : lastExcludedSets) {
+                				Log.warningf("%s", CollectionUtil.toString(excludedSet));
+                			}
+                		}
+                	}
                 } else {
                     Log.warning(String.format("No change in exclusion set"));
+                    if (!ringHealthNodeCheckedForInitialization) {
+                	    RingHealthZK	ringHealthZK;
+                	    
+                    	ringHealthNodeCheckedForInitialization = true;
+                	    ringHealthZK = new RingHealthZK(mc, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
+                		ringHealthZK.writeHealth(RingHealth.Healthy);
+                    }
                 }
             } else {
                 Log.warning(String.format("Unable to mark as bad as exclusionZK is null"));
