@@ -38,7 +38,7 @@ public class NanosVersionRetentionPolicy implements ValueRetentionPolicy<Invalid
 
 	@Override
 	public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated, 
-						   InvalidatedRetentionState invalidatedRetentionState, long curTimeNanos) {
+						   InvalidatedRetentionState invalidatedRetentionState, long curTimeNanos, long storedLength) {
 		if (!invalidated) {
 			if (invalidatedRetentionState.isInvalidated(key)) {
 				invalidated = true;
@@ -73,6 +73,11 @@ public class NanosVersionRetentionPolicy implements ValueRetentionPolicy<Invalid
 	@Override
 	public InvalidatedRetentionState createInitialState() {
 		return new InvalidatedRetentionState();
+	}
+
+	@Override
+	public boolean considersStoredLength() {
+		return false;
 	}
 	
 	@Override
@@ -129,35 +134,35 @@ public class NanosVersionRetentionPolicy implements ValueRetentionPolicy<Invalid
     	invalidatedRetentionState = new InvalidatedRetentionState();
     	curTimeNanos = SystemTimeSource.instance.absTimeNanos();
     	creationTimeNanos = curTimeNanos;
-    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));
-    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
+    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));
+    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
     	creationTimeNanos = curTimeNanos - 100 * 1000000000L;
-    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));    	
-    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
+    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));    	
+    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
     	
     	System.out.println();
     	creationTimeNanos = curTimeNanos - 200 * 1000000000L;
-    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));
-    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
-    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));    	
-    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
+    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));
+    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
+    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));    	
+    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
     	
     	System.out.println();
     	System.out.println();
     	irp = new NanosVersionRetentionPolicy(10, TimeUnit.SECONDS.convert(7, TimeUnit.DAYS));
     	System.out.printf("7 day retention %s\n", irp);
     	creationTimeNanos = curTimeNanos;
-    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));
-    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
+    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));
+    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
     	creationTimeNanos = curTimeNanos - 100 * 1000000000L;
-    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));    	
-    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
+    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));    	
+    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
     	
     	System.out.println();
     	creationTimeNanos = curTimeNanos - TimeUnit.NANOSECONDS.convert(8, TimeUnit.DAYS);
-    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));
-    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
-    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos));    	
-    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos));
+    	System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));
+    	System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
+    	System.out.println(irp.retains(new SimpleKey(0, 3), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));    	
+    	System.out.println(irp.retains(new SimpleKey(0, 4), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));
     }
 }

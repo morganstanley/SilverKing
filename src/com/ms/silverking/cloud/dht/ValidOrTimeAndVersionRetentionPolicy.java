@@ -91,7 +91,7 @@ public class ValidOrTimeAndVersionRetentionPolicy implements ValueRetentionPolic
 	@Override
 	public boolean retains(DHTKey key, long version, long creationTimeNanos,
 			boolean invalidated, TimeAndVersionRetentionState timeRetentionState,
-			long curTimeNanos) {
+			long curTimeNanos, long storedLength) {
 		int		totalVersions;
 		long	mostRecentCreationTimeNanos;
 		long	spanEndTimeNanos;
@@ -117,4 +117,9 @@ public class ValidOrTimeAndVersionRetentionPolicy implements ValueRetentionPolic
 	public TimeAndVersionRetentionState createInitialState() {
 		return new TimeAndVersionRetentionState();
 	}	
+	
+	@Override
+	public boolean considersStoredLength() {
+		return false;
+	}
 }

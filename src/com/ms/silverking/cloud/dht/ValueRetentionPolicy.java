@@ -8,6 +8,7 @@ public interface ValueRetentionPolicy<T extends ValueRetentionState> {
 	
 	public ImplementationType getImplementationType();	
 	public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated, 
-						   T valueRetentionState, long curTimeNanos);
+						   T valueRetentionState, long curTimeNanos, long storedLength);
 	public T createInitialState();	
+	public boolean considersStoredLength();
 }

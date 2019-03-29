@@ -22,13 +22,18 @@ public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueReten
 
 	@Override
 	public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated, 
-						   ValueRetentionState state, long curTimeNanos) {
+						   ValueRetentionState state, long curTimeNanos, long storedLength) {
 		return true;
 	}
 
 	@Override
 	public ValueRetentionState createInitialState() {
 		return null;
+	}
+	
+	@Override
+	public boolean considersStoredLength() {
+		return false;
 	}
 	
 	@Override
