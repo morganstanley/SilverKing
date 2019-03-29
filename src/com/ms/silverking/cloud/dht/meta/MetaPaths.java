@@ -13,6 +13,7 @@ public class MetaPaths extends MetaPathsBase {
     private final String  instanceExclusionsPath;
     private final String  instanceCommandsPath;
     private final String  instanceRingStatePath;
+    private final String  instanceRingHealthPath;
     private final String  instanceDaemonStatePath;
     private final String  instanceNodeInfoPath;
     private final String  passiveNodesPath;
@@ -30,6 +31,7 @@ public class MetaPaths extends MetaPathsBase {
     private static final String exclusionsNodeName = "exclusions";
     private static final String commandsNodeName = "commands";
     private static final String ringStateNodeName = "ringState";
+    private static final String	ringHealthNodeName = "ringHealth";
     private static final String daemonStateNodeName = "daemon";
     private static final String skfsConfigNodeName = "skfsConfig";
         
@@ -76,10 +78,12 @@ public class MetaPaths extends MetaPathsBase {
         listBuilder.add(instanceCommandsPath);
         instanceRingStatePath = instancePath +"/"+ ringStateNodeName;
         listBuilder.add(instanceRingStatePath);
+        instanceRingHealthPath = instancePath +"/"+ ringHealthNodeName;
+        listBuilder.add(instanceRingHealthPath);
         instanceDaemonStatePath = instancePath +"/"+ daemonStateNodeName;
         listBuilder.add(instanceDaemonStatePath);
         
-        if (dhtConfig.getDHTConfig() != null && dhtConfig.getDHTConfig().getPassiveNodeHostGroups() != null) {
+        if (dhtConfig.getDHTConfig() != null && dhtConfig.getDHTConfig().getPassiveNodeHostGroups() != null && dhtConfig.getDHTConfig().getPassiveNodeHostGroups().trim().length() > 0) {
             passiveNodesPath = passiveNodesBase +"/"+ dhtConfig.getDHTConfig().getPassiveNodeHostGroups();
             listBuilder.add(passiveNodesPath);
         } else {
@@ -139,6 +143,10 @@ public class MetaPaths extends MetaPathsBase {
         return getInstancePath(dhtName) +"/"+ ringStateNodeName;
     }
     
+    public static String getInstanceRingHealthPath(String dhtName) {
+        return getInstancePath(dhtName) +"/"+ ringHealthNodeName;
+    }
+    
     public static String getInstanceDaemonStatePath(String dhtName) {
         return getInstancePath(dhtName) +"/"+ daemonStateNodeName;
     }
@@ -185,6 +193,10 @@ public class MetaPaths extends MetaPathsBase {
     
     public String getInstanceRingStatePath() {
         return instanceRingStatePath;
+    }
+    
+    public String getInstanceRingHealthPath() {
+        return instanceRingHealthPath;
     }
     
     public String getInstanceDaemonStatePath() {

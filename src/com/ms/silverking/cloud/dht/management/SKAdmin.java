@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -26,6 +27,7 @@ import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
 import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
+import com.ms.silverking.cloud.dht.daemon.RingHealth;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.ClassVars;
 import com.ms.silverking.cloud.dht.meta.ClassVarsZK;
@@ -35,6 +37,7 @@ import com.ms.silverking.cloud.dht.meta.DaemonStateZK;
 import com.ms.silverking.cloud.dht.meta.HealthMonitor;
 import com.ms.silverking.cloud.dht.meta.IneligibleServerException;
 import com.ms.silverking.cloud.dht.meta.InstanceExclusionZK;
+import com.ms.silverking.cloud.dht.meta.RingHealthZK;
 import com.ms.silverking.cloud.dht.meta.SuspectsZK;
 import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 import com.ms.silverking.cloud.meta.CloudConfiguration;
@@ -672,6 +675,12 @@ public class SKAdmin {
 				case EnsureNoActiveDaemons:
 					_result = ensureNoActiveDaemons();
 					break;
+				case SetRingHealth:
+					_result = setRingHealth();
+					break;
+				case GetRingHealth:
+					_result = displayRingHealth();
+					break;
 				default:
 					throw new RuntimeException("panic");
 				}
@@ -773,6 +782,37 @@ public class SKAdmin {
 		
 		result = _getActiveDaemons();
 		return result.getV1() && result.getV2().size() == 0;
+	}
+	
+	private boolean setRingHealth() throws KeeperException, IOException {
+		return setRingHealth(options.ringHealth);
+	}
+	
+	private boolean setRingHealth(RingHealth ringHealth) throws KeeperException, IOException {
+		RingHealthZK	ringHealthZK;
+		DHTRingCurTargetZK	dhtRingCurTargetZK;
+		
+		dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
+	    ringHealthZK = new RingHealthZK(dhtMC, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
+	    ringHealthZK.writeHealth(ringHealth);
+	    return true;
+	}
+	
+	private boolean displayRingHealth() throws KeeperException, IOException {
+		RingHealth	ringHealth;
+		
+		ringHealth = getRingHealth();
+		System.out.printf("ringHealth:\t%s\n", ringHealth);
+		return true;
+	}
+	
+	private RingHealth getRingHealth() throws KeeperException, IOException {
+		RingHealthZK	ringHealthZK;
+		DHTRingCurTargetZK	dhtRingCurTargetZK;
+		
+		dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
+	    ringHealthZK = new RingHealthZK(dhtMC, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
+	    return ringHealthZK.readHealth();
 	}
 	
 	private boolean execCreateSKFSns() throws IOException, ClientException, KeeperException {

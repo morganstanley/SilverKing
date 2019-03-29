@@ -4,6 +4,7 @@ import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeOptions;
+import com.ms.silverking.cloud.dht.daemon.RingHealth;
 import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
@@ -102,6 +103,9 @@ class SKAdminOptions {
 	
 	@Option(name="-reapPolicy", usage="reapPolicy", required=false)
 	String reapPolicy = new ReapOnIdlePolicy().toString();	
+	
+	@Option(name="-ringHealth", usage="ringHealth", required=false)
+	RingHealth	ringHealth;
 	
 	public ReapPolicy getReapPolicy() {
 		if (disableReap) {
