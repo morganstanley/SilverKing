@@ -24,7 +24,7 @@ public class NanosVersionRetentionPolicyTest {
 	
 	private static final NanosVersionRetentionPolicy defaultPolicy           =     NanosVersionRetentionPolicy.template;
 	private static final NanosVersionRetentionPolicy defaultPolicyCopy       = new NanosVersionRetentionPolicy(irisCopy, mrisCopy);
-//	private static final NanosVersionRetentionPolicy defaultPolicyAlmostCopy = new NanosVersionRetentionPolicy(irisCopy, mrisDiff);
+	private static final NanosVersionRetentionPolicy defaultPolicyAlmostCopy = new NanosVersionRetentionPolicy(irisCopy, mrisDiff);
 	private static final NanosVersionRetentionPolicy defaultPolicyDiff       = new NanosVersionRetentionPolicy(irisDiff, mrisDiff);
 	
 	@Test
@@ -57,15 +57,16 @@ public class NanosVersionRetentionPolicyTest {
 		checkHashCodeEquals(   defaultPolicy, defaultPolicy);
 		checkHashCodeEquals(   defaultPolicy, defaultPolicyCopy);
 		checkHashCodeEquals(   defaultPolicy, defaultPolicyDiff);	// this is b/c of Long.hashCode uses "^" operator
-//		checkHashCodeNotEquals(defaultPolicy, defaultPolicyAlmostCopy);	
+		checkHashCodeNotEquals(defaultPolicy, defaultPolicyAlmostCopy);	
 	}
 	
 	@Test
 	public void testEqualsObject() {
 		NanosVersionRetentionPolicy[][] testCases = {
-			{defaultPolicy,     defaultPolicy,     defaultPolicyDiff},
-			{defaultPolicyCopy, defaultPolicy,     defaultPolicyDiff},
-			{defaultPolicyDiff, defaultPolicyDiff, defaultPolicy},
+			{defaultPolicy,           defaultPolicy,           defaultPolicyDiff},
+			{defaultPolicyCopy,       defaultPolicy,           defaultPolicyDiff},
+			{defaultPolicyAlmostCopy, defaultPolicyAlmostCopy, defaultPolicy},
+			{defaultPolicyDiff,       defaultPolicyDiff,       defaultPolicy},
 		};
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		
@@ -80,6 +81,7 @@ public class NanosVersionRetentionPolicyTest {
 		NanosVersionRetentionPolicy[] testCases = {
 			defaultPolicy,
 			defaultPolicyCopy,
+			defaultPolicyAlmostCopy,
 			defaultPolicyDiff,
 		};
 		

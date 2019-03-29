@@ -14,9 +14,13 @@ public class TimeAndVersionRetentionStateTest {
 	public void testProcessValue() {
 		TimeAndVersionRetentionState state = new TimeAndVersionRetentionState();
 		DHTKey key = new KeyAndInteger(0, 1, 2);
-		
-		assertEquals(new Pair<Integer, Long>(1, 3L), state.processValue(key, 3));
-		assertEquals(new Pair<Integer, Long>(2, 3L), state.processValue(key, 4));
+
+		checkProcessValue(state, key, 3, new Pair<Integer, Long>(1, 3L));
+		checkProcessValue(state, key, 4, new Pair<Integer, Long>(2, 3L));
+	}
+	
+	private void checkProcessValue(TimeAndVersionRetentionState state, DHTKey key, long creationTime, Pair<Integer, Long> expected) {
+		assertEquals(expected, state.processValue(key, creationTime));
 	}
 
 }

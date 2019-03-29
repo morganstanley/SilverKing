@@ -27,7 +27,7 @@ public class ValidOrTimeAndVersionRetentionPolicyTest {
 	
 	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicy           =     ValidOrTimeAndVersionRetentionPolicy.template;
 	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicyCopy       = new ValidOrTimeAndVersionRetentionPolicy(mCopy, mvCopy, tssCopy);
-//	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicyAlmostCopy = new ValidOrTimeAndVersionRetentionPolicy(mCopy, mvCopy, tssDiff);
+	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicyAlmostCopy = new ValidOrTimeAndVersionRetentionPolicy(mCopy, mvCopy, tssDiff);
 	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicyDiff       = new ValidOrTimeAndVersionRetentionPolicy(mDiff, mvDiff, tssDiff);
 	
 	@Test
@@ -82,15 +82,17 @@ public class ValidOrTimeAndVersionRetentionPolicyTest {
 	public void testHashCode() {
 		checkHashCodeEquals(   defaultPolicy, defaultPolicy);
 		checkHashCodeEquals(   defaultPolicy, defaultPolicyCopy);
+		checkHashCodeNotEquals(defaultPolicy, defaultPolicyAlmostCopy);
 		checkHashCodeNotEquals(defaultPolicy, defaultPolicyDiff);
 	}
 	
 	@Test
 	public void testEqualsObject() {
 		ValidOrTimeAndVersionRetentionPolicy[][] testCases = {
-			{defaultPolicy,     defaultPolicy,     defaultPolicyDiff},
-			{defaultPolicyCopy, defaultPolicy,     defaultPolicyDiff},
-			{defaultPolicyDiff, defaultPolicyDiff, defaultPolicy},
+			{defaultPolicy,           defaultPolicy,           defaultPolicyDiff},
+			{defaultPolicyCopy,       defaultPolicy,           defaultPolicyDiff},
+			{defaultPolicyAlmostCopy, defaultPolicyAlmostCopy, defaultPolicy},
+			{defaultPolicyDiff,       defaultPolicyDiff,       defaultPolicy},
 		};
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 
@@ -104,6 +106,8 @@ public class ValidOrTimeAndVersionRetentionPolicyTest {
 	public void testToStringAndParse() {
 		ValidOrTimeAndVersionRetentionPolicy[] testCases = {
 			defaultPolicy,
+			defaultPolicyCopy,
+			defaultPolicyAlmostCopy,
 			defaultPolicyDiff,
 		};
 		

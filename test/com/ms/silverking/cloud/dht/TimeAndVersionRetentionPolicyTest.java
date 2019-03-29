@@ -27,7 +27,7 @@ public class TimeAndVersionRetentionPolicyTest {
 	
 	private static final TimeAndVersionRetentionPolicy defaultPolicy           =     TimeAndVersionRetentionPolicy.template;
 	private static final TimeAndVersionRetentionPolicy defaultPolicyCopy       = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssCopy);
-//	private static final TimeAndVersionRetentionPolicy defaultPolicyAlmostCopy = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssDiff);
+	private static final TimeAndVersionRetentionPolicy defaultPolicyAlmostCopy = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssDiff);
 	private static final TimeAndVersionRetentionPolicy defaultPolicyDiff       = new TimeAndVersionRetentionPolicy(mDiff, mvDiff, tssDiff);
 	
 	@Test
@@ -82,15 +82,17 @@ public class TimeAndVersionRetentionPolicyTest {
 	public void testHashCode() {
 		checkHashCodeEquals(   defaultPolicy, defaultPolicy);
 		checkHashCodeEquals(   defaultPolicy, defaultPolicyCopy);
+		checkHashCodeNotEquals(defaultPolicy, defaultPolicyAlmostCopy);
 		checkHashCodeNotEquals(defaultPolicy, defaultPolicyDiff);
 	}
 	
 	@Test
 	public void testEqualsObject() {
 		TimeAndVersionRetentionPolicy[][] testCases = {
-			{defaultPolicy,     defaultPolicy,     defaultPolicyDiff},
-			{defaultPolicyCopy, defaultPolicy,     defaultPolicyDiff},
-			{defaultPolicyDiff, defaultPolicyDiff, defaultPolicy},
+			{defaultPolicy,           defaultPolicy,           defaultPolicyDiff},
+			{defaultPolicyCopy,       defaultPolicy,           defaultPolicyDiff},
+			{defaultPolicyAlmostCopy, defaultPolicyAlmostCopy, defaultPolicy},
+			{defaultPolicyDiff,       defaultPolicyDiff,       defaultPolicy},
 		};
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		
@@ -105,6 +107,7 @@ public class TimeAndVersionRetentionPolicyTest {
 		TimeAndVersionRetentionPolicy[] testCases = {
 			defaultPolicy,
 			defaultPolicyCopy,
+			defaultPolicyAlmostCopy,
 			defaultPolicyDiff,
 		};
 		
