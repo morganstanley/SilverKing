@@ -6,6 +6,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import com.ms.silverking.log.Log;
 
 public class MetaClientBase<T extends MetaPathsBase> extends MetaClientCore {
     protected final T                   metaPaths;
@@ -24,7 +25,12 @@ public class MetaClientBase<T extends MetaPathsBase> extends MetaClientCore {
     }
     
     public void ensureMetaPathsExist() throws KeeperException {
-        getZooKeeper().createAllNodes(metaPaths.getPathList());
+    	try {
+    		getZooKeeper().createAllNodes(metaPaths.getPathList());
+    	} catch (RuntimeException re) {
+    		Log.warningf("Failed to create meta paths %s", metaPaths.getPathList());
+    		throw re;
+    	}
     }
     
     public void ensurePathExists(String path, boolean createIfMissing) throws KeeperException {
