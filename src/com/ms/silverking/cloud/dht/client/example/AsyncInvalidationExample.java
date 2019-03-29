@@ -13,8 +13,8 @@ import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
 public class AsyncInvalidationExample {    
-	private static final String	key = "key";
-	private static final String	value = "value";
+	private static final String	key = "ai.key";
+	private static final String	value = "ai.value";
 
 	public static String runExample(SKGridConfiguration gridConfig) {
 		try {

@@ -53,8 +53,7 @@ public class ProcessExecutor {
 	}
 
 	public static ProcessExecutor bashExecutor(String commands, long timeoutInSeconds) {
-//		return new ProcessExecutor(new String[]{"/bin/bash", "-c", "'" + commands + "'"}, timeoutInSeconds);	// quotes messes it up
-		return new ProcessExecutor(new String[]{"/bin/bash", "-c", commands}, timeoutInSeconds);
+		return new ProcessExecutor(getBashCmd(commands), timeoutInSeconds);
 	}
 	
 	public static ProcessExecutor bashExecutor(String[] commands, long timeoutInSeconds) {
@@ -75,20 +74,27 @@ public class ProcessExecutor {
 		System.out.println( runCmd(new String[]{"/bin/sh", "-c", "ls -lR " + dirPath}) );
 	}
 
-	private static String runSumCmd(String cmd, File f) {
-		String absPath = f.getAbsolutePath() + separator;
-		System.out.println(absPath);
-		System.out.println( runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\;"}));
-		System.out.println( runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\; | sed s#"+absPath+"##"}));
-		String out =        runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\; | sed s#"+absPath+"## | sort "});
-		System.out.println(out);
-		return out;
+	// runs either cksum or md5sum on a directory
+	public static String runDirSumCmd(String cmd, File dir) {
+		String absPath = dir.getAbsolutePath() + separator;
+		String out = runCmd(new String[]{"/bin/sh", "-c", "find " + absPath + " -type f -exec " + cmd + " {} \\; | sed s#"+absPath+"## | sort | " + cmd});
+//		System.out.println(out);
+		return out.trim();
 	}
 	
-	// useful for chained commands
+	////////////
+	// useful for chained commands: |, >, etc.
+	////////////
 	public static String runBashCmd(String commands) {
-//		return runCmd(new String[]{"/bin/bash", "-c", "'" + commands + "'"});	// quotes messes it up
-		return runCmd(new String[]{"/bin/bash", "-c", commands});
+		return runCmd( getBashCmd(commands) );
+	}
+	public static void runBashCmdNoWait(String commands) {
+		runCmdNoWait( getBashCmd(commands) );
+	}
+	
+	private static String[] getBashCmd(String commands) {
+//		return runCmd(new String[]{"/bin/bash", "-c", "'" + commands + "'"});	// single quotes around 'commands' messes it up
+		return new String[]{"/bin/bash", "-c", commands};
 	}
 	
 	public static String runSshCmdWithRedirectOutputFile(String server, String commands) {
@@ -108,17 +114,22 @@ public class ProcessExecutor {
 		String[] commands = {cmd, f.getAbsolutePath()};
 		return runCmd(commands);
 	}
-	
+
+	////////////
+	// useful for running a single script/command
+	// 		that has no spaces, e.g. "~/SilverKing/build/aws/zk_start.sh"
+	//		and also something like "date +%H:%M:%S", that has a space
+	////////////
 	public static String runCmd(String command) {
 		return runCmd(command.split(" "));
 	}
 
-	private static String runCmd(String[] commands) {
+	public static String runCmd(String[] commands) {
 		return runCmd(commands, true, true);
 	}
 	
-	public static String runCmdNoWait(String command) {
-		return runCmd(command.split(" "), true, false);
+	public static void runCmdNoWait(String command) {
+		runCmdNoWait(new String[]{command});
 	}
 	
 	public static void runCmdNoWait(String[] commands) {

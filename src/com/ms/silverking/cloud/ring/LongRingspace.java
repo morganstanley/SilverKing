@@ -33,7 +33,6 @@ public class LongRingspace {
 	public static final long	size = end - start + 1;
 	public static final BigDecimal	bdSize = newBD(size);
     public static final BigDecimal  bdStart = newBD(start);
-    public static final RingRegion  globalRegion = new RingRegion(start, end);
 	
 	public static long longToRingspace(long l) {
 		if (l == Long.MIN_VALUE) {
@@ -84,6 +83,7 @@ public class LongRingspace {
     }
 	
 	public static long add(long p, long a) {
+        Preconditions.checkArgument(a >= 0);
 		long	r;
 		
 		r = p + a;
@@ -94,6 +94,7 @@ public class LongRingspace {
 	}
 	
 	public static long subtract(long p, long a) {
+        Preconditions.checkArgument(a >= 0);
 		long	r;
 		
 		r = p - a;

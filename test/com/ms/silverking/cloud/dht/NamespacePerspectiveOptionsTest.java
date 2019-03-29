@@ -59,6 +59,7 @@ public class NamespacePerspectiveOptionsTest {
      
 	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptions                     =     NamespacePerspectiveOptions.templateOptions;
 	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptionsCopy                 = new NamespacePerspectiveOptions<>(kcCopy, vcCopy, kdtCopy, poCopy, ioCopy, goCopy, woCopy, vpCopy, edCopy);
+	private static final NamespacePerspectiveOptions<byte[], byte[]> defaultNspOptionsAlmostCopy                 = new NamespacePerspectiveOptions<>(kcCopy, vcCopy, kdtCopy, poCopy, ioCopy, goCopy, woCopy, vpCopy, edDiff);
 	private static final NamespacePerspectiveOptions<IllegalArgumentException, Enum> defaultNspOptionsDiff = new NamespacePerspectiveOptions<>(kcDiff, vcDiff, kdtDiff, poDiff, ioDiff, goDiff, woDiff, vpDiff, edDiff);
 	
 	private Class<?> getKeyClass(NamespacePerspectiveOptions<?, ?> nspOptions) {
@@ -191,24 +192,26 @@ public class NamespacePerspectiveOptionsTest {
 	public void testHashCode() {
 		checkHashCodeEquals(   defaultNspOptions, defaultNspOptions);
 		checkHashCodeEquals(   defaultNspOptions, defaultNspOptionsCopy);
+		checkHashCodeNotEquals(defaultNspOptions, defaultNspOptionsAlmostCopy);
 		checkHashCodeNotEquals(defaultNspOptions, defaultNspOptionsDiff);
 	}
 	
 	@Test
 	public void testEqualsObject() {
 		NamespacePerspectiveOptions<?,?>[][] testCases = {
-			{defaultNspOptions,     defaultNspOptions,                     defaultNspOptionsDiff},
-			{defaultNspOptionsCopy, defaultNspOptions,                     defaultNspOptionsDiff},
-			{defaultNspOptionsDiff, defaultNspOptionsDiff,                 defaultNspOptions},
-			{defaultNspOptions,     setKeyClass(kcCopy),                   setKeyClass(kcDiff)},
-			{defaultNspOptions,     setValueClass(vcCopy),                 setValueClass(vcDiff)},
-			{defaultNspOptions,     setKeyDigestType(kdtCopy),             setKeyDigestType(kdtDiff)},
-			{defaultNspOptions,     setDefaultPutOptions(poCopy),          setDefaultPutOptions(poDiff)},
-			{defaultNspOptions,     setDefaultInvalidationOptions(ioCopy), setDefaultInvalidationOptions(ioDiff)},
-			{defaultNspOptions,     setDefaultGetOptions(goCopy),          setDefaultGetOptions(goDiff)},
-			{defaultNspOptions,     setDefaultWaitOptions(woCopy),         setDefaultWaitOptions(woDiff)},
-			{defaultNspOptions,     setDefaultVersionProvider(vpCopy),     setDefaultVersionProvider(vpDiff)},
-			{defaultNspOptions,     setEncrypterDecrypter(edCopy),         setEncrypterDecrypter(edDiff)},
+			{defaultNspOptions,           defaultNspOptions,                     defaultNspOptionsDiff},
+			{defaultNspOptionsCopy,       defaultNspOptions,                     defaultNspOptionsDiff},
+			{defaultNspOptionsAlmostCopy, defaultNspOptionsAlmostCopy,           defaultNspOptions},
+			{defaultNspOptionsDiff,       defaultNspOptionsDiff,                 defaultNspOptions},
+			{defaultNspOptions,           setKeyClass(kcCopy),                   setKeyClass(kcDiff)},
+			{defaultNspOptions,           setValueClass(vcCopy),                 setValueClass(vcDiff)},
+			{defaultNspOptions,           setKeyDigestType(kdtCopy),             setKeyDigestType(kdtDiff)},
+			{defaultNspOptions,           setDefaultPutOptions(poCopy),          setDefaultPutOptions(poDiff)},
+			{defaultNspOptions,           setDefaultInvalidationOptions(ioCopy), setDefaultInvalidationOptions(ioDiff)},
+			{defaultNspOptions,           setDefaultGetOptions(goCopy),          setDefaultGetOptions(goDiff)},
+			{defaultNspOptions,           setDefaultWaitOptions(woCopy),         setDefaultWaitOptions(woDiff)},
+			{defaultNspOptions,           setDefaultVersionProvider(vpCopy),     setDefaultVersionProvider(vpDiff)},
+			{defaultNspOptions,           setEncrypterDecrypter(edCopy),         setEncrypterDecrypter(edDiff)},
 		};
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
 		
@@ -222,6 +225,7 @@ public class NamespacePerspectiveOptionsTest {
 		NamespacePerspectiveOptions<?, ?>[] testCases = {
 			defaultNspOptions,
 			defaultNspOptionsCopy,
+			defaultNspOptionsAlmostCopy,
 			defaultNspOptionsDiff,
 		};
 		

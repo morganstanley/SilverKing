@@ -100,8 +100,10 @@ function f_getPreviousLineNumber {
         # get the line number line
         previousLineNumber=`head -n $NUM_OF_META_DATA_LINES $previousRunDir/$filename | tail -n 1`
     else
-        previousLineNumber="previousLineNumberError: $filename"
+        previousLineNumber=-1
         f_logError "f_getPreviousLineNumber: $filename"
+        # printf -u2 "no previousLineNumber: $filename"         # not working # this way we can still get this to the screen/output, but not picked up in the return value by people who call this function
+        # echo "no previousLineNumber: $filename" /dev/stderr   # not working # since above isn't working: getting 'print: command not found'
     fi
       
     echo $previousLineNumber      
@@ -392,14 +394,15 @@ function f_sendText {
            RUN_DIR=$4
             RUN_ID=$5
 TMP_OUTPUT_RUN_DIR=$6
-              MUTT=$7
-            EMAILS=$8
-      FATAL_EMAILS=$9
-     PHONE_NUMBERS=${10}
+           SSH_CMD=$7
+              MUTT=$8
+            EMAILS=$9
+      FATAL_EMAILS=${10}
+     PHONE_NUMBERS=${11}
 
 typeset findErrorsScript=$PWD/find_log_errors.sh
 typeset fiveMinsInSecs=300
-typeset TIMEOUT_SSH="timeout $fiveMinsInSecs ssh"
+typeset TIMEOUT_SSH="timeout $fiveMinsInSecs $SSH_CMD"
 typeset   SK_SSH_CMD="$findErrorsScript   $SK_LOG_DIR"
 typeset SKFS_SSH_CMD="$findErrorsScript $SKFS_LOG_DIR"
 

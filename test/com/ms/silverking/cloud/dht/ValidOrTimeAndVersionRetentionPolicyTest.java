@@ -11,10 +11,10 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
+import com.ms.silverking.cloud.dht.ValidOrTimeAndVersionRetentionPolicy.Mode;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 
-public class TimeAndVersionRetentionPolicyTest {
+public class ValidOrTimeAndVersionRetentionPolicyTest {
 
 	private static final Mode mCopy = Mode.wallClock;
 	private static final Mode mDiff = Mode.mostRecentValue;
@@ -23,32 +23,32 @@ public class TimeAndVersionRetentionPolicyTest {
 	private static final int mvDiff = 0;
 	
 	private static final long tssCopy = 86_400;
-	private static final long tssDiff = 86_399;
+	private static final long tssDiff = 86_401;
 	
-	private static final TimeAndVersionRetentionPolicy defaultPolicy           =     TimeAndVersionRetentionPolicy.template;
-	private static final TimeAndVersionRetentionPolicy defaultPolicyCopy       = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssCopy);
-	private static final TimeAndVersionRetentionPolicy defaultPolicyAlmostCopy = new TimeAndVersionRetentionPolicy(mCopy, mvCopy, tssDiff);
-	private static final TimeAndVersionRetentionPolicy defaultPolicyDiff       = new TimeAndVersionRetentionPolicy(mDiff, mvDiff, tssDiff);
+	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicy           =     ValidOrTimeAndVersionRetentionPolicy.template;
+	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicyCopy       = new ValidOrTimeAndVersionRetentionPolicy(mCopy, mvCopy, tssCopy);
+	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicyAlmostCopy = new ValidOrTimeAndVersionRetentionPolicy(mCopy, mvCopy, tssDiff);
+	private static final ValidOrTimeAndVersionRetentionPolicy defaultPolicyDiff       = new ValidOrTimeAndVersionRetentionPolicy(mDiff, mvDiff, tssDiff);
 	
 	@Test
 	public void testGetters() {
 		Object[][] testCases = {
-			{SingleReverseSegmentWalk,           getImplementationType(defaultPolicy)},
-//			{new TimeAndVersionRetentionState(), getInitialState(defaultPolicy)},	// FIXME:bph: currently no equals on TimeAndVersionRetentionState so this will assert !equal
+			{SingleReverseSegmentWalk,                   getImplementationType(defaultPolicy)},
+//			{new ValidOrTimeAndVersionRetentionPolicy(), getInitialState(defaultPolicy)},	// FIXME:bph: currently no equals on ValidOrTimeAndVersionRetentionPolicy so this will assert !equal
 		};
 		
 		test_Getters(testCases);
-		
+			
 		Object[][] testCases2 = {
 			{defaultPolicy,     mCopy, mvCopy, tssCopy},
 			{defaultPolicyDiff, mDiff, mvDiff, tssDiff},
 		};
 		
 		for (Object[] testCase : testCases2) {
-			TimeAndVersionRetentionPolicy policy = (TimeAndVersionRetentionPolicy)testCase[0];
-			Mode expectedMode                    =                          (Mode)testCase[1];
-			int  expectedMinVersions             =                           (int)testCase[2];
-			long expectedTimeSpanSeconds         =                          (long)testCase[3];
+			ValidOrTimeAndVersionRetentionPolicy policy = (ValidOrTimeAndVersionRetentionPolicy)testCase[0];
+			Mode expectedMode                           =                                 (Mode)testCase[1];
+			int  expectedMinVersions                    =                                  (int)testCase[2];
+			long expectedTimeSpanSeconds                =                                 (long)testCase[3];
 
 			assertEquals(expectedMode,                          policy.getMode());
 			assertEquals(expectedMinVersions,                   policy.getMinVersions());
@@ -61,10 +61,10 @@ public class TimeAndVersionRetentionPolicyTest {
 	@Test
 	public void testRetains() {
 		DHTKey key = null;
-				
 		Object[][] testCases = {
-			{defaultPolicy,     key, 0L,   0L, false, new TimeAndVersionRetentionState(), 0L,  true},	// minVersion condition
-			{defaultPolicyDiff, key, 0L, 100L, true,  new TimeAndVersionRetentionState(), 0L,  true},	// delta      condition
+			{defaultPolicy,     key, 0L,   0L, false, new TimeAndVersionRetentionState(), 0L, true},	// invalidated condition
+			{defaultPolicy,     key, 0L,   0L, true,  new TimeAndVersionRetentionState(), 0L, true},	// minVersion  condition
+			{defaultPolicyDiff, key, 0L, 100L, true,  new TimeAndVersionRetentionState(), 0L, true},	// delta       condition
 		};
 		
 		TestUtil.checkRetains(testCases);
@@ -72,7 +72,7 @@ public class TimeAndVersionRetentionPolicyTest {
 		TimeAndVersionRetentionState state = new TimeAndVersionRetentionState();
 		state.processValue(key, defaultPolicyDiff.getTimeSpanSeconds()*1_000_000_000+1);
 		Object[][] testCasesFalse = {
-			{defaultPolicyDiff, key, 0L, 0L, true, state, 0L, false},
+			{defaultPolicyDiff, key, 0L, 0L, true, state, 0L, false},	
 		};
 		
 		TestUtil.checkRetains(testCasesFalse);
@@ -88,35 +88,35 @@ public class TimeAndVersionRetentionPolicyTest {
 	
 	@Test
 	public void testEqualsObject() {
-		TimeAndVersionRetentionPolicy[][] testCases = {
+		ValidOrTimeAndVersionRetentionPolicy[][] testCases = {
 			{defaultPolicy,           defaultPolicy,           defaultPolicyDiff},
 			{defaultPolicyCopy,       defaultPolicy,           defaultPolicyDiff},
 			{defaultPolicyAlmostCopy, defaultPolicyAlmostCopy, defaultPolicy},
 			{defaultPolicyDiff,       defaultPolicyDiff,       defaultPolicy},
 		};
 		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
-		
+
 		test_NotEquals(new Object[][]{
-			{defaultPolicy, InvalidatedRetentionPolicy.template},
-			{defaultPolicy,   PermanentRetentionPolicy.template},
+			{defaultPolicy,    InvalidatedRetentionPolicy.template},
+			{defaultPolicy, TimeAndVersionRetentionPolicy.template},
 		});
 	}
 
 	@Test
 	public void testToStringAndParse() {
-		TimeAndVersionRetentionPolicy[] testCases = {
+		ValidOrTimeAndVersionRetentionPolicy[] testCases = {
 			defaultPolicy,
 			defaultPolicyCopy,
 			defaultPolicyAlmostCopy,
 			defaultPolicyDiff,
 		};
 		
-		for (TimeAndVersionRetentionPolicy testCase : testCases)
+		for (ValidOrTimeAndVersionRetentionPolicy testCase : testCases)
 			checkStringAndParse(testCase);
 	}
 	
-	private void checkStringAndParse(TimeAndVersionRetentionPolicy policy) {
-		assertEquals(policy, TimeAndVersionRetentionPolicy.parse( policy.toString() ));
+	private void checkStringAndParse(ValidOrTimeAndVersionRetentionPolicy policy) {
+		assertEquals(policy, ValidOrTimeAndVersionRetentionPolicy.parse( policy.toString() ));
 	}
 
 }

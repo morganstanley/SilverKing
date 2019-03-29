@@ -17,8 +17,8 @@ public class AsyncWaitForCompletion {
             
             asyncNSP = new DHTClient().openSession(gridConfig)
                     .openAsyncNamespacePerspective("_MyNamespace", String.class, String.class);
-            asyncWaitFor = asyncNSP.waitFor("key.1");
-            asyncNSP.put("key.1", "value.1");
+            asyncWaitFor = asyncNSP.waitFor("awfc.key.1");
+            asyncNSP.put("awfc.key.1", "awfc.value.1");
             System.out.println("Waiting for active ops");
             asyncNSP.waitForActiveOps();
             System.out.println("Wait complete");

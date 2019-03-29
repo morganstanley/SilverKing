@@ -1,6 +1,8 @@
 package com.ms.silverking.fs;
 
+import static com.ms.silverking.fs.TestUtil.checkChecksum;
 import static com.ms.silverking.process.ProcessExecutor.runCmd;
+import static com.ms.silverking.process.ProcessExecutor.runDirSumCmd;
 import static com.ms.silverking.process.ProcessExecutor.separator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -9,6 +11,8 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
 
 import com.google.caliper.internal.guava.io.Files;
 import com.ms.silverking.io.FileUtil;
@@ -60,12 +64,22 @@ public class TestUtil {
 		if ( !allTestsDir.exists() )
 			createAndCheckDir(allTestsDir);
 		
-//		printDirContents("before delete");
+//		printDirContents("before delete", root);
 		deleteRecursive(testsDir);
-//		printDirContents("after delete");
+//		printDirContents("after delete", root);
 		checkDoesntExist(testsDir);
 		createAndCheckDir(testsDir);
-//		printDirContents("after create");
+//		printDirContents("after create", root);
+	}
+	
+	public static void printDirContents(String header, File file) {
+		System.out.println("  === " + header);
+		long millis = System.currentTimeMillis();
+		Date d = new Date(millis);
+		SimpleDateFormat df = new SimpleDateFormat("hh:mm:ss:SS MM/dd/yyyy");
+		String result = df.format(millis);
+		System.out.println(result);
+		System.out.println( runCmd(new String[]{"/bin/sh", "-c", "ls -lR " + file.getAbsolutePath() }) );
 	}
 
 	static void printInfo(File f) {
@@ -205,10 +219,10 @@ public class TestUtil {
 		checkChecksum(output, expected);
 	}
 	
-//	private void checkChecksumDir(File f, String expected) {
-//		String output = runSumCmd("cksum", f);
-//		checkChecksum(output, expected);
-//	}
+	static void checkChecksumDir(File dir, String expected) {
+		String output = runDirSumCmd("cksum", dir);
+		checkChecksum(output, expected);
+	}
 	
 	private static void checkChecksum(String output, String expected) {
 		String[] fields = output.split(" ");
@@ -222,10 +236,10 @@ public class TestUtil {
 		checkMd5sum(output, expected);
 	}
 	
-//	private void checkMd5sumDir(File f, String expected) {
-//		String output = runSumCmd("md5sum", f);
-//		checkMd5sum(output, expected);
-//	}
+	static void checkMd5sumDir(File f, String expected) {
+		String output = runDirSumCmd("md5sum", f);
+		checkMd5sum(output, expected);
+	}
 	
 	private static void checkMd5sum(String output, String expected) {
 		String[] fields = output.split(" ");

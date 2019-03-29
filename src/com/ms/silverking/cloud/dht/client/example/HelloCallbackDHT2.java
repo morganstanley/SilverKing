@@ -18,9 +18,9 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 public class HelloCallbackDHT2 implements AsyncOperationListener {    
 	private Semaphore	s;
 	
-	private static final int	numValues = 1000;
+	static final int	numValues = 1000;
 	
-	public String runExample(SKGridConfiguration gridConfig) {
+	public Map<String, String> runExample(SKGridConfiguration gridConfig) {
 		try {
             AsynchronousNamespacePerspective<String, String>    asyncNSP;
             AsyncPut<String>    asyncPut;
@@ -41,7 +41,8 @@ public class HelloCallbackDHT2 implements AsyncOperationListener {
             asyncGet = asyncNSP.get(v1.keySet());
             asyncGet.addListener(this, OperationState.SUCCEEDED, OperationState.FAILED, OperationState.INCOMPLETE);
             s.acquire();
-            return "complete";//asyncGet.getValues().toString();
+            return asyncGet.getValues();
+//            return "complete";
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -1,6 +1,10 @@
 package com.ms.silverking.cloud.dht;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashSet;
+
+import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType;
 import com.ms.silverking.cloud.dht.VersionConstraint.Mode;
@@ -9,6 +13,7 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController;
 import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 
 @OmitGeneration
@@ -26,8 +31,28 @@ public class TestUtil {
     
     public static final WaitOptions woCopy              = new WaitOptions(new WaitForTimeoutController(), null,            RetrievalType.VALUE,     new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, false, Integer.MAX_VALUE, 100, TimeoutResponse.EXCEPTION);
     public static final WaitOptions woDiff              = new WaitOptions(new WaitForTimeoutController(), new HashSet<>(), RetrievalType.EXISTENCE, new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, false, Integer.MAX_VALUE, 100, TimeoutResponse.EXCEPTION);
-   	
+
 	public static ImplementationType getImplementationType(ValueRetentionPolicy policy) {
 		return policy.getImplementationType();
 	}
+	
+	public static ValueRetentionState getInitialState(ValueRetentionPolicy policy) {
+		return policy.createInitialState();
+	}
+	
+	public static void checkRetains(Object[][] testCases) {
+		for (Object[] testCase : testCases) {
+			ValueRetentionPolicy policy = (ValueRetentionPolicy)testCase[0];
+			DHTKey key                  =               (DHTKey)testCase[1];
+			long version                =                 (long)testCase[2];
+			long creationTimeNanos      =                 (long)testCase[3];
+			boolean invalidated         =              (boolean)testCase[4];
+			ValueRetentionState state   =  (ValueRetentionState)testCase[5];
+			long curTimeNanos           =                 (long)testCase[6];
+			boolean expected            =              (boolean)testCase[7];
+				
+			assertEquals(expected, policy.retains(key, version, creationTimeNanos, invalidated, state, curTimeNanos));
+		}
+	}
+	
 }

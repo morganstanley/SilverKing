@@ -62,7 +62,7 @@ public class AssertFunction {
 	}
 	
 	private static void test_HashCodeEqualsOrNotEquals(String msg, Object first, Object second, boolean expected) {
-		assertEquals( getTestMessage(msg, first, second, "expected = " + expected), expected, first.hashCode() == second.hashCode());
+		assertEquals( getTestMessage(msg, first, second), expected, first.hashCode() == second.hashCode());
 	}
 
 	public static void test_Equals(Object[][] testCases) {
@@ -101,6 +101,6 @@ public class AssertFunction {
 	}
 	
 	private static void test_EqualsOrNotEquals(String msg, Object first, Object second, boolean expected) {
-		assertEquals( getTestMessage(msg, first, second, "expected = " + expected), expected, first.equals(second));
+		assertEquals( getTestMessage(msg, first, second), expected, first.equals(second));
 	}
 }
