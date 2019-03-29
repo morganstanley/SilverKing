@@ -146,6 +146,7 @@ public class LongRingspace {
     public static long mapRegionPointToRingspace(RingRegion region, long p) {
         long   mp;
             
+        assert region.contains(p);
         mp = newBD(p - region.getStart()).multiply(bdSize).divide(region.getSizeBD(), mathContext).add(bdStart).longValue();
         return longToRingspace(mp);
     }
