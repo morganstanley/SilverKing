@@ -189,6 +189,7 @@ public class RingTree {
         List<RingEntry> entryList;
         List<RingEntry> projectedEntryList;
         List<RingEntry> cleanedEntryList;
+        List<RingEntry> nonOverlappedEntryList;
         
         if (debug) {
             System.out.println("project "+ node +" "+ parentRegion);
@@ -252,11 +253,58 @@ public class RingTree {
         displayForDebug(projectedEntryList, "projectedEntryList");
         cleanedEntryList = cleanupList(parentRegion, projectedEntryList);
         displayForDebug(cleanedEntryList, "cleanedEntryList");
+        nonOverlappedEntryList = removeOverlaps(projectedEntryList);
+        displayForDebug(nonOverlappedEntryList, "nonOverlappedEntryList");
         RingEntry.ensureMinPrimaryUnderFailureMet(entryList);
         return cleanedEntryList;
     }
     
-    /*
+    private List<RingEntry> removeOverlaps(List<RingEntry> ringEntryList) {
+    	if (ringEntryList.size() > 1) {
+	    	List<RingEntry>	nonOverlappedList;
+
+	    	nonOverlappedList = new ArrayList<>(ringEntryList.size());
+	    	for (int i = 0; i < ringEntryList.size();) {
+	    		RingEntry	e;
+	    		
+	    		e = ringEntryList.get(i);
+	    		if (e.getRegion().getSize() == 1) {
+	    			RingEntry	mergeIntoEntry;
+	    			RingEntry	newEntry;
+    				RingRegion	newRegion;
+	    			
+	    			if (i + 1 < ringEntryList.size()) {
+	    				mergeIntoEntry = ringEntryList.get(i + 1);
+	    				newRegion = mergeIntoEntry.getRegion().merge(e.getRegion());
+	    				newEntry = mergeIntoEntry.replaceRegion(newRegion);
+		    			nonOverlappedList.add(newEntry);
+		    			i += 2; // advance past the current entry and the entry that we just merged into
+	    			} else {
+	    				if (nonOverlappedList.size() > 0) {
+	    					mergeIntoEntry = ringEntryList.get(i - 1);
+		    				newRegion = mergeIntoEntry.getRegion().merge(e.getRegion());
+		    				newEntry = mergeIntoEntry.replaceRegion(newRegion);
+		    				nonOverlappedList.set(i - 1, newEntry); // replace previous entry
+		    				++i; // advance past current entry
+	    				} else {
+	    					Log.warningf("Unable to merge single point entry %s", e);
+	    	    			nonOverlappedList.add(e);
+	    	    			++i; // advance past current entry
+	    				}
+	    				// skip entry?
+	    			}
+	    		} else {
+	    			nonOverlappedList.add(e);
+	    			++i; // advance past current entry
+	    		}
+	    	}
+			return nonOverlappedList;
+    	} else {
+    		return ringEntryList;
+    	}
+	}
+
+	/*
     private List<RingEntry> project(Node node, RingRegion parentRegion) {
         List<RingEntry> entryList;
         List<RingEntry> projectedEntryList;
