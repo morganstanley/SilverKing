@@ -189,7 +189,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
 						if (greatestVersion == Long.MIN_VALUE) {
 							greatestVersion = version;
 						}
-						if (!vrp.retains(dirKey, version, curTimeNanos, false, rs, curTimeNanos)) {
+						if (!vrp.retains(dirKey, version, curTimeNanos, false, rs, curTimeNanos, 0)) {
 							versionsToRemove.add(version);
 						}
 					}

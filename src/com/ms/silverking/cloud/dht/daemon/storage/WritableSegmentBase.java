@@ -420,11 +420,18 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
 				int	offset;
 				long	version;
 				long	creationTime;
+				long	storedLength;
 
 				offset = offsetVersionAndCreationTime.getV1();
 				version = offsetVersionAndCreationTime.getV2();
 				creationTime = offsetVersionAndCreationTime.getV3();
 				entryKey = entry.getKey();
+				
+				if (vrp.considersStoredLength()) {
+					storedLength = MetaDataUtil.getStoredLength(dataBuf, offset);
+				} else {
+					storedLength = 0;
+				}
 				//Log.warningf("%s %d %d %d %s", entry.getKey(), offset,
 				//getCreationTime(offset), curTimeNanos,
 				//isInvalidated(offset));
@@ -432,7 +439,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
 				// execution time. Not a huge deal for segments that will be modified, but
 				// a dramatic increase in time for segments that won't.
 				// Leaving for now as tracking in memory requires space
-				if (vrp.retains(entryKey, version, creationTime, isInvalidated(offset), valueRetentionState, curTimeNanos)
+				if (vrp.retains(entryKey, version, creationTime, isInvalidated(offset), valueRetentionState, curTimeNanos, storedLength)
 						&& ringMaster.iAmPotentialReplicaFor(entryKey)) {
 					++numRetained;
 					retainedOffsets.add(offset);
