@@ -48,6 +48,7 @@ public class RingIntegrityCheck {
 	private final DHTRingCurTargetZK	dhtRingCurTargetZK;
 	private final Triple<String, Long, Long>	curRingAndVersionPair;
 	private final ResolvedReplicaMap	rMap;
+	private List<Set<IPAndPort>>	lastExcludedSets;
 	
 	public RingIntegrityCheck(SKGridConfiguration gc, Triple<String, Long, Long> ring) throws IOException, KeeperException, ClientException {
 		this.gc = gc;
@@ -66,6 +67,10 @@ public class RingIntegrityCheck {
 		}
 		rMap = readReplicaMap(ring);
 	}
+
+	public RingIntegrityCheck(SKGridConfiguration gc) throws IOException, KeeperException, ClientException {
+		this(gc, null);
+	}	
 	
 	private ExclusionSet getCurrentExclusionSet() throws KeeperException {
 		ExclusionZK		exclusionZK;
@@ -81,6 +86,20 @@ public class RingIntegrityCheck {
         	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
         }
         return ExclusionSet.union(serverExclusionSet, instanceExclusionSet);
+	}
+	
+	public int checkIntegrity() throws KeeperException {
+		return checkIntegrity(false);
+	}
+	
+	public int checkIntegrity(boolean verbose) throws KeeperException {
+		ExclusionSet	exclusionSet;
+		
+		exclusionSet = getCurrentExclusionSet();
+		if (verbose) {
+			System.out.printf("exclusionSet %s\n", exclusionSet);
+		}
+		return checkIntegrity(rMap, exclusionSet, verbose);
 	}
 	
 	public int checkIntegrity(ExclusionSet exclusionSet, boolean verbose) {
@@ -169,7 +188,12 @@ public class RingIntegrityCheck {
 			for (Set<IPAndPort> s : excludedSets)
 				System.out.print("\t" + s);
 		}
+		lastExcludedSets = excludedSets;
 		return minReplicaSetSize;
+	}
+	
+	public List<Set<IPAndPort>> getLastExcludedSets() {
+		return lastExcludedSets;
 	}
 	
 	private void printSet(String setName, Map<Integer, Integer> counts) {
