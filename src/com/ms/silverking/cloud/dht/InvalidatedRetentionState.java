@@ -6,7 +6,7 @@ import java.util.Set;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 
-public class InvalidatedRetentionState implements ValueRetentionState {
+class InvalidatedRetentionState implements ValueRetentionState {
 	private final Set<DHTKey>	invalidatedKeys;
 	
 	@OmitGeneration

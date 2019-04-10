@@ -2,6 +2,8 @@ package com.ms.silverking.cloud.dht;
 
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.serverside.PutTrigger;
+import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.text.ObjectDefParser2;
 
 public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueRetentionState> {
@@ -27,7 +29,7 @@ public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueReten
 	}
 
 	@Override
-	public ValueRetentionState createInitialState() {
+	public ValueRetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
 		return null;
 	}
 	

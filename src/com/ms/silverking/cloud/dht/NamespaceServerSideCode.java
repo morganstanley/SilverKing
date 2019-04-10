@@ -29,6 +29,14 @@ public class NamespaceServerSideCode {
 		this.retrieveTrigger = retrieveTrigger;
 	}
 	
+	public static NamespaceServerSideCode singleTrigger(String trigger) {
+		return new NamespaceServerSideCode("", trigger, trigger);
+	}
+	
+	public static NamespaceServerSideCode singleTrigger(Class triggerClass) {
+		return singleTrigger(triggerClass.getCanonicalName());
+	}
+	
 	public String getUrl() {
 		return url;
 	}

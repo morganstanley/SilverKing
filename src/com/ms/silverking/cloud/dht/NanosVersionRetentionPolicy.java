@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
+import com.ms.silverking.cloud.dht.serverside.PutTrigger;
+import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.text.ObjectDefParser2;
 import com.ms.silverking.time.SystemTimeSource;
 
@@ -71,7 +73,7 @@ public class NanosVersionRetentionPolicy implements ValueRetentionPolicy<Invalid
 	}
 
 	@Override
-	public InvalidatedRetentionState createInitialState() {
+	public InvalidatedRetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
 		return new InvalidatedRetentionState();
 	}
 

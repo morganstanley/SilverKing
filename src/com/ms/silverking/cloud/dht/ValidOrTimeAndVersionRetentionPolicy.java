@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.cloud.dht.serverside.PutTrigger;
+import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.text.ObjectDefParser2;
 
@@ -114,7 +116,7 @@ public class ValidOrTimeAndVersionRetentionPolicy implements ValueRetentionPolic
 	}
 
 	@Override
-	public TimeAndVersionRetentionState createInitialState() {
+	public TimeAndVersionRetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
 		return new TimeAndVersionRetentionState();
 	}	
 	
