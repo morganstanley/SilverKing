@@ -51,7 +51,7 @@ public class TestUtil {
 			long curTimeNanos           =                 (long)testCase[6];
 			boolean expected            =              (boolean)testCase[7];
 				
-			assertEquals(expected, policy.retains(key, version, creationTimeNanos, invalidated, state, curTimeNanos));
+			assertEquals(expected, policy.retains(key, version, creationTimeNanos, invalidated, state, curTimeNanos, -1));
 		}
 	}
 	
