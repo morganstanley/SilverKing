@@ -19,7 +19,7 @@
 // types
 
 typedef struct OpenDirWriter {
-	QueueProcessor	*qp;
+	QueueProcessor	*(qp[ODW_DHT_QUEUE_PROCESSORS]);
 	SRFSDHT			*sd;
 	SKSession		*pSession;
     SKAsyncNSPerspective	*ansp;

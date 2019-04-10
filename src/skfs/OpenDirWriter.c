@@ -33,6 +33,7 @@ using std::exception;
 static void odw_process_dht_batch(void **requests, int numRequests, int curThreadIndex);
 static void odw_retry(OpenDirWriter *odw, OpenDirWriteRequest *odwr);
 static void odw_process_retry_batch(void **requests, int numRequests, int curThreadIndex);
+static QueueProcessor *odw_select_qp(OpenDirWriter *odw, OpenDirWriteRequest *odwr);
 
 
 /////////////////
@@ -48,10 +49,13 @@ static unsigned int _retrySeed;
 
 OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/, uint64_t minWriteIntervalMillis) {
 	OpenDirWriter *odw;
+    int i;
 
 	odw = (OpenDirWriter*)mem_alloc(1, sizeof(OpenDirWriter));
 	//odw->ddr = ddr;
-	odw->qp = qp_new_batch_processor(odw_process_dht_batch, __FILE__, __LINE__, ODW_DHT_QUEUE_SIZE, ABQ_FULL_BLOCK, ODW_DHT_THREADS, ODW_MAX_BATCH_SIZE);
+    for (i = 0; i < ODW_DHT_QUEUE_PROCESSORS; i++) {
+        odw->qp[i] = qp_new_batch_processor(odw_process_dht_batch, __FILE__, __LINE__, ODW_DHT_QUEUE_SIZE, ABQ_FULL_BLOCK, ODW_DHT_THREADS_PER_QUEUE_PROCESSOR, ODW_MAX_BATCH_SIZE);
+    }
 	//odw->retryQP = qp_new_batch_processor(odw_process_retry_batch, __FILE__, __LINE__, ODW_RETRY_QUEUE_SIZE, ABQ_FULL_DROP, ODW_RETRY_THREADS, ODW_RETRY_MAX_BATCH_SIZE);
 	odw->sd = sd;
     odw->minWriteIntervalMillis = minWriteIntervalMillis;
@@ -84,6 +88,8 @@ OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/, uint64_t minWriteInt
 
 void odw_delete(OpenDirWriter **odw) {
 	if (odw != NULL && *odw != NULL) {
+        // FUTURE - deletion is presently unused; implement for qp if needed
+        /*
 		(*odw)->qp->running = FALSE;
 		for(int i=0; i<(*odw)->qp->numThreads; i++) {
 			int added = qp_add((*odw)->qp, NULL);
@@ -106,6 +112,7 @@ void odw_delete(OpenDirWriter **odw) {
 		}
 		
 		mem_free((void **)odw);
+        */
 	} else {
 		fatalError("bad ptr in odw_delete");
 	}
@@ -118,10 +125,13 @@ void odw_write_dir(OpenDirWriter *odw, const char *path, OpenDir *od) {
 
 	okToAdd = od_set_queued_for_write(od, TRUE);
 	if (okToAdd) {
+        QueueProcessor  *qp;
+        
 		srfsLog(LOG_FINE, "Adding od %llx od %s", od, od->path);
 		odwr = odwr_new(odw, od);
 		srfsLog(LOG_FINE, "new odwr %llx", odwr);
-		added = qp_add(odw->qp, odwr);
+        qp = odw_select_qp(odw, odwr);
+		added = qp_add(qp, odwr);
 		if (!added) {
 			odwr_delete(&odwr);
 			fatalError("Unexpected failed odw addition", __FILE__, __LINE__);
@@ -129,6 +139,13 @@ void odw_write_dir(OpenDirWriter *odw, const char *path, OpenDir *od) {
 	} else {
 		srfsLog(LOG_INFO, "Ignoring already queued od %s", od->path);
 	}
+}
+
+static QueueProcessor *odw_select_qp(OpenDirWriter *odw, OpenDirWriteRequest *odwr) {
+    unsigned int    i;
+    
+    i = stringHash(odwr->od->path) % ODW_DHT_QUEUE_PROCESSORS;
+    return odw->qp[i];
 }
 
 static void odw_process_dht_batch(void **requests, int numRequests, int curThreadIndex) {
