@@ -1513,7 +1513,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                                 }
                             }
                         }
-                    } while (!complete && attempt++ < _MAX_FILE_CREATION_ATTEMPTS);
+                    } while (!complete && ++attempt < _MAX_FILE_CREATION_ATTEMPTS);
                 }
             } else {
                 // wf already exists in wft...(file is currently being written on this node)
