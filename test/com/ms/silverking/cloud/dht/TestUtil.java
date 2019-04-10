@@ -37,7 +37,7 @@ public class TestUtil {
 	}
 	
 	public static ValueRetentionState getInitialState(ValueRetentionPolicy policy) {
-		return policy.createInitialState();
+		return policy.createInitialState(null, null);
 	}
 	
 	public static void checkRetains(Object[][] testCases) {
