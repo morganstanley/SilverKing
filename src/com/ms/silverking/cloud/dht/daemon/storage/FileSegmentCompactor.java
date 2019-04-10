@@ -83,7 +83,6 @@ public class FileSegmentCompactor {
             FileSegment             sourceSegment;
             FileSegment             destSegment;
             
-            Log.warning("Compacting segment: ", segmentNumber);
             sourceSegment = FileSegment.openReadOnly(nsDir, segmentNumber, 
 					            						nsOptions.getSegmentSize(),  
 					            						nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
@@ -132,7 +131,6 @@ public class FileSegmentCompactor {
             } finally {
             	sourceSegment.removeReference();
             }
-            Log.warning("Done compacting segment: ", segmentNumber);
             return destSegment;
         } catch (IOException ioe) {
             Log.logErrorWarning(ioe, "Unable to compact: "+ segmentNumber);
@@ -141,7 +139,7 @@ public class FileSegmentCompactor {
     }
     
     public static HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions, 
-			  				   EntryRetentionCheck retentionCheck) throws IOException {
+			  				   EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException {
     	FileSegment	compactedSegment;
     	File		oldFile;
     	File		trashFile;
@@ -149,16 +147,26 @@ public class FileSegmentCompactor {
     	HashedSetMap<DHTKey, Triple<Long, Integer, Long>>	removedEntries;
     	
     	removedEntries = new HashedSetMap<>();
+    	if (logCompaction) {
+    		Log.warning("Compacting segment: ", segmentNumber);
+    	}
     	compactedSegment = createCompactedSegment(nsDir, segmentNumber, nsOptions, nsOptions.getSegmentSize(), retentionCheck, 
     											  removedEntries, nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS);
+    	if (logCompaction) {
+    		Log.warning("Done compacting segment: ", segmentNumber);
+    	}
     	compactedSegment.persist();
-        Log.warning("Swapping to compacted segment: ", segmentNumber);
+    	if (logCompaction) {
+    		Log.warning("Swapping to compacted segment: ", segmentNumber);
+    	}
     	oldFile = FileSegment.fileForSegment(nsDir, segmentNumber);
     	newFile = getCompactionFile(nsDir, segmentNumber);
     	trashFile = getTrashFile(nsDir, segmentNumber);
     	rename(oldFile, trashFile); // Leave old file around for one cycle in case there are references to it
     	rename(newFile, oldFile);
-        Log.warning("Done swapping to compacted segment: ", segmentNumber);
+    	if (logCompaction) {
+    		Log.warning("Done swapping to compacted segment: ", segmentNumber);
+    	}
         return removedEntries;
     }
     
@@ -166,11 +174,9 @@ public class FileSegmentCompactor {
     	File		oldFile;
     	File		trashFile;
     	
-        Log.warning("Deleting segment: ", segmentNumber);
     	oldFile = FileSegment.fileForSegment(nsDir, segmentNumber);
     	trashFile = getTrashFile(nsDir, segmentNumber);
     	rename(oldFile, trashFile); // Leave old file around for one cycle in case there are references to it
-        Log.warning("Done deleting segment: ", segmentNumber);
 	}    
     
     public static void emptyTrashAndCompaction(File nsDir) {
@@ -209,7 +215,7 @@ public class FileSegmentCompactor {
 	    		timeSpanSeconds = Integer.parseInt(args[2]);
 	    		valueRetentionPolicy = new TimeAndVersionRetentionPolicy(TimeAndVersionRetentionPolicy.Mode.wallClock, 1, timeSpanSeconds);
 	    		nsOptions = DHTConstants.defaultNamespaceOptions.valueRetentionPolicy(valueRetentionPolicy);
-	    		compact(nsDir, segmentNumber, nsOptions, new TestRetentionCheck(32768));
+	    		compact(nsDir, segmentNumber, nsOptions, new TestRetentionCheck(32768), true);
     		}
     	} catch (Exception e) {
     		e.printStackTrace();

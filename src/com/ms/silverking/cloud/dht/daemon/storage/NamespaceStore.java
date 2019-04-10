@@ -507,7 +507,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     public long getTotalKeys() {
-    	if (retrieveTrigger != null) {
+    	if (retrieveTrigger != null && retrieveTrigger.subsumesStorage()) {
     		return retrieveTrigger.getTotalKeys();
     	} else {
     		return nsStats.getTotalKeys();
@@ -785,7 +785,7 @@ public class NamespaceStore implements SSNamespaceStore {
         
         nsVersionMode = nsOptions.getVersionMode();
 
-        if (enablePendingPuts && putTrigger != null && (!(resultListener instanceof KeyedOpResultMultiplexor))) { 
+        if (enablePendingPuts && putTrigger != null && putTrigger.supportsMerge() && (!(resultListener instanceof KeyedOpResultMultiplexor))) { 
         	// Pending puts currently only applied to server side code
         	// Pending puts doesn't support userdata
         	// Disallow puts to be deferred to the pending queue multiple times
@@ -2537,7 +2537,7 @@ public class NamespaceStore implements SSNamespaceStore {
     
     /** readLock() must be held while this is in use and readUnlock() must be called when complete */
     public Iterator<KeyAndVersionChecksum> keyAndVersionChecksumIterator(long minVersion, long maxVersion) {
-    	if (retrieveTrigger == null) {
+    	if (retrieveTrigger == null || !retrieveTrigger.subsumesStorage()) {
     		if (debug) {
     			System.out.printf("KeyAndVersionChecksumIterator\n");
     		}
@@ -2554,13 +2554,13 @@ public class NamespaceStore implements SSNamespaceStore {
         private final Iterator<DHTKeyIntEntry>  valueSegmentEntries;
         private KeyAndVersionChecksum   next;
 
-        private final RetrievalOptions retrievalOptions;
+        //private final RetrievalOptions retrievalOptions;
 
         private KeyAndVersionChecksumIterator(long minVersion, long maxVersion) {
             valueSegmentEntries = valueSegments.iterator();
-            retrievalOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE_AND_META_DATA, WaitMode.GET,
-                    new VersionConstraint(minVersion, maxVersion, Mode.GREATEST));
-                    //VersionConstraint.greatest);
+            //retrievalOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE_AND_META_DATA, WaitMode.GET,
+            //        new VersionConstraint(minVersion, maxVersion, Mode.GREATEST));
+            //        //VersionConstraint.greatest);
             moveToNext();
         }
 
@@ -2759,12 +2759,11 @@ public class NamespaceStore implements SSNamespaceStore {
 	    	ValueRetentionState	vrState;
 	    	
 			nextSegmentNumber = headSegment.getSegmentNumber();
-			vrState = nsOptions.getValueRetentionPolicy().createInitialState();
+			vrState = nsOptions.getValueRetentionPolicy().createInitialState(putTrigger, retrieveTrigger);
 			reapImplState.initialize(nextSegmentNumber, vrState);
 		}
 	}
 	
-    static enum ReapPhase {reap, compactAndDelete};
     private ReapPhase	reapPhase = ReapPhase.reap;
     
 	public void setReapPhase(ReapPhase reapPhase) {
@@ -2773,7 +2772,9 @@ public class NamespaceStore implements SSNamespaceStore {
 		} else {
 			this.reapPhase = reapPhase;
 		}
-		Log.warningAsync("reapPhase: "+ this.reapPhase);
+		if (reapPolicy.verboseReapPhase()) {
+			Log.warningAsync("reapPhase: "+ this.reapPhase);
+		}
 	}
 	
 	private static class CompactAndDeleteImplState {
@@ -2881,8 +2882,8 @@ public class NamespaceStore implements SSNamespaceStore {
     			|| reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
 			FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
     	}
-    	if (reapPolicy.reapAllowed(reapPolicyState, this, true)) {
-    		_reap(headSegment.getSegmentNumber(), 0, nsOptions.getValueRetentionPolicy().createInitialState(), true);
+    	if (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase, true)) {
+    		_reap(headSegment.getSegmentNumber(), 0, nsOptions.getValueRetentionPolicy().createInitialState(putTrigger, retrieveTrigger), true);
     		transitionToCompactAndDeletePhase();
     		startupCompactAndDelete();
         	transitionToReapPhase();
@@ -2893,7 +2894,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     public void liveReap() {
-    	if (reapPolicy.reapAllowed(reapPolicyState, this, false)) {
+    	if (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase, false)) {
     		if (Log.levelMet(Level.INFO)) {
     			Log.warningf("liveReap() ns %x", ns);
     		}
@@ -2934,7 +2935,7 @@ public class NamespaceStore implements SSNamespaceStore {
     	if (reapImplState.isClear()) {
     		initializeReapImplState();
     	}
-    	while (reapPolicy.reapAllowed(reapPolicyState, this, false) && reapImplState.getNextSegmentNumber() >= 0 && currentBatchSize < reapPolicy.getBatchLimit()) {
+    	while (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase, false) && reapImplState.getNextSegmentNumber() >= 0 && currentBatchSize < reapPolicy.getBatchLimit(null)) {
     		int	segmentsReaped;
     		
     		segmentsReaped = _reap(reapImplState.getNextSegmentNumber(), reapImplState.getNextSegmentNumber(), reapImplState.getVRState(), false);
@@ -2971,7 +2972,7 @@ public class NamespaceStore implements SSNamespaceStore {
     		throw new RuntimeException("Unexpected cdImplState.isClear()");
     	}
     	nextReapResult = null;
-    	while (reapPolicy.reapAllowed(reapPolicyState, this, false) && cdImplState.hasReapResults() && currentBatchSize < reapPolicy.getBatchLimit()) {
+    	while (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase, false) && cdImplState.hasReapResults() && currentBatchSize < reapPolicy.getBatchLimit(null)) {
         	nextReapResult = cdImplState.nextReapResult();
         	if (nextReapResult != null) {
 	    		compactAndDelete(nextReapResult.getV1(), nextReapResult.getV2(), false);
@@ -3118,7 +3119,13 @@ public class NamespaceStore implements SSNamespaceStore {
 								segment.close();
 								segment = null;
 							}
+							if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
+								Log.warning("Deleting segment: ", curSegment);
+							}
 							FileSegmentCompactor.delete(nsDir, curSegment);
+							if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
+								Log.warning("Done deleting segment: ", curSegment);
+							}
 							deletedSegments.add(curSegment);
 						} catch (IOException ioe) {
 							Log.logErrorWarning(ioe, "Failed to delete segment: " + curSegment);
@@ -3129,7 +3136,7 @@ public class NamespaceStore implements SSNamespaceStore {
 	
 							recentFileSegments.remove(curSegment);
 							segmentRemovedEntries = FileSegmentCompactor.compact(nsDir, curSegment, nsOptions,
-									new RetainedOffsetMapCheck(result.getV2(), result.getV3()));
+									new RetainedOffsetMapCheck(result.getV2(), result.getV3()), reapPolicy.verboseSegmentDeletionAndCompaction());
 							removedEntries.addAll(segmentRemovedEntries);
 						} catch (IOException ioe) {
 							Log.logErrorWarning(ioe, "IOException compacting segment: " + curSegment);

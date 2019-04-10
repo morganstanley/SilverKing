@@ -508,7 +508,9 @@ public class StorageModule implements LinkCreationListener {
     	if (!RingMapState2.localNodeIsExcluded()) {
 	    	Stopwatch	sw;
 	    	
-	    	Log.warningAsync("Live reap");
+			if (reapPolicy.verboseReap()) {
+				Log.warningAsync("Live reap");
+			}
 	    	sw = new SimpleStopwatch();
 	        for (NamespaceStore ns : namespaces.values()) {
 	        	if (!ns.isDynamic()) {
@@ -516,9 +518,13 @@ public class StorageModule implements LinkCreationListener {
 	        	}
 	        }
 	    	sw.stop();
-	    	Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
+			if (reapPolicy.verboseReap()) {
+				Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
+			}
     	} else {
-	    	Log.warningAsync("Skipping live reap. Local node is excluded.");
+			if (reapPolicy.verboseReap()) {
+				Log.warningAsync("Skipping live reap. Local node is excluded.");
+			}
     	}
     }
     

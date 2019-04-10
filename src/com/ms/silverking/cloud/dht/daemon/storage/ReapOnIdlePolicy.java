@@ -6,7 +6,7 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.ObjectDefParser2;
 
-public class ReapOnIdlePolicy implements ReapPolicy<ReapOnIdleState> {
+public class ReapOnIdlePolicy extends BaseReapPolicy<ReapOnIdleState> {
 	private final boolean	reapOnStartup;
 	private final boolean	reapOnIdle;
 	private final long		minIdleIntervalMillis;
@@ -35,9 +35,11 @@ public class ReapOnIdlePolicy implements ReapPolicy<ReapOnIdleState> {
         ObjectDefParser2.addParser(template);
     }    	
 	
-	public ReapOnIdlePolicy(boolean reapOnStartup, boolean reapOnIdle, long minIdleIntervalMillis, 
+	public ReapOnIdlePolicy(boolean verboseReap, boolean verboseReapPhase, boolean verboseSegmentDeletion,
+			boolean reapOnStartup, boolean reapOnIdle, long minIdleIntervalMillis, 
 			long minFullReapIntervalMillis, long minPutDelta, int idleReapPauseMillis,
 			int reapIntervalMillis, int defaultBatchLimit, EmptyTrashMode emptyTrashMode) {
+		super(verboseReap, verboseReapPhase, verboseSegmentDeletion);
 		this.reapOnStartup = reapOnStartup;
 		this.reapOnIdle = reapOnIdle;
 		this.minIdleIntervalMillis = minIdleIntervalMillis;
@@ -48,19 +50,22 @@ public class ReapOnIdlePolicy implements ReapPolicy<ReapOnIdleState> {
 		this.emptyTrashMode = emptyTrashMode;
 		this.batchLimit = defaultBatchLimit;
 	}
-
+	
 	public ReapOnIdlePolicy() {
-		this(defaultReapOnStartup, defaultReapOnIdle, defaultMinIdleIntervalMillis, defaultMinFullReapIntervalMillis, 
+		this(defaultVerboseReap, defaultVerboseReapPhase, defaultVerboseSegmentDeletion,
+				defaultReapOnStartup, defaultReapOnIdle, defaultMinIdleIntervalMillis, defaultMinFullReapIntervalMillis, 
 				defaultMinPutDelta, defaultIdleReapPauseMillis, defaultReapIntervalMillis, defaultBatchLimit, defaultEmptyTrashMode);
 	}
 	
 	public ReapOnIdlePolicy reapOnStartup(boolean reapOnStartup) {
-		return new ReapOnIdlePolicy(reapOnStartup, reapOnIdle, minIdleIntervalMillis, minFullReapIntervalMillis, minPutDelta, 
+		return new ReapOnIdlePolicy(verboseReap, verboseReapPhase, verboseSegmentDeletionAndCompaction,
+									reapOnStartup, reapOnIdle, minIdleIntervalMillis, minFullReapIntervalMillis, minPutDelta, 
 									idleReapPauseMillis, reapIntervalMillis, batchLimit, emptyTrashMode);
 	}
 	
 	public ReapOnIdlePolicy reapOnIdle(boolean reapOnIdle) {
-		return new ReapOnIdlePolicy(reapOnStartup, reapOnIdle, minIdleIntervalMillis, minFullReapIntervalMillis, minPutDelta, 
+		return new ReapOnIdlePolicy(verboseReap, verboseReapPhase, verboseSegmentDeletionAndCompaction,
+									reapOnStartup, reapOnIdle, minIdleIntervalMillis, minFullReapIntervalMillis, minPutDelta, 
 									idleReapPauseMillis, reapIntervalMillis, batchLimit, emptyTrashMode);
 	}
 	
@@ -75,7 +80,7 @@ public class ReapOnIdlePolicy implements ReapPolicy<ReapOnIdleState> {
 	}
 	
 	@Override
-	public boolean reapAllowed(ReapOnIdleState state, NamespaceStore nsStore, boolean isStartup) {
+	public boolean reapAllowed(ReapOnIdleState state, NamespaceStore nsStore, ReapPhase reapPhase, boolean isStartup) {
 		if (isStartup) {
 			return reapOnStartup;
 		} else {
@@ -135,7 +140,7 @@ public class ReapOnIdlePolicy implements ReapPolicy<ReapOnIdleState> {
 	}
 	
 	@Override
-	public int getBatchLimit() {
+	public int getBatchLimit(ReapPhase reapPhase) {
 		return batchLimit;
 	}	
 }

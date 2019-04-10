@@ -428,7 +428,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
 				entryKey = entry.getKey();
 				
 				if (vrp.considersStoredLength()) {
-					storedLength = MetaDataUtil.getStoredLength(dataBuf, offset);
+					storedLength = getStoredLength(offset);
 				} else {
 					storedLength = 0;
 				}

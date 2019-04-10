@@ -18,7 +18,7 @@ public class NeverReapPolicy implements ReapPolicy<ReapPolicyState> {
 	}
 
 	@Override
-	public boolean reapAllowed(ReapPolicyState state, NamespaceStore nsStore, boolean isStartup) {
+	public boolean reapAllowed(ReapPolicyState state, NamespaceStore nsStore, ReapPhase reapPhase, boolean isStartup) {
 		return false;
 	}
 
@@ -43,7 +43,22 @@ public class NeverReapPolicy implements ReapPolicy<ReapPolicyState> {
 	}
 	
 	@Override
-	public int getBatchLimit() {
+	public int getBatchLimit(ReapPhase reapPhase) {
 		return 0;
+	}
+
+	@Override
+	public boolean verboseReap() {
+		return false;
+	}
+
+	@Override
+	public boolean verboseReapPhase() {
+		return false;
+	}
+
+	@Override
+	public boolean verboseSegmentDeletionAndCompaction() {
+		return false;
 	}
 }

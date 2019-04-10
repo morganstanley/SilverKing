@@ -61,6 +61,10 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
         return MetaDataUtil.getCreator(dataBuf, offset + DHTKey.BYTES_PER_KEY);
     }
     
+    int getStoredLength(int offset) {
+        return MetaDataUtil.getStoredLength(dataBuf, offset + DHTKey.BYTES_PER_KEY);
+    }
+    
     private int checkOffset(int offset) {
         if (offset < 0) {
             OffsetList  offsetList;
