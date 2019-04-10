@@ -2,7 +2,6 @@ package com.ms.silverking.cloud.dht.daemon;
 
 import org.kohsuke.args4j.Option;
 
-import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -23,10 +22,6 @@ public class DHTNodeOptions {
 	String reapPolicy = new ReapOnIdlePolicy().toString();
 	
 	public ReapPolicy getReapPolicy() {
-		if (reapPolicy.contains("idleReapPauseMillis")) { // FUTURE - remove workaround when parser support available
-			return (ReapPolicy)ObjectDefParser2.parse(ReapOnIdlePolicy.class, reapPolicy);
-		} else {
-			return NeverReapPolicy.instance;
-		}
+		return (ReapPolicy)ObjectDefParser2.parse(reapPolicy, ReapPolicy.class.getPackage());
 	}
 }

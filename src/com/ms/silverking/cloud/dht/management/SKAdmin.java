@@ -28,6 +28,7 @@ import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
 import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
 import com.ms.silverking.cloud.dht.daemon.RingHealth;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.ClassVars;
 import com.ms.silverking.cloud.dht.meta.ClassVarsZK;
@@ -400,11 +401,13 @@ public class SKAdmin {
 		String	daemonLogFile;
 		String	prevDaemonLogFile;
 		boolean	destructive;
+		ReapPolicy	reapPolicy;
 		
 		destructive = options.destructive;
 		daemonLogDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
 		daemonLogFile = daemonLogDir +"/"+ DHTConstants.daemonLogFile;
 		prevDaemonLogFile = daemonLogDir +"/"+ DHTConstants.prevDaemonLogFile;
+		reapPolicy = options.getReapPolicy();
 		return  (destructive ? "" : "netstat -tulpn | grep tcp.*:"+ dhtConfig.getPort() +" ; ") +
 				(destructive ? "" : "if [ \\$? -ne 0 ]; then { ") +
 				(destructive ? createStopCommand(dhtConfig, classVars) +"; " : "")
@@ -416,7 +419,7 @@ public class SKAdmin {
 				+ getTaskset(options)
 				+ getJavaCmdStart(options, classVars) 
 				+" "+ DHTNode.class.getCanonicalName()
-				+ " -reapPolicy "+ options.getReapPolicy()
+				+ " -reapPolicy \\\"<"+ reapPolicy.getClass().getCanonicalName() +">{"+ reapPolicy.toString() +"}\\\""
 				+" -n "+ gc.getClientDHTConfiguration().getName() 
 				+" -z "+ gc.getClientDHTConfiguration().getZKConfig()
 				+" -into "+ options.inactiveNodeTimeoutSeconds

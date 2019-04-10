@@ -102,7 +102,7 @@ class SKAdminOptions {
 	ReapMode reapMode = null;
 	
 	@Option(name="-reapPolicy", usage="reapPolicy", required=false)
-	String reapPolicy = new ReapOnIdlePolicy().toString();	
+	String reapPolicy = ObjectDefParser2.toClassAndDefString(new ReapOnIdlePolicy());	
 	
 	@Option(name="-ringHealth", usage="ringHealth", required=false)
 	RingHealth	ringHealth;
@@ -112,7 +112,7 @@ class SKAdminOptions {
 			return new NeverReapPolicy();
 		} else {
 			if (reapMode == null) {
-				return (ReapPolicy)ObjectDefParser2.parse(ReapOnIdlePolicy.class, reapPolicy);
+				return (ReapPolicy)ObjectDefParser2.parse(reapPolicy, ReapPolicy.class.getPackage());
 			} else {
 				switch (reapMode) {
 				case None:

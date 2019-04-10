@@ -452,4 +452,9 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 			}
 		}
 	}
+
+	@Override
+	public boolean subsumesStorage() {
+		return true;
+	}
 }

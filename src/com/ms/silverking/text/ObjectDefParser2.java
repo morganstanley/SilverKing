@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 
 public class ObjectDefParser2 {
@@ -98,6 +100,47 @@ public class ObjectDefParser2 {
     public static <T> void addParser(Class<T> _class, T template) {
         addParser(_class, template, FieldsRequirement.ALLOW_INCOMPLETE, null, null, null, null);
     }
+    
+    public static String toClassAndDefString(Object o) {
+    	return "<"+ o.getClass().getCanonicalName() +">{"+ o.toString() +"}";	
+    }
+    
+	private static Pair<Class,String> getClassAndDef(String nameAndDef, Package defaultPackage) {
+		Class	_class;
+		String	def;
+		
+		nameAndDef = nameAndDef.trim();
+		if (nameAndDef.startsWith("<")) {
+			int		i1;
+			String	classDef;
+			
+			i1 = nameAndDef.indexOf('>');
+			if (i1 < 0) {
+				throw new RuntimeException("Bad nameAndDef. Missing >");
+			} else {
+				classDef = nameAndDef.substring(1, i1);
+				def = nameAndDef.substring(i1 + 1);
+				if (classDef.indexOf('.') < 0 && defaultPackage != null) {
+					classDef = defaultPackage.getName() +"."+ classDef;
+				}
+			}
+			try {
+				_class = Class.forName(classDef);
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException("Can't find class for: "+ classDef);
+			}
+		} else {
+			throw new RuntimeException("Bad nameAndDef. Missing <");
+		}
+		return new Pair<>(_class, def);
+	}
+	
+    public static <T> T parse(String nameAndDef, Package defaultPackage) {
+    	Pair<Class,String>	classAndDef;
+    	
+    	classAndDef = getClassAndDef(nameAndDef, defaultPackage);
+    	return parse(classAndDef.getV1(), classAndDef.getV2());
+    }	
     
     public static <T> T parse(Class _class, String def) {
         ClassParser<T> cp;
