@@ -356,7 +356,9 @@ public class RingMapState2 {
 			
 			_ringHealth = RingHealth.valueOf(new String(value));
 			if (_ringHealth != null) {
-				Log.warningf("New ring health %s", ringHealth);
+				if (ringHealth != _ringHealth) {
+					Log.warningf("New ring health %s", ringHealth);
+				}
 				ringHealth = _ringHealth;
 			}
 		}
