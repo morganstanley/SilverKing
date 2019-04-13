@@ -52,7 +52,7 @@ public class TruncateTest {
 	}
 	
 	private void testOutput() {
-		assertEquals("1111", pe.getOutput().trim());
+		assertEquals("1111", pe.getTrimmedOutput());
 	}
 	
 	public static void main(String[] args) throws IOException {
