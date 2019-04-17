@@ -305,6 +305,7 @@ function f_sendEmail {
             fatalFails+=("pbr_read received error from fbr_read")
             fatalFails+=("OutOfMemoryError")
             fatalFails+=(" TIMEOUT") # FIXME:bph: change " TIMEOUT" -> "\s+TIMEOUT" so we actually match these as FATAL
+            fatalFails+=(" wf_write_block_sync failed ") 
             # add "*** check this machine" ? 
             typeset lastIndex=$((${#fatalFails[@]}-1))
             for i in {0..$lastIndex}; do
@@ -317,7 +318,7 @@ function f_sendEmail {
                 fi
             done
             
-            typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
+            typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
             typeset warningCount=`grep -Pc "$warningFails" "$DETAILS_FILE"`
             
             if [[ $fatalCount -gt 0 ]]; then
@@ -325,7 +326,7 @@ function f_sendEmail {
                 resultInfo="($fatalCount) | ($failHostCount/$HOST_COUNT)"
                 to+=",$FATAL_EMAILS"
             elif [[ $warningCount -gt 0 ]]; then
-                result="WARNING)"
+                result="WARNING"
                 resultInfo="($warningCount) | ($failHostCount/$HOST_COUNT)"
             fi
         else
