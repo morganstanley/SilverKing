@@ -13,6 +13,7 @@ import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.time.TimeUtils;
 
 public class ProcessExecutor {
+	
 	private String[] commands;
 	private ShellCommandExecutor shellCommandExecutor;
 	
@@ -34,6 +35,10 @@ public class ProcessExecutor {
 	
 	public String getOutput() {
 		return shellCommandExecutor.getOutput();
+	}
+	
+	public String getTrimmedOutput() {
+		return shellCommandExecutor.getOutput().trim();
 	}
 	
 	public int getExitCode() {
@@ -117,8 +122,8 @@ public class ProcessExecutor {
 
 	////////////
 	// useful for running a single script/command
-	// 		that has no spaces, e.g. "~/SilverKing/build/aws/zk_start.sh"
-	//		and also something like "date +%H:%M:%S", that has a space
+	//   that has no spaces, e.g. "~/SilverKing/build/aws/zk_start.sh"
+	//   and also something like "date +%H:%M:%S", that has a space
 	////////////
 	public static String runCmd(String command) {
 		return runCmd(command.split(" "));

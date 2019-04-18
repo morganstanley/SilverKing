@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/ksh
 
 source lib/common.lib
 
@@ -275,7 +275,11 @@ function f_logEmptyFile {
 }
 
 function f_logSshCmd {
-    f_logHelper "$1" "$TMP_OUTPUT_RUN_DIR/ssh.cmds"
+    f_logHelper "$1" "$SSH_CMDS_FILE"
+}
+
+function f_logFatalBreakdown {
+    f_logHelper "$1" "$FATAL_COUNT_BREAKDOWN_FILE"
 }
 
 function f_sendEmail {
@@ -292,33 +296,49 @@ function f_sendEmail {
     else
         typeset  failHostCount=$(f_getUniqueHosts "$FAILS_FILE")
         typeset errorHostCount=$(f_getUniqueHosts "$ERRORS_FILE")
+        typeset     fatalCount=0
         if [[ -e $FAILS_FILE ]]; then
             result="INFO"
             resultInfo="($failHostCount/$HOST_COUNT)"
+            
+            typeset -a fatalFails
+            fatalFails+=("pbr_read received error from fbr_read")
+            fatalFails+=("OutOfMemoryError")
+            fatalFails+=(" TIMEOUT") # FIXME:bph: change " TIMEOUT" -> "\s+TIMEOUT" so we actually match these as FATAL
+            fatalFails+=(" wf_write_block_sync failed ") 
+            # add "*** check this machine" ? 
+            typeset lastIndex=$((${#fatalFails[@]}-1))
+            for i in {0..$lastIndex}; do
+                typeset pattern=${fatalFails[$i]}
+                typeset patternCount=`grep -Pc "$pattern" "$DETAILS_FILE"`
+                if [[ $patternCount -gt 0 ]]; then
+                    typeset breakDown=`printf "%40s -> %s" "$pattern" "$patternCount"`
+                    f_logFatalBreakdown "$breakDown"
+                    fatalCount=$((fatalCount+patternCount))
+                fi
+            done
+            
+            typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
+            typeset warningCount=`grep -Pc "$warningFails" "$DETAILS_FILE"`
+            
+            if [[ $fatalCount -gt 0 ]]; then
+                result="FATAL"
+                resultInfo="($fatalCount) | ($failHostCount/$HOST_COUNT)"
+                to+=",$FATAL_EMAILS"
+            elif [[ $warningCount -gt 0 ]]; then
+                result="WARNING"
+                resultInfo="($warningCount) | ($failHostCount/$HOST_COUNT)"
+            fi
         else
             result="ERROR"
             resultInfo="($errorHostCount/$HOST_COUNT)"
         fi
         
-        f_logReportSection "$REPORT_FILE" "ERRORS"  "$ERRORS_FILE" " ($errorHostCount)"
-        f_logReportSection "$REPORT_FILE" "FAILS"   "$FAILS_FILE"  " ($failHostCount)"
-        f_logReportSection "$REPORT_FILE" "DETAILS" "$DETAILS_FILE"
-        
-        typeset   fatalFails="pbr_read received error from fbr_read| TIMEOUT" # add "*** check this machine" ? # FIXME:bph: change " TIMEOUT" -> "\s+TIMEOUT" so we actually match these as FATAL
-        typeset warningFails="KeeperErrorCode = ConnectionLoss for |KeeperException| wf_write_block_sync failed | EST sendFailed/|java.lang.UnsupportedOperationException|A fatal error has been detected by the Java Runtime Environment|fbr_read failed|terminate called after throwing an instance of"
-            
-        typeset   fatalCount=`grep -Pc "$fatalFails"   "$REPORT_FILE"`
-        typeset warningCount=`grep -Pc "$warningFails" "$REPORT_FILE"`
-        
-        if [[ $fatalCount -gt 0 ]]; then
-            result="FATAL"
-            resultInfo="($fatalCount) | ($failHostCount/$HOST_COUNT)"
-            to+=",$FATAL_EMAILS"
-        elif [[ $warningCount -gt 0 ]]; then
-            result="WARNING)"
-            resultInfo="($warningCount) | ($failHostCount/$HOST_COUNT)"
-        fi
-        
+        f_logReportSection "$REPORT_FILE" "FATAL BREAKDOWN"  "$FATAL_COUNT_BREAKDOWN_FILE"  " ($fatalCount)"
+        f_logReportSection "$REPORT_FILE" "ERRORS"           "$ERRORS_FILE"                 " ($errorHostCount)"
+        f_logReportSection "$REPORT_FILE" "FAILS"            "$FAILS_FILE"                  " ($failHostCount)"
+        f_logReportSection "$REPORT_FILE" "DETAILS"          "$DETAILS_FILE"
+                
         typeset failIndicators;
         if [[ -e $HOST_DIFF_OUTPUT_FILE ]]; then
             failIndicators="(-)"
@@ -406,15 +426,17 @@ typeset TIMEOUT_SSH="timeout $fiveMinsInSecs $SSH_CMD"
 typeset   SK_SSH_CMD="$findErrorsScript   $SK_LOG_DIR"
 typeset SKFS_SSH_CMD="$findErrorsScript $SKFS_LOG_DIR"
 
-typeset   ALL_RUNS_OUTPUT_DIR=`dirname $RUN_DIR`
-typeset HOST_DIFF_OUTPUT_FILE="$TMP_OUTPUT_RUN_DIR/diff_hosts.out"
-typeset            HOST_COUNT=$(f_getNumberOfLines "$HOSTS_FILE")
-typeset           EMPTY_FILES="$TMP_OUTPUT_RUN_DIR/empty_files.out"
-typeset           RESULT_FILE="$TMP_OUTPUT_RUN_DIR/run.result"
-typeset           ERRORS_FILE="$TMP_OUTPUT_RUN_DIR/run.errors"
-typeset            FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
-typeset          DETAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.details"
-typeset           REPORT_FILE="$TMP_OUTPUT_RUN_DIR/report.out"
+typeset        ALL_RUNS_OUTPUT_DIR=`dirname $RUN_DIR`
+typeset      HOST_DIFF_OUTPUT_FILE="$TMP_OUTPUT_RUN_DIR/diff_hosts.out"
+typeset                 HOST_COUNT=$(f_getNumberOfLines "$HOSTS_FILE")
+typeset                EMPTY_FILES="$TMP_OUTPUT_RUN_DIR/empty_files.out"
+typeset                RESULT_FILE="$TMP_OUTPUT_RUN_DIR/run.result"
+typeset                ERRORS_FILE="$TMP_OUTPUT_RUN_DIR/run.errors"
+typeset                 FAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.fails"
+typeset               DETAILS_FILE="$TMP_OUTPUT_RUN_DIR/run.details"
+typeset                REPORT_FILE="$TMP_OUTPUT_RUN_DIR/report.out"
+typeset              SSH_CMDS_FILE="$TMP_OUTPUT_RUN_DIR/ssh.cmds"
+typeset FATAL_COUNT_BREAKDOWN_FILE="$TMP_OUTPUT_RUN_DIR/fatals.breakdown"
 
 typeset NUM_OF_META_DATA_LINES=2
 typeset         FILE_NAME_LINE=1
