@@ -245,10 +245,16 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
 			} else {
 				srfsLog(LOG_WARNING, "pbr_read received error from fbr_read");
                 if (!is_writable_path(path)) {
-                    totalRead = _pbr_native_read(pbr, path, dest, readSize, readOffset);
+                    totalRead = _pbr_native_read(pbr, path, dest, actualReadSize, readOffset);
+                    /*
+                    char nfsPath[SRFS_MAX_PATH_LENGTH];
+
+                    ar_translate_path(pbr->ar, nfsPath, path);
+                    totalRead = nfr_read(nfsPath, dest, actualReadSize, readOffset);
+                    */
                     if (totalRead <= 0) {
                         totalRead = -1;
-                        srfsLog(LOG_WARNING, "pbr_read returning error after _pbr_native_read");
+                        srfsLog(LOG_WARNING, "pbr_read returning error after native_read");
                     }
                 } else {
                     int ii;
