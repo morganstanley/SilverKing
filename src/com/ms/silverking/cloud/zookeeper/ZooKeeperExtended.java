@@ -63,12 +63,18 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     public static final int AUTO_VERSION_FIELD_SIZE = 10;
     
     private final Watcher   watcher;
-    
+    private final SKAclProvider acl;
+
     static {
         asyncGetResults = new LightLinkedBlockingQueue<>();
     	new ProcessRunner();
     }
-    
+
+    private static volatile SKAclProvider defaultAclProvider = new SKAclProviderSimpleImpl(defaultACL, Collections.emptyMap());
+    public static void overrideDefaultAclProvider(final SKAclProvider injectedAcl) {
+        defaultAclProvider = injectedAcl;
+    }
+
     /**
      * @param zkConfig ZooKeeperConfig that contains ZKServer's AddrAndPort and chroot
      * @param sessionTimeout session timeout in milliseconds (raw ZooKeeper constructor parameter)
@@ -83,6 +89,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
         this.watcher = watcher;
         //activeOps = new ConcurrentHashMap<ZKRequestUUID, ActiveOp>();
         callbacks = new MapMaker().weakValues().makeMap();
+        acl = defaultAclProvider;
     }
 
     /**
@@ -101,6 +108,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
         this.watcher = watcher;
         //activeOps = new ConcurrentHashMap<ZKRequestUUID, ActiveOp>();
         callbacks = new MapMaker().weakValues().makeMap();
+        acl = defaultAclProvider;
     }
     
     public ZooKeeperConfig getZKConfig() {
@@ -296,10 +304,16 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     public Stat setInteger(String path, int x) throws KeeperException {
         return set(path, NumConversion.intToBytes(x));
     }
-    
+
+    private List<ACL> getAclForPath(String path) {
+        List<ACL> aclToUse = acl.getAclForPath(path);
+        if (aclToUse == null) { aclToUse = acl.getDefaultAcl(); }
+        return aclToUse;
+    }
+
     public String create(String path, byte[] data, CreateMode createMode) throws KeeperException {
         try {
-            return create(path, data, defaultACL, createMode);
+            return create(path, data, getAclForPath(path), createMode);
         } catch (InterruptedException ie) {
             throw new RuntimeException("panic");
         }
@@ -332,7 +346,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
         
     public StringCallbackOp createAsync(String path, byte[] data) 
             throws KeeperException {
-        return createAsync(path, data, defaultACL, CreateMode.PERSISTENT);
+        return createAsync(path, data, getAclForPath(path), CreateMode.PERSISTENT);
     }
     
     public void delete(String path) throws KeeperException {
