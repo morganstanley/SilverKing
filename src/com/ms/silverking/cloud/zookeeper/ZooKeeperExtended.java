@@ -70,9 +70,9 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
     
     /**
-     * @param host
-     * @param sessionTimeout
-     * @param watcher
+     * @param zkConfig ZooKeeperConfig that contains ZKServer's AddrAndPort and chroot
+     * @param sessionTimeout session timeout in milliseconds (raw ZooKeeper constructor parameter)
+     * @param watcher a watcher object (raw ZooKeeper constructor parameter)
      * @throws KeeperException
      * @throws IOException
      */
@@ -86,11 +86,11 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
 
     /**
-     * @param host
-     * @param sessionTimeout
-     * @param watcher
-     * @param sessionId
-     * @param sessionPasswd
+     * @param zkConfig ZooKeeperConfig that contains ZKServer's AddrAndPort and chroot
+     * @param sessionTimeout session timeout in milliseconds (raw ZooKeeper constructor parameter)
+     * @param watcher a watcher object (raw ZooKeeper constructor parameter)
+     * @param sessionId specific session id to use if reconnecting (raw ZooKeeper constructor parameter)
+     * @param sessionPasswd password for this session (raw ZooKeeper constructor parameter)
      * @throws KeeperException
      * @throws IOException
      */
