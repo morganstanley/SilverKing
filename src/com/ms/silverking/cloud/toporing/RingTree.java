@@ -49,7 +49,7 @@ public class RingTree {
     private static final int    allowedError = 10000;
     private static final int    allowedContiquityError = 10;
         
-    private boolean debug = false;
+    private boolean debug = true;
     
     public RingTree(Topology topology, Map<String,TopologyRing> maps, long ringConfigVersion, long ringCreationTime) {
         this.topology = topology;
@@ -206,6 +206,11 @@ public class RingTree {
                 entryList = new ArrayList<>();
                 ring = getNodeRing(node);
                 if (ring == null) {
+                	for (String s : maps.keySet()) {
+                		System.out.printf("%s\n", s);
+                	}
+                	System.out.println("");
+                	System.out.printf("%s\n", node.getIDString());
                     throw new RuntimeException("Can't find ring for node: "+ node);
                 } else {
                     List<RingEntry> allChildList;

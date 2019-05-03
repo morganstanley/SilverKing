@@ -229,7 +229,10 @@ public class DependencyWatcher implements VersionListener {
 	                SingleRingZK.writeTree(mc, topologyVersion, newInstancePath, ringTree);
 	                
 	                if (TopoRingConstants.verbose) {
+	                	System.out.println(".............................");
+	                	System.out.println(".............................");
 	                    System.out.println(ringTree);
+	                	System.out.println(".............................");
 	                    System.out.println(ringConfigVersion);
 	                    System.out.println(configInstanceVersion);
 	                    System.out.println(topologyVersion);

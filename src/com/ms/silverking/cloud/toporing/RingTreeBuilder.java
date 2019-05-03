@@ -102,17 +102,26 @@ public class RingTreeBuilder {
     }
     
     private static void buildMaps(Map<String,TopologyRing> maps, Node node, RingTreeRecipe recipe) {
+    	System.out.printf("buildMaps: %s %s %s\n", node, node.getChildren().size() > 0, recipe.hasDescendantInHostGroups(node));
         if (node.getChildren().size() > 0 && recipe.hasDescendantInHostGroups(node)) {
-            buildNodeMap(maps, node, recipe);
             System.out.printf("node %s children %s\n", node.getIDString(), CollectionUtil.toString(node.getChildren()));
+            buildNodeMap(maps, node, recipe);
             for (Node child : node.getChildren()) {
                 if (child.getNodeClass() != NodeClass.server) {
+                	boolean	foundSubPolicy;
+                	
+                	foundSubPolicy = false;
                     for (String subPolicyName : recipe.storagePolicy.getSubPolicyNamesForNodeClass(child.getNodeClass(), child)) {
                         RingTreeRecipe  _recipe;
                         
+                    	foundSubPolicy = true;
                         //need to change the storagePolicy for the below recipe
                         _recipe = recipe.newParentAndStoragePolicy(child, subPolicyName);
                         buildMaps(maps, child, _recipe);
+                    }
+                    if (!foundSubPolicy) {
+                    	System.out.printf("No subPolicy %s %s\n", child.getIDString(), child.getNodeClass());
+                    	throw new RuntimeException(String.format("No subPolicy %s %s\n", child.getIDString(), child.getNodeClass()));
                     }
                 }
             }

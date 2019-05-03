@@ -1188,6 +1188,7 @@ public class TopologyRingCreator {
     		System.exit(-1);
 		}
 		
+		/*
 		for (int _i = 0; _i < nodes.size(); _i++) {
 			long	regionSize;
 			Node	n;
@@ -1198,18 +1199,23 @@ public class TopologyRingCreator {
 			n = nodes.get(i);
 			regionSize = nodeRegionSizes.get(i);
 			allocation = allocations.get(n.getIDString());
+			
+			System.out.printf("sc:\t%s\t%d\t%d\n", n.getIDString(), regionSize, allocation);
+			
 			if (allocation != null) {
 				long	_ringspaceToAllocate;
 				
 				_ringspaceToAllocate = i == nodeIndex ? ringspaceToAllocate : 0;
         		//System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\n", n.getIDString(), regionSize, regionSize * (replicaIndex + 1), allocation, regionSize * (replicaIndex + 1) - allocation, _ringspaceToAllocate);
 				if (_ringspaceToAllocate + allocation > regionSize * (replicaIndex + 1) + magnitudeTolerance) {
+					System.out.printf("%d\t%d\t%d\n", i, nodeIndex, replicaIndex);
 	        		System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\t***FAILED\n", n.getIDString(), regionSize, regionSize * (replicaIndex + 1), allocation, regionSize * (replicaIndex + 1) - allocation, _ringspaceToAllocate);
 					//throw new RuntimeException("Fatal: sanityCheckAllocations failed");
 	        		System.exit(-1);
 				}
 			}
 		}
+		*/
     }
 
     // ///////////////////////////////////////////////////////////
