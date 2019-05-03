@@ -62,9 +62,9 @@ void ac_remove(AttrCache *aCache, char *path) {
     cache_remove(ac_sub_cache(aCache, path), path, FALSE);
 }
 
-CacheReadResult ac_read(AttrCache *aCache, char *path, FileAttr *fa, ActiveOpRef **activeOpRef, void *attrReader, uint64_t minModificationTimeMicros) {
+CacheReadResult ac_read(AttrCache *aCache, char *path, FileAttr *fa, ActiveOpRef **activeOpRef, void *attrReader, uint64_t minModificationTime) {
 	return cache_read(ac_sub_cache(aCache, path), path, strlen(path) + 1, (unsigned char *)fa, 0, sizeof(FileAttr), activeOpRef, NULL, 
-						ar_create_active_op, attrReader, minModificationTimeMicros);
+						ar_create_active_op, attrReader, minModificationTime);
 }
 
 CacheReadResult ac_read_no_op_creation(AttrCache *aCache, char *path, FileAttr *fa) {
@@ -76,9 +76,9 @@ CacheReadResult ac_read_no_op_creation(AttrCache *aCache, char *path, FileAttr *
 //	cache_store_dht_value(ac_sub_cache(aCache, path), path, strlen(path) + 1, pRVal);
 //}
 
-CacheStoreResult ac_store_raw_data(AttrCache *aCache, char *path, FileAttr *data, int replace, uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
+CacheStoreResult ac_store_raw_data(AttrCache *aCache, char *path, FileAttr *data, int replace, uint64_t modificationTime, uint64_t timeoutMillis) {
 	srfsLog(LOG_FINE, "ac_store_raw_data %s %u %u", path, timeoutMillis, data->stat.st_size);
-	return cache_store_raw_data(ac_sub_cache(aCache, path), path, strlen(path) + 1, data, sizeof(FileAttr), replace, modificationTimeMicros, timeoutMillis);
+	return cache_store_raw_data(ac_sub_cache(aCache, path), path, strlen(path) + 1, data, sizeof(FileAttr), replace, modificationTime, timeoutMillis);
 }
 
 void ac_remove_active_op(AttrCache *aCache, char *path, int fatalErrorOnNotFound) {
@@ -89,9 +89,9 @@ void ac_store_active_op(AttrCache *aCache, char *path, ActiveOp *op) {
 	cache_store_active_op(ac_sub_cache(aCache, path), path, strlen(path) + 1, op);
 }
 
-void ac_store_error(AttrCache *aCache, char *path, int errorCode, uint64_t modificationTimeMicros, uint64_t timeoutMillis, int notifyActiveOps_noStorage) {
+void ac_store_error(AttrCache *aCache, char *path, int errorCode, uint64_t modificationTime, uint64_t timeoutMillis, int notifyActiveOps_noStorage) {
     srfsLog(LOG_FINE, "ac_store_error %s %d", path, errorCode);
-	cache_store_error(ac_sub_cache(aCache, path), path, strlen(path) + 1, errorCode, notifyActiveOps_noStorage, modificationTimeMicros, timeoutMillis);
+	cache_store_error(ac_sub_cache(aCache, path), path, strlen(path) + 1, errorCode, notifyActiveOps_noStorage, modificationTime, timeoutMillis);
 }
 
 void ac_display_stats(AttrCache *aCache) {
