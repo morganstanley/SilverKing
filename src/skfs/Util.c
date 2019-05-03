@@ -26,6 +26,7 @@
 
 #include "skconstants.h"
 #include "QueueProcessor.h"
+#include "SKSystemTimeSource.h"
 #include "SRFSDHT.h"
 #include "SRFSConstants.h"
 #include "Util.h"
@@ -70,12 +71,17 @@ static void cv_wait_abs_given_time(pthread_mutex_t *mutex, pthread_cond_t *cv, u
 static void log_process_batch(void **logEntries, int numLogEntries, int curThreadIndex);
 
 
-///////////////
-// globals
+///////////////////
+// public globals
 
 char zeroBlock[SRFS_BLOCK_SIZE];
 uint64_t    myValueCreator;
 
+
+////////////////////
+// private globals
+
+SKSystemTimeSource  *systemTimeSource;
 
 ///////////////////
 // implementation
@@ -256,6 +262,22 @@ uint64_t curTimeMicros() {
 	gettimeofday(&tv, NULL);
 	rVal = (uint64_t)tv.tv_sec * (uint64_t)1000000 + (uint64_t)tv.tv_usec;
 	return rVal;
+}
+
+void initSystemTimeSource() {
+    // non-rigorous check for double init
+    if (systemTimeSource != NULL) {
+        fatalError("systemTimeSource already initialized");
+    }
+    systemTimeSource = new SKSystemTimeSource();
+}
+
+uint64_t curTimeNanos() {
+    return (uint64_t)systemTimeSource->absTimeNanos();
+}
+
+uint64_t microsToMillis(uint64_t micros) {
+    return micros / 1000;
 }
 
 void curTimePlusTimeMillis(uint64_t timeMillis, struct timespec *ts) {

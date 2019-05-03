@@ -17,6 +17,8 @@ public:
     SKAPI SKSystemTimeSource();
 	
     SKSystemTimeSource(SystemTimeSource * pSystemTimeSource);
+    int64_t absTimeNanos();
+    
 };
 
 #endif //SKSYSTEMTIMESOURCE_H

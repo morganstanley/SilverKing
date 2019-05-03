@@ -25,3 +25,15 @@ SKSystemTimeSource::~SKSystemTimeSource() {
 		pImpl = NULL;
 	}
 };
+
+// Ideally, we would just inherit. For now, just implement directly
+// until the new generation code makes all of this obsolete.
+int64_t SKSystemTimeSource::absTimeNanos() 
+{
+	if(pImpl) {
+		SystemTimeSource* pTs = dynamic_cast<SystemTimeSource*>(pImpl);  
+		int64_t time = (int64_t) pTs->absTimeNanos();
+		return time;
+	}
+	throw std::exception();
+}
