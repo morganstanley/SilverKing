@@ -24,6 +24,9 @@ public class RingIntegrityCheckOptions {
 	@Option(name="-f", usage="ExclusionSetFile", required=false)
 	String	exclusionSetFile;
 	
+	@Option(name="-u", usage="Union", required=false)
+	boolean	union;
+	
 	@Option(name="-r", usage="RingAndVersionPair", required=false)
 	String	ringAndVersionPair;
 	

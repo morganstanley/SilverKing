@@ -93,13 +93,7 @@ public class RingIntegrityCheck {
 	}
 	
 	public int checkIntegrity(boolean verbose) throws KeeperException {
-		ExclusionSet	exclusionSet;
-		
-		exclusionSet = getCurrentExclusionSet();
-		if (verbose) {
-			System.out.printf("exclusionSet %s\n", exclusionSet);
-		}
-		return checkIntegrity(rMap, exclusionSet, verbose);
+		return checkIntegrity(getCurrentExclusionSet(), verbose);
 	}
 	
 	public int checkIntegrity(ExclusionSet exclusionSet, boolean verbose) {
@@ -143,25 +137,11 @@ public class RingIntegrityCheck {
 					System.out.printf("new minReplicaSet of %s: %s\t%d\n", minReplicaSetSize, replicaSet, numExcluded);
 				}
 			}
-			
-			int count = 1;
+
 			int originalSize = setSize + numExcluded;
-			if (originalReplicaSetCounts.containsKey(originalSize)) {
-				count = originalReplicaSetCounts.get(originalSize) + 1;
-			}
-			originalReplicaSetCounts.put(originalSize, count);
-			
-			count = 1;
-			if (currentReplicaSetCounts.containsKey(setSize)) {
-				count = currentReplicaSetCounts.get(setSize) + 1;
-			}
-			currentReplicaSetCounts.put(setSize, count);
-			
-			count = 1;
-			if (excludedReplicaSetCounts.containsKey(numExcluded)) {
-				count = excludedReplicaSetCounts.get(numExcluded) + 1;
-			}
-			excludedReplicaSetCounts.put(numExcluded, count);
+			updateCount(originalReplicaSetCounts, originalSize);
+			updateCount(currentReplicaSetCounts,  setSize);
+			updateCount(excludedReplicaSetCounts, numExcluded);
 			
 			if (verbose) {
 				System.out.printf("%s\t%d\t%d\n", replicaSet, numExcluded, setSize);
@@ -190,6 +170,14 @@ public class RingIntegrityCheck {
 		}
 		lastExcludedSets = excludedSets;
 		return minReplicaSetSize;
+	}
+	
+	private void updateCount(Map<Integer, Integer> counts, int key) {
+		int count = 1;
+		if (counts.containsKey(key)) {
+			count = counts.get(key) + 1;
+		}
+		counts.put(key, count);
 	}
 	
 	public List<Set<IPAndPort>> getLastExcludedSets() {
@@ -383,6 +371,12 @@ public class RingIntegrityCheck {
     		} else {
 				exclusionSet = ringIntegrityCheck.getCurrentExclusionSet();
     		}
+
+    		if (options.union) {
+//    			exclusionSet = exclusionSet.add( ringIntegrityCheck.getCurrentExclusionSet().getServers() );	// could use this, but I think calling the union function is more insightful into what we are doing
+    			// if exclusionSet or exclusionSetFile weren't set above, this'll just union currentExclusionSet with itself. redundant, but fine for now.
+    			exclusionSet = ExclusionSet.union(exclusionSet, ringIntegrityCheck.getCurrentExclusionSet());
+    		}
     		
 			ringIntegrityCheck.checkIntegrity(exclusionSet, true);
 			
@@ -392,6 +386,13 @@ public class RingIntegrityCheck {
 			if (options.serverFailureProbability != 0.0) {
 				ringIntegrityCheck.estimateAndDisplayServerLoss(lossEstimationParameters, options.serverFailureProbability, pLoss);
 			}
+			
+    		if (!options.union && (options.exclusionSet != null || options.exclusionSetFile != null)) {
+    			System.out.println("************************************************************************************************************");
+    			System.out.println("* NOTE: this is not taking into account the current excludes, it's assuming your list is the only excludes *");
+    			System.out.println("*       use the union flag '-u' to include the current excludes in addition to your list                   *");
+    			System.out.println("************************************************************************************************************");
+    		}
 			
 			System.exit(0);
 		} catch (Exception e) {
