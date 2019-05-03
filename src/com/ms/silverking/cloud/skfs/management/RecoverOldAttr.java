@@ -19,13 +19,13 @@ public class RecoverOldAttr {
 	
 	private static final String	attrNamespace = "attr";
 	
-	public RecoverOldAttr(SKGridConfiguration gc) throws ClientException, IOException {
+	public RecoverOldAttr(SKGridConfiguration gc, String namespace) throws ClientException, IOException {
 		DHTClient		client;
 		DHTSession		session;
 		
 		client = new DHTClient();
 		session = client.openSession(gc);
-		syncNSP = session.openSyncNamespacePerspective(attrNamespace, String.class, byte[].class);
+		syncNSP = session.openSyncNamespacePerspective(namespace, String.class, byte[].class);
 	}
 	
 	public void recover(String file, long version) throws PutException, RetrievalException {
@@ -43,19 +43,25 @@ public class RecoverOldAttr {
 	}
 
 	public static void main(String[] args) {
-		if (args.length != 3) {
-			System.out.println("args: <gridConfig> <file> <version>");
+		if (args.length != 3 && args.length != 4) {
+			System.out.println("args: <gridConfig> <file> <version> [namespace]");
 		} else {
 			try {
 				RecoverOldAttr		roa;
 				SKGridConfiguration	gc;
 				String				file;
 				long				version;
+				String				namespace;
 				
 				gc = SKGridConfiguration.parseFile(args[0]);
 				file = args[1];
 				version = Long.parseLong(args[2]);
-				roa = new RecoverOldAttr(gc);
+				if (args.length == 4) {
+					namespace = args[3];
+				} else {
+					namespace = attrNamespace;
+				}
+				roa = new RecoverOldAttr(gc, namespace);
 				roa.recover(file, version);
 			} catch (Exception e) {
 				e.printStackTrace();
