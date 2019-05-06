@@ -33,6 +33,8 @@
 #define _AR_MAX_LSTAT_RETRIES   8
 #define _AR_LSTAT_RETRY_SLEEP_SECONDS   1
 #define _AR_ERR_TIMEOUT_MILLIS (10 * 1000)
+#define _AR_ETIMEDOUT_NOTIFICATION_TIMEOUT_MILLIS 10
+#define _AR_MAX_INTERNAL_ATTEMPTS 4
 
 
 ///////////////////////
@@ -46,9 +48,11 @@ static void ar_store_native_alias_attribs(AttrReader *ar);
 static void ar_translate_reverse_path(AttrReader *ar, char *path, const char *nativePath);
 static int ar_is_no_error_cache_path(AttrReader *ar, char *path);
 static void _ar_store_dir_attribs(AttrReader *ar, char *path, uint16_t mode);
-static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath, uint64_t minModificationTimeMicros);
-static void ar_store_attr_in_cache(AttrReadRequest *arr, FileAttr *fa, uint64_t timeoutMillis = CACHE_NO_TIMEOUT);
+static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath, uint64_t minModificationTime);
+static CacheStoreResult ar_store_attr_in_cache(AttrReadRequest *arr, FileAttr *fa, uint64_t modificationTime, uint64_t timeoutMillis = CACHE_NO_TIMEOUT);
+static CacheStoreResult _ar_store_attr_in_cache(AttrReader *ar, char *path, FileAttr *fa, int replace, uint64_t modificationTime, uint64_t timeoutMillis);
 static void ar_process_prefetch(void **requests, int numRequests, int curThreadIndex);
+static uint64_t ar_attr_modification_time_nanos(char *path, SKStoredValue *sv);
 
 /////////////////
 // private data
@@ -90,10 +94,12 @@ AttrReader *ar_new(FileIDToPathMap *f2p, SRFSDHT *sd, AttrWriter *aw,
 		for (i = 0; i < AR_DHT_THREADS; i++) {
 			SKNamespace	*ns;
 			SKNamespacePerspectiveOptions *nspOptions;
+            SKGetOptions    *newGetOptions;
 			
 			ar->pSession[i] = sd_new_session(ar->sd);
 			ns = ar->pSession[i]->getNamespace(SKFS_ATTR_NS);
-			nspOptions = ns->getDefaultNSPOptions();
+            newGetOptions = ns->getDefaultNSPOptions()->getDefaultGetOptions()->retrievalType(VALUE_AND_META_DATA);
+			nspOptions = ns->getDefaultNSPOptions()->defaultGetOptions(newGetOptions);
 			ar->ansp[i] = ns->openAsyncPerspective(nspOptions);
 			delete ns;
 		}
@@ -203,28 +209,36 @@ void ar_ensure_path_fid_associated(AttrReader *ar, char * path, FileID *fid) {
 
 // cache
 
-static void ar_store_attr_in_cache(AttrReadRequest *arr, FileAttr *fa, uint64_t timeoutMillis) {
+static CacheStoreResult ar_store_attr_in_cache(AttrReadRequest *arr, FileAttr *fa, uint64_t modificationTime, uint64_t timeoutMillis) {
+    return _ar_store_attr_in_cache(arr->attrReader, arr->path, fa, TRUE, modificationTime, timeoutMillis);
+}
+
+CacheStoreResult ar_store_attr_in_cache_static(char *path, FileAttr *fa, int replace, uint64_t modificationTime, uint64_t timeoutMillis) {
+    return _ar_store_attr_in_cache(_global_ar, path, fa, replace, modificationTime, timeoutMillis);
+}
+
+static CacheStoreResult _ar_store_attr_in_cache(AttrReader *ar, char *path, FileAttr *fa, int replace, uint64_t modificationTime, uint64_t timeoutMillis) {
 	FileAttr	*cachedFileAttr;
 	CacheStoreResult	result;
 
-	srfsLog(LOG_FINE, "storing in cache %s", arr->path);
+	srfsLog(LOG_FINE, "storing in cache %s", path);
 	cachedFileAttr = (FileAttr *)mem_dup(fa, sizeof(FileAttr));
+    
 	// below works for permanent, but not for writable which may change
 	//f2p_put(arr->attrReader->f2p, &cachedFileAttr->fid, arr->path); 
+	srfsLog(LOG_FINE, "storing in f2p %s", path);
 	// below allows attr cache to purge attr w/o affecting f2p
-	f2p_put(arr->attrReader->f2p, (FileID *)mem_dup_no_dbg(&cachedFileAttr->fid, sizeof(FileID)), arr->path); 
+	f2p_put(ar->f2p, (FileID *)mem_dup_no_dbg(&cachedFileAttr->fid, sizeof(FileID)), path); 
 	// store f2p before cache to ensure that anything that can read the cache
 	// can get the mapping
-	result = ac_store_raw_data(arr->attrReader->attrCache, arr->path, cachedFileAttr, TRUE, arr->minModificationTimeMicros, timeoutMillis);
-	if (result == CACHE_STORE_SUCCESS) {
-		srfsLog(LOG_FINE, "storing in f2p %s", arr->path);
-		//f2p_put(arr->attrReader->f2p, fid_new_native(cachedStat), arr->path); // moved to above
-	} else {
+	result = ac_store_raw_data(ar->attrCache, path, cachedFileAttr, replace, modificationTime, timeoutMillis);
+	if (result != CACHE_STORE_SUCCESS) {
 		srfsLog(LOG_FINE, "Cache store rejected.");
         if (cachedFileAttr != NULL) {
 		    mem_free((void **)&cachedFileAttr);
         }
 	}
+	return result;
 }
 
 static void ar_process_dht_batch(void **requests, int numRequests, int curThreadIndex) {
@@ -236,8 +250,9 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 	uint64_t		t1;
 	uint64_t		t2;
     SKAsyncValueRetrieval *pValRetrieval;
-    StrValMap       *pValues;
+    StrSVMap        *pStoredValues;
     int             isDuplicate[numRequests];
+    uint64_t        processTime;
 
 	srfsLog(LOG_FINE, "in ar_process_dht_batch %d", curThreadIndex);
 	ar = NULL;
@@ -265,10 +280,12 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 		requestGroup.push_back(arr->path);
 	}
 
+    processTime = curSKTimeNanos();
+    
 	// Now fetch the batch from the KVS
 	srfsLog(LOG_FINE, "ar_process_dht_batch calling multi_get");
     pValRetrieval = NULL;
-    pValues = NULL;
+    pStoredValues = NULL;
     srfsLog(LOG_INFO, "got async nsp %s ", SKFS_ATTR_NS );
     try {
 	    t1 = curTimeMillis();
@@ -278,7 +295,7 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
         rts_add_sample(ar->rtsDHT, t2 - t1, numRequests);
         dhtMgetErr = pValRetrieval->getState();
         srfsLog(LOG_FINE, "ar_process_dht_batch multi_get complete %d", dhtMgetErr);
-        pValues = pValRetrieval->getValues();
+        pStoredValues = pValRetrieval->getStoredValues();
     } catch (SKRetrievalException & e) {
 		// The operation generated an exception. This is typically simply because
 		// values were not found for one or more keys.
@@ -310,34 +327,38 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
                 SKStoredValue   *pStoredVal;
                 
                 // these are successfully retrieved keys
-                pStoredVal = NULL; 
 				pStoredVal = e.getStoredValue(arr->path);
 				if (!pStoredVal) {
 					srfsLog(LOG_WARNING, "ar dhtErr no pStoredVal %s %d %d", arr->path, opState, __LINE__);
 				} else {
 					SKVal   *pval;
                     
-					pval = NULL;
 					pval = pStoredVal->getValue();
 					if (!pval){
 						srfsLog(LOG_WARNING, "ar dhtErr no val %s %d %d", arr->path, opState, __LINE__);
 					} else {
 						if (pval->m_len == sizeof(FileAttr) ){
                             uint64_t	attrTimeoutMillis;
+                            uint64_t    attrVersionTime;
                         
+                            attrVersionTime = pStoredVal->getVersion();
                             attrTimeoutMillis = is_writable_path(arr->path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
 							if (memcmp(pval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
+                                CacheStoreResult    cacheStoreResult;
 
 								// a normal data item, store in cache
                                 ao_set_complete(op, AOResult_Success, pval->m_pVal, sizeof(FileAttr));
-								ar_store_attr_in_cache(arr, (FileAttr *)pval->m_pVal, attrTimeoutMillis);
+								cacheStoreResult = ar_store_attr_in_cache(arr, (FileAttr *)pval->m_pVal, attrVersionTime, attrTimeoutMillis);
+                                if (cacheStoreResult != CACHE_STORE_SUCCESS) {
+                                    srfsLog(LOG_WARNING, "cacheStoreResult != CACHE_STORE_SUCCESS  %d  %s  %s %d", cacheStoreResult, arr->path, __FILE__, __LINE__);
+                                }
 								successful = TRUE;
 							} else {
 								if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
 									// non-existence, store as an error
 									srfsLog(LOG_FINE, "%s not found in DHT. Storing ENOENT. %s %d", arr->path, __FILE__, __LINE__);
                                     ao_set_complete_error(op, ENOENT);
-									ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, arr->minModificationTimeMicros, attrTimeoutMillis);
+									ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, attrVersionTime, attrTimeoutMillis);
 									successful = TRUE;
 								} else {
 									srfsLog(LOG_FINE, "!SRFS_ENABLE_DHT_ENOENT_CACHING. Ignoring ENOENT found in DHT.");
@@ -418,7 +439,7 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
 		fatalError("ar unexpected SKClientException", __FILE__, __LINE__);
 	}
 
-    if (!pValues){
+    if (!pStoredValues){
         srfsLog(LOG_WARNING, "ar dhtErr no keys from namespace %s", SKFS_ATTR_NS);
         sd_op_failed(ar->sd, dhtMgetErr, __FILE__, __LINE__);
         for (i = 0; i < numRequests; i++) {
@@ -431,7 +452,7 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
         OpStateMap  *opStateMap;
         
         // Check for duplicates
-        if (pValues->size() != numRequests) {
+        if ((int)pStoredValues->size() != numRequests) {
             // Naive n^2 search for the duplicates that must exist
             for (i = 0; i < numRequests; i++) {
                 for (j = i + 1; j < numRequests; j++) {
@@ -451,17 +472,24 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
                 ActiveOp		*op;
                 AttrReadRequest	*arr;
                 int				successful;
+                SKStoredValue   *psv;
                 SKVal           *ppval;
                 SKOperationState::SKOperationState opState;
                 int             errorCode;
                 
+                psv = NULL;
+                ppval = NULL;
                 errorCode = 0;
                 successful = FALSE;
                 op = refs[i]->ao;
                 arr = (AttrReadRequest *)ao_get_target(op);
                 try {
-                    ppval = pValues->at(arr->path);
+                    psv = pStoredValues->at(arr->path);
+                    if (psv != NULL) {
+                        ppval = psv->getValue();
+                    }
                 } catch(std::exception& emap) { 
+                    psv = NULL;
                     ppval = NULL;
                     srfsLog(LOG_INFO, "ar std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
                 }
@@ -476,19 +504,26 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
                         srfsLog(LOG_FINE, "ar dhtErr no val %s %d line %d", arr->path, opState,  __LINE__);
                     } else if (ppval->m_len == sizeof(FileAttr) ){
                         uint64_t	attrTimeoutMillis;
+                        uint64_t    attrVersionTime;
                     
+                        attrVersionTime = psv->getVersion();
                         attrTimeoutMillis = is_writable_path(arr->path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
                         if (memcmp(ppval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
+                            CacheStoreResult    cacheStoreResult;
+                            
                             // a normal data item, store in cache
                             ao_set_complete(op, AOResult_Success, ppval->m_pVal, sizeof(FileAttr));
-                            ar_store_attr_in_cache(arr, (FileAttr *)ppval->m_pVal, attrTimeoutMillis);
+                            cacheStoreResult = ar_store_attr_in_cache(arr, (FileAttr *)ppval->m_pVal, attrVersionTime, attrTimeoutMillis);
+                            if (cacheStoreResult != CACHE_STORE_SUCCESS) {
+                                srfsLog(LOG_WARNING, "cacheStoreResult != CACHE_STORE_SUCCESS  %d  %s  %s %d", cacheStoreResult, arr->path, __FILE__, __LINE__);
+                            }
                             successful = TRUE;
                         } else {
                             if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
                                 // non-existence, store as an error
                                 srfsLog(LOG_FINE, "%s not found in DHT. Storing ENOENT. %s %d", arr->path, __FILE__, __LINE__);
                                 ao_set_complete_error(op, ENOENT);
-                                ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, arr->minModificationTimeMicros, attrTimeoutMillis);
+                                ac_store_error(arr->attrReader->attrCache, arr->path, ENOENT, attrVersionTime, attrTimeoutMillis);
                                 successful = TRUE;
                             } else {
                                 srfsLog(LOG_FINE, "!SRFS_ENABLE_DHT_ENOENT_CACHING. Ignoring ENOENT found in DHT.");
@@ -531,7 +566,10 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
                     // FIXME - for skfs files, no result will cause the operation to hang
                 }
                 if (ppval != NULL) {
-                    sk_destroy_val( &ppval );
+                    sk_destroy_val( &ppval ); // Created by psv, no duplication per key
+                }
+                if (psv != NULL) {
+                    delete psv;  // safe as we are in a no-duplicate clause
                 }
 
                 if (successful) {
@@ -556,7 +594,7 @@ static void ar_process_dht_batch(void **requests, int numRequests, int curThread
             aor_delete(&refs[i]);
         }
         delete opStateMap; 
-        delete pValues;
+        delete pStoredValues;
     }
 
     pValRetrieval->close();
@@ -607,12 +645,16 @@ static void ar_process_native_request(void *_requestOpRef, int curThreadIndex) {
 	}
 	if (res == 0) {
 		FileAttr	*fa;
+        CacheStoreResult    cacheStoreResult;
 		
 		tmpStat.st_blksize = SRFS_BLOCK_SIZE;
         tmpStat.st_nlink = FA_NATIVE_LINK_MAGIC;
 		fa = fa_new_native(&tmpStat);
         ao_set_complete(op, AOResult_Success, fa, sizeof(FileAttr));
-		ar_store_attr_in_cache(arr, fa);
+		ar_store_attr_in_cache(arr, fa, curSKTimeNanos());
+        if (cacheStoreResult != CACHE_STORE_SUCCESS) {
+            srfsLog(LOG_WARNING, "cacheStoreResult != CACHE_STORE_SUCCESS  %d  %s  %s %d", cacheStoreResult, arr->path, __FILE__, __LINE__);
+        }
 		srfsLog(LOG_FINE, "sending to AttrWriter %s inode %lu", arr->path, tmpStat.st_ino);
 		fa_delete(&fa);
         tmpStat.st_nlink = FA_NATIVE_LINK_NORMAL;
@@ -620,12 +662,15 @@ static void ar_process_native_request(void *_requestOpRef, int curThreadIndex) {
 		aw_write_attr(arr->attrReader->aw, arr->path, fa);
 		fa_delete(&fa);
 	} else {
+        uint64_t    processTime;
+    
+        processTime = curSKTimeNanos();
 		// if not found, store in DHT unless it's a no error cache path
 		if (errnoValue == ENOENT) {
             // for r/o paths, ENOENT is stored permanently
             // for errors other than ENOENT, the calling code will retry to the file system
             ao_set_complete_error(op, errnoValue);
-            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue, arr->minModificationTimeMicros);
+            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue, processTime);
 			if (!ar_is_no_error_cache_path(arr->attrReader, nativePath)) {
 				if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
 					srfsLog(LOG_FINE, "storing _attr_does_not_exist to DHT for %s", nativePath);
@@ -639,7 +684,7 @@ static void ar_process_native_request(void *_requestOpRef, int curThreadIndex) {
             // Non ENOENT errors are stored temporarily
             // For errors other than ENOENT, the calling code will also retry to the file system
             ao_set_complete_error(op, errnoValue);
-            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue, arr->minModificationTimeMicros, _AR_ERR_TIMEOUT_MILLIS);
+            ac_store_error(arr->attrReader->attrCache, arr->path, errnoValue, processTime, _AR_ERR_TIMEOUT_MILLIS);
 		}
 	}
 	srfsLog(LOG_FINE, "set op complete %llx", _requestOpRef);
@@ -714,7 +759,7 @@ static void _ar_store_dir_attribs(AttrReader *ar, char *path, uint16_t mode) {
 	st.st_gid = get_gid();
 	st.st_blksize = SRFS_BLOCK_SIZE;
 	fa = fa_new(fid_generate_new_skfs_internal(), &st);
-	ac_store_raw_data(ar->attrCache, path, fa, FALSE); // FIXME - verify result
+	ac_store_raw_data(ar->attrCache, path, fa, FALSE, curSKTimeNanos()); // FIXME - verify result
 }
 
 static void ar_store_native_alias_attribs(AttrReader *ar) {
@@ -800,7 +845,7 @@ void ar_create_alias_dirs(AttrReader *ar, OpenDirTable *odt) {
 
 
 // Callback from Cache. Cache write lock is held during callback.
-ActiveOp *ar_create_active_op(void *_ar, void *_nativePath, uint64_t minModificationTimeMicros) {
+ActiveOp *ar_create_active_op(void *_ar, void *_nativePath, uint64_t minModificationTime) {
 	AttrReader *ar;
 	char *nativePath;
 	ActiveOp *op;
@@ -809,7 +854,7 @@ ActiveOp *ar_create_active_op(void *_ar, void *_nativePath, uint64_t minModifica
 	ar = (AttrReader *)_ar;
 	nativePath = (char *)_nativePath;
 	srfsLog(LOG_FINE, "ar_create_active_op %s", nativePath);
-	attrReadRequest = arr_new(ar, nativePath, minModificationTimeMicros);
+	attrReadRequest = arr_new(ar, nativePath, minModificationTime);
 	arr_display(attrReadRequest, LOG_FINE);
 	op = ao_new(attrReadRequest, (void (*)(void **))arr_delete);
 	return op;
@@ -857,11 +902,12 @@ int ar_get_attr_stat(AttrReader *ar, char *path, struct stat *st) {
 	return result;
 }
 
-int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, uint64_t minModificationTimeMicros) {
+int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, uint64_t minModificationTime) {
 	int isValidPath;
 	int isNativePath;
 	int errorCode;
 	char    nativePath[SRFS_MAX_PATH_LENGTH];
+    int attempt;
 
 	srfsLog(LOG_FINE, "in ar_get_attr: %s", path);
 
@@ -893,7 +939,10 @@ int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, uint64_t minModificati
 	ar_translate_path(ar, nativePath, path);
 	srfsLog(LOG_FINE, "translated %s --> %s", path, nativePath);	    
     
-	errorCode = _ar_get_attr(ar, path, fa, isNativePath, nativePath, minModificationTimeMicros);
+    attempt = 0;
+    do {
+        errorCode = _ar_get_attr(ar, path, fa, isNativePath, nativePath, minModificationTime);
+    } while (errorCode == ETIMEDOUT && ++attempt < _AR_MAX_INTERNAL_ATTEMPTS);
     // If error code is non-zero, fa will contain the error code.
     // We must not treat fa as a valid FileAttr in this case.
 	
@@ -990,7 +1039,7 @@ static void ar_cp_rVal_to_fa(FileAttr *fa, ActiveOpRef *aor, char *file, int lin
     memcpy(fa, aor_get_rVal(aor), rValLength);
 }
 
-static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath, uint64_t minModificationTimeMicros) {
+static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePath, char *nativePath, uint64_t minModificationTime) {
 	CacheReadResult	result;
     AOResult        aoResult;
 	ActiveOpRef		*activeOpRef;
@@ -1004,7 +1053,7 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
 	// Create a new operation if none exists
 
 	srfsLog(LOG_FINE, "looking in cache for %s", nativePath);
-	result = ac_read(ar->attrCache, nativePath, fa, &activeOpRef, ar, minModificationTimeMicros);
+	result = ac_read(ar->attrCache, nativePath, fa, &activeOpRef, ar, minModificationTime);
 	srfsLog(LOG_FINE, "cache result %d %s", result, crr_strings[result]);
 	if (result == CRR_FOUND && !memcmp(fa, &_attr_does_not_exist, sizeof(FileAttr))) {
 		if (SRFS_ENABLE_DHT_ENOENT_CACHING) {
@@ -1120,6 +1169,8 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
                 break;
             case AOResult_Timeout:
                 errorCode = ETIMEDOUT;
+                // Other waiters don't wait with timeout. Store an error so that they exit
+				ac_store_error(ar->attrCache, path, ETIMEDOUT, curSKTimeNanos(), _AR_ETIMEDOUT_NOTIFICATION_TIMEOUT_MILLIS);
                 break;
             case AOResult_Error:
                 errorCode = (int)(uint64_t)aor_get_rVal(activeOpRef);
@@ -1131,7 +1182,7 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
             default:
                 fatalError("panic", __FILE__, __LINE__);
             }
-            aor_delete(&activeOpRef); // ADDED - DOUBLE CHECK BEFORE COMMITTING
+            aor_delete(&activeOpRef);
 		} else {
 			srfsLog(LOG_FINE, "sd not enabled. skipping dht");
             ac_remove_active_op(ar->attrCache, nativePath);
@@ -1142,32 +1193,6 @@ static int _ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, int isNativePa
 	}
     fatalError("panic", __FILE__, __LINE__); // unreachable
     return -1;
-}
-
-CacheStoreResult ar_store_attr_in_cache_static(char *path, FileAttr *fa, int replace, uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
-	AttrReader		*ar;
-	FileAttr	*cachedFileAttr;
-	CacheStoreResult	result;
-	ar = _global_ar; // FUTURE - allow for multiple
-
-	srfsLog(LOG_FINE, "storing in cache %s", path);
-	cachedFileAttr = (FileAttr *)mem_dup(fa, sizeof(FileAttr));
-    
-	// below works for permanent, but not for writable which may change
-	//f2p_put(arr->attrReader->f2p, &cachedFileAttr->fid, arr->path); 
-	srfsLog(LOG_FINE, "storing in f2p %s", path);
-	// below allows attr cache to purge attr w/o affecting f2p
-	f2p_put(ar->f2p, (FileID *)mem_dup_no_dbg(&cachedFileAttr->fid, sizeof(FileID)), path); 
-	// store f2p before cache to ensure that anything that can read the cache
-	// can get the mapping
-	result = ac_store_raw_data(ar->attrCache, path, cachedFileAttr, replace, modificationTimeMicros, timeoutMillis);
-	if (result != CACHE_STORE_SUCCESS) {
-		srfsLog(LOG_FINE, "Cache store rejected.");
-        if (cachedFileAttr != NULL) {
-		    mem_free((void **)&cachedFileAttr);
-        }
-	}
-	return result;
 }
 
 static void ar_process_prefetch(void **requests, int numRequests, int curThreadIndex) {
@@ -1196,6 +1221,7 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
 	srfsLog(LOG_FINE, "ar_process_prefetch calling multi_get");
     SKAsyncValueRetrieval *pValRetrieval = NULL;
     StrValMap *pValues = NULL;
+    StrSVMap    *pStoredValues = NULL;
     srfsLog(LOG_INFO, "got async nsp %s ", SKFS_ATTR_NS);
     try {
 	    t1 = curTimeMillis();
@@ -1205,7 +1231,7 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
         //rts_add_sample(ar->rtsDHT, t2 - t1, numRequests);
         dhtMgetErr = pValRetrieval->getState();
         srfsLog(LOG_FINE, "ar_process_prefetch multi_get complete %d", dhtMgetErr);
-        pValues = pValRetrieval->getValues();
+        pStoredValues = pValRetrieval->getStoredValues();
     } catch (SKRetrievalException & e) {
 		// The operation generated an exception. This is typically simply because
 		// values were not found for one or more keys.
@@ -1245,13 +1271,14 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
 						if (pval->m_len == sizeof(FileAttr) ){
 							if (memcmp(pval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
 								uint64_t	attrTimeoutMillis;
-                                uint64_t    modificationTimeMicros;
+                                uint64_t    modificationTime;
 							
 								attrTimeoutMillis = is_writable_path(path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
-                                modificationTimeMicros = is_writable_path(path) ? stat_mtime_micros( &((FileAttr *)pval->m_pVal)->stat ) : CACHE_NO_MODIFICATION_TIME;
+                                modificationTime = ar_attr_modification_time_nanos(path, pStoredVal);
 
 								// a normal data item, store in cache
-								ar_store_attr_in_cache_static(path, (FileAttr *)pval->m_pVal, FALSE, modificationTimeMicros, attrTimeoutMillis);
+								ar_store_attr_in_cache_static(path, (FileAttr *)pval->m_pVal, FALSE, modificationTime, attrTimeoutMillis);
+                                // ignore any cache store errors during prefetch
 								successful = TRUE;
 							} else {
 								// ignore not found when prefetching
@@ -1291,15 +1318,21 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
         for (i = 0; i < numRequests; i++) {
 			char	*path;
             int		successful;
+            SKStoredValue   *psv;
             SKVal   *ppval;
             SKOperationState::SKOperationState opState;
 
+            psv = NULL;
+            ppval = NULL;
             successful = FALSE;
             path = paths[i];
-            
             try {
-                ppval = pValues->at(path);
+                psv = pStoredValues->at(path);
+                if (psv != NULL) {
+                    ppval = psv->getValue();
+                }
             } catch(std::exception& emap) { 
+                psv = NULL;
                 ppval = NULL;
                 srfsLog(LOG_INFO, "ar std::map exception at %s:%d\n%s\n", __FILE__, __LINE__, emap.what()); 
             }
@@ -1316,12 +1349,13 @@ static void ar_process_prefetch(void **requests, int numRequests, int curThreadI
                 } else if (ppval->m_len == sizeof(FileAttr) ){
 		            if (memcmp(ppval->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
 						uint64_t	attrTimeoutMillis;
-                        uint64_t    modificationTimeMicros;
+                        uint64_t    modificationTime;
 					
 						attrTimeoutMillis = is_writable_path(path) ? ar->attrTimeoutMillis : CACHE_NO_TIMEOUT;
-			            modificationTimeMicros = is_writable_path(path) ? stat_mtime_micros( &((FileAttr *)ppval->m_pVal)->stat ) : CACHE_NO_MODIFICATION_TIME;
+                        modificationTime = ar_attr_modification_time_nanos(path, psv);
                         // a normal data item, store in cache
-			            ar_store_attr_in_cache_static(path, (FileAttr *)ppval->m_pVal, FALSE, modificationTimeMicros, attrTimeoutMillis);
+			            ar_store_attr_in_cache_static(path, (FileAttr *)ppval->m_pVal, FALSE, modificationTime, attrTimeoutMillis);
+                        // ignore any cache store errors during prefetch
 			            successful = TRUE;
 		            } else {
 						// ignore not found when prefetching
@@ -1369,6 +1403,15 @@ void ar_prefetch(AttrReader *ar, char *parent, char *child) {
 		mem_free((void **)&_path);
 	}
 }
+
+static uint64_t ar_attr_modification_time_nanos(char *path, SKStoredValue *sv) {
+    uint64_t    modificationTimeNanos;
+    
+    modificationTimeNanos = sv->getVersion();
+//    modificationTimeNanos = is_writable_path(path) ? sv->getVersion() : CACHE_NO_MODIFICATION_TIME;
+    return modificationTimeNanos;
+}
+
 
 void ar_display_stats(AttrReader *ar, int detailedStats) {
 	srfsLog(LOG_WARNING, "AttrReader Stats");

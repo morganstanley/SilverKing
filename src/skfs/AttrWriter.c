@@ -218,7 +218,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 	SKAsyncPut	*pPut;
 	int			attempt;
 	unsigned int	seedp;
-    uint64_t    writeTimeMicros;
+    uint64_t    writeTimeNanos;
 	
 	seedp = 0;
 	srfsLog(LOG_FINE, "in aw_write_attr_direct");	
@@ -226,7 +226,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 	pVal = sk_create_val();
 	sk_set_val_zero_copy(pVal, sizeof(FileAttr), (void *)fa);
 	srfsLog(LOG_FINE, "aw_write_attr_direct path %s pVal->m_len %u", path, pVal->m_len);	
-    writeTimeMicros = curTimeMicros();
+    writeTimeNanos = curSKTimeNanos();
 	attempt = 0;
 	do {
 		try {
@@ -274,9 +274,9 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 		CacheStoreResult	acResult;
 		
 		acResult = ac_store_raw_data(ac, (char *)path, fa_dup(fa), TRUE, 
-                                writeTimeMicros, SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
+                                writeTimeNanos, SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
 		if (acResult != CACHE_STORE_SUCCESS) {
-			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d at %s %d", acResult, __FILE__, __LINE__);
+			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d for %s at %s %d", acResult, path, __FILE__, __LINE__);
 			result = SKOperationState::FAILED;
 		}
 	}

@@ -1451,20 +1451,21 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                     attempt = 0;
                     complete = TRUE;
                     do {
-                        uint64_t    minModificationTimeMicros;
+                        uint64_t    minModificationTime;
                         
                         // Check to see if file exists...
                         memset(&fa, 0, sizeof(FileAttr));
                         if (complete) {
                             // This is an initial attempt
                             // (Initial attempt has completion flag set)
-                            minModificationTimeMicros = 0;
+                            minModificationTime = 0;
                         } else {
                             // This is a retry. Work around the cached old attribute bug
-                            minModificationTimeMicros = curTimeMicros();
+                            // (This workaround should no longer be needed; remove after confirmation)
+                            minModificationTime = curSKTimeNanos();
                             complete = TRUE; // reset so that we exit unless we hit the bug again
                         }
-                        statResult = ar_get_attr(ar, (char *)path, &fa, minModificationTimeMicros);
+                        statResult = ar_get_attr(ar, (char *)path, &fa, minModificationTime);
                         if (statResult != 0 && statResult != ENOENT) {
                             // Error checking for existing attr => fail
                             srfsLog(LOG_ERROR, "statResult %d caused EIO from %s %d", statResult, __FILE__, __LINE__);
@@ -1772,7 +1773,7 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
                 FileAttr    fa;
 
                 // Undo FA_NATIVE_LINK_MAGIC for this attribute
-                ar_get_attr(ar, (char *)path, &fa, stat_mtime_micros(&sof->attr->stat) + 1);
+                ar_get_attr(ar, (char *)path, &fa, curSKTimeNanos());
                 close(sof->fd);
                 sof->fd = 0;
                 wf_ref = NULL;
@@ -2338,6 +2339,8 @@ void initDHT() {
         if (!pClient) {
             srfsLog(LOG_WARNING, "dht client init failed. Will continue with NFS-only");
         }
+        
+        initSystemTimeSource();
         
         SKValueCreator  *vc;
         

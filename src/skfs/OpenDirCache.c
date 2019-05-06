@@ -86,7 +86,7 @@ CacheStoreResult odc_store(OpenDirCache *odCache, char *path, OpenDir *od) {
 	// For now, we create a permanent pointer and store it in the cache.
 	_od = (OpenDir **)mem_alloc(1, sizeof(OpenDir *));
 	*_od = od;
-	return cache_store_raw_data(odc_select_cache(odCache, path), path, strlen(path) + 1, _od, sizeof(OpenDir *));
+	return cache_store_raw_data(odc_select_cache(odCache, path), path, strlen(path) + 1, _od, sizeof(OpenDir *), FALSE, curSKTimeNanos());
 }
 
 void odc_store_active_op(OpenDirCache *odCache, char *path, ActiveOp *op) {
@@ -102,7 +102,7 @@ void odc_remove_active_op(OpenDirCache *odCache, char *path, int fatalErrorOnNot
 
 void odc_store_error(OpenDirCache *odCache, char *path, int errorCode) {
 	cache_store_error(odc_select_cache(odCache, path), path, strlen(path) + 1, errorCode,
-        FALSE, CACHE_NO_MODIFICATION_TIME, CACHE_NO_TIMEOUT);
+        FALSE, curSKTimeNanos(), CACHE_NO_TIMEOUT);
 }
 
 void odc_display_stats(OpenDirCache *odCache) {

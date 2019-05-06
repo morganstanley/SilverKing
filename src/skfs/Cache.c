@@ -192,7 +192,7 @@ void cache_delete(Cache **cache) {
 CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned char *buf, size_t sourceOffset, size_t size, 
 						   ActiveOpRef **activeOpRef, int *cacheNumRead, 
 						   ActiveOp *(*createOp)(void *, void *, uint64_t), void *createOpContext, 
-                           uint64_t minModificationTimeMicros, 
+                           uint64_t minModificationTime, 
                            uint64_t newOpTimeoutMillis) {
 	CacheEntry	*entry;
     SKVal		*pRVal;
@@ -232,13 +232,13 @@ CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned cha
 		}
 	} else {
         if (_cache_logging_in_critical_section) {
-            srfsLog(LOG_WARNING, "minModificationTimeMicros %u entry->modificationTime %u <= %d", minModificationTimeMicros, entry->modificationTime,
-                minModificationTimeMicros <= entry->modificationTime);
+            srfsLog(LOG_WARNING, "minModificationTime %u entry->modificationTime %u <= %d", minModificationTime, entry->modificationTime,
+                minModificationTime <= entry->modificationTime);
         }
 		_curTimeMillis = curTimeMillis();
 		if (    entry->type != CACHE_ACTIVE_OP // Consider removing and using times to accomplish this
                 && _curTimeMillis <= entry->expirationTime
-                && minModificationTimeMicros <= entry->modificationTime) {
+                && minModificationTime <= entry->modificationTime) {
 			entry->lastAccess = _curTimeMillis; // safe since we are on 64-bit machines
 		} else {
 			// upgrade to write lock so that we can expire the entry
@@ -249,7 +249,7 @@ CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned cha
 			entry = (CacheEntry *)hashtable_search(cache->ht, (void *)key); 
 			if (entry != NULL) {
 				if (_curTimeMillis <= entry->expirationTime
-                        && minModificationTimeMicros <= entry->modificationTime) {
+                        && minModificationTime <= entry->modificationTime) {
 					// A new, non-expired entry slipped in
 					entry->lastAccess = _curTimeMillis; // safe since we are on 64-bit machines
 				} else {
@@ -364,7 +364,7 @@ CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned cha
 			if (_cache_logging_in_critical_section) {
 				srfsLog(LOG_FINE, "Creating op for missing cache entry %llx", key);
 			}
-			op = createOp(createOpContext, key, minModificationTimeMicros);
+			op = createOp(createOpContext, key, minModificationTime);
 			if (_cache_logging_in_critical_section) {
 				srfsLog(LOG_FINE, "Storing op in cache %llx", key);
 			}
@@ -607,6 +607,7 @@ static CacheStoreResult cache_store_entry(Cache *cache, CacheEntry *entry, int a
 	if (_cache_logging_in_critical_section) {
 		srfsLog(LOG_FINE, "in cacheStore %s %x\n", cache->name, entry);
 	}
+    result = CACHE_STORE_INVALID_RESULT;
 	if (!alreadyLocked) {
 		pthread_rwlock_wrlock(&cache->rwLock);
 	}
@@ -629,66 +630,89 @@ static CacheStoreResult cache_store_entry(Cache *cache, CacheEntry *entry, int a
 		if (_cache_logging_in_critical_section) {
 			srfsLog(LOG_FINE, "attempting to replace %llx with %llx", oldEntry, entry);
 		}
-		switch (oldEntry->type) {
-		case CACHE_ACTIVE_OP:
-			if (_cache_logging_in_critical_section) {
-				srfsLog(LOG_FINE, "replacing active op %llx with %llx", oldEntry, entry);
-			}
-			// release the cache reference on the active op
-			aor_delete((ActiveOpRef **)&oldEntry->data);
-			break;
-		case CACHE_RAW_DATA: // fall through to next case
-		case CACHE_DHT_VALUE:
-			if (crm == CRM_ALLOW) {
-				if (_cache_logging_in_critical_section) {
-					srfsLog(LOG_FINE, "allowing replacement %llx in place of %llx", entry, oldEntry);
-				}
-				// Allow replacement
-			} else {
-				// No replacement allowed
-				cache_replacement_sanity_check(oldEntry, entry, crm);
-				// after sanity check, ignore the new entry
-				// by deleting the attempted addition and reinserting the oldEntry
-				if (_cache_logging_in_critical_section) {
-					srfsLog(LOG_FINE, "ignoring replacement %llx and keeping %llx", entry, oldEntry);
-				}
-				// the caller is notified of rejection
-				// caller is responsible for deleting data
-				cache_entry_delete(&entry, FALSE, __FILE__, __LINE__);
-				entry = oldEntry;
-				if (_cache_logging_in_critical_section) {
-					srfsLog(LOG_FINE, "oldEntry %llx oldEntry->key %llx", oldEntry, oldEntry->key);
-				}
-			}
-			break;
-		case CACHE_ERROR_CODE:
-			switch (entry->type) {
-			//case CACHE_RAW_DATA: 
-			//	break;
-			//case CACHE_DHT_VALUE: 
-			//	break;
-			case CACHE_ERROR_CODE:
-				if (memcmp(oldEntry->data, entry->data, sizeof(int))) {
+        
+        if (oldEntry->type != CACHE_ACTIVE_OP && entry->modificationTime < oldEntry->modificationTime) {
+            //if (_cache_logging_in_critical_section) {
+                srfsLog(LOG_WARNING, "CACHE_STORE_OLDER_THAN_EXISTING %s %llu < %llu", cache->name, 
+                    entry->modificationTime, oldEntry->modificationTime);
+            //}
+            result = CACHE_STORE_OLDER_THAN_EXISTING;
+            // No replacement allowed
+            cache_replacement_sanity_check(oldEntry, entry, crm);
+            // after sanity check, ignore the new entry
+            // by deleting the attempted addition
+            if (_cache_logging_in_critical_section) {
+                srfsLog(LOG_FINE, "ignoring replacement %llx and keeping %llx", entry, oldEntry);
+            }
+            // the caller is notified of rejection
+            // caller is responsible for deleting data
+            cache_entry_delete(&entry, FALSE, __FILE__, __LINE__);
+            entry = oldEntry;
+            if (_cache_logging_in_critical_section) {
+                srfsLog(LOG_FINE, "oldEntry %llx oldEntry->key %llx", oldEntry, oldEntry->key);
+            }
+        } else {
+            switch (oldEntry->type) {
+            case CACHE_ACTIVE_OP:
+                if (_cache_logging_in_critical_section) {
+                    srfsLog(LOG_FINE, "replacing active op %llx with %llx", oldEntry, entry);
+                }
+                // release the cache reference on the active op
+                aor_delete((ActiveOpRef **)&oldEntry->data);
+                break;
+            case CACHE_RAW_DATA: // fall through to next case
+            case CACHE_DHT_VALUE:
+                if (crm == CRM_ALLOW) {
+                    if (_cache_logging_in_critical_section) {
+                        srfsLog(LOG_FINE, "allowing replacement %llx in place of %llx", entry, oldEntry);
+                    }
+                    // Allow replacement
+                } else {
+                    // No replacement allowed
+                    cache_replacement_sanity_check(oldEntry, entry, crm);
+                    // after sanity check, ignore the new entry
+                    // by deleting the attempted addition and reinserting the oldEntry
+                    if (_cache_logging_in_critical_section) {
+                        srfsLog(LOG_FINE, "ignoring replacement %llx and keeping %llx", entry, oldEntry);
+                    }
+                    // the caller is notified of rejection
+                    // caller is responsible for deleting data
+                    cache_entry_delete(&entry, FALSE, __FILE__, __LINE__);
+                    entry = oldEntry;
+                    if (_cache_logging_in_critical_section) {
+                        srfsLog(LOG_FINE, "oldEntry %llx oldEntry->key %llx", oldEntry, oldEntry->key);
+                    }
+                }
+                break;
+            case CACHE_ERROR_CODE:
+                switch (entry->type) {
+                //case CACHE_RAW_DATA: 
+                //	break;
+                //case CACHE_DHT_VALUE: 
+                //	break;
+                case CACHE_ERROR_CODE:
+                    if (memcmp(oldEntry->data, entry->data, sizeof(int))) {
+                        // previously, we did not allow replacement
+                        // now we do, no action required
+                        //fatalError("Mismatching error codes in replacement attempt", __FILE__, __LINE__);
+                    } else {
+                        cache_entry_delete(&entry, TRUE, __FILE__, __LINE__);
+                        entry = oldEntry;
+                    }
+                    break;
+                default: 
                     // previously, we did not allow replacement
                     // now we do, no action required
-					//fatalError("Mismatching error codes in replacement attempt", __FILE__, __LINE__);
-				} else {
-					cache_entry_delete(&entry, TRUE, __FILE__, __LINE__);
-					entry = oldEntry;
-				}
-				break;
-			default: 
-                // previously, we did not allow replacement
-                // now we do, no action required
-                //fatalError("Unexpected entry->type for CACHE_ERROR_CODE replacement", __FILE__, __LINE__);
-                srfsLog(LOG_FINE, "%s %d", __FILE__, __LINE__);
-			}
-			if (_cache_logging_in_critical_section) {
-				srfsLog(LOG_FINE, "replacing error code %llx with %llx", oldEntry, entry);
-			}
-			break;
-		default: fatalError("Unexpected oldEntry->type", __FILE__, __LINE__);
-		}
+                    //fatalError("Unexpected entry->type for CACHE_ERROR_CODE replacement", __FILE__, __LINE__);
+                    srfsLog(LOG_FINE, "%s %d", __FILE__, __LINE__);
+                }
+                if (_cache_logging_in_critical_section) {
+                    srfsLog(LOG_FINE, "replacing error code %llx with %llx", oldEntry, entry);
+                }
+                break;
+            default: fatalError("Unexpected oldEntry->type", __FILE__, __LINE__);
+            }
+        }
 		if (entry != oldEntry) {
 			CacheEntry	*removedEntry;
 			
@@ -712,7 +736,9 @@ static CacheStoreResult cache_store_entry(Cache *cache, CacheEntry *entry, int a
 				cache_entry_delete(&entry, TRUE, __FILE__, __LINE__);
 			}
 		} else {
-			result = CACHE_STORE_ALREADY_PRESENT;
+            if (result == CACHE_STORE_INVALID_RESULT) {
+                result = CACHE_STORE_ALREADY_PRESENT;
+            }
 		}
 	} else {
 		cache_evict_if_needed(cache);
@@ -731,13 +757,13 @@ static CacheStoreResult cache_store_entry(Cache *cache, CacheEntry *entry, int a
 }
 
 CacheStoreResult cache_store_dht_value(Cache *cache, void *key, int keySize, SKVal *pRVal, 
-                                        uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
-	return cache_store_entry(cache, cache_entry_new(CACHE_DHT_VALUE, key, keySize, pRVal, sizeof(SKVal *), modificationTimeMicros, timeoutMillis));
+                                        uint64_t modificationTime, uint64_t timeoutMillis) {
+	return cache_store_entry(cache, cache_entry_new(CACHE_DHT_VALUE, key, keySize, pRVal, sizeof(SKVal *), modificationTime, timeoutMillis));
 }
 
-CacheStoreResult cache_store_raw_data(Cache *cache, void *key, int keySize, void *data, size_t length, int replace, uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
+CacheStoreResult cache_store_raw_data(Cache *cache, void *key, int keySize, void *data, size_t length, int replace, uint64_t modificationTime, uint64_t timeoutMillis) {
 	return cache_store_entry(cache, cache_entry_new(CACHE_RAW_DATA, key, keySize, data, length, 
-                modificationTimeMicros, timeoutMillis), FALSE, FALSE, replace ? CRM_ALLOW : CRM_FATAL_ERROR);
+                modificationTime, timeoutMillis), FALSE, FALSE, replace ? CRM_ALLOW : CRM_FATAL_ERROR);
 }
 
 void cache_store_active_op(Cache *cache, void *key, int keySize, ActiveOp *op) {
@@ -754,13 +780,13 @@ void cache_store_active_op(Cache *cache, void *key, int keySize, ActiveOp *op) {
 }
 
 void cache_store_error(Cache *cache, void *key, int keySize, int errorCode, 
-                int notifyActiveOps_noStorage, uint64_t modificationTimeMicros, uint64_t timeoutMillis) {
+                int notifyActiveOps_noStorage, uint64_t modificationTime, uint64_t timeoutMillis) {
 	int	*_errorCode;
 
 	_errorCode = int_dup(&errorCode);
 	srfsLog(LOG_FINE, "storing in cache error %d", errorCode);
 	cache_store_entry(cache, cache_entry_new(CACHE_ERROR_CODE, key, keySize, 
-        _errorCode, sizeof(int), modificationTimeMicros, timeoutMillis), FALSE,
+        _errorCode, sizeof(int), modificationTime, timeoutMillis), FALSE,
         notifyActiveOps_noStorage, CRM_WARN);
 }
 

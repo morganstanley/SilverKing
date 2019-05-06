@@ -213,7 +213,10 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
 
     minModificationTimeMicros = stat_mtime_micros(&wf->fa.stat);
     
-	if (ar_store_attr_in_cache_static((char *)wf->path, &wf->fa, TRUE, minModificationTimeMicros,
+    uint64_t    skt;
+    
+    skt = curSKTimeNanos();
+	if (ar_store_attr_in_cache_static((char *)wf->path, &wf->fa, TRUE, curSKTimeNanos(),
             SKFS_DEF_ATTR_TIMEOUT_SECS * 1000) != CACHE_STORE_SUCCESS) {
 		wf_delete(&wf); // sets wf to NULL
 	}
@@ -693,9 +696,9 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
 		CacheStoreResult	acResult;
 		
 		acResult = ac_store_raw_data(ac, (char *)wf->path, fa_dup(&wf->fa), TRUE, 
-                        curTimeMicros(), SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
+                        curSKTimeNanos(), SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
 		if (acResult != CACHE_STORE_SUCCESS) {
-			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d at %s %d", acResult, __FILE__, __LINE__);
+			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d for %s at %s %d", acResult, wf->path, __FILE__, __LINE__);
 			result = EIO;
 		}
     } else {
