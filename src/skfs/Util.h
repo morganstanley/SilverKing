@@ -59,7 +59,7 @@ uint64_t curTimeMillis(void);
 uint64_t curTimeMicros(void);
 uint64_t microsToMillis(uint64_t micros);
 void initSystemTimeSource();
-uint64_t curTimeNanos();
+uint64_t curSKTimeNanos();
 
 void setFatalErrorWarnOnly(int warnOnly);
 void fatalError(char *msg, char *file = "", int line = 0);

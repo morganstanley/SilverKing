@@ -12,6 +12,9 @@ SKSystemTimeSource::SKSystemTimeSource() : SKRelNanosAbsMillisTimeSource(NULL) {
 	pImpl = new SystemTimeSource(java_new<SystemTimeSource>());
 }
 
+SKSystemTimeSource::SKSystemTimeSource(int64_t nanosOriginTime) : SKRelNanosAbsMillisTimeSource(NULL) {
+	pImpl = new SystemTimeSource(java_cast<SystemTimeSource>(SystemTimeSource::createWithMillisOrigin(nanosOriginTime)));
+}
 
 SKSystemTimeSource::SKSystemTimeSource(SystemTimeSource * pSystemTimeSource) : SKRelNanosAbsMillisTimeSource(NULL) { //FIXME: ?
 	if(pSystemTimeSource)

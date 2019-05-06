@@ -15,6 +15,7 @@ class SKSystemTimeSource : public SKRelNanosAbsMillisTimeSource
 public:
     SKAPI virtual ~SKSystemTimeSource();
     SKAPI SKSystemTimeSource();
+    SKAPI SKSystemTimeSource(int64_t nanosOriginTime);
 	
     SKSystemTimeSource(SystemTimeSource * pSystemTimeSource);
     int64_t absTimeNanos();

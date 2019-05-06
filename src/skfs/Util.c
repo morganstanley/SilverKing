@@ -45,6 +45,7 @@
 #define LOG_QUEUE_SIZE	16
 #define LOG_MAX_BATCH_SIZE	16
 #define LOG_THREADS 1
+#define NANOS_ORIGIN_TIME 946684800000L
 
 
 #define _FLUSH_LOG
@@ -269,10 +270,10 @@ void initSystemTimeSource() {
     if (systemTimeSource != NULL) {
         fatalError("systemTimeSource already initialized");
     }
-    systemTimeSource = new SKSystemTimeSource();
+    systemTimeSource = new SKSystemTimeSource(NANOS_ORIGIN_TIME);
 }
 
-uint64_t curTimeNanos() {
+uint64_t curSKTimeNanos() {
     return (uint64_t)systemTimeSource->absTimeNanos();
 }
 
