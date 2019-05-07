@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.management;
 
+import com.ms.silverking.net.security.Authenticator;
+import com.ms.silverking.net.security.NoopAuthenticatorImpl;
 import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
@@ -128,7 +130,18 @@ class SKAdminOptions {
 			}
 		}
 	}
-	
+
+	@Option(name="-useAuthWithImpl", usage = "specify AuthenticatorImpl in SKObjectStringDef", required = false)
+    private String _authImplSkStrDef = null;
+    // Try to firstly parse it as Authenticator object in case of wrong StringDef given
+	public Authenticator getAuthenticator() {
+        if (_authImplSkStrDef == null) {
+            return new NoopAuthenticatorImpl();
+        } else {
+            return Authenticator.parseSKDef(_authImplSkStrDef);
+        }
+    }
+
 	@Option(name="-destructive", usage="destructive", required=false)
 	boolean	destructive = false;
 	
@@ -170,4 +183,7 @@ class SKAdminOptions {
 
 	@Option(name="-sfoc", usage="sleepForeverOnCompletion", required=false)
 	boolean sleepForeverOnCompletion = false;
+
+	@Option(name = "-useAclWithImpl", usage = "specify ZooKeeperACLImpl in SKObjectStringDef", required = false)
+    public String aclImplSkStrDef = null;
 }

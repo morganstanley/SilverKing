@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.ms.silverking.cloud.zookeeper.SKAclProvider;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.net.security.Authenticator;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.kohsuke.args4j.CmdLineException;
@@ -379,12 +382,19 @@ public class SKAdmin {
 		
 		// FUTURE - change to generic mechanism to pipe through properties
 		s = "";
+		if (options.aclImplSkStrDef != null) {
+			SKAclProvider.parse(options.aclImplSkStrDef);
+			s += " -D"+ ZooKeeperExtended.aclProviderSKDefProperty +"="+ options.aclImplSkStrDef;
+		}
+
 		if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
 			s += " -D"+ DirectoryServer.modeProperty +"="+ classVars.getVarMap().get(DirectoryServer.modeProperty);
 		}
 		if (classVars.getVarMap().containsKey(BaseDirectoryInMemorySS.compressionProperty)) {
 			s += " -D"+ BaseDirectoryInMemorySS.compressionProperty +"="+ classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty);
 		}
+
+		s += " -D"+ Authenticator.authImplProperty +"="+ options.getAuthenticator().toSKDef();
 		return s;
 	}
 	
