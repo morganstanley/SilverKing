@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,6 +18,8 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.InetSocketAddressComparator;
+import com.ms.silverking.net.security.Authenticable;
+import com.ms.silverking.net.security.Authenticator;
 
 /**
  * Connection state for TCP connection to remote socket. Specialized by subclasses
@@ -26,7 +29,7 @@ import com.ms.silverking.net.InetSocketAddressComparator;
  * reads and writes here do not need to call disconnect, but bubble fatal exceptions up
  * where AsyncBase can handle them.
  */
-public abstract class Connection implements ChannelRegistrationWorker, Comparable<Connection> {
+public abstract class Connection implements ChannelRegistrationWorker, Comparable<Connection>, Authenticable {
     protected final SocketChannel 					channel;
 	private SelectionKey	selectionKey;
 	private final InetSocketAddress					remoteSocketAddress;
@@ -35,7 +38,7 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
 	private final ConcurrentMap<UUIDBase,ActiveSend>	activeBlockingSends;
 	protected final boolean	verbose;
 	protected boolean	connected;
-	
+
 	// Connection stats
 	protected final AtomicLong cumulativeSends;
     protected final AtomicLong cumulativeReceives;
@@ -99,7 +102,19 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
 			ConnectionListener connectionListener) {
 		this(channel, selectorController, connectionListener, true, false, false);
 	}
-	
+
+	//////////////////////////////////////////////////////////////////////
+	// Authentication and Authorization
+	// * Authenticable
+	private Authenticator.AuthResult authRes = null;
+	@Override
+	public void setAuthResult(Authenticator.AuthResult authRes) {
+	    this.authRes = authRes;
+	}
+	@Override
+	public Optional<Authenticator.AuthResult> getAuthResult() {
+	    return Optional.ofNullable(authRes);
+	}
 	//////////////////////////////////////////////////////////////////////
 	
 	public void setConnectionListener(ConnectionListener connectionListener) {
