@@ -16,6 +16,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.text.ObjectDefParser2;
 import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -65,14 +66,31 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     private final Watcher   watcher;
     private final SKAclProvider acl;
 
-    static {
-        asyncGetResults = new LightLinkedBlockingQueue<>();
-    	new ProcessRunner();
+    // TODO: remove this limited workaround when we improve Silverking's injection mechanism
+    public static final String aclProviderSKDefProperty = ZooKeeperExtended.class.getPackage().getName() +".AclProviderSKDef";
+    private static final SKAclProvider defaultAclProvider;
+    private static SKAclProvider resolveDefaultAclProvider() {
+        String aclProviderSkDef = System.getProperty(aclProviderSKDefProperty);
+        if (aclProviderSkDef == null) {
+            return new SKAclProvider() {
+                @Override
+                public List<ACL> getDefaultAcl() {
+                    return defaultACL;
+                }
+                @Override
+                public List<ACL> getAclForPath(String path) {
+                    return defaultACL;
+                }
+            };
+        } else {
+            return SKAclProvider.parse(aclProviderSkDef);
+        }
     }
 
-    private static volatile SKAclProvider defaultAclProvider = new SKAclProviderSimpleImpl(defaultACL, Collections.emptyMap());
-    public static void overrideDefaultAclProvider(final SKAclProvider injectedAcl) {
-        defaultAclProvider = injectedAcl;
+    static {
+        defaultAclProvider = resolveDefaultAclProvider();
+        asyncGetResults = new LightLinkedBlockingQueue<>();
+    	new ProcessRunner();
     }
 
     /**
