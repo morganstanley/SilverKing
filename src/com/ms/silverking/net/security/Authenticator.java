@@ -1,10 +1,25 @@
 package com.ms.silverking.net.security;
 
+import com.ms.silverking.text.FieldsRequirement;
+import com.ms.silverking.text.ObjectDefParser2;
+
 import java.net.Socket;
 import java.util.Optional;
 
-public interface Authenticator {
-    public class AuthResult {
+public abstract class Authenticator {
+    public static final String authImplProperty = Authenticator.class.getPackage().getName() +".AuthImplSKDef";
+    static {
+        ObjectDefParser2.addParserWithExclusions(Authenticator.class, null, FieldsRequirement.ALLOW_INCOMPLETE, null);
+    }
+    public String toSKDef() {
+        // TODO: update this later when we got GitHub access and refactor ObjectDefParser2 in future
+        return "<" + this.getClass().getCanonicalName() + ">{" + ObjectDefParser2.objectToString(this) + "}";
+    }
+    public static Authenticator parseSKDef(String skDef) {
+        return ObjectDefParser2.parse(skDef, Authenticator.class.getPackage());
+    }
+
+    public static class AuthResult {
         private String authId;
         // We encapsulate AuthFailedAction in AuthResult so that Authenticator can define different actions for different authentication situation
         // this action currently is only used if <i>isFailed()</i> returns true
@@ -33,14 +48,12 @@ public interface Authenticator {
         }
     }
 
-    // Used by AUTH_SUCCESS case
-	public AuthFailedAction defAction = AuthFailedAction.THROW_ERROR;
+	private static AuthFailedAction defAction = AuthFailedAction.THROW_ERROR;
     // Factory constructor for AUTH_SUCCESS and AUTH_FAIL
     public static AuthResult createAuthSuccessResult(String authId) {
         assert authId != null;
         return new AuthResult(authId, defAction);
     }
-
     public static AuthResult createAuthFailResult(AuthFailedAction action) {
         assert action != null;
         return new AuthResult(null, action);
@@ -71,7 +84,20 @@ public interface Authenticator {
      * Used for logging debug/error message to locate the concrete Authenticator implementation
      * @return a distinguishable name
      */
-    public String getName();
+    abstract public String getName();
+
+    /**
+     * A method to implicitly indicate the thread safety of Authenticator implementation;
+     * Silverking will use this method to create a ThreadLocal Authenticator instance
+     *
+     * <br/>
+     * It's implementor's responsibility to decide to
+     *  <b>make a real deep copy/clone (instance is not thread-safe to be shared)<b/> OR
+     *  <b>simply return "this"(instance is thread-safe to be shared)</b>
+     *
+     * @return a local "copy" of Authenticator
+     */
+    abstract public Authenticator createLocalCopy();
 
     /**
      * Silverking itself may give up and cancel syncAuthenticate() if it takes too long,
@@ -81,7 +107,7 @@ public interface Authenticator {
      *                  who acts like client(send data), or DHTClient
      * @return corresponding action for silverking to take when timeout
      */
-    public AuthFailedAction onAuthTimeout(boolean serverside);
+    abstract public AuthFailedAction onAuthTimeout(boolean serverside);
 
     /**
      * Allow user to inject authentication before the Silverking network communication between DHTClient and DHTNode(Server) or between two distributed DHTNodes(servers)
@@ -102,5 +128,5 @@ public interface Authenticator {
      * @return a <b>String</b> id of the authentication succeeds, or an <b>empty</b> if authentication fails
      *
      */
-    public AuthResult syncAuthenticate(final Socket unauthNetwork, boolean serverside, int timeoutInMillisecond);
+    abstract public AuthResult syncAuthenticate(final Socket unauthNetwork, boolean serverside, int timeoutInMillisecond);
 }

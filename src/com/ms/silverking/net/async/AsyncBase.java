@@ -75,25 +75,34 @@ public class AsyncBase<T extends Connection> {
 	private static final boolean tcpNoDelay = true;
     private static final boolean logConnections = AsyncGlobals.verbose;
 
+	private static final Authenticator _defAuthenticator;
+	private static final ThreadLocal<Authenticator> defAuthenticatorThreadLocal;
+
 	protected boolean	running;
-	
+
 	static {
 		defReceiveBufferSize = setProperty(defReceiveBufferSizeProperty, _defReceiveBufferSize);
 		defSendBufferSize = setProperty(defSendBufferSizeProperty, _defSendBufferSize);
 		defSocketReadTimeout = setProperty(defSocketReadTimeoutProperty, _defSocketReadTimeout);
 		defSocketConnectTimeout = setProperty(defSocketConnectTimeoutProperty, _defSocketConnectTimeout);
 		defAuthenticationTimeoutInMillisecond = setProperty(defAuthenticationTimeoutProperty, _defaultAuthenticationTimeoutInMillisecond);
+
+		String authSkDef = System.getProperty(Authenticator.authImplProperty);
+		_defAuthenticator = authSkDef == null ? new NoopAuthenticatorImpl() : Authenticator.parseSKDef(authSkDef);
+		defAuthenticatorThreadLocal = new ThreadLocal<Authenticator>() {
+			@Override
+			protected Authenticator initialValue() {
+				return _defAuthenticator.createLocalCopy();
+			}
+		};
+
 		if (AsyncGlobals.verbose) {
     		Log.warning("defReceiveBufferSize: "+ defReceiveBufferSize);
             Log.warning("defSendBufferSize: "+ defSendBufferSize);
     		Log.warning("defSocketReadTimeout: "+ defSocketReadTimeout);
             Log.warning("defSocketConnectTimeout: "+ defSocketConnectTimeout);
+            Log.warning("defaultAuthenticator: " + _defAuthenticator.getName());
 		}
-	}
-
-	private static volatile Authenticator defaultAuthenticator = new NoopAuthenticatorImpl();
-	static void injectAuthenticator(final Authenticator userDefinedAuthenticator) {
-		defaultAuthenticator = userDefinedAuthenticator;
 	}
 
 	private static int setProperty(String property, int defaultValue) {
@@ -151,7 +160,7 @@ public class AsyncBase<T extends Connection> {
             connections = null;
 		}
 
-		this.authenticator = defaultAuthenticator;
+		this.authenticator = defAuthenticatorThreadLocal.get();
 	}
 	
 	public AsyncBase(int port, int numSelectorControllers, 
