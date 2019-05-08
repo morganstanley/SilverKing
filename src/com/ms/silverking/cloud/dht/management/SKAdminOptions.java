@@ -185,5 +185,23 @@ class SKAdminOptions {
 	boolean sleepForeverOnCompletion = false;
 
 	@Option(name = "-useAclWithImpl", usage = "specify ZooKeeperACLImpl in SKObjectStringDef", required = false)
-    public String aclImplSkStrDef = null;
+    public String aclImplSkStrDef;
+
+	@Option(name = "-startNodeWithExtraJVMOptions", usage = "enable user to append its customized JVM options when starting a DHTNode")
+    private String _startNodeExtraJVMOptions;
+	public String[] getStartNodeExtraJVMOptions() {
+	    if (_startNodeExtraJVMOptions == null) {
+	        return new String[0];
+        }
+
+        String trimmedOps =_startNodeExtraJVMOptions.trim();
+        String[] options = trimmedOps.split("\\s+");
+	    for(String op : options) {
+	        // let it crash to prevent SKAdmin command to be populated
+            if (!op.startsWith("-")) {
+                throw new RuntimeException("User provides the invalid JVMOptions string [" + trimmedOps + "] where [" + op + "] shall at least start with '-'");
+            }
+        }
+        return options;
+    }
 }

@@ -84,7 +84,7 @@ public abstract class Authenticator {
      * Used for logging debug/error message to locate the concrete Authenticator implementation
      * @return a distinguishable name
      */
-    abstract public String getName();
+    public abstract String getName();
 
     /**
      * A method to implicitly indicate the thread safety of Authenticator implementation;
@@ -97,7 +97,7 @@ public abstract class Authenticator {
      *
      * @return a local "copy" of Authenticator
      */
-    abstract public Authenticator createLocalCopy();
+    public abstract Authenticator createLocalCopy();
 
     /**
      * Silverking itself may give up and cancel syncAuthenticate() if it takes too long,
@@ -107,7 +107,7 @@ public abstract class Authenticator {
      *                  who acts like client(send data), or DHTClient
      * @return corresponding action for silverking to take when timeout
      */
-    abstract public AuthFailedAction onAuthTimeout(boolean serverside);
+    public abstract AuthFailedAction onAuthTimeout(boolean serverside);
 
     /**
      * Allow user to inject authentication before the Silverking network communication between DHTClient and DHTNode(Server) or between two distributed DHTNodes(servers)
@@ -128,5 +128,5 @@ public abstract class Authenticator {
      * @return a <b>String</b> id of the authentication succeeds, or an <b>empty</b> if authentication fails
      *
      */
-    abstract public AuthResult syncAuthenticate(final Socket unauthNetwork, boolean serverside, int timeoutInMillisecond);
+    public abstract AuthResult syncAuthenticate(final Socket unauthNetwork, boolean serverside, int timeoutInMillisecond);
 }

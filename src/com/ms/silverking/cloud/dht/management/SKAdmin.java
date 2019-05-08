@@ -395,6 +395,12 @@ public class SKAdmin {
 		}
 
 		s += " -D"+ Authenticator.authImplProperty +"="+ options.getAuthenticator().toSKDef();
+
+		String[] userDefinedOptions = options.getStartNodeExtraJVMOptions();
+		if (userDefinedOptions.length > 0) {
+			String ops = String.join(" ", userDefinedOptions);
+			s += " " + ops;
+		}
 		return s;
 	}
 	
@@ -1314,6 +1320,13 @@ public class SKAdmin {
 
 	private static void sanityCheckOptions(SKAdminOptions options) {
 		// FUTURE - add
+
+		// try to parse the following options at beginning, and RuntimeException will be thrown if wrong input given
+		options.getAuthenticator();
+		options.getStartNodeExtraJVMOptions();
+		if (options.aclImplSkStrDef != null) {
+			SKAclProvider.parse(options.aclImplSkStrDef);
+		}
 	}
 	
 	///////////////////////////////////////////

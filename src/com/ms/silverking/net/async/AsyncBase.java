@@ -89,6 +89,11 @@ public class AsyncBase<T extends Connection> {
 
 		String authSkDef = System.getProperty(Authenticator.authImplProperty);
 		_defAuthenticator = authSkDef == null ? new NoopAuthenticatorImpl() : Authenticator.parseSKDef(authSkDef);
+		if (_defAuthenticator instanceof NoopAuthenticatorImpl) {
+			Log.warning("Authenticator info: No authentication operation will be performed; Back-ended by [" + _defAuthenticator.getName() + "]");
+		} else {
+			Log.info("Authenticator info: A customized a authImpl is in use [" + _defAuthenticator.getName() + "]");
+		}
 		defAuthenticatorThreadLocal = new ThreadLocal<Authenticator>() {
 			@Override
 			protected Authenticator initialValue() {
@@ -101,7 +106,6 @@ public class AsyncBase<T extends Connection> {
             Log.warning("defSendBufferSize: "+ defSendBufferSize);
     		Log.warning("defSocketReadTimeout: "+ defSocketReadTimeout);
             Log.warning("defSocketConnectTimeout: "+ defSocketConnectTimeout);
-            Log.warning("defaultAuthenticator: " + _defAuthenticator.getName());
 		}
 	}
 
