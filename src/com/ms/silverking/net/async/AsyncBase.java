@@ -346,9 +346,12 @@ public class AsyncBase<T extends Connection> {
 			switch (authRes.getFailedAction()) {
 				case GO_WITHOUT_AUTH: break;
 				case THROW_ERROR:
-					throw new AuthenticationFailError("Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"));
+					String msg = "Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide");
+					throw authRes.getFailCause().isPresent() ?
+						new AuthenticationFailError(msg, authRes.getFailCause().get()) :
+						new AuthenticationFailError(msg);
 				case ABSORB_CONNECTION:
-					throw new ConnectionAbsorbException(channel, listener, serverside);
+					throw new ConnectionAbsorbException(channel, listener, serverside, authRes.getFailCause().orElse(null));
 				default:
 					throw new RuntimeException("Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"
 							+ " and action for this failure has NOT been defined: "
@@ -374,6 +377,8 @@ public class AsyncBase<T extends Connection> {
 														listener, workPool, debug);
 
 		if (authRes.isSuccessful()) {
+			Log.info("Authenticator: authId["+authRes.getAuthId().get()+"] is obtained in ["
+					+ (serverside ? "ServerSide" : "ClientSide")+ "] by ["+authenticator.getName()+"]");
 			connection.setAuthResult(authRes);
 		}
 		connection.start();

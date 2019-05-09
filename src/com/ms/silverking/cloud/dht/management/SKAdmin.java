@@ -384,7 +384,7 @@ public class SKAdmin {
 		s = "";
 		if (options.aclImplSkStrDef != null) {
 			SKAclProvider.parse(options.aclImplSkStrDef);
-			s += " -D"+ ZooKeeperExtended.aclProviderSKDefProperty +"="+ options.aclImplSkStrDef;
+			s += " -D"+ ZooKeeperExtended.aclProviderSKDefProperty +"="+ "\\\"" + options.aclImplSkStrDef + "\\\"";
 		}
 
 		if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
@@ -394,7 +394,7 @@ public class SKAdmin {
 			s += " -D"+ BaseDirectoryInMemorySS.compressionProperty +"="+ classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty);
 		}
 
-		s += " -D"+ Authenticator.authImplProperty +"="+ options.getAuthenticator().toSKDef();
+		s += " -D"+ Authenticator.authImplProperty +"="+ "\\\"" + options.getAuthenticator().toSKDef() + "\\\"";
 
 		String[] userDefinedOptions = options.getStartNodeExtraJVMOptions();
 		if (userDefinedOptions.length > 0) {

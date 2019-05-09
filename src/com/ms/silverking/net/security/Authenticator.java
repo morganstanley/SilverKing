@@ -24,14 +24,16 @@ public abstract class Authenticator {
         // We encapsulate AuthFailedAction in AuthResult so that Authenticator can define different actions for different authentication situation
         // this action currently is only used if <i>isFailed()</i> returns true
         private AuthFailedAction failedAction;
+        private Throwable cause;
 
         /**
          * @param authId AuthenticationId; <b>null</b> if authentication fails
          * @param action action for Silverking to take when authentication fails
          */
-        private AuthResult(String authId, AuthFailedAction action) {
+        private AuthResult(String authId, AuthFailedAction action, Throwable cause) {
             this.authId = authId;
             this.failedAction = action;
+            this.cause = cause;
         }
 
         public boolean isSuccessful() {
@@ -46,17 +48,23 @@ public abstract class Authenticator {
         public AuthFailedAction getFailedAction() {
             return failedAction;
         }
+        public Optional<Throwable> getFailCause() {
+            return Optional.ofNullable(cause);
+        }
     }
 
 	private static AuthFailedAction defAction = AuthFailedAction.THROW_ERROR;
     // Factory constructor for AUTH_SUCCESS and AUTH_FAIL
     public static AuthResult createAuthSuccessResult(String authId) {
         assert authId != null;
-        return new AuthResult(authId, defAction);
+        return new AuthResult(authId, defAction, null);
+    }
+    public static AuthResult createAuthFailResult(AuthFailedAction action, Throwable cause) {
+        assert action != null;
+        return new AuthResult(null, action, cause);
     }
     public static AuthResult createAuthFailResult(AuthFailedAction action) {
-        assert action != null;
-        return new AuthResult(null, action);
+        return createAuthFailResult(action, null);
     }
 
 	/**
