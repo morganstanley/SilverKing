@@ -84,5 +84,6 @@ int wf_delete_ref(WritableFile *wf, int ref, AttrWriter *aw, FileBlockWriter *fb
 void wf_debug(WritableFile *wf);
 void wf_sanity_check(WritableFile *wf);
 void wf_set_sync_dir_updates(int syncDirUpdates);
+int wf_read(WritableFile *wf, FileBlockWriter *fbw, PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset);
 
 #endif

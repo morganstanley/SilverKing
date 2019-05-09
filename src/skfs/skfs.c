@@ -1664,8 +1664,7 @@ static int skfs_read(const char *path, char *dest, size_t readSize, off_t readOf
             totalRead = pread(sof->fd, dest, readSize, readOffset);
         } else {
             if (sof->type == OFT_WritableFile_Write) {
-                // We currently do not support reading of files opened r/w
-                return -EIO;
+                totalRead = wf_read(wfr_get_wf(sof->wf_ref), fbwSKFS, pbr, path, dest, readSize, readOffset);
             } else {
                 //srfsLogAsync(LOG_WARNING, "pbr read");
                 totalRead = pbr_read(pbr, path, dest, readSize, readOffset, sof);

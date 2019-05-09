@@ -29,6 +29,14 @@ void wfb_delete(WritableFileBlock **wfb) {
 	}
 }
 
+size_t wfb_read(WritableFileBlock *wfb, char *dest, size_t srcOffset, size_t length) {
+    if (srcOffset + length > wfb->size) {
+        fatalError("srcOffset + length > wfb->size", __FILE__, __LINE__);
+    }
+	memcpy(dest, wfb->block + srcOffset, length);
+	return length;
+}
+
 size_t wfb_write(WritableFileBlock *wfb, const char *src, size_t length) {
 	size_t  bytesToWrite;
 	

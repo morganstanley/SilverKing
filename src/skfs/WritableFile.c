@@ -368,6 +368,12 @@ static size_t wf_rewrite_past_blocks(WritableFile *wf, const char *src, size_t p
     rewriteBufSize = numBlocks * SRFS_BLOCK_SIZE;
     rewriteBuf = (char *)mem_alloc(rewriteBufSize, 1);
     readResult = pbr_read_given_attr(pbr, wf->path, rewriteBuf, rewriteBufSize, firstBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, TRUE, 0);
+    if (readResult != (int)rewriteBufSize) {
+        srfsLog(LOG_WARNING, "error in wf_rewrite_past_blocks %llx %s %u %u %u %u", wf, src, pastWriteSize, writeOffset, firstBlockIndex, lastPastBlockIndex);
+        srfsLog(LOG_WARNING, "readResult != (int)rewriteBufSize %d != %d  %s %d", readResult, rewriteBufSize, __FILE__, __LINE__);
+        mem_free((void **)&rewriteBuf);
+        return -EIO;
+    }
     
     // Rewrite
     firstBlockOffset = writeOffset % SRFS_BLOCK_SIZE;
@@ -564,7 +570,9 @@ static int _wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, Part
             blockBuf = (char *)mem_alloc(SRFS_BLOCK_SIZE, 1);
             readResult = pbr_read_given_attr(pbr, wf->path, blockBuf, 
                                              SRFS_BLOCK_SIZE, newCurBlockIndex * SRFS_BLOCK_SIZE, &wf->fa, TRUE, 0);
-            if (readResult != 0) {
+            if (readResult != SRFS_BLOCK_SIZE) {
+                srfsLog(LOG_WARNING, "readResult != SRFS_BLOCK_SIZE  %d  %s %d", readResult,  __FILE__, __LINE__);
+                mem_free((void **)&blockBuf);
                 return -EIO;
             }
             // write the portion that we care about from the temp buf to the new block
@@ -1106,4 +1114,89 @@ void wf_sanity_check(WritableFile *wf) {
         srfsLog(LOG_ERROR, "wf %llx wf->magic %x WF_MAGIC %x", wf, wf->magic, WF_MAGIC);
         fatalError("Unexpected wf->magic != WF_MAGIC", __FILE__, __LINE__);
     }
+}
+
+int wf_read(WritableFile *wf, FileBlockWriter *fbw, PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset) {
+    uint64_t    firstBlockIndex;
+    uint64_t    lastBlockIndex;
+    int         pastBytesRead;
+    int         curBytesRead;
+    off_t       curBlockOffset;
+    
+    srfsLog(LOG_FINE, "wf_read");
+    /*
+    Strategy: 
+      0) Sanity check
+      1) Flush all new blocks
+      2) Read all but current block using pbr_read_given_attr
+      3) Read current block from current block
+    */
+    // Sanity check input
+    if (readOffset > wf->fa.stat.st_size) {
+        srfsLog(LOG_INFO, "readOffset > wf->fa.stat.st_size %s %d %d", path, readOffset, wf->fa.stat.st_size);
+        return 0;
+    }
+    if (readOffset + readSize > wf->fa.stat.st_size) {
+        readSize = wf->fa.stat.st_size - readOffset;
+        srfsLog(LOG_INFO, "trimmed readSize %s %d", path, readSize);
+    }
+    if (readSize == 0) {
+        srfsLog(LOG_INFO, "readSize zero %s", path);
+        return 0;
+    }
+    
+    // Flush all new blocks
+	wf_limit_outstanding_blocks(wf, fbw, 0);
+    
+    firstBlockIndex = offsetToBlock(readOffset);
+    lastBlockIndex = offsetToBlock(readOffset + readSize - 1);
+    curBlockOffset = wf_cur_block_index(wf) * SRFS_BLOCK_SIZE;
+    
+    // Read from past blocks, if needed
+    if (firstBlockIndex < wf_cur_block_index(wf)) {
+        off_t   pastReadLimit; // index of last byte to read + 1
+        size_t  pastReadSize;
+        
+        pastReadLimit = off_min(readOffset + readSize, curBlockOffset) ;
+        pastReadSize = (int)(pastReadLimit - readOffset);
+        
+        pastBytesRead = pbr_read_given_attr(pbr, wf->path, dest, pastReadSize, readOffset, &wf->fa, TRUE, 0);    
+        if (pastBytesRead != (int)pastReadSize) {
+            srfsLog(LOG_WARNING, "pastBytesRead != pastReadSize  %d != %d  %s %d", pastBytesRead, pastReadSize, __FILE__, __LINE__);
+            return -EIO;
+        }
+    } else {
+        pastBytesRead = 0;
+    }
+    
+    // Read from current block, if needed
+    if (lastBlockIndex == wf_cur_block_index(wf)) {
+        size_t  curBlockReadOffset;
+        size_t  curBlockReadSize;
+        
+        if ((size_t)readOffset < lastBlockIndex * SRFS_BLOCK_SIZE) {
+            curBlockReadOffset = 0;
+            curBlockReadSize = (readOffset + readSize) % SRFS_BLOCK_SIZE;
+        } else {
+            curBlockReadOffset = readOffset % SRFS_BLOCK_SIZE;
+            curBlockReadSize = readSize;
+        }
+        // we shouldn't be exceeding the current block size
+        if (curBlockReadOffset + curBlockReadSize > wf->curBlock->size) {
+            fatalError("curBlockReadOffset + curBlockReadSize > wf->curBlock->size", __FILE__, __LINE__);
+        }
+        ///
+        curBytesRead = wfb_read(wf->curBlock, dest + (readSize - pastBytesRead), curBlockReadOffset, curBlockReadSize);
+        if (curBytesRead != curBlockReadSize) {
+            fatalError("curBytesRead != curBlockReadSize", __FILE__, __LINE__);
+        }
+    } else {
+        srfsLog(LOG_FINE, "no read in current block");
+        if (lastBlockIndex > wf_cur_block_index(wf)) {
+            fatalError("lastBlockIndex > wf_cur_block_index(wf)", __FILE__, __LINE__);
+        }
+        curBytesRead = 0;
+    }
+    srfsLog(LOG_FINE, "%u", pastBytesRead + curBytesRead);
+    return pastBytesRead + curBytesRead;
 }

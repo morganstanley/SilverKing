@@ -32,6 +32,7 @@ typedef struct WritableFileBlock {
 
 WritableFileBlock *wfb_new();
 void wfb_delete(WritableFileBlock **wfb);
+size_t wfb_read(WritableFileBlock *wfb, char *dest, size_t srcOffset, size_t length);
 size_t wfb_write(WritableFileBlock *wfb, const char *src, size_t length);
 size_t wfb_rewrite(WritableFileBlock *wfb, const char *src, size_t offset, size_t length);
 void wfb_truncate(WritableFileBlock *wfb, size_t length);
