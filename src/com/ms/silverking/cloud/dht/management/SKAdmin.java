@@ -1304,75 +1304,48 @@ public class SKAdmin {
         	}
         	return new Pair<>(failedDaemons, running);
         }
-	}
-	
-	///////////////////////////////////////////
+    }
 
-	private static void fillDefaultOptions(SKAdminOptions options) {
-		if (options.classPath == null) {
-			options.classPath = System.getProperty("java.class.path");
-		}
-		if (options.javaBinary == null) {
-			options.javaBinary = System.getProperty("java.home") +"/bin/java";
-		}
-	}
-	
+    ///////////////////////////////////////////
+    /**
+     * The exposed function to run SKAdmin's real business logic, this method is the entry point for user who wishes to use SKAdmin as library
+     * @param options the <b>parsed<b/> SKAdminOptions object (arg4j)
+     * @param skCfgOverride the SKGridConfiguration object used for SKAdmin; if <b>null</b>, then SKAdmin will try to parse SKGridConfiguration from a config file defined in SKAdminOptions.gridConfigBase/gridConfig
+     */
+    public static void runWithParsedOptions(SKAdminOptions options, SKGridConfiguration skCfgOverride) {
+        boolean			success;
 
-	private static void sanityCheckOptions(SKAdminOptions options) {
-		// FUTURE - add
+        success = false;
+        try {
+            SKAdmin			skAdmin;
+            SKGridConfiguration	gc;
+            SKAdminCommand[]	commands;
 
-		// try to parse the following options at beginning, and RuntimeException will be thrown if wrong input given
-		options.getAuthenticator();
-		options.getStartNodeExtraJVMOptions();
-		if (options.aclImplSkStrDef != null) {
-			SKAclProvider.parse(options.aclImplSkStrDef);
-		}
-	}
-	
-	///////////////////////////////////////////
-	
-	public static void main(String[] args) {
-		boolean			success;
-		
-		success = false;
-    	try {
-    		SKAdmin			skAdmin;
-    		SKAdminOptions	options;
-    		CmdLineParser	parser;
-    		SKGridConfiguration	gc;
-    		SKAdminCommand[]	commands;
-    		
             LWTPoolProvider.createDefaultWorkPools();
             LWTThreadUtil.setLWTThread();
-    		options = new SKAdminOptions();
-    		parser = new CmdLineParser(options);
-    		try {
-    			parser.parseArgument(args);
-    		} catch (CmdLineException cle) {
-    			System.err.println(cle.getMessage());
-    			parser.printUsage(System.err);
-                System.exit(-1);
-    		}
-    		
-    		fillDefaultOptions(options);
-    		sanityCheckOptions(options);
-    		
-    		if (options.gridConfigBase != null) {
-    			gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
-    		} else {
-    			gc = SKGridConfiguration.parseFile(options.gridConfig);
-    		}
-    		// For now, redirection is handled by the launching script. 
-    		// We will probably move this to use below in the future.
-    		//LogStreamConfig.configureLogStreams(gc, logFileName);
-    		
-    		if (options.forceInclusionOfUnsafeExcludedServers) {
-				Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss", options.unsafeWarningCountdownSecs);
-    		}
-    		
-    		skAdmin = new SKAdmin(gc, options);
-    		commands = SKAdminCommand.parseCommands(options.commands);
-    		success = skAdmin.execCommand(commands);
+
+            options.fillDefaultOptions();
+            options.sanityCheckOptions();
+
+
+            if (skCfgOverride != null) {
+                gc = skCfgOverride;
+            } else if (options.gridConfigBase != null) {
+                gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
+            } else {
+                gc = SKGridConfiguration.parseFile(options.gridConfig);
+            }
+            // For now, redirection is handled by the launching script.
+            // We will probably move this to use below in the future.
+            //LogStreamConfig.configureLogStreams(gc, logFileName);
+
+            if (options.forceInclusionOfUnsafeExcludedServers) {
+                Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss", options.unsafeWarningCountdownSecs);
+            }
+
+            skAdmin = new SKAdmin(gc, options);
+            commands = SKAdminCommand.parseCommands(options.commands);
+            success = skAdmin.execCommand(commands);
 
     		Log.warning("SKAdmin exiting success="+ success);
     		
@@ -1390,5 +1363,25 @@ public class SKAdmin {
 		if (exitOnCompletion) {
 			System.exit(success ? 0 : -1);
 		}
+    }
+    /**
+     * This main method is the entry point for user who wishes to use SKAdmin as commandLine tool
+     * @param args commandLine args
+     */
+    public static void main(String[] args) {
+        // NOTE: This method shall only do commandLine parsing job
+        //		 The main logic job will be in method "runWithParsedOptions"
+        SKAdminOptions	options = new SKAdminOptions();
+        CmdLineParser	parser = new CmdLineParser(options);
+
+        try {
+            parser.parseArgument(args);
+        } catch (CmdLineException cle) {
+            System.err.println(cle.getMessage());
+            parser.printUsage(System.err);
+            System.exit(-1);
+        }
+
+        runWithParsedOptions(options, null);
     }
 }
