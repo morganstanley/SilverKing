@@ -798,7 +798,7 @@ static int fbr_cp_rVal_to_pbrr(PartialBlockReadRequest *pbrr, ActiveOpRef *aor, 
         srfsLog(LOG_ERROR, "aor->ao %llx", aor->ao);
         return -1;
     } else {
-        memcpy(pbrr->dest, aor_get_rVal(aor) + pbrr->readOffset, pbrr->readSize);
+        memcpy(pbrr->dest, (void *)((char *)aor_get_rVal(aor) + pbrr->readOffset), pbrr->readSize);
         return 0;
     }
 }
