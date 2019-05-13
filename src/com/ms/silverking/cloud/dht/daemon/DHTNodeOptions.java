@@ -19,7 +19,7 @@ public class DHTNodeOptions {
     public int inactiveNodeTimeoutSeconds = defaultInactiveNodeTimeoutSeconds;
     
 	@Option(name="-reapPolicy", usage="reapPolicy", required=false)
-	String reapPolicy = new ReapOnIdlePolicy().toString();
+	String reapPolicy = ObjectDefParser2.toClassAndDefString(new ReapOnIdlePolicy());
 	
 	public ReapPolicy getReapPolicy() {
 		return (ReapPolicy)ObjectDefParser2.parse(reapPolicy, ReapPolicy.class.getPackage());
