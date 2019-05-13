@@ -102,7 +102,7 @@ public class ObjectDefParser2 {
     }
     
     public static String toClassAndDefString(Object o) {
-    	return "<"+ o.getClass().getCanonicalName() +">{"+ o.toString() +"}";	
+    	return "<"+ o.getClass().getCanonicalName() +">{"+ ObjectDefParser2.objectToString(o) +"}";
     }
     
 	private static Pair<Class,String> getClassAndDef(String nameAndDef, Package defaultPackage) {
