@@ -1174,19 +1174,18 @@ int wf_read(WritableFile *wf, FileBlockWriter *fbw, PartialBlockReader *pbr, con
         size_t  curBlockReadOffset;
         size_t  curBlockReadSize;
         
-        if ((size_t)readOffset < lastBlockIndex * SRFS_BLOCK_SIZE) {
+        if ((size_t)readOffset < curBlockOffset) {
             curBlockReadOffset = 0;
             curBlockReadSize = (readOffset + readSize) % SRFS_BLOCK_SIZE;
         } else {
             curBlockReadOffset = readOffset % SRFS_BLOCK_SIZE;
             curBlockReadSize = readSize;
-        }
-        // we shouldn't be exceeding the current block size
+        }        
         if (curBlockReadOffset + curBlockReadSize > wf->curBlock->size) {
-            fatalError("curBlockReadOffset + curBlockReadSize > wf->curBlock->size", __FILE__, __LINE__);
+            curBlockReadSize = wf->curBlock->size - curBlockReadOffset;
         }
         ///
-        curBytesRead = wfb_read(wf->curBlock, dest + (readSize - pastBytesRead), curBlockReadOffset, curBlockReadSize);
+        curBytesRead = wfb_read(wf->curBlock, dest + pastBytesRead, curBlockReadOffset, curBlockReadSize);
         if (curBytesRead != curBlockReadSize) {
             fatalError("curBytesRead != curBlockReadSize", __FILE__, __LINE__);
         }
