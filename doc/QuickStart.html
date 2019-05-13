@@ -68,7 +68,7 @@ This method requires a ZooKeeper server to be up and running.
 For example, to create a simple SK configuration we can run:
 </p>
 <pre>
-StaticInstanceCreator.sh -G /tmp -d SK.MyTest -s 192.168.1.2,192.168.1.3 -r 1 -z zkserver:9981 -g GC_SK_MY_TEST 
+StaticInstanceCreator.sh -G /tmp -g GC_SK_MY_TEST -d SK.MyTest -s 192.168.1.2,192.168.1.3 -r 1 -z zkserver:9981
 </pre>
 <p>
 (For servers 192.168.1.2 and 192.168.1.3, and with ZooKeeper running at zkserver:9981.)
