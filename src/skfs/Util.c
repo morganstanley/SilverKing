@@ -42,8 +42,8 @@
 #define	_PATH_CHAR '/'
 #define _PATH_CUR_DIR "."
 #define _PATH_PARENT_DIR ".."
-#define LOG_QUEUE_SIZE	16
-#define LOG_MAX_BATCH_SIZE	16
+#define LOG_QUEUE_SIZE	262144
+#define LOG_MAX_BATCH_SIZE	8192
 #define LOG_THREADS 1
 #define NANOS_ORIGIN_TIME 946684800000L
 
