@@ -15,6 +15,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.time.RandomBackoff;
+import com.ms.silverking.net.security.ConnectionAbsorbException;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
@@ -312,12 +313,12 @@ public class PersistentAsyncServer<T extends Connection>
 		
 		backoff = null;
 		while (true) {
-			if (addressStatusProvider != null 
-			        && !addressStatusProvider.isAddressStatusProviderThread() 
+			if (addressStatusProvider != null
+			        && !addressStatusProvider.isAddressStatusProviderThread()
 					&& !addressStatusProvider.isHealthy(dest)) {
 				throw new UnhealthyConnectionAttemptException("Connection attempted to unhealthy address: "+ dest);
 			}
-			
+
 			try {
 				T	connection;
 				
@@ -327,6 +328,8 @@ public class PersistentAsyncServer<T extends Connection>
                     suspectAddressListener.removeSuspect(dest);
                 }
 				return connection;
+			} catch (ConnectionAbsorbException cae) {
+				Log.logErrorWarning(cae, cae.getAbsorbedInfoMessage());
 			} catch (ConnectException ce) {
 				if (addressStatusProvider != null 
 				        && addressStatusProvider.isAddressStatusProviderThread()) {

@@ -15,6 +15,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.security.AuthenticationFailError;
+import com.ms.silverking.net.security.Authenticator;
+import com.ms.silverking.net.security.ConnectionAbsorbException;
+import com.ms.silverking.net.security.NoopAuthenticatorImpl;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTConstants;
 import com.ms.silverking.thread.lwt.LWTPool;
@@ -40,23 +44,29 @@ public class AsyncBase<T extends Connection> {
     // FUTURE - link below to default op timeouts so that we at least try one additional connection in each op
 	private static final int	_defSocketReadTimeout = 5 * 60 * 1000 - 10 * 1000; 
 	private static final int	_defSocketConnectTimeout = 8 * 1000;	
-	
+	private static final int 	_defaultAuthenticationTimeoutInMillisecond = 30 * 1000;
+
 	private static final int	defReceiveBufferSize;
 	private static final int	defSendBufferSize;
 	private static final int	defSocketReadTimeout;
-	private static final int	defSocketConnectTimeout;	
-	
+	private static final int	defSocketConnectTimeout;
+	private static final int	defAuthenticationTimeoutInMillisecond;
+
 	private static final String	propertyBase = AsyncBase.class.getPackage().getName() +".";
 	private static final String	defReceiveBufferSizeProperty = propertyBase +"ReceiveBufferSize";
 	private static final String	defSendBufferSizeProperty = propertyBase +"SendBufferSize";
 	private static final String	defSocketReadTimeoutProperty = propertyBase +"SocketReadTimeout";
 	private static final String	defSocketConnectTimeoutProperty = propertyBase +"SocketConnectTimeoutProperty";
-	
+	private static final String defAuthenticationTimeoutProperty = propertyBase + "TimeoutMs";
+
+
+
 	private final ChannelSelectorControllerAssigner<T>	cscAssigner;
 	private final ConnectionCreator<T>					connectionCreator;
 	private final boolean  debug;
 	private final ConnectionStatsWriter    connectionStatsWriter;
-	private final Set<Connection>  connections;
+	private final Set<Connection> connections;
+	private final Authenticator authenticator;
 	
 	// favors short operations rather than attempting to parallelize
     private static final int   asyncBaseIdleThreadThreshold = Integer.MAX_VALUE; 
@@ -65,13 +75,32 @@ public class AsyncBase<T extends Connection> {
 	private static final boolean tcpNoDelay = true;
     private static final boolean logConnections = AsyncGlobals.verbose;
 
+	private static final Authenticator _defAuthenticator;
+	private static final ThreadLocal<Authenticator> defAuthenticatorThreadLocal;
+
 	protected boolean	running;
-	
+
 	static {
 		defReceiveBufferSize = setProperty(defReceiveBufferSizeProperty, _defReceiveBufferSize);
 		defSendBufferSize = setProperty(defSendBufferSizeProperty, _defSendBufferSize);
 		defSocketReadTimeout = setProperty(defSocketReadTimeoutProperty, _defSocketReadTimeout);
 		defSocketConnectTimeout = setProperty(defSocketConnectTimeoutProperty, _defSocketConnectTimeout);
+		defAuthenticationTimeoutInMillisecond = setProperty(defAuthenticationTimeoutProperty, _defaultAuthenticationTimeoutInMillisecond);
+
+		String authSkDef = System.getProperty(Authenticator.authImplProperty);
+		_defAuthenticator = Authenticator.getAuthenticator(authSkDef);
+		if (_defAuthenticator instanceof NoopAuthenticatorImpl) {
+			Log.warning("Authenticator info: No authentication operation will be performed; Back-ended by [" + _defAuthenticator.getName() + "]");
+		} else {
+			Log.info("Authenticator info: A customized a authImpl is in use [" + _defAuthenticator.getName() + "]");
+		}
+		defAuthenticatorThreadLocal = new ThreadLocal<Authenticator>() {
+			@Override
+			protected Authenticator initialValue() {
+				return _defAuthenticator.createLocalCopy();
+			}
+		};
+
 		if (AsyncGlobals.verbose) {
     		Log.warning("defReceiveBufferSize: "+ defReceiveBufferSize);
             Log.warning("defSendBufferSize: "+ defSendBufferSize);
@@ -79,7 +108,7 @@ public class AsyncBase<T extends Connection> {
             Log.warning("defSocketConnectTimeout: "+ defSocketConnectTimeout);
 		}
 	}
-	
+
 	private static int setProperty(String property, int defaultValue) {
 		String	val;
 		int		rVal;
@@ -95,7 +124,8 @@ public class AsyncBase<T extends Connection> {
         }
 		return rVal;
 	}
-	
+
+	//TODO: we may need to remove this hardcode "/tmp/silverking/"
 	private static File statsBaseDir(int port) {
 	    return new File("/tmp/silverking/stats/" + port);
 	}
@@ -133,6 +163,8 @@ public class AsyncBase<T extends Connection> {
             connectionStatsWriter = null;
             connections = null;
 		}
+
+		this.authenticator = defAuthenticatorThreadLocal.get();
 	}
 	
 	public AsyncBase(int port, int numSelectorControllers, 
@@ -279,8 +311,7 @@ public class AsyncBase<T extends Connection> {
 	}
 				
 	////////////////////////////////////////////////////////////////////////////////////
-	
-	public T newOutgoingConnection(InetSocketAddress dest, ConnectionListener listener) throws IOException {
+	public T newOutgoingConnection(InetSocketAddress dest, ConnectionListener listener) throws IOException, ConnectionAbsorbException {
 		SocketChannel	channel;
 		
 		channel = SocketChannel.open();
@@ -299,17 +330,35 @@ public class AsyncBase<T extends Connection> {
 		} finally {
 	        LWTThreadUtil.setNonBlocked();
 		}
-		return addConnection(channel, listener);
+		return addConnection(channel, listener, false);
 	}
 	
-	public T addConnection(SocketChannel channel) throws SocketException {
-		return addConnection(channel, null);
+	public T addConnection(SocketChannel channel, boolean serverside) throws SocketException, ConnectionAbsorbException {
+		return addConnection(channel, null, serverside);
 	}
 	
-	public T addConnection(SocketChannel channel, ConnectionListener listener) throws SocketException {
+	public T addConnection(SocketChannel channel, ConnectionListener listener, boolean serverside) throws SocketException, ConnectionAbsorbException {
 		T	connection;
 		SelectorController<T>	selectorController;
-		
+
+		Authenticator.AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside, defAuthenticationTimeoutInMillisecond);
+		if (authResult.isFailed()) {
+			switch (authResult.getFailedAction()) {
+				case GO_WITHOUT_AUTH: break;
+				case THROW_ERROR:
+					String msg = "Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide");
+					throw authResult.getFailCause().isPresent() ?
+						new AuthenticationFailError(msg, authResult.getFailCause().get()) :
+						new AuthenticationFailError(msg);
+				case ABSORB_CONNECTION:
+					throw new ConnectionAbsorbException(channel, listener, serverside, authResult.getFailCause().orElse(null));
+				default:
+					throw new RuntimeException("Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"
+							+ " and action for this failure has NOT been defined: "
+							+ "please check the behaviour of injected authenticator [" + authenticator.getName() + "]"));
+			}
+		}
+
 		if (logConnections) {
 			Log.warning("AsyncBase addConnection: ", channel);
 		}
@@ -326,6 +375,12 @@ public class AsyncBase<T extends Connection> {
 		selectorController = cscAssigner.assignChannelToSelectorController(channel, selectorControllers);
 		connection = connectionCreator.createConnection(channel, selectorController, 
 														listener, workPool, debug);
+
+		if (authResult.isSuccessful()) {
+			Log.info("Authenticator: authId["+authResult.getAuthId().get()+"] is obtained in ["
+					+ (serverside ? "ServerSide" : "ClientSide")+ "] by ["+authenticator.getName()+"]");
+			connection.setAuthResult(authResult);
+		}
 		connection.start();
         if (Connection.statsEnabled) {
             connections.add(connection);

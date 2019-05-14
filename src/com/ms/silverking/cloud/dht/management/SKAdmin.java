@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.ms.silverking.cloud.zookeeper.SKAclProvider;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.net.security.Authenticator;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.kohsuke.args4j.CmdLineException;
@@ -379,12 +382,23 @@ public class SKAdmin {
 		
 		// FUTURE - change to generic mechanism to pipe through properties
 		s = "";
+		if (options.aclImplSkStrDef != null) {
+			s += " -D"+ ZooKeeperExtended.aclProviderSKDefProperty +"="+ "\\\"" + options.aclImplSkStrDef + "\\\"";
+		}
+
 		if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
 			s += " -D"+ DirectoryServer.modeProperty +"="+ classVars.getVarMap().get(DirectoryServer.modeProperty);
 		}
 		if (classVars.getVarMap().containsKey(BaseDirectoryInMemorySS.compressionProperty)) {
 			s += " -D"+ BaseDirectoryInMemorySS.compressionProperty +"="+ classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty);
 		}
+		
+		if (options.authImplSkStrDef != null) {
+			s += " -D"+ Authenticator.authImplProperty +"="+ "\\\"" + options.authImplSkStrDef + "\\\"";
+		}
+		
+		s += " " + options.startNodeExtraJVMOptions;
+
 		return s;
 	}
 	
@@ -1288,68 +1302,47 @@ public class SKAdmin {
         	}
         	return new Pair<>(failedDaemons, running);
         }
-	}
-	
-	///////////////////////////////////////////
+    }
 
-	private static void fillDefaultOptions(SKAdminOptions options) {
-		if (options.classPath == null) {
-			options.classPath = System.getProperty("java.class.path");
-		}
-		if (options.javaBinary == null) {
-			options.javaBinary = System.getProperty("java.home") +"/bin/java";
-		}
-	}
-	
+    ///////////////////////////////////////////
+    /**
+     * The exposed function to run SKAdmin's real business logic, this method is the entry point for user who wishes to use SKAdmin as library
+     * @param options the <b>parsed<b/> SKAdminOptions object
+     * @param skConfigOverride the SKGridConfiguration object used for SKAdmin; if <b>null</b>, then SKAdmin will try to parse SKGridConfiguration from a config file defined in SKAdminOptions.gridConfigBase/gridConfig
+     */
+    public static void runWithParsedOptions(SKAdminOptions options, SKGridConfiguration skConfigOverride) {
+        boolean			success;
 
-	private static void sanityCheckOptions(SKAdminOptions options) {
-		// FUTURE - add
-	}
-	
-	///////////////////////////////////////////
-	
-	public static void main(String[] args) {
-		boolean			success;
-		
-		success = false;
-    	try {
-    		SKAdmin			skAdmin;
-    		SKAdminOptions	options;
-    		CmdLineParser	parser;
-    		SKGridConfiguration	gc;
-    		SKAdminCommand[]	commands;
-    		
+        success = false;
+        try {
+            SKAdmin			skAdmin;
+            SKGridConfiguration	gc;
+            SKAdminCommand[]	commands;
+
             LWTPoolProvider.createDefaultWorkPools();
             LWTThreadUtil.setLWTThread();
-    		options = new SKAdminOptions();
-    		parser = new CmdLineParser(options);
-    		try {
-    			parser.parseArgument(args);
-    		} catch (CmdLineException cle) {
-    			System.err.println(cle.getMessage());
-    			parser.printUsage(System.err);
-                System.exit(-1);
-    		}
-    		
-    		fillDefaultOptions(options);
-    		sanityCheckOptions(options);
-    		
-    		if (options.gridConfigBase != null) {
-    			gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
-    		} else {
-    			gc = SKGridConfiguration.parseFile(options.gridConfig);
-    		}
-    		// For now, redirection is handled by the launching script. 
-    		// We will probably move this to use below in the future.
-    		//LogStreamConfig.configureLogStreams(gc, logFileName);
-    		
-    		if (options.forceInclusionOfUnsafeExcludedServers) {
-				Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss", options.unsafeWarningCountdownSecs);
-    		}
-    		
-    		skAdmin = new SKAdmin(gc, options);
-    		commands = SKAdminCommand.parseCommands(options.commands);
-    		success = skAdmin.execCommand(commands);
+
+            options.fillDefaultOptions();
+            options.sanityCheckOptions();
+
+            if (skConfigOverride != null) {
+                gc = skConfigOverride;
+            } else if (options.gridConfigBase != null) {
+                gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
+            } else {
+                gc = SKGridConfiguration.parseFile(options.gridConfig);
+            }
+            // For now, redirection is handled by the launching script.
+            // We will probably move this to use below in the future.
+            //LogStreamConfig.configureLogStreams(gc, logFileName);
+
+            if (options.forceInclusionOfUnsafeExcludedServers) {
+                Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss", options.unsafeWarningCountdownSecs);
+            }
+
+            skAdmin = new SKAdmin(gc, options);
+            commands = SKAdminCommand.parseCommands(options.commands);
+            success = skAdmin.execCommand(commands);
 
     		Log.warning("SKAdmin exiting success="+ success);
     		
@@ -1367,5 +1360,23 @@ public class SKAdmin {
 		if (exitOnCompletion) {
 			System.exit(success ? 0 : -1);
 		}
+    }
+    /**
+     * This main method is the entry point for user who wishes to use SKAdmin as commandLine tool
+     * @param args commandLine args
+     */
+    public static void main(String[] args) {
+        SKAdminOptions	options = new SKAdminOptions();
+        CmdLineParser	parser = new CmdLineParser(options);
+
+        try {
+            parser.parseArgument(args);
+        } catch (CmdLineException cle) {
+            System.err.println(cle.getMessage());
+            parser.printUsage(System.err);
+            System.exit(-1);
+        }
+
+        runWithParsedOptions(options, null);
     }
 }
