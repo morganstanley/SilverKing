@@ -325,7 +325,9 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
 
     private List<ACL> getAclForPath(String path) {
         List<ACL> aclToUse = acl.getAclForPath(path);
-        if (aclToUse == null) { aclToUse = acl.getDefaultAcl(); }
+        if (aclToUse == null) {
+        	aclToUse = acl.getDefaultAcl(); 
+        }
         return aclToUse;
     }
 

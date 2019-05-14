@@ -67,10 +67,10 @@ public class NamespaceCreationOptionsTest {
 //	@Test
 	public void testToStringAndParse() {
 		NamespaceCreationOptions[] testCases = {
-//			defaultOptions,
-//			defaultOptionsCopy,
-//			defaultOptionsAlmostCopy,
-//			defaultOptionsDiff,
+			defaultOptions,
+			defaultOptionsCopy,
+			defaultOptionsAlmostCopy,
+			defaultOptionsDiff,
 		};
 		
 		for (NamespaceCreationOptions testCase : testCases)

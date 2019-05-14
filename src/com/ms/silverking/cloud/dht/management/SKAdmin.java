@@ -383,7 +383,6 @@ public class SKAdmin {
 		// FUTURE - change to generic mechanism to pipe through properties
 		s = "";
 		if (options.aclImplSkStrDef != null) {
-			SKAclProvider.parse(options.aclImplSkStrDef);
 			s += " -D"+ ZooKeeperExtended.aclProviderSKDefProperty +"="+ "\\\"" + options.aclImplSkStrDef + "\\\"";
 		}
 
@@ -393,14 +392,13 @@ public class SKAdmin {
 		if (classVars.getVarMap().containsKey(BaseDirectoryInMemorySS.compressionProperty)) {
 			s += " -D"+ BaseDirectoryInMemorySS.compressionProperty +"="+ classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty);
 		}
-
-		s += " -D"+ Authenticator.authImplProperty +"="+ "\\\"" + options.getAuthenticator().toSKDef() + "\\\"";
-
-		String[] userDefinedOptions = options.getStartNodeExtraJVMOptions();
-		if (userDefinedOptions.length > 0) {
-			String ops = String.join(" ", userDefinedOptions);
-			s += " " + ops;
+		
+		if (options.authImplSkStrDef != null) {
+			s += " -D"+ Authenticator.authImplProperty +"="+ "\\\"" + options.authImplSkStrDef + "\\\"";
 		}
+		
+		s += " " + options.startNodeExtraJVMOptions;
+
 		return s;
 	}
 	
@@ -1309,10 +1307,10 @@ public class SKAdmin {
     ///////////////////////////////////////////
     /**
      * The exposed function to run SKAdmin's real business logic, this method is the entry point for user who wishes to use SKAdmin as library
-     * @param options the <b>parsed<b/> SKAdminOptions object (arg4j)
-     * @param skCfgOverride the SKGridConfiguration object used for SKAdmin; if <b>null</b>, then SKAdmin will try to parse SKGridConfiguration from a config file defined in SKAdminOptions.gridConfigBase/gridConfig
+     * @param options the <b>parsed<b/> SKAdminOptions object
+     * @param skConfigOverride the SKGridConfiguration object used for SKAdmin; if <b>null</b>, then SKAdmin will try to parse SKGridConfiguration from a config file defined in SKAdminOptions.gridConfigBase/gridConfig
      */
-    public static void runWithParsedOptions(SKAdminOptions options, SKGridConfiguration skCfgOverride) {
+    public static void runWithParsedOptions(SKAdminOptions options, SKGridConfiguration skConfigOverride) {
         boolean			success;
 
         success = false;
@@ -1327,9 +1325,8 @@ public class SKAdmin {
             options.fillDefaultOptions();
             options.sanityCheckOptions();
 
-
-            if (skCfgOverride != null) {
-                gc = skCfgOverride;
+            if (skConfigOverride != null) {
+                gc = skConfigOverride;
             } else if (options.gridConfigBase != null) {
                 gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
             } else {
@@ -1369,8 +1366,6 @@ public class SKAdmin {
      * @param args commandLine args
      */
     public static void main(String[] args) {
-        // NOTE: This method shall only do commandLine parsing job
-        //		 The main logic job will be in method "runWithParsedOptions"
         SKAdminOptions	options = new SKAdminOptions();
         CmdLineParser	parser = new CmdLineParser(options);
 

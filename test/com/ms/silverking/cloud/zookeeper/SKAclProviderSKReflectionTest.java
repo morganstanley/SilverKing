@@ -1,24 +1,38 @@
 package com.ms.silverking.cloud.zookeeper;
 
-import com.ms.silverking.text.ObjectDefParser2;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
+
+import java.util.List;
+
+import org.apache.zookeeper.data.ACL;
+import org.junit.Test;
 
 public class SKAclProviderSKReflectionTest {
     @Test
     public void testSKStringDefReflection() {
-        DummySKAclProviderImpl imp = new DummySKAclProviderImpl();
-        String def = imp.toSKDef();
+        DummySKAclProviderImpl aclProvider = new DummySKAclProviderImpl();
+        String def = aclProvider.toSKDef();
         SKAclProvider acl = SKAclProvider.parse(def);
 
         String nonOverridePath = DummySKAclProviderImpl.overridePath + "/not/in/the/map";
-        assertEquals(acl.getDefaultAcl(), imp.getDefaultAcl());
-        assertEquals(acl.getAclForPath(nonOverridePath), imp.getAclForPath(nonOverridePath));
-        assertEquals(acl.getAclForPath(DummySKAclProviderImpl.overridePath), imp.getAclForPath(DummySKAclProviderImpl.overridePath));
-
-        assertEquals(acl.getDefaultAcl(), DummySKAclProviderImpl.defaultAcl);
-        assertEquals(acl.getAclForPath(nonOverridePath), DummySKAclProviderImpl.defaultAcl);
-        assertEquals(acl.getAclForPath(DummySKAclProviderImpl.overridePath), DummySKAclProviderImpl.overrideAcl);
+        
+        Object[][] testCases = {
+    		{aclProvider.getDefaultAcl(),       aclProvider.getAclForPath(nonOverridePath), aclProvider.getAclForPath(DummySKAclProviderImpl.overridePath)},
+    		{DummySKAclProviderImpl.defaultAcl, DummySKAclProviderImpl.defaultAcl,          DummySKAclProviderImpl.overrideAcl},
+        };
+        
+        for (Object[] testCase : testCases) {
+        	List<ACL> expectedDefaultAcl     = (List<ACL>)testCase[0];
+        	List<ACL> expectedNonOverrideAcl = (List<ACL>)testCase[1];
+        	List<ACL> expectedOverrideAcl    = (List<ACL>)testCase[2];
+        	
+            checkAcl(expectedDefaultAcl,     acl.getDefaultAcl());
+            checkAcl(expectedNonOverrideAcl, acl.getAclForPath(nonOverridePath));
+            checkAcl(expectedOverrideAcl,    acl.getAclForPath(DummySKAclProviderImpl.overridePath));
+        }
+    }
+    
+    private void checkAcl(List<ACL> expected, List<ACL> actual) {
+        assertEquals(expected, actual);
     }
 }

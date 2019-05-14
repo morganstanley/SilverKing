@@ -106,14 +106,14 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
 	//////////////////////////////////////////////////////////////////////
 	// Authentication and Authorization
 	// * Authenticable
-	private Authenticator.AuthResult authRes = null;
+	private Authenticator.AuthResult authResult = null;
 	@Override
-	public void setAuthResult(Authenticator.AuthResult authRes) {
-	    this.authRes = authRes;
+	public void setAuthResult(Authenticator.AuthResult authResult) {
+	    this.authResult = authResult;
 	}
 	@Override
 	public Optional<Authenticator.AuthResult> getAuthResult() {
-	    return Optional.ofNullable(authRes);
+	    return Optional.ofNullable(authResult);
 	}
 	//////////////////////////////////////////////////////////////////////
 	

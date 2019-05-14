@@ -136,14 +136,6 @@ public class SKAdminOptions {
 
     @Option(name="-useAuthWithImpl", usage = "specify AuthenticatorImpl in SKObjectStringDef", required = false)
     public String authImplSkStrDef = null;
-    // Try to firstly parse it as Authenticator object in case of wrong StringDef given
-    public Authenticator getAuthenticator() {
-        if (authImplSkStrDef == null) {
-            return new NoopAuthenticatorImpl();
-        } else {
-            return Authenticator.parseSKDef(authImplSkStrDef);
-        }
-    }
 
     @Option(name="-destructive", usage="destructive", required=false)
     public boolean	destructive = false;
@@ -191,38 +183,41 @@ public class SKAdminOptions {
     public String aclImplSkStrDef;
 
     @Option(name = "-startNodeWithExtraJVMOptions", usage = "enable user to append its customized JVM options when starting a DHTNode")
-    public String startNodeExtraJVMOptions;
-    public String[] getStartNodeExtraJVMOptions() {
-        if (startNodeExtraJVMOptions == null) {
-            return new String[0];
-        }
-
-        String[] trimmedOps = Arrays.stream(startNodeExtraJVMOptions.split("\\s+",-1))
-                .filter(str -> !str.trim().isEmpty())
-                .toArray(String[]::new);
-
-        for(String op : trimmedOps) {
-            // let it crash to prevent SKAdmin command to be populated
-            if (!op.startsWith("-")) {
-                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '-'");
-            }
-        }
-        return trimmedOps;
-    }
+    public String startNodeExtraJVMOptions = "";
 
     public void fillDefaultOptions() {
-        if (this.classPath == null) {
-            this.classPath = System.getProperty("java.class.path");
+        if (classPath == null) {
+            classPath = System.getProperty("java.class.path");
         }
-        if (this.javaBinary == null) {
-            this.javaBinary = System.getProperty("java.home") +"/bin/java";
+        if (javaBinary == null) {
+            javaBinary = System.getProperty("java.home") +"/bin/java";
         }
     }
 
     public void sanityCheckOptions() {
         // try to parse the following options at beginning, and RuntimeException will be thrown if wrong input given
-        this.getAuthenticator();
-        this.getStartNodeExtraJVMOptions();
+        Authenticator.getAuthenticator(authImplSkStrDef);
+        checkStartNodeExtraJVMOptions();
+        checkSkAclProvider();
+    }
+    
+    private void checkStartNodeExtraJVMOptions() {
+    	if (startNodeExtraJVMOptions.isEmpty()) {
+    		return;
+    	}
+    				
+    	String[] options = startNodeExtraJVMOptions.trim().split("\\s+");
+        String propertyFlag = "-D";
+        for (String op : options) {
+            // let it crash to prevent SKAdmin command to be populated
+            if (!op.startsWith(propertyFlag)) {
+                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '" + propertyFlag + "'");
+            }
+        }
+    }
+    
+    // TODO: use or replace with ZooKeeperExtended.resolveDefaultAclProvider()
+    private void checkSkAclProvider() {
         if (this.aclImplSkStrDef != null) {
             SKAclProvider.parse(this.aclImplSkStrDef);
         }

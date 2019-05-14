@@ -4,7 +4,7 @@ import com.ms.silverking.text.ObjectDefParser2;
 
 import java.net.Socket;
 
-public class DummyAuthenticatorImpl1 extends Authenticator{
+public class DummyAuthenticatorImpl1 extends Authenticator {
 
     static {
         ObjectDefParser2.addParser(new DummyAuthenticatorImpl1("", 0));

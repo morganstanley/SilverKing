@@ -19,6 +19,14 @@ public abstract class Authenticator {
         return ObjectDefParser2.parse(skDef, Authenticator.class.getPackage());
     }
 
+    public static Authenticator getAuthenticator(String property) {
+        if (property == null) {
+            return new NoopAuthenticatorImpl();
+        } else {
+            return parseSKDef(property);
+        }
+    }
+    
     public static class AuthResult {
         private String authId;
         // We encapsulate AuthFailedAction in AuthResult so that Authenticator can define different actions for different authentication situation

@@ -88,7 +88,7 @@ public class AsyncBase<T extends Connection> {
 		defAuthenticationTimeoutInMillisecond = setProperty(defAuthenticationTimeoutProperty, _defaultAuthenticationTimeoutInMillisecond);
 
 		String authSkDef = System.getProperty(Authenticator.authImplProperty);
-		_defAuthenticator = authSkDef == null ? new NoopAuthenticatorImpl() : Authenticator.parseSKDef(authSkDef);
+		_defAuthenticator = Authenticator.getAuthenticator(authSkDef);
 		if (_defAuthenticator instanceof NoopAuthenticatorImpl) {
 			Log.warning("Authenticator info: No authentication operation will be performed; Back-ended by [" + _defAuthenticator.getName() + "]");
 		} else {
@@ -341,17 +341,17 @@ public class AsyncBase<T extends Connection> {
 		T	connection;
 		SelectorController<T>	selectorController;
 
-		Authenticator.AuthResult authRes = authenticator.syncAuthenticate(channel.socket(), serverside, defAuthenticationTimeoutInMillisecond);
-		if (authRes.isFailed()) {
-			switch (authRes.getFailedAction()) {
+		Authenticator.AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside, defAuthenticationTimeoutInMillisecond);
+		if (authResult.isFailed()) {
+			switch (authResult.getFailedAction()) {
 				case GO_WITHOUT_AUTH: break;
 				case THROW_ERROR:
 					String msg = "Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide");
-					throw authRes.getFailCause().isPresent() ?
-						new AuthenticationFailError(msg, authRes.getFailCause().get()) :
+					throw authResult.getFailCause().isPresent() ?
+						new AuthenticationFailError(msg, authResult.getFailCause().get()) :
 						new AuthenticationFailError(msg);
 				case ABSORB_CONNECTION:
-					throw new ConnectionAbsorbException(channel, listener, serverside, authRes.getFailCause().orElse(null));
+					throw new ConnectionAbsorbException(channel, listener, serverside, authResult.getFailCause().orElse(null));
 				default:
 					throw new RuntimeException("Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"
 							+ " and action for this failure has NOT been defined: "
@@ -376,10 +376,10 @@ public class AsyncBase<T extends Connection> {
 		connection = connectionCreator.createConnection(channel, selectorController, 
 														listener, workPool, debug);
 
-		if (authRes.isSuccessful()) {
-			Log.info("Authenticator: authId["+authRes.getAuthId().get()+"] is obtained in ["
+		if (authResult.isSuccessful()) {
+			Log.info("Authenticator: authId["+authResult.getAuthId().get()+"] is obtained in ["
 					+ (serverside ? "ServerSide" : "ClientSide")+ "] by ["+authenticator.getName()+"]");
-			connection.setAuthResult(authRes);
+			connection.setAuthResult(authResult);
 		}
 		connection.start();
         if (Connection.statsEnabled) {

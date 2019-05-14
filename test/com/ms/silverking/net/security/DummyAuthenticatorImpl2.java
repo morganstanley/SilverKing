@@ -4,7 +4,7 @@ import com.ms.silverking.text.ObjectDefParser2;
 
 import java.net.Socket;
 
-public class DummyAuthenticatorImpl2 extends Authenticator{
+public class DummyAuthenticatorImpl2 extends Authenticator {
     static {
         ObjectDefParser2.addParser(new DummyAuthenticatorImpl2());
     }
@@ -12,7 +12,7 @@ public class DummyAuthenticatorImpl2 extends Authenticator{
     static String constructName() {
         return DummyAuthenticatorImpl2.class.getCanonicalName() + "()";
     }
-    final static Authenticator.AuthFailedAction failedAction = Authenticator.AuthFailedAction.GO_WITHOUT_AUTH ;
+    final static Authenticator.AuthFailedAction failedAction = Authenticator.AuthFailedAction.GO_WITHOUT_AUTH;
 
     public DummyAuthenticatorImpl2() {
     }
@@ -28,12 +28,12 @@ public class DummyAuthenticatorImpl2 extends Authenticator{
     }
 
     @Override
-    public Authenticator.AuthFailedAction onAuthTimeout(boolean serverside) {
+    public AuthFailedAction onAuthTimeout(boolean serverside) {
         return Authenticator.AuthFailedAction.GO_WITHOUT_AUTH;
     }
 
     @Override
-    public Authenticator.AuthResult syncAuthenticate(Socket unauthNetwork, boolean serverside, int timeoutInMillisecond) {
+    public AuthResult syncAuthenticate(Socket unauthNetwork, boolean serverside, int timeoutInMillisecond) {
         return Authenticator.createAuthFailResult(failedAction);
     }
 }
