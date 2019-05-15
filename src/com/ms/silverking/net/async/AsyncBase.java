@@ -90,9 +90,9 @@ public class AsyncBase<T extends Connection> {
 		String authSkDef = System.getProperty(Authenticator.authImplProperty);
 		_defAuthenticator = Authenticator.getAuthenticator(authSkDef);
 		if (_defAuthenticator instanceof NoopAuthenticatorImpl) {
-			Log.warning("Authenticator info: No authentication operation will be performed; Back-ended by [" + _defAuthenticator.getName() + "]");
+			Log.info("Authenticator: No authentication operation will be performed; Back-ended by [" + _defAuthenticator.getName() + "]");
 		} else {
-			Log.info("Authenticator info: A customized a authImpl is in use [" + _defAuthenticator.getName() + "]");
+			Log.info("Authenticator: A customized authenticator is in use [" + _defAuthenticator.getName() + "]");
 		}
 		defAuthenticatorThreadLocal = new ThreadLocal<Authenticator>() {
 			@Override

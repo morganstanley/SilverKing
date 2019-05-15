@@ -1,8 +1,7 @@
 package com.ms.silverking.cloud.dht.management;
 
-import com.ms.silverking.cloud.zookeeper.SKAclProvider;
-import com.ms.silverking.net.security.Authenticator;
-import com.ms.silverking.net.security.NoopAuthenticatorImpl;
+import java.util.logging.Level;
+
 import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
@@ -12,9 +11,10 @@ import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
+import com.ms.silverking.cloud.zookeeper.SKAclProvider;
+import com.ms.silverking.net.security.Authenticator;
 import com.ms.silverking.text.ObjectDefParser2;
-
-import java.util.Arrays;
+import static com.ms.silverking.cloud.dht.management.SKAdmin.javaSystemPropertyFlag;
 
 public class SKAdminOptions {
     public static String	exclusionsTarget = "exclusions";
@@ -59,7 +59,7 @@ public class SKAdminOptions {
     public String	coreLimit;
 
     @Option(name="-l", usage="LogLevel", required=false)
-    public String	logLevel = "WARNING";
+    public String	logLevel = Level.WARNING.toString();
 
     @Option(name="-cp", usage="ClassPath", required=false)
     public String	classPath;
@@ -207,11 +207,10 @@ public class SKAdminOptions {
     	}
     				
     	String[] options = startNodeExtraJVMOptions.trim().split("\\s+");
-        String propertyFlag = "-D";
         for (String op : options) {
             // let it crash to prevent SKAdmin command to be populated
-            if (!op.startsWith(propertyFlag)) {
-                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '" + propertyFlag + "'");
+            if (!op.startsWith(javaSystemPropertyFlag)) {
+                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '" + javaSystemPropertyFlag + "'");
             }
         }
     }
