@@ -55,7 +55,9 @@ public final class WaitOptions extends RetrievalOptions {
      * @param secondaryTargets constrains queried secondary replicas 
      * @param retrievalType what to retrieve (data, meta data, etc.)
      * @param versionConstraint filter on the allowed versions
-     * @param verifyChecksums
+     * @param nonExistenceResponse TODO
+     * @param verifyChecksums TODO
+     * @param returnInvalidations TODO
      * @param updateSecondariesOnMiss when true, secondary replicas queried in this operation will be updated on a miss
      * @param timeoutSeconds return after timeoutSeconds if the values cannot be retrieved
      * @param threshold return after a percentage of requested values are available
@@ -110,7 +112,7 @@ public final class WaitOptions extends RetrievalOptions {
     
     /**
      * Return a WaitOptions instance like this instance, but with a new SecondaryTargets.
-     * @param secondaryTargets the new field value
+     * @param secondaryTarget the new field value
      * @return the modified WaitOptions
      */
     public WaitOptions secondaryTargets(SecondaryTarget secondaryTarget) {
@@ -247,7 +249,7 @@ public final class WaitOptions extends RetrievalOptions {
 	
 	/**
 	 * timeoutResponse getter
-	 * @return
+	 * @return timeoutResponse
 	 */
 	public TimeoutResponse getTimeoutResponse() {
 	    return timeoutResponse;

@@ -36,6 +36,8 @@ public final class GetOptions extends RetrievalOptions {
      * @param verifyChecksums whether or not to verify checksums
      * @param returnInvalidations normally false, true causes invalidated values to be returned.
      * only valid for META_DATA retrievals
+     * @param forwardingMode FORWARD is for normal operation. DO_NOT_FORWARD restricts the get
+     * to the receiving node
      * @param updateSecondariesOnMiss update secondary replicas when a value is not found at the
      * replica, but is found at the primary
      */
@@ -73,7 +75,7 @@ public final class GetOptions extends RetrievalOptions {
     
     /**
      * Return a GetOptions instance like this instance, but with a new SecondaryTargets.
-     * @param secondaryTargets the new field value
+     * @param secondaryTarget the new field value
      * @return the modified GetOptions
      */
     public GetOptions secondaryTargets(SecondaryTarget secondaryTarget) {

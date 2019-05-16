@@ -26,7 +26,7 @@ public interface AsyncKeyedOperation<K> extends AsyncOperation {
     public Set<K> getIncompleteKeys();
 	/**
 	 * Get the OperationState for the given key.
-	 * @param key
+	 * @param key given key
 	 * @return OperationState for the given key
 	 */
 	public OperationState getOperationState(K key);

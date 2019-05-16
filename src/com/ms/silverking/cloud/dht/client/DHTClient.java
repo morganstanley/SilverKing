@@ -91,7 +91,8 @@ public class DHTClient {
 	
 	/**
 	 * Construct DHTClient with the specified SerializationRegistry. 
-	 * @throws IOException
+	 * @param serializationRegistry TODO
+	 * @throws IOException TODO
 	 */
 	@OmitGeneration
 	public DHTClient(SerializationRegistry serializationRegistry) throws IOException {
@@ -102,7 +103,7 @@ public class DHTClient {
 
 	/**
      * Construct DHTClient with default SerializationRegistry. 
-	 * @throws IOException
+	 * @throws IOException TODO
 	 */
     public DHTClient() throws IOException {
         this(SerializationRegistry.createDefaultRegistry());
@@ -112,7 +113,7 @@ public class DHTClient {
 	 * Open a new session to the specified SilverKing DHT instance using default SessionOptions.
 	 * @param dhtConfigProvider specifies the SilverKing DHT instance 
 	 * @return a new session to the given instance
-	 * @throws ClientException
+	 * @throws ClientException TODO
 	 */
     public DHTSession openSession(ClientDHTConfigurationProvider dhtConfigProvider) throws ClientException {        
         return openSession(new SessionOptions(dhtConfigProvider.getClientDHTConfiguration()));
@@ -122,7 +123,7 @@ public class DHTClient {
      * Open a new session to the specified SilverKing DHT instance using the given SessionOptions.
      * @param sessionOptions options specifying the SilverKing DHT instance and the parameters of this session
      * @return a new session to the given instance
-     * @throws ClientException
+     * @throws ClientException TODO
      */
 	public DHTSession openSession(SessionOptions sessionOptions) throws ClientException {
 	    ClientDHTConfiguration dhtConfig;

@@ -14,7 +14,7 @@ import java.math.BigDecimal;
  * concrete classes can add more if desired.</b></p>
  * 
  * <p>This class is <b>not</b> completely threadsafe though 
- * portions may safely be used by multiple threads.<p> 
+ * portions may safely be used by multiple threads.</p> 
  *
  */
 public abstract class StopwatchBase implements Stopwatch {

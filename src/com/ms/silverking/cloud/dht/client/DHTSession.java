@@ -10,8 +10,6 @@ import com.ms.silverking.cloud.dht.WaitOptions;
 /**
  * Represents a client's session with the DHT. 
  * Namespaces and associated perspectives may be obtained from this session.
- * @param <K> key type
- * @param <V> value type
  * 
  * @see BaseNamespacePerspective
  */
@@ -44,7 +42,7 @@ public interface DHTSession {
     /**
      * Create a namespace with default NamespaceOptions
      * @param namespace name of the namespace
-     * @return
+     * @return newly created namespace
      * @throws NamespaceCreationException if the namespace already exists
      */
     public Namespace createNamespace(String namespace) throws NamespaceCreationException;
@@ -53,14 +51,14 @@ public interface DHTSession {
      * @param namespace name of the namespace
      * @param nsOptions NamespaceOptions used for creating this namespace. 
      * If null, default this instance's NamespaceOptions will be used
-     * @return
+     * @return newly created namespace
      * @throws NamespaceCreationException if the namespace already exists
      */
     public Namespace createNamespace(String namespace, NamespaceOptions nsOptions) throws NamespaceCreationException;
     /**
      * Get a previously created Namespace
-     * @param namespace
-     * @return
+     * @param namespace name of the namespace
+     * @return namespace that matches name
      */
     public Namespace getNamespace(String namespace);
     /**
@@ -69,7 +67,7 @@ public interface DHTSession {
      * @param <V> value type of perspective to open
      * @param namespace name of the namespace
      * @param nspOptions options for NamespacePerspective
-     * @return
+     * @return the opened AsynchronousNamespacePerspective
      */
 	public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace, 
 	                                                            NamespacePerspectiveOptions<K,V> nspOptions);	
@@ -80,7 +78,7 @@ public interface DHTSession {
      * @param namespace name of the namespace
      * @param keyClass class of keys
      * @param valueClass class of values
-     * @return
+     * @return the opened AsynchronousNamespacePerspective
      */
 	public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace, 
 	                                                            Class<K> keyClass, Class<V> valueClass);	
@@ -91,7 +89,7 @@ public interface DHTSession {
 	 * @param <V> value type of perspective to open
 	 * @param namespace name of the namespace
      * @param nspOptions options for NamespacePerspective
-	 * @return
+	 * @return the opened SynchronousNamespacePerspective
 	 */
 	public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace,
                                                                 NamespacePerspectiveOptions<K,V> nspOptions);
@@ -102,7 +100,7 @@ public interface DHTSession {
      * @param namespace name of the namespace
      * @param keyClass class of keys
      * @param valueClass class of values
-     * @return
+     * @return the opened SynchronousNamespacePerspective
      */
 	public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace,
 																Class<K> keyClass, Class<V> valueClass);
@@ -110,13 +108,15 @@ public interface DHTSession {
 	/**
 	 * Deletes an entire namespace. This causes the data in the namespace to be inaccessible, and the data  
 	 * to be moved to the trash directory.
-	 * @param namespace
+	 * @param namespace name of the namespace
+	 * @throws NamespaceDeletionException TODO
 	 */
 	public void deleteNamespace(String namespace) throws NamespaceDeletionException;
 	/**
 	 * Attempts recovery of a deleted namespace. This is only possible of all namespace data is available in
 	 * the trash directory.
-	 * @param namespace
+	 * @param namespace name of the namespace
+	 * @throws NamespaceRecoverException TODO
 	 */
     public void recoverNamespace(String namespace) throws NamespaceRecoverException;
 	

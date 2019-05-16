@@ -1,9 +1,5 @@
 package com.ms.silverking.cloud.dht.client;
 
-
-
-
-
 /**
  * <p>Represents data returned from a retrieval operation. Depending on the type of
  * retrieval, this object may contain an actual value and/or meta data for the stored value.
@@ -24,6 +20,7 @@ public interface StoredValue<V> extends StoredValueBase<V>, MetaData {
     // FUTURE - think about multi-versioned results
     /**
      * Experimental - not yet supported 
+     * @return TODO
      */
     public StoredValue<V> next();
 }

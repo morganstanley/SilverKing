@@ -80,8 +80,9 @@ public final class SessionOptions {
     
     /**
      * Create a fully-specified SessionOptions instance
-     * @param dhtConfigProvider
-     * @param preferredServer
+     * @param dhtConfigProvider TODO
+     * @param preferredServer TODO
+     * @param timeoutController TODO
      */
     public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider, String preferredServer, 
     					  SessionEstablishmentTimeoutController timeoutController) {
@@ -101,8 +102,8 @@ public final class SessionOptions {
     
     /**
      * Create a SessionOptions instance with a default timeout controller.
-     * @param dhtConfigProvider
-     * @param preferredServer
+     * @param dhtConfigProvider TODO
+     * @param preferredServer TODO
      */
     public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider, String preferredServer) {
         this(dhtConfigProvider, preferredServer, getDefaultTimeoutController());
@@ -110,7 +111,7 @@ public final class SessionOptions {
     
     /**
      * Create a SessionOptions instance with the default preferredServer and timeout controller
-     * @param dhtConfigProvider
+     * @param dhtConfigProvider TODO
      */
     public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider) {
         this(dhtConfigProvider, null);

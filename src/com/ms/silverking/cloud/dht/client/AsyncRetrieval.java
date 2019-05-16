@@ -19,19 +19,20 @@ public interface AsyncRetrieval<K, V> extends AsyncKeyedOperation<K> {
     public RetrievalOptions getRetrievalOptions();
 	/**
 	 * Block until this operation is complete.
+	 * @throws RetrievalException TODO
 	 */
 	public void waitForCompletion() throws RetrievalException;
 	/**
 	 * Returns StoredValues for all successfully complete retrievals. 
 	 * @return StoredValues for all successfully complete retrievals
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public Map<K, ? extends StoredValue<V>> getStoredValues() throws RetrievalException;
 	/**
 	 * Returns StoredValues for the given key if it is present. 
 	 * @param key key to query
 	 * @return StoredValues for the given key if it is present
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public StoredValue<V> getStoredValue(K key) throws RetrievalException;	
 	/**
@@ -44,7 +45,7 @@ public interface AsyncRetrieval<K, V> extends AsyncKeyedOperation<K> {
      * undefined.  
 	 * @return StoredValues for all successfully complete retrievals that
      * have completed since the last call to this method or AsyncValueRetrieval.getLatestStoredValues().
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public Map<K, ? extends StoredValue<V>> getLatestStoredValues() throws RetrievalException;
 }

@@ -70,10 +70,10 @@ public interface Timer extends Stopwatch {
     public BigDecimal getTimeLimitSecondsBD();
     /**
      * Wait on the provided Condition for the remaining time
-     * @param cv
+     * @param cv TODO
      * @return {@code false} if the waiting time detectably elapsed
      *         before return from the method, else {@code true}
-     * @throws InterruptedException
+     * @throws InterruptedException TODO
      */
 	public boolean await(Condition cv) throws InterruptedException;
 }

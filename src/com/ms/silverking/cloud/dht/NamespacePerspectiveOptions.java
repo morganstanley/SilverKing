@@ -45,9 +45,9 @@ public final class NamespacePerspectiveOptions<K,V> {
      * Construct a NamespacePerspectiveOptions instance with complete specification of all parameters.
      * This constructor should generally be avoided. Instead, an instance of this class should be
      * obtained using Namespace.getDefaultNSPOptions().
-     * @param keyClass
-     * @param valueClass
-     * @param keyDigestType
+     * @param keyClass TODO
+     * @param valueClass TODO
+     * @param keyDigestType TODO
      * @param defaultPutOptions default PutOptions. If null, the namespace default will be used 
      * as the perspective default 
      * @param defaultInvalidationOptions default InvalidationOptions. If null, the namespace default will be used 
@@ -56,8 +56,8 @@ public final class NamespacePerspectiveOptions<K,V> {
      * as the perspective default
      * @param defaultWaitOptions default WaitOptions. If null, the namespace default will be used 
      * as the perspective default
-     * @param defaultVersionProvider
-     * @param encrypterDecrypter
+     * @param defaultVersionProvider TODO
+     * @param encrypterDecrypter TODO
      */
     public NamespacePerspectiveOptions(Class<K> keyClass, Class<V> valueClass, 
                                        KeyDigestType keyDigestType, 
@@ -92,7 +92,15 @@ public final class NamespacePerspectiveOptions<K,V> {
     }
     
     /**
-     * For C++ implementation only. Do not use. 
+     * For C++ implementation only. Do not use.
+     * @param keyClass same as above
+     * @param valueClass same as above
+     * @param keyDigestType same as above
+     * @param defaultPutOptions same as above 
+     * @param defaultInvalidationOptions same as above
+     * @param defaultGetOptions same as above
+     * @param defaultWaitOptions same as above
+     * @param defaultVersionProvider same as above
      */
     public NamespacePerspectiveOptions(Class<K> keyClass, Class<V> valueClass, 
             KeyDigestType keyDigestType, 

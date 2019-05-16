@@ -20,6 +20,7 @@ public interface AsyncOperation {
 	public FailureCause getFailureCause();
 	/**
 	 * Block until this operation is complete.
+	 * @throws OperationException TODO
 	 */
 	public void waitForCompletion() throws OperationException;
 	/**
@@ -27,7 +28,7 @@ public interface AsyncOperation {
 	 * @param timeout time to wait
 	 * @param unit unit of time to wait
 	 * @return true if this operation is complete. false otherwise
-	 * @throws OperationException
+	 * @throws OperationException TODO
 	 */
 	public boolean waitForCompletion(long timeout, TimeUnit unit) throws OperationException;
 	/**

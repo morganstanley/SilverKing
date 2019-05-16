@@ -33,6 +33,7 @@ public class SimpleTimeoutController implements OpTimeoutController {
     
     /**
      * Create a SimpleTimeoutController like this instance, but with a new maxAttempts.
+     * @param maxAttempts maximum number of attempts
      * @return a SimpleTimeoutController like this instance, but with a new maxAttempts
      */
     public SimpleTimeoutController maxAttempts(int maxAttempts) {
@@ -41,6 +42,7 @@ public class SimpleTimeoutController implements OpTimeoutController {
 
     /**
      * Create a SimpleTimeoutController like this instance, but with a new maxRelativeTimeoutMillis.
+     * @param maxRelativeTimeoutMillis maximum relative timeout for the given operation
      * @return a SimpleTimeoutController like this instance, but with a new maxRelativeTimeoutMillis
      */
     public SimpleTimeoutController maxRelativeTimeoutMillis(int maxRelativeTimeoutMillis) {

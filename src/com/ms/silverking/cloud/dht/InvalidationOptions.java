@@ -34,9 +34,10 @@ public class InvalidationOptions extends PutOptions {
 	 * Construct InvalidationOptions from the given arguments. Usage is generally not recommended.
 	 * Instead of using this constructor, most applications should obtain an InvalidationOptions
 	 * object from a valid source such as the session, the namespace, or the namespace perspective.
-     * @param opTimeoutController
-     * @param secondaryTargets
-     * @param version
+     * @param opTimeoutController opTimeoutController for the operation
+     * @param secondaryTargets constrains queried secondary replicas 
+     * to operation solely on the node that receives this operation
+     * @param version version of this object
      */
 	public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
 								long version) {

@@ -25,11 +25,8 @@ public class DHTNodeOptionsReflectionTest {
             options.reapPolicy = ObjectDefParser2.toClassAndDefString(policy);
             ReapPolicy reflectedPolicy = options.getReapPolicy();
 
-            System.out.println(policy.toString());
-            System.out.println(reflectedPolicy.toString());
             assertEquals(policy.toString(), reflectedPolicy.toString());
         }
-
 
         // Only this policy does NOT override its toString
         ReapPolicy p5 = new NeverReapPolicy();
