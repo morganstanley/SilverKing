@@ -12,8 +12,7 @@ public abstract class Authenticator {
         ObjectDefParser2.addParserWithExclusions(Authenticator.class, null, FieldsRequirement.ALLOW_INCOMPLETE, null);
     }
     public String toSKDef() {
-        // TODO: update this later when we got GitHub access and refactor ObjectDefParser2 in future
-        return "<" + this.getClass().getCanonicalName() + ">{" + ObjectDefParser2.objectToString(this) + "}";
+        return ObjectDefParser2.toClassAndDefString(this);
     }
     public static Authenticator parseSKDef(String skDef) {
         return ObjectDefParser2.parse(skDef, Authenticator.class.getPackage());

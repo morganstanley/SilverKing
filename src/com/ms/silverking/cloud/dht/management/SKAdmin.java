@@ -70,6 +70,7 @@ import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.process.ProcessExecutor;
 import com.ms.silverking.pssh.TwoLevelParallelSSHMaster;
+import com.ms.silverking.text.ObjectDefParser2;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
@@ -368,14 +369,32 @@ public class SKAdmin {
 	}
 	
 	private String getDHTOptions(SKAdminOptions options, ClassVars classVars) {
-		return "-Dcom.ms.silverking.Log="+ options.logLevel
-				+" -D"+ DHTConstants.dataBasePathProperty +"="+ getDataDir(classVars)
-				+" -D"+ DHTConstants.fileSegmentCacheCapacityProperty +"="+ getFileSegmentCacheCapacity(classVars)
-				+" -D"+ DHTConstants.retrievalImplementationProperty +"="+ getRetrievalImplementation(classVars)
-				+" -D"+ DHTConstants.segmentIndexLocationProperty +"="+ getSegmentIndexLocation(classVars)
-				+" -D"+ DHTConstants.nsPrereadGBProperty +"="+ getNSPrereadGB(classVars)
+		return getSystemPropertyFormatted("com.ms.silverking.Log", options.logLevel)
+				+ getSystemPropertyFormatted(DHTConstants.dataBasePathProperty,             getDataDir(classVars))
+				+ getSystemPropertyFormatted(DHTConstants.fileSegmentCacheCapacityProperty, getFileSegmentCacheCapacity(classVars))
+				+ getSystemPropertyFormatted(DHTConstants.retrievalImplementationProperty,  getRetrievalImplementation(classVars))
+				+ getSystemPropertyFormatted(DHTConstants.segmentIndexLocationProperty,     getSegmentIndexLocation(classVars))
+				+ getSystemPropertyFormatted(DHTConstants.nsPrereadGBProperty,              getNSPrereadGB(classVars))
 				;
 	}
+    
+	public static final String javaSystemPropertyFlag = "-D";
+	public static String getSystemPropertyFormatted(String key, String value) {
+		return getSystemPropertyFormatted(key, value, false);
+    }
+	public static String getSystemPropertyFormattedWithValueEscaped(String key, String value) {
+		return getSystemPropertyFormatted(key, value, true);
+    }
+	private static final String escapeStr = "\\\"";
+	public static String getSystemPropertyFormatted(String key, String value, boolean escaped) {
+		String property = " " + javaSystemPropertyFlag + key + "=";
+		if (escaped)
+			property += escapeStr + value + escapeStr;
+		else
+			property += value;
+    	
+		return property;
+    }
 	
 	private String getExtraOptions(SKAdminOptions options, ClassVars classVars) {
 		String	s;
@@ -383,18 +402,18 @@ public class SKAdmin {
 		// FUTURE - change to generic mechanism to pipe through properties
 		s = "";
 		if (options.aclImplSkStrDef != null) {
-			s += " -D"+ ZooKeeperExtended.aclProviderSKDefProperty +"="+ "\\\"" + options.aclImplSkStrDef + "\\\"";
+			s += getSystemPropertyFormattedWithValueEscaped(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef);
 		}
 
 		if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
-			s += " -D"+ DirectoryServer.modeProperty +"="+ classVars.getVarMap().get(DirectoryServer.modeProperty);
+			s += getSystemPropertyFormatted(DirectoryServer.modeProperty, classVars.getVarMap().get(DirectoryServer.modeProperty));
 		}
 		if (classVars.getVarMap().containsKey(BaseDirectoryInMemorySS.compressionProperty)) {
-			s += " -D"+ BaseDirectoryInMemorySS.compressionProperty +"="+ classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty);
+			s += getSystemPropertyFormatted(BaseDirectoryInMemorySS.compressionProperty, classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty));
 		}
 		
 		if (options.authImplSkStrDef != null) {
-			s += " -D"+ Authenticator.authImplProperty +"="+ "\\\"" + options.authImplSkStrDef + "\\\"";
+			s += getSystemPropertyFormattedWithValueEscaped(Authenticator.authImplProperty, options.authImplSkStrDef);
 		}
 		
 		s += " " + options.startNodeExtraJVMOptions;
@@ -433,7 +452,7 @@ public class SKAdmin {
 				+ getTaskset(options)
 				+ getJavaCmdStart(options, classVars) 
 				+" "+ DHTNode.class.getCanonicalName()
-				+ " -reapPolicy \\\"<"+ reapPolicy.getClass().getCanonicalName() +">{"+ reapPolicy.toString() +"}\\\""
+				+" -reapPolicy "+ escapeStr + ObjectDefParser2.toClassAndDefString(reapPolicy) + escapeStr
 				+" -n "+ gc.getClientDHTConfiguration().getName() 
 				+" -z "+ gc.getClientDHTConfiguration().getZKConfig()
 				+" -into "+ options.inactiveNodeTimeoutSeconds
@@ -1361,6 +1380,7 @@ public class SKAdmin {
 			System.exit(success ? 0 : -1);
 		}
     }
+    
     /**
      * This main method is the entry point for user who wishes to use SKAdmin as commandLine tool
      * @param args commandLine args
