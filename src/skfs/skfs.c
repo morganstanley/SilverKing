@@ -557,7 +557,8 @@ static int skfs_getattr(const char *path, struct stat *stbuf
 	, struct fuse_file_info *fi
 #endif
 ) {
-	srfsLogAsync(LOG_OPS, "_ga %x %s", get_caller_pid(), path);
+    // FIXME - below is temp LOG_FINE until we can reduce log mutex contention
+	srfsLogAsync(/*LOG_OPS*/LOG_FINE, "_ga %x %s", get_caller_pid(), path);
 	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
 		char nativePath[SRFS_MAX_PATH_LENGTH];
 
