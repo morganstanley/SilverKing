@@ -306,6 +306,7 @@ function f_sendEmail {
             fatalFails+=("OutOfMemoryError")
             fatalFails+=(" TIMEOUT") # FIXME:bph: change " TIMEOUT" -> "\s+TIMEOUT" so we actually match these as FATAL
             fatalFails+=(" wf_write_block_sync failed ") 
+            fatalFails+=("Fatal Error") 
             # add "*** check this machine" ? 
             typeset lastIndex=$((${#fatalFails[@]}-1))
             for i in {0..$lastIndex}; do
