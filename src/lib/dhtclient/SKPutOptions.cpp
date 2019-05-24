@@ -157,7 +157,7 @@ SKPutOptions * SKPutOptions::requiredPreviousVersion(int64_t requiredPreviousVer
 
 SKPutOptions * SKPutOptions::fragmentationThreshold(int64_t fragmentationThreshold){
 	PutOptions * pPutOptImp = new PutOptions(java_cast<PutOptions>(
-		((PutOptions*)pImpl)->fragmentationThreshold(version)
+		((PutOptions*)pImpl)->fragmentationThreshold(fragmentationThreshold)
 	)); 
     delete ((PutOptions*)pImpl);
     pImpl = pPutOptImp;

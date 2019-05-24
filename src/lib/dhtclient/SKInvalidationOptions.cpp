@@ -137,7 +137,25 @@ SKInvalidationOptions::SKInvalidationOptions(SKOpTimeoutController * opTimeoutCo
 	}
 	
 	pImpl = new InvalidationOptions(java_new<InvalidationOptions>(controller, 
-                targets, version)); 
+                targets, version, 0)); 
+}
+
+SKInvalidationOptions::SKInvalidationOptions(SKOpTimeoutController * opTimeoutController, 
+        set<SKSecondaryTarget*> * secondaryTargets, int64_t version, int64_t requiredPreviousVersion) {
+	OpTimeoutController controller = java_cast<OpTimeoutController>( *(opTimeoutController->getPImpl()) );
+
+	Set targets ;
+	if (secondaryTargets && secondaryTargets->size()) {
+		targets = java_new<HashSet>();
+		std::set<SKSecondaryTarget*>::iterator it;
+		for (it = secondaryTargets->begin(); it != secondaryTargets->end(); ++it) {
+			SecondaryTarget * pTgt = (*it)->getPImpl();
+			targets.add( *pTgt );
+		}
+	}
+	
+	pImpl = new InvalidationOptions(java_new<InvalidationOptions>(controller, 
+                targets, version, requiredPreviousVersion)); 
 }
 
 SKInvalidationOptions::~SKInvalidationOptions() {

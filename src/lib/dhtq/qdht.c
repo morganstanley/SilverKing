@@ -1553,7 +1553,9 @@ K dht_nsoptions_new( K storageTypeq, K consistencyProtocolq, K versionModeq, K r
 		SKWaitOptions * pWaitOpt = (SKWaitOptions *) defaultWaitOptionsq->j;
 		SKNamespaceOptions * pNsOpt = new SKNamespaceOptions(st, cp, vm, rm,
         pPutOpt, pInvalidationOpt, pGetOpt, pWaitOpt,
-        secondarySyncIntervalSeconds, segmentSize, allowLinks);
+        secondarySyncIntervalSeconds, segmentSize, 
+        (1024 * 1024 * 1024), // max value size
+        allowLinks);
 		return make_symbol( pNsOpt );
 	} catch (...) {
 		return exhandler( "NamespaceOptions creation failed", __FILE__, __LINE__);

@@ -60,6 +60,7 @@ SKNamespaceOptions::SKNamespaceOptions(SKStorageType::SKStorageType storageType,
 						SKWaitOptions * defaultWaitOptions,
 						int secondarySyncIntervalSeconds, 
 						int segmentSize, 
+                        int maxValueSize, 
 						bool allowLinks )
 {
 	StorageType * pSt = ::getStorageType( storageType );
@@ -73,7 +74,7 @@ SKNamespaceOptions::SKNamespaceOptions(SKStorageType::SKStorageType storageType,
 	//pImpl = new NamespaceOptions(java_new<NamespaceOptions>(*pSt, *pCp, *pNvm, *pRm, *pPo,     
     //    *pIo, *pGo, *pWo, secondarySyncIntervalSeconds, segmentSize, allowLinks)); 
     pImpl = NamespaceOptions::Factory::create(*pSt, *pCp, *pNvm, *pRm, *pPo,     
-        *pIo, *pGo, *pWo, secondarySyncIntervalSeconds, segmentSize, allowLinks);
+        *pIo, *pGo, *pWo, secondarySyncIntervalSeconds, segmentSize, maxValueSize, allowLinks);
       
 	delete pSt;
 	delete pCp;

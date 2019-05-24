@@ -15,7 +15,7 @@ public:
 						SKVersionMode versionMode, SKRevisionMode revisionMode, 
                         SKPutOptions * defaultPutOptions, SKInvalidationOptions * defaultInvalidationOptions,
 						SKGetOptions * defaultGetOptions, SKWaitOptions * defaultWaitOptions,
-						int secondarySyncIntervalSeconds, int segmentSize, bool allowLinks );
+						int secondarySyncIntervalSeconds, int segmentSize, int maxValueSize, bool allowLinks );
 
     SKAPI SKNamespaceOptions * storageType(SKStorageType::SKStorageType storageType);
     SKAPI SKNamespaceOptions * consistencyProtocol(SKConsistency consistencyProtocol);

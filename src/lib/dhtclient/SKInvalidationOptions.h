@@ -33,6 +33,9 @@ public:
     SKAPI SKInvalidationOptions(SKOpTimeoutController * opTimeoutController, 
         std::set<SKSecondaryTarget*> * secondaryTargets,
 		int64_t version);
+    SKAPI SKInvalidationOptions(SKOpTimeoutController * opTimeoutController, 
+        std::set<SKSecondaryTarget*> * secondaryTargets,
+		int64_t version, int64_t requiredPreviousVersion);
 
     SKInvalidationOptions(void * pOptsImpl);  //FIXME:
     void * getPImpl();  //FIXME:
