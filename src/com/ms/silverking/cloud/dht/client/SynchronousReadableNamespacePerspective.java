@@ -26,7 +26,7 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
      * @param keys a set of keys to retrieve
      * @param retrievalOptions options for the retrieval
      * @return a Map of keys to StoredValues for all requested keys that were found to have values associated with them
-     * @throws RetrievalException
+     * @throws RetrievalException TODO
      */
 	public Map<K, ? extends StoredValue<V>> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions) throws RetrievalException;
     /**
@@ -35,7 +35,7 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
      * @param retrievalOptions options for the retrieval
      * @return a StoredValue if a the key was found to have an associated value. null otherwise unless the retrieval
      * options are set to throw an exception for non-existence
-     * @throws RetrievalException
+     * @throws RetrievalException TODO
      */
     public StoredValue<V> retrieve(K key, RetrievalOptions retrievalOptions) throws RetrievalException;
 	
@@ -45,14 +45,14 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
      * @param keys a set of keys to retrieve
      * @param getOptions options for the Get operation
      * @return a Map of keys to StoredValues for all requested keys that were found to have values associated with them
-     * @throws RetrievalException
+     * @throws RetrievalException TODO
      */
 	public Map<K, ? extends StoredValue<V>> get(Set<? extends K> keys, GetOptions getOptions) throws RetrievalException;
 	/**
 	 * Multiple-value Get operation using default GetOptions. For retrieving values only; not StoredValues.
      * @param keys a set of keys to retrieve
      * @return a Map of keys to values for all requested keys that were found to have values associated with them
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public Map<K, V> get(Set<? extends K> keys) throws RetrievalException;
 	/**
@@ -61,7 +61,7 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
 	 * @param getOptions options for the Get operation
 	 * @return the StoredValue associated with the key if it exists. null otherwise unless the retrieval options
 	 * are set to throw and exception for non-existence.
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public StoredValue<V> get(K key, GetOptions getOptions) throws RetrievalException;
 	/**
@@ -69,7 +69,7 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
 	 * @param key key to retrieve
 	 * @return value associated with the key if it exists. null otherwise unless the default GetOptions
      * are set to throw and exception for non-existence.
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public V get(K key) throws RetrievalException;
 		
@@ -79,14 +79,14 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
 	 * @param keys a set of keys to retrieve
 	 * @param waitOptions options for the WaitFor operation
      * @return a Map of keys to StoredValues for all requested keys that were found to have values associated with them
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public Map<K, ? extends StoredValue<V>> waitFor(Set<? extends K> keys, WaitOptions waitOptions) throws RetrievalException;
 	/**
      * Multi-value WaitFor operation using default WaitFor operations. For retrieving values only; not StoredValues.
      * @param keys a set of keys to retrieve
      * @return a Map of keys to values for all requested keys that were found to have values associated with them
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public Map<K, V> waitFor(Set<? extends K> keys) throws RetrievalException;
 	/**
@@ -95,7 +95,7 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
      * @param waitOptions options for the WaitFor operation
      * @return StoredValue associated with the key if it exists. null otherwise unless the default WaitOptions
      * are set to throw and exception for non-existence.
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public StoredValue<V> waitFor(K key, WaitOptions waitOptions) throws RetrievalException;
 	/**
@@ -103,7 +103,7 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
      * @param key key to retrieve
      * @return value associated with the key if it exists. null otherwise unless the default WaitOptions
      * are set to throw and exception for non-existence.
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public V waitFor(K key) throws RetrievalException;
 }

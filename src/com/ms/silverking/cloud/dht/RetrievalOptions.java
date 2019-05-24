@@ -110,7 +110,7 @@ public class RetrievalOptions extends OperationOptions {
 
     /**
      * Return a RetrievalOptions instance like this instance, but with a new secondaryTargets.
-     * @param secondaryTargets the new field value
+     * @param secondaryTarget the new field value
      * @return the modified RetrievalOptions
      */
     public RetrievalOptions secondaryTargets(SecondaryTarget secondaryTarget) {

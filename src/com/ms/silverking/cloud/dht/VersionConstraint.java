@@ -78,8 +78,8 @@ public class VersionConstraint {
 	/**
 	 * Create a VersionConstraint that matches the least version above or equal to a given version threshold
 	 * and no creation time restriction.
-	 * @param threshold
-	 * @return
+	 * @param threshold the version threshold
+	 * @return the new VersionConstraint
 	 */
     public static VersionConstraint minAboveOrEqual(long threshold) {
         return new VersionConstraint(threshold, Long.MAX_VALUE, Mode.LEAST);
@@ -88,8 +88,8 @@ public class VersionConstraint {
     /**
      * Create a VersionConstraint that matches the greatest version above or equal to a given version threshold
      * and no creation time restriction.
-     * @param threshold
-     * @return
+     * @param threshold the version threshold
+     * @return the new VersionConstraint
      */
     public static VersionConstraint maxAboveOrEqual(long threshold) {
         return new VersionConstraint(threshold, Long.MAX_VALUE, Mode.GREATEST);
@@ -98,8 +98,8 @@ public class VersionConstraint {
     /**
      * Create a VersionConstraint that matches the greatest version below or equal to a given version threshold
      * and no creation time restriction.
-     * @param threshold
-     * @return
+     * @param threshold the version threshold
+     * @return the new VersionConstraint
      */
     public static VersionConstraint maxBelowOrEqual(long threshold) {
         return new VersionConstraint(Long.MIN_VALUE, threshold, Mode.GREATEST);
@@ -157,7 +157,7 @@ public class VersionConstraint {
 	
     /**
      * Create a copy of this VersionConstraint with a new maximum version bound
-     * @param min the new maximum version bound
+     * @param max the new maximum version bound
      * @return a copy of this VersionConstraint with a new maximum version bound
      */
     public VersionConstraint max(long max) {
@@ -166,7 +166,7 @@ public class VersionConstraint {
     
     /**
      * Create a copy of this VersionConstraint with a new version selection Mode
-     * @param min the new version selection Mode
+     * @param mode the new version selection Mode
      * @return a copy of this VersionConstraint with a new version selection Mode
      */
     public VersionConstraint mode(Mode mode) {
@@ -175,7 +175,7 @@ public class VersionConstraint {
     
     /**
      * Create a copy of this VersionConstraint with a new maximum creation time
-     * @param min the new maximum creation time
+     * @param maxCreationTime the new maximum creation time
      * @return a copy of this VersionConstraint with a new maximum creation time
      */
     public VersionConstraint maxCreationTime(long maxCreationTime) {

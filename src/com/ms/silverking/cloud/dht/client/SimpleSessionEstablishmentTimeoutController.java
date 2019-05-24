@@ -29,6 +29,7 @@ public class SimpleSessionEstablishmentTimeoutController implements
 	
     /**
      * Create a SimpleConnectionEstablishmentTimeoutController like this instance, but with a new maxAttempts.
+     * @param maxAttempts TODO
      * @return a SimpleConnectionEstablishmentTimeoutController like this instance, but with a new maxAttempts
      */
     public SimpleSessionEstablishmentTimeoutController maxAttempts(int maxAttempts) {
@@ -37,6 +38,7 @@ public class SimpleSessionEstablishmentTimeoutController implements
     
     /**
      * Create a SimpleConnectionEstablishmentTimeoutController like this instance, but with a new attemptRelativeTimeoutMillis.
+     * @param attemptRelativeTimeoutMillis TODO
      * @return a SimpleConnectionEstablishmentTimeoutController like this instance, but with a new attemptRelativeTimeoutMillis
      */
     public SimpleSessionEstablishmentTimeoutController attemptRelativeTimeoutMillis(int attemptRelativeTimeoutMillis) {
@@ -45,6 +47,7 @@ public class SimpleSessionEstablishmentTimeoutController implements
 
     /**
      * Create a SimpleTimeoutController like this instance, but with a new maxRelativeTimeoutMillis.
+     * @param maxRelativeTimeoutMillis TODO
      * @return a SimpleTimeoutController like this instance, but with a new maxRelativeTimeoutMillis
      */
     public SimpleSessionEstablishmentTimeoutController maxRelativeTimeoutMillis(int maxRelativeTimeoutMillis) {

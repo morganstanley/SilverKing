@@ -35,7 +35,7 @@ SKAdmin is used to start and stop a SilverKing instance as well as to perform re
 <p>
 <h3>Usage</h3>
 <code>
-SKAdmin.sh -g &ltGrid Configuration&gt -c &ltCommand,Command,...&gt
+SKAdmin.sh -G &ltGrid Configuration Base&gt -g &ltGrid Configuration&gt -c &ltCommand,Command,...&gt
 </code>
 </p>
 
@@ -45,14 +45,14 @@ SKAdmin.sh -g &ltGrid Configuration&gt -c &ltCommand,Command,...&gt
 Start up a SilverKing instance.
 </p>
 <code>
-SKAdmin.sh -g GC_MY_TEST -c StartNodes
+SKAdmin.sh -G /tmp -g GC_MY_TEST -c StartNodes
 </code>
 
 <p>
 Stop a SilverKing instance.
 </p>
 <code>
-SKAdmin.sh -g GC_MY_TEST -c StopNodes
+SKAdmin.sh -G /tmp -g GC_MY_TEST -c StopNodes
 </code>
 
 <p>
@@ -61,14 +61,14 @@ Create namespaces for this instance (only needs to be done the very first time),
 and start up the SKFS daemons.
 </p>
 <code>
-SKAdmin.sh -g GC_MY_TEST -c StartNodes,CreateSKFSns,CheckSKFS
+SKAdmin.sh -G /tmp -g GC_MY_TEST -c StartNodes,CreateSKFSns,CheckSKFS
 </code>
 
 <p>
 Stop SilverKing instance used for SKFS.
 </p>
 <code>
-SKAdmin.sh -g GC_MY_TEST -c StopSKFS,StopNodes
+SKAdmin.sh -G /tmp -g GC_MY_TEST -c StopSKFS,StopNodes
 </code>
 
 <p>
@@ -80,7 +80,7 @@ Each daemon will wait 480 seconds for other unresponsive daemons.
 (These options will change in the future.)
 </p>
 <code>
-SKAdmin.sh -g GC_MY_TEST -c StartNodes -excludeInstanceExclusions -to 240,600 -into 480
+SKAdmin.sh -G /tmp -g GC_MY_TEST -c StartNodes -excludeInstanceExclusions -to 240,600 -into 480
 </code>
 
 
@@ -93,7 +93,7 @@ The Exclusion File Monitor is used to update the system exclusion set. It monito
 <p>
 <h3>Usage</h3>
 <code>
-ExclusionFileMonitor.sh -g &ltGrid Configuration&gt -f &ltExclusion File&gt
+ExclusionFileMonitor.sh -G &ltGrid Configuration Base&gt -g &ltGrid Configuration&gt -f &ltExclusion File&gt
 </code>
 </p>
 
@@ -106,12 +106,12 @@ The Health Monitor monitors and maintains the health of a single SilverKing inst
 <p>
 <h3>Usage</h3>
 <code>
-HealthMonitor.sh -g &ltGrid Configuration&gt -dri &ltFailed node restart interval seconds&gt -c &ltconviction limits&gt
+HealthMonitor.sh -G &ltGrid Configuration Base&gt -g &ltGrid Configuration&gt -dri &ltFailed node restart interval seconds&gt -c &ltconviction limits&gt
 </code>
 <h3>Example</h3>
 </p>
 <code>
-HealthMonitor.sh -g GC_MY_TEST -dri 300 -c totalGuiltyServers=10,guiltyServersPerHour=4
+HealthMonitor.sh -G /tmp -g GC_MY_TEST -dri 300 -c totalGuiltyServers=10,guiltyServersPerHour=4
 </code>
 </p>
 
@@ -135,7 +135,7 @@ If any of the above change, a new ring will be generated.
 To start a Dependency Watcher that continuously creates new rings as dependencies change:
 </p>
 <code>
-RingDependencyWatcher.sh -g &ltGrid Configuration&gt
+RingDependencyWatcher.sh -G &ltGrid Configuration Base&gt -g &ltGrid Configuration&gt
 </code>
 <p>
 To start a Dependency Watcher that runs before SilverKing is started and creates a 
@@ -143,7 +143,7 @@ new ring ignoring any old ring. (This should only be used if the SilverKing inst
 in question is not running, and no data has previously been stored to this instance.)
 </p>
 <code>
-RingDependencyWatcher.sh -g &ltGrid Configuration&gt -s -x
+RingDependencyWatcher.sh -G &ltGrid Configuration Base&gt -g &ltGrid Configuration&gt -s -x
 </code>
 
 <h2>
@@ -159,7 +159,7 @@ The Ring Master is responsible for controlling this transition from old ring to 
 <p>
 <h3>Usage</h3>
 <code>
-DHTRingMaster.sh -g &ltGrid Configuration&gt
+DHTRingMaster.sh -G &ltGrid Configuration Base&gt -g &ltGrid Configuration&gt
 </code>
 </p>
 

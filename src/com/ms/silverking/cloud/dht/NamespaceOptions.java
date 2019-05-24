@@ -7,7 +7,6 @@ import com.ms.silverking.code.Constraint;
 import com.ms.silverking.object.ObjectUtil;
 import com.ms.silverking.text.ObjectDefParser2;
 
-
 /**
  * <p>Options used to configure a namespace. These are fixed at namespace creation time and may not be
  * changed afterwards.</p>
@@ -83,7 +82,8 @@ public class NamespaceOptions {
      * @param segmentSize the segment size to use for this namespace
      * @param maxValueSize maximum size of any one value stored to this namespace
      * @param allowLinks Avoid use. For backwards compatibility to SilverRails only. 
-     * @param namespaceServerSideCode TODO
+     * @param valueRetentionPolicy 
+     * @param namespaceServerSideCode
      */
     public NamespaceOptions(StorageType storageType, ConsistencyProtocol consistencyProtocol,
             NamespaceVersionMode versionMode, RevisionMode revisionMode, 
@@ -130,6 +130,17 @@ public class NamespaceOptions {
     
     /**
      * For C++ client only. Do not use.
+     * @param storageType same as above
+     * @param consistencyProtocol same as above
+     * @param versionMode same as above
+     * @param revisionMode same as above
+     * @param defaultPutOptions same as above
+     * @param defaultInvalidationOptions same as above
+     * @param defaultGetOptions same as above
+     * @param defaultWaitOptions same as above
+     * @param secondarySyncIntervalSeconds same as above 
+     * @param segmentSize same as above
+     * @param allowLinks same as above
      */
     public NamespaceOptions(StorageType storageType, ConsistencyProtocol consistencyProtocol,
             NamespaceVersionMode versionMode, RevisionMode revisionMode, 
@@ -241,7 +252,7 @@ public class NamespaceOptions {
     
     /**
      * Avoid use. For backward compatibility with SilverRails only.
-     * @return
+     * @return allowLinks
      */
     public boolean getAllowLinks() {
         return allowLinks;
@@ -254,7 +265,11 @@ public class NamespaceOptions {
     public ValueRetentionPolicy getValueRetentionPolicy() {
     	return valueRetentionPolicy;
     }
-    
+
+    /**
+     * Return namespaceServerSideCode
+     * @return namespaceServerSideCode
+     */
     public NamespaceServerSideCode getNamespaceServerSideCode() {
     	return namespaceServerSideCode;
     }
@@ -426,7 +441,7 @@ public class NamespaceOptions {
     
     /**
      * Avoid use. For backwards compatibility with SilverRails only. 
-	 * @param allowLinks
+	 * @param allowLinks TODO
 	 * @return copy of this instance with new allow links
      */
     public NamespaceOptions allowLinks(boolean allowLinks) {

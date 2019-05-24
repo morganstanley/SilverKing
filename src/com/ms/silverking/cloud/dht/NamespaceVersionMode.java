@@ -20,7 +20,7 @@ public enum NamespaceVersionMode {
     SYSTEM_TIME_NANOS;
     /**
      * Determine if a version is supported by this mode
-     * @param version
+     * @param version the version
      * @return true if the given version is supported by this mode
      */
     public boolean validVersion(long version) {

@@ -20,7 +20,7 @@ public enum RetrievalType {
 	
 	/**
 	 * True iff this type is guaranteed to result in value retrieval.
-	 * @return
+	 * @return true iff this type is guaranteed to result in value retrieval.
 	 */
 	public boolean hasValue() {
 	    switch (this) {
@@ -34,7 +34,7 @@ public enum RetrievalType {
 	
     /**
      * True iff this type is guaranteed to result in meta data retrieval.
-     * @return
+     * @return true iff this type is guaranteed to result in meta data retrieval
      */
     public boolean hasMetaData() {
         switch (this) {

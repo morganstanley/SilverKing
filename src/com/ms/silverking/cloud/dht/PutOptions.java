@@ -55,8 +55,9 @@ public class PutOptions extends OperationOptions {
 	 * Construct PutOptions from the given arguments. Usage is generally not recommended.
 	 * Instead of using this constructor, applications should obtain an instance
 	 * from a valid source such as the Session, the Namespace, or the NamespacePerspective.
-	 * @param opTimeoutController 
-	 * @param secondaryTargets
+	 * @param opTimeoutController opTimeoutController for the operation
+	 * @param secondaryTargets constrains queried secondary replicas 
+     * to operation solely on the node that receives this operation
 	 * @param compression type of compression to use
 	 * @param checksumType checksum to use for value
 	 * @param checksumCompressedValues controls whether or not compressed values are checksummed

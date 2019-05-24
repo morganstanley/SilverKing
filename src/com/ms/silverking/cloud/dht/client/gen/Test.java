@@ -26,7 +26,7 @@ public class Test {
 			System.out.printf("%s\n", m);
 			*/
 			//System.out.println(new DHTClient().getValueCreator().toString());
-			System.out.printf("%s\n", JNIUtil.getJNISignature(Object.class.getMethod("toString", null)));
+			System.out.printf("%s\n", JNIUtil.getJNISignature(Object.class.getMethod("toString")));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

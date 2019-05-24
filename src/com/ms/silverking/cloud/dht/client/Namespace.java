@@ -23,6 +23,8 @@ public interface Namespace {
     public NamespaceOptions getOptions();
     /**
      * Get the default NamespacePerspectiveOptions for this namespace
+     * @param <K> type of the keyClass
+     * @param <V> type of the valueClass
      * @param keyClass class of keys
      * @param valueClass class of values
      * @return the default NamespacePerspectiveOptions for this namespace
@@ -30,34 +32,42 @@ public interface Namespace {
     public <K, V> NamespacePerspectiveOptions<K,V> getDefaultNSPOptions(Class<K> keyClass, Class<V> valueClass);
     /**
      * Open an AsynchronousNamespacePerspective for the given key, value types
+     * @param <K> key type of perspective to open
+     * @param <V> value type of perspective to open
      * @param nspOptions options for the NamespacePerspective
-     * @return
+     * @return the opened AsynchronousNamespacePerspective
      */
     public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective(
                                                                 NamespacePerspectiveOptions<K,V> nspOptions);
     /**
      * Open an AsynchronousNamespacePerspective for the given key, value types.
      * Use default NamespacePerspectiveOptions for this Namespace
+     * @param <K> key type of perspective to open
+     * @param <V> value type of perspective to open
      * @param keyClass class of keys
      * @param valueClass class of values
-     * @return
+     * @return the opened AsynchronousNamespacePerspective
      */
     public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective(
     											Class<K> keyClass, Class<V> valueClass);
     public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective();
     /**
      * Open an SynchronousNamespacePerspective for the given key, value types
+     * @param <K> key type of perspective to open
+     * @param <V> value type of perspective to open
      * @param nspOptions options for the NamespacePerspective
-     * @return
+     * @return the opened SynchronousNamespacePerspective
      */
     public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
                                                                 NamespacePerspectiveOptions<K,V> nspOptions);
     /**
      * Open an SynchronousNamespacePerspective for the given key, value types
      * Use default NamespacePerspectiveOptions for this Namespace
+     * @param <K> key type of perspective to open
+     * @param <V> value type of perspective to open
      * @param keyClass class of keys
      * @param valueClass class of values
-     * @return
+     * @return the opened SynchronousNamespacePerspective
      */
     public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
     											Class<K> keyClass, Class<V> valueClass);
@@ -67,6 +77,7 @@ public interface Namespace {
      * the version of this method that accepts a version must be used.
      * @param name name of the child namespace
      * @return the child namespace
+     * @throws NamespaceCreationException TODO
      */
     public Namespace clone(String name) throws NamespaceCreationException;
     
@@ -77,6 +88,7 @@ public interface Namespace {
      * @param version the version at which to create the clone. Must be greater than
      * any version of any value currently stored in the namespace.
      * @return the child namespace
+     * @throws NamespaceCreationException TODO
      */
     public Namespace clone(String name, long version) throws NamespaceCreationException;
     
@@ -87,6 +99,7 @@ public interface Namespace {
      * versioned namespaces. This namespace must be set to allow links. The target namespace must already 
      * exist and must have identical options to this namespace.</p>
      * @param target the name of the target to link to
+     * @throws NamespaceLinkException TODO
      */
     public void linkTo(String target) throws NamespaceLinkException;
     

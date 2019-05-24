@@ -26,7 +26,7 @@ public interface AsynchronousReadableNamespacePerspective<K,V> extends BaseNames
      * @param keys a set of keys to retrieve
      * @param retrievalOptions options for the retrieval
      * @return an AsyncRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncRetrieval<K,V> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions) throws RetrievalException;
 	
@@ -38,14 +38,14 @@ public interface AsynchronousReadableNamespacePerspective<K,V> extends BaseNames
      * @param keys a set of keys to retrieve
      * @param getOptions options for the Get operation
      * @return an AsyncRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncRetrieval<K,V> get(Set<? extends K> keys, GetOptions getOptions) throws RetrievalException;
 	/**
      * Multiple-value Get operation using default GetOptions. For retrieving values only; not StoredValues.
      * @param keys a set of keys to retrieve
      * @return an AsyncValueRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncValueRetrieval<K,V> get(Set<? extends K> keys) throws RetrievalException;
 	// single-value
@@ -54,14 +54,14 @@ public interface AsynchronousReadableNamespacePerspective<K,V> extends BaseNames
      * @param key key to retrieve
      * @param getOptions options for the Get operation
      * @return an AsyncRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncRetrieval<K,V> get(K key, GetOptions getOptions) throws RetrievalException;
 	/**
      * Single-value Get operation using default GetOptions. For retrieving values only; not StoredValues.
      * @param key key to retrieve
      * @return an AsyncSingleValueRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncSingleValueRetrieval<K,V> get(K key) throws RetrievalException;
 		
@@ -73,14 +73,14 @@ public interface AsynchronousReadableNamespacePerspective<K,V> extends BaseNames
      * @param keys a set of keys to retrieve
      * @param waitOptions options for the WaitFor operation
      * @return an AsyncRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncRetrieval<K,V> waitFor(Set<? extends K> keys, WaitOptions waitOptions) throws RetrievalException;
 	/**
      * Multi-value WaitFor operation using default WaitFor operations. For retrieving values only; not StoredValues.
      * @param keys a set of keys to retrieve
      * @return an AsyncValueRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncValueRetrieval<K,V> waitFor(Set<? extends K> keys) throws RetrievalException;
 	// multi-value
@@ -89,14 +89,14 @@ public interface AsynchronousReadableNamespacePerspective<K,V> extends BaseNames
      * @param key key to retrieve
      * @param waitOptions options for the WaitFor operation
      * @return an AsyncRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncRetrieval<K,V> waitFor(K key, WaitOptions waitOptions) throws RetrievalException;
 	/**
      * Single-value WaitFor operation using default WaitOptions. For retrieving values only; not StoredValues.
      * @param key key to retrieve
      * @return an AsyncSingleValueRetrieval object representing the operation
-	 * @throws RetrievalException
+	 * @throws RetrievalException TODO
 	 */
 	public AsyncSingleValueRetrieval<K,V> waitFor(K key) throws RetrievalException;
 }

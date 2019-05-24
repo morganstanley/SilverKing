@@ -67,7 +67,7 @@ public class MemLeakTest {
 		int diff = iterationOutput[iterationOutput.length-1] - iterationOutput[0];
 		double gbPerHour = toGBPerHour(toGB(diff) / runtimeMins);
 		System.out.printf("\nleaking @ %.2f GB/hr\n", gbPerHour);
-		double thresholdGBPerHour = 3;
+		double thresholdGBPerHour = 20;
 		Assert.assertTrue(gbPerHour < thresholdGBPerHour);
 	}
 	
