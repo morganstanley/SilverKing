@@ -753,7 +753,7 @@ int main(int argc, char *argv[])
 	  std::set<SKSecondaryTarget*> * pTgts = new std::set<SKSecondaryTarget*>();
 	  SKVal * userData = sk_create_val();
 	  pPutOpt =  new SKPutOptions( pOsCtrl, pTgts, comprType, SKChecksumType::NONE,
-			false, (int64_t) 0, userData);
+			false, (int64_t) 0, (int64_t) 0, (int32_t) 0, userData);
 	  sk_destroy_val(&userData);
 	  delete pOsCtrl; pOsCtrl = NULL;
 	  delete pTgts; pOsCtrl = NULL;  
