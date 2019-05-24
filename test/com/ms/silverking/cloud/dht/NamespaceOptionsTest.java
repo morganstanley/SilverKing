@@ -1,15 +1,48 @@
 package com.ms.silverking.cloud.dht;
 
-import static com.ms.silverking.cloud.dht.NamespaceOptions.*;
-import static com.ms.silverking.cloud.dht.TestUtil.*;
-import static com.ms.silverking.cloud.dht.common.DHTConstants.*;
-import static com.ms.silverking.testing.AssertFunction.*;
-import static com.ms.silverking.testing.Util.*;
-import static org.junit.Assert.*;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultAllowLinks;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultNamespaceServerSideCode;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultRetentionPolicy;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.maxSegmentSize;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.minSegmentSize;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.maxMaxValueSize;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.minMaxValueSize;
+import static com.ms.silverking.cloud.dht.TestUtil.goCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.goDiff;
+import static com.ms.silverking.cloud.dht.TestUtil.ioCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.ioDiff;
+import static com.ms.silverking.cloud.dht.TestUtil.poCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.poDiff;
+import static com.ms.silverking.cloud.dht.TestUtil.woCopy;
+import static com.ms.silverking.cloud.dht.TestUtil.woDiff;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultConsistencyProtocol;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultRevisionMode;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultSecondarySyncIntervalSeconds;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultSegmentSize;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultStorageType;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultVersionMode;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardGetOptions;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardInvalidationOptions;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardPutOptions;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.standardWaitOptions;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
+import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
+import static com.ms.silverking.testing.AssertFunction.check_Setter;
+import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_Getters;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
+import static com.ms.silverking.testing.AssertFunction.test_SetterExceptions;
+import static com.ms.silverking.testing.AssertFunction.test_Setters;
+import static com.ms.silverking.testing.Util.int_maxVal;
+import static com.ms.silverking.testing.Util.int_minVal;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.code.ConstraintViolationException;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 
@@ -46,11 +79,11 @@ public class NamespaceOptionsTest {
 	private static NamespaceServerSideCode nsscNull    = null;
 
 	private static final NamespaceOptions defaultNsOptions           =     NamespaceOptions.templateOptions;
-	private static final NamespaceOptions defaultNsOptionsCopy       = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy, nsscCopy);
-	private static final NamespaceOptions defaultNsOptionsAlmostCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, alCopy, vrpCopy, nsscDiff);
-	private static final NamespaceOptions defaultNsOptionsDiff       = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, nsscDiff);
-	private static final NamespaceOptions defaultNsOptionsNsscNull1  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, nsscNull);
-	private static final NamespaceOptions defaultNsOptionsNsscNull2  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, alDiff, vrpDiff, null);
+	private static final NamespaceOptions defaultNsOptionsCopy       = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, DHTConstants.defaultMaxValueSize, alCopy, vrpCopy, nsscCopy);
+	private static final NamespaceOptions defaultNsOptionsAlmostCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, DHTConstants.defaultMaxValueSize, alCopy, vrpCopy, nsscDiff);
+	private static final NamespaceOptions defaultNsOptionsDiff       = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, DHTConstants.defaultMaxValueSize, alDiff, vrpDiff, nsscDiff);
+	private static final NamespaceOptions defaultNsOptionsNsscNull1  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, DHTConstants.defaultMaxValueSize, alDiff, vrpDiff, nsscNull);
+	private static final NamespaceOptions defaultNsOptionsNsscNull2  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, DHTConstants.defaultMaxValueSize, alDiff, vrpDiff, null);
 	
 	private StorageType getStorageType(NamespaceOptions nsOptions) {
 		return nsOptions.getStorageType();
@@ -144,6 +177,10 @@ public class NamespaceOptionsTest {
 		return defaultNsOptions.segmentSize(ss);
 	}
 	
+	private NamespaceOptions setMaxValueSize(int ss) {
+		return defaultNsOptions.maxValueSize(ss);
+	}
+	
 	private NamespaceOptions setAllowLinks(boolean al) {
 		return defaultNsOptions.allowLinks(al);
 	}
@@ -197,6 +234,8 @@ public class NamespaceOptionsTest {
 			{"defaultWaitOptions = null",               new ExceptionChecker() { @Override public void check() { setDefaultWaitOptions(null);                       } },         NullPointerException.class},
 			{"segmentSize = min-1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(minSegmentSize-1);                  } }, ConstraintViolationException.class},
 			{"segmentSize = max+1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(maxSegmentSize+1);                  } }, ConstraintViolationException.class},
+			{"maxValueSize = min-1",                     new ExceptionChecker() { @Override public void check() { setMaxValueSize(minMaxValueSize-1);                  } }, ConstraintViolationException.class},
+			{"maxValueSize = max+1",                     new ExceptionChecker() { @Override public void check() { setMaxValueSize(maxMaxValueSize+1);                  } }, ConstraintViolationException.class},
 			{"valueRetentionPolicy = null",             new ExceptionChecker() { @Override public void check() { setValueRetentionPolicy(null);                     } },         NullPointerException.class},
 // null is allowed for backwards compatibility, so commenting this out			{"namespaceServerSideCode = null",          new ExceptionChecker() { @Override public void check() { setNamespaceServerSideCode(null);                  } },         NullPointerException.class},
 		};

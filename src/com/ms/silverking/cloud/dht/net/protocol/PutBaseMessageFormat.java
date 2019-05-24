@@ -14,7 +14,8 @@ public class PutBaseMessageFormat extends KeyValueMessageFormat {
     public static final int    valueCreatorSize = ValueCreator.BYTES;
     
     public static final int    versionOffset = 0;
-    public static final int    ccssOffset = versionOffset + versionSize;
+    public static final int    requiredPreviousVersionOffset = versionOffset + versionSize;
+    public static final int    ccssOffset = requiredPreviousVersionOffset + versionSize;
     public static final int    valueCreatorOffset = ccssOffset + ccssSize;
     
     public static ChecksumType getChecksumType(ByteBuffer optionsByteBuffer) {

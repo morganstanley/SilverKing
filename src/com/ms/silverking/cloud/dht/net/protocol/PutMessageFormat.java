@@ -23,7 +23,7 @@ public class PutMessageFormat extends PutBaseMessageFormat {
         
     public static final int    stDataOffset = valueCreatorOffset + valueCreatorSize;
     
-    private static final int    optionBaseBytes = versionSize + ccssSize + valueCreatorSize;
+    private static final int    optionBaseBytes = versionSize * 2 + ccssSize + valueCreatorSize;
     
     public static final int userDataOffset(int stLength) {
         return stDataOffset + stLength + NumConversion.BYTES_PER_SHORT;

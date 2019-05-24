@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
+import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.VersionConstraint;
@@ -797,7 +798,8 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
                     rawRetrievalResult.getUncompressedLength(), 
                     MetaDataUtil.getCompressedLength(rawValueBuffer, 0), 
                     rawRetrievalResult.getCCSS(), rawRetrievalResult.getChecksum(), 
-                    rawRetrievalResult.getCreator().getBytes(), rawRetrievalResult.getCreationTimeRaw());
+                    rawRetrievalResult.getCreator().getBytes(), rawRetrievalResult.getCreationTimeRaw(),
+                    PutOptions.noVersionRequired);
             nsStore.put(ImmutableList.of(valueAndParameters), emptyUserData, this);
             
             // FUTURE - preserve user data

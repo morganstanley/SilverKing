@@ -10,7 +10,7 @@ import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.RawRetrievalResult;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 
-class SegmentedRetrievalValue<K,V> extends SegmentedValue<MessageGroupRetrievalResponseEntry> 
+class SegmentedRetrievalValue<K,V> extends FragmentedValue<MessageGroupRetrievalResponseEntry> 
         implements ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>{
     private final BufferSourceDeserializer<V>  deserializer;
     private final MetaData  metaData;

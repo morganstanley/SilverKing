@@ -19,7 +19,7 @@ import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
-import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
+import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements;
 import com.ms.silverking.time.AbsNanosTimeSource;
 import com.ms.silverking.time.SystemTimeSource;
 
@@ -75,7 +75,7 @@ public class LRUTrigger implements PutTrigger, RetrieveTrigger {
 	}
 
 	@Override
-	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams,
+	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParametersAndRequirements storageParams,
 						byte[] userData, NamespaceVersionMode nsVersionMode) {
 		//System.out.printf("in put() %s\n", KeyUtil.keyToString(key));
 		//try {

@@ -12,7 +12,6 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.impl.Checksum;
 import com.ms.silverking.cloud.dht.client.impl.ChecksumProvider;
-import com.ms.silverking.cloud.dht.client.impl.SegmentationUtil;
 import com.ms.silverking.cloud.dht.client.serialization.BufferDestSerializer;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -35,6 +34,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     private final Checksum    checksum;
     private final boolean     checksumCompressedValues;
     private final EncrypterDecrypter	encrypterDecrypter;
+    private final long		  fragmentationThreshold;
     
     private static final byte[] emptyValue = new byte[0];
 
@@ -57,6 +57,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
         Compression compression = putOptions.getCompression();
         compressor = CodecProvider.getCompressor(compression);
         optionsByteBuffer.putLong(version);
+        optionsByteBuffer.putLong(putOptions.getRequiredPreviousVersion());
         optionsByteBuffer.putShort(CCSSUtil.createCCSS(compression, checksumType));
         optionsByteBuffer.put(creator);
         secondaryTargets = putOptions.getSecondaryTargets();
@@ -74,10 +75,15 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
         }
         checksumCompressedValues = putOptions.getChecksumCompressedValues(); 
         this.encrypterDecrypter = encrypterDecrypter;
+        this.fragmentationThreshold = putOptions.getFragmentationThreshold();
     }
 
     public long getVersion() {
         return optionsByteBuffer.getLong(PutMessageFormat.versionOffset);
+    }
+    
+    public long getRequiredPreviousVersion() {
+        return optionsByteBuffer.getLong(PutMessageFormat.requiredPreviousVersionOffset);
     }
     
     private static int optionBufferLength(PutOptions putOptions) {
@@ -95,7 +101,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     }
 
     
-    public enum ValueAdditionResult {Added, MessageGroupFull, ValueNeedsSegmentation};
+    public enum ValueAdditionResult {Added, MessageGroupFull, ValueNeedsFragmentation};
     
     /**
      * Add a raw value to this message group.
@@ -183,10 +189,10 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
             bytesToChecksumBuf = null;
         }
         if (!canBeAdded(bytesToStoreSize)) {
-            if (bytesToStoreSize <= SegmentationUtil.maxValueSegmentSize) {
-                    return ValueAdditionResult.MessageGroupFull;
+            if (bytesToStoreSize <= fragmentationThreshold) {
+                return ValueAdditionResult.MessageGroupFull;
             } else {
-                return ValueAdditionResult.ValueNeedsSegmentation;
+                return ValueAdditionResult.ValueNeedsFragmentation;
             }
         }
 
@@ -327,6 +333,10 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
         return mg.getBuffers()[optionBufferIndex].getLong(PutMessageFormat.versionOffset);
     }
 
+    public static long getPutRequiredPreviousVersion(MessageGroup mg) {
+        return mg.getBuffers()[optionBufferIndex].getLong(PutMessageFormat.requiredPreviousVersionOffset);
+    }
+    
     public static short getCCSS(MessageGroup mg) {
         //System.out.println("obb\t: "+ mg.getBuffers()[optionBufferIndex]);
         return mg.getBuffers()[optionBufferIndex].getShort(PutMessageFormat.ccssOffset);

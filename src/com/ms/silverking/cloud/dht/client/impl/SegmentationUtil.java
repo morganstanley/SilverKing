@@ -12,18 +12,14 @@ import com.ms.silverking.numeric.NumConversion;
 
 public class SegmentationUtil {
     static final int   segmentedValueBufferLength = NumConversion.BYTES_PER_LONG 
-                                                    + 2 * NumConversion.BYTES_PER_INT
+                                                    + 3 * NumConversion.BYTES_PER_INT
                                                     + 1;
     private static final int    creatorBytesOffset = 0;
     private static final int    storedLengthOffset = creatorBytesOffset + NumConversion.BYTES_PER_LONG;
     private static final int    uncompressedLengthOffset = storedLengthOffset + NumConversion.BYTES_PER_INT;
-    private static final int    checksumTypeOffset = uncompressedLengthOffset + NumConversion.BYTES_PER_INT;
+    private static final int    fragmentationThresholdOffset = uncompressedLengthOffset + NumConversion.BYTES_PER_INT;
+    private static final int    checksumTypeOffset = fragmentationThresholdOffset + NumConversion.BYTES_PER_INT;
     private static final int    checksumOffset = checksumTypeOffset + 1;
-    
-    // FUTURE - find a better home
-    //public static final int   maxValueSegmentSize = 4; 
-    //public static final int   maxValueSegmentSize = 1 * 1024 * 1024; // was 1M 
-    public static final int   maxValueSegmentSize = 10 * 1024 * 1024; 
     
     static int getNumSegments(int valueSize, int segmentSize) {
         return (valueSize - 1) / segmentSize + 1;
@@ -62,6 +58,10 @@ public class SegmentationUtil {
         return buf.getInt(buf.position() + uncompressedLengthOffset);
     }
     
+	static int getFragmentationThreshold(ByteBuffer buf) {
+        return buf.getInt(buf.position() + fragmentationThresholdOffset);
+	}
+    
     static byte[] getValueCreatorBytes(ByteBuffer buf) {
         byte[]  creatorBytes;
         
@@ -85,6 +85,7 @@ public class SegmentationUtil {
     }
     
     static ByteBuffer createSegmentMetaDataBuffer(byte[] creatorBytes, int storedLength, int uncompressedLength, 
+    											  int fragmentationThreshold,
                                                   ChecksumType checksumType, byte[] checksum) {
         ByteBuffer  segmentMetaDataBuffer;
         //Checksum    checksum;
@@ -101,6 +102,7 @@ public class SegmentationUtil {
         segmentMetaDataBuffer.put(creatorBytes);
         segmentMetaDataBuffer.putInt(storedLength);
         segmentMetaDataBuffer.putInt(uncompressedLength);
+        segmentMetaDataBuffer.putInt(fragmentationThreshold);
         segmentMetaDataBuffer.put((byte)checksumType.ordinal());
         if (checksumType != ChecksumType.NONE) {
             segmentMetaDataBuffer.put(checksum);
@@ -125,7 +127,7 @@ public class SegmentationUtil {
         
         return segmentMetaDataBuffer;
    }
-    
+
     /*
      * Not needed since the regular checksum mechanism is in place
    static boolean checksumSegmentMetaDataBuffer(ByteBuffer buf, ChecksumType checksumType) {

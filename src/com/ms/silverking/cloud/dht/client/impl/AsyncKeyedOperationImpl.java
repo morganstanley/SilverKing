@@ -34,9 +34,9 @@ abstract class AsyncKeyedOperationImpl<K> extends AsyncNamespaceOperationImpl im
     protected final AtomicInteger resultsReceived;
     private final Lock  completionCheckLock;
     
-    protected int             segmentsCreated;
+    protected int             fragmentsCreated;
     
-    protected static final boolean    debugSegmentation = false;
+    protected static final boolean    debugFragmentation = false;
 
     public AsyncKeyedOperationImpl(KeyedNamespaceOperation<K> operation, KeyCreator<K> keyCreator, 
                                    ClientNamespace namespace, long curTime, byte[] originator) {
@@ -106,7 +106,7 @@ abstract class AsyncKeyedOperationImpl<K> extends AsyncNamespaceOperationImpl im
     }
     
     protected int opWorkItems() {
-        return size + segmentsCreated;
+        return size + fragmentsCreated;
     }
     
     @Override

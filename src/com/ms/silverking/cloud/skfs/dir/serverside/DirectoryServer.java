@@ -29,6 +29,7 @@ import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
+import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements;
 import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInMemory;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
@@ -143,7 +144,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
 	}
 
 	@Override
-	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData,
+	public OpResult put(SSNamespaceStore nsStore, DHTKey key, ByteBuffer value, SSStorageParametersAndRequirements storageParams, byte[] userData,
 			NamespaceVersionMode nsVersionMode) {
 		//Stopwatch	sw;
 		

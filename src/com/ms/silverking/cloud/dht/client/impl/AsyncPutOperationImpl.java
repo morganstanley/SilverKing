@@ -55,7 +55,7 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
     private final ActivePutListeners    activePutListeners;
     
     private final List<OperationUUID>   opUUIDs; // holds references to ops to prevent GC
-    private List<SegmentedPutValue>     segmentedPutValues; // hold references to prevent GC
+    private List<FragmentedPutValue>     fragmentedPutValues; // hold references to prevent GC
     	
 	private static final boolean   debug = false;
     private static final boolean   verboseToString = true;
@@ -173,7 +173,7 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                 
                 value = putOperation.getValue(key);
                 estimatedValueSize = nspoImpl.getValueSerializer().estimateSerializedSize(value);
-                if (estimatedValueSize > SegmentationUtil.maxValueSegmentSize) {
+                if (estimatedValueSize > putOperation.putOptions().getFragmentationThreshold()) {
                     // FIXME - take action
                 }
                 putMessageEstimate.addBytes(estimatedValueSize);
@@ -203,7 +203,7 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         //}
         assert estimate.getNumKeys() != 0;
         
-        oldSegmentsCreated = segmentsCreated;
+        oldSegmentsCreated = fragmentsCreated;
         creationCalls++;
 
         resolveVersion();
@@ -251,8 +251,8 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                         if (additionResult != ValueAdditionResult.Added) {
                             throw new RuntimeException("Can't add to new protoPutMG");
                         }
-                    } else if (additionResult == ValueAdditionResult.ValueNeedsSegmentation) {
-                        segment(key, messageGroups);
+                    } else if (additionResult == ValueAdditionResult.ValueNeedsFragmentation) {
+                        fragment(key, messageGroups);
                         continue;
                         // FIXME - call continue? how to handle the opUUIDs.add() below?
                     }
@@ -303,8 +303,8 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         return protoPutMG;
     }
     
-    private void segment(K key, List<MessageGroup> messageGroups) {
-        int         numSegments;
+    private void fragment(K key, List<MessageGroup> messageGroups) {
+        int         numFragments;
         int         valueSize;
         DHTKey      dhtKey;
         DHTKey[]    subKeys;
@@ -312,13 +312,14 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         ByteBuffer[]    subBufs;
         ProtoPutMessageGroup<V>  protoPutMG;
         Compression compression;
-        SegmentedPutValue   segmentedPutValue;
+        FragmentedPutValue   fragmentedPutValue;
         boolean listenerInserted;
         int uncompressedLength;
         int storedLength;
         byte[]      checksum;
+        int	fragmentationThreshold;
         
-        Log.fine("segmenting: ", key);
+        Log.fine("fragmenting: ", key);
         
         // Serialize the value and compress if needed
         buf = nspoImpl.getValueSerializer().serializeToBuffer(putOperation.getValue(key));
@@ -343,52 +344,54 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         // instead we use the piecewise checksums. The primary reason for this is to allow for the
         // standard corrupt value detection/correction code to work for segmented values.
         checksum = new byte[putOperation.putOptions().getChecksumType().length()];
+        
+        fragmentationThreshold = putOperation.putOptions().getFragmentationThreshold();
 
         // Now segment the value
         valueSize = buf.limit();
-        numSegments = SegmentationUtil.getNumSegments(valueSize,  SegmentationUtil.maxValueSegmentSize);
-        segmentsCreated += numSegments;
-        subBufs = new ByteBuffer[numSegments];
-        for (int i = 0; i < numSegments; i++) {
+        numFragments = SegmentationUtil.getNumSegments(valueSize, fragmentationThreshold);
+        fragmentsCreated += numFragments;
+        subBufs = new ByteBuffer[numFragments];
+        for (int i = 0; i < numFragments; i++) {
             ByteBuffer  subBuf;
-            int         segmentStart;
-            int         segmentSize;
+            int         fragmentStart;
+            int         fragmentSize;
             
-            segmentStart = i * SegmentationUtil.maxValueSegmentSize; 
-            segmentSize = Math.min(SegmentationUtil.maxValueSegmentSize, valueSize - segmentStart);
-            buf.position(segmentStart);
+            fragmentStart = i * fragmentationThreshold; 
+            fragmentSize = Math.min(fragmentationThreshold, valueSize - fragmentStart);
+            buf.position(fragmentStart);
             subBuf = buf.slice();
-            subBuf.limit(segmentSize);
+            subBuf.limit(fragmentSize);
             subBufs[i] = subBuf;
-            if (debugSegmentation) {
-                System.out.printf("%d\t%d\t%s\n", segmentStart, segmentSize, subBufs[i]);
+            if (debugFragmentation) {
+                System.out.printf("%d\t%d\t%s\n", fragmentStart, fragmentSize, subBufs[i]);
             }
         }
         
         dhtKey = keyCreator.createKey(key);
-        subKeys = keyCreator.createSubKeys(dhtKey, numSegments);
+        subKeys = keyCreator.createSubKeys(dhtKey, numFragments);
         
-        if (segmentedPutValues == null) {
-            segmentedPutValues = new LinkedList<>();
+        if (fragmentedPutValues == null) {
+            fragmentedPutValues = new LinkedList<>();
         }
-        segmentedPutValue = new SegmentedPutValue(subKeys, dhtKey, this);
-        segmentedPutValues.add(segmentedPutValue);
+        fragmentedPutValue = new FragmentedPutValue(subKeys, dhtKey, this);
+        fragmentedPutValues.add(fragmentedPutValue);
         
         // NEED TO ALLOW FOR MULTIPLE PROTOPUTMG SINCE SEGMENT WILL LIKELY
         // BE A SINGLE MESSAGE OR LARGE PORTION
         
         // Create the message groups and add them to the list
         // For now, assume only one segment per message
-        for (int i = 0; i < numSegments; i++) {
+        for (int i = 0; i < numFragments; i++) {
             byte[]  segmentChecksum;
             
             protoPutMG = createProtoPutMG(new PutMessageEstimate(1, subBufs[i].limit()));
             opUUIDs.add((OperationUUID)protoPutMG.getUUID()); // hold a reference to the uuid to prevent GC            
-            listenerInserted = activePutListeners.addListener(protoPutMG.getUUID(), subKeys[i], segmentedPutValue);
+            listenerInserted = activePutListeners.addListener(protoPutMG.getUUID(), subKeys[i], fragmentedPutValue);
             if (!listenerInserted) {
                 throw new RuntimeException("Panic: Unable to insert listener into dedicated segment protoPutMG");
             }
-            if (debugSegmentation) {
+            if (debugFragmentation) {
                 System.out.printf("segmentation listener: %s\t%s\t%s\n", 
                 protoPutMG.getUUID(), subKeys[i], subBufs[i]);
                 //System.out.printf("segmentation listener: %s\t%s\t%s\n", 
@@ -405,7 +408,7 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         // indicate segmentation by storing segmentationBytes in the creator field 
         protoPutMG = createProtoPutMG(new PutMessageEstimate(1, SegmentationUtil.segmentedValueBufferLength), MetaDataConstants.segmentationBytes);
         opUUIDs.add((OperationUUID)protoPutMG.getUUID()); // hold a reference to the uuid to prevent GC
-        listenerInserted = activePutListeners.addListener(protoPutMG.getUUID(), dhtKey, segmentedPutValue);
+        listenerInserted = activePutListeners.addListener(protoPutMG.getUUID(), dhtKey, fragmentedPutValue);
         if (!listenerInserted) {
             throw new RuntimeException("Panic: Unable to add index key/value into dedicated protoPutMG");
         }
@@ -416,6 +419,7 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         
         segmentMetaDataBuffer = SegmentationUtil.createSegmentMetaDataBuffer(DHTClient.getValueCreator().getBytes(), 
                 storedLength, uncompressedLength, 
+                putOperation.putOptions().getFragmentationThreshold(),
                 putOperation.putOptions().getChecksumType(), checksum);
         protoPutMG.addValueDedicated(dhtKey, segmentMetaDataBuffer);
         protoPutMG.addToMessageGroupList(messageGroups);

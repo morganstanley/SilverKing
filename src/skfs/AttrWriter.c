@@ -219,6 +219,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 	int			attempt;
 	unsigned int	seedp;
     uint64_t    writeTimeNanos;
+    int         invalidVersion;
 	
 	seedp = 0;
 	srfsLog(LOG_FINE, "in aw_write_attr_direct");	
@@ -228,6 +229,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 	srfsLog(LOG_FINE, "aw_write_attr_direct path %s pVal->m_len %u", path, pVal->m_len);	
     writeTimeNanos = curSKTimeNanos();
 	attempt = 0;
+    invalidVersion = FALSE;
 	do {
 		try {
             if (fa != fa_get_deletion_fa()) {
@@ -242,6 +244,10 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 			result = SKOperationState::FAILED;
             if (cause != NULL) {
 				*cause = pPut->getFailureCause();
+                if (*cause == SKFailureCause::INVALID_VERSION) {
+                    invalidVersion = TRUE;
+                    // don't retry if we detect concurrent writes
+                }
             }
 		}	
 		if (pPut) {
@@ -267,7 +273,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
 			}
 		}
 		++attempt;
-	} while (result != SKOperationState::SUCCEEDED && attempt < maxAttempts);
+	} while (result != SKOperationState::SUCCEEDED && !invalidVersion && attempt < maxAttempts);
     pVal->m_pVal = NULL;
     sk_destroy_val(&pVal);
 	if (result == SKOperationState::SUCCEEDED && ac != NULL) {

@@ -388,10 +388,11 @@ public class SKAdmin {
 	private static final String escapeStr = "\\\"";
 	public static String getSystemPropertyFormatted(String key, String value, boolean escaped) {
 		String property = " " + javaSystemPropertyFlag + key + "=";
-		if (escaped)
+		if (escaped) {
 			property += escapeStr + value + escapeStr;
-		else
+		} else {
 			property += value;
+		}
     	
 		return property;
     }

@@ -79,7 +79,6 @@ OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader 
 	od_odw = odt->odw; // FUTURE - remove need for the global
 	
 	_reconciliationSeed = (unsigned int)curTimeMillis() ^ (unsigned int)(uint64_t)odt;
-	pthread_create(&odt->reconciliationThread, NULL, odt_od_reconciliation_run, odt);
     
     odt_set_reconciliation_sleep(odt, reconciliationSleep);
     srfsLog(LOG_WARNING, "odt->minReconciliationSleepMillis %lu odt->maxReconciliationSleepMillis %lu\n", 
@@ -90,6 +89,8 @@ OpenDirTable *odt_new(const char *name, SRFSDHT *sd, AttrWriter *aw, AttrReader 
         fatalError("Unable to initialize lvLock in odt_new()");
     }
     
+    // last to ensure that odt is initialized
+	pthread_create(&odt->reconciliationThread, NULL, odt_od_reconciliation_run, odt);
 	return odt;
 }
 

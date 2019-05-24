@@ -47,13 +47,21 @@ public class DHTConstants {
     public static final ConsistencyProtocol    defaultConsistencyProtocol = ConsistencyProtocol.TWO_PHASE_COMMIT;
     public static final NamespaceVersionMode   defaultVersionMode = NamespaceVersionMode.SINGLE_VERSION;
     public static final RevisionMode           defaultRevisionMode = RevisionMode.NO_REVISIONS;
-    public static final int                    defaultSegmentSize = 64 * 1024 * 1024;
     public static final int                    defaultSecondarySyncIntervalSeconds = 30 * 60;
     public static final int                    defaultSecondaryReplicaUpdateTimeoutMillis = 2 * 60 * 1000;
     public static final SegmentIndexLocation   defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
     public static final int					   defaultNSPrereadGB = 0;
     public static final int					   defaultMinPrimaryUnderFailure = 1;
     public static final int					   defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
+    
+    public static final int                    minSegmentSize = 2 * 1024;
+    public static final int                    defaultSegmentSize = 64 * 1024 * 1024;
+    public static final int                    segmentSafetyMargin = 1 * 1024;
+    
+    public static final int                    defaultFragmentationThreshold = 10 * 1024 * 1024;			
+    public static final int                    minFragmentationThreshold =   1 * 1024;			
+    
+    public static final int                    defaultMaxValueSize = 1 * 1024 * 1024 * 1024;
     
 	public static final String	defaultDataBasePath = "/var/tmp/silverking/data";
 	public static final String	defaultSKInstanceLogBasePath = "/tmp/silverking";
@@ -128,6 +136,14 @@ public class DHTConstants {
 		defMap.put(segmentIndexLocationVar, defaultSegmentIndexLocation.toString());
 		defMap.put(nsPrereadGBVar, Integer.toString(defaultNSPrereadGB));
 		defaultDefaultClassVars = new ClassVars(defMap, 0);
+		
+		// assertions
+		if (minFragmentationThreshold > minSegmentSize) {
+			// Doesn't make sense to have a fragment > a segment,
+			// This is only checking to make sure that minimums are sane. 
+			// Checking that actual values requested are sane is done elsewhere.
+			throw new RuntimeException("minSegmentSize > minFragmentationThreshold");
+		}
 	}
 	
 	public static String getSKInstanceLogDir(ClassVars classVars, SKGridConfiguration gc) {
@@ -147,8 +163,10 @@ public class DHTConstants {
                                                     noSecondaryTargets, Compression.LZ4, 
                                                     ChecksumType.MURMUR3_32, 
                                                     false, 
-                                                    PutOptions.defaultVersion, null); // FUTURE - FOR NOW THIS MUST BE REPLICATED IN PUT OPTIONS, parse limitation
-    public static final InvalidationOptions standardInvalidationOptions = OptionsHelper.newInvalidationOptions(standardTimeoutController, InvalidationOptions.defaultVersion, noSecondaryTargets);
+                                                    PutOptions.defaultVersion, 
+                                                    PutOptions.noVersionRequired, 
+                                                    defaultFragmentationThreshold, null); // FUTURE - FOR NOW THIS MUST BE REPLICATED IN PUT OPTIONS, parse limitation
+    public static final InvalidationOptions standardInvalidationOptions = OptionsHelper.newInvalidationOptions(standardTimeoutController, InvalidationOptions.defaultVersion, PutOptions.noVersionRequired, noSecondaryTargets);
     public static final GetOptions standardGetOptions = OptionsHelper.newGetOptions(
             standardTimeoutController, RetrievalType.VALUE, VersionConstraint.defaultConstraint);
     public static final WaitOptions standardWaitOptions = OptionsHelper.newWaitOptions(
@@ -159,7 +177,7 @@ public class DHTConstants {
                                                 defaultConsistencyProtocol, defaultVersionMode, defaultRevisionMode,
                                                 standardPutOptions, standardInvalidationOptions, 
                                                 standardGetOptions, standardWaitOptions, 
-                                                defaultSecondarySyncIntervalSeconds, defaultSegmentSize);
+                                                defaultSecondarySyncIntervalSeconds, defaultSegmentSize, defaultMaxValueSize);
     public static final NamespaceOptions	dynamicNamespaceOptions = defaultNamespaceOptions.storageType(StorageType.RAM)
                                           .consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT)
                                           .versionMode(NamespaceVersionMode.CLIENT_SPECIFIED);

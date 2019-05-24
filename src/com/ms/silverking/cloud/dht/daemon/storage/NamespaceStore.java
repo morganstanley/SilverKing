@@ -34,6 +34,7 @@ import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
+import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.RevisionMode;
@@ -92,7 +93,7 @@ import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
-import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
+import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
@@ -651,7 +652,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     // writeLock must be held
-    private VersionCheckResult checkPutVersion(DHTKey key, long version) {
+    private VersionCheckResult checkPutVersion(DHTKey key, long version, long requiredPreviousVersion) {
         if (version <= curSnapshot || version < minVersion || !nsOptions.getVersionMode().validVersion(version)) {
             return VersionCheckResult.Invalid;
         } else {
@@ -664,11 +665,15 @@ public class NamespaceStore implements SSNamespaceStore {
                         System.out.printf("version %d segmentNewestVersion %d\n", version, segmentNewestVersion);
                     }
                     if (version > segmentNewestVersion) {
-                        return VersionCheckResult.Valid;
+                    	if (requiredPreviousVersion == PutOptions.noVersionRequired || requiredPreviousVersion == segmentNewestVersion) {
+                            return VersionCheckResult.Valid;
+                    	} else {
+                            return VersionCheckResult.Invalid;
+                    	}
                     } else if (version < segmentNewestVersion) {
                         return VersionCheckResult.Invalid;
                     } else {
-                        return VersionCheckResult.Equal;
+                		return VersionCheckResult.Equal;
                     }
                 } else {
                     return VersionCheckResult.Valid;
@@ -932,7 +937,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
 
-    protected final OpResult _put(DHTKey key, ByteBuffer value, StorageParameters storageParams, byte[] userData, 
+    protected final OpResult _put(DHTKey key, ByteBuffer value, StorageParametersAndRequirements storageParams, byte[] userData, 
                                 NamespaceVersionMode nsVersionMode) {
         WritableSegmentBase     storageSegment;
         SegmentStorageResult    storageResult;
@@ -959,7 +964,7 @@ public class NamespaceStore implements SSNamespaceStore {
             //storageParams = getSystemVersionParams(key, storageParams);
             throw new RuntimeException("Panic"); // moved to ActiveProxyPut for now
         } else {
-            versionCheckResult = checkPutVersion(key, storageParams.getVersion());
+            versionCheckResult = checkPutVersion(key, storageParams.getVersion(), storageParams.getRequiredPreviousVersion());
         }
         switch (versionCheckResult) {
         case Invalid:
@@ -3427,8 +3432,8 @@ public class NamespaceStore implements SSNamespaceStore {
 	}
 
 	@Override
-	public OpResult put(DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData, NamespaceVersionMode nsVersionMode) {
-	    return _put(key, value, StorageParameters.fromSSStorageParameters(storageParams), userData, nsVersionMode);
+	public OpResult put(DHTKey key, ByteBuffer value, SSStorageParametersAndRequirements storageParams, byte[] userData, NamespaceVersionMode nsVersionMode) {
+	    return _put(key, value, StorageParametersAndRequirements.fromSSStorageParametersAndRequirements(storageParams), userData, nsVersionMode);
 	}
 
 	@Override

@@ -64,7 +64,7 @@ public class ObjectDefParserTest {
                     DHTConstants.defaultVersionMode, DHTConstants.defaultRevisionMode, 
                     DHTConstants.standardPutOptions.secondaryTargets(new SecondaryTarget(SecondaryTargetType.AncestorClass, "Region")),
                     DHTConstants.standardInvalidationOptions,
-                    DHTConstants.standardGetOptions, DHTConstants.standardWaitOptions, 0, 0, false).toString();
+                    DHTConstants.standardGetOptions, DHTConstants.standardWaitOptions, 0, 0, 0, false).toString();
             /*
             def = new NamespaceOptions(DHTConstants.defaultStorageType, DHTConstants.defaultConsistencyProtocol, 
                     DHTConstants.defaultVersionMode, DHTConstants.standardPutOptions,

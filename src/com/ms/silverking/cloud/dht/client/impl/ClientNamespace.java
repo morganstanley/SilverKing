@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
+import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.client.AbsMillisVersionProvider;
 import com.ms.silverking.cloud.dht.client.AbsNanosVersionProvider;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
@@ -340,4 +341,16 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
             nsLinkMeta.createLink(name, parentName);
         }
     }
+
+	public void validatePutOptions(PutOptions putOptions) {
+		if (nsOptions.getMaxValueSize() > nsOptions.getSegmentSize()) {
+			// Values > a segment are allowed. Ensure that fragmentation is set to a sane value
+			if (putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin) {
+				throw new IllegalArgumentException("Values larger than a segment are allowed, "
+						+"but putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin");
+			}
+		} else {
+			// Values can all fit in one segment
+		}
+	}
 }

@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.client;
 
 import com.ms.silverking.cloud.dht.client.impl.SegmentationUtil;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.text.ObjectDefParser2;
 
 /**
@@ -19,7 +20,7 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     
     private static final int    minTransferRate_bps = 275 * 1000 * 1000;
     private static final int    minTransferRate_Bps = minTransferRate_bps / 8;
-    static final int    defaultItemTime_ms = Math.toIntExact((1000L * SegmentationUtil.maxValueSegmentSize) 
+    static final int    defaultItemTime_ms = Math.toIntExact((1000L * DHTConstants.defaultFragmentationThreshold) 
                                                      / minTransferRate_Bps);
     
     // For testing

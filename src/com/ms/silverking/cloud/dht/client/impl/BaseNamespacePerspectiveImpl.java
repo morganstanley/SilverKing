@@ -131,6 +131,7 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
             }
         }
         */
+        clientNamespace.validatePutOptions(putOptions);
         opImpl = new AsyncPutOperationImpl<>(new PutOperation<>(clientNamespace, values, putOptions), 
                                             clientNamespace, nspoImpl,  
                                             clientNamespace.getAbsMillisTimeSource().absTimeMillis(),

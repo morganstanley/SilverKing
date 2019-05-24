@@ -43,7 +43,8 @@ public class StorageParameters implements SSStorageParameters {
     	}
     }
         
-    public static StorageParameters fromSSStorageParameters(SSStorageParameters sp, int uncompressedSize, int compressedSize, Compression compression) {
+    public static StorageParameters fromSSStorageParameters(SSStorageParameters sp, int uncompressedSize, 
+    													int compressedSize, Compression compression) {
     	if (sp instanceof StorageParameters) {
     		return (StorageParameters)sp;
     	} else {

@@ -40,7 +40,8 @@ import com.ms.silverking.time.SystemTimeSource;
  */
 class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResult> implements PutOperationContainer {
     private final StorageOperation storageOperation;
-    private final long version;
+    private final long  version;
+    private final long  requiredPreviousVersion;
     private final int   stLength;
     private final Set<SecondaryTarget>  secondaryTargets;
     private final UUIDBase msg_uuid;
@@ -68,6 +69,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
             ProtoPutMessageGroup.setPutVersion(message, _version);
         }
         version = _version;
+        requiredPreviousVersion = ProtoPutMessageGroup.getPutRequiredPreviousVersion(message);
         
         stLength = ProtoPutMessageGroup.getSTLength(message);
         storageOperation = storageProtocol
@@ -151,7 +153,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
             values = new ArrayList<>(_entries.size());
             for (DHTKey _entry : _entries) {
                 values.add(new StorageValueAndParameters((MessageGroupPutEntry)_entry, (PutOperationContainer)this, 
-                                                        creationTime));
+                                                        creationTime, requiredPreviousVersion));
                 if (debug) {
                     System.out.printf("localOp: %s\n", _entry);
                 }

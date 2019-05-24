@@ -23,6 +23,7 @@ public class NamespaceOptions {
     private final WaitOptions           defaultWaitOptions;
     private final int                   secondarySyncIntervalSeconds;
     private final int                   segmentSize;
+    private final int                   maxValueSize;
     private final boolean               allowLinks;
     private final ValueRetentionPolicy	valueRetentionPolicy;
     private final NamespaceServerSideCode	namespaceServerSideCode;
@@ -41,7 +42,11 @@ public class NamespaceOptions {
     /** minimum allowed segmentSize */
     public static final int                    minSegmentSize = 4 * 1024;
     /** maximum allowed segmentSize */
-    public static final int                     maxSegmentSize = 1 * 1024 * 1024 * 1024;
+    public static final int                    maxSegmentSize = 1 * 1024 * 1024 * 1024;
+    /** minimum allowed maxValueSize */
+    public static final int                    minMaxValueSize = 1;
+    /** maximum allowed maxValueSize */
+    public static final int                    maxMaxValueSize = 1 * 1024 * 1024 * 1024;
     
     // allowLinks is for SilverRails compatibility only; hide the default here to avoid usage
     static final boolean	defaultAllowLinks = false;
@@ -76,6 +81,7 @@ public class NamespaceOptions {
      * @param defaultWaitOptions the default WaitOptions to use for this namespace
      * @param secondarySyncIntervalSeconds interval at which secondary replicas will sync data 
      * @param segmentSize the segment size to use for this namespace
+     * @param maxValueSize maximum size of any one value stored to this namespace
      * @param allowLinks Avoid use. For backwards compatibility to SilverRails only. 
      * @param namespaceServerSideCode TODO
      */
@@ -83,8 +89,8 @@ public class NamespaceOptions {
             NamespaceVersionMode versionMode, RevisionMode revisionMode, 
             PutOptions defaultPutOptions, InvalidationOptions defaultInvalidationOptions, 
             GetOptions defaultGetOptions, WaitOptions defaultWaitOptions, 
-            int secondarySyncIntervalSeconds, int segmentSize, boolean allowLinks,
-            ValueRetentionPolicy valueRetentionPolicy, NamespaceServerSideCode namespaceServerSideCode) {
+            int secondarySyncIntervalSeconds, int segmentSize, int maxValueSize,
+            boolean allowLinks, ValueRetentionPolicy valueRetentionPolicy, NamespaceServerSideCode namespaceServerSideCode) {
         Preconditions.checkNotNull(storageType);
         Preconditions.checkNotNull(consistencyProtocol);
         Preconditions.checkNotNull(versionMode);
@@ -94,6 +100,16 @@ public class NamespaceOptions {
         checkTimeoutControllerForValidity(defaultGetOptions);
         checkTimeoutControllerForValidity(defaultWaitOptions);
         Preconditions.checkNotNull(valueRetentionPolicy);
+        
+        if (segmentSize < DHTConstants.minSegmentSize) {
+        	throw new IllegalArgumentException("segmentSize < DHTConstants.minSegmentSize");
+        }
+        if (maxValueSize < minMaxValueSize) {
+        	throw new IllegalArgumentException("maxValueSize < minMaxValueSize");
+        }
+        if (maxValueSize > maxMaxValueSize) {
+        	throw new IllegalArgumentException("maxValueSize > maxMaxValueSize");
+        }
         
         this.storageType = storageType;
         this.consistencyProtocol = consistencyProtocol;
@@ -106,6 +122,7 @@ public class NamespaceOptions {
         Constraint.checkBounds(minSegmentSize, maxSegmentSize, segmentSize);
         this.secondarySyncIntervalSeconds = secondarySyncIntervalSeconds;
         this.segmentSize = segmentSize;
+        this.maxValueSize = maxValueSize;
         this.allowLinks = allowLinks;
         this.valueRetentionPolicy = valueRetentionPolicy;
         this.namespaceServerSideCode = namespaceServerSideCode;
@@ -118,10 +135,10 @@ public class NamespaceOptions {
             NamespaceVersionMode versionMode, RevisionMode revisionMode, 
             PutOptions defaultPutOptions, InvalidationOptions defaultInvalidationOptions, 
             GetOptions defaultGetOptions, WaitOptions defaultWaitOptions, 
-            int secondarySyncIntervalSeconds, int segmentSize, boolean allowLinks) {
+            int secondarySyncIntervalSeconds, int segmentSize, int maxValueSize, boolean allowLinks) {
     	this(storageType, consistencyProtocol, versionMode, revisionMode, defaultPutOptions, 
     			defaultInvalidationOptions, defaultGetOptions, defaultWaitOptions, 
-    			secondarySyncIntervalSeconds, segmentSize, allowLinks, defaultRetentionPolicy, null);
+    			secondarySyncIntervalSeconds, segmentSize, maxValueSize, allowLinks, defaultRetentionPolicy, null);
     }
     
     private NamespaceOptions() {
@@ -130,8 +147,8 @@ public class NamespaceOptions {
                 DHTConstants.standardPutOptions, DHTConstants.standardInvalidationOptions,
                 DHTConstants.standardGetOptions, DHTConstants.standardWaitOptions,
                 DHTConstants.defaultSecondarySyncIntervalSeconds, 
-                DHTConstants.defaultSegmentSize, defaultAllowLinks, 
-                defaultRetentionPolicy, defaultNamespaceServerSideCode);
+                DHTConstants.defaultSegmentSize, DHTConstants.defaultMaxValueSize, 
+                defaultAllowLinks, defaultRetentionPolicy, defaultNamespaceServerSideCode);
     }
     
     /**
@@ -215,6 +232,14 @@ public class NamespaceOptions {
     }
     
     /**
+     * Return maxValueSize
+     * @return maxValueSize
+     */
+    public int getMaxValueSize() {
+        return maxValueSize;
+    }
+    
+    /**
      * Avoid use. For backward compatibility with SilverRails only.
      * @return
      */
@@ -253,7 +278,7 @@ public class NamespaceOptions {
                 NamespaceVersionMode.SINGLE_VERSION, RevisionMode.NO_REVISIONS, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -265,7 +290,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -277,7 +302,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -289,7 +314,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -301,7 +326,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     private void checkTimeoutControllerForValidity(OperationOptions operationOptions) {
@@ -324,7 +349,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -336,7 +361,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -348,7 +373,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -360,7 +385,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
 
     /**
@@ -372,7 +397,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -384,7 +409,19 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
             defaultPutOptions, defaultInvalidationOptions, 
             defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-            segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+            segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+    }
+    
+    /**
+     * Return a copy of this instance with a new max value size
+     * @param maxValueSize maxValueSize for new instance
+     * @return copy of this instance with a new max value size
+     */
+    public NamespaceOptions maxValueSize(int maxValueSize) {
+        return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
+            defaultPutOptions, defaultInvalidationOptions, 
+            defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
+            segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -396,7 +433,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -408,7 +445,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     /**
@@ -420,7 +457,7 @@ public class NamespaceOptions {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
-                segmentSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
+                segmentSize, maxValueSize, allowLinks, valueRetentionPolicy, namespaceServerSideCode);
     }
     
     @Override
@@ -433,8 +470,9 @@ public class NamespaceOptions {
                 ^ defaultInvalidationOptions.hashCode()
                 ^ defaultGetOptions.hashCode()
                 ^ defaultWaitOptions.hashCode()
-                ^ secondarySyncIntervalSeconds 
-                ^ segmentSize
+                ^ Integer.hashCode(secondarySyncIntervalSeconds) 
+                ^ Integer.hashCode(segmentSize)
+                ^ Integer.hashCode(maxValueSize)
                 ^ Boolean.hashCode(allowLinks)
                 ^ valueRetentionPolicy.hashCode()
                 ^ ObjectUtil.hashCode(namespaceServerSideCode);
@@ -463,6 +501,7 @@ public class NamespaceOptions {
                 && defaultWaitOptions.equals(other.defaultWaitOptions)
                 && secondarySyncIntervalSeconds == other.secondarySyncIntervalSeconds 
                 && segmentSize == other.segmentSize
+                && maxValueSize == other.maxValueSize
                 && allowLinks == other.allowLinks
                 && valueRetentionPolicy.equals(other.valueRetentionPolicy)
                 && ObjectUtil.equal(namespaceServerSideCode, other.namespaceServerSideCode);
@@ -483,6 +522,7 @@ public class NamespaceOptions {
         System.out.printf("defaultWaitOptions.equals(oNamespaceOptions.defaultWaitOptions) %s\n", defaultWaitOptions.equals(oNamespaceOptions.defaultWaitOptions));
         System.out.printf("secondarySyncIntervalSeconds == oNamespaceOptions.secondarySyncIntervalSeconds %s\n", secondarySyncIntervalSeconds == oNamespaceOptions.secondarySyncIntervalSeconds); 
         System.out.printf("segmentSize == oNamespaceOptions.segmentSize %s\n", segmentSize == oNamespaceOptions.segmentSize);
+        System.out.printf("maxValueSize == oNamespaceOptions.maxValueSize %s\n", maxValueSize == oNamespaceOptions.maxValueSize);
         System.out.printf("allowLinks == oNamespaceOptions.allowLinks %s\n", allowLinks == oNamespaceOptions.allowLinks);
         System.out.printf("valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy); %s\n", valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy));
         System.out.printf("namespaceServerSideCode.equals(oNamespaceOptions.namespaceServerSideCode); %s\n", namespaceServerSideCode.equals(oNamespaceOptions.namespaceServerSideCode));

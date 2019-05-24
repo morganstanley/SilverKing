@@ -235,8 +235,8 @@ public class OptionsHelper {
     // PutOptions
     
 	public static InvalidationOptions newInvalidationOptions(OpTimeoutController opTimeoutController,
-														long version, Set<SecondaryTarget> secondaryTargets) {
-		return new InvalidationOptions(opTimeoutController, secondaryTargets, version);
+														long version, long requiredPreviousVersion, Set<SecondaryTarget> secondaryTargets) {
+		return new InvalidationOptions(opTimeoutController, secondaryTargets, version, requiredPreviousVersion);
 	}
     
 	/////////////////////
@@ -248,11 +248,11 @@ public class OptionsHelper {
 			PutOptions defaultPutOptions,
 			InvalidationOptions defaultInvalidationOptions,
 			GetOptions defaultGetOptions, WaitOptions defaultWaitOptions,
-			int secondarySyncIntervalSeconds, int segmentSize) {
+			int secondarySyncIntervalSeconds, int segmentSize, int maxValueSize) {
 		return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode,
 				defaultPutOptions, defaultInvalidationOptions,
 				defaultGetOptions, defaultWaitOptions,
-				secondarySyncIntervalSeconds, segmentSize, false);
+				secondarySyncIntervalSeconds, segmentSize, maxValueSize, false);
 	}	
 	
     public static NamespaceOptions newNamespaceOptions(StorageType storageType, ConsistencyProtocol consistencyProtocol, 
@@ -262,6 +262,6 @@ public class OptionsHelper {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, DHTConstants.defaultRevisionMode, 
 					        		defaultPutOptions, defaultInvalidationOptions, 
 					                defaultGetOptions, defaultWaitOptions, DHTConstants.defaultSecondarySyncIntervalSeconds, 
-					                DHTConstants.defaultSegmentSize, false);
+					                DHTConstants.defaultSegmentSize, DHTConstants.defaultMaxValueSize, false);
     }	
 }

@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.nio.ByteBuffer;
 
+import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.common.CorruptValueException;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -13,7 +14,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
 
-public class StorageValueAndParameters extends StorageParameters {
+public class StorageValueAndParameters extends StorageParametersAndRequirements {
     private final DHTKey        key;
     private final ByteBuffer    value;
     
@@ -22,21 +23,23 @@ public class StorageValueAndParameters extends StorageParameters {
     public StorageValueAndParameters(DHTKey key, ByteBuffer value,
                                     long version, int uncompressedSize, int compressedSize,
                                     short ccss, byte[] checksum, 
-                                    byte[] valueCreator, long creationTime) {
-        super(version, uncompressedSize, compressedSize, ccss, checksum, valueCreator, creationTime);
+                                    byte[] valueCreator, long creationTime,
+                                    long requiredPreviousVersion) {
+        super(version, uncompressedSize, compressedSize, ccss, checksum, valueCreator, creationTime, requiredPreviousVersion);
         this.key = key;
         this.value = value;
     }
     
     public StorageValueAndParameters(MessageGroupPutEntry entry, PutOperationContainer putOperationContainer,
-                                    long creationTime) {
+                                    long creationTime, long requiredPreviousVersion) {
         this(entry, entry.getValue(), putOperationContainer.getVersion(),
             entry.getUncompressedLength(),
             compressedSizeNotSet,
             putOperationContainer.getCCSS(),
             entry.getChecksum(),
             putOperationContainer.getValueCreator(), 
-            creationTime);
+            creationTime,
+            requiredPreviousVersion);
     }
     
     public DHTKey getKey() {
@@ -48,7 +51,7 @@ public class StorageValueAndParameters extends StorageParameters {
     }
     
     public StorageValueAndParameters ccss(short ccss) {
-    	return new StorageValueAndParameters(key, value, getVersion(), getUncompressedSize(), getCompressedSize(), ccss, getChecksum(), getValueCreator(), getCreationTime());
+    	return new StorageValueAndParameters(key, value, getVersion(), getUncompressedSize(), getCompressedSize(), ccss, getChecksum(), getValueCreator(), getCreationTime(), getRequiredPreviousVersion());
     }
     
     public static StorageValueAndParameters createSVP(MessageGroupRetrievalResponseEntry entry) {
@@ -95,7 +98,8 @@ public class StorageValueAndParameters extends StorageParameters {
                     rawRetrievalResult.getUncompressedLength(), 
                     MetaDataUtil.getCompressedLength(rawValueBuffer, 0), 
                     rawRetrievalResult.getCCSS(), rawRetrievalResult.getChecksum(), 
-                    rawRetrievalResult.getCreator().getBytes(), rawRetrievalResult.getCreationTimeRaw());
+                    rawRetrievalResult.getCreator().getBytes(), rawRetrievalResult.getCreationTimeRaw(),
+                    PutOptions.noVersionRequired);
             return valueAndParameters;
         } catch (CorruptValueException cve) {
             Log.warning("Corrupt value in convergence: ", entry);

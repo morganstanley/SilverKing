@@ -14,7 +14,7 @@ public interface SSNamespaceStore {
 	public boolean isNamespace(String ns);
 	public File getNamespaceSSDir();
 	public NamespaceOptions getNamespaceOptions();
-    public OpResult put(DHTKey key, ByteBuffer value, SSStorageParameters storageParams, byte[] userData, NamespaceVersionMode nsVersionMode);
+    public OpResult put(DHTKey key, ByteBuffer value, SSStorageParametersAndRequirements storageParams, byte[] userData, NamespaceVersionMode nsVersionMode);
 	public OpResult putUpdate(DHTKey key, long version, byte storageState);
     public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options);
 	public ReadWriteLock getReadWriteLock();

@@ -28,12 +28,16 @@ public:
     SKAPI SKPutOptions * checksumType(SKChecksumType::SKChecksumType checksumType);
 	SKAPI SKPutOptions * checksumCompressedValues(bool checksumCompressedValues );
     SKAPI SKPutOptions * version(int64_t version);
+    SKAPI SKPutOptions * requiredPreviousVersion(int64_t requiredPreviousVersion);
+    SKAPI SKPutOptions * fragmentationThreshold(int64_t fragmentationThreshold);
     SKAPI SKPutOptions * userData(SKVal * userData);
 
 	SKAPI SKCompression::SKCompression getCompression() const;
     SKAPI SKChecksumType::SKChecksumType getChecksumType() const;
     SKAPI bool getChecksumCompressedValues() const;
     SKAPI int64_t getVersion() const;
+    SKAPI int64_t getRequiredPreviousVersion() const;
+    SKAPI int64_t getFragmentationThreshold() const;
     SKAPI SKVal * getUserData() const;
     
     SKAPI static SKPutOptions * parse(const char * def);
@@ -44,7 +48,8 @@ public:
     SKAPI SKPutOptions(SKOpTimeoutController * opTimeoutController, 
         std::set<SKSecondaryTarget*> * secondaryTargets, 
 		SKCompression::SKCompression compression, SKChecksumType::SKChecksumType checksumType,
-		bool checksumCompressedValues, int64_t version, 
+		bool checksumCompressedValues, int64_t version, int64_t requiredPreviousVersion,
+        int64_t fragmentationThreshold,
 		SKVal * userData );
 
     SKPutOptions();

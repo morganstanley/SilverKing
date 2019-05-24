@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.impl.KeyCreator;
@@ -70,16 +71,17 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
     
     private void storeStaticKVPair(MessageGroupBase mgBase, long curTimeMillis, 
                                    DHTKey key, ByteBuffer value) {
-        StorageParameters   storageParams;
+        StorageParametersAndRequirements	storageParams;
         
-        storageParams = new StorageParameters(
+        storageParams = new StorageParametersAndRequirements(
                                 0, 
                                 value.limit(),
                                 StorageParameters.compressedSizeNotSet,
                                 CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), 
                                 new byte[0], 
                                 dynamicCreator,
-                                systemTimeSource.absTimeNanos());
+                                systemTimeSource.absTimeNanos(),
+                                PutOptions.noVersionRequired);
         //System.out.println("storeSystemKVPair");
         _put(key, value, storageParams, dynamicUserData, DHTConstants.dynamicNamespaceOptions.getVersionMode());
     }

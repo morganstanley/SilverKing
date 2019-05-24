@@ -20,7 +20,7 @@ class SilverkingDBConstants {
                                             ChecksumType.NONE,
                                             false,
                                             PutOptions.defaultVersion,
-                                            null
+                                            0, DHTConstants.defaultFragmentationThreshold, null
                                             );
 
     static final String namespace = "ycsb.1";
@@ -33,7 +33,9 @@ class SilverkingDBConstants {
                                                         DHTConstants.standardInvalidationOptions,
                                                         DHTConstants.standardGetOptions,
                                                         DHTConstants.standardWaitOptions,
-                                                        secondarySyncIntervalSeconds, segmentSize, false);
+                                                        secondarySyncIntervalSeconds, segmentSize,
+                                                        DHTConstants.defaultMaxValueSize,
+                                                        false);
     static final NamespaceOptions    nsOptions_ram = new NamespaceOptions(StorageType.RAM, 
                                                         ConsistencyProtocol.LOOSE, 
                                                         //ConsistencyProtocol.TWO_PHASE_COMMIT, 
@@ -43,6 +45,8 @@ class SilverkingDBConstants {
                                                         DHTConstants.standardInvalidationOptions,
                                                         DHTConstants.standardGetOptions,
                                                         DHTConstants.standardWaitOptions,
-                                                        secondarySyncIntervalSeconds, segmentSize, false);
+                                                        secondarySyncIntervalSeconds, segmentSize, 
+                                                        DHTConstants.defaultMaxValueSize,
+                                                        false);
     static final NamespaceOptions    nsOptions = nsOptions_file;
 }

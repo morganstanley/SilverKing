@@ -2,14 +2,17 @@ package com.ms.silverking.cloud.dht.net;
 
 import java.nio.ByteBuffer;
 
-import com.ms.silverking.cloud.dht.client.impl.SegmentationUtil;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.net.protocol.KeyValueMessageFormat;
 import com.ms.silverking.id.UUIDBase;
 
 /**
- * ProtoMessageGroup for messages that contains values e.g. put and retrieval response 
+ * ProtoMessageGroup for messages that contains values e.g. put and retrieval response.
+ * Values are stored in a list of ByteBuffers. Smaller values may be copied into a shared ByteBuffer.
+ * Larger values are stored in dedicated ByteBuffers, possibly by creating a zero-copy ByteBuffer 
+ * wrapping existing storage of the value.
  */
 abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     protected final int   opSize;
@@ -20,16 +23,21 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     // FIXME - valueBufferSize should be computed based on some
     // external information
     protected static final int   valueBufferSize = 16 * 1024;
-    public static final int   maxValueBytesPerMessage = SegmentationUtil.maxValueSegmentSize + 1024 * 1024;
+    // Maximum number of value bytes to allow in a single message. The sum of the length of all values in
+    // a message must be less than this limit. Operations that need to transfer more bytes over the
+    // network will use multiple messages to do so.
+    // maxValueSegmentSize is used below, because this needs to be at least that, but
+    // we could consider higher and make that a minimum.
+    public static final int   maxValueBytesPerMessage = DHTConstants.defaultFragmentationThreshold + 1024 * 1024;
     private static final int     extraMargin = 1024;
+    // Values below this size are copied into a common buffer. Values above this size are contained in dedicated
+    // buffers, possibly with zero-copy
     protected static final int   dedicatedBufferSizeThreshold = 16 * 1024;    
     
     protected static final int  optionBufferIndex = KeyValueMessageFormat.optionBufferIndex;
         
     static {
-        if (maxValueBytesPerMessage + extraMargin <= SegmentationUtil.maxValueSegmentSize) {
-            throw new RuntimeException("maxValueBytesPerMessage + extraMargin <= SegmentationUtil.maxValueSegmentSize is not supported");
-        }
+        // Values without dedicated buffers need to be able to fit into the shared buffer
         if (dedicatedBufferSizeThreshold > valueBufferSize) {
             throw new RuntimeException("dedicatedBufferSizeThreshold > valueBufferSize not supported");
         }
@@ -64,7 +72,10 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     }
     
     public boolean canBeAdded(int valueSize) {
-        return totalValueBytes + valueSize < maxValueBytesPerMessage;
+    	// Check that we are below maxValueBytesPerMessage
+    	// Exception is granted for single values of any length
+    	// (If fragmentation threshold is very high, we need to handle very large values)
+        return (totalValueBytes == 0) || (totalValueBytes + valueSize < maxValueBytesPerMessage);
     }
     
     public int currentValueBytes() {

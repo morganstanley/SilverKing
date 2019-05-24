@@ -26,8 +26,8 @@ public class NamespaceUtil {
     public static final Namespace   metaInfoNamespace = creator.createNamespace(metaInfoNamespaceName);
     public static final GetOptions metaNSDefaultGetOptions = DHTConstants.standardGetOptions.forwardingMode(ForwardingMode.ALL); // Required to bootstrap lost replicas
     public static final PutOptions  metaNSDefaultPutOptions = new PutOptions(DHTConstants.standardTimeoutController, 
-    		DHTConstants.noSecondaryTargets, Compression.NONE, ChecksumType.MD5, false, 0L, null); 
-    public static final InvalidationOptions  metaNSDefaultInvalidationOptions = OptionsHelper.newInvalidationOptions(DHTConstants.standardTimeoutController, 0L, DHTConstants.noSecondaryTargets); 
+    		DHTConstants.noSecondaryTargets, Compression.NONE, ChecksumType.MD5, false, PutOptions.defaultVersion, PutOptions.noVersionRequired, DHTConstants.defaultFragmentationThreshold, null); 
+    public static final InvalidationOptions  metaNSDefaultInvalidationOptions = OptionsHelper.newInvalidationOptions(DHTConstants.standardTimeoutController, PutOptions.defaultVersion, PutOptions.noVersionRequired, DHTConstants.noSecondaryTargets); 
     public static final NamespaceOptions    metaInfoNamespaceOptions 
         = OptionsHelper.newNamespaceOptions(StorageType.FILE, ConsistencyProtocol.TWO_PHASE_COMMIT, 
                                NamespaceVersionMode.SINGLE_VERSION, 

@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 
-abstract class SegmentedValue<R> implements ActiveKeyedOperationResultListener<R> {
+abstract class FragmentedValue<R> implements ActiveKeyedOperationResultListener<R> {
     protected final DHTKey[]          keys;
     protected final AtomicInteger     resultsReceived;
     protected final Map<DHTKey, R>    results;
@@ -17,7 +17,7 @@ abstract class SegmentedValue<R> implements ActiveKeyedOperationResultListener<R
     
     private static final boolean    debug = false;
     
-    SegmentedValue(DHTKey[] keys, DHTKey relayKey, ActiveKeyedOperationResultListener<R> parent,
+    FragmentedValue(DHTKey[] keys, DHTKey relayKey, ActiveKeyedOperationResultListener<R> parent,
                    boolean trackRelayKeyCompletion) {
         this.keys = keys;
         this.parent = parent;
@@ -36,9 +36,9 @@ abstract class SegmentedValue<R> implements ActiveKeyedOperationResultListener<R
                 MessageGroupRetrievalResponseEntry  _result;
                 
                 _result = (MessageGroupRetrievalResponseEntry)result;
-                System.out.printf("SegmentedValue.resultReceived key: %s\tresult: %s\tvalue %s\n", key, result, ((MessageGroupRetrievalResponseEntry) result).getValue());
+                System.out.printf("FragmentedValue.resultReceived key: %s\tresult: %s\tvalue %s\n", key, result, ((MessageGroupRetrievalResponseEntry) result).getValue());
             } else {
-                System.out.printf("SegmentedValue.resultReceived key: %s\tresult: %s\tresultsReceived %d\n", key, result, resultsReceived.get());
+                System.out.printf("FragmentedValue.resultReceived key: %s\tresult: %s\tresultsReceived %d\n", key, result, resultsReceived.get());
             }
         }
         prevResult = results.put(key, result);

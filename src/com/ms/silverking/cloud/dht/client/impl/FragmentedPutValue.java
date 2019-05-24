@@ -3,8 +3,8 @@ package com.ms.silverking.cloud.dht.client.impl;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
 
-class SegmentedPutValue extends SegmentedValue<OpResult> {
-    SegmentedPutValue(DHTKey[] keys, DHTKey relayKey, ActiveKeyedOperationResultListener<OpResult> parent) {
+class FragmentedPutValue extends FragmentedValue<OpResult> {
+    FragmentedPutValue(DHTKey[] keys, DHTKey relayKey, ActiveKeyedOperationResultListener<OpResult> parent) {
         super(keys, relayKey, parent, true);
     }
 

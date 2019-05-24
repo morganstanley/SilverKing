@@ -146,6 +146,24 @@ SKPutOptions * SKPutOptions::version(int64_t version){
     return this;
 }
 
+SKPutOptions * SKPutOptions::requiredPreviousVersion(int64_t requiredPreviousVersion){
+	PutOptions * pPutOptImp = new PutOptions(java_cast<PutOptions>(
+		((PutOptions*)pImpl)->requiredPreviousVersion(requiredPreviousVersion)
+	)); 
+    delete ((PutOptions*)pImpl);
+    pImpl = pPutOptImp;
+    return this;
+}
+
+SKPutOptions * SKPutOptions::fragmentationThreshold(int64_t fragmentationThreshold){
+	PutOptions * pPutOptImp = new PutOptions(java_cast<PutOptions>(
+		((PutOptions*)pImpl)->fragmentationThreshold(version)
+	)); 
+    delete ((PutOptions*)pImpl);
+    pImpl = pPutOptImp;
+    return this;
+}
+
 SKPutOptions * SKPutOptions::userData(SKVal * userData){
 	const void * value = userData->m_pVal;
 	size_t valueLen = userData->m_len;
@@ -181,6 +199,14 @@ bool SKPutOptions::getChecksumCompressedValues() const {
 
 int64_t SKPutOptions::getVersion() const {
 	return (int64_t)((PutOptions*)pImpl)->getVersion() ; 
+}
+
+int64_t SKPutOptions::getRequiredPreviousVersion() const {
+	return (int64_t)((PutOptions*)pImpl)->getRequiredPreviousVersion() ; 
+}
+
+int64_t SKPutOptions::getFragmentationThreshold() const {
+	return (int64_t)((PutOptions*)pImpl)->getFragmentationThreshold() ; 
 }
 
 SKVal * SKPutOptions::getUserData() const {
@@ -232,7 +258,8 @@ void * SKPutOptions::getPImpl() {return pImpl;}  //FIXME:
 SKPutOptions::SKPutOptions(SKOpTimeoutController * opTimeoutController, 
         set<SKSecondaryTarget*> * secondaryTargets,
 		SKCompression::SKCompression compression, SKChecksumType::SKChecksumType checksumType,
-		bool checksumCompressedValues, int64_t version, 
+		bool checksumCompressedValues, int64_t version, int64_t requiredPreviousVersion,
+        int64_t fragmentationThreshold,
 		SKVal * userData)
 {
 	Compression * pCompr = ::getCompression(compression);
@@ -259,7 +286,7 @@ SKPutOptions::SKPutOptions(SKOpTimeoutController * opTimeoutController,
 	}
 	
 	pImpl = new PutOptions(java_new<PutOptions>(controller, targets, *pCompr, *pCt, checksumCompressedValues,
-				version, byteArray)); 
+				version, requiredPreviousVersion, fragmentationThreshold, byteArray)); 
 	delete pCompr;
 	delete pCt;
 }

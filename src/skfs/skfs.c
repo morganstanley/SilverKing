@@ -1043,27 +1043,6 @@ static int skfs_rename(const char *oldpath, const char *newpath
         } else {
             int rnRetries;
             
-            /*
-            // FUTURE - The below segment is a temporary workaround for the case where a zero-size attribute is somehow read
-            // Unclear if this is an application error or a bug, but we work around either case.
-            rnRetries = 0;
-            while (fa.stat.st_size == 0 && rnRetries < _rn_retry_limit) {
-                int         _result;
-                FileAttr    _fa;
-                
-                usleep(_rn_retry_interval_ms * 1000);
-                memset(&_fa, 0, sizeof(FileAttr));
-                _result = ar_get_attr(ar, (char *)oldpath, &_fa, stat_mtime_micros(&fa.stat) + 1);
-                if (_result == 0) {
-                    memcpy(&fa, &_fa, sizeof(FileAttr));
-                } else {
-                    // We presume the zero-size is legit
-                }
-                srfsLog(LOG_WARNING, "Detected zero-size attr in _rn for %s. Retry %s. fa.stat.st_size %d", oldpath, _result == 0 ? "succeeded" : "failed", fa.stat.st_size);
-                ++rnRetries;
-            }
-            */
-            
             if (S_ISDIR(fa.stat.st_mode)) {
                 std::vector<char *>  unlinkList;
                 int             dirRenameResult;

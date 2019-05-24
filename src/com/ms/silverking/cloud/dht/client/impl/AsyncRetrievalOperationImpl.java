@@ -353,7 +353,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         // NEED TO MODIFY THIS METHOD TO ACCEPT SEGMENTED COMPLETIONS
         // THINK ABOUT STRUCTURE OF CODE
         
-        oldSegmentsCreated = segmentsCreated;
+        oldSegmentsCreated = fragmentsCreated;
         //System.out.printf("resultReceived key: %s\nentry: %s\n%s\nvalue: %s\n%s\n", 
         //        dhtKey, entry, entry.getOpResult(), StringUtil.byteBufferToHexString(entry.getValue()),
         //        StringUtil.byteBufferToString(entry.getValue()));
@@ -394,7 +394,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         if (opResult == OpResult.SUCCEEDED && segmented) {
             ByteBuffer  buf;
             
-            if (debugSegmentation) {
+            if (debugFragmentation) {
                 System.out.printf("SEGMENTED RESULT\n");
             }
             buf = rawResult.getValue();
@@ -402,7 +402,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                 DHTKey[]    segmentKeys;
                 int         numSegments;
      
-                if (debugSegmentation) {
+                if (debugFragmentation) {
                     System.out.printf("SEGMENTED\t%s\t%s\t%d\t%d\n",
                         StringUtil.byteArrayToHexString(SegmentationUtil.getCreatorBytes(buf)),
                         buf,
@@ -411,21 +411,23 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                 }
                 if (true) {
                     int storedLength;
+                    int	fragmentationThreshold;
                     
                 //not using below since the internal checksum should handle this
                 //if (SegmentationUtil.checksumSegmentMetaDataBuffer(buf, nspoImpl.getNSPOptions().getChecksumType())) {
                     setComplete = false;
                     storedLength = SegmentationUtil.getStoredLength(buf);
+                    fragmentationThreshold = SegmentationUtil.getFragmentationThreshold(buf);
                     if (storedLength < 0) {
                         System.out.println(StringUtil.byteBufferToHexString(buf));
                         System.out.println(SegmentationUtil.getMetaData(rawResult, buf));
                         System.exit(-1);
                         numSegments = 1;
                     } else {
-                        numSegments = SegmentationUtil.getNumSegments(storedLength, SegmentationUtil.maxValueSegmentSize);
+                        numSegments = SegmentationUtil.getNumSegments(storedLength, fragmentationThreshold);
                     }
-                    segmentsCreated += numSegments;
-                    if (debugSegmentation) {
+                    fragmentsCreated += numSegments;
+                    if (debugFragmentation) {
                         System.out.printf("NUM SEGMENTS\t%d\n", numSegments);
                     }
                     segmentKeys = keyCreator.createSubKeys(dhtKey, numSegments);
@@ -436,13 +438,13 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                     opResult = OpResult.CORRUPT;
                 }
             } else {
-                if (debugSegmentation) {
+                if (debugFragmentation) {
                     System.out.printf("SEGMENTED. MetaData retrieval\n");
                 }
                 setComplete = true;
             }
         } else {
-            if (debugSegmentation) {
+            if (debugFragmentation) {
                 System.out.printf("opResult %s\n", opResult);
             }
             setComplete = true;

@@ -2,17 +2,17 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
-import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
+import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements;
 
 /**
  * Wraps StorageParameters to hide internal optimizations from users of SSStorageParameters
  */
-class SSStorageParametersImpl implements SSStorageParameters {
-	private final StorageParameters	sp;
+class SSStorageParametersImpl implements SSStorageParametersAndRequirements {
+	private final StorageParametersAndRequirements	sp;
 	private final int	compressedSize;
 	private final Compression	compression;
 	
-	public SSStorageParametersImpl(StorageParameters sp, int bufferRemaining) {
+	public SSStorageParametersImpl(StorageParametersAndRequirements sp, int bufferRemaining) {
 		this.sp = sp;
 		// Hide internal optimizations from end-users
 		if (sp.compressedSizeSet()) {
@@ -30,6 +30,11 @@ class SSStorageParametersImpl implements SSStorageParameters {
 	@Override
 	public long getVersion() {
 		return sp.getVersion();
+	}
+	
+	@Override
+	public long getRequiredPreviousVersion() {
+		return sp.getRequiredPreviousVersion();
 	}
 
 	@Override
