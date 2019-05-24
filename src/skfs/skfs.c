@@ -1718,7 +1718,7 @@ int skfs_write(const char *path, const char *src, size_t writeSize, off_t writeO
     WritableFile *wf;
     size_t  totalBytesWritten;
     
-	srfsLogAsync(LOG_OPS, "_w %s %d %ld", path, writeSize, writeOffset);
+	srfsLogAsync(LOG_OPS, "_w %x %s %d %ld", get_caller_pid(), path, writeSize, writeOffset);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to write %s", path);
         return -EROFS;
