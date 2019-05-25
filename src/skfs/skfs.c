@@ -1350,10 +1350,17 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
             FileAttr	*fa;
             int         statResult;
             
-            sof->wf_ref = (uint64_t)NULL;
             sof->type = OFT_WritableFile_Read;
-            // for already open writable files, we ignore the ongoing write
-            // and use what exists in the key-value store
+            
+            WritableFileReference    *existing_wf_ref;
+            existing_wf_ref = wft_get(wft, path);
+            if (existing_wf_ref == NULL) {
+                sof->wf_ref = (uint64_t)NULL;
+                // for already open writable files, we ignore the ongoing write
+                // and use what exists in the key-value store
+            } else {
+                sof->wf_ref = existing_wf_ref;
+            }
             
             // Read attribute which should have already been created
             fa = (FileAttr*)mem_alloc(1, sizeof(FileAttr));
@@ -1643,7 +1650,7 @@ static int skfs_read(const char *path, char *dest, size_t readSize, off_t readOf
             }
             totalRead = pread(sof->fd, dest, readSize, readOffset);
         } else {
-            if (sof->type == OFT_WritableFile_Write) {
+            if (sof->type == OFT_WritableFile_Write || (sof->type == OFT_WritableFile_Read && sof->wf_ref != NULL)) {
                 totalRead = wf_read(wfr_get_wf(sof->wf_ref), fbwSKFS, pbr, path, dest, readSize, readOffset);
             } else {
                 //srfsLogAsync(LOG_WARNING, "pbr read");
@@ -1746,7 +1753,7 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
                 wf_ref = sof->wf_ref;
                 break;
             case OFT_WritableFile_Read:
-                wf_ref = NULL;
+                wf_ref = sof->wf_ref;
                 break;
             case OFT_NativeRelay:
                 FileAttr    fa;
