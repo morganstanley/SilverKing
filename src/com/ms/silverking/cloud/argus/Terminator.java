@@ -7,8 +7,21 @@ import java.util.Map;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
 
-/** * Simple process terminator for Argus. When running in Armed mode,  * it will actually terminate processes. When running in LogOnly mode * it will only log the action that it would have taken. */public class Terminator {    private final static String killCmd = "/usr/bin/kill";        private final Mode      mode;    private final Runtime   runtime;    private final TerminatorAsyncLogger logMessageHandler;    private final KillType  killType;
-        public enum Mode {LogOnly, Armed};    public enum KillType {KillTerminator, CustomTerminator};
+/**
+ * Simple process terminator for Argus. When running in Armed mode, 
+ * it will actually terminate processes. When running in LogOnly mode
+ * it will only log the action that it would have taken.
+ */
+public class Terminator {
+    private final static String killCmd = "/usr/bin/kill";
+    
+    private final Mode      mode;
+    private final Runtime   runtime;
+    private final TerminatorAsyncLogger logMessageHandler;
+    private final KillType  killType;
+    
+    public enum Mode {LogOnly, Armed};
+    public enum KillType {KillTerminator, CustomTerminator};
     
     private static Map<String,String>	killCommands;
     private static final String	PID_VARIABLE = "__PID__";
@@ -23,9 +36,16 @@ import com.ms.silverking.text.StringUtil;
     	killCommands.put(name, cmd);
     }
     
-    public Terminator(Mode mode, String loggerFileName, KillType killType) {        this.mode = mode;        runtime = Runtime.getRuntime();        logMessageHandler = new TerminatorAsyncLogger(loggerFileName );        this.killType = killType;    }
+    public Terminator(Mode mode, String loggerFileName, KillType killType) {
+        this.mode = mode;
+        runtime = Runtime.getRuntime();
+        logMessageHandler = new TerminatorAsyncLogger(loggerFileName );
+        this.killType = killType;
+    }
     
-    public Mode getMode() {        return mode;    }
+    public Mode getMode() {
+        return mode;
+    }
     
     private String[] resolvedKillCommand(String name, int pid) {
     	String	unresolvedCommand;
@@ -42,15 +62,22 @@ import com.ms.silverking.text.StringUtil;
     	}
     }
     
-    public void terminate(int pid, String msg) {        try {            String[]    cmd;
+    public void terminate(int pid, String msg) {
+        try {
+            String[]    cmd;
             
-            cmd = resolvedKillCommand(killType.toString(), pid);            if (mode == Mode.LogOnly) {
+            cmd = resolvedKillCommand(killType.toString(), pid);
+            if (mode == Mode.LogOnly) {
                 Log.warning(mode.name() + " Would have run: " + StringUtil.arrayToQuotedString(cmd) + " ", pid);
             } else {
                 runtime.exec(cmd);
                 Log.warning(mode.name() + " " + msg);
             }
-            logMessageHandler.add(mode.name() + " " + msg);        } catch (IOException ioe) {            Log.logErrorWarning(ioe);        }    }
+            logMessageHandler.add(mode.name() + " " + msg);
+        } catch (IOException ioe) {
+            Log.logErrorWarning(ioe);
+        }
+    }
     
     public static void main(String[] args) {
         try {
@@ -65,4 +92,5 @@ import com.ms.silverking.text.StringUtil;
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }}
+    }
+}

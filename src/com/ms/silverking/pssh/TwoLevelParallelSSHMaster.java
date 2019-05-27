@@ -375,9 +375,27 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         }
         Log.warning(CollectionUtil.toString(hostList));
         return hostList;
-    }    public static List<String> readHostsFileSelectHostgroup(String vaDhtFile, String hostGroup) throws IOException {        List<String>    hostList;        List<String>    fileLines; //store lines extracted from files 
-        hostList = new ArrayList<>();        fileLines = StreamParser.parseFileLines(vaDhtFile);        for(String aLine : fileLines){            String[] lineFields = aLine.split("\t");  //store split elements of a line             for(int i = 1; i<lineFields.length; i++){                if (hostGroup.equals(lineFields[i])){                    hostList.add(lineFields[0]);                    break;
-                                    }            }        }        Log.warning("Hosts: ", hostList.size());        return hostList;    }
+    }
+
+    public static List<String> readHostsFileSelectHostgroup(String vaDhtFile, String hostGroup) throws IOException {
+        List<String>    hostList;
+        List<String>    fileLines; //store lines extracted from files 
+
+        hostList = new ArrayList<>();
+        fileLines = StreamParser.parseFileLines(vaDhtFile);
+        for(String aLine : fileLines){
+            String[] lineFields = aLine.split("\t");  //store split elements of a line 
+            for(int i = 1; i<lineFields.length; i++){
+                if (hostGroup.equals(lineFields[i])){
+                    hostList.add(lineFields[0]);
+                    break;
+                    
+                }
+            }
+        }
+        Log.warning("Hosts: ", hostList.size());
+        return hostList;
+    }
     
     	
     public void doSSH() {
@@ -407,7 +425,8 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
 		} catch (NoSuchObjectException e) {
 			Log.logErrorWarning(e);
 		}
-	}    
+	}    
+
     /**
      * @param args
      */
@@ -437,8 +456,14 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
             excludedHosts = readHostsFile(options.exclusionsFile, "Exclusions", null);
             
             // read hosts
-            String[] fields = options.hostsFile_optionalGroup.split(":");            if (fields.length > 1){                hosts = readHostsFileSelectHostgroup(fields[0], fields[1]);
-                //hosts.removeAll(excludedHosts);            }            else {                //hosts = readHostsFile(options.hostsFile_optionalGroup, "Hosts", excludedHosts);                hosts = readHostsFile(options.hostsFile_optionalGroup, "Hosts", null);
+            String[] fields = options.hostsFile_optionalGroup.split(":");
+            if (fields.length > 1){
+                hosts = readHostsFileSelectHostgroup(fields[0], fields[1]);
+                //hosts.removeAll(excludedHosts);
+            }
+            else {
+                //hosts = readHostsFile(options.hostsFile_optionalGroup, "Hosts", excludedHosts);
+                hosts = readHostsFile(options.hostsFile_optionalGroup, "Hosts", null);
             }
             
             // Note that code has been changed to only exclude for the purposes of workers.

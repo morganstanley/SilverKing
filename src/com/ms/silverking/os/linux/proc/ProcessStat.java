@@ -220,7 +220,9 @@ public class ProcessStat {
         long    value;
         
         try {
-            Long lval = (Long)getClass().getField(fieldName).get(this);            value = (long)lval;            return value;
+            Long lval = (Long)getClass().getField(fieldName).get(this);
+            value = (long)lval;
+            return value;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
