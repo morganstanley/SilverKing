@@ -31,16 +31,16 @@ public class SKFSConfigurationZK extends MetaToolModuleBase<SKFSConfiguration,Me
     
     @Override
     public void writeToFile(File file, SKFSConfiguration instance) throws IOException {
-    	if (file != null) {
-	    	FileOutputStream fs ;
-	    	fs = new FileOutputStream(file);
-	    	fs.write(instance.toString().getBytes());
-	    	fs.flush();
-	    	fs.close();
-    	}
-    	else {
-    		System.out.println(instance.toString());
-    	}
+        if (file != null) {
+            FileOutputStream fs ;
+            fs = new FileOutputStream(file);
+            fs.write(instance.toString().getBytes());
+            fs.flush();
+            fs.close();
+        }
+        else {
+            System.out.println(instance.toString());
+        }
     }
 
     @Override

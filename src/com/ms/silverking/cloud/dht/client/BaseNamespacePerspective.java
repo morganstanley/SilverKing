@@ -24,22 +24,22 @@ import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
  *
  */
 public interface BaseNamespacePerspective<K,V> {
-	/**
-	 * Get the name of the perspective's namespace.
-	 * @return namespace name
-	 */
-	public String getName();
-	/**
-	 * Get this perspective's Namespace.
-	 * @return the perspective's Namespace
-	 */
-	@OmitGeneration
-	public Namespace getNamespace();
-	/**
-	 * Get the NamespacePerspectiveOptions currently in use by this perspective.
-	 * @return the NamespacePerspectiveOptions currently in use by this perspective
-	 */
-	public NamespacePerspectiveOptions<K,V> getOptions();
+    /**
+     * Get the name of the perspective's namespace.
+     * @return namespace name
+     */
+    public String getName();
+    /**
+     * Get this perspective's Namespace.
+     * @return the perspective's Namespace
+     */
+    @OmitGeneration
+    public Namespace getNamespace();
+    /**
+     * Get the NamespacePerspectiveOptions currently in use by this perspective.
+     * @return the NamespacePerspectiveOptions currently in use by this perspective
+     */
+    public NamespacePerspectiveOptions<K,V> getOptions();
     /**
      * Alter the NamespacePerspectiveOptions used to in this perspective.
      * @param nspOptions the new NamespacePerspectiveOptions for this perspective
@@ -62,8 +62,8 @@ public interface BaseNamespacePerspective<K,V> {
      * @param version the new default version
      */
     public void setDefaultVersion(long version);
-	/**
-	 * Close this perspective
-	 */
-	public void close();
+    /**
+     * Close this perspective
+     */
+    public void close();
 }

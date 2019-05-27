@@ -29,12 +29,12 @@ public class PropertiesHelper  {
     private static final LogMode                standardLogMode = LogMode.Silent;
     
     static {
-    	Properties	envProperties;
-    	
-    	envProperties = new Properties();
-    	for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
-    		envProperties.setProperty(entry.getKey(), entry.getValue());
-    	}
+        Properties    envProperties;
+        
+        envProperties = new Properties();
+        for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
+            envProperties.setProperty(entry.getKey(), entry.getValue());
+        }
         envHelper = new PropertiesHelper(envProperties);
         systemHelper = new PropertiesHelper(System.getProperties());
     }
@@ -98,15 +98,15 @@ public class PropertiesHelper  {
     }
     
     private <T> T getUndefinedValue(String name, UndefinedAction undefinedAction, T zeroValue, T defaultValue) {
-    	switch (undefinedAction) {
-	        case ZeroOnUndefined: 
-	            logZeroOnUndefined(name);
-	            return zeroValue;
-	        case DefaultOnUndefined: 
-	            logDefaultOnUndefined(name, defaultValue);
-	            return defaultValue;
-	        case ExceptionOnUndefined: throwExceptionOnUndefined(name);
-	        default: throw new RuntimeException("panic");
+        switch (undefinedAction) {
+            case ZeroOnUndefined: 
+                logZeroOnUndefined(name);
+                return zeroValue;
+            case DefaultOnUndefined: 
+                logDefaultOnUndefined(name, defaultValue);
+                return defaultValue;
+            case ExceptionOnUndefined: throwExceptionOnUndefined(name);
+            default: throw new RuntimeException("panic");
         }
     }
     
@@ -135,20 +135,20 @@ public class PropertiesHelper  {
             try {
                 return Integer.parseInt(def);
             } catch (NumberFormatException nfe) {
-            	return getExceptionValue(name, parseExceptionAction, defaultValue, nfe);
+                return getExceptionValue(name, parseExceptionAction, defaultValue, nfe);
             }
         } else {
-        	return getUndefinedValue(name, undefinedAction, 0, defaultValue);
+            return getUndefinedValue(name, undefinedAction, 0, defaultValue);
         }
     }
     
     private <T> T getExceptionValue(String name, ParseExceptionAction parseExceptionAction, T defaultValue, RuntimeException exceptionToThrow) {
-		switch (parseExceptionAction) {
-			case DefaultOnParseException: 
-			    logDefaultOnParseException(name, defaultValue);
-			    return defaultValue;
-			default: throw exceptionToThrow;
-		}
+        switch (parseExceptionAction) {
+            case DefaultOnParseException: 
+                logDefaultOnParseException(name, defaultValue);
+                return defaultValue;
+            default: throw exceptionToThrow;
+        }
     }
     
     public int getInt(String name, int defaultValue, ParseExceptionAction parseExceptionAction) {
@@ -190,10 +190,10 @@ public class PropertiesHelper  {
             try {
                 return StringUtil.parseBoolean(def);
             } catch (ParseException pe) {
-            	return getExceptionValue(name, parseExceptionAction, defaultValue, new RuntimeException(pe));
+                return getExceptionValue(name, parseExceptionAction, defaultValue, new RuntimeException(pe));
             }
         } else {
-        	return getUndefinedValue(name, undefinedAction, false, defaultValue);
+            return getUndefinedValue(name, undefinedAction, false, defaultValue);
         }
     }
     
@@ -235,10 +235,10 @@ public class PropertiesHelper  {
             try {
                 return Long.parseLong(def);
             } catch (NumberFormatException nfe) {
-            	return getExceptionValue(name, parseExceptionAction, defaultValue, nfe);
+                return getExceptionValue(name, parseExceptionAction, defaultValue, nfe);
             }
         } else {
-        	return getUndefinedValue(name, undefinedAction, 0L, defaultValue);
+            return getUndefinedValue(name, undefinedAction, 0L, defaultValue);
         }
     }
 

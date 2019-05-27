@@ -11,21 +11,21 @@ import com.ms.silverking.util.SafeTimer;
  *
  */
 public final class TimerDrivenTimeSource extends TimerTask implements RelNanosAbsMillisTimeSource {
-	private final SafeTimer	timer;
-	private volatile long	absTimeMillis;
-	private volatile long	relTimeNanos;
-	
-	static final long	defaultPeriodMillis = 5;
-	private static final String	defaultTimerNameBase = "TimerDriveTimeSource_";
-	
-	private static String defaultTimerName() {
-		return defaultTimerNameBase + System.currentTimeMillis();
-	}
-	
-	public TimerDrivenTimeSource(SafeTimer timer, long periodMillis) {
-	    this.timer = timer;
-		timer.scheduleAtFixedRate(this, 0, periodMillis);
-	}
+    private final SafeTimer    timer;
+    private volatile long    absTimeMillis;
+    private volatile long    relTimeNanos;
+    
+    static final long    defaultPeriodMillis = 5;
+    private static final String    defaultTimerNameBase = "TimerDriveTimeSource_";
+    
+    private static String defaultTimerName() {
+        return defaultTimerNameBase + System.currentTimeMillis();
+    }
+    
+    public TimerDrivenTimeSource(SafeTimer timer, long periodMillis) {
+        this.timer = timer;
+        timer.scheduleAtFixedRate(this, 0, periodMillis);
+    }
 
     public TimerDrivenTimeSource(SafeTimer timer) {
         this(timer, defaultPeriodMillis);
@@ -35,32 +35,32 @@ public final class TimerDrivenTimeSource extends TimerTask implements RelNanosAb
         this(new SafeTimer(defaultTimerName(), true), periodMillis);
     }
     
-	public TimerDrivenTimeSource() {
-		this(defaultPeriodMillis);
-	}
-	
+    public TimerDrivenTimeSource() {
+        this(defaultPeriodMillis);
+    }
+    
     public void stop() {
         timer.cancel();
     }
-	
-	@Override
-	public long relTimeNanos() {
-		return relTimeNanos;
-	}
+    
+    @Override
+    public long relTimeNanos() {
+        return relTimeNanos;
+    }
 
-	@Override
-	public long absTimeMillis() {
-		return absTimeMillis;
-	}
-	
+    @Override
+    public long absTimeMillis() {
+        return absTimeMillis;
+    }
+    
     @Override
     public int relMillisRemaining(long absDeadlineMillis) {
         return TimeSourceUtil.relTimeRemainingAsInt(absDeadlineMillis, absTimeMillis());
     }
 
-	@Override
-	public void run() {
-		relTimeNanos = System.nanoTime();
-		absTimeMillis = System.currentTimeMillis();
-	}
+    @Override
+    public void run() {
+        relTimeNanos = System.nanoTime();
+        absTimeMillis = System.currentTimeMillis();
+    }
 }

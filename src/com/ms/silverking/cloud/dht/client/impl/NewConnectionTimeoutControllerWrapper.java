@@ -8,24 +8,24 @@ import com.ms.silverking.net.async.NewConnectionTimeoutController;
  * Allows a SessionEstablishmentTimeoutController to be used as the basis of a NewConnectionTimeoutController
  */
 class NewConnectionTimeoutControllerWrapper implements NewConnectionTimeoutController {
-	private final SessionEstablishmentTimeoutController	sessionEstablishmentTimeoutController;
-	
-	NewConnectionTimeoutControllerWrapper(SessionEstablishmentTimeoutController sessionEstablishmentTimeoutController) {
-		this.sessionEstablishmentTimeoutController = sessionEstablishmentTimeoutController;
-	}
+    private final SessionEstablishmentTimeoutController    sessionEstablishmentTimeoutController;
+    
+    NewConnectionTimeoutControllerWrapper(SessionEstablishmentTimeoutController sessionEstablishmentTimeoutController) {
+        this.sessionEstablishmentTimeoutController = sessionEstablishmentTimeoutController;
+    }
 
-	@Override
-	public int getMaxAttempts(AddrAndPort addrAndPort) {
-		return sessionEstablishmentTimeoutController.getMaxAttempts(null);
-	}
+    @Override
+    public int getMaxAttempts(AddrAndPort addrAndPort) {
+        return sessionEstablishmentTimeoutController.getMaxAttempts(null);
+    }
 
-	@Override
-	public int getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex) {
-		return sessionEstablishmentTimeoutController.getRelativeTimeoutMillisForAttempt(null, attemptIndex);
-	}
+    @Override
+    public int getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex) {
+        return sessionEstablishmentTimeoutController.getRelativeTimeoutMillisForAttempt(null, attemptIndex);
+    }
 
-	@Override
-	public int getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort) {
-		return sessionEstablishmentTimeoutController.getMaxRelativeTimeoutMillis(null);
-	}
+    @Override
+    public int getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort) {
+        return sessionEstablishmentTimeoutController.getMaxRelativeTimeoutMillis(null);
+    }
 }

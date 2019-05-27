@@ -12,7 +12,7 @@ public class CreationTime implements Comparable<CreationTime> {
     private final long  creationTimeNanos;
     
     private static final long    nanoOriginTimeInMillis = DHTConstants.nanoOriginTimeInMillis;
-    private static final SimpleDateFormat	sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss.SSS zzz yyyy");
+    private static final SimpleDateFormat    sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss.SSS zzz yyyy");
     
     private static final long   nanosPerMilli = 1000000;
     
@@ -58,6 +58,6 @@ public class CreationTime implements Comparable<CreationTime> {
     }
 
     public String toDateString() {
-        return sdf.format(new Date(inMillis()));    	
+        return sdf.format(new Date(inMillis()));        
     }
 }

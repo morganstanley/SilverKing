@@ -17,8 +17,8 @@
 // types
 
 typedef struct AttrReadRequest {
-	AttrReader	*attrReader;
-	char *path;
+    AttrReader    *attrReader;
+    char *path;
     uint64_t    minModificationTimeMicros;    
 } AttrReadRequest;
 

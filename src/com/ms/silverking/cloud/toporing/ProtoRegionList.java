@@ -22,7 +22,7 @@ import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
 class ProtoRegionList {
     private final List<ProtoRegion> protoRegions;
     
-    private static final int	minPrimaryUnderFailure = 1; // FIXME - temporarily hardcoded until minPrimaryUnderFailure code is complete
+    private static final int    minPrimaryUnderFailure = 1; // FIXME - temporarily hardcoded until minPrimaryUnderFailure code is complete
     
     private static final boolean debug = true;
     
@@ -35,7 +35,7 @@ class ProtoRegionList {
         
         protoRegions2 = new ArrayList<>(protoRegions.size());
         for (ProtoRegion pr : protoRegions) {
-        	protoRegions2.add(pr.duplicate());
+            protoRegions2.add(pr.duplicate());
         }
         return new ProtoRegionList(protoRegions2);
     }
@@ -364,21 +364,21 @@ class ProtoRegionList {
     }
     
     public Map<String,Long> getAllocations() {
-    	Map<String,Long>	allocations;
-    	
-    	allocations = new HashMap<>();
-    	for (ProtoRegion pr : protoRegions) {
-    		for (Node node : pr.getPrimaryOwners()) {
-    			Long	allocation;
-    			
-    			allocation = allocations.get(node.getIDString());
-    			if (allocation == null) {
-    				allocation = new Long(0);
-    			}
-    			allocation += pr.getRegionSize();
-    			allocations.put(node.getIDString(), allocation);
-    		}
-    	}
-    	return allocations;
+        Map<String,Long>    allocations;
+        
+        allocations = new HashMap<>();
+        for (ProtoRegion pr : protoRegions) {
+            for (Node node : pr.getPrimaryOwners()) {
+                Long    allocation;
+                
+                allocation = allocations.get(node.getIDString());
+                if (allocation == null) {
+                    allocation = new Long(0);
+                }
+                allocation += pr.getRegionSize();
+                allocations.put(node.getIDString(), allocation);
+            }
+        }
+        return allocations;
     }
 }

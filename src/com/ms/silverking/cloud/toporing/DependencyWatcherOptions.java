@@ -13,16 +13,16 @@ public class DependencyWatcherOptions {
     int     watchIntervalSeconds = 15;
     
     @Option(name="-f", usage="ignoreFeasibility", required=false)
-    boolean	ignoreFeasibility = false;
+    boolean    ignoreFeasibility = false;
     
     @Option(name="-s", usage="ignoreSource", required=false)
-    boolean	ignoreSource = false;
+    boolean    ignoreSource = false;
     
     @Option(name="-I", usage="ignoreInstanceExclusions", required=false)
-    boolean	ignoreInstanceExclusions = false;
+    boolean    ignoreInstanceExclusions = false;
     
     @Option(name="-x", usage="exitAfterBuild", required=false)
-    boolean	exitAfterBuild = false;
+    boolean    exitAfterBuild = false;
     
     @Option(name="-c", usage="consecutiveUpdateGuardSeconds", required=false)
     int     consecutiveUpdateGuardSeconds = 60;    

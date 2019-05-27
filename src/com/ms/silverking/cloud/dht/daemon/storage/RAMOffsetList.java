@@ -26,7 +26,7 @@ class RAMOffsetList extends OffsetListBase {
     private static final int   storageTimeLsiOffset = offsetOffset + 1 + lsiOffset;
     private static final int   storageTimeMsiOffset = offsetOffset + 1 + msiOffset;
     
-    private static final int	intArrayListDefaultInitialSize = 1;
+    private static final int    intArrayListDefaultInitialSize = 1;
     
     static {
         if (ByteOrder.nativeOrder() != ByteOrder.LITTLE_ENDIAN) {
@@ -45,26 +45,26 @@ class RAMOffsetList extends OffsetListBase {
     }
     
     public int firstIndexOfOffset(int offset) {
-    	int	s;
-    	
-    	s = size();
-    	for (int i = 0; i < s; i++) {
-    		if (getOffset(i) == offset) {
-    			return i;
-    		}
-    	}
-    	return -1;
+        int    s;
+        
+        s = size();
+        for (int i = 0; i < s; i++) {
+            if (getOffset(i) == offset) {
+                return i;
+            }
+        }
+        return -1;
     }
     
-	public void removeEntryAt(int index) {
+    public void removeEntryAt(int index) {
         int baseOffset;
 
         checkIndex(index);
         baseOffset = entryBaseOffset(index);
-		offsetList.removeElements(baseOffset, baseOffset + entrySizeInts);
-	}    
+        offsetList.removeElements(baseOffset, baseOffset + entrySizeInts);
+    }    
     
-	public void removeEntries(int minRemovalIndex, int maxRemovalIndex) {
+    public void removeEntries(int minRemovalIndex, int maxRemovalIndex) {
         int baseOffset0;
         int baseOffset1;
 
@@ -73,40 +73,40 @@ class RAMOffsetList extends OffsetListBase {
         baseOffset0 = entryBaseOffset(minRemovalIndex);
         baseOffset1 = entryBaseOffset(maxRemovalIndex);
         offsetList.removeElements(baseOffset0, baseOffset1 + entrySizeInts);
-	}
-	
-	public int getNumEntries() {
-		return offsetList.size() / entrySizeInts;
-	}
-	
-	public void removeEntriesByValue(Set<Integer> valuesToRemove) {
-		int	numEntries;
-		
-		numEntries = getNumEntries();
-		for (int i = numEntries - 1; i >= 0; i--) {
-			int	offset;
-			
-			offset = getOffset(i);
-			if (valuesToRemove.contains(offset)) {
-				removeEntryAt(i);
-			}
-		}
-	}
-	
-	public void removeEntriesByMatch(Set<Triple<Long,Integer,Long>> entriesToRemove) {
-		int	numEntries;
-		
-		numEntries = getNumEntries();
-		for (int i = numEntries - 1; i >= 0; i--) {
-			Triple<Long,Integer,Long>	listEntry;
-			
-			listEntry = new Triple<>(getVersion(i), getOffset(i), supportsStorageTime ? getStorageTime(i) : 0);
-			if (entriesToRemove.contains(listEntry)) {
-				removeEntryAt(i);
-			}
-		}
-	}
-	
+    }
+    
+    public int getNumEntries() {
+        return offsetList.size() / entrySizeInts;
+    }
+    
+    public void removeEntriesByValue(Set<Integer> valuesToRemove) {
+        int    numEntries;
+        
+        numEntries = getNumEntries();
+        for (int i = numEntries - 1; i >= 0; i--) {
+            int    offset;
+            
+            offset = getOffset(i);
+            if (valuesToRemove.contains(offset)) {
+                removeEntryAt(i);
+            }
+        }
+    }
+    
+    public void removeEntriesByMatch(Set<Triple<Long,Integer,Long>> entriesToRemove) {
+        int    numEntries;
+        
+        numEntries = getNumEntries();
+        for (int i = numEntries - 1; i >= 0; i--) {
+            Triple<Long,Integer,Long>    listEntry;
+            
+            listEntry = new Triple<>(getVersion(i), getOffset(i), supportsStorageTime ? getStorageTime(i) : 0);
+            if (entriesToRemove.contains(listEntry)) {
+                removeEntryAt(i);
+            }
+        }
+    }
+    
     private void addEntry(int insertionIndex, long version, int offset, long storageTime) {
         int baseOffset;
         

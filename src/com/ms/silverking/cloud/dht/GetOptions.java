@@ -46,7 +46,7 @@ public final class GetOptions extends RetrievalOptions {
             NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, 
             boolean returnInvalidations, ForwardingMode forwardingMode, boolean updateSecondariesOnMiss) {
         super(opTimeoutController, secondaryTargets, retrievalType, WaitMode.GET, versionConstraint, 
-        		nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, false);
+                nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, false);
     }
     
     /**

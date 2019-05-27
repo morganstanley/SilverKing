@@ -12,17 +12,17 @@
 ////////////
 // defines
 
-#define ODU_T_ADDITION	0
-#define ODU_T_DELETION	1
+#define ODU_T_ADDITION    0
+#define ODU_T_DELETION    1
 
 
 //////////
 // types
 
 typedef struct OpenDirUpdate {
-	uint32_t	type;
-	uint64_t	version;
-	char		*name;
+    uint32_t    type;
+    uint64_t    version;
+    char        *name;
 } OpenDirUpdate;
 
 

@@ -107,14 +107,14 @@ public class MetaDataUtil {
         ChecksumType checksumType;
         
         checksumType = getChecksumType(storedValue, baseOffset);
-    	if (checksumType == ChecksumType.SYSTEM) {
+        if (checksumType == ChecksumType.SYSTEM) {
             byte[] actualChecksum;
             
             actualChecksum = getChecksum(storedValue, baseOffset);
             return SystemChecksum.isInvalidationChecksum(actualChecksum);
-    	} else {
-    		return false;
-    	}
+        } else {
+            return false;
+        }
     }    
     
     public static boolean isCompressed(byte[] storedValue, int baseOffset) {
@@ -149,7 +149,7 @@ public class MetaDataUtil {
     }
     
     public static int getDataOffset(ChecksumType checksumType) {
-    	return dataOffset + checksumType.length();
+        return dataOffset + checksumType.length();
     }
     
     public static long getCreationTime(ByteBuffer buf, int baseOffset) {
@@ -275,14 +275,14 @@ public class MetaDataUtil {
         ChecksumType checksumType;
         
         checksumType = getChecksumType(storedValue, baseOffset);
-    	if (checksumType == ChecksumType.SYSTEM) {
+        if (checksumType == ChecksumType.SYSTEM) {
             byte[] actualChecksum;
             
             actualChecksum = getChecksum(storedValue, baseOffset);
             return SystemChecksum.isInvalidationChecksum(actualChecksum);
-    	} else {
-    		return false;
-    	}
+        } else {
+            return false;
+        }
     }    
     
     public static ValueCreator getCreator(ByteBuffer storedValue, int baseOffset) {

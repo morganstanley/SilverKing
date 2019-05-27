@@ -18,7 +18,7 @@
 ////////////
 // defines
 
-#define NFT_NUM_HT	32
+#define NFT_NUM_HT    32
 #define NFT_REF_TABLE_SIZE  1024
 
 
@@ -26,9 +26,9 @@
 // types
 
 typedef struct NativeFileTable {
-    const char	*name;
-	HashTableAndLock	htl[NFT_NUM_HT];
-	pthread_spinlock_t	tableRefsLock;
+    const char    *name;
+    HashTableAndLock    htl[NFT_NUM_HT];
+    pthread_spinlock_t    tableRefsLock;
     NativeFileReference *tableRefs[NFT_REF_TABLE_SIZE];
     int nextRefIndex;
 } NativeFileTable;

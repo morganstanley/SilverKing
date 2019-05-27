@@ -10,7 +10,7 @@ using std::string;
 class SKEncrypterDecrypter
 {
 public:
-	SKAPI string *getName() const;
+    SKAPI string *getName() const;
 };
 
 #endif // SKENCRYPTERDECRYPTER_H

@@ -28,16 +28,16 @@ import com.ms.silverking.testing.annotations.SkLarge;
 @SkLarge
 public class PerspectiveTest {
 
-	private static DHTSession session;
-	private static final String namespaceName = "PerspectiveTest";
+    private static DHTSession session;
+    private static final String namespaceName = "PerspectiveTest";
 
-	@BeforeClass
-	public static void setUpBeforeClass() throws ClientException, IOException {
+    @BeforeClass
+    public static void setUpBeforeClass() throws ClientException, IOException {
         session = createSession();
-	}
-	
-//	@Test
-	public void test_NamespaceOptions_vs_NamespacePerspectiveOptions() throws ClientException, IOException {
+    }
+    
+//    @Test
+    public void test_NamespaceOptions_vs_NamespacePerspectiveOptions() throws ClientException, IOException {
         Namespace ns = session.createNamespace(namespaceName, session.getDefaultNamespaceOptions().versionMode(NamespaceVersionMode.CLIENT_SPECIFIED).revisionMode(RevisionMode.UNRESTRICTED_REVISIONS)); 
         SynchronousNamespacePerspective<String, String>  syncNSPString = ns.openSyncPerspective(String.class,  String.class);
         SynchronousNamespacePerspective<String, Integer> syncNSPInt    = ns.openSyncPerspective(String.class, Integer.class);
@@ -57,10 +57,10 @@ public class PerspectiveTest {
         System.out.println( syncNSPInt.get("k"));
         System.out.println( syncNSPInt.get("k", goInt.versionConstraint(VersionConstraint.exactMatch(2))).getValue());
         System.out.println( syncNSPInt.get("k", goInt.versionConstraint(VersionConstraint.exactMatch(1))).getValue());
-	}
-	
-	@Test
-	public void testDefaultsPuts() throws ClientException, IOException {
+    }
+    
+    @Test
+    public void testDefaultsPuts() throws ClientException, IOException {
         Namespace ns = session.createNamespace(namespaceName, session.getDefaultNamespaceOptions().versionMode(NamespaceVersionMode.CLIENT_SPECIFIED).revisionMode(RevisionMode.UNRESTRICTED_REVISIONS).defaultPutOptions(session.getDefaultPutOptions().version(5))); 
         SynchronousNamespacePerspective<String, String>  syncNsp = ns.openSyncPerspective(String.class, String.class);
 
@@ -83,21 +83,21 @@ public class PerspectiveTest {
 
         // FIXME:bph: this guy is not working as expected
         syncNsp.setDefaultVersionProvider(new ConstantVersionProvider(6));
-        syncNsp.put("k", "v5");	
+        syncNsp.put("k", "v5");    
         printKeyVals(syncNsp, "k", getOptions);        
 
         syncNsp.put("k", "v6", putOptions.version(8));
         printKeyVals(syncNsp, "k", getOptions);
-	}
-	
-//	@Test
-	public void testDefaultGets() {
-		
-	}
-	
-//	@Test
-	public void test() {
-		try {
+    }
+    
+//    @Test
+    public void testDefaultGets() {
+        
+    }
+    
+//    @Test
+    public void test() {
+        try {
             SynchronousNamespacePerspective<String, String> syncNSP = new DHTClient().openSession(Util.getTestGridConfig()).openSyncNamespacePerspective("_VersionTest", String.class, String.class);
             syncNSP.setDefaultRetrievalVersionConstraint(VersionConstraint.defaultConstraint);
 //            syncNSP.setDefaultVersionProvider(syncNSP.getNamespace().getOptions().versionMode(NamespaceVersionMode.CLIENT_SPECIFIED).getVersionMode());
@@ -106,13 +106,13 @@ public class PerspectiveTest {
             
             PutOptions po = syncNSP.getOptions().getDefaultPutOptions();
             GetOptions go = syncNSP.getOptions().getDefaultGetOptions();
-//    		syncNSP.setOptions( syncNSP.getOptions().defaultPutOptions( po ));
+//            syncNSP.setOptions( syncNSP.getOptions().defaultPutOptions( po ));
             
-    		System.out.println("\n\n"+go);
-    		
-    		syncNSP.getNamespace().getOptions().versionMode(NamespaceVersionMode.CLIENT_SPECIFIED).revisionMode(RevisionMode.UNRESTRICTED_REVISIONS);
+            System.out.println("\n\n"+go);
+            
+            syncNSP.getNamespace().getOptions().versionMode(NamespaceVersionMode.CLIENT_SPECIFIED).revisionMode(RevisionMode.UNRESTRICTED_REVISIONS);
 
-    		printNsoAndNspo(syncNSP);
+            printNsoAndNspo(syncNSP);
             
             syncNSP.put("k", "v1", po.version(1));
 //            syncNSP.put("k", "v2", po.version(2));
@@ -124,15 +124,15 @@ public class PerspectiveTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-	}
-	
-	private void printNsoAndNspo(SynchronousNamespacePerspective<String, String> syncNSP) {
-		System.out.println("\n\n+++NSO:\n"+syncNSP.getNamespace().getOptions().getDefaultPutOptions());
+    }
+    
+    private void printNsoAndNspo(SynchronousNamespacePerspective<String, String> syncNSP) {
+        System.out.println("\n\n+++NSO:\n"+syncNSP.getNamespace().getOptions().getDefaultPutOptions());
         System.out.println("\n\n+++NSPO:\n"+syncNSP.getOptions().getDefaultPutOptions());
-	}
-	
-	public static void main(String[] args) {
-		Util.runTests(PerspectiveTest.class);
-	}
+    }
+    
+    public static void main(String[] args) {
+        Util.runTests(PerspectiveTest.class);
+    }
 
 }

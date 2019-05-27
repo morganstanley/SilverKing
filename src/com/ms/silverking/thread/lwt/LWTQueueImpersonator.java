@@ -16,15 +16,15 @@ import com.ms.silverking.log.Log;
  */
 public final class LWTQueueImpersonator<T> implements BlockingQueue<T> {
     private final BaseWorker<T> worker;
-    private final int			priority;
+    private final int            priority;
     
     public LWTQueueImpersonator(BaseWorker<T> worker, int priority) {
-    	this.worker = worker;
-    	this.priority = priority;
+        this.worker = worker;
+        this.priority = priority;
     }
     
     public LWTQueueImpersonator(BaseWorker<T> worker) {
-    	this(worker, LWTPoolImpl.defaultPriority);
+        this(worker, LWTPoolImpl.defaultPriority);
     }
     
     @Override
@@ -60,16 +60,16 @@ public final class LWTQueueImpersonator<T> implements BlockingQueue<T> {
 
     @Override
     public void put(T e) throws InterruptedException {
-    	if (Log.levelMet(Level.FINE)) {
-    		Log.fine("LWTQueueImpersonator.put ", e);
-    	}
-    	worker.addPrioritizedWork(e, priority);
+        if (Log.levelMet(Level.FINE)) {
+            Log.fine("LWTQueueImpersonator.put ", e);
+        }
+        worker.addPrioritizedWork(e, priority);
     }
 
     public void putAll(Collection<? extends T> c) throws InterruptedException {
-    	for (T t : c) {
-    		put(t);
-    	}
+        for (T t : c) {
+            put(t);
+        }
     }
     
     @Override
@@ -114,10 +114,10 @@ public final class LWTQueueImpersonator<T> implements BlockingQueue<T> {
 
     @Override
     public boolean addAll(Collection<? extends T> c) {
-    	try {
-    		putAll(c);
-    	} catch (InterruptedException ie) {
-    	}
+        try {
+            putAll(c);
+        } catch (InterruptedException ie) {
+        }
         return true;
     }
 

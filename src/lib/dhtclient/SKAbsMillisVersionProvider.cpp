@@ -10,17 +10,17 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::AbsMillisVersionProv
 using jace::proxy::com::ms::silverking::time::AbsMillisTimeSource;
 
 SKAbsMillisVersionProvider::SKAbsMillisVersionProvider(AbsMillisVersionProvider * pAbsMillisVersionProvider) 
-	: SKVersionProvider(pAbsMillisVersionProvider) {}; 
-	
+    : SKVersionProvider(pAbsMillisVersionProvider) {}; 
+    
 SKAbsMillisVersionProvider::~SKAbsMillisVersionProvider()
 {
-	if(pImpl!=NULL) {
-		delete pImpl; 
-		pImpl = NULL;
-	}
+    if(pImpl!=NULL) {
+        delete pImpl; 
+        pImpl = NULL;
+    }
 }
 
 SKAbsMillisVersionProvider::SKAbsMillisVersionProvider(SKAbsMillisTimeSource * absMillisTimeSource){
-	AbsMillisTimeSource* pSource = (AbsMillisTimeSource*)absMillisTimeSource->getPImpl();
-	pImpl = new AbsMillisVersionProvider(java_new<AbsMillisVersionProvider>(*pSource)); 
+    AbsMillisTimeSource* pSource = (AbsMillisTimeSource*)absMillisTimeSource->getPImpl();
+    pImpl = new AbsMillisVersionProvider(java_new<AbsMillisVersionProvider>(*pSource)); 
 }

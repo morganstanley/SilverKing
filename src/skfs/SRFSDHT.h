@@ -64,9 +64,9 @@ extern SKSessionOptions *sessOption;
 // types
 
 typedef SKVector<const std::string*>     KeyVector;
-typedef SKVector<std::string> 			 StrVector;
-typedef SKMap<std::string, std::string>	 StrStrMap;
-typedef SKMap<std::string, SKVal*>	     StrValMap;
+typedef SKVector<std::string>              StrVector;
+typedef SKMap<std::string, std::string>     StrStrMap;
+typedef SKMap<std::string, SKVal*>         StrValMap;
 typedef SKMap<std::string, SKStoredValue*> StrSVMap;
 typedef SKMap<std::string, SKOperationState::SKOperationState> OpStateMap;
 
@@ -74,36 +74,36 @@ typedef enum {SD_Disabled, SD_Enabled, SD_Unhealthy} SDStatus;
 typedef enum {SD_SM_Dedicated, SD_SM_Global} SD_SessionMode;
 
 typedef struct SRFSDHT {
-	SDStatus	status;
-	uint64_t	lastHealthCheckCompletionMillis;
-	char		*host;
-	//int			port;
-	//char		*name;
-	char		*gcname;
-	char		*zk;
-	uint64_t	minOpTimeout;
-	uint64_t	maxOpTimeout;
-	double		devWeight;
-	double		dhtWeight;
-	double		nfsWeight;
-	pthread_mutex_t	mutexInstance;
-	pthread_mutex_t	*mutex;
-	pthread_cond_t	cvInstance;
-	pthread_cond_t	*cv;
-	pthread_t	healthMasterThread;
-	pthread_t	healthWorkerThread;
-	int			running;
-	SKCompression::SKCompression	compression;
+    SDStatus    status;
+    uint64_t    lastHealthCheckCompletionMillis;
+    char        *host;
+    //int            port;
+    //char        *name;
+    char        *gcname;
+    char        *zk;
+    uint64_t    minOpTimeout;
+    uint64_t    maxOpTimeout;
+    double        devWeight;
+    double        dhtWeight;
+    double        nfsWeight;
+    pthread_mutex_t    mutexInstance;
+    pthread_mutex_t    *mutex;
+    pthread_cond_t    cvInstance;
+    pthread_cond_t    *cv;
+    pthread_t    healthMasterThread;
+    pthread_t    healthWorkerThread;
+    int            running;
+    SKCompression::SKCompression    compression;
     SKAsyncNSPerspective * ansp;
-	SD_SessionMode	sdSessionMode;
+    SD_SessionMode    sdSessionMode;
 } SRFSDHT;
 
 ///////////////
 // prototypes
 
 SRFSDHT *sd_new(char *host, char *gcname, char *zk, SKCompression::SKCompression compression,
-				uint64_t minOpTimeout, uint64_t	maxOpTimeout, 
-				double devWeight, double dhtWeight);
+                uint64_t minOpTimeout, uint64_t    maxOpTimeout, 
+                double devWeight, double dhtWeight);
 void sd_delete(SRFSDHT **sd);
 void sd_op_failed(SRFSDHT *sd, SKOperationState::SKOperationState errorCode, char *file = NULL, int line = 0);
 int sd_is_enabled(SRFSDHT *sd);

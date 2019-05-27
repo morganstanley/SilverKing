@@ -8,7 +8,7 @@ import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 public class DHTMetaUpdate {
     private final DHTConfiguration  dhtConfig;
     private final NamedRingConfiguration    namedRingConfig;
-    private final InstantiatedRingTree	ringTree;
+    private final InstantiatedRingTree    ringTree;
     private final MetaClient        metaClient;
     
     public DHTMetaUpdate(DHTConfiguration dhtConfig, NamedRingConfiguration namedRingConfig, 
@@ -40,7 +40,7 @@ public class DHTMetaUpdate {
     }
     
     public RingID getRingID() {
-    	return RingID.nameToRingID(getNamedRingConfiguration().getRingName());
+        return RingID.nameToRingID(getNamedRingConfiguration().getRingName());
     }
     
     public RingIDAndVersionPair getRingIDAndVersionPair() {

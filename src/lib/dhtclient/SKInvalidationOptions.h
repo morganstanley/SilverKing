@@ -28,20 +28,20 @@ public:
     SKAPI static SKInvalidationOptions * parse(const char * def);
     SKAPI virtual bool equals(SKInvalidationOptions * other) const;
     SKAPI virtual string toString() const;    
-				
+                
     SKAPI virtual ~SKInvalidationOptions();
     SKAPI SKInvalidationOptions(SKOpTimeoutController * opTimeoutController, 
         std::set<SKSecondaryTarget*> * secondaryTargets,
-		int64_t version);
+        int64_t version);
     SKAPI SKInvalidationOptions(SKOpTimeoutController * opTimeoutController, 
         std::set<SKSecondaryTarget*> * secondaryTargets,
-		int64_t version, int64_t requiredPreviousVersion);
+        int64_t version, int64_t requiredPreviousVersion);
 
     SKInvalidationOptions(void * pOptsImpl);  //FIXME:
     void * getPImpl();  //FIXME:
 
 //private:
-	void * pImpl;
+    void * pImpl;
 };
 
 #endif // SKINVALIDATIONOPTIONS_H

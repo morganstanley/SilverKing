@@ -24,8 +24,8 @@ public class NamespaceOptions {
     private final int                   segmentSize;
     private final int                   maxValueSize;
     private final boolean               allowLinks;
-    private final ValueRetentionPolicy	valueRetentionPolicy;
-    private final NamespaceServerSideCode	namespaceServerSideCode;
+    private final ValueRetentionPolicy    valueRetentionPolicy;
+    private final NamespaceServerSideCode    namespaceServerSideCode;
     
     /*
      * To Add:
@@ -48,11 +48,11 @@ public class NamespaceOptions {
     public static final int                    maxMaxValueSize = 1 * 1024 * 1024 * 1024;
     
     // allowLinks is for SilverRails compatibility only; hide the default here to avoid usage
-    static final boolean	defaultAllowLinks = false;
+    static final boolean    defaultAllowLinks = false;
     
-    private static final long					defaultInvalidatedRetentionIntervalSeconds = 1 * 60;
-    static final ValueRetentionPolicy<InvalidatedRetentionState>	defaultRetentionPolicy = new InvalidatedRetentionPolicy(defaultInvalidatedRetentionIntervalSeconds);
-    static final NamespaceServerSideCode	defaultNamespaceServerSideCode = new NamespaceServerSideCode("", "", "");
+    private static final long                    defaultInvalidatedRetentionIntervalSeconds = 1 * 60;
+    static final ValueRetentionPolicy<InvalidatedRetentionState>    defaultRetentionPolicy = new InvalidatedRetentionPolicy(defaultInvalidatedRetentionIntervalSeconds);
+    static final NamespaceServerSideCode    defaultNamespaceServerSideCode = new NamespaceServerSideCode("", "", "");
 
     // for parsing only
     static final NamespaceOptions templateOptions = new NamespaceOptions();
@@ -102,13 +102,13 @@ public class NamespaceOptions {
         Preconditions.checkNotNull(valueRetentionPolicy);
         
         if (segmentSize < DHTConstants.minSegmentSize) {
-        	throw new IllegalArgumentException("segmentSize < DHTConstants.minSegmentSize");
+            throw new IllegalArgumentException("segmentSize < DHTConstants.minSegmentSize");
         }
         if (maxValueSize < minMaxValueSize) {
-        	throw new IllegalArgumentException("maxValueSize < minMaxValueSize");
+            throw new IllegalArgumentException("maxValueSize < minMaxValueSize");
         }
         if (maxValueSize > maxMaxValueSize) {
-        	throw new IllegalArgumentException("maxValueSize > maxMaxValueSize");
+            throw new IllegalArgumentException("maxValueSize > maxMaxValueSize");
         }
         
         this.storageType = storageType;
@@ -147,9 +147,9 @@ public class NamespaceOptions {
             PutOptions defaultPutOptions, InvalidationOptions defaultInvalidationOptions, 
             GetOptions defaultGetOptions, WaitOptions defaultWaitOptions, 
             int secondarySyncIntervalSeconds, int segmentSize, int maxValueSize, boolean allowLinks) {
-    	this(storageType, consistencyProtocol, versionMode, revisionMode, defaultPutOptions, 
-    			defaultInvalidationOptions, defaultGetOptions, defaultWaitOptions, 
-    			secondarySyncIntervalSeconds, segmentSize, maxValueSize, allowLinks, defaultRetentionPolicy, null);
+        this(storageType, consistencyProtocol, versionMode, revisionMode, defaultPutOptions, 
+                defaultInvalidationOptions, defaultGetOptions, defaultWaitOptions, 
+                secondarySyncIntervalSeconds, segmentSize, maxValueSize, allowLinks, defaultRetentionPolicy, null);
     }
     
     private NamespaceOptions() {
@@ -263,7 +263,7 @@ public class NamespaceOptions {
      * @return valueRetentionPolicy
      */
     public ValueRetentionPolicy getValueRetentionPolicy() {
-    	return valueRetentionPolicy;
+        return valueRetentionPolicy;
     }
 
     /**
@@ -271,7 +271,7 @@ public class NamespaceOptions {
      * @return namespaceServerSideCode
      */
     public NamespaceServerSideCode getNamespaceServerSideCode() {
-    	return namespaceServerSideCode;
+        return namespaceServerSideCode;
     }
     
     /**
@@ -358,9 +358,9 @@ public class NamespaceOptions {
      * @return a modified copy of this instance
      */
     public NamespaceOptions defaultPutOptions(PutOptions defaultPutOptions) {
-    	if (defaultPutOptions instanceof InvalidationOptions) {
-    		throw new IllegalArgumentException("InvalidationOptions not allowed for defaultPutOptions");
-    	}
+        if (defaultPutOptions instanceof InvalidationOptions) {
+            throw new IllegalArgumentException("InvalidationOptions not allowed for defaultPutOptions");
+        }
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
                 defaultPutOptions, defaultInvalidationOptions, 
                 defaultGetOptions, defaultWaitOptions, secondarySyncIntervalSeconds, 
@@ -441,8 +441,8 @@ public class NamespaceOptions {
     
     /**
      * Avoid use. For backwards compatibility with SilverRails only. 
-	 * @param allowLinks TODO
-	 * @return copy of this instance with new allow links
+     * @param allowLinks TODO
+     * @return copy of this instance with new allow links
      */
     public NamespaceOptions allowLinks(boolean allowLinks) {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode, 
@@ -478,8 +478,8 @@ public class NamespaceOptions {
     @Override
     public int hashCode() {
         return storageType.hashCode() 
-        		^ consistencyProtocol.hashCode() 
-        		^ versionMode.hashCode()
+                ^ consistencyProtocol.hashCode() 
+                ^ versionMode.hashCode()
                 ^ revisionMode.hashCode() 
                 ^ defaultPutOptions.hashCode() 
                 ^ defaultInvalidationOptions.hashCode()
@@ -497,14 +497,14 @@ public class NamespaceOptions {
     public boolean equals(Object o) {
         NamespaceOptions    other;
         
-    	if (this == o) {
-    		return true;
-    	}
-    	
-    	if (this.getClass() != o.getClass()) {
-    		return false;
-    	}
-    	        
+        if (this == o) {
+            return true;
+        }
+        
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
+                
         other = (NamespaceOptions)o;
         return storageType == other.storageType
                 && consistencyProtocol == other.consistencyProtocol

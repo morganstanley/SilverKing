@@ -8,21 +8,21 @@ import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
  */
 @NonVirtual
 public abstract class OperationException extends ClientException {
-	protected OperationException() {
-		super();
-	}
+    protected OperationException() {
+        super();
+    }
 
-	protected OperationException(String message) {
-		super(message);
-	}
+    protected OperationException(String message) {
+        super(message);
+    }
 
-	protected OperationException(Throwable cause) {
-		super(cause);
-	}
+    protected OperationException(Throwable cause) {
+        super(cause);
+    }
 
-	protected OperationException(String message, Throwable cause) {
-		super(message, cause);
-	}
-	
-	public abstract String getDetailedFailureMessage();
+    protected OperationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+    
+    public abstract String getDetailedFailureMessage();
 }

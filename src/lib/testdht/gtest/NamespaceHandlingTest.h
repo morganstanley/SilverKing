@@ -6,13 +6,13 @@
 #include "gtest/gtest.h"
 
 class NamespaceHandlingTest : public ::testing::Test {
-	public:
-		 NamespaceHandlingTest();
-		~NamespaceHandlingTest();
+    public:
+         NamespaceHandlingTest();
+        ~NamespaceHandlingTest();
 
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 };
 
 NamespaceHandling* namespaceHandling;

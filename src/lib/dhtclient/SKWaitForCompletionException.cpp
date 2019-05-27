@@ -16,34 +16,34 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::AsyncOperation;
 using jace::proxy::com::ms::silverking::cloud::dht::client::WaitForCompletionException;
 
 SKWaitForCompletionException::SKWaitForCompletionException(WaitForCompletionException * pe, const char * fileName, int lineNum) 
-	: SKClientException(pe, fileName, lineNum) 
+    : SKClientException(pe, fileName, lineNum) 
 {
-	pImpl = pe;
-	msg       = (std::string)(pe->getFailedOperations().toString() );
+    pImpl = pe;
+    msg       = (std::string)(pe->getFailedOperations().toString() );
 
 } 
 
 SKWaitForCompletionException::~SKWaitForCompletionException()  throw () { 
-	delete pImpl;
+    delete pImpl;
 }
 
 SKVector<SKAsyncOperation *> * SKWaitForCompletionException::getFailedOperations() {
 
-	// FIXME: move this to c-tor, as exceptions (*pImpl) are usually passed through the exception stack
-	WaitForCompletionException * pe = static_cast<WaitForCompletionException *>(pImpl);
-	SKVector<SKAsyncOperation *> * pAsyncOps = new SKVector<SKAsyncOperation *> ();
+    // FIXME: move this to c-tor, as exceptions (*pImpl) are usually passed through the exception stack
+    WaitForCompletionException * pe = static_cast<WaitForCompletionException *>(pImpl);
+    SKVector<SKAsyncOperation *> * pAsyncOps = new SKVector<SKAsyncOperation *> ();
 
-	List failedList( pe->getFailedOperations() );
-	int  sz = failedList.size();
-	for(int i =0; i<sz; i++){
-		AsyncOperation * pOp = new AsyncOperation(java_cast<AsyncOperation>(failedList.get(i)));
-		SKAsyncOperation * pIop = new SKAsyncOperation(pOp);
-		pAsyncOps->push_back( pIop );
-	}
-	//for (Iterator it(failedList.iterator()); it.hasNext();) {
-	//	pAsyncOps->push_back( new SKAsyncOperation(new AsyncOperation(java_cast<AsyncOperation>(it.next()))) );
-	//}
-	return pAsyncOps;
+    List failedList( pe->getFailedOperations() );
+    int  sz = failedList.size();
+    for(int i =0; i<sz; i++){
+        AsyncOperation * pOp = new AsyncOperation(java_cast<AsyncOperation>(failedList.get(i)));
+        SKAsyncOperation * pIop = new SKAsyncOperation(pOp);
+        pAsyncOps->push_back( pIop );
+    }
+    //for (Iterator it(failedList.iterator()); it.hasNext();) {
+    //    pAsyncOps->push_back( new SKAsyncOperation(new AsyncOperation(java_cast<AsyncOperation>(it.next()))) );
+    //}
+    return pAsyncOps;
 }
 
 

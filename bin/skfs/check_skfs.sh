@@ -1,39 +1,39 @@
 #!/bin/ksh
 
 function f_printSkfsCheckWithResult {
-	typeset id=$(f_getSkfsPid)
-	if [[ -n $id ]]; then
-		f_printSkfsFound
-		f_printPass
-		
-		# leave this script running until skfs exits; currently being used by treadmill
-		if [[ -n $waitForSkfsdBeforeExiting ]]; then
+    typeset id=$(f_getSkfsPid)
+    if [[ -n $id ]]; then
+        f_printSkfsFound
+        f_printPass
+        
+        # leave this script running until skfs exits; currently being used by treadmill
+        if [[ -n $waitForSkfsdBeforeExiting ]]; then
             f_printProcessInfo
             sleep 15; # give the process time to show up in /proc/. sometimes tm skfsd is restarting b/c check_skfs.sh is exiting, and I think it's b/c /proc/$id doesn't exist yet
             
-			typeset count=0
-			typeset secondsToSleep=10
-			typeset twoMinuteIntervals=$((120 / $secondsToSleep))
-			while [[ -e /proc/$id ]]; do
-				((count++))
-				if [[ $count -eq $twoMinuteIntervals ]]; then
-					f_printSkfsdStatus "$id" "alive"
-					count=0
-				fi
-				sleep $secondsToSleep
-			done
+            typeset count=0
+            typeset secondsToSleep=10
+            typeset twoMinuteIntervals=$((120 / $secondsToSleep))
+            while [[ -e /proc/$id ]]; do
+                ((count++))
+                if [[ $count -eq $twoMinuteIntervals ]]; then
+                    f_printSkfsdStatus "$id" "alive"
+                    count=0
+                fi
+                sleep $secondsToSleep
+            done
             
             echo "check_skfs will soon exit"
             f_printProcessInfo
-			f_printSkfsdStatus "$id" "dead"
-		fi
-		
-		exit
-	else
-		f_printSkfsNotFound
-		f_printFail
-		exit -1
-	fi
+            f_printSkfsdStatus "$id" "dead"
+        fi
+        
+        exit
+    else
+        f_printSkfsNotFound
+        f_printFail
+        exit -1
+    fi
 }
 
 function f_printProcessInfo {
@@ -45,68 +45,68 @@ function f_printProcessInfo {
 }
 
 function f_printSkfsCheckWithResultOnlyIfFound {
-	typeset id=$(f_getSkfsPid)
-	if [[ -n $id ]]; then
-		f_printSkfsFound
-		f_printPass
-		exit
-	else
-		f_printSkfsNotFound
-	fi
+    typeset id=$(f_getSkfsPid)
+    if [[ -n $id ]]; then
+        f_printSkfsFound
+        f_printPass
+        exit
+    else
+        f_printSkfsNotFound
+    fi
 }
 
 function f_printSkfsCheck {
-	typeset extraComment=$1
-	
-	typeset id=$(f_getSkfsPid)
-	if [[ -n $id ]]; then
-		f_printSkfsFound "$extraComment"
-	else
-		f_printSkfsNotFound
-	fi
+    typeset extraComment=$1
+    
+    typeset id=$(f_getSkfsPid)
+    if [[ -n $id ]]; then
+        f_printSkfsFound "$extraComment"
+    else
+        f_printSkfsNotFound
+    fi
 }
 
 function f_printSkfsStopWithResult {
-	typeset id=$(f_getSkfsPid)
-	if [[ -n $id ]]; then
-		f_printSkfsFound
-		f_printFail
-		exit -1
-	else
-		f_printSkfsNotFound
-		f_printPass
-		exit
-	fi
+    typeset id=$(f_getSkfsPid)
+    if [[ -n $id ]]; then
+        f_printSkfsFound
+        f_printFail
+        exit -1
+    else
+        f_printSkfsNotFound
+        f_printPass
+        exit
+    fi
 }
 
 function f_getSkfsPid {
-	echo `pgrep -f $SKFSD_PATTERN`
+    echo `pgrep -f $SKFSD_PATTERN`
 }
 
 function f_printSkfsdStatus {
-	echo `date +"%Y-%m-%d %H:%M:%S"`": skfsd $1 $2"
+    echo `date +"%Y-%m-%d %H:%M:%S"`": skfsd $1 $2"
 }
 
 function f_printSkfsFound {
-	typeset id=$(f_getSkfsPid)
-	echo "FOUND - skfsd '$GCName' ${id}${1}";
+    typeset id=$(f_getSkfsPid)
+    echo "FOUND - skfsd '$GCName' ${id}${1}";
 }
 
 function f_printSkfsNotFound {
-	echo "NOT FOUND - skfsd '$GCName'"
+    echo "NOT FOUND - skfsd '$GCName'"
 }
 
 function f_printPass {
-	f_printHelper "PASS"
+    f_printHelper "PASS"
 }
 
 function f_printFail {
-	f_printHelper "FAIL"
+    f_printHelper "FAIL"
 }
 
 function f_printHelper {
-	echo 
-	echo "RESULT: $1"
+    echo 
+    echo "RESULT: $1"
 }
 
 usage() 
@@ -136,13 +136,13 @@ echo "host: "`hostname`
 # Any command line parameters will override these.
 Compression="${GC_SK_COMPRESSION}"
 if [[ -z "${Compression}" ]] ; then
-	Compression="LZ4"
+    Compression="LZ4"
 fi
 if [[ -n "${GC_SK_LOG_LEVEL}" ]] ; then 
-	logLevel="${GC_SK_LOG_LEVEL}"
+    logLevel="${GC_SK_LOG_LEVEL}"
 fi
 if [[ -n "${GC_SK_NATIVE_ONLY_FILE}" ]] ; then 
-	nativeFSOnlyFile="${GC_SK_NATIVE_ONLY_FILE}"
+    nativeFSOnlyFile="${GC_SK_NATIVE_ONLY_FILE}"
 fi
 
 coreLimit="unlimited"
@@ -153,19 +153,19 @@ while getopts "c:z:g:C:s:l:n:L:f:E:A:N:T:J:w" opt; do
     case $opt in
     c) nodeControlCommand="$OPTARG";;
     z) zkEnsemble="$OPTARG" ;;
-	g) GCName="$OPTARG" ;;
-	C) Compression="$OPTARG" ;;
-	s) skGlobalCodebase="$OPTARG" ;;
-	l) logLevel="$OPTARG" ;;
-	n) nativeFSOnlyFile="$OPTARG" ;;
-	L) coreLimit="$OPTARG" ;;
-	f) forceSKFSDirCreation="$OPTARG" ;;
-	E) _skfsEntryTimeoutSecs="$OPTARG" ;;
-	A) _skfsAttrTimeoutSecs="$OPTARG" ;;
-	N) _skfsNegativeTimeoutSecs="$OPTARG" ;;
-	T) _transientCacheSizeKB="$OPTARG" ;;
-	J) _jvmOptions="$OPTARG" ;;
-	w) waitForSkfsdBeforeExiting="true" ;;
+    g) GCName="$OPTARG" ;;
+    C) Compression="$OPTARG" ;;
+    s) skGlobalCodebase="$OPTARG" ;;
+    l) logLevel="$OPTARG" ;;
+    n) nativeFSOnlyFile="$OPTARG" ;;
+    L) coreLimit="$OPTARG" ;;
+    f) forceSKFSDirCreation="$OPTARG" ;;
+    E) _skfsEntryTimeoutSecs="$OPTARG" ;;
+    A) _skfsAttrTimeoutSecs="$OPTARG" ;;
+    N) _skfsNegativeTimeoutSecs="$OPTARG" ;;
+    T) _transientCacheSizeKB="$OPTARG" ;;
+    J) _jvmOptions="$OPTARG" ;;
+    w) waitForSkfsdBeforeExiting="true" ;;
     *) usage
     esac
 done
@@ -198,16 +198,16 @@ fi
 
 ## logging level option
 if [[ $logLevel != "OPS" && $logLevel != "FINE" && $logLevel != "INFO" ]] ; then
-	if [[ -n $logLevel ]] ; then
-		echo "Unsupported log level: ${logLevel}. Re-setting logLevel to default: OPS."
-	fi
-	logLevel="OPS";
+    if [[ -n $logLevel ]] ; then
+        echo "Unsupported log level: ${logLevel}. Re-setting logLevel to default: OPS."
+    fi
+    logLevel="OPS";
 fi
 if [[ $logLevel == "FINE" ]] ; then
-	## set verbosity to true (it sets fuse -d option)
-	verbosity="true"; 
+    ## set verbosity to true (it sets fuse -d option)
+    verbosity="true"; 
 else
-	verbosity="false";
+    verbosity="false";
 fi
 
 f_printSection "CHECKING required exports to be set"
@@ -221,11 +221,11 @@ f_printSubSection "Checking for skfs"
 id=$(f_getSkfsPid)
 if [[ -n $id ]]; then
     f_printSkfsFound
-	if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
-		f_printSkfsCheckWithResult  # this will print f_printSkfsFound again, but that's ok..
-	fi
+    if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
+        f_printSkfsCheckWithResult  # this will print f_printSkfsFound again, but that's ok..
+    fi
 else
-	f_printSkfsNotFound
+    f_printSkfsNotFound
 fi
 
 f_printSubSection "Checking GC File"
@@ -235,14 +235,14 @@ if [[ ! -e $fullGcFilePath ]] ; then
     echo "Can't find configuration file: '$fullGcFilePath'"
     echo "If it exists, maybe user '$USER' doesn't have permissions?"
     ls -l $fullGcFilePath
-	f_printFail
+    f_printFail
     exit -1
 fi
 echo "FOUND - $fullGcFilePath"
 source $fullGcFilePath
 if [[ -z $GC_SK_NAME ]] ; then
     echo "Error in $fullGcFilePath - can't find 'GC_SK_NAME'"
-	f_printFail
+    f_printFail
     exit -1
 fi
 
@@ -253,8 +253,8 @@ if [[ -n $id ]]; then
 else
     echo "NOT FOUND - '$GC_SK_NAME'"
     if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then 
-		echo "SK daemon needs to exist in order to execute: $nodeControlCommand"
-		f_printFail
+        echo "SK daemon needs to exist in order to execute: $nodeControlCommand"
+        f_printFail
         exit -1
     fi
 fi
@@ -264,15 +264,15 @@ f_printSubSection "Configuring CLASSPATH and SK VARS"
 
 echo "curDir: $curDir"
 if [[ -z $skGlobalCodebase ]]; then
-	cp=$(f_getClasspath "../../lib" "$curDir")
+    cp=$(f_getClasspath "../../lib" "$curDir")
 else
     wildcardPattern="\*+"
     if [[ $skGlobalCodebase =~ $wildcardPattern ]] ; then
         echo "skGlobalCodebase can't have a wildcard, skfs won't work. You need to use the full paths to the class files or jars."
-		f_printFail
+        f_printFail
         exit -1
     fi
-	cp=$skGlobalCodebase
+    cp=$skGlobalCodebase
 fi
 
 jaceLibs=\
@@ -295,9 +295,9 @@ utilCmd="$SK_JAVA_HOME/bin/java $UTIL_CLASS -c GetFromZK -d $GCName -z $zkEnsemb
 echo $utilCmd
 $utilCmd
 if [[ $? != 0 ]] ; then
-	echo "MetaUtil failed to get '$GCName' configuration from '$zkEnsemble' into '$tmpfile', exiting" ;
-	f_printFail
-	exit -1;
+    echo "MetaUtil failed to get '$GCName' configuration from '$zkEnsemble' into '$tmpfile', exiting" ;
+    f_printFail
+    exit -1;
 fi
 
 f_printSubSection "Renaming '$tmpfile' -> '$tmpfileConf'"
@@ -308,28 +308,28 @@ rm -v $tmpfile
 
 #source from config environment
 if [[ -n "${SKFS_DHT_OP_MIN_TIMEOUT_MS}" ]] ; then 
-	dhtOpMinTimeoutMS="${SKFS_DHT_OP_MIN_TIMEOUT_MS}"
+    dhtOpMinTimeoutMS="${SKFS_DHT_OP_MIN_TIMEOUT_MS}"
 fi
 if [[ -n "${SKFS_DHT_OP_MAX_TIMEOUT_MS}" ]] ; then 
-	dhtOpMaxTimeoutMS="${SKFS_DHT_OP_MAX_TIMEOUT_MS}"
+    dhtOpMaxTimeoutMS="${SKFS_DHT_OP_MAX_TIMEOUT_MS}"
 fi
 if [[ -n "${SKFS_NATIVE_FILE_MODE}" ]] ; then 
-	nativeFileMode="${SKFS_NATIVE_FILE_MODE}"
+    nativeFileMode="${SKFS_NATIVE_FILE_MODE}"
 fi
 if [[ -n "${SKFS_BR_REMOTE_ADDRESS_FILE}" ]] ; then 
-	brRemoteAddressFile="${SKFS_BR_REMOTE_ADDRESS_FILE}"
+    brRemoteAddressFile="${SKFS_BR_REMOTE_ADDRESS_FILE}"
 fi
 if [[ -n "${SKFS_BR_PORT}" ]] ; then 
-	brPort="${SKFS_BR_PORT}"
+    brPort="${SKFS_BR_PORT}"
 fi
 if [[ -n "${SKFS_RECONCILIATION_SLEEP}" ]] ; then 
-	reconciliationSleep="${SKFS_RECONCILIATION_SLEEP}"
+    reconciliationSleep="${SKFS_RECONCILIATION_SLEEP}"
 fi
 if [[ -n "${SKFS_ODW_MIN_WRITE_INTERVAL_MILLIS}" ]] ; then 
-	odwMinWriteIntervalMillis="${SKFS_ODW_MIN_WRITE_INTERVAL_MILLIS}"
+    odwMinWriteIntervalMillis="${SKFS_ODW_MIN_WRITE_INTERVAL_MILLIS}"
 fi
 if [[ -n "${SKFS_SYNC_DIR_UPDATES}" ]] ; then 
-	syncDirUpdates="${SKFS_SYNC_DIR_UPDATES}"
+    syncDirUpdates="${SKFS_SYNC_DIR_UPDATES}"
 fi
 
 f_printSection "TEARING DOWN OLD SKFS"
@@ -364,7 +364,7 @@ fi
 f_printSkfsCheck
 
 if [[ $nodeControlCommand == $STOP_SKFS_COMMAND ]] ; then 
-	f_printSkfsStopWithResult
+    f_printSkfsStopWithResult
 fi
 
 f_printSection "SETTING UP NEW SKFS"
@@ -374,35 +374,35 @@ f_exitIfUndefined "skfsLogs" $skfsLogs
 
 if [[ $forceSKFSDirCreation != "false" ]] ; then
     if [[ -e $skfsBase ]] ; then
-		echo "Creating new SKFS Dir"
-		echo mv $skfsBase ${skfsBase}.$$
-		mv $skfsBase ${skfsBase}.$$
-		echo $?
-		echo mkdir $skfsBase
-		mkdir $skfsBase
-		echo $?
+        echo "Creating new SKFS Dir"
+        echo mv $skfsBase ${skfsBase}.$$
+        mv $skfsBase ${skfsBase}.$$
+        echo $?
+        echo mkdir $skfsBase
+        mkdir $skfsBase
+        echo $?
     fi
 fi
 
 if [[ ! -e $skfsLogs ]] ; then
-	echo "Creating log:     $skfsLogs"
-	mkdir -m 777 -p $skfsLogs
+    echo "Creating log:     $skfsLogs"
+    mkdir -m 777 -p $skfsLogs
 fi
 
 if [[ ! -e $skfsMount ]] ; then
-	echo "Creating mount:   $skfsMount"
-	mkdir -m 777 -p $skfsMount
+    echo "Creating mount:   $skfsMount"
+    mkdir -m 777 -p $skfsMount
 fi
 
 ##nativeFSOnlyFile - file with csv files/dirs list that will be accessed only from native FS
 if [[ -n $nativeFSOnlyFile ]] ; then
-	if [[ ! -f $nativeFSOnlyFile ]] ; then
-		touch $nativeFSOnlyFile
-	fi
+    if [[ ! -f $nativeFSOnlyFile ]] ; then
+        touch $nativeFSOnlyFile
+    fi
 else
-	## path is set to default file name
-	nativeFSOnlyFile=$fsNativeOnlyFile
-	touch $nativeFSOnlyFile
+    ## path is set to default file name
+    nativeFSOnlyFile=$fsNativeOnlyFile
+    touch $nativeFSOnlyFile
 fi
 
 # no need for this b/c skfsd is being linked with the -Wl,--rpath absolute .so values
@@ -421,23 +421,23 @@ if [[ -z $skLocalSys ]]; then
     if [[ -n $skGlobalCodebase ]]; then
         # In a dev environment, use 'uname -r'
         skLocalSys=`uname -r`
-		
-		if [[ ! -e $skLocalSys ]]; then
-			echo "Trying to use '$skLocalSys', but no folder exists."
-			typeset rhVersion=`echo $skLocalSys | grep -P -o "el\d"`
-			if [[ -n $rhVersion ]]; then
-				echo "So trying to find a similar rh${rhVersion} version."
-				skLocalSys=`ls | grep $rhVersion`
-				if [[ -n $skLocalSys ]]; then
-					echo "Found '$skLocalSys', will try that"
-				else 
-					echo "None found, will use default path to skfsd"
-				fi
-			else
-				echo "Using default path to skfsd"
-				skLocalSys=""
-			fi
-		fi
+        
+        if [[ ! -e $skLocalSys ]]; then
+            echo "Trying to use '$skLocalSys', but no folder exists."
+            typeset rhVersion=`echo $skLocalSys | grep -P -o "el\d"`
+            if [[ -n $rhVersion ]]; then
+                echo "So trying to find a similar rh${rhVersion} version."
+                skLocalSys=`ls | grep $rhVersion`
+                if [[ -n $skLocalSys ]]; then
+                    echo "Found '$skLocalSys', will try that"
+                else 
+                    echo "None found, will use default path to skfsd"
+                fi
+            else
+                echo "Using default path to skfsd"
+                skLocalSys=""
+            fi
+        fi
     fi
 fi
 
@@ -455,9 +455,9 @@ FS_EXEC="${curDir}${skLocalSysPath}/skfsd"
 echo "skfsd path: $FS_EXEC"
 
 if [[ ! -e $FS_EXEC ]]; then
-	echo "'$FS_EXEC' doesn't exist. How am I supposed to start skfs w/o a valid binary? Quitting..."
-	f_printFail
-	exit -1
+    echo "'$FS_EXEC' doesn't exist. How am I supposed to start skfs w/o a valid binary? Quitting..."
+    f_printFail
+    exit -1
 fi
 
 fbwQOption="--fbwReliableQueue=TRUE"
@@ -521,19 +521,19 @@ echo "attrTimeoutOption:     $attrTimeoutOption"
 echo "negativeTimeoutOption: $negativeTimeoutOption"
 
 if [[ -n "${jvmOptions}" ]] ; then
-	skfsJvmOpt="--jvmOptions=${jvmOptions}";
+    skfsJvmOpt="--jvmOptions=${jvmOptions}";
 fi
 
 if [[ -z "${transientCacheSizeKB}" ]] ; then
     typeset memKB=`cat /proc/meminfo | grep MemTotal | gawk '{print $2}' `
-    typeset transientCacheSizeMinKB=65536	# File blocks are 256KB, (from SRFS_BLOCK_SIZE in SRFSConstants.h, used in skfs.c), we need atleast 256 blocks = 64MB cache
+    typeset transientCacheSizeMinKB=65536    # File blocks are 256KB, (from SRFS_BLOCK_SIZE in SRFSConstants.h, used in skfs.c), we need atleast 256 blocks = 64MB cache
     typeset transientCacheSizeMaxKB=12000000
     transientCacheSizeKB=$(($memKB / 48))
     if [[ $transientCacheSizeKB -gt $transientCacheSizeMaxKB ]]; then
         transientCacheSizeKB=$transientCacheSizeMaxKB
     elif [[ $transientCacheSizeKB -lt $transientCacheSizeMinKB ]]; then
-		transientCacheSizeKB=$transientCacheSizeMinKB
-	fi 
+        transientCacheSizeKB=$transientCacheSizeMinKB
+    fi 
 fi
 echo "transientCacheSizeKB:  $transientCacheSizeKB"
 

@@ -19,8 +19,8 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
     
     RetrievalEntrySingleState(List<IPAndPort> primaryReplicas, List<IPAndPort> secondaryReplicas) {
         if (verifyReplicas) {
-        	Preconditions.checkArgument( !primaryReplicas.contains(null) );
-        	Preconditions.checkArgument( !secondaryReplicas.contains(null) );
+            Preconditions.checkArgument( !primaryReplicas.contains(null) );
+            Preconditions.checkArgument( !secondaryReplicas.contains(null) );
         }
         this.primaryReplicas = primaryReplicas;
         this.secondaryReplicas = secondaryReplicas;
@@ -62,25 +62,25 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
     }
     
     private IPAndPort getReplica(int index) {
-    	if (index < 0) {
-    		return null;
-    	} else {
-	    	if (index < secondaryReplicas.size()) {
-	    		return secondaryReplicas.get(index);
-	    	} else {
-	            return primaryReplicas.get(index - secondaryReplicas.size());
-	    	}
+        if (index < 0) {
+            return null;
+        } else {
+            if (index < secondaryReplicas.size()) {
+                return secondaryReplicas.get(index);
+            } else {
+                return primaryReplicas.get(index - secondaryReplicas.size());
+            }
         }
     }
 
-	@Override
-	public boolean prevReplicaSameAsCurrent() {
-		return prevReplicaIndex == replicaIndex;
-	}
+    @Override
+    public boolean prevReplicaSameAsCurrent() {
+        return prevReplicaIndex == replicaIndex;
+    }
     
     @Override
     public IPAndPort currentReplica() {
-    	return getReplica(Math.max(replicaIndex, 0));
+        return getReplica(Math.max(replicaIndex, 0));
     }
     
     @Override
@@ -94,7 +94,7 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
         // Replicas with index 
         // secondaryReplicas.size()...primaryReplicas.size() + secondaryReplicas.size() - 1 are primary replicas
         
-    	prevReplicaIndex = replicaIndex;
+        prevReplicaIndex = replicaIndex;
         if (replicaIndex < 0) {
             incrementReplicaTimeout();
             replicaIndex = 0;
@@ -134,11 +134,11 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
         return state;
     }
     
-	@Override
-	public boolean isComplete() {
-		return state.isComplete();
-	}
-	
+    @Override
+    public boolean isComplete() {
+        return state.isComplete();
+    }
+    
     @Override
     public String toString() {
         return primaryReplicas.toString() +":"+ secondaryReplicas.toString() +":"+ state.toString();

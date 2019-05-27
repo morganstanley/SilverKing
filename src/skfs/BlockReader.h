@@ -37,12 +37,12 @@ typedef struct BlockReader {
     AttrReader  *ar;
     struct sockaddr_in myaddr;  // address of the server
     int         running;
-	pthread_t   thread;
+    pthread_t   thread;
     int fd;
     int remoteAddressIndex;
     int    numRemoteAddresses;
     uint32_t    *remoteAddresses;
-	pthread_spinlock_t	addrLock;
+    pthread_spinlock_t    addrLock;
     // addresses of others...
 } BlockReader;
 

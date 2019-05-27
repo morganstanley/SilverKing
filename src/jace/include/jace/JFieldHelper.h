@@ -22,10 +22,10 @@ public:
   JACE_API jfieldID getFieldID();
 
 private:
-	/**
-	 * Prevent copying.
-	 */
-	JFieldHelper& operator=(JFieldHelper&);
+    /**
+     * Prevent copying.
+     */
+    JFieldHelper& operator=(JFieldHelper&);
 
   jfieldID mFieldID;
   const std::string mName;

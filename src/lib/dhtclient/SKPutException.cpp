@@ -30,56 +30,56 @@ using jace::proxy::com::ms::silverking::log::Log;
 SKPutException::SKPutException(PutException * pe, const char * fileName, int lineNum)
  : SKClientException(pe, fileName, lineNum)
 {
-	msg = (std::string) pe->getDetailedFailureMessage();
-	operationStates = new Map(java_cast<Map>(pe->operationState()));
-	failureCauses = new Map(java_cast<Map>(pe->failureCause()));
-	failedKeys = new Set(java_cast<Set>(pe->failedKeys()));
+    msg = (std::string) pe->getDetailedFailureMessage();
+    operationStates = new Map(java_cast<Map>(pe->operationState()));
+    failureCauses = new Map(java_cast<Map>(pe->failureCause()));
+    failedKeys = new Set(java_cast<Set>(pe->failedKeys()));
 
-	std::ostringstream str ;
-	str << msg << mStack << " in " << mFileName << " : " << mLineNum <<"\n" ;
-	mAll = str.str();
+    std::ostringstream str ;
+    str << msg << mStack << " in " << mFileName << " : " << mLineNum <<"\n" ;
+    mAll = str.str();
 }
 
 SKPutException::~SKPutException(void) throw()
 {
-	delete operationStates;
-	delete failureCauses;
-	delete failedKeys;
+    delete operationStates;
+    delete failureCauses;
+    delete failedKeys;
 }
 
 //-------------------------------------------------------------------------
 
 SKOperationState::SKOperationState SKPutException::getOperationState(string key) const {
-	String jkey = java_new<String>((char *)key.c_str());
-	if( ! operationStates->get( jkey ).isNull() ) {
-		int os = (java_cast<OperationState>(operationStates->get( jkey ))).ordinal();
-		return (SKOperationState::SKOperationState) os;
-	}
-	else {
-		Log::warning( string("Key : ") + key + " --> OperationState : Null" );
-		//throw std::exception();
-		return SKOperationState::FAILED;
-	}
+    String jkey = java_new<String>((char *)key.c_str());
+    if( ! operationStates->get( jkey ).isNull() ) {
+        int os = (java_cast<OperationState>(operationStates->get( jkey ))).ordinal();
+        return (SKOperationState::SKOperationState) os;
+    }
+    else {
+        Log::warning( string("Key : ") + key + " --> OperationState : Null" );
+        //throw std::exception();
+        return SKOperationState::FAILED;
+    }
 }
 
 SKFailureCause::SKFailureCause SKPutException::getFailureCause(string key) const {
-	String jkey = java_new<String>((char *)key.c_str());
-	if( ! failureCauses->get( jkey ).isNull() ) {
-		int fc = (java_cast<FailureCause>(failureCauses->get( jkey ))).ordinal();
-		return (SKFailureCause::SKFailureCause) fc;
-	}
-	else {
-		Log::warning( string("Key : ") + key + " --> FailureCause : Null" );
-		//throw std::exception();
-		return SKFailureCause::ERROR;
-	}
+    String jkey = java_new<String>((char *)key.c_str());
+    if( ! failureCauses->get( jkey ).isNull() ) {
+        int fc = (java_cast<FailureCause>(failureCauses->get( jkey ))).ordinal();
+        return (SKFailureCause::SKFailureCause) fc;
+    }
+    else {
+        Log::warning( string("Key : ") + key + " --> FailureCause : Null" );
+        //throw std::exception();
+        return SKFailureCause::ERROR;
+    }
 }
 
 SKVector<string> * SKPutException::getFailedKeys() const {
     SKVector<string> * pFailedKeys = new SKVector<string>();
-	for (Iterator it(failedKeys->iterator()); it.hasNext();) {
+    for (Iterator it(failedKeys->iterator()); it.hasNext();) {
         String akey = java_cast<String>(it.next());
-		pFailedKeys->push_back( (string)(akey) );
+        pFailedKeys->push_back( (string)(akey) );
     }
     return pFailedKeys;
 }

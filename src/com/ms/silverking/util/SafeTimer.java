@@ -9,20 +9,20 @@ import java.util.TimerTask;
  * This prevents the Timer from breaking due to a thrown exception in a TimerTask.
  */
 public class SafeTimer extends Timer {
-	public SafeTimer() {
-	}
+    public SafeTimer() {
+    }
 
-	public SafeTimer(boolean isDaemon) {
-		super(isDaemon);
-	}
+    public SafeTimer(boolean isDaemon) {
+        super(isDaemon);
+    }
 
-	public SafeTimer(String name) {
-		super(name);
-	}
+    public SafeTimer(String name) {
+        super(name);
+    }
 
-	public SafeTimer(String name, boolean isDaemon) {
-		super(name, isDaemon);
-	}
+    public SafeTimer(String name, boolean isDaemon) {
+        super(name, isDaemon);
+    }
 
     /**
      * Schedules the specified task for execution after the specified delay.
@@ -36,7 +36,7 @@ public class SafeTimer extends Timer {
      * @throws NullPointerException if {@code task} is null
      */
     public void schedule(TimerTask task, long delay) {
-    	super.schedule(new SafeTimerTask(task), delay);
+        super.schedule(new SafeTimerTask(task), delay);
     }
 
     /**
@@ -51,7 +51,7 @@ public class SafeTimer extends Timer {
      * @throws NullPointerException if {@code task} or {@code time} is null
      */
     public void schedule(TimerTask task, Date time) {
-    	super.schedule(new SafeTimerTask(task), time);
+        super.schedule(new SafeTimerTask(task), time);
     }
 
     /**
@@ -87,7 +87,7 @@ public class SafeTimer extends Timer {
      * @throws NullPointerException if {@code task} is null
      */
     public void schedule(TimerTask task, long delay, long period) {
-    	super.schedule(new SafeTimerTask(task), delay, period);
+        super.schedule(new SafeTimerTask(task), delay, period);
     }
 
     /**
@@ -124,7 +124,7 @@ public class SafeTimer extends Timer {
      * @throws NullPointerException if {@code task} or {@code firstTime} is null
      */
     public void schedule(TimerTask task, Date firstTime, long period) {
-    	super.schedule(new SafeTimerTask(task), firstTime, period);
+        super.schedule(new SafeTimerTask(task), firstTime, period);
     }
 
     /**
@@ -161,7 +161,7 @@ public class SafeTimer extends Timer {
      * @throws NullPointerException if {@code task} is null
      */
     public void scheduleAtFixedRate(TimerTask task, long delay, long period) {
-    	super.scheduleAtFixedRate(new SafeTimerTask(task), delay, period);
+        super.scheduleAtFixedRate(new SafeTimerTask(task), delay, period);
     }
 
     /**
@@ -201,6 +201,6 @@ public class SafeTimer extends Timer {
      */
     public void scheduleAtFixedRate(TimerTask task, Date firstTime,
                                     long period) {
-    	super.scheduleAtFixedRate(new SafeTimerTask(task), firstTime, period);
+        super.scheduleAtFixedRate(new SafeTimerTask(task), firstTime, period);
     }
 }

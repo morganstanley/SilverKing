@@ -100,8 +100,8 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
     }
     
     @Override 
-	protected NonExistenceResponse getNonExistenceResponse() {
-    	return retrievalOperation.retrievalOptions().getNonExistenceResponse();
+    protected NonExistenceResponse getNonExistenceResponse() {
+        return retrievalOperation.retrievalOptions().getNonExistenceResponse();
     }    
 
     @Override
@@ -122,17 +122,17 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         case MULTIPLE:
             // multiple will only be called when checking completion of the entire operation
             // others will be called key-by-key also
-        	
-        	// filter no such value errors to allow for users to override
-        	// all other failures result in a failure
-        	NonExistenceResponse	nonExistenceResponse;
-        	
-        	nonExistenceResponse = getNonExistenceResponse();
-        	for (OpResult _result : allResults) {
-        		if (_result.hasFailed(nonExistenceResponse)) {
-        			return true;
-        		}
-        	}
+            
+            // filter no such value errors to allow for users to override
+            // all other failures result in a failure
+            NonExistenceResponse    nonExistenceResponse;
+            
+            nonExistenceResponse = getNonExistenceResponse();
+            for (OpResult _result : allResults) {
+                if (_result.hasFailed(nonExistenceResponse)) {
+                    return true;
+                }
+            }
             return false;
         case TIMEOUT:
             RetrievalOptions    retrievalOptions;
@@ -303,9 +303,9 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
             if (retrievalResult.getOpResult() == OpResult.SUCCEEDED) {
                 return retrievalResult;
             } else {
-            	// For this case, we do not throw exceptions for missing values irrespective of the
-            	// NonExistenceResponse specified. We allow users to probe for missing values without 
-            	// worrying about exceptions getting thrown back at them.
+                // For this case, we do not throw exceptions for missing values irrespective of the
+                // NonExistenceResponse specified. We allow users to probe for missing values without 
+                // worrying about exceptions getting thrown back at them.
                 if (retrievalResult.getOpResult().hasFailed() && retrievalResult.getOpResult() != OpResult.NO_SUCH_VALUE) {
                     //System.err.println(key +"\t"+ retrievalResult.getOpResult());
                     throw newRetrievalException();
@@ -380,9 +380,9 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                 //segmented = MetaDataUtil.isSegmented(entry.getValue().array(), entry.getValue().position());
                 segmented = MetaDataUtil.isSegmented(entry.getValue());
                 rawResult.setStoredValue(entry.getValue(), 
-                						!segmented && retrievalOperation.retrievalOptions().getVerifyChecksums(), 
-                						!retrievalOperation.retrievalOptions().getReturnInvalidations(), 
-                						nspoImpl.getNSPOptions().getEncrypterDecrypter());
+                                        !segmented && retrievalOperation.retrievalOptions().getVerifyChecksums(), 
+                                        !retrievalOperation.retrievalOptions().getReturnInvalidations(), 
+                                        nspoImpl.getNSPOptions().getEncrypterDecrypter());
             } catch (CorruptValueException cve) {
                 Log.infoAsync(String.format("Corrupt\t%s", dhtKey));
                 handleCorruptValue(dhtKey);
@@ -411,7 +411,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                 }
                 if (true) {
                     int storedLength;
-                    int	fragmentationThreshold;
+                    int    fragmentationThreshold;
                     
                 //not using below since the internal checksum should handle this
                 //if (SegmentationUtil.checksumSegmentMetaDataBuffer(buf, nspoImpl.getNSPOptions().getChecksumType())) {
@@ -451,7 +451,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         }
         if (setComplete) {
             RetrievalResultBase<V>  prev;
-            RetrievalResult<V>		newResult;
+            RetrievalResult<V>        newResult;
             
             if (Log.levelMet(Level.FINE)) {
                 Log.fine("setComplete: ", setComplete);
@@ -460,32 +460,32 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
             newResult = new RetrievalResult<>(rawResult, nspoImpl.getValueDeserializer());
             prev = results.putIfAbsent(dhtKeyToKey.get(dhtKey), newResult);
             if (prev == null) {
-            	if (resultsReceived.incrementAndGet() >= size) {
-	                checkForCompletion();
-	                // FUTURE - this doesn't work for multi valued since we don't know how many we are getting...
-	                // For now, we ignore this since we aren't supporting multi-value yet
-            	}
+                if (resultsReceived.incrementAndGet() >= size) {
+                    checkForCompletion();
+                    // FUTURE - this doesn't work for multi valued since we don't know how many we are getting...
+                    // For now, we ignore this since we aren't supporting multi-value yet
+                }
             } else {
-            	/*
+                /*
                 RetrievalResultBase<V>  p;
-                boolean					unique;
-            	
+                boolean                    unique;
+                
                 // FUTURE - handle mutual exclusion
                 unique = true;
                 p = prev;
                 while (p.getNext() != null) {
-                	p = p.getNext();
-                	if (p.getCreationTime().equals(newResult.getCreationTime())) {
-                		unique = false;
-                		break;
-                	}
+                    p = p.getNext();
+                    if (p.getCreationTime().equals(newResult.getCreationTime())) {
+                        unique = false;
+                        break;
+                    }
                 }
-            	if (unique) {
-            		p.setNext(newResult);
-            	} else {
-            		// Ignoring duplicate result
-            	}
-            	*/
+                if (unique) {
+                    p.setNext(newResult);
+                } else {
+                    // Ignoring duplicate result
+                }
+                */
             }
         }
         /*
@@ -593,7 +593,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
 
     @Override
     public Map<K, V> getLatestValues() throws RetrievalException {
-        Map<K, V>	valueMap;
+        Map<K, V>    valueMap;
         
         valueMap = new HashMap<>(retrievalOperation.size() - latestStoredReturned.size());
         for (Map.Entry<K, RetrievalResultBase<V>> resultEntry : results.entrySet()) {
@@ -617,10 +617,10 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
 
     @Override
     public StoredValue<V> getStoredValue() throws RetrievalException {
-    	Iterator<K>	iterator;
-    	
-    	iterator = results.keySet().iterator();
-    	return iterator.hasNext() ? getStoredValue(iterator.next()) : null;
+        Iterator<K>    iterator;
+        
+        iterator = results.keySet().iterator();
+        return iterator.hasNext() ? getStoredValue(iterator.next()) : null;
         // FUTURE - THINK ABOUT SPEEDING THIS UP
         // plan is for the single op case to use a custom map, could switch implementation then
     }

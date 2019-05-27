@@ -6,7 +6,7 @@
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
     namespace silverking { namespace cloud { namespace dht {
-	    class ValueCreator;
+        class ValueCreator;
 } } } } } } };
 typedef jace::proxy::com::ms::silverking::cloud::dht::ValueCreator ValueCreator;
 
@@ -18,27 +18,27 @@ typedef jace::proxy::com::ms::silverking::cloud::dht::ValueCreator ValueCreator;
 class SKValueCreator
 {
 public:
-	SKAPI static const int BYTES = 8;  //IPV4_BYTES + BYTES_PER_INT
+    SKAPI static const int BYTES = 8;  //IPV4_BYTES + BYTES_PER_INT
 
-	/** Creator IP address (IPV4) */
+    /** Creator IP address (IPV4) */
     SKAPI SKVal * getIP() const ;  
 
-	/** Creator Process ID */
+    /** Creator Process ID */
     SKAPI int getID() const ;
-	
-	/** Byte array of size BYTES with creator information : IP, ID */
-    SKAPI SKVal * getBytes() const ;	
+    
+    /** Byte array of size BYTES with creator information : IP, ID */
+    SKAPI SKVal * getBytes() const ;    
 
     SKAPI virtual ~SKValueCreator();
 protected:
-	friend class SKClient;
-	friend class SKMetaData;
-	friend class SKStoredValue;
+    friend class SKClient;
+    friend class SKMetaData;
+    friend class SKStoredValue;
 
     SKValueCreator(ValueCreator * pVCImpl);
-	ValueCreator * getPImpl();
+    ValueCreator * getPImpl();
 
-	ValueCreator * pImpl;
+    ValueCreator * pImpl;
 };
 
 #endif // SKVALUECREATOR_H

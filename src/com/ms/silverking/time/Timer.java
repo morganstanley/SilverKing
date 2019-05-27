@@ -75,5 +75,5 @@ public interface Timer extends Stopwatch {
      *         before return from the method, else {@code true}
      * @throws InterruptedException TODO
      */
-	public boolean await(Condition cv) throws InterruptedException;
+    public boolean await(Condition cv) throws InterruptedException;
 }

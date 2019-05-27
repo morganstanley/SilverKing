@@ -15,20 +15,20 @@ using jace::proxy::com::ms::silverking::time::RelNanosAbsMillisTimeSource;
 
 
 SKRelNanosVersionProvider::SKRelNanosVersionProvider(RelNanosVersionProvider * pRelNanosVersionProvider) 
-	: SKVersionProvider(pRelNanosVersionProvider) {}; 
-	
+    : SKVersionProvider(pRelNanosVersionProvider) {}; 
+    
 SKRelNanosVersionProvider::~SKRelNanosVersionProvider()
 {
-	if(pImpl!=NULL) {
-		delete pImpl; 
-		pImpl = NULL;
-	}
+    if(pImpl!=NULL) {
+        delete pImpl; 
+        pImpl = NULL;
+    }
 }
 
 SKRelNanosVersionProvider::SKRelNanosVersionProvider(SKRelNanosAbsMillisTimeSource * relNanosTimeSource){
-	RelNanosAbsMillisTimeSource* pSource = dynamic_cast<RelNanosAbsMillisTimeSource *>(relNanosTimeSource->getPImpl());
+    RelNanosAbsMillisTimeSource* pSource = dynamic_cast<RelNanosAbsMillisTimeSource *>(relNanosTimeSource->getPImpl());
 
-	//pImpl = new RelNanosVersionProvider(java_new<RelNanosVersionProvider>(*pSource)); 
-	RelNanosTimeSource ts = java_cast<RelNanosTimeSource>(*pSource);
-	pImpl = new RelNanosVersionProvider(java_new<RelNanosVersionProvider>(ts)); 
+    //pImpl = new RelNanosVersionProvider(java_new<RelNanosVersionProvider>(*pSource)); 
+    RelNanosTimeSource ts = java_cast<RelNanosTimeSource>(*pSource);
+    pImpl = new RelNanosVersionProvider(java_new<RelNanosVersionProvider>(ts)); 
 }

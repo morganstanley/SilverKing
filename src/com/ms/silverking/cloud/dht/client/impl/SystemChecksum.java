@@ -6,17 +6,17 @@ import java.util.Arrays;
 import com.ms.silverking.numeric.NumConversion;
 
 public class SystemChecksum implements Checksum {
-	public static final int	BYTES = 8;
-	
+    public static final int    BYTES = 8;
+    
     private static final byte[] emptyChecksum = new byte[BYTES];
     private static final byte[] invalidationChecksum;
 
     static {
-    	invalidationChecksum = NumConversion.longToBytes(0xdeadbeef);
+        invalidationChecksum = NumConversion.longToBytes(0xdeadbeef);
     }
     
-	public SystemChecksum() {
-	}
+    public SystemChecksum() {
+    }
 
     
     @Override
@@ -26,7 +26,7 @@ public class SystemChecksum implements Checksum {
     
     @Override
     public byte[] checksum(byte[] source, int position, int length) {
-    	return invalidationChecksum;
+        return invalidationChecksum;
     }
 
     @Override
@@ -54,7 +54,7 @@ public class SystemChecksum implements Checksum {
         return false;
     }
 
-	public static boolean isInvalidationChecksum(byte[] actualChecksum) {
-		return Arrays.equals(actualChecksum, invalidationChecksum);
-	}
+    public static boolean isInvalidationChecksum(byte[] actualChecksum) {
+        return Arrays.equals(actualChecksum, invalidationChecksum);
+    }
 }

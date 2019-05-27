@@ -82,7 +82,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     private UUIDBase    myUUID;
     private final Map<UUIDBase,ChecksumTreeRequest>   outstandingChecksumTreeRequests;
     private final Map<UUIDBase,SyncRetrievalRequest>   outstandingSyncRetrievalRequests;
-    private final ConcurrentLinkedQueue<ChecksumTreeRequest>	queuedChecksumTreeRequests;
+    private final ConcurrentLinkedQueue<ChecksumTreeRequest>    queuedChecksumTreeRequests;
     private final NamespaceConvergenceGroup ncg;
     private final ConvergencePoint targetCP;
     private final ConvergencePoint curCP;
@@ -90,9 +90,9 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     private final RingMapState curMapState;
     private final ExclusionSet exclusionSet;
     
-    private final Lock				chainNextLock;
-    private ConvergenceController2	chainNext;
-    private boolean					chainNextSignaled;
+    private final Lock                chainNextLock;
+    private ConvergenceController2    chainNext;
+    private boolean                    chainNextSignaled;
         
     ////////
     
@@ -204,50 +204,50 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     // Generate requests for convergence
     
     public void setChainNext(ConvergenceController2 chainNext) {
-    	chainNextLock.lock();
-    	try {
-	    	assert this.chainNext == null;
-	    	this.chainNext = chainNext;
-			Log.warning(String.format("%s setting chainNext %s", myUUID, chainNext.myUUID));
-    	} finally {
-    		chainNextLock.unlock();
-    	}
+        chainNextLock.lock();
+        try {
+            assert this.chainNext == null;
+            this.chainNext = chainNext;
+            Log.warning(String.format("%s setting chainNext %s", myUUID, chainNext.myUUID));
+        } finally {
+            chainNextLock.unlock();
+        }
     }
 
     private void signalChainNext() {
-		chainNextLock.lock();
-		try {
-			if (chainNext != null) {
-				if (!chainNextSignaled) {
-					Log.warning(String.format("%s signaling chainNext %s", myUUID, chainNext.myUUID));
-					chainNextSignaled = true;
-					chainNext.startConvergence();
-				} else {
-					Log.warning(String.format("%s chainNext already signaled", myUUID));
-				}
-			} else {
-				Log.warning(String.format("%s chainNext is null", myUUID));
-			}
-		} finally {
-			chainNextLock.unlock();
-		}
+        chainNextLock.lock();
+        try {
+            if (chainNext != null) {
+                if (!chainNextSignaled) {
+                    Log.warning(String.format("%s signaling chainNext %s", myUUID, chainNext.myUUID));
+                    chainNextSignaled = true;
+                    chainNext.startConvergence();
+                } else {
+                    Log.warning(String.format("%s chainNext already signaled", myUUID));
+                }
+            } else {
+                Log.warning(String.format("%s chainNext is null", myUUID));
+            }
+        } finally {
+            chainNextLock.unlock();
+        }
     }
     
     public void startConvergence() {
-    	convergencePauseMutex.lock();
-    	try {
-    		if (convergencePaused) {
-    			try {
-    				Log.warning("Storing paused signalled convergence controller ", myUUID);
-					pausedSignalledControllers.put(this);
-				} catch (InterruptedException e) {
-				};
-    			return;
-    		}
-    	} finally {
-        	convergencePauseMutex.unlock();
-    	}
-		Log.warningf("startConvergence %x %s", ns, myUUID);
+        convergencePauseMutex.lock();
+        try {
+            if (convergencePaused) {
+                try {
+                    Log.warning("Storing paused signalled convergence controller ", myUUID);
+                    pausedSignalledControllers.put(this);
+                } catch (InterruptedException e) {
+                };
+                return;
+            }
+        } finally {
+            convergencePauseMutex.unlock();
+        }
+        Log.warningf("startConvergence %x %s", ns, myUUID);
         this.ownerQueryMode = ownerQueryMode;
         switch (ownerQueryMode) {
         case Primary: 
@@ -370,24 +370,24 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
                 }
                 
                 if (_nonLocalOwners.size() == 0) {
-                	Log.warningf("%x All nonLocalOwners excluded. Ignoring exclusions for this entry.", ns);
+                    Log.warningf("%x All nonLocalOwners excluded. Ignoring exclusions for this entry.", ns);
                 } else {
-                	nonLocalOwners = _nonLocalOwners;
+                    nonLocalOwners = _nonLocalOwners;
                 }
                 
-            	IntersectionResult	iResult;
-            	
-            	// We don't want to request the entire source region.
-            	// We're only interested in the portion(s) of the source region that cover(s) the target region.                	
-            	iResult = RingRegion.intersect(sourceEntry.getRegion(), targetEntry.getRegion());
-            	for (RingRegion commonSubRegion : iResult.getOverlapping()) {
-            		requestRemoteChecksumTree(targetCP, curCP, commonSubRegion, nonLocalOwners);
-            	}
+                IntersectionResult    iResult;
+                
+                // We don't want to request the entire source region.
+                // We're only interested in the portion(s) of the source region that cover(s) the target region.                    
+                iResult = RingRegion.intersect(sourceEntry.getRegion(), targetEntry.getRegion());
+                for (RingRegion commonSubRegion : iResult.getOverlapping()) {
+                    requestRemoteChecksumTree(targetCP, curCP, commonSubRegion, nonLocalOwners);
+                }
             }
         } else {
-        	// FIXME - this should actually never occur as the getEntries() call above
-        	// has no notion of local/non-local. It just returns the owners, and there 
-        	// should always be owners.
+            // FIXME - this should actually never occur as the getEntries() call above
+            // has no notion of local/non-local. It just returns the owners, and there 
+            // should always be owners.
             Log.warningf("Primary convergence %x. No previous non-local owners for entry: ", ns, targetEntry);
         }
     }
@@ -404,7 +404,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         }
     }
     
-    static final long	checksumTreeRequestTimeout = 1 * 60 * 1000;
+    static final long    checksumTreeRequestTimeout = 1 * 60 * 1000;
     
     private void requestRemoteChecksumTree(ConvergencePoint targetCP, ConvergencePoint curCP, RingRegion region, 
                                            Collection<IPAndPort> replicas) {
@@ -422,8 +422,8 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
              */
             
             if (!replica.equals(mgBase._getIPAndPort())) {
-            	queuedChecksumTreeRequests.add(new ChecksumTreeRequest(targetCP, curCP, region, replica));
-            	//sendChecksumTreeRequest(targetCP, curCP, region, replica);
+                queuedChecksumTreeRequests.add(new ChecksumTreeRequest(targetCP, curCP, region, replica));
+                //sendChecksumTreeRequest(targetCP, curCP, region, replica);
             }
         }
         checkQueuedChecksumTreeRequests();
@@ -431,31 +431,31 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     
     private void checkQueuedChecksumTreeRequests() {
         if (outstandingChecksumTreeRequests.isEmpty() && outstandingSyncRetrievalRequests.isEmpty()) {
-        	ChecksumTreeRequest	ctr;
-        	
-        	ctr = queuedChecksumTreeRequests.poll();
-        	if (ctr != null) {
-        		Log.warningf("%x checkQueuedChecksumTreeRequests found ChecksumTreeRequest", ns);
-        		sendChecksumTreeRequest(ctr);
-        	} else {
-        		Log.warningf("%x checkQueuedChecksumTreeRequests - no requests queued", ns);
-        	}
+            ChecksumTreeRequest    ctr;
+            
+            ctr = queuedChecksumTreeRequests.poll();
+            if (ctr != null) {
+                Log.warningf("%x checkQueuedChecksumTreeRequests found ChecksumTreeRequest", ns);
+                sendChecksumTreeRequest(ctr);
+            } else {
+                Log.warningf("%x checkQueuedChecksumTreeRequests - no requests queued", ns);
+            }
         } else {
-    		Log.warningf("%x checkQueuedChecksumTreeRequests waiting for ongoing requests", ns);
+            Log.warningf("%x checkQueuedChecksumTreeRequests waiting for ongoing requests", ns);
         }
     }
     
     private void sendChecksumTreeRequest(ChecksumTreeRequest ctr) {
         MessageGroup    mg;
         UUIDBase        uuid;
-    	
+        
         uuid = UUIDBase.random();
         outstandingChecksumTreeRequests.put(uuid, ctr); 
         convergenceControllers.put(uuid, this);
         mg = new ProtoChecksumTreeRequestMessageGroup(uuid, ns, ctr.getTargetCP(), ctr.getCurCP(),  
                                                       mgBase.getMyID(), ctr.getRegion(), false).toMessageGroup(); 
         if (verbose || debug) {
-        	Log.warningAsyncf("%x requestChecksumTree: %s\t%s\t%s\t%s", ns, ctr.getReplica(), ctr.getRegion(), ctr.getTargetCP(), ctr.getCurCP());
+            Log.warningAsyncf("%x requestChecksumTree: %s\t%s\t%s\t%s", ns, ctr.getReplica(), ctr.getRegion(), ctr.getTargetCP(), ctr.getCurCP());
         }
         mgBase.send(mg, ctr.getReplica());
         ctr.setSent();
@@ -465,31 +465,31 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     // Handle incoming convergence trees
     
     class SyncRetrievalRequest {
-    	final UUIDBase		uuid;
-    	final Set<DHTKey>	outstandingKeys;
-    	final long	dataVersion;
-    	final MessageGroupConnection connection;
-    	long sendTime;
-    	
-    	SyncRetrievalRequest(UUIDBase uuid, Set<DHTKey> outstandingKeys, long dataVersion, MessageGroupConnection connection) {
-    		this.uuid = uuid;
-    		this.outstandingKeys = outstandingKeys;
-    		this.dataVersion = dataVersion;
-    		this.connection = connection;
-    	}
-    	
-    	void setSent() {
-    		sendTime = absMillisTimeSource.absTimeMillis();
-    	}
-    	
-    	boolean hasTimedOut() {
-    		return absMillisTimeSource.absTimeMillis() > sendTime + checksumTreeRequestTimeout;
-    	}
-    	
-    	@Override
-    	public String toString() {
-    		return connection.getRemoteIPAndPort() +" "+ outstandingKeys.size();
-    	}
+        final UUIDBase        uuid;
+        final Set<DHTKey>    outstandingKeys;
+        final long    dataVersion;
+        final MessageGroupConnection connection;
+        long sendTime;
+        
+        SyncRetrievalRequest(UUIDBase uuid, Set<DHTKey> outstandingKeys, long dataVersion, MessageGroupConnection connection) {
+            this.uuid = uuid;
+            this.outstandingKeys = outstandingKeys;
+            this.dataVersion = dataVersion;
+            this.connection = connection;
+        }
+        
+        void setSent() {
+            sendTime = absMillisTimeSource.absTimeMillis();
+        }
+        
+        boolean hasTimedOut() {
+            return absMillisTimeSource.absTimeMillis() > sendTime + checksumTreeRequestTimeout;
+        }
+        
+        @Override
+        public String toString() {
+            return connection.getRemoteIPAndPort() +" "+ outstandingKeys.size();
+        }
     }
     
     //private final ConcurrentMap<ConvergencePoint,Queue<DHTKey>> keysToFetchMap = new ConcurrentHashMap<>();
@@ -513,20 +513,20 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         outstandingChecksumTreeRequests.remove(incomingUUID);
         checkQueuedChecksumTreeRequests();
         if (remoteTree == null) {
-        	checkForCompletion();
+            checkForCompletion();
             return;
         }
         localTree = checksumTreeServer.getRegionChecksumTree_Local(cp, 
                                         remoteTree.getRegion(), new LongInterval(Long.MIN_VALUE, cp.getDataVersion()));
         if (verbose) {
-        	Log.warningAsyncf("incomingChecksumTree %s", incomingUUID);
+            Log.warningAsyncf("incomingChecksumTree %s", incomingUUID);
         }
         if (debug) {
-        	Log.warningAsyncf("incomingChecksumTree %x\t%s\t%s\t%s", ns, cp, remoteTree.getRegion(), incomingUUID);
-        	Log.warningAsyncf(remoteTree +"\n\nlocalTree\n"+ localTree);
+            Log.warningAsyncf("incomingChecksumTree %x\t%s\t%s\t%s", ns, cp, remoteTree.getRegion(), incomingUUID);
+            Log.warningAsyncf(remoteTree +"\n\nlocalTree\n"+ localTree);
         }
         if (localTree == null) {
-        	checkForCompletion();
+            checkForCompletion();
             return;
         }
         try {
@@ -539,7 +539,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
             throw re;
         }
         if (debug) {
-        	Log.warningAsyncf("%s", matchResult);
+            Log.warningAsyncf("%s", matchResult);
         }
         keysToFetch = new HashSet<>();
         for (KeyAndVersionChecksum kvc : matchResult.getDestNotInSource()) {
@@ -574,9 +574,9 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
             Set<DHTKey> batchKeys;
             int         batchSize;
             RetrievalOptions    retrievalOptions;
-            UUIDBase	uuid;
+            UUIDBase    uuid;
             //MessageGroup        mg;
-            SyncRetrievalRequest	srr;
+            SyncRetrievalRequest    srr;
             
             //batchKeys = new HashSet<>(retrievalBatchSize);
             batchKeys = new ConcurrentSkipListSet<DHTKey>();
@@ -611,13 +611,13 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         }
         checkMGQueue();
         if (debug) {
-        	Log.warningAsyncf("no more keysToFetch");
+            Log.warningAsyncf("no more keysToFetch");
         }
         checkForCompletion();
     }
     
     private void sendSyncRetrievalRequest(SyncRetrievalRequest srr) {
-        MessageGroup		mg;
+        MessageGroup        mg;
         RetrievalOptions    retrievalOptions;
         
         retrievalOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE_AND_META_DATA, WaitMode.GET,
@@ -707,7 +707,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
             
             removed = activeConvergenceControllers.remove(this);
             if (removed) {
-            	Log.warningAsyncf(String.format("ConvergenceController is complete: %s\t%x\n", ownerQueryMode, ns));
+                Log.warningAsyncf(String.format("ConvergenceController is complete: %s\t%x\n", ownerQueryMode, ns));
                 ncg.setComplete(this);
                 activeConvergenceControllers.remove(this);
                 convergenceControllers.remove(myUUID);
@@ -722,7 +722,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     
     public void incomingSyncRetrievalResponse(MessageGroup message) {
         List<StorageValueAndParameters> svpList;
-        SyncRetrievalRequest	srr;
+        SyncRetrievalRequest    srr;
         
         srr = outstandingSyncRetrievalRequests.get(message.getUUID());
         
@@ -732,14 +732,14 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         }
         
         if (debug) {
-        	Log.warningAsyncf("incomingSyncRetrievalResponse");
+            Log.warningAsyncf("incomingSyncRetrievalResponse");
         }
         svpList = new ArrayList<>();
         for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
             StorageValueAndParameters   svp;
             
             if (srr != null) {
-            	srr.outstandingKeys.remove(entry);
+                srr.outstandingKeys.remove(entry);
             }
             svp = StorageValueAndParameters.createSVP(entry);
             if (svp != null) {
@@ -747,7 +747,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
             }
         }
         if (!svpList.isEmpty()) {
-        	// FUTURE - support migration of user data
+            // FUTURE - support migration of user data
             nsStore.put(svpList, emptyUserData, this);
         }
         if (srr != null && srr.outstandingKeys.isEmpty()) {
@@ -813,11 +813,11 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     public void sendResult(DHTKey key, OpResult result) {
     }
     
-	private void cancelConvergence() {
-		Log.warning("cancelConvergence() ", targetCP);
-	    outstandingChecksumTreeRequests.clear();
-	    outstandingSyncRetrievalRequests.clear();
-	}
+    private void cancelConvergence() {
+        Log.warning("cancelConvergence() ", targetCP);
+        outstandingChecksumTreeRequests.clear();
+        outstandingSyncRetrievalRequests.clear();
+    }
     
     ///////////////////////////////////////////////////////////////////////////
     
@@ -833,20 +833,20 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     public static void _incomingChecksumTree(UUIDBase uuid, ChecksumNode remoteTree, 
                                              ConvergencePoint cp, 
                                              MessageGroupConnection connection) {
-    	convergencePauseMutex.lock();
-    	try {
-    		if (convergencePaused) {
-    			try {
-    				Log.warning("Storing paused checksum tree ", uuid);
-					pausedChecksumTrees.put(new PausedChecksumTree(uuid, remoteTree, cp, connection));
-				} catch (InterruptedException e) {
-				};
-    			return;
-    		}
-    	} finally {
-        	convergencePauseMutex.unlock();
-    	}
-    	
+        convergencePauseMutex.lock();
+        try {
+            if (convergencePaused) {
+                try {
+                    Log.warning("Storing paused checksum tree ", uuid);
+                    pausedChecksumTrees.put(new PausedChecksumTree(uuid, remoteTree, cp, connection));
+                } catch (InterruptedException e) {
+                };
+                return;
+            }
+        } finally {
+            convergencePauseMutex.unlock();
+        }
+        
         ConvergenceController2   convergenceController;
         
         convergenceController = convergenceControllers.get(uuid);
@@ -871,140 +871,140 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     }
     
     public static void cancelAllOngoingConvergence() {
-		Log.warning("cancelAllOngoingConvergence()");
-    	for (ConvergenceController2 cc2 : activeConvergenceControllers) {
-    		cc2.cancelConvergence();
-    	}
-    	activeConvergenceControllers.clear();
-    	convergenceControllers.clear();
-    	pausedChecksumTrees.clear();
-    	pausedSignalledControllers.clear();
+        Log.warning("cancelAllOngoingConvergence()");
+        for (ConvergenceController2 cc2 : activeConvergenceControllers) {
+            cc2.cancelConvergence();
+        }
+        activeConvergenceControllers.clear();
+        convergenceControllers.clear();
+        pausedChecksumTrees.clear();
+        pausedSignalledControllers.clear();
     }
     
     ///////////////////////////////////////////////////////////////////////////
     
-    private static boolean	convergencePaused;
-    private static Lock		convergencePauseMutex = new ReentrantLock();
-    private static Condition	convergencePauseCV = convergencePauseMutex.newCondition();
+    private static boolean    convergencePaused;
+    private static Lock        convergencePauseMutex = new ReentrantLock();
+    private static Condition    convergencePauseCV = convergencePauseMutex.newCondition();
     
-    private static BlockingQueue<PausedChecksumTree>		pausedChecksumTrees = new LinkedBlockingQueue<>();
-    private static BlockingQueue<ConvergenceController2>	pausedSignalledControllers = new LinkedBlockingQueue<>();
+    private static BlockingQueue<PausedChecksumTree>        pausedChecksumTrees = new LinkedBlockingQueue<>();
+    private static BlockingQueue<ConvergenceController2>    pausedSignalledControllers = new LinkedBlockingQueue<>();
     
-    //private static final int	queuePauseThreshold = 100;
-    //private static final int	queueUnpauseThreshold = 50;
-    private static final int	queuePauseThreshold = 50;
-    private static final int	queueUnpauseThreshold = 25;
+    //private static final int    queuePauseThreshold = 100;
+    //private static final int    queueUnpauseThreshold = 50;
+    private static final int    queuePauseThreshold = 50;
+    private static final int    queueUnpauseThreshold = 25;
     
     static class PausedChecksumTree {
-    	final UUIDBase 					uuid;
-    	final ChecksumNode				remoteTree; 
-        final ConvergencePoint			cp; 
-        final MessageGroupConnection	connection;
+        final UUIDBase                     uuid;
+        final ChecksumNode                remoteTree; 
+        final ConvergencePoint            cp; 
+        final MessageGroupConnection    connection;
         
         PausedChecksumTree(UUIDBase uuid, ChecksumNode remoteTree, 
                 ConvergencePoint cp, 
                 MessageGroupConnection connection) {
-        	this.uuid = uuid;
-        	this.remoteTree = remoteTree; 
-        	this.cp = cp;
-        	this.connection = connection;
+            this.uuid = uuid;
+            this.remoteTree = remoteTree; 
+            this.cp = cp;
+            this.connection = connection;
         }
     }
     
     public static void pauseConvergence() {
-    	convergencePauseMutex.lock();
-    	try {
-    		if (!convergencePaused) {
-				Log.warning("Pausing convergence");
-    			convergencePaused = true;
-    			convergencePauseCV.signalAll();
-    		}
-    	} finally {
-        	convergencePauseMutex.unlock();
-    	}
+        convergencePauseMutex.lock();
+        try {
+            if (!convergencePaused) {
+                Log.warning("Pausing convergence");
+                convergencePaused = true;
+                convergencePauseCV.signalAll();
+            }
+        } finally {
+            convergencePauseMutex.unlock();
+        }
     }
     
     public static void unpauseConvergence() {
-    	convergencePauseMutex.lock();
-    	try {
-    		if (convergencePaused) {
-				Log.warning("Unpausing convergence");
-    			convergencePaused = false;
-    			convergencePauseCV.signalAll();
-    		}
-    	} finally {
-        	convergencePauseMutex.unlock();
-    	}
+        convergencePauseMutex.lock();
+        try {
+            if (convergencePaused) {
+                Log.warning("Unpausing convergence");
+                convergencePaused = false;
+                convergencePauseCV.signalAll();
+            }
+        } finally {
+            convergencePauseMutex.unlock();
+        }
     }
     
     private static void blockWhilePaused() {
-    	convergencePauseMutex.lock();
-    	try {
-    		while (convergencePaused) {
-    			try {
-    				convergencePauseCV.await();
-    			} catch (InterruptedException ie) {
-    			}
-    		}
-    	} finally {
-        	convergencePauseMutex.unlock();
-    	}
+        convergencePauseMutex.lock();
+        try {
+            while (convergencePaused) {
+                try {
+                    convergencePauseCV.await();
+                } catch (InterruptedException ie) {
+                }
+            }
+        } finally {
+            convergencePauseMutex.unlock();
+        }
     }
     
     private static class PausedChecksumWorker implements Runnable {
-    	public void run() {
-    		while (true) {
-    			try {
-    				PausedChecksumTree	pct;
+        public void run() {
+            while (true) {
+                try {
+                    PausedChecksumTree    pct;
 
-    				blockWhilePaused();
-    				pct = pausedChecksumTrees.take();
-    				Log.warning("Unpausing checksum tree ", pct.uuid);
-    				_incomingChecksumTree(pct.uuid, pct.remoteTree, pct.cp, pct.connection);    						
-    			} catch (Exception e) {
-    				Log.logErrorWarning(e);
-    			}
-    		}
-    	}
+                    blockWhilePaused();
+                    pct = pausedChecksumTrees.take();
+                    Log.warning("Unpausing checksum tree ", pct.uuid);
+                    _incomingChecksumTree(pct.uuid, pct.remoteTree, pct.cp, pct.connection);                            
+                } catch (Exception e) {
+                    Log.logErrorWarning(e);
+                }
+            }
+        }
     }
     
     private static class PausedSignalWorker implements Runnable {
-    	public void run() {
-    		while (true) {
-    			try {
-    				ConvergenceController2	cc;
+        public void run() {
+            while (true) {
+                try {
+                    ConvergenceController2    cc;
 
-    				blockWhilePaused();
-    				cc = pausedSignalledControllers.take();
-    				Log.warning("Unpausing signalled convergence controller ", cc.getMyUUID());
-    				cc.startConvergence();    						
-    			} catch (Exception e) {
-    				Log.logErrorWarning(e);
-    			}
-    		}
-    	}
+                    blockWhilePaused();
+                    cc = pausedSignalledControllers.take();
+                    Log.warning("Unpausing signalled convergence controller ", cc.getMyUUID());
+                    cc.startConvergence();                            
+                } catch (Exception e) {
+                    Log.logErrorWarning(e);
+                }
+            }
+        }
     }
     
     static {
-    	new Thread(new PausedChecksumWorker(), "PausedChecksumWorker").start();
-    	new Thread(new PausedSignalWorker(), "PausedSignalWorker").start();
+        new Thread(new PausedChecksumWorker(), "PausedChecksumWorker").start();
+        new Thread(new PausedSignalWorker(), "PausedSignalWorker").start();
     }
     
     private static class MQListener implements MultipleConnectionQueueLengthListener {
-		@Override
-		public void queueLength(UUIDBase uuid, int queueLength, Connection maxQueuedConnection) {
-			if (convergencePaused || Log.levelMet(Level.INFO)) {
-				Log.warning(String.format("Connections queue length:\t%d\t%s\t%d\n", queueLength, maxQueuedConnection, 
-						(maxQueuedConnection != null ? maxQueuedConnection.getQueueLength() : 0)));
-			}
-			if (queueLength > queuePauseThreshold) {
-				//pauseConvergence();
-			} else if (queueLength < queueUnpauseThreshold) {
-				//unpauseConvergence();
-			}
-		}    	
+        @Override
+        public void queueLength(UUIDBase uuid, int queueLength, Connection maxQueuedConnection) {
+            if (convergencePaused || Log.levelMet(Level.INFO)) {
+                Log.warning(String.format("Connections queue length:\t%d\t%s\t%d\n", queueLength, maxQueuedConnection, 
+                        (maxQueuedConnection != null ? maxQueuedConnection.getQueueLength() : 0)));
+            }
+            if (queueLength > queuePauseThreshold) {
+                //pauseConvergence();
+            } else if (queueLength < queueUnpauseThreshold) {
+                //unpauseConvergence();
+            }
+        }        
     }
     
-    public static final MultipleConnectionQueueLengthListener	mqListener = new MQListener();
-    public static final UUIDBase								mqUUID = new UUIDBase();
+    public static final MultipleConnectionQueueLengthListener    mqListener = new MQListener();
+    public static final UUIDBase                                mqUUID = new UUIDBase();
 }

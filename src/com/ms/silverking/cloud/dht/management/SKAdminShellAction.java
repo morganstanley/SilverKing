@@ -20,8 +20,8 @@ enum SKAdminShellAction {
         shortFormUpperCase = toShortFormUpperCase();
         shortFormLowerCase = shortFormUpperCase.toLowerCase();
         if (autoGenerateShortForms) {
-	        _shortForms.add(shortFormUpperCase);
-	        _shortForms.add(shortFormLowerCase);
+            _shortForms.add(shortFormUpperCase);
+            _shortForms.add(shortFormLowerCase);
         }
         if (extraShortForms != null) {
             String[]    _extraShortForms;
@@ -37,7 +37,7 @@ enum SKAdminShellAction {
     }
     
     private SKAdminShellAction(String extraShortForms, boolean usesReps) {
-    	this(extraShortForms, usesReps, true);
+        this(extraShortForms, usesReps, true);
     }
     
     private SKAdminShellAction(String extraShortForms) {

@@ -77,22 +77,22 @@ function f_sendTextHelper {
 }
 
 function f_sendMessageHelper {
-	typeset          to=$1
-	typeset        from=$2
-	typeset     subject=$3
-	typeset        body=$4
-	typeset attachments=$5
+    typeset          to=$1
+    typeset        from=$2
+    typeset     subject=$3
+    typeset        body=$4
+    typeset attachments=$5
     typeset   emailType=$6
     typeset        mutt=$7
-	
+    
     echo -n "Sending $emailType..."
     
-	typeset attachmentsList;
-	if [[ -n $attachments ]]; then
-		attachmentsList="-a $attachments"
-	fi
-	
-	echo -e "$body" | $mutt -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
+    typeset attachmentsList;
+    if [[ -n $attachments ]]; then
+        attachmentsList="-a $attachments"
+    fi
+    
+    echo -e "$body" | $mutt -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
     
     echo "done"
 }

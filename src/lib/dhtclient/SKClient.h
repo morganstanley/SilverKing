@@ -11,8 +11,8 @@ class SKValueCreator;
 class SKGridConfiguration;
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class DHTClient;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class DHTClient;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::DHTClient DHTClient;
 
@@ -28,8 +28,8 @@ public:
   SKAPI static void setLogLevel(LoggingLevel level);
   SKAPI static void setLogFile(const char * fileName);
   /* to be called from a new thread; 
-	returns: true on success, false if client is not inited; 
-	throws: JNIException, VirtualMachineShutdownError (std::excpetion)
+    returns: true on success, false if client is not inited; 
+    throws: JNIException, VirtualMachineShutdownError (std::excpetion)
   */
   SKAPI static bool attach(bool daemon = false) ; 
   /* to be called  from a thread before it shuts down */
@@ -43,7 +43,7 @@ public:
   SKAPI SKSession * openSession(SKSessionOptions * sessionOptions);
   
 private:
-  static SKClient * pClient;	
+  static SKClient * pClient;    
   DHTClient * pImpl;
 
   SKClient();

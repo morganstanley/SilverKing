@@ -5,7 +5,7 @@ BEGIN_NAMESPACE_1(jace)
 
 
 BaseException::BaseException(const std::string& value) throw (): 
-	mValue(value)
+    mValue(value)
 {}
 
 BaseException::BaseException(const BaseException& rhs) throw ()

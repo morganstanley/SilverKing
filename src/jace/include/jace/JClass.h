@@ -21,27 +21,27 @@ BEGIN_NAMESPACE(jace)
 class JClass
 {
 public:
-	/**
-	 * Destroys this JClass.
-	 */
-	JACE_API virtual ~JClass() {}
+    /**
+     * Destroys this JClass.
+     */
+    JACE_API virtual ~JClass() {}
 
-	/**
-	 * Returns the internal name of the class. such as "java/lang/Object".
-	 *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
-	 *   where '.' is replaced by '/'.
-	 */
-	JACE_API virtual const std::string& getInternalName() const = 0;
+    /**
+     * Returns the internal name of the class. such as "java/lang/Object".
+     *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
+     *   where '.' is replaced by '/'.
+     */
+    JACE_API virtual const std::string& getInternalName() const = 0;
 
-	/**
-	 * Returns the class type signature, such as "Ljava/lang/Object;"
-	 */
-	JACE_API virtual const std::string& getSignature() const = 0;
+    /**
+     * Returns the class type signature, such as "Ljava/lang/Object;"
+     */
+    JACE_API virtual const std::string& getSignature() const = 0;
 
-	/**
-	 * Returns the JNI representation of this class.
-	 */
-	JACE_API virtual jclass getClass() const throw (jace::JNIException) = 0;
+    /**
+     * Returns the JNI representation of this class.
+     */
+    JACE_API virtual jclass getClass() const throw (jace::JNIException) = 0;
 };
 
 

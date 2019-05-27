@@ -24,8 +24,8 @@
 // types
 
 typedef struct FileAttr {
-	FileID	fid;
-	struct stat	stat;
+    FileID    fid;
+    struct stat    stat;
 } FileAttr;
 
 ///////////////

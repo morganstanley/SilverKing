@@ -43,7 +43,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     protected final int         dataSegmentSize;
     protected final int         indexOffset;
     
-    protected CuckooBase	keyToOffset;
+    protected CuckooBase    keyToOffset;
 
     protected final int               segmentNumber; // zero-based
     protected final File          nsDir;
@@ -152,7 +152,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     }
     
     public SegmentStorageResult _put(DHTKey key, int offset, long version, byte[] valueCreator, 
-    								NamespaceOptions nsOptions) {
+                                    NamespaceOptions nsOptions) {
         OffsetList  offsetList;
         int existingOffset;
                     
@@ -164,20 +164,20 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         if (existingOffset == CuckooBase.keyNotFound ) {
             // no offset for the key; add the mapping
             if (nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION || nsOptions.getStorageType() == StorageType.RAM) {
-	            if (debugPut) {
-	                Log.warning("initial mapping: ", KeyUtil.keyToString(key));
-	            }
-	            try {
-	            	keyToOffset.put(key, offset);
-	                if (debugPut) {
-	                    if (keyToOffset.get(key) != offset) {
-	                        Log.warning("sanity check failed"+ keyToOffset.get(key) +" "+ offset);
-	                    }
-	                }
-	            } catch (TableFullException tfe) {
-	                Log.warning("Segment pkc full. Creating new table");
-	                keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, offset);
-	            }
+                if (debugPut) {
+                    Log.warning("initial mapping: ", KeyUtil.keyToString(key));
+                }
+                try {
+                    keyToOffset.put(key, offset);
+                    if (debugPut) {
+                        if (keyToOffset.get(key) != offset) {
+                            Log.warning("sanity check failed"+ keyToOffset.get(key) +" "+ offset);
+                        }
+                    }
+                } catch (TableFullException tfe) {
+                    Log.warning("Segment pkc full. Creating new table");
+                    keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, offset);
+                }
             } else {
                 long    creationTime;
                 
@@ -193,11 +193,11 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                 
                 offsetList.putOffset(version, offset, creationTime);
                 try {
-                	keyToOffset.put(key, -((RAMOffsetList)offsetList).getIndex());
-	            } catch (TableFullException tfe) {
-	                Log.warning("Segment pkc full. Creating new table");
-	                keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, -((RAMOffsetList)offsetList).getIndex());
-	            }
+                    keyToOffset.put(key, -((RAMOffsetList)offsetList).getIndex());
+                } catch (TableFullException tfe) {
+                    Log.warning("Segment pkc full. Creating new table");
+                    keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, -((RAMOffsetList)offsetList).getIndex());
+                }
             }
         } else {
             // this key exists in pkc, we next determine whether it has
@@ -218,8 +218,8 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                         return SegmentStorageResult.stored;
                     } else {
                         if (debugPut) {
-                        	Log.warning(String.format("Checksums failed to compare: %s %s", 
-                        			StringUtil.byteArrayToHexString(existingChecksum), StringUtil.byteArrayToHexString(newChecksum)));
+                            Log.warning(String.format("Checksums failed to compare: %s %s", 
+                                    StringUtil.byteArrayToHexString(existingChecksum), StringUtil.byteArrayToHexString(newChecksum)));
                         }
                         return SegmentStorageResult.mutation;
                     }
@@ -260,44 +260,44 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                             Log.warning("putting new mapping: ", KeyUtil.keyToString(key) +" "+ -((RAMOffsetList)offsetList).getIndex());
                         }
                         try {
-                        	keyToOffset.put(key, -((RAMOffsetList)offsetList).getIndex());
-	    	            } catch (TableFullException tfe) {
-	    	                Log.warning("Segment pkc full. Creating new table");
-	    	                keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, -((RAMOffsetList)offsetList).getIndex());
-	    	            }
+                            keyToOffset.put(key, -((RAMOffsetList)offsetList).getIndex());
+                        } catch (TableFullException tfe) {
+                            Log.warning("Segment pkc full. Creating new table");
+                            keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo)keyToOffset, key, -((RAMOffsetList)offsetList).getIndex());
+                        }
                     } else {
-                    	ValueCreator	creator;
-                    	
-                		// FUTURE - Think about this. Important currently to allow for retries to succeed cleanly.
-                    	creator = getCreator(offset);	
-                    	if (SimpleValueCreator.areEqual(creator.getBytes(), valueCreator)) {
+                        ValueCreator    creator;
+                        
+                        // FUTURE - Think about this. Important currently to allow for retries to succeed cleanly.
+                        creator = getCreator(offset);    
+                        if (SimpleValueCreator.areEqual(creator.getBytes(), valueCreator)) {
                             byte[]  existingChecksum;
                             byte[]  newChecksum;
                             
                             existingChecksum = getChecksum(existingOffset);
                             newChecksum = getChecksum(offset);
                             if (ArrayUtil.compareSigned(existingChecksum, newChecksum) == 0) {
-                            	//Log.warningf("pkc.getTotalEntries() %d", pkc.getTotalEntries());
-                            	//Log.warningf("%s %d %d", key, existingOffset, offset);
-                            	//Log.warningf("%s %d %d", key, existingVersion, version);
-                        		return SegmentStorageResult.duplicateStore;
+                                //Log.warningf("pkc.getTotalEntries() %d", pkc.getTotalEntries());
+                                //Log.warningf("%s %d %d", key, existingOffset, offset);
+                                //Log.warningf("%s %d %d", key, existingVersion, version);
+                                return SegmentStorageResult.duplicateStore;
                             } else {
                                 if (debugPut) {
-                                	Log.warning(String.format("Duplicate existingVersion %d version %d, eo %d o %d, but checksums failed to compare: %s %s",
-                                			existingVersion, version,
-                                			existingOffset, offset,
-                                			StringUtil.byteArrayToHexString(existingChecksum), StringUtil.byteArrayToHexString(newChecksum)));
+                                    Log.warning(String.format("Duplicate existingVersion %d version %d, eo %d o %d, but checksums failed to compare: %s %s",
+                                            existingVersion, version,
+                                            existingOffset, offset,
+                                            StringUtil.byteArrayToHexString(existingChecksum), StringUtil.byteArrayToHexString(newChecksum)));
                                 }
-    	                        return SegmentStorageResult.invalidVersion;
+                                return SegmentStorageResult.invalidVersion;
                             }
-                    	} else {
-	                        // FUTURE: Consider: allow puts of incomplete stores to continue?
-	                        if (debugPut) {
-	                            Log.warning("WritableSegmentBase._put detected invalid version b");
-	                            Log.warning(nsOptions);
-	                        }
-	                        return SegmentStorageResult.invalidVersion;
-                    	}
+                        } else {
+                            // FUTURE: Consider: allow puts of incomplete stores to continue?
+                            if (debugPut) {
+                                Log.warning("WritableSegmentBase._put detected invalid version b");
+                                Log.warning(nsOptions);
+                            }
+                            return SegmentStorageResult.invalidVersion;
+                        }
                     }
                 } else {                    
                     if (debugPut) {
@@ -307,9 +307,9 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                     offsetList = offsetListStore.getOffsetList(-existingOffset);
                     if (nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS
                             || version >= offsetList.getLatestVersion()) { 
-                    								// note: > since we want new versions to be added
-                    								// == since we might need to store over an incomplete store
-                    								// so >= to cover both
+                                                    // note: > since we want new versions to be added
+                                                    // == since we might need to store over an incomplete store
+                                                    // so >= to cover both
                         long    creationTime;
                         
                         if (debugPut || Log.levelMet(Level.FINE)) {
@@ -323,9 +323,9 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                         }
                         offsetList.putOffset(version, offset, creationTime);                    
                     } else {
-                    	if (debugPut) {
-                    		Log.warningf("version %d offsetList.getLatestVersion() %d", version, offsetList.getLatestVersion());
-                    	}
+                        if (debugPut) {
+                            Log.warningf("version %d offsetList.getLatestVersion() %d", version, offsetList.getLatestVersion());
+                        }
                         return SegmentStorageResult.invalidVersion;
                     }
                 }
@@ -358,100 +358,100 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         }
     }
     
-	/////////////////////////
+    /////////////////////////
 
     private static class OffsetVersionAndCreationTimeListReverseComparator implements Comparator<Triple<Integer,Long,Long>> {
-		@Override
-		public int compare(Triple<Integer, Long, Long> t1, Triple<Integer, Long, Long> t2) {
-			if (t1.getV1() < t2.getV1()) {
-				return 1; // reverse order
-			} else if (t1.getV1() > t2.getV1()) {
-				return -1; // reverse order
-			} else {
-				if (t1.getV2() < t2.getV2()) {
-					return 1; // reverse order
-				} else if (t1.getV2() > t2.getV2()) {
-					return -1; // reverse order
-				} else {
-					if (t1.getV3() < t2.getV3()) {
-						return 1; // reverse order
-					} else if (t1.getV3() > t2.getV3()) {
-						return -1; // reverse order
-					} else {
-						return 0;
-					}
-				}
-			}
-		}    	
+        @Override
+        public int compare(Triple<Integer, Long, Long> t1, Triple<Integer, Long, Long> t2) {
+            if (t1.getV1() < t2.getV1()) {
+                return 1; // reverse order
+            } else if (t1.getV1() > t2.getV1()) {
+                return -1; // reverse order
+            } else {
+                if (t1.getV2() < t2.getV2()) {
+                    return 1; // reverse order
+                } else if (t1.getV2() > t2.getV2()) {
+                    return -1; // reverse order
+                } else {
+                    if (t1.getV3() < t2.getV3()) {
+                        return 1; // reverse order
+                    } else if (t1.getV3() > t2.getV3()) {
+                        return -1; // reverse order
+                    } else {
+                        return 0;
+                    }
+                }
+            }
+        }        
     }
     
-	public <T extends ValueRetentionState> Triple<CompactionCheckResult,Set<Integer>,Set<Integer>> 
-								singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, NodeRingMaster2 ringMaster) {
-		int numRetained;
-		int numDiscarded;
-		Set<Integer> retainedOffsets;
-		Set<Integer> discardedOffsets;
+    public <T extends ValueRetentionState> Triple<CompactionCheckResult,Set<Integer>,Set<Integer>> 
+                                singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, NodeRingMaster2 ringMaster) {
+        int numRetained;
+        int numDiscarded;
+        Set<Integer> retainedOffsets;
+        Set<Integer> discardedOffsets;
 
-		numRetained = 0;
-		numDiscarded = 0;
-		retainedOffsets = new HashSet<>();
-		discardedOffsets = new HashSet<>();
-		// Within each segment, the backwards walking is per key.
-		// The outer loop loops through the keys first.
-		for (DHTKeyIntEntry entry : keyToOffset) {
-			int rawOffset;
-			List<Triple<Integer,Long,Long>> offsetVersionAndCreationTimeList;
+        numRetained = 0;
+        numDiscarded = 0;
+        retainedOffsets = new HashSet<>();
+        discardedOffsets = new HashSet<>();
+        // Within each segment, the backwards walking is per key.
+        // The outer loop loops through the keys first.
+        for (DHTKeyIntEntry entry : keyToOffset) {
+            int rawOffset;
+            List<Triple<Integer,Long,Long>> offsetVersionAndCreationTimeList;
 
-			rawOffset = entry.getValue();
-			if (rawOffset >= 0) {
-				long	version;
-				long	creationTime;
-				
-				version = getVersion(rawOffset);
-				creationTime = getCreationTime(rawOffset);
-				offsetVersionAndCreationTimeList = ImmutableList.of(new Triple<>(rawOffset, version, creationTime));
-			} else {
-				offsetVersionAndCreationTimeList = new ArrayList(ImmutableList.copyOf(offsetListStore.getOffsetList(-rawOffset).offsetVersionAndStorageTimeIterable()));
-				Collections.sort(offsetVersionAndCreationTimeList, new OffsetVersionAndCreationTimeListReverseComparator());
-			}
-			// List is now in reverse order; iterate down through the offsets
-			for (Triple<Integer,Long,Long> offsetVersionAndCreationTime : offsetVersionAndCreationTimeList) {
-				DHTKey entryKey;
-				int	offset;
-				long	version;
-				long	creationTime;
-				long	storedLength;
+            rawOffset = entry.getValue();
+            if (rawOffset >= 0) {
+                long    version;
+                long    creationTime;
+                
+                version = getVersion(rawOffset);
+                creationTime = getCreationTime(rawOffset);
+                offsetVersionAndCreationTimeList = ImmutableList.of(new Triple<>(rawOffset, version, creationTime));
+            } else {
+                offsetVersionAndCreationTimeList = new ArrayList(ImmutableList.copyOf(offsetListStore.getOffsetList(-rawOffset).offsetVersionAndStorageTimeIterable()));
+                Collections.sort(offsetVersionAndCreationTimeList, new OffsetVersionAndCreationTimeListReverseComparator());
+            }
+            // List is now in reverse order; iterate down through the offsets
+            for (Triple<Integer,Long,Long> offsetVersionAndCreationTime : offsetVersionAndCreationTimeList) {
+                DHTKey entryKey;
+                int    offset;
+                long    version;
+                long    creationTime;
+                long    storedLength;
 
-				offset = offsetVersionAndCreationTime.getV1();
-				version = offsetVersionAndCreationTime.getV2();
-				creationTime = offsetVersionAndCreationTime.getV3();
-				entryKey = entry.getKey();
-				
-				if (vrp.considersStoredLength()) {
-					storedLength = getStoredLength(offset);
-				} else {
-					storedLength = 0;
-				}
-				//Log.warningf("%s %d %d %d %s", entry.getKey(), offset,
-				//getCreationTime(offset), curTimeNanos,
-				//isInvalidated(offset));
-				// FUTURE - the isInvalidated() call below may touch disk and dramatically increase the
-				// execution time. Not a huge deal for segments that will be modified, but
-				// a dramatic increase in time for segments that won't.
-				// Leaving for now as tracking in memory requires space
-				if (vrp.retains(entryKey, version, creationTime, isInvalidated(offset), valueRetentionState, curTimeNanos, storedLength)
-						&& ringMaster.iAmPotentialReplicaFor(entryKey)) {
-					++numRetained;
-					retainedOffsets.add(offset);
-					//Log.warningf("Retained %s\t%d", entry.getKey(), offset);
-				} else {
-					++numDiscarded;
-					discardedOffsets.add(offset);
-					//Log.warningf("Discarded %s\t%d", entry.getKey(), offset);
-				}
-			}
-		}
-		return new Triple<>(new CompactionCheckResult(numRetained, numDiscarded), retainedOffsets, discardedOffsets);
-	}
+                offset = offsetVersionAndCreationTime.getV1();
+                version = offsetVersionAndCreationTime.getV2();
+                creationTime = offsetVersionAndCreationTime.getV3();
+                entryKey = entry.getKey();
+                
+                if (vrp.considersStoredLength()) {
+                    storedLength = getStoredLength(offset);
+                } else {
+                    storedLength = 0;
+                }
+                //Log.warningf("%s %d %d %d %s", entry.getKey(), offset,
+                //getCreationTime(offset), curTimeNanos,
+                //isInvalidated(offset));
+                // FUTURE - the isInvalidated() call below may touch disk and dramatically increase the
+                // execution time. Not a huge deal for segments that will be modified, but
+                // a dramatic increase in time for segments that won't.
+                // Leaving for now as tracking in memory requires space
+                if (vrp.retains(entryKey, version, creationTime, isInvalidated(offset), valueRetentionState, curTimeNanos, storedLength)
+                        && ringMaster.iAmPotentialReplicaFor(entryKey)) {
+                    ++numRetained;
+                    retainedOffsets.add(offset);
+                    //Log.warningf("Retained %s\t%d", entry.getKey(), offset);
+                } else {
+                    ++numDiscarded;
+                    discardedOffsets.add(offset);
+                    //Log.warningf("Discarded %s\t%d", entry.getKey(), offset);
+                }
+            }
+        }
+        return new Triple<>(new CompactionCheckResult(numRetained, numDiscarded), retainedOffsets, discardedOffsets);
+    }
     
 }

@@ -25,24 +25,24 @@ public final class UUIDSerDes implements BufferSerDes<UUID> {
         return UUIDUtil.BYTES_PER_UUID;
     }
 
-	@Override
-	public UUID deserialize(ByteBuffer[] buffers) {
-	    byte[] def;
-	    
-	    def = ByteArraySerDes.deserializeBuffers(buffers);
-	    if (def.length != UUIDUtil.BYTES_PER_UUID) {
-	        throw new RuntimeException("Unable to deserialize UUID def length: "+ def.length);
-	    }
-	    return UUIDUtil.bytesToUUID(def);
-	}
+    @Override
+    public UUID deserialize(ByteBuffer[] buffers) {
+        byte[] def;
+        
+        def = ByteArraySerDes.deserializeBuffers(buffers);
+        if (def.length != UUIDUtil.BYTES_PER_UUID) {
+            throw new RuntimeException("Unable to deserialize UUID def length: "+ def.length);
+        }
+        return UUIDUtil.bytesToUUID(def);
+    }
 
     @Override
     public UUID deserialize(ByteBuffer buffer) {
         return UUIDUtil.getUUID(buffer);
     }
 
-	@Override
-	public UUID emptyObject() {
-		return new UUIDBase(0, 0).getUUID();
-	}
+    @Override
+    public UUID emptyObject() {
+        return new UUIDBase(0, 0).getUUID();
+    }
 }

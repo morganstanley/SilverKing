@@ -69,8 +69,8 @@ public interface DHTSession {
      * @param nspOptions options for NamespacePerspective
      * @return the opened AsynchronousNamespacePerspective
      */
-	public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace, 
-	                                                            NamespacePerspectiveOptions<K,V> nspOptions);	
+    public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace, 
+                                                                NamespacePerspectiveOptions<K,V> nspOptions);    
     /**
      * Open an AsynchronousNamespacePerspective for the given key, value types
      * @param <K> key type of perspective to open
@@ -80,18 +80,18 @@ public interface DHTSession {
      * @param valueClass class of values
      * @return the opened AsynchronousNamespacePerspective
      */
-	public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace, 
-	                                                            Class<K> keyClass, Class<V> valueClass);	
-	public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace);	
-	/**
-	 * Open a SynchronousNamespacePerspective for the given key, value types
-	 * @param <K> key type of perspective to open
-	 * @param <V> value type of perspective to open
-	 * @param namespace name of the namespace
+    public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace, 
+                                                                Class<K> keyClass, Class<V> valueClass);    
+    public <K,V> AsynchronousNamespacePerspective<K,V> openAsyncNamespacePerspective(String namespace);    
+    /**
+     * Open a SynchronousNamespacePerspective for the given key, value types
+     * @param <K> key type of perspective to open
+     * @param <V> value type of perspective to open
+     * @param namespace name of the namespace
      * @param nspOptions options for NamespacePerspective
-	 * @return the opened SynchronousNamespacePerspective
-	 */
-	public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace,
+     * @return the opened SynchronousNamespacePerspective
+     */
+    public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace,
                                                                 NamespacePerspectiveOptions<K,V> nspOptions);
     /**
      * Open a SynchronousNamespacePerspective for the given key, value types
@@ -102,26 +102,26 @@ public interface DHTSession {
      * @param valueClass class of values
      * @return the opened SynchronousNamespacePerspective
      */
-	public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace,
-																Class<K> keyClass, Class<V> valueClass);
-	public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace);
-	/**
-	 * Deletes an entire namespace. This causes the data in the namespace to be inaccessible, and the data  
-	 * to be moved to the trash directory.
-	 * @param namespace name of the namespace
-	 * @throws NamespaceDeletionException TODO
-	 */
-	public void deleteNamespace(String namespace) throws NamespaceDeletionException;
-	/**
-	 * Attempts recovery of a deleted namespace. This is only possible of all namespace data is available in
-	 * the trash directory.
-	 * @param namespace name of the namespace
-	 * @throws NamespaceRecoverException TODO
-	 */
+    public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace,
+                                                                Class<K> keyClass, Class<V> valueClass);
+    public <K,V> SynchronousNamespacePerspective<K,V> openSyncNamespacePerspective(String namespace);
+    /**
+     * Deletes an entire namespace. This causes the data in the namespace to be inaccessible, and the data  
+     * to be moved to the trash directory.
+     * @param namespace name of the namespace
+     * @throws NamespaceDeletionException TODO
+     */
+    public void deleteNamespace(String namespace) throws NamespaceDeletionException;
+    /**
+     * Attempts recovery of a deleted namespace. This is only possible of all namespace data is available in
+     * the trash directory.
+     * @param namespace name of the namespace
+     * @throws NamespaceRecoverException TODO
+     */
     public void recoverNamespace(String namespace) throws NamespaceRecoverException;
-	
-	/**
-	 * Close the session
-	 */
-	public void close();
+    
+    /**
+     * Close the session
+     */
+    public void close();
 }

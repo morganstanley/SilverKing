@@ -13,10 +13,10 @@
 typedef enum NativeFileMode {nf_blockReadOnly, nf_readRelay_localPreread, nf_readRelay_distributedPreread} NativeFileMode;
 
 typedef struct CmdArgs {
-		const char *mountPath;
-        int	    verbose;
+        const char *mountPath;
+        int        verbose;
         const char  *host;
-        //int	    port;
+        //int        port;
         const char  *zkLoc;
         //const char  *dhtName;
         const char  *gcname;
@@ -29,14 +29,14 @@ typedef struct CmdArgs {
         const char  *taskOutputPaths;
         const char  *compressedPaths;
         const char  *noFBWPaths;
-		int		fbwReliableQueue;
-		SKCompression::SKCompression compression;
-		SKChecksumType::SKChecksumType checksum;
-		int	transientCacheSizeKB;
-		int	cacheConcurrency;
-		const char	*logLevel;
-		const char	*jvmOptions;
-		int enableBigWrites;
+        int        fbwReliableQueue;
+        SKCompression::SKCompression compression;
+        SKChecksumType::SKChecksumType checksum;
+        int    transientCacheSizeKB;
+        int    cacheConcurrency;
+        const char    *logLevel;
+        const char    *jvmOptions;
+        int enableBigWrites;
         int entryTimeoutSecs;
         int attrTimeoutSecs;
         int negativeTimeoutSecs;

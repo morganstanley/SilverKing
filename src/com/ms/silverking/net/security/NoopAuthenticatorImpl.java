@@ -11,8 +11,8 @@ public class NoopAuthenticatorImpl extends Authenticator {
 
     @Override
     public String getName() { 
-    	return "[SilverkingDefaultAuthenticator]" + NoopAuthenticatorImpl.class.getCanonicalName(); 
-	}
+        return "[SilverkingDefaultAuthenticator]" + NoopAuthenticatorImpl.class.getCanonicalName(); 
+    }
 
     @Override
     public Authenticator createLocalCopy() {

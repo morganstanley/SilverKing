@@ -30,6 +30,6 @@ class MessageGroupConnectionProxyLocal implements MessageGroupConnectionProxy {
     
     @Override
     public MessageGroupConnection getConnection() {
-    	return null;
+        return null;
     }    
 }

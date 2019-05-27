@@ -15,7 +15,7 @@
 ////////////////////
 // private defines
 
-#define WFT_ATTR_WRITE_MAX_ATTEMPTS	12
+#define WFT_ATTR_WRITE_MAX_ATTEMPTS    12
 
 
 ///////////////////////
@@ -36,64 +36,64 @@ static int _wftHashSize = 4 * 1024;
 // implementation
 
 WritableFileTable *wft_new(const char *name, AttrWriter *aw, AttrCache *ac, AttrReader *ar, FileBlockWriter *fbw) {
-	WritableFileTable	*wft;
-	int	i;
+    WritableFileTable    *wft;
+    int    i;
 
-	wft = (WritableFileTable *)mem_alloc(1, sizeof(WritableFileTable));
+    wft = (WritableFileTable *)mem_alloc(1, sizeof(WritableFileTable));
     srfsLog(LOG_FINE, "wft_new:\t%s\n", name);
     wft->name = name;
-	wft->aw = aw;
-	wft->ac = ac;
+    wft->aw = aw;
+    wft->ac = ac;
     wft->ar = ar;
     wft->fbw = fbw;
-	for (i = 0; i < WFT_NUM_HT; i++) {
-		wft->htl[i].ht = create_hashtable(_wftHashSize, (unsigned int (*)(void *))stringHash, (int(*)(void *, void *))strcmp);
-		pthread_rwlock_init(&wft->htl[i].rwLock, 0); 
-	}
-	return wft;
+    for (i = 0; i < WFT_NUM_HT; i++) {
+        wft->htl[i].ht = create_hashtable(_wftHashSize, (unsigned int (*)(void *))stringHash, (int(*)(void *, void *))strcmp);
+        pthread_rwlock_init(&wft->htl[i].rwLock, 0); 
+    }
+    return wft;
 }
 
 void wft_delete(WritableFileTable **wft) {
-	int	i;
-	
-	if (wft != NULL && *wft != NULL) {
-		for (i = 0; i < WFT_NUM_HT; i++) {
-			// FUTURE - delete hashtable and entries
-			// all current use cases never call this
-			//delete_hashtable((*wft)->htl[i].ht);
-			pthread_rwlock_destroy(&(*wft)->htl[i].rwLock);
-		}
-		mem_free((void **)wft);
-	} else {
-		fatalError("bad ptr in wft_delete");
-	}
+    int    i;
+    
+    if (wft != NULL && *wft != NULL) {
+        for (i = 0; i < WFT_NUM_HT; i++) {
+            // FUTURE - delete hashtable and entries
+            // all current use cases never call this
+            //delete_hashtable((*wft)->htl[i].ht);
+            pthread_rwlock_destroy(&(*wft)->htl[i].rwLock);
+        }
+        mem_free((void **)wft);
+    } else {
+        fatalError("bad ptr in wft_delete");
+    }
 }
 
 static HashTableAndLock *wft_get_htl(WritableFileTable *wft, const char *path) {
-	srfsLog(LOG_FINE, "wft_get_htl %llx %d %llx", wft, stringHash((void *)path) % WFT_NUM_HT, &wft->htl[stringHash((void *)path) % WFT_NUM_HT]);
-	return &(wft->htl[stringHash((void *)path) % WFT_NUM_HT]);
+    srfsLog(LOG_FINE, "wft_get_htl %llx %d %llx", wft, stringHash((void *)path) % WFT_NUM_HT, &wft->htl[stringHash((void *)path) % WFT_NUM_HT]);
+    return &(wft->htl[stringHash((void *)path) % WFT_NUM_HT]);
 }
 
 WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *name, mode_t mode, 
                                       FileAttr *fa, PartialBlockReader *pbr, int *retryFlag) {
-	HashTableAndLock	*htl;
-	WritableFile		*existingWF;
+    HashTableAndLock    *htl;
+    WritableFile        *existingWF;
     WritableFileReference    *wf_userRef;
-	
+    
     wf_userRef = NULL;
-	htl = wft_get_htl(wft, name);
-	pthread_rwlock_wrlock(&htl->rwLock);
+    htl = wft_get_htl(wft, name);
+    pthread_rwlock_wrlock(&htl->rwLock);
     existingWF = (WritableFile *)hashtable_search(htl->ht, (void *)name); 
-	if (existingWF != NULL) {
-		srfsLog(LOG_INFO, "Found existing wft entry %s", name);
+    if (existingWF != NULL) {
+        srfsLog(LOG_INFO, "Found existing wft entry %s", name);
         wf_userRef = NULL;
-	} else {		
-        WritableFile		*createdWF;
+    } else {        
+        WritableFile        *createdWF;
     
         // wf_new can issue remove ops; we must drop the wft lock 
         // to avoid blocking wft access while the op proceeds
         pthread_rwlock_unlock(&htl->rwLock);
-		createdWF = wf_new(name, mode, htl, wft->aw, fa, pbr, retryFlag);
+        createdWF = wf_new(name, mode, htl, wft->aw, fa, pbr, retryFlag);
         if (createdWF == NULL) {
             // creation failed; no lock held; exit
             return NULL;
@@ -113,36 +113,36 @@ WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *n
                 wf_userRef = wf_add_reference(createdWF, __FILE__, __LINE__);
             }
         }
-	}
-	pthread_rwlock_unlock(&htl->rwLock);
-	return wf_userRef;
+    }
+    pthread_rwlock_unlock(&htl->rwLock);
+    return wf_userRef;
 }
 
 WritableFileReference *wft_get(WritableFileTable *wft, const char *name) {
-	HashTableAndLock	*htl;
-	WritableFile		*wf;
+    HashTableAndLock    *htl;
+    WritableFile        *wf;
     WritableFileReference    *wf_userRef;
-	
+    
     wf_userRef = NULL;
-	htl = wft_get_htl(wft, name);
-	pthread_rwlock_rdlock(&htl->rwLock);
+    htl = wft_get_htl(wft, name);
+    pthread_rwlock_rdlock(&htl->rwLock);
     wf = (WritableFile *)hashtable_search(htl->ht, (void *)name); 
     if (wf != NULL) {
         wf_userRef = wf_add_reference(wf, __FILE__, __LINE__);
     }
-	pthread_rwlock_unlock(&htl->rwLock);
-	srfsLog(LOG_INFO, "wft_get %llx %llx %llx %s returning %llx", wft, htl, htl->ht, name, wf);
-	return wf_userRef;
+    pthread_rwlock_unlock(&htl->rwLock);
+    srfsLog(LOG_INFO, "wft_get %llx %llx %llx %s returning %llx", wft, htl, htl->ht, name, wf);
+    return wf_userRef;
 }
 
 int wft_contains(WritableFileTable *wft, const char *name) {
-	HashTableAndLock	*htl;
+    HashTableAndLock    *htl;
     WritableFile        *wf;
     
-	htl = wft_get_htl(wft, name);
-	pthread_rwlock_rdlock(&htl->rwLock);
+    htl = wft_get_htl(wft, name);
+    pthread_rwlock_rdlock(&htl->rwLock);
     wf = (WritableFile *)hashtable_search(htl->ht, (void *)name); 
-	pthread_rwlock_unlock(&htl->rwLock);
+    pthread_rwlock_unlock(&htl->rwLock);
     return wf != NULL;
 }
 
@@ -150,13 +150,13 @@ int wft_contains(WritableFileTable *wft, const char *name) {
 // Only called by wfr_delete_ref()
 // moved into wf_check_for_close()
 int wft_check_file_for_removal(WritableFileTable *wft, WritableFile *wf) {
-	HashTableAndLock	*htl;
+    HashTableAndLock    *htl;
     WritableFile        *wf;
     int rc;
     
-	htl = wft_get_htl(wft, name);
+    htl = wft_get_htl(wft, name);
     
-	pthread_rwlock_rdlock(&htl->rwLock);
+    pthread_rwlock_rdlock(&htl->rwLock);
     wf = (WritableFile *)hashtable_search(htl->ht, (void *)name); 
     pthread_rwlock_unlock(&htl->rwLock);
     
@@ -177,23 +177,23 @@ int wft_check_file_for_removal(WritableFileTable *wft, WritableFile *wf) {
 
 /*
 WritableFileReference *wft_remove(WritableFileTable *wft, const char *name) {
-	HashTableAndLock	*htl;
-	WritableFile		*wf;
+    HashTableAndLock    *htl;
+    WritableFile        *wf;
     WritableFileReference    *wf_tableRef;
-	
-	srfsLog(LOG_INFO, "wft_remove %llx %s", wft, name);
-	htl = wft_get_htl(wft, name);
-	pthread_rwlock_wrlock(&htl->rwLock);
+    
+    srfsLog(LOG_INFO, "wft_remove %llx %s", wft, name);
+    htl = wft_get_htl(wft, name);
+    pthread_rwlock_wrlock(&htl->rwLock);
     wf_tableRef = (WritableFileReference *)hashtable_remove(htl->ht, (void *)name); 
-	pthread_rwlock_unlock(&htl->rwLock);
-	return wf_tableRef;
+    pthread_rwlock_unlock(&htl->rwLock);
+    return wf_tableRef;
 }
 */
 
 // FUTURE - Consider moving this out of wft. No wft is currently used,
 // but wft contains locks for controlling file creation.
 int wft_delete_file(WritableFileTable *wft, const char *name, int deleteBlocks) {
-    SKOperationState::SKOperationState	awResult;
+    SKOperationState::SKOperationState    awResult;
     int result;    
     int getAttrResult;
     FileAttr _fa;

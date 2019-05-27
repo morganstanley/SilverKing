@@ -13,11 +13,11 @@
 // types
 
 typedef struct ActiveOpRef {
-	ActiveOp	*ao;
-	int			ref;
-	int			deleted;
-	char		*file;
-	int			line;
+    ActiveOp    *ao;
+    int            ref;
+    int            deleted;
+    char        *file;
+    int            line;
 } ActiveOpRef;
 
 ActiveOpRef *aor_new(ActiveOp *ao, char *file, int line);

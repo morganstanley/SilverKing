@@ -1,6 +1,6 @@
 
 function f_aws_getBuild_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$1")
+    echo $(f_getRunOutputFilename_Helper "$1")
 }
 
 function f_aws_fillInMakeJobs {
@@ -24,9 +24,9 @@ function f_aws_fail {
 } 
 
 function f_aws_downloadTar {
-	typeset tar=$1
-	typeset url=$2
-	
+    typeset tar=$1
+    typeset url=$2
+    
     typeset wgetOption;
     typeset tarOption;
     if [[ $QUIET_OUTPUT == "true" ]]; then
@@ -35,39 +35,39 @@ function f_aws_downloadTar {
         tarOption="-v"
     fi
     
-	cd $LIB_ROOT
-	wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
+    cd $LIB_ROOT
+    wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
     f_aws_checkExitCode "wget: $url"
-	tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
-	f_aws_checkExitCode "tar: $tar"
+    tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
+    f_aws_checkExitCode "tar: $tar"
     rm $tar
     f_aws_checkExitCode "rm: $tar"
 }
 
 function f_aws_downloadJar {
-	typeset url=$1
-	
-	curl -O $url
+    typeset url=$1
+    
+    curl -O $url
     f_aws_checkExitCode "curl: $url"
 }
 
 function f_aws_replaceLine {
-	typeset oldLine=$1
-	typeset newLine=$2
-	typeset filename=$3
-	typeset admin=$4
-	
-	$admin sed -i "/${oldLine}/c${newLine}" $filename
+    typeset oldLine=$1
+    typeset newLine=$2
+    typeset filename=$3
+    typeset admin=$4
+    
+    $admin sed -i "/${oldLine}/c${newLine}" $filename
 }
 
 function f_aws_generatePrivateKey {
     echo "generating private key"
-	cd ~/.ssh
-	typeset publicKeyFilename="id_rsa.pub"
-	if [[ ! -f $publicKeyFilename ]]; then
-		ssh-keygen -f id_rsa -N '' # flags -f,-N are to bypass prompt
-		cat $publicKeyFilename >> authorized_keys
-	fi
+    cd ~/.ssh
+    typeset publicKeyFilename="id_rsa.pub"
+    if [[ ! -f $publicKeyFilename ]]; then
+        ssh-keygen -f id_rsa -N '' # flags -f,-N are to bypass prompt
+        cat $publicKeyFilename >> authorized_keys
+    fi
 }
 
 # sudo yum install ant - is installing 1.8 and we need 1.9

@@ -45,103 +45,103 @@ import com.ms.silverking.util.ArrayUtil;
 class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V> 
         implements AsyncPut<K>, OpResultListener, ActiveKeyedOperationResultListener<OpResult>, AsyncInvalidation<K> {
     private final PutOperation<K, V>   putOperation;
-	private final long                 version;
+    private final long                 version;
     private final AtomicLong           resolvedVersion;
-    private final VersionProvider		versionProvider;
-	// FUTURE - think about whether we want the double map
-	// is the overhead worth the savings in crypto op reduction?
+    private final VersionProvider        versionProvider;
+    // FUTURE - think about whether we want the double map
+    // is the overhead worth the savings in crypto op reduction?
     //protected final ConcurrentMap<K,OpResult>  results; 
     private final ConcurrentMap<DHTKey,OpResult>   opResults;
     private final ActivePutListeners    activePutListeners;
     
     private final List<OperationUUID>   opUUIDs; // holds references to ops to prevent GC
     private List<FragmentedPutValue>     fragmentedPutValues; // hold references to prevent GC
-    	
-	private static final boolean   debug = false;
+        
+    private static final boolean   debug = false;
     private static final boolean   verboseToString = true;
-	
-	AsyncPutOperationImpl(PutOperation<K,V> putOperation, 
-	                          ClientNamespace namespace,
-	                          NamespacePerspectiveOptionsImpl<K,V> nspoImpl,
-							  long curTimeMillis,
-							  byte[] originator,
-							  VersionProvider versionProvider) { 
-		super(putOperation, namespace, nspoImpl, curTimeMillis, originator);
-		this.putOperation = putOperation;
-		if (putOperation.size() == 0) {
+    
+    AsyncPutOperationImpl(PutOperation<K,V> putOperation, 
+                              ClientNamespace namespace,
+                              NamespacePerspectiveOptionsImpl<K,V> nspoImpl,
+                              long curTimeMillis,
+                              byte[] originator,
+                              VersionProvider versionProvider) { 
+        super(putOperation, namespace, nspoImpl, curTimeMillis, originator);
+        this.putOperation = putOperation;
+        if (putOperation.size() == 0) {
             setResult(OpResult.SUCCEEDED);
-		}
-		this.version = putOperation.putOptions().getVersion();
-		resolvedVersion = new AtomicLong(DHTConstants.noSuchVersion);
-		this.versionProvider = versionProvider;
-		this.opResults = new ConcurrentHashMap<>();
-		this.activePutListeners = namespace.getActivePutListeners();
-		opUUIDs = new LinkedList<>();
-		
-		//Log.warning(namespace.getOptions().getVersionMode() +" "+ versionProvider 
-		//		+" "+ (versionProvider != null ? versionProvider.getVersion() : ""));
-	}
-	
-    @Override 
-	protected NonExistenceResponse getNonExistenceResponse() {
-    	return null;
+        }
+        this.version = putOperation.putOptions().getVersion();
+        resolvedVersion = new AtomicLong(DHTConstants.noSuchVersion);
+        this.versionProvider = versionProvider;
+        this.opResults = new ConcurrentHashMap<>();
+        this.activePutListeners = namespace.getActivePutListeners();
+        opUUIDs = new LinkedList<>();
+        
+        //Log.warning(namespace.getOptions().getVersionMode() +" "+ versionProvider 
+        //        +" "+ (versionProvider != null ? versionProvider.getVersion() : ""));
     }
-	
-	@Override
+    
+    @Override 
+    protected NonExistenceResponse getNonExistenceResponse() {
+        return null;
+    }
+    
+    @Override
     public MessageEstimate createMessageEstimate() {
         return new PutMessageEstimate();
     }
-	
-	@Override
+    
+    @Override
     ProtoMessageGroup createProtoMG(MessageEstimate estimate) {
         return createProtoPutMG((PutMessageEstimate)estimate, DHTClient.getValueCreator().getBytes());
     }
-	
-	PutOptions putOptions() {
-	    return putOperation.putOptions();
-	}
-	
-	//private void ensureResolved() {
-	//    if (resolvedVersion.get() == 0) {
-	//        throw new RuntimeException("Unresolved");
-	//    }
-	//}
-	
+    
+    PutOptions putOptions() {
+        return putOperation.putOptions();
+    }
+    
+    //private void ensureResolved() {
+    //    if (resolvedVersion.get() == 0) {
+    //        throw new RuntimeException("Unresolved");
+    //    }
+    //}
+    
     long getPotentiallyUnresolvedVersion() {
         return version;
     }
     
-	long getResolvedVersion() {
-	    resolveVersion();
-	    return resolvedVersion.get();
-	}
-	
-	/**
-	 * We delay resolving the version to improve the accuracy for fine-grained version providers.
-	 */
-	private void resolveVersion() {
-	    if (resolvedVersion.get() == DHTConstants.noSuchVersion) {
-	    	long	v;
-	    	
-	    	v = putOperation.putOptions().getVersion();
-	    	if (v == PutOptions.defaultVersion) {
-	    		v = versionProvider.getVersion();
-	    	}
+    long getResolvedVersion() {
+        resolveVersion();
+        return resolvedVersion.get();
+    }
+    
+    /**
+     * We delay resolving the version to improve the accuracy for fine-grained version providers.
+     */
+    private void resolveVersion() {
+        if (resolvedVersion.get() == DHTConstants.noSuchVersion) {
+            long    v;
+            
+            v = putOperation.putOptions().getVersion();
+            if (v == PutOptions.defaultVersion) {
+                v = versionProvider.getVersion();
+            }
             resolvedVersion.compareAndSet(DHTConstants.noSuchVersion, v);
-	    }
-	}
+        }
+    }
     
     ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate) {
         return createProtoPutMG(estimate, DHTClient.getValueCreator().getBytes());
     }
     
-	ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate, byte[] creator) {
-	    OperationUUID  opUUID;
-	    ConcurrentMap<DHTKey,ActiveKeyedOperationResultListener<OpResult>>  newMap;
-	    long	resolvedVersion;
-	    
-	    resolvedVersion = getResolvedVersion();
-	    opUUID = activePutListeners.newOpUUIDAndMap();
+    ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate, byte[] creator) {
+        OperationUUID  opUUID;
+        ConcurrentMap<DHTKey,ActiveKeyedOperationResultListener<OpResult>>  newMap;
+        long    resolvedVersion;
+        
+        resolvedVersion = getResolvedVersion();
+        opUUID = activePutListeners.newOpUUIDAndMap();
         return new ProtoPutMessageGroup<>(opUUID, 
                                           context.contextAsLong(),
                                           estimate.getNumKeys(),
@@ -156,16 +156,16 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
                                           nspoImpl.getNSPOptions().getEncrypterDecrypter());
                                           // FUTURE - trim the above timeout according to the amount
                                           // of time that has elapsed since the start
-	}
-	
-	//private PutMessageEstimate initialEstimate;
-	
-	@Override
+    }
+    
+    //private PutMessageEstimate initialEstimate;
+    
+    @Override
     public void addToEstimate(MessageEstimate estimate) {
-	    PutMessageEstimate putMessageEstimate;
-	    
-	    putMessageEstimate = (PutMessageEstimate)estimate;
-	    putMessageEstimate.addKeys(putOperation.size());
+        PutMessageEstimate putMessageEstimate;
+        
+        putMessageEstimate = (PutMessageEstimate)estimate;
+        putMessageEstimate.addKeys(putOperation.size());
         for (K key : getKeys()) {            
             if (!getSent() || OpResult.isIncompleteOrNull(opResults.get(keyToDHTKey.get(key)))) {
                 V   value;
@@ -180,14 +180,14 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
             }
         }
     }
-	
-	@Override
+    
+    @Override
     ProtoMessageGroup createMessagesForIncomplete(ProtoMessageGroup protoMG, List<MessageGroup> messageGroups,
                                         MessageEstimate estimate) {
         return createMessagesForIncomplete((ProtoPutMessageGroup<V>)protoMG, messageGroups, (PutMessageEstimate)estimate);
     }
-	
-	private int    creationCalls;
+    
+    private int    creationCalls;
     
     private ProtoPutMessageGroup<V> createMessagesForIncomplete(ProtoPutMessageGroup<V> protoPutMG, List<MessageGroup> messageGroups, 
             PutMessageEstimate estimate) {
@@ -317,7 +317,7 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         int uncompressedLength;
         int storedLength;
         byte[]      checksum;
-        int	fragmentationThreshold;
+        int    fragmentationThreshold;
         
         Log.fine("fragmenting: ", key);
         
@@ -477,7 +477,7 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
             checkForCompletion();
         }
     }
-	
+    
     @Override
     public OperationState getOperationState(K key) {
         OpResult    result;

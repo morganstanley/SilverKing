@@ -37,26 +37,26 @@
 typedef enum {WFR_Invalid = 0, WFR_Created, WFR_Destroyed} WFRefStatus;
 
 typedef struct WritableFileReferentState {
-	WFRefStatus	    refStatus[WFR_MAX_REFS];
-	int				nextRef;
-	int				toDelete;
+    WFRefStatus        refStatus[WFR_MAX_REFS];
+    int                nextRef;
+    int                toDelete;
 } WritableFileReferentState;
 
 
 #define _WF_TYPE_
 typedef struct WritableFile {
-	uint16_t	magic;	
+    uint16_t    magic;    
     const char  *path;
     const char  *pendingRename;
     OpenDir     *parentDir;
     uint64_t    parentDirUpdateTimeMillis;
-	FileAttr	fa;
-	ArrayBlockList		*blockList;
+    FileAttr    fa;
+    ArrayBlockList        *blockList;
     WritableFileBlock    *curBlock;
-	uint64_t			numBlocks;
-	pthread_mutex_t lock;
+    uint64_t            numBlocks;
+    pthread_mutex_t lock;
     HashTableAndLock    *htl;
-	uint64_t	leastIncompleteBlockIndex;
+    uint64_t    leastIncompleteBlockIndex;
     WritableFileReferentState   referentState;
     uint8_t kvAttrStale;
 } WritableFile;

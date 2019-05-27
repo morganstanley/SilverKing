@@ -7,11 +7,11 @@ source lib/common.lib
 typeset release_area=$1
 
 if [[ -z $release_area ]] ; then
-	release_area="../release-x.xx"
-	echo "Set release_area=$release_area"
-	echo
+    release_area="../release-x.xx"
+    echo "Set release_area=$release_area"
+    echo
 fi
-	
+    
 f_printHeader "RELEASING"
 
 f_makeVerbose "$release_area"

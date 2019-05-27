@@ -21,8 +21,8 @@ public abstract class AsyncVersionedBasicOperationImpl extends AsyncNamespaceOpe
     }
     
     @Override 
-	protected NonExistenceResponse getNonExistenceResponse() {
-    	return null;
+    protected NonExistenceResponse getNonExistenceResponse() {
+        return null;
     }
 
     @Override

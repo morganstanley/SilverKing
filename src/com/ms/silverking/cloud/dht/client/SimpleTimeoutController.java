@@ -26,7 +26,7 @@ public class SimpleTimeoutController implements OpTimeoutController {
      * @param maxRelativeTimeoutMillis relative timeout in milliseconds
      */
     public SimpleTimeoutController(int maxAttempts, int maxRelativeTimeoutMillis) {
-    	Util.checkAttempts(maxAttempts);
+        Util.checkAttempts(maxAttempts);
         this.maxAttempts = maxAttempts;
         this.maxRelativeTimeoutMillis = maxRelativeTimeoutMillis;
     }
@@ -60,9 +60,9 @@ public class SimpleTimeoutController implements OpTimeoutController {
     }
     
     @Override
-	public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
+    public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
         return Integer.MAX_VALUE;
-	}
+    }
 
     @Override
     public int getMaxRelativeTimeoutMillis(AsyncOperation op) {
@@ -71,24 +71,24 @@ public class SimpleTimeoutController implements OpTimeoutController {
      
     @Override
     public int hashCode() {
-    	return maxAttempts ^ maxRelativeTimeoutMillis;
+        return maxAttempts ^ maxRelativeTimeoutMillis;
     }
     
     @Override
     public boolean equals(Object o) {
-    	SimpleTimeoutController	other;
-    	
-    	if (this == o) {
-    		return true;
-    	}
-    	
-    	if (this.getClass() != o.getClass()) {
-    		return false;
-    	}
-    	
-    	other = (SimpleTimeoutController)o;
-    	return maxAttempts == other.maxAttempts 
-    			&& maxRelativeTimeoutMillis == other.maxRelativeTimeoutMillis;
+        SimpleTimeoutController    other;
+        
+        if (this == o) {
+            return true;
+        }
+        
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
+        
+        other = (SimpleTimeoutController)o;
+        return maxAttempts == other.maxAttempts 
+                && maxRelativeTimeoutMillis == other.maxRelativeTimeoutMillis;
     }
     
     @Override

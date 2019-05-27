@@ -52,7 +52,7 @@ using namespace System::Reflection;
 namespace SKManagedClient {
 
 String ^ MValMetaData::ToString(){
-		  IPAddress ^ ipAddr = gcnew IPAddress(BitConverter::GetBytes(creatorIP));
+          IPAddress ^ ipAddr = gcnew IPAddress(BitConverter::GetBytes(creatorIP));
           String ^ str = gcnew String("ABC");
           str = "uncompressLength: " + uncompressLength +
                 "\nstoredLength:    " + storedLength +
@@ -60,12 +60,12 @@ String ^ MValMetaData::ToString(){
                 "\nchecksumType:    " + checksumType.ToString() +
                 "\nversion:         " + version +
                 "\ncreationTime:    " + creationTime.ToString() +
-				"\ncreatorIP:       " + ipAddr->ToString() +
-				"\ncreatorID:       " + creatorID;
+                "\ncreatorIP:       " + ipAddr->ToString() +
+                "\ncreatorID:       " + creatorID;
           if (userData != nullptr)
           {
               str += 
-				"\nuserData:        " + userData;
+                "\nuserData:        " + userData;
           }
 
           return str;

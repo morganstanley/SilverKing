@@ -41,7 +41,7 @@ public class RingTree {
     private final Topology  topology;
     //private final Map<Pair<String,String>,TopologyRing>    maps;
     private final Map<String,TopologyRing>    maps;
-    private final long	ringConfigVersion;
+    private final long    ringConfigVersion;
     // Note that we don't store instance version information as that isn't known for trees that haven't been written to zookeeper
     // InstantiatedRingTree contains this information for trees that have been written to zookeeper.
     private final long  ringCreationTime;
@@ -155,34 +155,34 @@ public class RingTree {
     /////////////////////////////////
     
     public ResolvedReplicaMap getResolvedMap(String ringParentName, ReplicaPrioritizer replicaPrioritizer) {
-    	try {
-	        ResolvedReplicaMap  resolvedMap;
-	        List<RingEntry>     entryList;
-	        Node				node;
-	        Stopwatch			sw;
-	        
-	        Log.warningf("getResolvedMap: %s", ringParentName);
-	        sw = new SimpleStopwatch();
-	        resolvedMap = new ResolvedReplicaMap(replicaPrioritizer);
-	        if (debug) {
-	            System.out.println("getResolvedMap: "+ topology.getRoot());
-	        }
-	        node = topology.getNodeByID(ringParentName);
-	        if (node == null) {
-	        	throw new RuntimeException("Unable to getNodeByID "+ ringParentName);
-	        }
-	        entryList = project(node, RingRegion.allRingspace);
-	        for (RingEntry entry : entryList) {
-	            resolvedMap.addEntry(entry);
-	        }
-	        resolvedMap.computeReplicaSet();
-	        sw.stop();
-	        Log.warningf("getResolvedMap: %s complete %f", ringParentName, sw.getElapsedSeconds());
-	        return resolvedMap;
-    	} catch (RuntimeException re) {
-    		re.printStackTrace();
-    		throw re;
-    	}
+        try {
+            ResolvedReplicaMap  resolvedMap;
+            List<RingEntry>     entryList;
+            Node                node;
+            Stopwatch            sw;
+            
+            Log.warningf("getResolvedMap: %s", ringParentName);
+            sw = new SimpleStopwatch();
+            resolvedMap = new ResolvedReplicaMap(replicaPrioritizer);
+            if (debug) {
+                System.out.println("getResolvedMap: "+ topology.getRoot());
+            }
+            node = topology.getNodeByID(ringParentName);
+            if (node == null) {
+                throw new RuntimeException("Unable to getNodeByID "+ ringParentName);
+            }
+            entryList = project(node, RingRegion.allRingspace);
+            for (RingEntry entry : entryList) {
+                resolvedMap.addEntry(entry);
+            }
+            resolvedMap.computeReplicaSet();
+            sw.stop();
+            Log.warningf("getResolvedMap: %s complete %f", ringParentName, sw.getElapsedSeconds());
+            return resolvedMap;
+        } catch (RuntimeException re) {
+            re.printStackTrace();
+            throw re;
+        }
     }
 
     private List<RingEntry> project(Node node, RingRegion parentRegion) {
@@ -206,11 +206,11 @@ public class RingTree {
                 entryList = new ArrayList<>();
                 ring = getNodeRing(node);
                 if (ring == null) {
-                	for (String s : maps.keySet()) {
-                		System.out.printf("%s\n", s);
-                	}
-                	System.out.println("");
-                	System.out.printf("%s\n", node.getIDString());
+                    for (String s : maps.keySet()) {
+                        System.out.printf("%s\n", s);
+                    }
+                    System.out.println("");
+                    System.out.printf("%s\n", node.getIDString());
                     throw new RuntimeException("Can't find ring for node: "+ node);
                 } else {
                     List<RingEntry> allChildList;
@@ -265,51 +265,51 @@ public class RingTree {
     }
     
     private List<RingEntry> removeOverlaps(List<RingEntry> ringEntryList) {
-    	if (ringEntryList.size() > 1) {
-	    	List<RingEntry>	nonOverlappedList;
+        if (ringEntryList.size() > 1) {
+            List<RingEntry>    nonOverlappedList;
 
-	    	nonOverlappedList = new ArrayList<>(ringEntryList.size());
-	    	for (int i = 0; i < ringEntryList.size();) {
-	    		RingEntry	e;
-	    		
-	    		e = ringEntryList.get(i);
-	    		if (e.getRegion().getSize() == 1) {
-	    			RingEntry	mergeIntoEntry;
-	    			RingEntry	newEntry;
-    				RingRegion	newRegion;
-	    			
-	    			if (i + 1 < ringEntryList.size()) {
-	    				mergeIntoEntry = ringEntryList.get(i + 1);
-	    				newRegion = mergeIntoEntry.getRegion().merge(e.getRegion());
-	    				newEntry = mergeIntoEntry.replaceRegion(newRegion);
-		    			nonOverlappedList.add(newEntry);
-		    			i += 2; // advance past the current entry and the entry that we just merged into
-	    			} else {
-	    				if (nonOverlappedList.size() > 0) {
-	    					mergeIntoEntry = ringEntryList.get(i - 1);
-		    				newRegion = mergeIntoEntry.getRegion().merge(e.getRegion());
-		    				newEntry = mergeIntoEntry.replaceRegion(newRegion);
-		    				nonOverlappedList.set(i - 1, newEntry); // replace previous entry
-		    				++i; // advance past current entry
-	    				} else {
-	    					Log.warningf("Unable to merge single point entry %s", e);
-	    	    			nonOverlappedList.add(e);
-	    	    			++i; // advance past current entry
-	    				}
-	    				// skip entry?
-	    			}
-	    		} else {
-	    			nonOverlappedList.add(e);
-	    			++i; // advance past current entry
-	    		}
-	    	}
-			return nonOverlappedList;
-    	} else {
-    		return ringEntryList;
-    	}
-	}
+            nonOverlappedList = new ArrayList<>(ringEntryList.size());
+            for (int i = 0; i < ringEntryList.size();) {
+                RingEntry    e;
+                
+                e = ringEntryList.get(i);
+                if (e.getRegion().getSize() == 1) {
+                    RingEntry    mergeIntoEntry;
+                    RingEntry    newEntry;
+                    RingRegion    newRegion;
+                    
+                    if (i + 1 < ringEntryList.size()) {
+                        mergeIntoEntry = ringEntryList.get(i + 1);
+                        newRegion = mergeIntoEntry.getRegion().merge(e.getRegion());
+                        newEntry = mergeIntoEntry.replaceRegion(newRegion);
+                        nonOverlappedList.add(newEntry);
+                        i += 2; // advance past the current entry and the entry that we just merged into
+                    } else {
+                        if (nonOverlappedList.size() > 0) {
+                            mergeIntoEntry = ringEntryList.get(i - 1);
+                            newRegion = mergeIntoEntry.getRegion().merge(e.getRegion());
+                            newEntry = mergeIntoEntry.replaceRegion(newRegion);
+                            nonOverlappedList.set(i - 1, newEntry); // replace previous entry
+                            ++i; // advance past current entry
+                        } else {
+                            Log.warningf("Unable to merge single point entry %s", e);
+                            nonOverlappedList.add(e);
+                            ++i; // advance past current entry
+                        }
+                        // skip entry?
+                    }
+                } else {
+                    nonOverlappedList.add(e);
+                    ++i; // advance past current entry
+                }
+            }
+            return nonOverlappedList;
+        } else {
+            return ringEntryList;
+        }
+    }
 
-	/*
+    /*
     private List<RingEntry> project(Node node, RingRegion parentRegion) {
         List<RingEntry> entryList;
         List<RingEntry> projectedEntryList;
@@ -416,31 +416,31 @@ public class RingTree {
             RingEntry   oldSourceEntry;
             RingRegion  oldSourceRegion;
             boolean     destScanActive;
-            int			searchResult;
-            int			startIndex;
-            int			endIndex;
-            int			insertionIndex;
+            int            searchResult;
+            int            startIndex;
+            int            endIndex;
+            int            insertionIndex;
             
             oldSourceEntry = sourceList.remove(0);
             oldSourceRegion = oldSourceEntry.getRegion();
 
             searchResult = Collections.binarySearch(destList, oldSourceEntry, RingEntryPositionComparator.instance);
             if (searchResult < 0) {
-            	// no exact match for this position was found
-            	// we can look at the two entries next to us to figure out what's up
-            	insertionIndex = -(searchResult + 1);
-            	startIndex = insertionIndex - 1;
-            	if (startIndex < 0) {
-            		startIndex = 0;
-            		endIndex = destList.size();
-            	} else {
-                	endIndex = startIndex + 1;
-            	}
+                // no exact match for this position was found
+                // we can look at the two entries next to us to figure out what's up
+                insertionIndex = -(searchResult + 1);
+                startIndex = insertionIndex - 1;
+                if (startIndex < 0) {
+                    startIndex = 0;
+                    endIndex = destList.size();
+                } else {
+                    endIndex = startIndex + 1;
+                }
             } else {
-            	// we found an exact match for this position, there will be some sort of match below
-        		insertionIndex = Integer.MIN_VALUE; // should have perfect match, no insertion
-            	startIndex = searchResult;
-            	endIndex = searchResult;
+                // we found an exact match for this position, there will be some sort of match below
+                insertionIndex = Integer.MIN_VALUE; // should have perfect match, no insertion
+                startIndex = searchResult;
+                endIndex = searchResult;
             }
             
             // For simplicity, we perform a naive loop through all dests even though
@@ -517,23 +517,23 @@ public class RingTree {
                     destScanActive = false; // go on to next source entry 
                     break;
                 case wrappedPartial:
-                		// below is from abPartial
+                        // below is from abPartial
                     destList.remove(destIndex);
                     destList.add(destIndex, oldDestEntry.replaceRegion(iResult.getOverlapping().get(1)).addOwners(oldSourceEntry));
                     destList.add(destIndex, oldDestEntry.replaceRegion(iResult.getANonOverlapping()));
                     destList.add(destIndex, oldDestEntry.replaceRegion(iResult.getOverlapping().get(0)).addOwners(oldSourceEntry));
                     sourceList.add(0, oldSourceEntry.replaceRegion(iResult.getBNonOverlapping()));
                     destScanActive = false; // go on to next source entry 
-                	break;
+                    break;
                 case nonIdenticalAllRingspace:
-                	// This case is prevented by the fact RingRegion normalizes all all-ringspace regions
+                    // This case is prevented by the fact RingRegion normalizes all all-ringspace regions
                     throw new RuntimeException("panic");
                 default:
                     throw new RuntimeException("panic");
                 }
             }
             if (destScanActive) { // if we didn't add it, then add here
-            	destList.add(insertionIndex, oldSourceEntry);
+                destList.add(insertionIndex, oldSourceEntry);
                 //destList.add(oldSourceEntry);
                 //Collections.sort(destList, RingEntryPositionComparator.instance);
             }
@@ -656,13 +656,13 @@ public class RingTree {
     }
 
     public Set<Node> getMemberNodes(OwnerQueryMode oqm, NodeClass nodeClass) {
-        ImmutableSet.Builder<Node>	replicas;
+        ImmutableSet.Builder<Node>    replicas;
 
         replicas = ImmutableSet.builder();
         for (Node node : getMemberNodes(oqm)) {
-        	if (node.getNodeClass() == nodeClass) {
-        		replicas.add(node);
-        	}
+            if (node.getNodeClass() == nodeClass) {
+                replicas.add(node);
+            }
         }
         return replicas.build();
     }

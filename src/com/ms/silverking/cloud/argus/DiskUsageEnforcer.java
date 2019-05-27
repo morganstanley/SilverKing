@@ -102,18 +102,18 @@ public class DiskUsageEnforcer implements SafetyEnforcer {
                     +" "+ Files.isRegularFile(path));
                     */
             if (Files.isSymbolicLink(path)) {
-				try {
+                try {
                     String  targetName;
 
                     targetName = Files.readSymbolicLink(path).toString();
                     if (isMeasuredFile(targetName)) {
                         usage.addFile(targetName);
                     }
-				} catch (IOException ioe) {
+                } catch (IOException ioe) {
                 /***
                  * Ignore
                  */
-				}
+                }
             } else {
                 //System.out.println("Not symlink");
             }

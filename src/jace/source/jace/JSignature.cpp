@@ -45,14 +45,14 @@ string JSignature::toString() const
 {
   string signature = "(";
 
-	typedef list< ::boost::reference_wrapper<const JClass> > ClassList;
+    typedef list< ::boost::reference_wrapper<const JClass> > ClassList;
 
   ClassList::const_iterator end = mTypes.end();
 
   for (ClassList::const_iterator i = mTypes.begin();
         i != end;
         ++i)
-	{
+    {
     signature.append(i->get().getSignature());
   }
 
@@ -70,7 +70,7 @@ string JSignature::toString() const
  */
 JSignature& JSignature::operator<<(const JClass& argumentType)
 {
-	mTypes.push_back(boost::ref<const JClass>(argumentType));
+    mTypes.push_back(boost::ref<const JClass>(argumentType));
   return *this;
 }
 

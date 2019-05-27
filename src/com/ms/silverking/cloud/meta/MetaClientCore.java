@@ -26,27 +26,27 @@ public class MetaClientCore implements Watcher {
     private static final int    connectAttempts = 4;
     private static final double connectionLossSleepSeconds = 5.0;
     
-    private static final int	defaultGetZKSleepUnit = 8;
-    private static final int	defaultGetZKMaxAttempts = 15;
+    private static final int    defaultGetZKSleepUnit = 8;
+    private static final int    defaultGetZKMaxAttempts = 15;
     
-    private static final boolean	shareZK = true;
-    protected static final ConcurrentMap<ZooKeeperConfig,Lock>				lockMap;
-    protected static final ConcurrentMap<ZooKeeperConfig,ZooKeeperExtended>	zkMap;
+    private static final boolean    shareZK = true;
+    protected static final ConcurrentMap<ZooKeeperConfig,Lock>                lockMap;
+    protected static final ConcurrentMap<ZooKeeperConfig,ZooKeeperExtended>    zkMap;
     
     static {
-    	if (shareZK) {
-    		lockMap = new ConcurrentHashMap<>();
-    		zkMap = new ConcurrentHashMap<>();
-    	} else {
-    		zkMap = null;
-    		lockMap = null;
-    	}
+        if (shareZK) {
+            lockMap = new ConcurrentHashMap<>();
+            zkMap = new ConcurrentHashMap<>();
+        } else {
+            zkMap = null;
+            lockMap = null;
+        }
     }
     
     public MetaClientCore(ZooKeeperConfig zkConfig, Watcher watcher) throws IOException, KeeperException {
         this.watcher = watcher;
         this.zkConfig = zkConfig;
-    	setZK(zkConfig);
+        setZK(zkConfig);
     }
     
     private Lock acquireLockIfShared(ZooKeeperConfig zkConfig) {
@@ -110,30 +110,30 @@ public class MetaClientCore implements Watcher {
     }
     
     public ZooKeeperExtended getZooKeeper(int getZKMaxAttempts, int getZKSleepUnit) throws KeeperException {
-    	ZooKeeperExtended	_zk;
-    	int					attemptIndex;
+        ZooKeeperExtended    _zk;
+        int                    attemptIndex;
 
-    	assert getZKMaxAttempts > 0;
-    	assert getZKSleepUnit > 0;
-    	_zk = null;
-    	attemptIndex = 0;
-    	while (_zk == null) {
-    		_zk = _getZooKeeper();
-    		if (_zk == null) {
-    			if (attemptIndex < getZKMaxAttempts - 1) {
-    				ThreadUtil.randomSleep(getZKSleepUnit << attemptIndex);
-    				++attemptIndex;
-    			} else {
-    				Log.warning("getZooKeeper() failed after "+ (attemptIndex + 1) +" attempts");
-    				throw new OperationTimeoutException();
-    			}
-    		}
-    	}
-		return _zk;
+        assert getZKMaxAttempts > 0;
+        assert getZKSleepUnit > 0;
+        _zk = null;
+        attemptIndex = 0;
+        while (_zk == null) {
+            _zk = _getZooKeeper();
+            if (_zk == null) {
+                if (attemptIndex < getZKMaxAttempts - 1) {
+                    ThreadUtil.randomSleep(getZKSleepUnit << attemptIndex);
+                    ++attemptIndex;
+                } else {
+                    Log.warning("getZooKeeper() failed after "+ (attemptIndex + 1) +" attempts");
+                    throw new OperationTimeoutException();
+                }
+            }
+        }
+        return _zk;
     }
     
     public ZooKeeperExtended getZooKeeper() throws KeeperException {
-    	return getZooKeeper(defaultGetZKMaxAttempts, defaultGetZKSleepUnit);
+        return getZooKeeper(defaultGetZKMaxAttempts, defaultGetZKSleepUnit);
     }
     
     private void handleSessionExpiration() {

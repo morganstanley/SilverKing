@@ -25,24 +25,24 @@
 typedef enum FileSystem {fsNative, fsSKFS, fsSKFSInternal} FileSystem;
 
 typedef struct NativeFileID {
-	ino_t	inode;
-	time_t	creationTime;
-	time_t	modTime;
-	off_t	size;
+    ino_t    inode;
+    time_t    creationTime;
+    time_t    modTime;
+    off_t    size;
 } NativeFileID;
 
 typedef struct SKFSFileID {
-	uint64_t	instance;
-	uint64_t	sequence;
+    uint64_t    instance;
+    uint64_t    sequence;
 } SKFSFileID;
 
 typedef struct FileID {
-	FileSystem	fileSystem;
-	unsigned int	hash;
-	union {
-		NativeFileID	native;
-		SKFSFileID		skfs;
-	};
+    FileSystem    fileSystem;
+    unsigned int    hash;
+    union {
+        NativeFileID    native;
+        SKFSFileID        skfs;
+    };
 } FileID;
 
 

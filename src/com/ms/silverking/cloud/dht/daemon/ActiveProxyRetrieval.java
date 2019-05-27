@@ -56,7 +56,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
     
     private static final boolean    debugWaitFor = false;
     
-    private static final int	resultListInitialSize = 10;
+    private static final int    resultListInitialSize = 10;
     
     ActiveProxyRetrieval(MessageGroup message, MessageGroupConnectionProxy connection,
                          MessageModule messageModule,
@@ -72,8 +72,8 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
     }
     
     private static InternalRetrievalOptions getRetrievalOptions(MessageGroup message, InternalRetrievalOptions retrievalOptions) {
-    	return StorageModule.isDynamicNamespace(message.getContext()) 
-    			? retrievalOptions.retrievalOptions(retrievalOptions.getRetrievalOptions().forwardingMode(ForwardingMode.DO_NOT_FORWARD)) : retrievalOptions;
+        return StorageModule.isDynamicNamespace(message.getContext()) 
+                ? retrievalOptions.retrievalOptions(retrievalOptions.getRetrievalOptions().forwardingMode(ForwardingMode.DO_NOT_FORWARD)) : retrievalOptions;
     }
     
     //protected OpVirtualCommunicator<DHTKey,RetrievalResult> createCommunicator() {
@@ -84,9 +84,9 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
         if (forwardingMode.forwards()) {
             messageModule.addActiveRetrieval(uuid, this);
         } else {
-        	if (retrievalOptions.getWaitMode() == WaitMode.WAIT_FOR) {
+            if (retrievalOptions.getWaitMode() == WaitMode.WAIT_FOR) {
                 messageModule.addActiveRetrieval(uuid, this);
-        	}
+            }
         }
         rComm = new RetrievalCommunicator();
         super.startOperation(rComm, message.getKeyIterator(), new RetrievalForwardCreator());
@@ -155,9 +155,9 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
                         retrievalResult = null;
                     }
                 } else {
-                	if (debug) {
-                		System.out.println("Returning corrupt result");
-                	}
+                    if (debug) {
+                        System.out.println("Returning corrupt result");
+                    }
                     retrievalResult = new RetrievalResult(entry, OpResult.CORRUPT, null);
                 }
             }
@@ -236,33 +236,33 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
     }
     
     private List<List<RetrievalResult>> createResultGroups(List<RetrievalResult> results) {
-    	if (results.size() == 1) {
-    		return ImmutableList.of(results);
-    	} else {
-        	List<List<RetrievalResult>>	resultGroups;
-        	List<RetrievalResult>	curGroup;
-        	int						curGroupSize;
+        if (results.size() == 1) {
+            return ImmutableList.of(results);
+        } else {
+            List<List<RetrievalResult>>    resultGroups;
+            List<RetrievalResult>    curGroup;
+            int                        curGroupSize;
 
-        	resultGroups = new ArrayList<>(Math.min(results.size(), resultListInitialSize));
-        	curGroup = new ArrayList<>(Math.min(results.size(), resultListInitialSize));
-        	resultGroups.add(curGroup);
-        	curGroupSize = 0;
-        	for (int i = 0; i < results.size(); i++) {
-        		RetrievalResult	result;
-        		
-        		result = results.get(i);
-        		if (curGroupSize != 0) {
-        			if (curGroupSize + result.getResultLength() > ProtoValueMessageGroup.maxValueBytesPerMessage) {
-        	        	curGroup = new ArrayList<>(Math.min(results.size() - i, resultListInitialSize));
-        	        	resultGroups.add(curGroup);
-        	        	curGroupSize = 0;
-        			}
-        		}
-    			curGroup.add(result);
-    			curGroupSize += result.getResultLength();
-        	}
-        	return resultGroups;
-    	}
+            resultGroups = new ArrayList<>(Math.min(results.size(), resultListInitialSize));
+            curGroup = new ArrayList<>(Math.min(results.size(), resultListInitialSize));
+            resultGroups.add(curGroup);
+            curGroupSize = 0;
+            for (int i = 0; i < results.size(); i++) {
+                RetrievalResult    result;
+                
+                result = results.get(i);
+                if (curGroupSize != 0) {
+                    if (curGroupSize + result.getResultLength() > ProtoValueMessageGroup.maxValueBytesPerMessage) {
+                        curGroup = new ArrayList<>(Math.min(results.size() - i, resultListInitialSize));
+                        resultGroups.add(curGroup);
+                        curGroupSize = 0;
+                    }
+                }
+                curGroup.add(result);
+                curGroupSize += result.getResultLength();
+            }
+            return resultGroups;
+        }
     }
 
     /**
@@ -284,15 +284,15 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
             if (results.size() > 0) {
                 ProtoValueMessageGroup  pmg;
                 byte[]                  _originator;
-            	List<List<RetrievalResult>>	resultGroups;
+                List<List<RetrievalResult>>    resultGroups;
 
                 _originator = ConvergenceController2.isChecksumVersionConstraint(retrievalOptions.getVersionConstraint())
                         ? originator : messageModule.getMessageGroupBase().getMyID();
                 
-            	resultGroups = createResultGroups(results);
-            	for (List<RetrievalResult> resultGroup : resultGroups) {
+                resultGroups = createResultGroups(results);
+                for (List<RetrievalResult> resultGroup : resultGroups) {
                     MessageGroup    messageGroup;
-                    int	groupLength;
+                    int    groupLength;
                     
                     groupLength = RetrievalResult.totalResultLength(resultGroup);
                     pmg = new ProtoValueMessageGroup(uuid, namespace, results.size(), groupLength,
@@ -319,7 +319,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
                     messageGroup = pmg.toMessageGroup();
                     connection.sendAsynchronous(messageGroup, 
                             messageGroup.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()));
-            	}
+                }
             }
             /*
         } catch (RuntimeException re) {
@@ -342,7 +342,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey,RetrievalR
     public Set<IPAndPort> checkForReplicaTimeouts(long curTimeMillis) {        
         RetrievalCommunicator   rComm;
         Map<IPAndPort, List<DHTKey>>  destEntryMap;
-        Set<IPAndPort>	timedOutReplicas;
+        Set<IPAndPort>    timedOutReplicas;
         
         if (debug) {
             System.out.println("checkForReplicaTimeouts "+ uuid +" "+ getOpResult());

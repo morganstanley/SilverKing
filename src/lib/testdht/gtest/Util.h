@@ -133,57 +133,57 @@ void     usage(char const * const name_, char const * const pMsg_);
 
 
 struct CmdLineOptions {
-	string gcName;
-	string host;
-	string action;
-	string ns; // SilverKing namespace
-	string key = "Hello";
-	string value = "World";
-	string logfile;
-	string nsOptions = "versionMode=CLIENT_SPECIFIED,revisionMode=UNRESTRICTED_REVISIONS,storageType=FILE,consistencyProtocol=TWO_PHASE_COMMIT";
-	string jvmOptions = "-Xmx1024M,-Xcheck:jni";
-	int valueVersion = 0;
-	SKCompression::SKCompression compressType = SKCompression::NONE;
-	// int valueVersion = 1;
-	// SKCompression::SKCompression compressType = SKCompression::LZ4;
-	SKRetrievalType retrievalType = VALUE_AND_META_DATA;
-	int threshold = 100;
-	int timeout = INT_MAX;
-	int verbose = 0;
+    string gcName;
+    string host;
+    string action;
+    string ns; // SilverKing namespace
+    string key = "Hello";
+    string value = "World";
+    string logfile;
+    string nsOptions = "versionMode=CLIENT_SPECIFIED,revisionMode=UNRESTRICTED_REVISIONS,storageType=FILE,consistencyProtocol=TWO_PHASE_COMMIT";
+    string jvmOptions = "-Xmx1024M,-Xcheck:jni";
+    int valueVersion = 0;
+    SKCompression::SKCompression compressType = SKCompression::NONE;
+    // int valueVersion = 1;
+    // SKCompression::SKCompression compressType = SKCompression::LZ4;
+    SKRetrievalType retrievalType = VALUE_AND_META_DATA;
+    int threshold = 100;
+    int timeout = INT_MAX;
+    int verbose = 0;
 };
 
 class Util {
-	public:
-		static CmdLineOptions parseCmdLine(int argc, char ** argv);
-		static CmdLineOptions parseCmdLineMeta(int argc, char ** argv);
-		static SKCompression::SKCompression getCompressionType(string compr);
-		static StrValMap getStrValMap(const vector<string>& ks, const vector<string>& vs);
-		static void getKeyValues(StrValMap& valMap, const map<string, string>& kvs);
-		static StrVector getStrKeys(const vector<string>& ks);
+    public:
+        static CmdLineOptions parseCmdLine(int argc, char ** argv);
+        static CmdLineOptions parseCmdLineMeta(int argc, char ** argv);
+        static SKCompression::SKCompression getCompressionType(string compr);
+        static StrValMap getStrValMap(const vector<string>& ks, const vector<string>& vs);
+        static void getKeyValues(StrValMap& valMap, const map<string, string>& kvs);
+        static StrVector getStrKeys(const vector<string>& ks);
 
-		static vector<string> getValues(StrValMap* strValMap);
-		static vector<string> getValues(StrSVMap* svMap, SKRetrievalType retrievalType = VALUE_AND_META_DATA);
-		static map<string, string> getStrMap(StrValMap* strValMap);
-		static map<string, string> getStrMap(StrSVMap* svMap, SKRetrievalType retrievalType = VALUE_AND_META_DATA);
-	
-		typedef std::chrono::high_resolution_clock high_resolution_clock;
-		typedef std::chrono::time_point<high_resolution_clock> time_point;
-		static void logElapsedTime(const time_point beginTime_, const string & dhtOp_, const string & ns_, const string & key_);
-		class HighResolutionClock {
-		public:
-			HighResolutionClock(const string& label_, const string& ns_ = std::string(), const string& key_ = std::string()) : _label(label_), _ns(ns_), _key(key_), _begin(high_resolution_clock::now()) {}
-			~HighResolutionClock() {
-				logElapsedTime(_begin, _label, _ns, _key);
-			}
-			private:
-				string _label;
-				string _ns;
-				string _key;
-				time_point _begin;
-		};
+        static vector<string> getValues(StrValMap* strValMap);
+        static vector<string> getValues(StrSVMap* svMap, SKRetrievalType retrievalType = VALUE_AND_META_DATA);
+        static map<string, string> getStrMap(StrValMap* strValMap);
+        static map<string, string> getStrMap(StrSVMap* svMap, SKRetrievalType retrievalType = VALUE_AND_META_DATA);
+    
+        typedef std::chrono::high_resolution_clock high_resolution_clock;
+        typedef std::chrono::time_point<high_resolution_clock> time_point;
+        static void logElapsedTime(const time_point beginTime_, const string & dhtOp_, const string & ns_, const string & key_);
+        class HighResolutionClock {
+        public:
+            HighResolutionClock(const string& label_, const string& ns_ = std::string(), const string& key_ = std::string()) : _label(label_), _ns(ns_), _key(key_), _begin(high_resolution_clock::now()) {}
+            ~HighResolutionClock() {
+                logElapsedTime(_begin, _label, _ns, _key);
+            }
+            private:
+                string _label;
+                string _ns;
+                string _key;
+                time_point _begin;
+        };
 
-	private:
-		static CmdLineOptions parseCmdLine(int argc, char ** argv, CmdLineOptions& cmdLineOptions);
+    private:
+        static CmdLineOptions parseCmdLine(int argc, char ** argv, CmdLineOptions& cmdLineOptions);
 
 };
 

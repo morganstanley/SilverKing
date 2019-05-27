@@ -135,14 +135,14 @@ int get_pid();
 uint64_t getValueCreatorAsUint64(SKValueCreator *vc);
 
 int zlibBuffToBuffDecompress(char *dest, int *destLength, 
-						   char* source, int sourceLength);
+                           char* source, int sourceLength);
 
 uid_t get_uid();
 gid_t get_gid();
 pid_t get_caller_pid();
 
 void bytesToString(char *dest, unsigned char *src, int length);
-						   
+                           
 time_t epoch_time_seconds();
 int msleep(uint64_t millis);
 void sleep_random_millis(uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp);

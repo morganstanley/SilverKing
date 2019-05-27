@@ -6,13 +6,13 @@
 #include "gtest/gtest.h"
 
 class AsyncPutAsyncGetWaitTest : public ::testing::Test {
-	public:
-		 AsyncPutAsyncGetWaitTest();
-		~AsyncPutAsyncGetWaitTest();
+    public:
+         AsyncPutAsyncGetWaitTest();
+        ~AsyncPutAsyncGetWaitTest();
 
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 };
 
 AsyncPutAsyncGetWait* putGetHelloWorld;

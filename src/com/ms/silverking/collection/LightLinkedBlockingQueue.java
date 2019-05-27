@@ -16,9 +16,9 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
     private final AtomicInteger potentialWaiters;
     private final Lock          lock;
     private final Condition     nonEmpty;
-    private final long			spinsBeforeParking;
+    private final long            spinsBeforeParking;
     
-    private static final long	defaultSpinsBeforeParking = 10000;
+    private static final long    defaultSpinsBeforeParking = 10000;
       
     public LightLinkedBlockingQueue(long spinsBeforeParking) {
         this.spinsBeforeParking = spinsBeforeParking;
@@ -29,7 +29,7 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
     }
 
     public LightLinkedBlockingQueue() {
-    	this(defaultSpinsBeforeParking);
+        this(defaultSpinsBeforeParking);
     }
     
     public LightLinkedBlockingQueue(Collection<? extends T> c) {
@@ -82,14 +82,14 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
     }
 
     public int moveAllFrom(Collection<? extends T> c) throws InterruptedException {
-    	Collection<? extends T>	tmp;
-    	int	numMoved;
-    	
-    	tmp = new ArrayList<T>(c);
-    	numMoved = tmp.size();
-    	c.clear();
-    	putAll(tmp);
-    	return numMoved;
+        Collection<? extends T>    tmp;
+        int    numMoved;
+        
+        tmp = new ArrayList<T>(c);
+        numMoved = tmp.size();
+        c.clear();
+        putAll(tmp);
+        return numMoved;
     }
     
     public void putAll(Collection<? extends T> c) throws InterruptedException {
@@ -107,12 +107,12 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
     @Override
     public T poll(long timeout, TimeUnit unit) throws InterruptedException {
         T       entry;
-        long	spin;
+        long    spin;
         
         // optimistic attempt to dequeue an entry without locking
         spin = 0;
         do {
-        	entry = q.poll();
+            entry = q.poll();
         } while (entry == null && ++spin < spinsBeforeParking);
         if (entry == null) {
             // optimistic attempt failed, so we might need to wait
@@ -140,12 +140,12 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
     @Override
     public T take() throws InterruptedException {
         T   entry;
-        int	spin;
+        int    spin;
         
         // optimistic attempt to dequeue an entry without locking
         spin = 0;
         do {
-        	entry = q.poll();
+            entry = q.poll();
         } while (entry == null && ++spin < spinsBeforeParking);
         if (entry == null) {
             // optimistic attempt failed, so we might need to wait
@@ -208,7 +208,7 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
     
     /*
     public int takeAll(Collection<? extends T> c) throws InterruptedException {
-        int	numTaken;
+        int    numTaken;
         
         // optimistic attempt to dequeue an entry without locking
         q.

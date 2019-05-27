@@ -1,12 +1,12 @@
 %include "perl5/exception.i"
 %exception {
-	try {
-		$action
-	} catch (const std::exception &e) {
-		SWIG_exception_fail(SWIG_RuntimeError, e.what());
-	/*} catch (const std::exception &e) {  */
-	/*	SWIG_exception_fail(SWIG_RuntimeError, e.what()); */
-	}
+    try {
+        $action
+    } catch (const std::exception &e) {
+        SWIG_exception_fail(SWIG_RuntimeError, e.what());
+    /*} catch (const std::exception &e) {  */
+    /*    SWIG_exception_fail(SWIG_RuntimeError, e.what()); */
+    }
 }
 
 %module SKClientImpl
@@ -123,23 +123,23 @@ StrValMap * createMapFromHash(SV *keyValues)
   for (SV* ksv; (ksv = hv_iternextsv(nhv, &keyStr, &keyLen)) != 0; )
   {
     if (SvOK(ksv))  // is not undef
-	{
-	  if (!SvPOK(ksv))  // is string
-	  {
-	      delete kvMap;
-	      croak("inner value is not a string scalar.");
-	  }
-	  STRLEN len;
-	  char *s = SvPV(ksv, len);
-	  SKVal * pval = sk_create_val();
-	  sk_set_val(pval, len, (void*)s);
-	  kvMap->insert( StrValMap::value_type(keyStr, pval ));
-	}
+    {
+      if (!SvPOK(ksv))  // is string
+      {
+          delete kvMap;
+          croak("inner value is not a string scalar.");
+      }
+      STRLEN len;
+      char *s = SvPV(ksv, len);
+      SKVal * pval = sk_create_val();
+      sk_set_val(pval, len, (void*)s);
+      kvMap->insert( StrValMap::value_type(keyStr, pval ));
+    }
     else  // value is undef
-	{
-	  SKVal * pval = sk_create_val();
-	  kvMap->insert( StrValMap::value_type(keyStr, pval ));
-	}
+    {
+      SKVal * pval = sk_create_val();
+      kvMap->insert( StrValMap::value_type(keyStr, pval ));
+    }
   }
   return kvMap;
 }
@@ -199,20 +199,20 @@ StrValMap * createMapFromHash(SV *keyValues)
 /** my $self=shift; SKVal* v = $self; **/
 %extend SKVal 
 {
-	SKVal() { SKVal* v = sk_create_val(); /* printf("SKVal [%d, %s]\n", v->m_len,v->m_pVal); */ return v; }
-	SKVal(const char * str_) { SKVal* v = sk_create_val();  sk_set_val(v, strlen(str_), (void*)str_); /* printf("SKVal [%d, %s]\n", v->m_len,v->m_pVal); */ return v; }
-	SKVal(int strlen_, const char * str_) { SKVal* v = sk_create_val();  sk_set_val(v, strlen_, (void*)str_); return v; }
-	~SKVal() { sk_destroy_val(&($self)); }
-	std::string toString() { return std::string ((char*)$self->m_pVal, $self->m_len ); }
-	int toInt() {return *((int*)$self->m_pVal); }
-	int64_t toInt64() {return *((int64_t*)$self->m_pVal); }
-	double toDouble() {return *((double*)$self->m_pVal); }
+    SKVal() { SKVal* v = sk_create_val(); /* printf("SKVal [%d, %s]\n", v->m_len,v->m_pVal); */ return v; }
+    SKVal(const char * str_) { SKVal* v = sk_create_val();  sk_set_val(v, strlen(str_), (void*)str_); /* printf("SKVal [%d, %s]\n", v->m_len,v->m_pVal); */ return v; }
+    SKVal(int strlen_, const char * str_) { SKVal* v = sk_create_val();  sk_set_val(v, strlen_, (void*)str_); return v; }
+    ~SKVal() { sk_destroy_val(&($self)); }
+    std::string toString() { return std::string ((char*)$self->m_pVal, $self->m_len ); }
+    int toInt() {return *((int*)$self->m_pVal); }
+    int64_t toInt64() {return *((int64_t*)$self->m_pVal); }
+    double toDouble() {return *((double*)$self->m_pVal); }
 };
 
 %typemap(in) ( int size_, void *src_ ) { 
- 	STRLEN sz; 
+     STRLEN sz; 
     $2 = (void*) SvPV( $input, sz ); 
-	$1 = (int)sz; 
+    $1 = (int)sz; 
 } 
 
 /** %typemap(in)  std::string const & key  { $1 = new string (SvPV_nolen( $input )); } **/
@@ -220,8 +220,8 @@ StrValMap * createMapFromHash(SV *keyValues)
 %typemap(freearg) std::string * key  { delete $1; }
 
 %typemap(out) SKStoredValue ** {
-	SKStoredValue ** psv = $1;
-	/* printf("StoredValue %p, %s \n", *psv, (char*)((*psv)->getValue()->m_pVal) ); */
+    SKStoredValue ** psv = $1;
+    /* printf("StoredValue %p, %s \n", *psv, (char*)((*psv)->getValue()->m_pVal) ); */
     $result = SWIG_NewPointerObj(SWIG_as_voidptr(*psv), SWIGTYPE_p_SKStoredValue, SWIG_OWNER | SWIG_SHADOW) ; argvi++ ;
 } 
 
@@ -235,24 +235,24 @@ StrValMap * createMapFromHash(SV *keyValues)
 %template(OpStateMap) boost::unordered_map<std::string,SKOperationState::SKOperationState>;  /* SKMap<string,SKOperationState::SKOperationState> ; */
 
 %typecheck(SWIG_TYPECHECK_FLOAT_ARRAY) 
-	 boost::unordered_map<std::string,SKVal*> const * ,  boost::unordered_map<std::string,SKVal*> *,
-	StrStrMap const * , StrStrMap *,
-	StrSVMap const *, StrSVMap *,
-	OpStateMap const *, OpStateMap *, 
-	FailureCauseMap const *, FailureCauseMap *
+     boost::unordered_map<std::string,SKVal*> const * ,  boost::unordered_map<std::string,SKVal*> *,
+    StrStrMap const * , StrStrMap *,
+    StrSVMap const *, StrSVMap *,
+    OpStateMap const *, OpStateMap *, 
+    FailureCauseMap const *, FailureCauseMap *
 {
   $1 = ( SvROK($input) && SvTYPE(SvRV($input)) == SVt_PVHV ) ?  1 : 0;
 }
 
 %typecheck(SWIG_TYPECHECK_DOUBLE_ARRAY) 
-	SKVector<std::string> const *, SKVector<std::string> *,
-	SKVector<const std::string*> const *, SKVector<const std::string*> *
+    SKVector<std::string> const *, SKVector<std::string> *,
+    SKVector<const std::string*> const *, SKVector<const std::string*> *
 {
   $1 = ( SvROK($input) && SvTYPE(SvRV($input)) == SVt_PVAV ) ?  1 : 0;
 }
 
 %typecheck(SWIG_TYPECHECK_CHAR_ARRAY) 
-	const SKVal*, SKVal*
+    const SKVal*, SKVal*
 {
   $1 = ( SvPOKp($input) ) ?  1 : 0;
 }
@@ -262,14 +262,14 @@ StrValMap * createMapFromHash(SV *keyValues)
    boost::unordered_map<std::string,SKVal*>::const_iterator cit ;
   for(cit = $1->begin(); cit!=$1->end(); cit++ ){
     SKVal* pval = cit->second;
-	if( pval != NULL ){
-		/* printf("typemap(out)StrValMap  key %s -> SKVal %s \n", cit->first.c_str(), (char*) pval->m_pVal ); */
-		hv_store(hv, cit->first.c_str(), cit->first.size(), newSVpv((const char *)pval->m_pVal, pval->m_len), 0);
-		sk_destroy_val( &pval );
-	}
-	else {
-		hv_store(hv, cit->first.c_str(), cit->first.size(), newSVpv("",0), 0);
-	}
+    if( pval != NULL ){
+        /* printf("typemap(out)StrValMap  key %s -> SKVal %s \n", cit->first.c_str(), (char*) pval->m_pVal ); */
+        hv_store(hv, cit->first.c_str(), cit->first.size(), newSVpv((const char *)pval->m_pVal, pval->m_len), 0);
+        sk_destroy_val( &pval );
+    }
+    else {
+        hv_store(hv, cit->first.c_str(), cit->first.size(), newSVpv("",0), 0);
+    }
   }
   
   $result = newRV_noinc((SV*)hv);
@@ -293,24 +293,24 @@ StrValMap * createMapFromHash(SV *keyValues)
   for (SV* ksv; (ksv = hv_iternextsv(hv, &keyStr, &keyLen)) != 0; )
   {
     if (SvOK(ksv))  // is not undef
-	{
-	  // strings 
-	  if (!SvPOK(ksv))  // is string
-	  {
-	      delete kvMap;
-	      croak("inner value is not a string scalar.");
-	  }
-	  STRLEN len;
-	  char *s = SvPV(ksv, len);
-	  SKVal * pval = sk_create_val();
-	  sk_set_val(pval, len, (void*)s);
-	  kvMap->insert(  boost::unordered_map<std::string,SKVal*>::value_type( keyStr, pval ) );
-	}
+    {
+      // strings 
+      if (!SvPOK(ksv))  // is string
+      {
+          delete kvMap;
+          croak("inner value is not a string scalar.");
+      }
+      STRLEN len;
+      char *s = SvPV(ksv, len);
+      SKVal * pval = sk_create_val();
+      sk_set_val(pval, len, (void*)s);
+      kvMap->insert(  boost::unordered_map<std::string,SKVal*>::value_type( keyStr, pval ) );
+    }
     else  // value is undef
-	{
-	  SKVal * pval = sk_create_val();
-	  kvMap->insert(  boost::unordered_map<std::string,SKVal*>::value_type( keyStr, pval ) );
-	}
+    {
+      SKVal * pval = sk_create_val();
+      kvMap->insert(  boost::unordered_map<std::string,SKVal*>::value_type( keyStr, pval ) );
+    }
   }
   $1 = kvMap;
 
@@ -319,9 +319,9 @@ StrValMap * createMapFromHash(SV *keyValues)
   boost::unordered_map<std::string,SKVal*>::const_iterator cit ;
   for(cit = $1->begin(); cit!=$1->end(); cit++ ){
     SKVal* pval = cit->second;
-	if( pval != NULL ){
-		sk_destroy_val( &pval );
-	}
+    if( pval != NULL ){
+        sk_destroy_val( &pval );
+    }
   }
   delete $1;
 }
@@ -331,7 +331,7 @@ StrValMap * createMapFromHash(SV *keyValues)
   OpStateMap::const_iterator cit ;
   for(cit = $1->begin(); cit!=$1->end(); cit++ ){
     SKOperationState val = cit->second;
-	hv_store(hv, cit->first.c_str(), cit->first.size(),  newSViv((int)(val)), 0);
+    hv_store(hv, cit->first.c_str(), cit->first.size(),  newSViv((int)(val)), 0);
   }
   
   $result = newRV_noinc((SV*)hv);
@@ -344,7 +344,7 @@ StrValMap * createMapFromHash(SV *keyValues)
   FailureCauseMap::const_iterator cit ;
   for(cit = $1->begin(); cit!=$1->end(); cit++ ){
     SKFailureCause val = cit->second;
-	hv_store(hv, cit->first.c_str(), cit->first.size(),  newSViv((int)(val)), 0);
+    hv_store(hv, cit->first.c_str(), cit->first.size(),  newSViv((int)(val)), 0);
   }
   
   $result = newRV_noinc((SV*)hv);
@@ -377,7 +377,7 @@ StrValMap * createMapFromHash(SV *keyValues)
   AV* av = newAV();
   for(unsigned int i = 0 ; i<$1->size(); i++ ){
     const string & aResultKey= $1->at(i);
-	av_store(av, i, newSVpv(aResultKey.c_str(), aResultKey.size()));
+    av_store(av, i, newSVpv(aResultKey.c_str(), aResultKey.size()));
   }
   
   $result = newRV_noinc((SV*)av);
@@ -394,7 +394,7 @@ StrValMap * createMapFromHash(SV *keyValues)
   AV* av = newAV();
   for(unsigned int i = 0 ; i<$1->size(); i++ ){
     const string & aResultKey= *($1->at(i));
-	av_store(av, i, newSVpv(aResultKey.c_str(), aResultKey.size()));
+    av_store(av, i, newSVpv(aResultKey.c_str(), aResultKey.size()));
   }
   
   $result = newRV_noinc((SV*)av);
@@ -414,21 +414,21 @@ StrValMap * createMapFromHash(SV *keyValues)
 
 %typemap(out) SKVal*   
 {
-	if($1==NULL || ($1->m_pVal)==NULL || $1->m_len == 0 ) {
-		$result = newSV(0);
-	} 
-	else {
-		$result = newSVpv((const char *)($1->m_pVal), $1->m_len);
-	}
-	sv_2mortal($result); 
-	++argvi;
+    if($1==NULL || ($1->m_pVal)==NULL || $1->m_len == 0 ) {
+        $result = newSV(0);
+    } 
+    else {
+        $result = newSVpv((const char *)($1->m_pVal), $1->m_len);
+    }
+    sv_2mortal($result); 
+    ++argvi;
 }
 
 %typemap(freearg)  SKVal* {
-	if( $1 != NULL ){
-		sk_destroy_val( &($1) );
-		$1 = NULL;
-	}
+    if( $1 != NULL ){
+        sk_destroy_val( &($1) );
+        $1 = NULL;
+    }
 }
 
 %ignore *::getPImpl;
@@ -536,9 +536,9 @@ StrValMap * createMapFromHash(SV *keyValues)
 
 %typemap(out) bool   
 {
-	$result = newSViv( (int) $1 );
-	sv_2mortal($result); 
-	++argvi;
+    $result = newSViv( (int) $1 );
+    sv_2mortal($result); 
+    ++argvi;
 }
 
 %newobject SKNamespaceOptions::getDefaultGetOptions;

@@ -20,22 +20,22 @@ BEGIN_NAMESPACE(jace)
 class JNIException : public BaseException
 {
 public:
-	/**
-	 * Creates a new JNIException with the given mesage.
-	 */
-	JACE_API JNIException(const std::string& value) throw ();
+    /**
+     * Creates a new JNIException with the given mesage.
+     */
+    JACE_API JNIException(const std::string& value) throw ();
 
-	/**
-	 * Creates a new JNIException from an existing JNIException.
-	 *
-	 */
-	JACE_API JNIException(const JNIException& rhs) throw ();
+    /**
+     * Creates a new JNIException from an existing JNIException.
+     *
+     */
+    JACE_API JNIException(const JNIException& rhs) throw ();
 
-	/**
-	 * Creates a new JNIException from an existing JNIException.
-	 *
-	 */
-	JACE_API JNIException& operator=(const JNIException& rhs) throw ();
+    /**
+     * Creates a new JNIException from an existing JNIException.
+     *
+     */
+    JACE_API JNIException& operator=(const JNIException& rhs) throw ();
 };
 
 END_NAMESPACE(jace)

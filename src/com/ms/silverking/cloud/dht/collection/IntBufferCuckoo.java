@@ -27,33 +27,33 @@ public class IntBufferCuckoo extends CuckooBase implements Iterable<DHTKeyIntEnt
         super(cuckooConfig);
         subTables = new SubTable[numSubTables];
         for (int i = 0; i < subTables.length; i++) {
-        	LongBuffer	buf;
-        	IntBuffer	values;
-        	int			valueBufSizeInts;
+            LongBuffer    buf;
+            IntBuffer    values;
+            int            valueBufSizeInts;
 
-        	int			entrySizeLongs;
-        	int			bucketSizeLongs;
-        	int			bufferSizeLongs;
-        	int			bufferSizeBytes;
-        	int			valuesSizeBytes;
-        	int			subtableSizeBytes;
-        	int			bufStartBytes;
-        	int			valuesStartBytes;
-        	
-        	valueBufSizeInts = subTableBuckets * entriesPerBucket;
+            int            entrySizeLongs;
+            int            bucketSizeLongs;
+            int            bufferSizeLongs;
+            int            bufferSizeBytes;
+            int            valuesSizeBytes;
+            int            subtableSizeBytes;
+            int            bufStartBytes;
+            int            valuesStartBytes;
+            
+            valueBufSizeInts = subTableBuckets * entriesPerBucket;
             entrySizeLongs = SubTable._singleEntrySize;
             bucketSizeLongs = SubTable._singleEntrySize * entriesPerBucket;
             bufferSizeLongs = subTableBuckets * bucketSizeLongs;
             bufferSizeBytes = bufferSizeLongs * Long.BYTES;
             valuesSizeBytes = valueBufSizeInts * Integer.BYTES;
-        	        	
-        	subtableSizeBytes = bufferSizeBytes + valuesSizeBytes;
-        	
-        	bufStartBytes = subtableSizeBytes * i;
-        	valuesStartBytes = subtableSizeBytes * i + bufferSizeBytes;
-        	
-        	buf = ((ByteBuffer)byteBuf.duplicate().position(bufStartBytes).limit(bufStartBytes + bufferSizeBytes)).slice().asLongBuffer();
-        	values = ((ByteBuffer)byteBuf.duplicate().position(valuesStartBytes).limit(valuesStartBytes + valuesSizeBytes)).slice().asIntBuffer();
+                        
+            subtableSizeBytes = bufferSizeBytes + valuesSizeBytes;
+            
+            bufStartBytes = subtableSizeBytes * i;
+            valuesStartBytes = subtableSizeBytes * i + bufferSizeBytes;
+            
+            buf = ((ByteBuffer)byteBuf.duplicate().position(bufStartBytes).limit(bufStartBytes + bufferSizeBytes)).slice().asLongBuffer();
+            values = ((ByteBuffer)byteBuf.duplicate().position(valuesStartBytes).limit(valuesStartBytes + valuesSizeBytes)).slice().asIntBuffer();
             subTables[i] = new SubTable(i, cuckooConfig.getNumSubTableBuckets(), entriesPerBucket, 
                                         extraShiftPerTable[numSubTables] * i, buf, values);
         }
@@ -78,7 +78,7 @@ public class IntBufferCuckoo extends CuckooBase implements Iterable<DHTKeyIntEnt
     }
     
     public void put(DHTKey key, int value) {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
     public void display() {
@@ -112,7 +112,7 @@ public class IntBufferCuckoo extends CuckooBase implements Iterable<DHTKeyIntEnt
         
         @Override
         boolean remove(long msl, long lsl) {
-        	throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException();
         }
         
         int get(long msl, long lsl) {
@@ -205,10 +205,10 @@ public class IntBufferCuckoo extends CuckooBase implements Iterable<DHTKeyIntEnt
             return buf.get(baseOffset + lslOffset);
         }
 
-		@Override
-		void clear() {
-			throw new UnsupportedOperationException();
-		}
+        @Override
+        void clear() {
+            throw new UnsupportedOperationException();
+        }
     }
     
     @Override

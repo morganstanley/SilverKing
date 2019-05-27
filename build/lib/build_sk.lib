@@ -2,39 +2,39 @@
 source lib/common.lib
 
 function f_checkForRequiredExecutables {
-	f_printSection "Checking for Required Executables"
-	f_getExecutablePath "ant"
-	f_getExecutablePath "java"
+    f_printSection "Checking for Required Executables"
+    f_getExecutablePath "ant"
+    f_getExecutablePath "java"
 }
 
 function f_cleanOrMakeBuildDirectory {
-	f_printSection "Cleaning and Remaking Build directory"
-	f_cleanOrMakeDirectory "$SILVERKING_OUTPUT_BUILD_DIR"
+    f_printSection "Cleaning and Remaking Build directory"
+    f_cleanOrMakeDirectory "$SILVERKING_OUTPUT_BUILD_DIR"
 }
 
 function f_cleanOrMakeInstallDirectory {
-	f_printSection "Cleaning and Remaking Install directory"
-	f_cleanOrMakeDirectory "$SILVERKING_INSTALL_DIR"
+    f_printSection "Cleaning and Remaking Install directory"
+    f_cleanOrMakeDirectory "$SILVERKING_INSTALL_DIR"
 }
 
 function f_runBuildAntScript {
-	f_runAnt "buildOnly"
-	f_runBuildChecks
+    f_runAnt "buildOnly"
+    f_runBuildChecks
 }
 
 function f_runBuildChecks {
-	f_printSection "CHECKS"
-	
-	typeset expectedNumClasses=1442
-	f_testGreaterThanOrEquals "$OUT_CLASSES_SRC_DIR" "*" "$expectedNumClasses"
-	typeset expectedTestCount=$((TEST_SILVERKING_EXPECTED_COUNT+TEST_SILVERKING_FS_EXPECTED_COUNT))
-	f_testEquals "$OUT_CLASSES_TEST_DIR" "*Test.class" "$expectedTestCount"
-	
-	f_testEquals "$OUT_JAR_DIR" "*.jar" "1" 
-	f_testExists "$SILVERKING_JAR"
-	typeset count=`jar tf $SILVERKING_JAR | grep '.class$' | wc -l`
-	typeset result=$(f_getGreaterThanOrEqualsResult "$count" "$expectedNumClasses")
-	f_printResult "$result" "# of jar .class files >= /$SRC_FOLDER_NAME folder" "$count"
+    f_printSection "CHECKS"
+    
+    typeset expectedNumClasses=1442
+    f_testGreaterThanOrEquals "$OUT_CLASSES_SRC_DIR" "*" "$expectedNumClasses"
+    typeset expectedTestCount=$((TEST_SILVERKING_EXPECTED_COUNT+TEST_SILVERKING_FS_EXPECTED_COUNT))
+    f_testEquals "$OUT_CLASSES_TEST_DIR" "*Test.class" "$expectedTestCount"
+    
+    f_testEquals "$OUT_JAR_DIR" "*.jar" "1" 
+    f_testExists "$SILVERKING_JAR"
+    typeset count=`jar tf $SILVERKING_JAR | grep '.class$' | wc -l`
+    typeset result=$(f_getGreaterThanOrEqualsResult "$count" "$expectedNumClasses")
+    f_printResult "$result" "# of jar .class files >= /$SRC_FOLDER_NAME folder" "$count"
 
-	f_testEquals "$OUT_JAVADOC_DIR" "*.html" "168"
-}		  
+    f_testEquals "$OUT_JAVADOC_DIR" "*.html" "168"
+}          

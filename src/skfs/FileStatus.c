@@ -18,15 +18,15 @@
 // implementation
 
 int fs_get_deleted(FileStatus *fs) {
-	return *fs & FS_F_DELETED;
+    return *fs & FS_F_DELETED;
 }
 
 void fs_set_deleted(FileStatus *fs, int deleted) {
-	if (deleted) {
-		*fs = *fs | FS_F_DELETED;
-	} else {
-		*fs = *fs & (~FS_F_DELETED);
-	}
+    if (deleted) {
+        *fs = *fs | FS_F_DELETED;
+    } else {
+        *fs = *fs & (~FS_F_DELETED);
+    }
 }
 
 const char *fs_to_string(FileStatus *fs) {

@@ -6,8 +6,8 @@
 //class AddrAndPortImpl;
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace net {
-		class AddrAndPort;
+    namespace silverking {namespace net {
+        class AddrAndPort;
 } } } } } }
 typedef jace::proxy::com::ms::silverking::net::AddrAndPort AddrAndPort;
 
@@ -17,12 +17,12 @@ public:
 
     ~SKAddrAndPort();
     SKAddrAndPort(AddrAndPort * pAddrAndPort = NULL);
-	AddrAndPort * getPImpl();  //FIXME
-	
-	//SKnetSocketAddress toInetSocketAddress();  //FIXME:
-	
+    AddrAndPort * getPImpl();  //FIXME
+    
+    //SKnetSocketAddress toInetSocketAddress();  //FIXME:
+    
 protected:
-	AddrAndPort * pImpl;
+    AddrAndPort * pImpl;
 };
 
 #endif // SKADDRANDPORT_H

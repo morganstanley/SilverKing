@@ -23,23 +23,23 @@ import com.ms.silverking.text.ObjectDefParser2;
  * </p>
  */
 public final class WaitOptions extends RetrievalOptions {
-	private final int	           timeoutSeconds;
-	private final int	           threshold;
-	private final TimeoutResponse  timeoutResponse;
-	
-	/*
-	 * For waitFor operations, OpTimeoutController controls the *internal* retries.
-	 * as discussed in the class notes.
-	 */
-	
-	public static final int	   THRESHOLD_MIN = 0;
-	public static final int    THRESHOLD_MAX = 100;
-	public static final int    NO_TIMEOUT = Integer.MAX_VALUE;
-	
+    private final int               timeoutSeconds;
+    private final int               threshold;
+    private final TimeoutResponse  timeoutResponse;
+    
+    /*
+     * For waitFor operations, OpTimeoutController controls the *internal* retries.
+     * as discussed in the class notes.
+     */
+    
+    public static final int       THRESHOLD_MIN = 0;
+    public static final int    THRESHOLD_MAX = 100;
+    public static final int    NO_TIMEOUT = Integer.MAX_VALUE;
+    
     private static final WaitOptions template = OptionsHelper.newWaitOptions(
             RetrievalType.VALUE, VersionConstraint.defaultConstraint, 
             Integer.MAX_VALUE, WaitOptions.THRESHOLD_MAX);
-	
+    
     private static final Set<String>    exclusionFields = 
             ImmutableSet.of("waitMode", "forwardingMode");
     
@@ -74,8 +74,8 @@ public final class WaitOptions extends RetrievalOptions {
                 WaitMode.WAIT_FOR, versionConstraint, 
                 nonExistenceResponse, verifyChecksums,
                 returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss);
-    	Preconditions.checkArgument(timeoutSeconds >= 0);
-    	Preconditions.checkArgument(threshold >= 0);
+        Preconditions.checkArgument(timeoutSeconds >= 0);
+        Preconditions.checkArgument(threshold >= 0);
         this.timeoutSeconds = timeoutSeconds;
         this.threshold = threshold;
         this.timeoutResponse = timeoutResponse;
@@ -83,19 +83,19 @@ public final class WaitOptions extends RetrievalOptions {
         
     /**
      * Return a WaitOptions instance like this instance, but with a new OpTimeoutController.
-	 * For waitFor operations, OpTimeoutController controls the *internal* retries.
-	 * The timeoutSeconds controls the user-visible timeout.
-	 * Care should be take so that a retries continue indefinitely.
-	 * Most users should not override the OpTimeoutController
-	 * for this case.     
-	 * @param opTimeoutController the new field value
+     * For waitFor operations, OpTimeoutController controls the *internal* retries.
+     * The timeoutSeconds controls the user-visible timeout.
+     * Care should be take so that a retries continue indefinitely.
+     * Most users should not override the OpTimeoutController
+     * for this case.     
+     * @param opTimeoutController the new field value
      * @return the modified WaitOptions
      */
     public WaitOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-    	return new WaitOptions(opTimeoutController, getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-    						   getNonExistenceResponse(), getVerifyChecksums(), 
-    						   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-    						   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(opTimeoutController, getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                               getNonExistenceResponse(), getVerifyChecksums(), 
+                               getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                               timeoutSeconds, threshold, timeoutResponse);
     }    
     
     /**
@@ -104,10 +104,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-    	return new WaitOptions(getOpTimeoutController(), secondaryTargets, getRetrievalType(), getVersionConstraint(), 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), secondaryTargets, getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -117,10 +117,10 @@ public final class WaitOptions extends RetrievalOptions {
      */
     public WaitOptions secondaryTargets(SecondaryTarget secondaryTarget) {
         Preconditions.checkNotNull(secondaryTarget);
-    	return new WaitOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getRetrievalType(), getVersionConstraint(), 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -129,10 +129,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions retrievalType(RetrievalType retrievalType) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), retrievalType, getVersionConstraint(), 
-    						   getNonExistenceResponse(), getVerifyChecksums(), 
-    						   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-    						   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), retrievalType, getVersionConstraint(), 
+                               getNonExistenceResponse(), getVerifyChecksums(), 
+                               getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                               timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -141,10 +141,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions versionConstraint(VersionConstraint versionConstraint) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), versionConstraint, 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), versionConstraint, 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -153,10 +153,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions nonExistenceResponse(NonExistenceResponse nonExistenceResponse) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-				   nonExistenceResponse, getVerifyChecksums(), 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                   nonExistenceResponse, getVerifyChecksums(), 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -165,10 +165,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions verifyChecksums(boolean verifyChecksums) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-    			   getNonExistenceResponse(), verifyChecksums, 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), verifyChecksums, 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -177,10 +177,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions returnInvalidations(boolean returnInvalidations) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   returnInvalidations, getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   returnInvalidations, getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -189,10 +189,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions updateSecondariesOnMiss(boolean updateSecondariesOnMiss) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   getReturnInvalidations(), updateSecondariesOnMiss, 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   getReturnInvalidations(), updateSecondariesOnMiss, 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
         
     /**
@@ -201,10 +201,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions timeoutSeconds(int timeoutSeconds) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -213,10 +213,10 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions threshold(int threshold) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
     /**
@@ -225,49 +225,49 @@ public final class WaitOptions extends RetrievalOptions {
      * @return the modified WaitOptions
      */
     public WaitOptions timeoutResponse(TimeoutResponse timeoutResponse) {
-    	return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
-				   getNonExistenceResponse(), getVerifyChecksums(), 
-				   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
-				   timeoutSeconds, threshold, timeoutResponse);
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(), 
+                   getNonExistenceResponse(), getVerifyChecksums(), 
+                   getReturnInvalidations(), getUpdateSecondariesOnMiss(), 
+                   timeoutSeconds, threshold, timeoutResponse);
     }
     
-	/**
-	 * timeoutSeconds getter
-	 * @return timeoutSeconds
-	 */
-	public int getTimeoutSeconds() {
-		return timeoutSeconds;
-	}
+    /**
+     * timeoutSeconds getter
+     * @return timeoutSeconds
+     */
+    public int getTimeoutSeconds() {
+        return timeoutSeconds;
+    }
 
-	/**
-	 * threshold getter
-	 * @return threshold
-	 */
-	public int getThreshold() {
-		return threshold;
-	}
-	
-	/**
-	 * timeoutResponse getter
-	 * @return timeoutResponse
-	 */
-	public TimeoutResponse getTimeoutResponse() {
-	    return timeoutResponse;
-	}
-	
-	/**
-	 * true if timeoutSeconds set, false otherwise
-	 * @return true if timeoutSeconds set, false otherwise
-	 */
-	public boolean hasTimeout() {
-	    return timeoutSeconds != NO_TIMEOUT;
-	}
-	
+    /**
+     * threshold getter
+     * @return threshold
+     */
+    public int getThreshold() {
+        return threshold;
+    }
+    
+    /**
+     * timeoutResponse getter
+     * @return timeoutResponse
+     */
+    public TimeoutResponse getTimeoutResponse() {
+        return timeoutResponse;
+    }
+    
+    /**
+     * true if timeoutSeconds set, false otherwise
+     * @return true if timeoutSeconds set, false otherwise
+     */
+    public boolean hasTimeout() {
+        return timeoutSeconds != NO_TIMEOUT;
+    }
+    
     @Override
     public String toString() {
         return ObjectDefParser2.objectToString(this);
     }
-	
+    
     /**
      * Parse a definition 
      * @param def object definition 
@@ -279,10 +279,10 @@ public final class WaitOptions extends RetrievalOptions {
     
     @Override
     public int hashCode() {
-    	return super.hashCode() 
-    			^ timeoutSeconds 
-    			^ threshold 
-    			^ timeoutResponse.hashCode();
+        return super.hashCode() 
+                ^ timeoutSeconds 
+                ^ threshold 
+                ^ timeoutResponse.hashCode();
     }
     
     @Override
@@ -290,16 +290,16 @@ public final class WaitOptions extends RetrievalOptions {
         if (this == other) {
             return true;
         } else {
-        	if (super.equals(other)) {
-        		WaitOptions	oOptions;
-        		
-        		oOptions = (WaitOptions)other;
-        		return timeoutSeconds == oOptions.timeoutSeconds
-        				&& threshold == oOptions.threshold
-        				&& timeoutResponse == oOptions.timeoutResponse;
-        	} else {
-        		return false;
-        	}
-        }    	
+            if (super.equals(other)) {
+                WaitOptions    oOptions;
+                
+                oOptions = (WaitOptions)other;
+                return timeoutSeconds == oOptions.timeoutSeconds
+                        && threshold == oOptions.threshold
+                        && timeoutResponse == oOptions.timeoutResponse;
+            } else {
+                return false;
+            }
+        }        
     }
 }

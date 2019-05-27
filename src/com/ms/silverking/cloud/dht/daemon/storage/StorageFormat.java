@@ -16,11 +16,11 @@ public class StorageFormat {
     static final int    writeFailedOffset = -1;
     
     public static int writeFormattedValueToBuf(DHTKey key, ByteBuffer formattedBuf, ByteBuffer buf, AtomicInteger nextFree, int writeLimit) {
-    	int	writeSize;
-    	int	storedLength;
-    	int	offset;
-    	
-    	storedLength = formattedBuf.remaining();
+        int    writeSize;
+        int    storedLength;
+        int    offset;
+        
+        storedLength = formattedBuf.remaining();
         writeSize = storedLength + DHTKey.BYTES_PER_KEY;
         //System.out.println("writeSize: "+ writeSize);
         offset = nextFree.getAndAdd(writeSize);
@@ -31,7 +31,7 @@ public class StorageFormat {
             buf.putLong(key.getLSL());
             buf.put((ByteBuffer)formattedBuf.duplicate().slice().limit(storedLength));
             //buf.put(formattedBuf.array(), formattedBuf.position(), storedLength);
-        	return offset;
+            return offset;
         } else {
             return writeFailedOffset;
         }
@@ -77,8 +77,8 @@ public class StorageFormat {
             
             //System.out.println("WRITING:\n"+ buf);
             if (key != null) {
-	            buf.putLong(key.getMSL());
-	            buf.putLong(key.getLSL());
+                buf.putLong(key.getMSL());
+                buf.putLong(key.getLSL());
             }
             
             buf.putInt(storedLength); // storedLength
@@ -106,14 +106,14 @@ public class StorageFormat {
             
             dataLength = value.remaining();
             if (includeValue) {
-	            buf.put(value.array(), value.position(), dataLength);
-	            
-	            // FIXME - enforce userdata length limit
-	            buf.put(userData, 0, userData.length);
-	    
-	            return offset;
+                buf.put(value.array(), value.position(), dataLength);
+                
+                // FIXME - enforce userdata length limit
+                buf.put(userData, 0, userData.length);
+        
+                return offset;
             } else {
-            	return offset - dataLength - userData.length;
+                return offset - dataLength - userData.length;
             }
         } else {
             return writeFailedOffset;

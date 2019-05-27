@@ -71,7 +71,7 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
     
     private void storeStaticKVPair(MessageGroupBase mgBase, long curTimeMillis, 
                                    DHTKey key, ByteBuffer value) {
-        StorageParametersAndRequirements	storageParams;
+        StorageParametersAndRequirements    storageParams;
         
         storageParams = new StorageParametersAndRequirements(
                                 0, 
@@ -109,7 +109,7 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
 
         results = new ByteBuffer[keys.length];
         for (int i = 0; i < results.length; i ++) {
-        	results[i] = _retrieve(keys[i], options);
+            results[i] = _retrieve(keys[i], options);
         }
         return results;
     }    

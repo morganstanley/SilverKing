@@ -7,8 +7,8 @@
 // types
 
 typedef struct PathListEntry {
-	char			*path;
-	PathListEntry	*next;
+    char            *path;
+    PathListEntry    *next;
 } PathListEntry;
 
 

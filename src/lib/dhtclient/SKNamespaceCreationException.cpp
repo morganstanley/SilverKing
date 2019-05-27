@@ -10,7 +10,7 @@ using jace::proxy::java::lang::String;
 using jace::proxy::com::ms::silverking::cloud::dht::client::NamespaceCreationException;
 
 SKNamespaceCreationException::SKNamespaceCreationException(NamespaceCreationException * pNce, const char * fileName, int lineNum) 
-	: SKClientException(pNce, fileName, lineNum) { 	/*pImpl = pNce;*/ }
+    : SKClientException(pNce, fileName, lineNum) {     /*pImpl = pNce;*/ }
 
 SKNamespaceCreationException::~SKNamespaceCreationException()  throw () { }
 

@@ -20,13 +20,13 @@
 // types
 
 typedef struct G2TaskOutputReader {
-	PathGroup			*taskOutputPaths;
-    hashtable			*dirHT;
-	pthread_rwlock_t	rwLock;
-	struct stat			*dirStat;
-	struct stat			*regStat;
-	int                 taskOutputPort;
-	char                *host;
+    PathGroup            *taskOutputPaths;
+    hashtable            *dirHT;
+    pthread_rwlock_t    rwLock;
+    struct stat            *dirStat;
+    struct stat            *regStat;
+    int                 taskOutputPort;
+    char                *host;
 } G2TaskOutputReader;
 
 
@@ -41,7 +41,7 @@ void g2tor_test(G2TaskOutputReader *g2tor, char *jobUUID);
 int g2tor_get_attr(G2TaskOutputReader *g2tor, char *path, struct stat *stbuf);
 
 int g2tor_readdir(G2TaskOutputReader *g2tor, char *path, void *buf, 
-				  fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
+                  fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 
 OutputDir *g2tor_get_dir(G2TaskOutputReader *g2tor, char *jobUUID, int fetchIfNotFound);
 int g2tor_read(G2TaskOutputReader *g2tor, const char *path, char *dest, size_t readSize, off_t readOffset);

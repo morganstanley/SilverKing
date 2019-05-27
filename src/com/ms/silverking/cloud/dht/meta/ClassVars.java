@@ -115,11 +115,11 @@ public class ClassVars implements VersionedDefinition {
         }
     }
 
-	public ClassVars overrideWith(ClassVars classVars) {
-		Map<String, String> newMap;
-		
-		newMap = new HashMap<>(this.getVarMap());
-		newMap.putAll(classVars.getVarMap());
-		return new ClassVars(newMap, classVars.version);
-	}
+    public ClassVars overrideWith(ClassVars classVars) {
+        Map<String, String> newMap;
+        
+        newMap = new HashMap<>(this.getVarMap());
+        newMap.putAll(classVars.getVarMap());
+        return new ClassVars(newMap, classVars.version);
+    }
 }

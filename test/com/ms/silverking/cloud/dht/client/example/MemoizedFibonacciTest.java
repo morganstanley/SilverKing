@@ -18,19 +18,19 @@ import com.ms.silverking.testing.annotations.SkLarge;
 @SkLarge
 public class MemoizedFibonacciTest {
 
-	@Test
-	public void testFibonacci() throws ClientException, IOException {
-		int[][] testCases = {
-			{1,        1},
-			{10,      55},
-			{30, 832_040},
-		};
+    @Test
+    public void testFibonacci() throws ClientException, IOException {
+        int[][] testCases = {
+            {1,        1},
+            {10,      55},
+            {30, 832_040},
+        };
 
-		MemoizedFibonacci fib = new MemoizedFibonacci( Util.getTestGridConfig() );
-		for (int[] testCase : testCases) {
-			int n           = testCase[0];
-			int expectedFib = testCase[1];
-			assertEquals(expectedFib, fib.fibonacci(n));
-		}
-	}
+        MemoizedFibonacci fib = new MemoizedFibonacci( Util.getTestGridConfig() );
+        for (int[] testCase : testCases) {
+            int n           = testCase[0];
+            int expectedFib = testCase[1];
+            assertEquals(expectedFib, fib.fibonacci(n));
+        }
+    }
 }

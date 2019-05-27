@@ -17,27 +17,27 @@ using jace::proxy::com::ms::silverking::time::RelNanosTimeSource;
 using jace::proxy::com::ms::silverking::time::RelNanosAbsMillisTimeSource;
 
 SKSimpleStopwatch::SKSimpleStopwatch() : SKStopwatchBase(NULL) {
-	pImpl = new SimpleStopwatch(java_new<SimpleStopwatch>());
+    pImpl = new SimpleStopwatch(java_new<SimpleStopwatch>());
 }
 
 SKSimpleStopwatch::SKSimpleStopwatch(SKRelNanosAbsMillisTimeSource * relNanosTimeSource) {
-	RelNanosAbsMillisTimeSource * pRelNanosTimeSource =  dynamic_cast<RelNanosAbsMillisTimeSource *>(relNanosTimeSource->getPImpl());
-	//RelNanosTimeSource ts = java_cast<RelNanosTimeSource>(*pRelNanosTimeSource);
-	pImpl = new SimpleStopwatch(java_new<SimpleStopwatch>(*pRelNanosTimeSource));
+    RelNanosAbsMillisTimeSource * pRelNanosTimeSource =  dynamic_cast<RelNanosAbsMillisTimeSource *>(relNanosTimeSource->getPImpl());
+    //RelNanosTimeSource ts = java_cast<RelNanosTimeSource>(*pRelNanosTimeSource);
+    pImpl = new SimpleStopwatch(java_new<SimpleStopwatch>(*pRelNanosTimeSource));
 }
 
 
 //impl
 SKSimpleStopwatch::SKSimpleStopwatch(SimpleStopwatch * pSimpleStopwatch) {
-	if(pSimpleStopwatch)
-		pImpl = pSimpleStopwatch;
+    if(pSimpleStopwatch)
+        pImpl = pSimpleStopwatch;
 } 
-	
+    
 SKSimpleStopwatch::~SKSimpleStopwatch()
 {
-	if(pImpl!=NULL) {
-		SimpleStopwatch * pSimpleStopwatch = dynamic_cast<SimpleStopwatch*>(pImpl);
-		delete pSimpleStopwatch; 
-		pImpl = NULL;
-	}
+    if(pImpl!=NULL) {
+        SimpleStopwatch * pSimpleStopwatch = dynamic_cast<SimpleStopwatch*>(pImpl);
+        delete pSimpleStopwatch; 
+        pImpl = NULL;
+    }
 }

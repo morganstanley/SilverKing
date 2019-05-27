@@ -61,8 +61,8 @@ public final class ObjectSerDes implements BufferSerDes<Object> {
         return 0;
     }
 
-	@Override
-	public Object emptyObject() {
-		return new Object();
-	}
+    @Override
+    public Object emptyObject() {
+        return new Object();
+    }
 }

@@ -23,8 +23,8 @@ public class RSSEnforcer implements SafetyEnforcer {
     private final List<String>  exceptions;
     private final Terminator    terminator;
     private final ArgusOptions  options;
-    private final String		userName;
-    private final PeerWarningModule		udpModule;
+    private final String        userName;
+    private final PeerWarningModule        udpModule;
     
     private static final long    ONEMB = 1024 * 1024;
     private static final long    defaultCandidateMinThreasholdMB = 1 * 1024;
@@ -80,7 +80,7 @@ public class RSSEnforcer implements SafetyEnforcer {
 
         userName = PropertiesHelper.systemHelper.getString("user.name", UndefinedAction.ExceptionOnUndefined);
         if (options.singleUser) {
-        	Log.warning("RSSEnforcer is running in singleUser enforcement mode");
+            Log.warning("RSSEnforcer is running in singleUser enforcement mode");
         }
     }
     
@@ -89,8 +89,8 @@ public class RSSEnforcer implements SafetyEnforcer {
         Log.info("Enforcing RSS");
         try {
             long    freeBytes;
-            long	freeSwapBytes;
-            long	freeRAMBytes;
+            long    freeSwapBytes;
+            long    freeRAMBytes;
             
             freeBytes = procReader.freeMemBytes();
             Log.info("Free bytes: ", freeBytes);
@@ -99,50 +99,50 @@ public class RSSEnforcer implements SafetyEnforcer {
             freeSwapBytes = procReader.freeSwapBytes();
             Log.info("Free swap bytes: ", freeSwapBytes);
             if (freeBytes < freeMemoryLimit 
-            		|| freeRAMBytes < freeRAMLimit
-            		|| (freeRAMBytes < freeMemoryLimit && freeSwapBytes < freeSwapLimit)) {
+                    || freeRAMBytes < freeRAMLimit
+                    || (freeRAMBytes < freeMemoryLimit && freeSwapBytes < freeSwapLimit)) {
                 terminateUntilFree();
             }
             if (freeBytes < fastCheckThreshold || freeSwapBytes < swapFastCheckThreshold) {
-            	Log.info("fast1");
-            	Log.infof("freeBytes          %d", freeBytes);
-            	Log.infof("fastCheckThreshold %d", fastCheckThreshold);
-            	Log.infof("freeSwapBytes          %d", freeSwapBytes);
-            	Log.infof("swapFastCheckThreshold %d", swapFastCheckThreshold);
+                Log.info("fast1");
+                Log.infof("freeBytes          %d", freeBytes);
+                Log.infof("fastCheckThreshold %d", fastCheckThreshold);
+                Log.infof("freeSwapBytes          %d", freeSwapBytes);
+                Log.infof("swapFastCheckThreshold %d", swapFastCheckThreshold);
                 return fastIntervalMillis;
             } else {
-            	Log.infof("System.currentTimeMillis() %d", System.currentTimeMillis());
-            	Log.infof("Argus.lastPeerWarningMillis %d", Argus.lastPeerWarningMillis);
-            	Log.infof("System.currentTimeMillis() - Argus.lastPeerWarningMillis %d", System.currentTimeMillis() - Argus.lastPeerWarningMillis);
-            	Log.infof("Argus.peerWarningResponseIntervalMillis %d", Argus.peerWarningResponseIntervalMillis);
-            	if (System.currentTimeMillis() - Argus.lastPeerWarningMillis < Argus.peerWarningResponseIntervalMillis) {
-                	Log.info("fast2");
+                Log.infof("System.currentTimeMillis() %d", System.currentTimeMillis());
+                Log.infof("Argus.lastPeerWarningMillis %d", Argus.lastPeerWarningMillis);
+                Log.infof("System.currentTimeMillis() - Argus.lastPeerWarningMillis %d", System.currentTimeMillis() - Argus.lastPeerWarningMillis);
+                Log.infof("Argus.peerWarningResponseIntervalMillis %d", Argus.peerWarningResponseIntervalMillis);
+                if (System.currentTimeMillis() - Argus.lastPeerWarningMillis < Argus.peerWarningResponseIntervalMillis) {
+                    Log.info("fast2");
                     return fastIntervalMillis;
-            	} else {
-                	Log.info("slow1");
+                } else {
+                    Log.info("slow1");
                     return slowIntervalMillis;
-            	}
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
             Log.warning(e);
-        	Log.info("slow2");
+            Log.info("slow2");
             return slowIntervalMillis;
         }
     }    
     
     private void terminateUntilFree() throws IOException {
         long    freeBytes;
-        long	freeSwapBytes;
-        long	freeRAMBytes;
+        long    freeSwapBytes;
+        long    freeRAMBytes;
         
         Log.info("terminateUntilFree");
         freeBytes = procReader.freeMemBytes();
         freeSwapBytes = procReader.freeSwapBytes();
         freeRAMBytes = procReader.freeRamBytes();
         while (freeBytes < freeMemoryLimit 
-        		|| (freeRAMLimit > 0 && freeRAMBytes < freeRAMLimit)
-        		|| (freeSwapLimit > 0 && freeRAMBytes < freeMemoryLimit && freeSwapBytes < freeSwapLimit)) {
+                || (freeRAMLimit > 0 && freeRAMBytes < freeRAMLimit)
+                || (freeSwapLimit > 0 && freeRAMBytes < freeMemoryLimit && freeSwapBytes < freeSwapLimit)) {
             terminateLargest(freeBytes < freeMemoryLimit, freeSwapBytes < freeSwapLimit);
             ThreadUtil.sleep(killPauseMillis);
             freeBytes = procReader.freeMemBytes();
@@ -153,10 +153,10 @@ public class RSSEnforcer implements SafetyEnforcer {
     private void terminateLargest(boolean rssExceeded, boolean swapExceeded) throws IOException {
         List<ProcessStatAndOwner>   processList;
         ProcessStatAndOwner         largest;
-        String						errorMessage;
+        String                        errorMessage;
         
         if (udpModule != null) {
-        	udpModule.warnPeers();
+            udpModule.warnPeers();
         }
         errorMessage = (rssExceeded ? "RSS memory limit exceeded " : "") + (swapExceeded ? "Swap limit exceeded " : "") + ": ";
         processList = getCandidateProcessList();
@@ -186,11 +186,11 @@ public class RSSEnforcer implements SafetyEnforcer {
             
             candidate = procReader.readStatAndOwner(pid);
             if (candidate != null && candidate.getStat().getRSSBytes() >= candidateMinThreashold) {
-            	if (!options.singleUser || userName.equals(candidate.getOwner())) {
-            		processList.add(candidate);
-            	} else {
-            		Log.info("Ignoring: ", candidate);
-            	}
+                if (!options.singleUser || userName.equals(candidate.getOwner())) {
+                    processList.add(candidate);
+                } else {
+                    Log.info("Ignoring: ", candidate);
+                }
             }
         }
         

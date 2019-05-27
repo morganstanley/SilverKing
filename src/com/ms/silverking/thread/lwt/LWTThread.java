@@ -17,46 +17,46 @@ import com.ms.silverking.thread.ThreadUtil;
  */
 class LWTThread extends Thread implements LWTCompatibleThread {
     private final int   workUnit; 
-	//private final BlockingQueue<AssignedWork>	q;
+    //private final BlockingQueue<AssignedWork>    q;
     private final LightLinkedBlockingQueue<AssignedWork> q;
-	private final LWTPoolImpl	threadPool;
-	private boolean		running;
-	private boolean		active;
-	private Lock		idleLock;
-	private Condition	idleCV;
-	private int         depth;
-	
-	private final long[] workUnitStats;
-	
-	static final int   defaultWorkUnit = 1;
-	
-	private static final boolean   enableStats = false;  
-	
-	/**
-	 * @param name
-	 * @param q
-	 * @param idleThreads - must have been initialized by the pool
-	 */
-	public LWTThread(String name, LightLinkedBlockingQueue<AssignedWork> q, LWTPoolImpl threadPool,
+    private final LWTPoolImpl    threadPool;
+    private boolean        running;
+    private boolean        active;
+    private Lock        idleLock;
+    private Condition    idleCV;
+    private int         depth;
+    
+    private final long[] workUnitStats;
+    
+    static final int   defaultWorkUnit = 1;
+    
+    private static final boolean   enableStats = false;  
+    
+    /**
+     * @param name
+     * @param q
+     * @param idleThreads - must have been initialized by the pool
+     */
+    public LWTThread(String name, LightLinkedBlockingQueue<AssignedWork> q, LWTPoolImpl threadPool,
     //public LWTThread(String name, BlockingQueue<AssignedWork> q, LWTPoolImpl threadPool,
-	                int workUnit) {
-		super(name);
-		this.q = q;
-		this.threadPool = threadPool;
-		this.workUnit = workUnit;
-		if (enableStats) {
-		    workUnitStats = new long[workUnit + 1];
-		} else {
+                    int workUnit) {
+        super(name);
+        this.q = q;
+        this.threadPool = threadPool;
+        this.workUnit = workUnit;
+        if (enableStats) {
+            workUnitStats = new long[workUnit + 1];
+        } else {
             workUnitStats = null;
-		}
-		running = true;
-		idleLock = new ReentrantLock();
-		idleCV = idleLock.newCondition();
-		active = true;
-		setDaemon(true);
-	}
-	
-	/*
+        }
+        running = true;
+        idleLock = new ReentrantLock();
+        idleCV = idleLock.newCondition();
+        active = true;
+        setDaemon(true);
+    }
+    
+    /*
     public LWTThread(String name, LightLinkedBlockingQueue<AssignedWork> q, LWTPoolImpl threadPool) {
         this(name, q, threadPool, defaultWorkUnit);
     }
@@ -66,107 +66,107 @@ class LWTThread extends Thread implements LWTCompatibleThread {
         return workUnit;
     }
     
-	public BlockingQueue<AssignedWork> getQueue() {
-	    return q;
-	}
-	
-	public final void incrementDepth() {
-	    depth++;
-	}
-	
-	public final void decrementDepth() {
-	    depth--;
-	}
-	
-	public final int getDepth() {
-	    return depth;
-	}
-	
-	public void lwtStop() {
-		running = false;
-	}
-	
-	@Override
-	public void setBlocked() {
-		threadPool.setBlocked(this);
-	}
-	
+    public BlockingQueue<AssignedWork> getQueue() {
+        return q;
+    }
+    
+    public final void incrementDepth() {
+        depth++;
+    }
+    
+    public final void decrementDepth() {
+        depth--;
+    }
+    
+    public final int getDepth() {
+        return depth;
+    }
+    
+    public void lwtStop() {
+        running = false;
+    }
+    
     @Override
-	public void setNonBlocked() {
-		threadPool.setNonBlocked(this);
-	}
-	
-	public void setActive() {
-		if (active) {
-			throw new RuntimeException("Double activation");
-		}
-		active = true;
-		idleLock.lock();
-		try {
-			idleCV.signalAll();
-		} finally {
-			idleLock.unlock();
-		}
-	}
-	
-	public void setIdle() {
-		if (!active) {
-			throw new RuntimeException("Double inactivation");
-		}
-		active = false;
-	}
-	
-	public void run() {
-	    if (workUnit == 1) {
+    public void setBlocked() {
+        threadPool.setBlocked(this);
+    }
+    
+    @Override
+    public void setNonBlocked() {
+        threadPool.setNonBlocked(this);
+    }
+    
+    public void setActive() {
+        if (active) {
+            throw new RuntimeException("Double activation");
+        }
+        active = true;
+        idleLock.lock();
+        try {
+            idleCV.signalAll();
+        } finally {
+            idleLock.unlock();
+        }
+    }
+    
+    public void setIdle() {
+        if (!active) {
+            throw new RuntimeException("Double inactivation");
+        }
+        active = false;
+    }
+    
+    public void run() {
+        if (workUnit == 1) {
             runSingle();
-	    } else {
+        } else {
             runMultiple();
-	    }
-	}
-	
-	private void runSingle() {
-		ThreadState.setLWTThread();
-		while (running) {
-			try {
-				while (active) {
-					AssignedWork	work;
-					
-					work = q.take();
-					if (Log.levelMet(Level.FINE)) {
-						Log.fine(this +" doWork "+ work);
-					}
-					//System.out.println(idleThreads.get());
-					try {
-						work.doWork();
-		        	} catch (Exception e) {
-		                Log.logErrorWarning(e);
-		                ThreadUtil.pauseAfterException();        		
-		        	}
-				}
-				while (!active) {
-					idleLock.lock();
-					try {
-						idleCV.await();
-					} finally {
-						idleLock.unlock();
-					}
-				}
-			} catch (Exception e) {
-				Throwable	t;
-				
-				Log.warning("************************************** "+ getName());
-				t = e;
-				while (t != null) {
-					Log.logErrorWarning(t);
-					t = t.getCause();
-					Log.warning("......................................");
-				}
-				ThreadUtil.pauseAfterException();
-			}
-		}
-	}
-	
-	private void activeMultiple(AssignedWork[] workList) {
+        }
+    }
+    
+    private void runSingle() {
+        ThreadState.setLWTThread();
+        while (running) {
+            try {
+                while (active) {
+                    AssignedWork    work;
+                    
+                    work = q.take();
+                    if (Log.levelMet(Level.FINE)) {
+                        Log.fine(this +" doWork "+ work);
+                    }
+                    //System.out.println(idleThreads.get());
+                    try {
+                        work.doWork();
+                    } catch (Exception e) {
+                        Log.logErrorWarning(e);
+                        ThreadUtil.pauseAfterException();                
+                    }
+                }
+                while (!active) {
+                    idleLock.lock();
+                    try {
+                        idleCV.await();
+                    } finally {
+                        idleLock.unlock();
+                    }
+                }
+            } catch (Exception e) {
+                Throwable    t;
+                
+                Log.warning("************************************** "+ getName());
+                t = e;
+                while (t != null) {
+                    Log.logErrorWarning(t);
+                    t = t.getCause();
+                    Log.warning("......................................");
+                }
+                ThreadUtil.pauseAfterException();
+            }
+        }
+    }
+    
+    private void activeMultiple(AssignedWork[] workList) {
         BaseWorker  worker;
         int         numWorkItems;
         
@@ -186,12 +186,12 @@ class LWTThread extends Thread implements LWTCompatibleThread {
             ++workUnitStats[numWorkItems];                    
         }
         if (numWorkItems == 1) { // special case to speed up single work items
-        	try {
-        		workList[0].doWork();
-        	} catch (Exception e) {
+            try {
+                workList[0].doWork();
+            } catch (Exception e) {
                 Log.logErrorWarning(e);
-                ThreadUtil.pauseAfterException();        		
-        	}
+                ThreadUtil.pauseAfterException();                
+            }
         } else {
             int         groupStart;
             int         i; // index used to search for first incompatible worker
@@ -213,26 +213,26 @@ class LWTThread extends Thread implements LWTCompatibleThread {
                         _workList[j - groupStart] = workList[j].getWork();
                     }
                     try {
-                    	worker.doWork(_workList);
-                	} catch (Exception e) {
+                        worker.doWork(_workList);
+                    } catch (Exception e) {
                         Log.logErrorWarning(e);
-                        ThreadUtil.pauseAfterException();        		
-                	}
+                        ThreadUtil.pauseAfterException();                
+                    }
                 } else {
                     for (int j = groupStart; j < i; j++) {
-                    	try {
-	                        workList[j].doWork();
-                    	} catch (Exception e) {
+                        try {
+                            workList[j].doWork();
+                        } catch (Exception e) {
                             Log.logErrorWarning(e);
-                            ThreadUtil.pauseAfterException();        		
-                    	}
+                            ThreadUtil.pauseAfterException();                
+                        }
                     }
                 }
                 groupStart = i;
             }
         }
-	}
-	
+    }
+    
     private void runMultiple() {
         AssignedWork[]  workList;
         
@@ -264,7 +264,7 @@ class LWTThread extends Thread implements LWTCompatibleThread {
             }
         }
     }
-	
+    
     public void gatherStats(long[] _workUnitStats) {
         for (int i = 0; i < workUnitStats.length; i++) {
             _workUnitStats[i] += workUnitStats[i];

@@ -23,31 +23,31 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::SimpleSessionEstabli
 
 SKSessionEstablishmentTimeoutController * SKSessionOptions::getDefaultTimeoutController()
 {
-	SimpleSessionEstablishmentTimeoutController * pSessionEstablishmentTimeoutController = 
-		new SimpleSessionEstablishmentTimeoutController(java_cast<SimpleSessionEstablishmentTimeoutController>(
-			SessionOptions::getDefaultTimeoutController()));
-	return new SKSimpleSessionEstablishmentTimeoutController(pSessionEstablishmentTimeoutController);
+    SimpleSessionEstablishmentTimeoutController * pSessionEstablishmentTimeoutController = 
+        new SimpleSessionEstablishmentTimeoutController(java_cast<SimpleSessionEstablishmentTimeoutController>(
+            SessionOptions::getDefaultTimeoutController()));
+    return new SKSimpleSessionEstablishmentTimeoutController(pSessionEstablishmentTimeoutController);
 }
 
 SKSessionOptions::SKSessionOptions(SKClientDHTConfiguration * dhtConfig, const char * preferredServer,
-		    SKSessionEstablishmentTimeoutController * pTimeoutController)
+            SKSessionEstablishmentTimeoutController * pTimeoutController)
 {
-	ClientDHTConfiguration * pClientDhtConf = ((ClientDHTConfiguration *) dhtConfig->getPImpl());
-	SessionEstablishmentTimeoutController * pController = ((SessionEstablishmentTimeoutController *) pTimeoutController->getPImpl());
-	pImpl = new SessionOptions(java_new<SessionOptions>(*pClientDhtConf, 
-							java_new<String>((char*)preferredServer), *pController )); 
+    ClientDHTConfiguration * pClientDhtConf = ((ClientDHTConfiguration *) dhtConfig->getPImpl());
+    SessionEstablishmentTimeoutController * pController = ((SessionEstablishmentTimeoutController *) pTimeoutController->getPImpl());
+    pImpl = new SessionOptions(java_new<SessionOptions>(*pClientDhtConf, 
+                            java_new<String>((char*)preferredServer), *pController )); 
 }
 
 SKSessionOptions::SKSessionOptions(SKClientDHTConfiguration * dhtConfig, const char * preferredServer) 
 {
-	ClientDHTConfiguration * pClientDhtConf = ((ClientDHTConfiguration *) dhtConfig->getPImpl());
-	pImpl = new SessionOptions(java_new<SessionOptions>(*pClientDhtConf, 
-							java_new<String>((char*)preferredServer))); 
+    ClientDHTConfiguration * pClientDhtConf = ((ClientDHTConfiguration *) dhtConfig->getPImpl());
+    pImpl = new SessionOptions(java_new<SessionOptions>(*pClientDhtConf, 
+                            java_new<String>((char*)preferredServer))); 
 }
 
 SKSessionOptions::SKSessionOptions(SKClientDHTConfiguration * dhtConfig){
-	ClientDHTConfiguration * pClientDhtConf = ((ClientDHTConfiguration *) dhtConfig->getPImpl());
-	pImpl = new SessionOptions(java_new<SessionOptions>(*pClientDhtConf) ); 
+    ClientDHTConfiguration * pClientDhtConf = ((ClientDHTConfiguration *) dhtConfig->getPImpl());
+    pImpl = new SessionOptions(java_new<SessionOptions>(*pClientDhtConf) ); 
 }
 
 
@@ -55,11 +55,11 @@ SKSessionOptions::SKSessionOptions(void * pOpt) : pImpl(pOpt) {};  //FIXME: make
 
 SKSessionOptions::~SKSessionOptions()
 {
-	if(pImpl!=NULL) {
-		SessionOptions * po = (SessionOptions*)pImpl;
-		delete po; 
-		pImpl = NULL;
-	}
+    if(pImpl!=NULL) {
+        SessionOptions * po = (SessionOptions*)pImpl;
+        delete po; 
+        pImpl = NULL;
+    }
 }
 
 void * SKSessionOptions::getPImpl(){
@@ -67,26 +67,26 @@ void * SKSessionOptions::getPImpl(){
 }
 
 char * SKSessionOptions::toString(){
-	string representation = (string)(((SessionOptions*)pImpl)->toString());
-	return skStrDup(representation.c_str(),__FILE__, __LINE__);
+    string representation = (string)(((SessionOptions*)pImpl)->toString());
+    return skStrDup(representation.c_str(),__FILE__, __LINE__);
 }
 
 SKClientDHTConfiguration * SKSessionOptions::getDHTConfig(){
-	ClientDHTConfiguration * pClientDHTConf = new ClientDHTConfiguration(java_cast<ClientDHTConfiguration>(
-		((SessionOptions*)pImpl)->getDHTConfig()
-	)); 
-	return new SKClientDHTConfiguration(pClientDHTConf); 
+    ClientDHTConfiguration * pClientDHTConf = new ClientDHTConfiguration(java_cast<ClientDHTConfiguration>(
+        ((SessionOptions*)pImpl)->getDHTConfig()
+    )); 
+    return new SKClientDHTConfiguration(pClientDHTConf); 
 }
 
 char * SKSessionOptions::getPreferredServer(){
-	string server = (string)((SessionOptions*)pImpl)->getPreferredServer();
-	return skStrDup(server.c_str(),__FILE__, __LINE__);
+    string server = (string)((SessionOptions*)pImpl)->getPreferredServer();
+    return skStrDup(server.c_str(),__FILE__, __LINE__);
 }
 
 SKSessionOptions * SKSessionOptions::preferredServer(const char * preferredServer){
-	SessionOptions * pSessOptImp = new SessionOptions(java_cast<SessionOptions>(
-		((SessionOptions*)pImpl)->preferredServer(java_new<String>((char*)preferredServer))
-	)); 
+    SessionOptions * pSessOptImp = new SessionOptions(java_cast<SessionOptions>(
+        ((SessionOptions*)pImpl)->preferredServer(java_new<String>((char*)preferredServer))
+    )); 
     delete ((SessionOptions*)pImpl);
     pImpl = pSessOptImp;
     return this;
@@ -95,16 +95,16 @@ SKSessionOptions * SKSessionOptions::preferredServer(const char * preferredServe
 
 void SKSessionOptions::setDefaultTimeoutController(SKSessionEstablishmentTimeoutController * pDefaultTimeoutController)
 {
-	SessionEstablishmentTimeoutController * pController = pDefaultTimeoutController->getPImpl();
-	((SessionOptions*)pImpl)->setDefaultTimeoutController(*pController);
-	
+    SessionEstablishmentTimeoutController * pController = pDefaultTimeoutController->getPImpl();
+    ((SessionOptions*)pImpl)->setDefaultTimeoutController(*pController);
+    
 }
 
 SKSessionEstablishmentTimeoutController * SKSessionOptions::getTimeoutController()
 {
-	SimpleSessionEstablishmentTimeoutController * pSessionEstablishmentTimeoutController = 
-		new SimpleSessionEstablishmentTimeoutController(java_cast<SimpleSessionEstablishmentTimeoutController>(
-			((SessionOptions*)pImpl)->getTimeoutController()));
-	return new SKSimpleSessionEstablishmentTimeoutController(pSessionEstablishmentTimeoutController);
+    SimpleSessionEstablishmentTimeoutController * pSessionEstablishmentTimeoutController = 
+        new SimpleSessionEstablishmentTimeoutController(java_cast<SimpleSessionEstablishmentTimeoutController>(
+            ((SessionOptions*)pImpl)->getTimeoutController()));
+    return new SKSimpleSessionEstablishmentTimeoutController(pSessionEstablishmentTimeoutController);
 }
 

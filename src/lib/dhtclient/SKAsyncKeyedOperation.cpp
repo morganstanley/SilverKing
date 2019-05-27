@@ -62,63 +62,63 @@ SKAsyncKeyedOperation::SKAsyncKeyedOperation() {};
 /* public methods from Java */
 
 SKVector<string> * SKAsyncKeyedOperation::getKeys(void) {
-	AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
-	Set entrySet = java_cast<Set>(pAsync->getKeys());
-	SKVector<string> * keys = new SKVector<string>();
-	typedef JArray<Object> ObjArray;
-	ObjArray strs = entrySet.toArray();
+    AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
+    Set entrySet = java_cast<Set>(pAsync->getKeys());
+    SKVector<string> * keys = new SKVector<string>();
+    typedef JArray<Object> ObjArray;
+    ObjArray strs = entrySet.toArray();
     for (ObjArray::Iterator it = strs.begin(); it != strs.end(); ++it)
-	{
-		String str = java_cast<String>(*it);
-		std::string key = str.toString();
-		keys->push_back(key);
+    {
+        String str = java_cast<String>(*it);
+        std::string key = str.toString();
+        keys->push_back(key);
     }
-	
-	return keys;
+    
+    return keys;
 }
 
 SKOperationState::SKOperationState SKAsyncKeyedOperation::getOperationState(const string & key) {
-	AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
-	int i = (jint) pAsync->getOperationState(String(key)).ordinal();
-	return (SKOperationState::SKOperationState) i;
+    AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
+    int i = (jint) pAsync->getOperationState(String(key)).ordinal();
+    return (SKOperationState::SKOperationState) i;
 }
 
 SKMap<string,SKOperationState::SKOperationState> * SKAsyncKeyedOperation::getOperationStateMap(void) {
-	OpStateMap * stateMap = new OpStateMap();
-	AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
-	Map opStateMap = java_cast<Map>(pAsync->getOperationStateMap());
-	Set entrySet(opStateMap.entrySet());
-	for (Iterator it(entrySet.iterator()); it.hasNext();)
-	{
-		Map_Entry entry = java_cast<Map_Entry>(it.next());
-		String key = java_cast<String>(entry.getKey());
-		OperationState value = java_cast<OperationState>(entry.getValue());
-		SKOperationState::SKOperationState state = (SKOperationState::SKOperationState) ((jint) value.ordinal());
-		//cout << "key: <" << key << "> state: <" << state << ">" << endl;
-		stateMap->insert(OpStateMap::value_type( (std::string)key, state) );
-	}
-	
-	return stateMap;
+    OpStateMap * stateMap = new OpStateMap();
+    AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
+    Map opStateMap = java_cast<Map>(pAsync->getOperationStateMap());
+    Set entrySet(opStateMap.entrySet());
+    for (Iterator it(entrySet.iterator()); it.hasNext();)
+    {
+        Map_Entry entry = java_cast<Map_Entry>(it.next());
+        String key = java_cast<String>(entry.getKey());
+        OperationState value = java_cast<OperationState>(entry.getValue());
+        SKOperationState::SKOperationState state = (SKOperationState::SKOperationState) ((jint) value.ordinal());
+        //cout << "key: <" << key << "> state: <" << state << ">" << endl;
+        stateMap->insert(OpStateMap::value_type( (std::string)key, state) );
+    }
+    
+    return stateMap;
 }
 
 SKVector<string> * SKAsyncKeyedOperation::getIncompleteKeys() {
-	AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
-	Set entrySet = java_cast<Set>(pAsync->getIncompleteKeys());
-	SKVector<string> * keys = new SKVector<string>();
-	typedef JArray<Object> ObjArray;
-	ObjArray strs = entrySet.toArray();
+    AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
+    Set entrySet = java_cast<Set>(pAsync->getIncompleteKeys());
+    SKVector<string> * keys = new SKVector<string>();
+    typedef JArray<Object> ObjArray;
+    ObjArray strs = entrySet.toArray();
     for (ObjArray::Iterator it = strs.begin(); it != strs.end(); ++it)
-	{
-		String str = java_cast<String>(*it);
-		std::string key = str.toString();
-		keys->push_back(key);
+    {
+        String str = java_cast<String>(*it);
+        std::string key = str.toString();
+        keys->push_back(key);
     }
-	
-	return keys;
+    
+    return keys;
 }
 
 int SKAsyncKeyedOperation::getNumKeys()
 {
-	AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
-	return (int) pAsync->getNumKeys();
+    AsyncKeyedOperation * pAsync = (AsyncKeyedOperation*)getPImpl();
+    return (int) pAsync->getNumKeys();
 }

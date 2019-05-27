@@ -4,32 +4,32 @@ using namespace System;
 
 namespace SKManagedClient {
 
-	ref class SKValueCreator_M
-	{
-	public:
-		void * pValueCreator;  // (SKValueCreator*) //
-	};
+    ref class SKValueCreator_M
+    {
+    public:
+        void * pValueCreator;  // (SKValueCreator*) //
+    };
 
-	public ref class MValueCreator
-	{
-	public:
-		static const int BYTES = 8;  //IPV4_BYTES + BYTES_PER_INT
+    public ref class MValueCreator
+    {
+    public:
+        static const int BYTES = 8;  //IPV4_BYTES + BYTES_PER_INT
 
-		~MValueCreator();
-		!MValueCreator();
+        ~MValueCreator();
+        !MValueCreator();
 
-		String ^ getIP() ;  
-		Int32 getID() ;
-		//String ^ getBytes() const ;
-		array<Byte> ^ getBytes();
+        String ^ getIP() ;  
+        Int32 getID() ;
+        //String ^ getBytes() const ;
+        array<Byte> ^ getBytes();
 
-	internal:
-		MValueCreator(SKValueCreator_M ^ valueCreator);
-		SKValueCreator_M ^ getPImpl();
+    internal:
+        MValueCreator(SKValueCreator_M ^ valueCreator);
+        SKValueCreator_M ^ getPImpl();
 
-	private:
-		void * pImpl;
-	};
+    private:
+        void * pImpl;
+    };
 
 
 

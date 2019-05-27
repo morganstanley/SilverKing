@@ -5,8 +5,8 @@
 
 class SKSessionOptions;
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class SessionEstablishmentTimeoutController;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class SessionEstablishmentTimeoutController;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::SessionEstablishmentTimeoutController SessionEstablishmentTimeoutController;
 
@@ -37,15 +37,15 @@ public:
      */
     SKAPI virtual int getMaxRelativeTimeoutMillis(SKSessionOptions * pSessOpts)=0;
 
-	SKAPI virtual std::string toString()=0;
+    SKAPI virtual std::string toString()=0;
 
-	SKAPI virtual ~SKSessionEstablishmentTimeoutController();
+    SKAPI virtual ~SKSessionEstablishmentTimeoutController();
 
-	virtual SessionEstablishmentTimeoutController * getPImpl()=0;
+    virtual SessionEstablishmentTimeoutController * getPImpl()=0;
 
 protected:
-	//void * pImpl;
+    //void * pImpl;
 
-	SKSessionEstablishmentTimeoutController(void);
+    SKSessionEstablishmentTimeoutController(void);
 };
 

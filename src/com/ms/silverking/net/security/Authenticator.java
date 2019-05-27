@@ -60,7 +60,7 @@ public abstract class Authenticator {
         }
     }
 
-	private static AuthFailedAction defAction = AuthFailedAction.THROW_ERROR;
+    private static AuthFailedAction defAction = AuthFailedAction.THROW_ERROR;
     // Factory constructor for AUTH_SUCCESS and AUTH_FAIL
     public static AuthResult createAuthSuccessResult(String authId) {
         assert authId != null;
@@ -74,25 +74,25 @@ public abstract class Authenticator {
         return createAuthFailResult(action, null);
     }
 
-	/**
-	 * The behaviour for Silverking when authentication fails for a connection
-	 */
-	public enum AuthFailedAction {
-		/**
-		 * Silverking will throw <i>AuthenticationFailError</i>, currently Silverking will <b>NOT</b> handle this error
-		 * (May be used for the clientside behaviour)
-		 */
-		THROW_ERROR,
-		/**
-		 * Silverking will continue to work without authentication
-		 * (May be used if authentication is not a must, and this is Silverking's current default behaviour)
-		 */
-		GO_WITHOUT_AUTH,
-		/**
-		 * Silverking will absorb/give up this connection, and will still working
-		 * (May be used for the serverside behaviour)
-		 */
-		ABSORB_CONNECTION
+    /**
+     * The behaviour for Silverking when authentication fails for a connection
+     */
+    public enum AuthFailedAction {
+        /**
+         * Silverking will throw <i>AuthenticationFailError</i>, currently Silverking will <b>NOT</b> handle this error
+         * (May be used for the clientside behaviour)
+         */
+        THROW_ERROR,
+        /**
+         * Silverking will continue to work without authentication
+         * (May be used if authentication is not a must, and this is Silverking's current default behaviour)
+         */
+        GO_WITHOUT_AUTH,
+        /**
+         * Silverking will absorb/give up this connection, and will still working
+         * (May be used for the serverside behaviour)
+         */
+        ABSORB_CONNECTION
     }
 
     /**

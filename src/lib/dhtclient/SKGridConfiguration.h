@@ -14,23 +14,23 @@ using std::map;
 class SKGridConfiguration : public SKClientDHTConfigurationProvider 
 {
 public:
-	SKAPI static SKGridConfiguration * parseFile(const char * gcBase, const char * gcName); //1st arg was File
-	SKAPI static SKGridConfiguration * parseFile(const char * gcName);
-	SKAPI static map<string, string> * readEnvFile(const char * envFile);   //the arg was File
+    SKAPI static SKGridConfiguration * parseFile(const char * gcBase, const char * gcName); //1st arg was File
+    SKAPI static SKGridConfiguration * parseFile(const char * gcName);
+    SKAPI static map<string, string> * readEnvFile(const char * envFile);   //the arg was File
 
-	SKAPI SKGridConfiguration(const char * name, map<string,string> * envMap); 
+    SKAPI SKGridConfiguration(const char * name, map<string,string> * envMap); 
 
-	/* Config Name; client responsible for freeing string */
-	SKAPI char * getName();      
+    /* Config Name; client responsible for freeing string */
+    SKAPI char * getName();      
 
-	/* Env variable ;  client responsible for freeing input and output strings */
-	SKAPI char * get(const char * envKey);
+    /* Env variable ;  client responsible for freeing input and output strings */
+    SKAPI char * get(const char * envKey);
 
-	/*String representation of Grid Config;  client responsible for freeing of output string */
-	SKAPI char * toString() ; 
-	
-	/* Returns map of env. variables; client responsible for freeing the returned object */
-	SKAPI map<string,string> * getEnvMap();
+    /*String representation of Grid Config;  client responsible for freeing of output string */
+    SKAPI char * toString() ; 
+    
+    /* Returns map of env. variables; client responsible for freeing the returned object */
+    SKAPI map<string,string> * getEnvMap();
 
     SKAPI virtual SKClientDHTConfiguration * getClientDHTConfiguration();
 

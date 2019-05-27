@@ -21,60 +21,60 @@ BEGIN_NAMESPACE_3(jace, proxy, types)
 class JChar : public JValue
 {
 public:
-	/**
-	 * Creates a new JChar with the given value.
-	 */
-	JACE_API JChar(jvalue value);
+    /**
+     * Creates a new JChar with the given value.
+     */
+    JACE_API JChar(jvalue value);
 
-	/**
-	 * Creates a new JChar with the given value.
-	 */
-	JACE_API JChar(jchar _char);
+    /**
+     * Creates a new JChar with the given value.
+     */
+    JACE_API JChar(jchar _char);
 
-	/**
-	 * Destroys the existing java object.
-	 */
-	JACE_API virtual ~JChar();
+    /**
+     * Destroys the existing java object.
+     */
+    JACE_API virtual ~JChar();
 
-	/**
-	 * Returns the char value of this java char.
-	 */
-	JACE_API operator jchar() const;
+    /**
+     * Returns the char value of this java char.
+     */
+    JACE_API operator jchar() const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator==(const JChar& _char) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator==(const JChar& _char) const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator!=(const JChar& _char) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator!=(const JChar& _char) const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator==(jchar val) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator==(jchar val) const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator!=(jchar val) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator!=(jchar val) const;
 
-	/**
-	 * Returns the JClass for this class.
-	 */
-	JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
+    /**
+     * Returns the JClass for this class.
+     */
+    JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
 
-	/**
-	 * Returns the JClass for this instance.
-	 */
-	JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
+    /**
+     * Returns the JClass for this instance.
+     */
+    JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
 
-	/**
-	 * Support printing of characters.
-	 */
-	JACE_API friend std::ostream& operator<<(std::ostream& stream, const JChar& val);
+    /**
+     * Support printing of characters.
+     */
+    JACE_API friend std::ostream& operator<<(std::ostream& stream, const JChar& val);
 };
 
 END_NAMESPACE_3(jace, proxy, types)

@@ -31,20 +31,20 @@ BEGIN_NAMESPACE(jace)
 
 namespace
 {
-	// Transforms a JArguments to a vector of jvalue's
-	vector<jvalue> toVector(const JArguments& arguments)
-	{
-		typedef list<const JValue*> ValueList;
-		vector<jvalue> argsVector;
-		ValueList argsList = arguments.asList();
+    // Transforms a JArguments to a vector of jvalue's
+    vector<jvalue> toVector(const JArguments& arguments)
+    {
+        typedef list<const JValue*> ValueList;
+        vector<jvalue> argsVector;
+        ValueList argsList = arguments.asList();
 
-		ValueList::iterator end = argsList.end();
+        ValueList::iterator end = argsList.end();
 
-		for (ValueList::iterator i = argsList.begin(); i != end; ++i)
-			argsVector.push_back(static_cast<jvalue>(**i));
+        for (ValueList::iterator i = argsList.begin(); i != end; ++i)
+            argsVector.push_back(static_cast<jvalue>(**i));
 
-		return argsVector;
-	}
+        return argsVector;
+    }
 
 } // namespace {
 
@@ -78,12 +78,12 @@ jobject JConstructor::invoke(const JArguments& arguments)
 
 //  cout << "JConstructor::invoke - Creating the object..." << endl;
   jobject result;
-	vector<jvalue> argArray = toVector(arguments);
+    vector<jvalue> argArray = toVector(arguments);
 
-	if (argArray.size() > 0)
-		result = env->NewObjectA(mClass.getClass(), methodID, &argArray[0]);
-	else
-		result = env->NewObject(mClass.getClass(), methodID);
+    if (argArray.size() > 0)
+        result = env->NewObjectA(mClass.getClass(), methodID, &argArray[0]);
+    else
+        result = env->NewObject(mClass.getClass(), methodID);
 //  cout << "JConstructor::invoke - Created the object..." << endl;
 
   // Catch any java exception that occurred during the method call,
@@ -119,7 +119,7 @@ jmethodID JConstructor::getMethodID(const JClass& jClass, const JArguments& argu
   ValueList::iterator end = args.end();
 
   for (; i != end; ++i)
-	{
+    {
     const JValue* value = *i;
     signature << value->getJavaJniClass();
   }
@@ -134,19 +134,19 @@ jmethodID JConstructor::getMethodID(const JClass& jClass, const JArguments& argu
   mMethodID = env->GetMethodID(jClass.getClass(), "<init>", methodSignature.c_str());
 
   if (mMethodID == 0)
-	{
-		string msg = string("JConstructor::getMethodID(): ") +
+    {
+        string msg = string("JConstructor::getMethodID(): ") +
                  "Unable to find constructor for " + jClass.getInternalName() + 
-				 " with signature " + methodSignature;
-		try
-		{
-			catchAndThrow();
-		}
-		catch (std::exception& e)
-		{
-			msg.append("\ncaused by:\n");
-			msg.append(e.what());
-		}
+                 " with signature " + methodSignature;
+        try
+        {
+            catchAndThrow();
+        }
+        catch (std::exception& e)
+        {
+            msg.append("\ncaused by:\n");
+            msg.append(e.what());
+        }
     throw JNIException(msg);
   }
 

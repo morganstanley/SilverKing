@@ -36,9 +36,9 @@ import com.ms.silverking.util.PropertiesHelper;
 
 
 public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SSHMaster {
-	private static final long serialVersionUID = 2826568720882391661L;
+    private static final long serialVersionUID = 2826568720882391661L;
 
-	private Set<String>  hosts;
+    private Set<String>  hosts;
     
     private LightLinkedBlockingQueue<HostAndCommand> pendingHostCommands;
     private Set<HostAndCommand> activeHostCommands;
@@ -58,7 +58,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     private Semaphore       completedWorkers;
     private int             numWorkers;
     private int             workerTimeoutSeconds;
-    private boolean			terminateUponCompletion;
+    private boolean            terminateUponCompletion;
     
     private static final HostAndCommand DONE_MARKER = new HostAndCommand("DONE_MARKER", new String[0]);
     
@@ -92,7 +92,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
                         boolean terminateUponCompletion) throws IOException {
         Registry    registry;
         int         registryPort;
-        String		envCmd;
+        String        envCmd;
         
         numWorkerThreads = Math.min(numWorkerThreads, maxWorkerThreads);
         
@@ -117,8 +117,8 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         Log.warning("workerTimeoutSeconds: ", workerTimeoutSeconds);
         Log.warning("hosts.size(): ", hosts.size());
         if (hosts.size() == 0) {
-        	terminate();
-        	throw new RuntimeException("Empty hosts");
+            terminate();
+            throw new RuntimeException("Empty hosts");
         }
 
         workers = createWorkers(workerCandidateHosts, hosts);
@@ -162,26 +162,26 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
             int numWorkerThreads, int timeoutSeconds,
             int maxAttempts,
             boolean terminateUponCompletion) throws IOException {
-    	this(createHostCommands(hostCommandsMap), workerCandidateHosts, numWorkerThreads, timeoutSeconds, maxAttempts, terminateUponCompletion);
+        this(createHostCommands(hostCommandsMap), workerCandidateHosts, numWorkerThreads, timeoutSeconds, maxAttempts, terminateUponCompletion);
     }    
     
     private static List<HostAndCommand> createHostCommands(Map<String, String[]> hostCommandsMap) {
-    	List<HostAndCommand>	hostCommands;
-    	
-    	hostCommands = new ArrayList<>();
-    	for (Map.Entry<String, String[]> entry : hostCommandsMap.entrySet()) {
-    		hostCommands.add(new HostAndCommand(entry.getKey(), entry.getValue()));
-    	}
-    	return hostCommands;
-	}
+        List<HostAndCommand>    hostCommands;
+        
+        hostCommands = new ArrayList<>();
+        for (Map.Entry<String, String[]> entry : hostCommandsMap.entrySet()) {
+            hostCommands.add(new HostAndCommand(entry.getKey(), entry.getValue()));
+        }
+        return hostCommands;
+    }
 
-	private static Set<String> createWorkers(List<String> workerCandidateHosts, Set<String> hosts) {
-        Random      	random;
-        int         	randomIndex;
-        Set<String>		workers;
-        List<String>	hostList;
-        int				numWorkers;
-    	
+    private static Set<String> createWorkers(List<String> workerCandidateHosts, Set<String> hosts) {
+        Random          random;
+        int             randomIndex;
+        Set<String>        workers;
+        List<String>    hostList;
+        int                numWorkers;
+        
         hostList = ImmutableList.copyOf(workerCandidateHosts);
         random = new Random();
         numWorkers = (int)Math.min((double)workerCandidateHosts.size() * workerFraction, maxWorkers);;
@@ -224,24 +224,24 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     //////////////////////////////////////////////////////////////////////
 
 
-	@Override
-	public String getSSHCmd() throws RemoteException {
-		if (workerSSH.sshCmdIsDefault()) {
-			return null;
-		} else {
-			return workerSSH.getSSHCmd();
-		}
-	}
-	
-	@Override
-	public Map<String, String> getSSHCmdMap() throws RemoteException {
-		return workerSSH.getSSHCmdMap();
-	}
-	
-	@Override
-	public HostGroupTable getHostGroups() throws RemoteException {
-		return workerSSH.getHostGroups();
-	}
+    @Override
+    public String getSSHCmd() throws RemoteException {
+        if (workerSSH.sshCmdIsDefault()) {
+            return null;
+        } else {
+            return workerSSH.getSSHCmd();
+        }
+    }
+    
+    @Override
+    public Map<String, String> getSSHCmdMap() throws RemoteException {
+        return workerSSH.getSSHCmdMap();
+    }
+    
+    @Override
+    public HostGroupTable getHostGroups() throws RemoteException {
+        return workerSSH.getHostGroups();
+    }
     
     @Override
     public HostAndCommand getHostAndCommand() {
@@ -249,10 +249,10 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     }
     
     private HostAndCommand getHostAndCommand(boolean retryIfNeeded, int timeout) {
-        HostAndCommand	hostAndCommand;
+        HostAndCommand    hostAndCommand;
         
         try {
-        	hostAndCommand = pendingHostCommands.poll(timeout, TimeUnit.SECONDS);
+            hostAndCommand = pendingHostCommands.poll(timeout, TimeUnit.SECONDS);
         } catch (InterruptedException ie) {
             throw new RuntimeException();
         }
@@ -273,7 +273,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
                 try {
                     // check with lock to ensure that it's really empty
                     // (we can remove unlocked, but can't add)
-                	hostAndCommand = getHostAndCommand(false, 0);
+                    hostAndCommand = getHostAndCommand(false, 0);
                     if (attempts < maxAttempts) {
                         // now while holding the lock, we can add for retry
                         attempts++;
@@ -321,9 +321,9 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
             } catch (InterruptedException ie) {
             }
             if (terminateUponCompletion) {
-	            if (beginTermination()) {
-	                displayIncomplete();
-	            }
+                if (beginTermination()) {
+                    displayIncomplete();
+                }
             } else {
                 displayIncomplete();
             }
@@ -359,8 +359,8 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     }
     
     public static List<String> readHostsFile(String hostsFile, String description, List<String> exclusionHosts) throws IOException {
-    	List<String>	hostList;
-    	
+        List<String>    hostList;
+        
         if (hostsFile != null) {
             hostList = StreamParser.parseFileLines(hostsFile);
         } else {
@@ -397,35 +397,35 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
         return hostList;
     }
     
-    	
+        
     public void doSSH() {
-    	boolean	workersComplete;
-    	
-    	workersComplete = false;
+        boolean    workersComplete;
+        
+        workersComplete = false;
         while (!workersComplete) {
             startWorkers(null);
             workersComplete = waitForWorkerCompletion();
         }
         if (terminateUponCompletion) {
-	        if (beginTermination()) {
-	            displayIncomplete();
-	        }
-	        terminate();
+            if (beginTermination()) {
+                displayIncomplete();
+            }
+            terminate();
         } else {
             displayIncomplete();
         }
     }
     
-	public void terminate() {
-		try {
-			boolean	result;
-			
-			result = UnicastRemoteObject.unexportObject(this, true);
-			Log.warningf("TwoLevelParallelSSHMaster terminated: %s", result);
-		} catch (NoSuchObjectException e) {
-			Log.logErrorWarning(e);
-		}
-	}    
+    public void terminate() {
+        try {
+            boolean    result;
+            
+            result = UnicastRemoteObject.unexportObject(this, true);
+            Log.warningf("TwoLevelParallelSSHMaster terminated: %s", result);
+        } catch (NoSuchObjectException e) {
+            Log.logErrorWarning(e);
+        }
+    }    
 
     /**
      * @param args
@@ -476,7 +476,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
             
             hostCommands = new ArrayList<>();
             for (String host : hosts) {
-            	hostCommands.add(new HostAndCommand(host, cmd));
+                hostCommands.add(new HostAndCommand(host, cmd));
             }
             
             parallelSSH = new TwoLevelParallelSSHMaster(hostCommands, 

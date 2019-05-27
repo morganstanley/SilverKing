@@ -23,24 +23,24 @@ public final class IntegerSerDes implements BufferSerDes<Integer> {
         return NumConversion.BYTES_PER_INT;
     }
 
-	@Override
-	public Integer deserialize(ByteBuffer[] buffers) {
-	    byte[] def;
-	    
-	    def = ByteArraySerDes.deserializeBuffers(buffers);
-	    if (def.length != NumConversion.BYTES_PER_INT) {
-	        throw new RuntimeException("Unable to deserialize integer def length: "+ def.length);
-	    }
-	    return NumConversion.bytesToInt(def);
-	}
+    @Override
+    public Integer deserialize(ByteBuffer[] buffers) {
+        byte[] def;
+        
+        def = ByteArraySerDes.deserializeBuffers(buffers);
+        if (def.length != NumConversion.BYTES_PER_INT) {
+            throw new RuntimeException("Unable to deserialize integer def length: "+ def.length);
+        }
+        return NumConversion.bytesToInt(def);
+    }
 
     @Override
     public Integer deserialize(ByteBuffer buffer) {
         return buffer.getInt(buffer.position());
     }
 
-	@Override
-	public Integer emptyObject() {
-		return new Integer(0);
-	}
+    @Override
+    public Integer emptyObject() {
+        return new Integer(0);
+    }
 }

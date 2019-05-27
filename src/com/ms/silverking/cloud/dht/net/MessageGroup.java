@@ -46,9 +46,9 @@ public final class MessageGroup {
     private static final boolean    debugShortTimeout = false;
     private static final int        shortTimeoutLimit = 1000;
     
-    public static final int	minDeadlineRelativeMillis = OutgoingData.minRelativeDeadline;
+    public static final int    minDeadlineRelativeMillis = OutgoingData.minRelativeDeadline;
     
-    private static final int	MG_O_peer = 1;
+    private static final int    MG_O_peer = 1;
     
     public MessageGroup(MessageType messageType, int options, UUIDBase uuid, long context, ByteBuffer[] buffers, 
                         byte[] originator, int deadlineRelativeMillis, ForwardingMode forward) {
@@ -60,9 +60,9 @@ public final class MessageGroup {
         assert originator.length == ValueCreator.BYTES;
         this.originator = originator;
         if (deadlineRelativeMillis < minDeadlineRelativeMillis) {
-        	Log.warningf("deadlineRelativeMillis < minDeadlineRelativeMillis; %d < %d", deadlineRelativeMillis, minDeadlineRelativeMillis);
-        	Thread.dumpStack();
-        	deadlineRelativeMillis = minDeadlineRelativeMillis;
+            Log.warningf("deadlineRelativeMillis < minDeadlineRelativeMillis; %d < %d", deadlineRelativeMillis, minDeadlineRelativeMillis);
+            Thread.dumpStack();
+            deadlineRelativeMillis = minDeadlineRelativeMillis;
         }
         this.deadlineRelativeMillis = deadlineRelativeMillis;
         this.forward = forward;
@@ -95,7 +95,7 @@ public final class MessageGroup {
         case OP_NOP:
         case OP_PING:
         case OP_PING_ACK:
-        case SET_CONVERGENCE_STATE:        	
+        case SET_CONVERGENCE_STATE:            
             bytesPerKeyEntry = 0;
             break;
         default:
@@ -125,15 +125,15 @@ public final class MessageGroup {
     }
     
     public void setPeer(boolean peer) {
-    	if (peer) {
-    		options = options | MG_O_peer;
-    	} else {
-    		options = options & (~MG_O_peer);
-    	}
+        if (peer) {
+            options = options | MG_O_peer;
+        } else {
+            options = options & (~MG_O_peer);
+        }
     }
     
     public boolean getPeer() {
-    	return (options & MG_O_peer) != 0;
+        return (options & MG_O_peer) != 0;
     }
     
     public MessageGroup duplicate() {
@@ -148,26 +148,26 @@ public final class MessageGroup {
     }
     
     public MessageGroup ensureArrayBacked() {
-    	boolean	arrayBacked;
-    	
-    	arrayBacked = true;
+        boolean    arrayBacked;
+        
+        arrayBacked = true;
         for (int i = 0; i < buffers.length; i++) {
-        	if (!buffers[i].hasArray()) {
-        		arrayBacked = false;
-        		break;
-        	}
+            if (!buffers[i].hasArray()) {
+                arrayBacked = false;
+                break;
+            }
         }
         if (arrayBacked) {
-        	return this;
+            return this;
         } else {
-	        ByteBuffer[]    _buffers;
-	        
-	        _buffers = new ByteBuffer[buffers.length];
-	        for (int i = 0; i < buffers.length; i++) {
-	            _buffers[i] = BufferUtil.ensureArrayBacked(buffers[i]);
-	        }
-	        return new MessageGroup(messageType, options, uuid, context, _buffers, originator, 
-	                                deadlineRelativeMillis, forward);
+            ByteBuffer[]    _buffers;
+            
+            _buffers = new ByteBuffer[buffers.length];
+            for (int i = 0; i < buffers.length; i++) {
+                _buffers[i] = BufferUtil.ensureArrayBacked(buffers[i]);
+            }
+            return new MessageGroup(messageType, options, uuid, context, _buffers, originator, 
+                                    deadlineRelativeMillis, forward);
         }
     }
     
@@ -176,7 +176,7 @@ public final class MessageGroup {
     }
     
     public int getOptions() {
-    	return options;
+        return options;
     }
     
     public long getContext() {
@@ -441,20 +441,20 @@ public final class MessageGroup {
     }
     
     private String getBufferLengthsString() {
-    	StringBuilder	sb;
-    	
-    	sb = new StringBuilder();
-    	if (buffers != null) {
-	    	for (ByteBuffer buf : buffers) {
-	    		if (buf != null) {
-		    		if (sb.length() > 0) {
-		    			sb.append(',');
-		    		}
-		    		sb.append(buf.limit());
-	    		}
-	    	}
-    	}
-    	return sb.toString();
+        StringBuilder    sb;
+        
+        sb = new StringBuilder();
+        if (buffers != null) {
+            for (ByteBuffer buf : buffers) {
+                if (buf != null) {
+                    if (sb.length() > 0) {
+                        sb.append(',');
+                    }
+                    sb.append(buf.limit());
+                }
+            }
+        }
+        return sb.toString();
     }
     
     public static MessageGroup clone(MessageGroup mg) {

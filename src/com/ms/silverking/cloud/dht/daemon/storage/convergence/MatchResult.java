@@ -60,7 +60,7 @@ public class MatchResult {
     }
     
     public String toSummaryString() {
-    	return String.format("sourceNotInDest %d destNotInSource %d checksumMismatch %d", sourceNotInDest.size(), destNotInSource.size(), checksumMismatch.size());
+        return String.format("sourceNotInDest %d destNotInSource %d checksumMismatch %d", sourceNotInDest.size(), destNotInSource.size(), checksumMismatch.size());
     }
     
     @Override

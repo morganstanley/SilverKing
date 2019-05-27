@@ -6,11 +6,11 @@ public class NamespaceStats {
     private volatile int    totalKeys; // meta write lock is held
     private AtomicLong      bytesUncompressed;
     private AtomicLong      bytesCompressed;
-    private volatile long	totalPuts; // write lock is held when updating puts
-    private volatile long	totalInvalidations; // write lock is held when updating puts
+    private volatile long    totalPuts; // write lock is held when updating puts
+    private volatile long    totalInvalidations; // write lock is held when updating puts
     private AtomicLong      totalRetrievals; // only read lock is held; use atomic
-    private volatile long	lastPutMillis;
-    private volatile long	lastRetrievalMillis;
+    private volatile long    lastPutMillis;
+    private volatile long    lastRetrievalMillis;
 
     public NamespaceStats() {
         bytesUncompressed = new AtomicLong();
@@ -40,37 +40,37 @@ public class NamespaceStats {
     }
     
     public void addPuts(int numPuts, int numInvalidations, long timeMillis) {
-    	totalPuts += numPuts;
-    	totalInvalidations += numInvalidations;
-    	lastPutMillis = timeMillis;
+        totalPuts += numPuts;
+        totalInvalidations += numInvalidations;
+        lastPutMillis = timeMillis;
     }
     
     public void addRetrievals(int numRetrievals, long timeMillis) {
-    	totalRetrievals.addAndGet(numRetrievals);
-    	lastRetrievalMillis = timeMillis;
+        totalRetrievals.addAndGet(numRetrievals);
+        lastRetrievalMillis = timeMillis;
     }
     
     public long getTotalPuts() {
-    	return totalPuts;
+        return totalPuts;
     }
     
     public long getTotalInvalidations() {
-    	return totalInvalidations;
+        return totalInvalidations;
     }
     
     public long getTotalRetrievals() {
-    	return totalRetrievals.get();
+        return totalRetrievals.get();
     }
     
     public long getLastPutMillis() {
-    	return lastPutMillis;
+        return lastPutMillis;
     }
     
     public long getLastRetrievalMillis() {
-    	return lastRetrievalMillis;
+        return lastRetrievalMillis;
     }
     
     public long getLastActivityMillis() {
-    	return Math.max(getLastPutMillis(), getLastRetrievalMillis());
+        return Math.max(getLastPutMillis(), getLastRetrievalMillis());
     }
 }

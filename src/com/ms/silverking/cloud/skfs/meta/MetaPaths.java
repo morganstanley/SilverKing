@@ -14,7 +14,7 @@ public class MetaPaths extends MetaPathsBase {
     public MetaPaths(String skfsConfigName) {
         ImmutableList.Builder<String>   listBuilder;
         listBuilder = ImmutableList.builder();
-    	this.configPath = getConfigPath(skfsConfigName);
+        this.configPath = getConfigPath(skfsConfigName);
         listBuilder.add(this.configPath);
         pathList = listBuilder.build();
     }

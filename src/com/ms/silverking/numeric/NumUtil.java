@@ -10,26 +10,26 @@ import com.ms.silverking.collection.Pair;
 
 
 public class NumUtil {
-	public static void add(int[] vals, int constant) {
-		for (int i = 0; i < vals.length; i++) {
-			vals[i] += constant;
-		}
-	}
-	
-	public static void sub(int[] vals, int constant) {
-		add(vals, -constant);
-	}	
-	
-	public static double sum(List<Double> lx) {
-	    double sum;
-	    
-	    sum = 0.0;
-	    for (double x : lx) {
-	        sum += x;
-	    }
-	    return sum;
-	}
-	
+    public static void add(int[] vals, int constant) {
+        for (int i = 0; i < vals.length; i++) {
+            vals[i] += constant;
+        }
+    }
+    
+    public static void sub(int[] vals, int constant) {
+        add(vals, -constant);
+    }    
+    
+    public static double sum(List<Double> lx) {
+        double sum;
+        
+        sum = 0.0;
+        for (double x : lx) {
+            sum += x;
+        }
+        return sum;
+    }
+    
     public static int sum(int[] lx) {
         int sum;
         
@@ -49,7 +49,7 @@ public class NumUtil {
         }
         return sum;
     }
-	
+    
     public static List<BigDecimal> doubleToBD(List<Double> listDouble, MathContext mc) {
         List<BigDecimal>   listBD;
         
@@ -76,21 +76,21 @@ public class NumUtil {
             }
             //nx.add(x / sum);
             if (sum.compareTo(BigDecimal.ZERO) == 0) {
-            	throw new IllegalArgumentException("Sum of weights to normalize cannot be zero");
+                throw new IllegalArgumentException("Sum of weights to normalize cannot be zero");
             }
             nx.add(x.divide(sum, mc));
         }
         return nx;      
     }
-	
-	public static int log2OfPerfectPower(int v) {
+    
+    public static int log2OfPerfectPower(int v) {
         if (v <= 0) {
             throw new ArithmeticException();
         }
-	    return Integer.numberOfTrailingZeros(v);
-	}
+        return Integer.numberOfTrailingZeros(v);
+    }
 
-	// FUTURE - use DeBruijn sequence
+    // FUTURE - use DeBruijn sequence
     public static int log2(int x) {
         if (x <= 0) {
             throw new ArithmeticException();
@@ -129,100 +129,100 @@ public class NumUtil {
         return result;
     }
     
-	/*
-	public static void main(String[] args) {
-	    for (int i = 0; i < 31; i++) {
-	        int    v;
-	        
-	        v = 1 << i;
-	        try {
-	            System.out.println(i +"\t"+ v +"\t"+ log2OfPerfectPower(v));
-	        } catch (RuntimeException re) {
+    /*
+    public static void main(String[] args) {
+        for (int i = 0; i < 31; i++) {
+            int    v;
+            
+            v = 1 << i;
+            try {
+                System.out.println(i +"\t"+ v +"\t"+ log2OfPerfectPower(v));
+            } catch (RuntimeException re) {
                 System.out.println(i +"\t"+ v +"\t"+ re);
-	        }
-	    }
-	}
-	*/
+            }
+        }
+    }
+    */
     
     public static int longHashCode(long l) {
         return (int)(l ^ (l >>> 32));
     }
     
     public static long addWithClamp(long a, long b) {
-    	long	c;
-    	
-    	c = a + b;
-    	if (a > 0 && b > 0) {
-    		if (c < 0) {
-    			return Long.MAX_VALUE;
-    		} else {
-    			return c;
-    		}
-    	} else if (a < 0 && b < 0) {
-    		if (c > 0) {
-    			return Long.MIN_VALUE;
-    		} else {
-    			return c;
-    		}
-    	} else {
-    		return c;
-    	}
+        long    c;
+        
+        c = a + b;
+        if (a > 0 && b > 0) {
+            if (c < 0) {
+                return Long.MAX_VALUE;
+            } else {
+                return c;
+            }
+        } else if (a < 0 && b < 0) {
+            if (c > 0) {
+                return Long.MIN_VALUE;
+            } else {
+                return c;
+            }
+        } else {
+            return c;
+        }
     }
     
     public static int compare(Pair<Long,Long> a, Pair<Long,Long> b) {
-    	if (a.getV1() < b.getV1()) {
-    		return -1;
-    	} else if (a.getV1() > b.getV1()) {
-    		return 1;
-    	} else {
-        	if (a.getV2() < b.getV2()) {
-        		return -1;
-        	} else if (a.getV2() > b.getV2()) {
-        		return 1;
-        	} else {
-        		return 0;
-        	}
-    	}
+        if (a.getV1() < b.getV1()) {
+            return -1;
+        } else if (a.getV1() > b.getV1()) {
+            return 1;
+        } else {
+            if (a.getV2() < b.getV2()) {
+                return -1;
+            } else if (a.getV2() > b.getV2()) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
     }    
 
     public static int[] parseIntArray(String def, String delimiter) {
-		String[]	defs;
-		int[]		vals;
-		
-		defs = def.split(delimiter);
-		vals = new int[defs.length];
-		for (int i = 0; i < defs.length; i++) {
-			vals[i] = Integer.parseInt(defs[i]);
-		}
-		return vals;
+        String[]    defs;
+        int[]        vals;
+        
+        defs = def.split(delimiter);
+        vals = new int[defs.length];
+        for (int i = 0; i < defs.length; i++) {
+            vals[i] = Integer.parseInt(defs[i]);
+        }
+        return vals;
     }
     
     public static int bound(int v, int min, int max) {
-    	if (v <= min) {
-    		return min;
-    	} else if (v >= max) {
-    		return max;
-    	} else {
-    		return v;
-    	}
+        if (v <= min) {
+            return min;
+        } else if (v >= max) {
+            return max;
+        } else {
+            return v;
+        }
     }
     
     // rudimentary factorial implementation
     public static BigInteger factorial(int n) {
-    	BigInteger	nf;
-    	
-    	nf = BigInteger.ONE;
-    	for (int i = 2; i <= n; i++) {
-    		nf = nf.multiply(BigInteger.valueOf(i));
-    	}
-    	return nf;
+        BigInteger    nf;
+        
+        nf = BigInteger.ONE;
+        for (int i = 2; i <= n; i++) {
+            nf = nf.multiply(BigInteger.valueOf(i));
+        }
+        return nf;
     }
     
     // rudimentary combinations
     public static long combinations(int n, int r) {
-    	return factorial(n).divide(factorial(n - r).multiply(factorial(r))).longValue();
+        return factorial(n).divide(factorial(n - r).multiply(factorial(r))).longValue();
     }
-	
+    
     public static void main(String[] args) {
         for (int i = 0; i <= 16; i++) {
             //int    v;

@@ -12,8 +12,8 @@
 
 struct SKVal;
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class StoredValue;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class StoredValue;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::StoredValue StoredValue;
 
@@ -21,12 +21,12 @@ typedef jace::proxy::com::ms::silverking::cloud::dht::client::StoredValue Stored
 class SKStoredValue : public SKMetaData
 {
 public:
-	SKAPI SKMetaData * getMetaData() const ;
-	SKAPI SKVal * getValue() const ;
-	SKAPI SKStoredValue * next() const ;
+    SKAPI SKMetaData * getMetaData() const ;
+    SKAPI SKVal * getValue() const ;
+    SKAPI SKStoredValue * next() const ;
 
     SKAPI virtual ~SKStoredValue();
-	SKStoredValue(StoredValue * pSvImpl);
+    SKStoredValue(StoredValue * pSvImpl);
 protected:
     StoredValue * getPImpl();
     SKStoredValue();

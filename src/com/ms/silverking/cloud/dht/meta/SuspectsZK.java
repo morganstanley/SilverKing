@@ -31,7 +31,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String,String>,Me
     
     private static final String emptySetDef = "<empty>";
     
-    private static final boolean	debug = false;
+    private static final boolean    debug = false;
     
     public SuspectsZK(MetaClient mc) throws KeeperException {
         super(mc, mc.getMetaPaths().getInstanceSuspectsPath());
@@ -99,23 +99,23 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String,String>,Me
         ZooKeeperExtended   _zk;
         
         if (debug) {
-        	Log.warning("in readAccuserSuspectsFromZK()");
+            Log.warning("in readAccuserSuspectsFromZK()");
         }
         basePath = mc.getMetaPaths().getInstanceSuspectsPath();
         _zk = mc.getZooKeeper();
         accusers = IPAndPort.list(_zk.getChildren(basePath));
         accuserSuspectsMap = HashMultimap.create();
         for (IPAndPort accuser : accusers) {
-        	Set<IPAndPort>	suspects;
-        	
-        	suspects =  _readSuspectsFromZK(_zk, accuser);
-        	if (suspects != null) {
-        		accuserSuspectsMap.putAll(accuser, suspects);
-        	}
+            Set<IPAndPort>    suspects;
+            
+            suspects =  _readSuspectsFromZK(_zk, accuser);
+            if (suspects != null) {
+                accuserSuspectsMap.putAll(accuser, suspects);
+            }
         }
         if (debug) {
-        	Log.warning("accuserSuspectsMap.size()\t", accuserSuspectsMap.size());
-        	Log.warning("out readAccuserSuspectsFromZK()");
+            Log.warning("accuserSuspectsMap.size()\t", accuserSuspectsMap.size());
+            Log.warning("out readAccuserSuspectsFromZK()");
         }
         return new Pair<>(ImmutableSet.copyOf(accusers), accuserSuspectsMap);
     }
@@ -155,33 +155,33 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String,String>,Me
         }
     }
 
-	public Set<IPAndPort> readSuspectsFromZK(IPAndPort accuser) throws KeeperException {
+    public Set<IPAndPort> readSuspectsFromZK(IPAndPort accuser) throws KeeperException {
         return _readSuspectsFromZK(mc.getZooKeeper(), accuser);
-	}
-	
-  	private Set<IPAndPort> _readSuspectsFromZK(ZooKeeperExtended _zk, IPAndPort accuser) {  		
-		Set<IPAndPort>	suspects;
-        String  		suspectsDef;
-        String			basePath;
+    }
+    
+      private Set<IPAndPort> _readSuspectsFromZK(ZooKeeperExtended _zk, IPAndPort accuser) {          
+        Set<IPAndPort>    suspects;
+        String          suspectsDef;
+        String            basePath;
         
         suspects = new HashSet<>();
         try {
             basePath = mc.getMetaPaths().getInstanceSuspectsPath();
             suspectsDef = _zk.getString(basePath +"/"+ accuser.toString());
             if (debug) {
-            	Log.warning(accuser +"\t"+ suspectsDef);
+                Log.warning(accuser +"\t"+ suspectsDef);
             }
             if (!suspectsDef.equals(emptySetDef)) {
                 suspectsDef.trim();
                 suspectsDef = suspectsDef.substring(1, suspectsDef.length() - 1);
                 for (String suspect : suspectsDef.split(suspectsDelimiterString)) {
-                	suspects.add(new IPAndPort(suspect));
+                    suspects.add(new IPAndPort(suspect));
                 }
             }
             return suspects;
         } catch (KeeperException ke) {
-        	Log.warning("Unable to read suspects for: ", accuser.toString());
-        	return null;
-        }		
-	}
+            Log.warning("Unable to read suspects for: ", accuser.toString());
+            return null;
+        }        
+    }
 }

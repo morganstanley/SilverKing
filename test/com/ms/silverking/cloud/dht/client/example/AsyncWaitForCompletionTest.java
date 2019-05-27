@@ -10,13 +10,13 @@ import com.ms.silverking.testing.annotations.SkLarge;
 @SkLarge
 public class AsyncWaitForCompletionTest {
 
-	@Test
-	public void testWaitForCompletion() throws IOException {
-		TestUtil.checkValueIs("awfc.value.1", AsyncWaitForCompletion.runExample( Util.getTestGridConfig() ));
-	}
-	
-	public static void main(String[] args) {
-		Util.runTests(AsyncWaitForCompletionTest.class);
-	}
+    @Test
+    public void testWaitForCompletion() throws IOException {
+        TestUtil.checkValueIs("awfc.value.1", AsyncWaitForCompletion.runExample( Util.getTestGridConfig() ));
+    }
+    
+    public static void main(String[] args) {
+        Util.runTests(AsyncWaitForCompletionTest.class);
+    }
 
 }

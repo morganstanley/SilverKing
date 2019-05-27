@@ -18,14 +18,14 @@ class SKPutOptions;
 class SKSyncWritableNSPerspective : virtual public SKBaseNSPerspective
 {
 public:
-	SKAPI virtual ~SKSyncWritableNSPerspective(){};
+    SKAPI virtual ~SKSyncWritableNSPerspective(){};
 
-	SKAPI virtual void put( SKMap<string, SKVal*> const * dhtValues)=0;
-	SKAPI virtual void put( SKMap<string, SKVal*> const * dhtValues, SKPutOptions * pPutOptions)=0;
-	SKAPI virtual void put(string * key, SKVal* value, SKPutOptions * pPutOptions)=0;
-	SKAPI virtual void put(string * key, SKVal* value)=0;
-	SKAPI virtual void put(const char * key, SKVal* value, SKPutOptions * pPutOptions)=0;
-	SKAPI virtual void put(const char * key, SKVal* value)=0;
+    SKAPI virtual void put( SKMap<string, SKVal*> const * dhtValues)=0;
+    SKAPI virtual void put( SKMap<string, SKVal*> const * dhtValues, SKPutOptions * pPutOptions)=0;
+    SKAPI virtual void put(string * key, SKVal* value, SKPutOptions * pPutOptions)=0;
+    SKAPI virtual void put(string * key, SKVal* value)=0;
+    SKAPI virtual void put(const char * key, SKVal* value, SKPutOptions * pPutOptions)=0;
+    SKAPI virtual void put(const char * key, SKVal* value)=0;
 };
 
 

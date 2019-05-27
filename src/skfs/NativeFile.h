@@ -30,18 +30,18 @@
 typedef enum {NFR_Invalid = 0, NFR_Created, NFR_Destroyed} NFRefStatus;
 
 typedef struct NativeFileReferentState {
-	NFRefStatus	    refStatus[NFR_MAX_REFS];
-	int				nextRef;
-	int				toDelete;
+    NFRefStatus        refStatus[NFR_MAX_REFS];
+    int                nextRef;
+    int                toDelete;
 } NativeFileReferentState;
 
 
 #define _NF_TYPE_
 typedef struct NativeFile {
-	uint16_t	magic;	
+    uint16_t    magic;    
     const char  *path;
     int         fd;
-	pthread_mutex_t lock;
+    pthread_mutex_t lock;
     HashTableAndLock    *htl;
     NativeFileReferentState   referentState;
 } NativeFile;

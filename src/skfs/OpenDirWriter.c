@@ -40,7 +40,7 @@ static QueueProcessor *odw_select_qp(OpenDirWriter *odw, OpenDirWriteRequest *od
 // private data
 
 static uint64_t _minRetrySleepMillis = 100;
-static uint64_t	_maxRetrySleepMillis = 10 * 1000;
+static uint64_t    _maxRetrySleepMillis = 10 * 1000;
 static unsigned int _retrySeed;
 
 
@@ -48,97 +48,97 @@ static unsigned int _retrySeed;
 // implementation
 
 OpenDirWriter *odw_new(SRFSDHT *sd/*, DirDataReader *ddr*/, uint64_t minWriteIntervalMillis) {
-	OpenDirWriter *odw;
+    OpenDirWriter *odw;
     int i;
 
-	odw = (OpenDirWriter*)mem_alloc(1, sizeof(OpenDirWriter));
-	//odw->ddr = ddr;
+    odw = (OpenDirWriter*)mem_alloc(1, sizeof(OpenDirWriter));
+    //odw->ddr = ddr;
     for (i = 0; i < ODW_DHT_QUEUE_PROCESSORS; i++) {
         odw->qp[i] = qp_new_batch_processor(odw_process_dht_batch, __FILE__, __LINE__, ODW_DHT_QUEUE_SIZE, ABQ_FULL_BLOCK, ODW_DHT_THREADS_PER_QUEUE_PROCESSOR, ODW_MAX_BATCH_SIZE);
     }
-	//odw->retryQP = qp_new_batch_processor(odw_process_retry_batch, __FILE__, __LINE__, ODW_RETRY_QUEUE_SIZE, ABQ_FULL_DROP, ODW_RETRY_THREADS, ODW_RETRY_MAX_BATCH_SIZE);
-	odw->sd = sd;
+    //odw->retryQP = qp_new_batch_processor(odw_process_retry_batch, __FILE__, __LINE__, ODW_RETRY_QUEUE_SIZE, ABQ_FULL_DROP, ODW_RETRY_THREADS, ODW_RETRY_MAX_BATCH_SIZE);
+    odw->sd = sd;
     odw->minWriteIntervalMillis = minWriteIntervalMillis;
-	odw->pSession = sd_new_session(odw->sd);
-	try {	
-		SKNamespace	*ns;
-		SKNamespacePerspectiveOptions *nspOptions;
-		SKPutOptions	*pPutOptions;
-		
-		ns = odw->pSession->getNamespace(SKFS_DIR_NS);
-		nspOptions = ns->getDefaultNSPOptions();
-		
-		pPutOptions = nspOptions->getDefaultPutOptions();
-		pPutOptions = pPutOptions->compression(defaultCompression);
-		if (defaultChecksum == SKChecksumType::NONE) {
-			srfsLog(LOG_WARNING, "Turning off checksums");
-		}
-		pPutOptions = pPutOptions->checksumType(defaultChecksum);
-		nspOptions = nspOptions->defaultPutOptions(pPutOptions);
-		
-		odw->ansp = ns->openAsyncPerspective(nspOptions);
-		delete ns;
-	} catch(SKClientException &ex) {
-		srfsLog(LOG_ERROR, "odw_new exception opening namespace %s: what: %s\n", SKFS_DIR_NS, ex.what());
-		fatalError("exception in odw_new", __FILE__, __LINE__ );
-	}
-	_retrySeed = (unsigned int)curTimeMillis() ^ (unsigned int)(uint64_t)odw;
-	return odw;
+    odw->pSession = sd_new_session(odw->sd);
+    try {    
+        SKNamespace    *ns;
+        SKNamespacePerspectiveOptions *nspOptions;
+        SKPutOptions    *pPutOptions;
+        
+        ns = odw->pSession->getNamespace(SKFS_DIR_NS);
+        nspOptions = ns->getDefaultNSPOptions();
+        
+        pPutOptions = nspOptions->getDefaultPutOptions();
+        pPutOptions = pPutOptions->compression(defaultCompression);
+        if (defaultChecksum == SKChecksumType::NONE) {
+            srfsLog(LOG_WARNING, "Turning off checksums");
+        }
+        pPutOptions = pPutOptions->checksumType(defaultChecksum);
+        nspOptions = nspOptions->defaultPutOptions(pPutOptions);
+        
+        odw->ansp = ns->openAsyncPerspective(nspOptions);
+        delete ns;
+    } catch(SKClientException &ex) {
+        srfsLog(LOG_ERROR, "odw_new exception opening namespace %s: what: %s\n", SKFS_DIR_NS, ex.what());
+        fatalError("exception in odw_new", __FILE__, __LINE__ );
+    }
+    _retrySeed = (unsigned int)curTimeMillis() ^ (unsigned int)(uint64_t)odw;
+    return odw;
 }
 
 void odw_delete(OpenDirWriter **odw) {
-	if (odw != NULL && *odw != NULL) {
+    if (odw != NULL && *odw != NULL) {
         // FUTURE - deletion is presently unused; implement for qp if needed
         /*
-		(*odw)->qp->running = FALSE;
-		for(int i=0; i<(*odw)->qp->numThreads; i++) {
-			int added = qp_add((*odw)->qp, NULL);
-			if (!added) {
-				srfsLog(LOG_ERROR, "odw_delete failed to add NULL to qp\n");
-			}
-		}
-		qp_delete(&(*odw)->qp);
-		try {
-			(*odw)->ansp->close(); 
-			delete (*odw)->ansp;
-		} catch (std::exception & ex) {
-			srfsLog(LOG_ERROR, "exception in odw_delete: what: %s\n", ex.what());
-			fatalError("exception in ar_delete", __FILE__, __LINE__ );
-		}
-		
-		if ((*odw)->pSession) {
-			delete (*odw)->pSession;
-			(*odw)->pSession = NULL;
-		}
-		
-		mem_free((void **)odw);
+        (*odw)->qp->running = FALSE;
+        for(int i=0; i<(*odw)->qp->numThreads; i++) {
+            int added = qp_add((*odw)->qp, NULL);
+            if (!added) {
+                srfsLog(LOG_ERROR, "odw_delete failed to add NULL to qp\n");
+            }
+        }
+        qp_delete(&(*odw)->qp);
+        try {
+            (*odw)->ansp->close(); 
+            delete (*odw)->ansp;
+        } catch (std::exception & ex) {
+            srfsLog(LOG_ERROR, "exception in odw_delete: what: %s\n", ex.what());
+            fatalError("exception in ar_delete", __FILE__, __LINE__ );
+        }
+        
+        if ((*odw)->pSession) {
+            delete (*odw)->pSession;
+            (*odw)->pSession = NULL;
+        }
+        
+        mem_free((void **)odw);
         */
-	} else {
-		fatalError("bad ptr in odw_delete");
-	}
+    } else {
+        fatalError("bad ptr in odw_delete");
+    }
 }
 
 void odw_write_dir(OpenDirWriter *odw, const char *path, OpenDir *od) {
-	OpenDirWriteRequest	*odwr;
-	int					okToAdd;
-	int					added;
+    OpenDirWriteRequest    *odwr;
+    int                    okToAdd;
+    int                    added;
 
-	okToAdd = od_set_queued_for_write(od, TRUE);
-	if (okToAdd) {
+    okToAdd = od_set_queued_for_write(od, TRUE);
+    if (okToAdd) {
         QueueProcessor  *qp;
         
-		srfsLog(LOG_FINE, "Adding od %llx od %s", od, od->path);
-		odwr = odwr_new(odw, od);
-		srfsLog(LOG_FINE, "new odwr %llx", odwr);
+        srfsLog(LOG_FINE, "Adding od %llx od %s", od, od->path);
+        odwr = odwr_new(odw, od);
+        srfsLog(LOG_FINE, "new odwr %llx", odwr);
         qp = odw_select_qp(odw, odwr);
-		added = qp_add(qp, odwr);
-		if (!added) {
-			odwr_delete(&odwr);
-			fatalError("Unexpected failed odw addition", __FILE__, __LINE__);
-		}
-	} else {
-		srfsLog(LOG_INFO, "Ignoring already queued od %s", od->path);
-	}
+        added = qp_add(qp, odwr);
+        if (!added) {
+            odwr_delete(&odwr);
+            fatalError("Unexpected failed odw addition", __FILE__, __LINE__);
+        }
+    } else {
+        srfsLog(LOG_INFO, "Ignoring already queued od %s", od->path);
+    }
 }
 
 static QueueProcessor *odw_select_qp(OpenDirWriter *odw, OpenDirWriteRequest *odwr) {
@@ -149,53 +149,53 @@ static QueueProcessor *odw_select_qp(OpenDirWriter *odw, OpenDirWriteRequest *od
 }
 
 static void odw_process_dht_batch(void **requests, int numRequests, int curThreadIndex) {
-	SKOperationState::SKOperationState	dhtErr;
-	int					i;
-	OpenDirWriter		*odw;
-   	StrValMap           requestGroup;  //keys map
+    SKOperationState::SKOperationState    dhtErr;
+    int                    i;
+    OpenDirWriter        *odw;
+       StrValMap           requestGroup;  //keys map
     uint64_t            preWriteTimeMillis;
     uint64_t            postWriteTimeMillis;
 
-	srfsLog(LOG_FINE, "in odw_process_dht_batch %d", curThreadIndex);
-	odw = NULL;
+    srfsLog(LOG_FINE, "in odw_process_dht_batch %d", curThreadIndex);
+    odw = NULL;
 
     preWriteTimeMillis = curTimeMillis();
     
-	for (i = 0; i < numRequests; i++) {
-		OpenDirWriteRequest	*odwr;
-		int	okToWrite;
+    for (i = 0; i < numRequests; i++) {
+        OpenDirWriteRequest    *odwr;
+        int    okToWrite;
 
-		odwr = (OpenDirWriteRequest *)requests[i];
-		okToWrite = od_set_queued_for_write(odwr->od, FALSE);
-		if (okToWrite) {
-			if (odw == NULL) {
-				odw = odwr->openDirWriter;
-			} else {
-				if (odwr->openDirWriter != odw) {
-					fatalError("Unexpected multiple OpenDirWriter in odw_process_dht_batch");
-				}
-			}
+        odwr = (OpenDirWriteRequest *)requests[i];
+        okToWrite = od_set_queued_for_write(odwr->od, FALSE);
+        if (okToWrite) {
+            if (odw == NULL) {
+                odw = odwr->openDirWriter;
+            } else {
+                if (odwr->openDirWriter != odw) {
+                    fatalError("Unexpected multiple OpenDirWriter in odw_process_dht_batch");
+                }
+            }
         }
-		if (okToWrite) {
-			DirData	*dd;
-			SKVal	*pval;
-			
-			srfsLog(LOG_INFO, "OpenDirWriter adding to group %llx %llx %s", odwr, odwr->od, odwr->od->path );
-			dd = od_get_server_update_DirData(odwr->od);
-			pval = sk_create_val();
-			sk_set_val(pval, dd_length_with_header_and_index(dd), (void *)(dd) );
-			//if (srfsLogLevelMet(LOG_INFO)) {
-			//	od_display(odwr->od, stderr);
-			//	dd_display(dd, stderr);
-			//}
-			dd_delete(&dd);
-			requestGroup.insert( StrValMap::value_type(string(odwr->od->path), pval ));
-		} else {
-			srfsLog(LOG_INFO, "OpenDirWriter ignoring %s", odwr->od->path );
+        if (okToWrite) {
+            DirData    *dd;
+            SKVal    *pval;
+            
+            srfsLog(LOG_INFO, "OpenDirWriter adding to group %llx %llx %s", odwr, odwr->od, odwr->od->path );
+            dd = od_get_server_update_DirData(odwr->od);
+            pval = sk_create_val();
+            sk_set_val(pval, dd_length_with_header_and_index(dd), (void *)(dd) );
+            //if (srfsLogLevelMet(LOG_INFO)) {
+            //    od_display(odwr->od, stderr);
+            //    dd_display(dd, stderr);
+            //}
+            dd_delete(&dd);
+            requestGroup.insert( StrValMap::value_type(string(odwr->od->path), pval ));
+        } else {
+            srfsLog(LOG_INFO, "OpenDirWriter ignoring %s", odwr->od->path );
             odwr_delete(&odwr);
             requests[i] = NULL;
-		}
-	}
+        }
+    }
     
     if (odw != NULL) {
         srfsLog(LOG_FINE, "OpenDirWriter call mput");
@@ -211,11 +211,11 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
                 srfsLog(LOG_FINE, "OpenDirWriter mput %s %d %d %d", SKFS_DIR_NS, requestGroup.size(), numRequests, opState );
             }
             if (opState == SKOperationState::FAILED){
-                OpStateMap	*pOpMap = pPut->getOperationStateMap();
+                OpStateMap    *pOpMap = pPut->getOperationStateMap();
                 for (i = 0; i < numRequests; i++) {
                     SKOperationState::SKOperationState  iop;
                     
-                    OpenDirWriteRequest	*odwr = (OpenDirWriteRequest *)requests[i];
+                    OpenDirWriteRequest    *odwr = (OpenDirWriteRequest *)requests[i];
                     
                     if (odwr != NULL) {
                         try {
@@ -259,7 +259,7 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
             {
                 OpStateMap *pOpMap = pPut->getOperationStateMap();
                 for (i = 0; i < numRequests; i++) {
-                    OpenDirWriteRequest	*odwr = (OpenDirWriteRequest *)requests[i];
+                    OpenDirWriteRequest    *odwr = (OpenDirWriteRequest *)requests[i];
                     SKOperationState::SKOperationState iop = pOpMap->at(odwr->od->path);
                     if (iop) {
                         if (iop != SKOperationState::SUCCEEDED) {
@@ -288,7 +288,7 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
         postWriteTimeMillis = curTimeMillis();
         
         for (i = 0; i < numRequests; i++) {
-            OpenDirWriteRequest	*odwr = (OpenDirWriteRequest *)requests[i];
+            OpenDirWriteRequest    *odwr = (OpenDirWriteRequest *)requests[i];
             if (odwr != NULL) {
                 try {
                     SKVal *ppval = requestGroup.at(odwr->od->path);
@@ -317,7 +317,7 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
     } else {
         srfsLog(LOG_FINE, "odw_process_dht_batch ignored or requeued all writes");
     }
-	srfsLog(LOG_FINE, "out odw_process_dht_batch");
+    srfsLog(LOG_FINE, "out odw_process_dht_batch");
 }
 
 /*
@@ -325,65 +325,65 @@ static void odw_process_dht_batch(void **requests, int numRequests, int curThrea
 Retry logic is currently deprecated in favor of periodic reconciliation
 
 static void odw_retry(OpenDirWriter *odw, OpenDirWriteRequest *odwr) {
-	int	added;
-	
-	srfsLog(LOG_WARNING, "Queueing retry od %s", odwr->od->path);
-	if (odwr->od->queuedForWrite) { // unsafe access as hint
-		added = FALSE;
-	} else {
-		added = qp_add(odw->retryQP, odwr);
-	}
-	if (!added) {
-		odwr_delete(&odwr);
-		srfsLog(LOG_WARNING, "Failed retry addition %s %d", __FILE__, __LINE__);
-	}
+    int    added;
+    
+    srfsLog(LOG_WARNING, "Queueing retry od %s", odwr->od->path);
+    if (odwr->od->queuedForWrite) { // unsafe access as hint
+        added = FALSE;
+    } else {
+        added = qp_add(odw->retryQP, odwr);
+    }
+    if (!added) {
+        odwr_delete(&odwr);
+        srfsLog(LOG_WARNING, "Failed retry addition %s %d", __FILE__, __LINE__);
+    }
 }
 
 static int odw_process_retry(OpenDirWriteRequest *odwr) {
-	int		okToAdd;
-	int		added;
-	OpenDir	*od;
+    int        okToAdd;
+    int        added;
+    OpenDir    *od;
 
-	od = odwr->od;
-	okToAdd = od_set_queued_for_write(od, TRUE);
-	if (okToAdd) {
-		OpenDirWriter	*odw;
-		
-		srfsLog(LOG_WARNING, "Retrying od, updating %s", od->path);
-		odw = odwr->openDirWriter;
-		ddr_update_OpenDir(odw->ddr, od);
-		srfsLog(LOG_WARNING, "Update complete %s", od->path);
-		added = qp_add(odw->qp, odwr);
-		if (!added) {
-			odwr_delete(&odwr);
-			fatalError("Unexpected failed process retry addition", __FILE__, __LINE__);
-		}
-	} else {
-		srfsLog(LOG_WARNING, "Ignoring already queued od %s", od->path);
-		odwr_delete(&odwr);
-	}
-	return okToAdd;
+    od = odwr->od;
+    okToAdd = od_set_queued_for_write(od, TRUE);
+    if (okToAdd) {
+        OpenDirWriter    *odw;
+        
+        srfsLog(LOG_WARNING, "Retrying od, updating %s", od->path);
+        odw = odwr->openDirWriter;
+        ddr_update_OpenDir(odw->ddr, od);
+        srfsLog(LOG_WARNING, "Update complete %s", od->path);
+        added = qp_add(odw->qp, odwr);
+        if (!added) {
+            odwr_delete(&odwr);
+            fatalError("Unexpected failed process retry addition", __FILE__, __LINE__);
+        }
+    } else {
+        srfsLog(LOG_WARNING, "Ignoring already queued od %s", od->path);
+        odwr_delete(&odwr);
+    }
+    return okToAdd;
 }
 
 static void odw_process_retry_batch(void **requests, int numRequests, int curThreadIndex) {
-	int	i;
-	int	retryAttempted;
+    int    i;
+    int    retryAttempted;
 
-	srfsLog(LOG_WARNING, "in odw_process_retry_batch %d", curThreadIndex);
-	srfsLog(LOG_WARNING, "odw_process_retry_batch sleeping");
-	srfsLog(LOG_WARNING, "odw_process_retry_batch retrying %d", numRequests);
-	retryAttempted = FALSE;
-	for (i = 0; i < numRequests; i++) {
-		OpenDirWriteRequest	*odwr;
-		int	okToAdd;
+    srfsLog(LOG_WARNING, "in odw_process_retry_batch %d", curThreadIndex);
+    srfsLog(LOG_WARNING, "odw_process_retry_batch sleeping");
+    srfsLog(LOG_WARNING, "odw_process_retry_batch retrying %d", numRequests);
+    retryAttempted = FALSE;
+    for (i = 0; i < numRequests; i++) {
+        OpenDirWriteRequest    *odwr;
+        int    okToAdd;
 
-		odwr = (OpenDirWriteRequest *)requests[i];
-		okToAdd = odw_process_retry(odwr);
-		retryAttempted = retryAttempted || okToAdd;
-	}
-	if (retryAttempted) {
-		sleep_random_millis(_minRetrySleepMillis, _maxRetrySleepMillis, &_retrySeed);
-	}
-	srfsLog(LOG_WARNING, "out odw_process_retry_batch %d", curThreadIndex);
+        odwr = (OpenDirWriteRequest *)requests[i];
+        okToAdd = odw_process_retry(odwr);
+        retryAttempted = retryAttempted || okToAdd;
+    }
+    if (retryAttempted) {
+        sleep_random_millis(_minRetrySleepMillis, _maxRetrySleepMillis, &_retrySeed);
+    }
+    srfsLog(LOG_WARNING, "out odw_process_retry_batch %d", curThreadIndex);
 }
 */

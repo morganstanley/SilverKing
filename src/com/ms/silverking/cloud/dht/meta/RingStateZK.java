@@ -31,7 +31,7 @@ public class RingStateZK {
     }
     
     public RingStateZK(MetaClient mc, DHTConfiguration dhtConfig, Pair<Long,Long> ringVersionPair) throws KeeperException {
-    	this(mc, dhtConfig, ringVersionPair.getV1(), ringVersionPair.getV2());
+        this(mc, dhtConfig, ringVersionPair.getV1(), ringVersionPair.getV2());
     }
     
     private void ensureBasePathExists() throws KeeperException {
@@ -51,12 +51,12 @@ public class RingStateZK {
     
     private String getRingConfigVersionPath() {
         return getRingStatePathBase() 
-        		+"/"+ ZooKeeperExtended.padVersion(ringConfigVersion);
+                +"/"+ ZooKeeperExtended.padVersion(ringConfigVersion);
     }
     
     public String getRingInstanceStatePath() {
         return getRingConfigVersionPath() 
-        		+"/"+ ZooKeeperExtended.padVersion(configInstanceVersion);
+                +"/"+ ZooKeeperExtended.padVersion(configInstanceVersion);
     }
     
     private String getRingStatePath(IPAndPort node) {

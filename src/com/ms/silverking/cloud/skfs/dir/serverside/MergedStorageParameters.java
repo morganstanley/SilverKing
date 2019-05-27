@@ -7,66 +7,66 @@ import com.ms.silverking.cloud.dht.daemon.storage.StorageValueAndParameters;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 
 class MergedStorageParameters implements SSStorageParameters {
-	private final long		version;
-	private final long		creationTime;
-	private final byte[]	valueCreator;
-	
-	MergedStorageParameters(long version, long creationTime, byte[] valueCreator) {
-		this.version = version;
-		this.creationTime = creationTime;
-		this.valueCreator = valueCreator.clone();
-	}
+    private final long        version;
+    private final long        creationTime;
+    private final byte[]    valueCreator;
+    
+    MergedStorageParameters(long version, long creationTime, byte[] valueCreator) {
+        this.version = version;
+        this.creationTime = creationTime;
+        this.valueCreator = valueCreator.clone();
+    }
 
-	public MergedStorageParameters(StorageValueAndParameters svp) {
-		this(svp.getVersion(), svp.getCreationTime(), svp.getValueCreator());
-	}
+    public MergedStorageParameters(StorageValueAndParameters svp) {
+        this(svp.getVersion(), svp.getCreationTime(), svp.getValueCreator());
+    }
 
-	@Override
-	public long getVersion() {
-		return version;
-	}
+    @Override
+    public long getVersion() {
+        return version;
+    }
 
-	@Override
-	public int getUncompressedSize() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public int getUncompressedSize() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public int getCompressedSize() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public int getCompressedSize() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Compression getCompression() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Compression getCompression() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public byte getStorageState() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public byte getStorageState() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public byte[] getChecksum() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public byte[] getChecksum() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public byte[] getValueCreator() {
-		return valueCreator;
-	}
+    @Override
+    public byte[] getValueCreator() {
+        return valueCreator;
+    }
 
-	@Override
-	public long getCreationTime() {
-		return creationTime;
-	}
+    @Override
+    public long getCreationTime() {
+        return creationTime;
+    }
 
-	@Override
-	public ChecksumType getChecksumType() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public ChecksumType getChecksumType() {
+        throw new UnsupportedOperationException();
+    }
 
-	public MergedStorageParameters merge(StorageParameters sp) {
-		return new MergedStorageParameters(Math.max(version, sp.getVersion()), Math.max(creationTime, sp.getCreationTime()), sp.getValueCreator());
-	}
+    public MergedStorageParameters merge(StorageParameters sp) {
+        return new MergedStorageParameters(Math.max(version, sp.getVersion()), Math.max(creationTime, sp.getCreationTime()), sp.getValueCreator());
+    }
 }

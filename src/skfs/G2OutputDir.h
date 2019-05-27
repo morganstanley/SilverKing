@@ -24,18 +24,18 @@
 // types
 
 typedef struct OutputDirEntry {
-	char	*name;
-	int		nameSize;
-	ino_t	ino;
-	off_t	outLength;
-	off_t	errLength;
-	char	*hostname;
+    char    *name;
+    int        nameSize;
+    ino_t    ino;
+    off_t    outLength;
+    off_t    errLength;
+    char    *hostname;
 } OutputDirEntry;
 
 typedef struct OutputDir {
-	OutputDirEntry	**entries;
-	int				numEntries;
-	pthread_rwlock_t	rwLock;
+    OutputDirEntry    **entries;
+    int                numEntries;
+    pthread_rwlock_t    rwLock;
 } OutputDir;
 
 

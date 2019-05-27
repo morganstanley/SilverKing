@@ -17,8 +17,8 @@
 // types
 
 typedef struct FileIDToPathMap {
-    hashtable	*ht;
-	pthread_rwlock_t	rwLock;
+    hashtable    *ht;
+    pthread_rwlock_t    rwLock;
 } FileIDToPathMap;
 
 

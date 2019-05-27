@@ -14,24 +14,24 @@ import com.ms.silverking.cloud.dht.common.OpResult;
  * existence results. Existence is indicated by OpResult only.
  */
 abstract class RetrievalResultBase<V> implements StoredValue<V> {
-	protected V  value;
+    protected V  value;
     protected final BufferSourceDeserializer<V>   valueDeserializer;
-    protected RetrievalResultBase<V>			  next;
+    protected RetrievalResultBase<V>              next;
     
     protected static final Object valueNotSet = new Object();
-	
-	public RetrievalResultBase(BufferSourceDeserializer<V> valueDeserializer) {
-	    this.valueDeserializer = valueDeserializer;
-	    value = (V)valueNotSet;
-	}
-	
+    
+    public RetrievalResultBase(BufferSourceDeserializer<V> valueDeserializer) {
+        this.valueDeserializer = valueDeserializer;
+        value = (V)valueNotSet;
+    }
+    
     @Override
     public StoredValue<V> next() {
         return null;
     }
-	
+    
     public abstract OpResult getOpResult();
-	
+    
     @Override
     public int getStoredLength() {
         return getMetaData().getStoredLength();
@@ -78,11 +78,11 @@ abstract class RetrievalResultBase<V> implements StoredValue<V> {
     }
     
     public void setNext(RetrievalResultBase<V> next) {
-    	this.next = next;
+        this.next = next;
     }
     
     public RetrievalResultBase<V> getNext() {
-    	return next;
+        return next;
     }
     
     @Override

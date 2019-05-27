@@ -33,8 +33,8 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     private final Compressor  compressor;
     private final Checksum    checksum;
     private final boolean     checksumCompressedValues;
-    private final EncrypterDecrypter	encrypterDecrypter;
-    private final long		  fragmentationThreshold;
+    private final EncrypterDecrypter    encrypterDecrypter;
+    private final long          fragmentationThreshold;
     
     private static final byte[] emptyValue = new byte[0];
 
@@ -124,7 +124,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
         int     bytesToChecksumOffset;
         int     bytesToChecksumLength;
         ByteBuffer  bytesToChecksumBuf;
-        int		_bufferIndex;
+        int        _bufferIndex;
         int     _bufferPosition;
         
         // FUTURE - in the future offload serialization, compression and/or checksum computation to a worker?
@@ -146,28 +146,28 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
             
             if (serializedBytes.limit() != 0) {
                 try {
-                	if (compressor != null) {
-                		bytesToStore = compressor.compress(serializedBytes.array(), 
+                    if (compressor != null) {
+                        bytesToStore = compressor.compress(serializedBytes.array(), 
                                                        serializedBytes.position(), 
                                                        serializedBytes.remaining());
-	                    if (bytesToStore.length >= bytesToChecksumLength) {
-	                        // If compression is not useful, then use the
-	                        // uncompressed data. Note that NamespaceStore must
-	                        // notice this change in order to correctly set the
-	                        // compression type to NONE since the message will
-	                        // still show the attempted compression type.
-	                        assert serializedBytes.position() == 0;
-	                        bytesToStore = serializedBytes.array();
-	                    }
-                	} else {
+                        if (bytesToStore.length >= bytesToChecksumLength) {
+                            // If compression is not useful, then use the
+                            // uncompressed data. Note that NamespaceStore must
+                            // notice this change in order to correctly set the
+                            // compression type to NONE since the message will
+                            // still show the attempted compression type.
+                            assert serializedBytes.position() == 0;
+                            bytesToStore = serializedBytes.array();
+                        }
+                    } else {
                         bytesToStore = serializedBytes.array();
-                	}
+                    }
                 } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                 }
                 if (encrypterDecrypter != null) {
-                	bytesToStore = encrypterDecrypter.encrypt(bytesToStore);
-                	bytesToChecksumBuf = ByteBuffer.wrap(bytesToStore);
+                    bytesToStore = encrypterDecrypter.encrypt(bytesToStore);
+                    bytesToChecksumBuf = ByteBuffer.wrap(bytesToStore);
                 }
             } else {
                 //System.out.println("empty serialized bytes");

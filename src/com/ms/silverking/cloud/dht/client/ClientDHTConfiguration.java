@@ -16,24 +16,24 @@ import com.ms.silverking.text.ObjectDefParser2;
  * Client configuration settings for a single DHT.
  */
 public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
-	private final String	       name;
+    private final String           name;
     private final int              port;
-	private final ZooKeeperConfig  zkConfig;
-	
-	public static ClientDHTConfiguration	embeddedKVS = new ClientDHTConfiguration(SessionOptions.EMBEDDED_KVS, new ZooKeeperConfig(new AddrAndPort[0]));
-	
-	private static final int   portInZKOnly = Integer.MIN_VALUE;
-	
-	public static final String	nameVar = "GC_SK_NAME";
-    public static final String	portVar = "GC_SK_PORT";
-	public static final String	zkLocVar = "GC_SK_ZK_LOC";
-	
+    private final ZooKeeperConfig  zkConfig;
+    
+    public static ClientDHTConfiguration    embeddedKVS = new ClientDHTConfiguration(SessionOptions.EMBEDDED_KVS, new ZooKeeperConfig(new AddrAndPort[0]));
+    
+    private static final int   portInZKOnly = Integer.MIN_VALUE;
+    
+    public static final String    nameVar = "GC_SK_NAME";
+    public static final String    portVar = "GC_SK_PORT";
+    public static final String    zkLocVar = "GC_SK_ZK_LOC";
+    
     private static final Set<String> optionalFields;
     
     public static final ClientDHTConfiguration  emptyTemplate = 
             new ClientDHTConfiguration("__dummy_name__", 1, "localhost:0");
-    private static final Class[]	constructorFieldClasses = new Class[]{String.class, int.class, String.class};
-    private static final String[]	constructorFieldNames = new String[]{"name", "port", "zkLocs"};
+    private static final Class[]    constructorFieldClasses = new Class[]{String.class, int.class, String.class};
+    private static final String[]    constructorFieldNames = new String[]{"name", "port", "zkLocs"};
     
     static {
         ImmutableSet.Builder<String> builder;
@@ -43,11 +43,11 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
         
         ObjectDefParser2.addParser(emptyTemplate, FieldsRequirement.REQUIRE_ALL_NONOPTIONAL_FIELDS, optionalFields, constructorFieldClasses, constructorFieldNames);        
     }
-	   
+       
     public ClientDHTConfiguration(String dhtName, int dhtPort, ZooKeeperConfig zkConfig) {
-    	Preconditions.checkNotNull(dhtName, "dhtName must be non-null");
-    	Preconditions.checkArgument(dhtPort > 0 || dhtPort == portInZKOnly, "dhtPort must be > 0. Found: ", dhtPort);
-    	Preconditions.checkNotNull(zkConfig, "zkConfig must be non-null");
+        Preconditions.checkNotNull(dhtName, "dhtName must be non-null");
+        Preconditions.checkArgument(dhtPort > 0 || dhtPort == portInZKOnly, "dhtPort must be > 0. Found: ", dhtPort);
+        Preconditions.checkNotNull(zkConfig, "zkConfig must be non-null");
         this.name = dhtName;
         this.port = dhtPort;
         this.zkConfig = zkConfig;
@@ -67,38 +67,38 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
     }
     
     @OmitGeneration
-	public static ClientDHTConfiguration create(Map<String,String> envMap) {
-		return new ClientDHTConfiguration(envMap.get(nameVar), 
-		        envMap.get(portVar) == null ? portInZKOnly : Integer.parseInt(envMap.get(portVar)), 
-				new ZooKeeperConfig(envMap.get(zkLocVar)));
-	}
-	
-	public String getName() {
-		return name;
-	}
-	
+    public static ClientDHTConfiguration create(Map<String,String> envMap) {
+        return new ClientDHTConfiguration(envMap.get(nameVar), 
+                envMap.get(portVar) == null ? portInZKOnly : Integer.parseInt(envMap.get(portVar)), 
+                new ZooKeeperConfig(envMap.get(zkLocVar)));
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
     public int getPort() {
         return port;
     }
     
-	public ZooKeeperConfig getZKConfig() {
-		return zkConfig;
-	}
-	
+    public ZooKeeperConfig getZKConfig() {
+        return zkConfig;
+    }
+    
     @Override
     public ClientDHTConfiguration getClientDHTConfiguration() {
         return this;
     }
-	
-	public String toString() {
-		StringBuilder sb;
-		
-		sb = new StringBuilder();
-		sb.append(name);
-		sb.append(':');
+    
+    public String toString() {
+        StringBuilder sb;
+        
+        sb = new StringBuilder();
+        sb.append(name);
+        sb.append(':');
         sb.append(zkConfig);
-		return sb.toString();
-	}
+        return sb.toString();
+    }
 
     public boolean hasPort() {
         return port != portInZKOnly;
@@ -119,12 +119,12 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
         } else if (port != otherCDC.port) {
             return false;
         } else {
-        	return zkConfig.equals(otherCDC.zkConfig);
+            return zkConfig.equals(otherCDC.zkConfig);
         }
     }
     
     public static ClientDHTConfiguration parse(String def) {
-        ClientDHTConfiguration	instance;
+        ClientDHTConfiguration    instance;
         
         instance = ObjectDefParser2.parse(ClientDHTConfiguration.class, def);
         return instance;

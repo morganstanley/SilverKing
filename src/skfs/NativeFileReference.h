@@ -17,11 +17,11 @@ typedef struct NativeFile NativeFile;
 #endif
 
 typedef struct NativeFileReference {
-	NativeFile	*nf;
-	int			    ref;
-	int			    deleted;
-	char		    *file;
-	int			    line;
+    NativeFile    *nf;
+    int                ref;
+    int                deleted;
+    char            *file;
+    int                line;
 } NativeFileReference;
 
 NativeFileReference *nfr_new(NativeFile *nf, char *file, int line);

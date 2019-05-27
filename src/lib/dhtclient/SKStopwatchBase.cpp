@@ -5,15 +5,15 @@ using jace::proxy::com::ms::silverking::time::StopwatchBase;
 
 //impl
 SKStopwatchBase::SKStopwatchBase(StopwatchBase * pStopwatchBase) {
-	if(pStopwatchBase)
-		pImpl = pStopwatchBase;
+    if(pStopwatchBase)
+        pImpl = pStopwatchBase;
 } 
-	
+    
 SKStopwatchBase::~SKStopwatchBase()
 {
-	if(pImpl!=NULL) {
-		StopwatchBase * pStopwatchBase = dynamic_cast<StopwatchBase*>(pImpl);
-		delete pStopwatchBase; 
-		pImpl = NULL;
-	}
+    if(pImpl!=NULL) {
+        StopwatchBase * pStopwatchBase = dynamic_cast<StopwatchBase*>(pImpl);
+        delete pStopwatchBase; 
+        pImpl = NULL;
+    }
 }

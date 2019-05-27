@@ -23,8 +23,8 @@
 // types
 
 typedef struct OpenDirWriteRequest {
-	OpenDirWriter	*openDirWriter;
-	OpenDir			*od;
+    OpenDirWriter    *openDirWriter;
+    OpenDir            *od;
 } OpenDirWriteRequest;
 
 

@@ -52,13 +52,13 @@ hashtable_iterator_value(struct hashtable_itr *i)
 void
 hashtable_iterator_debug(struct hashtable_itr *i)
 {
-	if (i == NULL) {
-		printf("itr NULL\n");
-	} else if (i->e == NULL) {
-		printf("itr %llx e NULL\n", (unsigned long long)i);
-	} else {
-		printf("itr %llx e %llx key %llx value %llx\n", (unsigned long long)i, (unsigned long long)i->e, (unsigned long long)i->e->k, (unsigned long long)i->e->v);
-	}
+    if (i == NULL) {
+        printf("itr NULL\n");
+    } else if (i->e == NULL) {
+        printf("itr %llx e NULL\n", (unsigned long long)i);
+    } else {
+        printf("itr %llx e %llx key %llx value %llx\n", (unsigned long long)i, (unsigned long long)i->e, (unsigned long long)i->e->k, (unsigned long long)i->e->v);
+    }
 }
 
 /*****************************************************************************/

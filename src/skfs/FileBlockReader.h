@@ -28,25 +28,25 @@
 // types
 
 typedef struct FileBlockReader {
-	FileIDToPathMap *f2p;
-	FileBlockCache	*fileBlockCache;
-	QueueProcessor	*dhtFileBlockQueueProcessor;
-	QueueProcessor	*nfsFileBlockQueueProcessor;
-	FileBlockWriter	*fbwCompress;
-	FileBlockWriter	*fbwRaw;
+    FileIDToPathMap *f2p;
+    FileBlockCache    *fileBlockCache;
+    QueueProcessor    *dhtFileBlockQueueProcessor;
+    QueueProcessor    *nfsFileBlockQueueProcessor;
+    FileBlockWriter    *fbwCompress;
+    FileBlockWriter    *fbwRaw;
     NativeFileTable *nft;
-	SRFSDHT			*sd;
-	ResponseTimeStats *rtsDHT;
-	ResponseTimeStats *rtsNFS;
-	ReaderStats		*rs;
-	PathGroup		*compressedPaths;
-	PathGroup		*noFBWPaths;
-							// stats
-	uint64_t		directNFS;
-	uint64_t		compressedNFS;
-	SKSession		*(pSession[FBR_DHT_THREADS]);
+    SRFSDHT            *sd;
+    ResponseTimeStats *rtsDHT;
+    ResponseTimeStats *rtsNFS;
+    ReaderStats        *rs;
+    PathGroup        *compressedPaths;
+    PathGroup        *noFBWPaths;
+                            // stats
+    uint64_t        directNFS;
+    uint64_t        compressedNFS;
+    SKSession        *(pSession[FBR_DHT_THREADS]);
     SKAsyncNSPerspective *(ansp[FBR_DHT_THREADS]);
-	pthread_spinlock_t	statLock;
+    pthread_spinlock_t    statLock;
 } FileBlockReader;
 
 
@@ -54,13 +54,13 @@ typedef struct FileBlockReader {
 // prototypes
 
 FileBlockReader *fbr_new(FileIDToPathMap *f2p, 
-						 FileBlockWriter *fbwCompress, FileBlockWriter *fbwRaw,
-						 SRFSDHT *sd, 
-						 ResponseTimeStats *rtsDHT, ResponseTimeStats *rtsNFS,
+                         FileBlockWriter *fbwCompress, FileBlockWriter *fbwRaw,
+                         SRFSDHT *sd, 
+                         ResponseTimeStats *rtsDHT, ResponseTimeStats *rtsNFS,
                          FileBlockCache *fbc);
 void fbr_delete(FileBlockReader **fbr);
 int fbr_read(FileBlockReader *fbr, PartialBlockReadRequest **pbrr, int numRequests,
-			PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead,
+            PartialBlockReadRequest **pbrrsReadAhead, int numRequestsReadAhead,
             int presumeBlocksInDHT, int useNFSReadAhead);
 int fbr_read_test(FileBlockReader *fbr, FileBlockID *fbid, void *dest, size_t readOffset, size_t readSize);
 ActiveOp *fbr_create_active_op(void *_fbr, void *_fbid, uint64_t minModificationTimeMicros);

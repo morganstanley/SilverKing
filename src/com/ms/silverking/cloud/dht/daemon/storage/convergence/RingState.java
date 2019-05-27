@@ -14,7 +14,7 @@ public enum RingState {
     ABANDONED;
     
     public boolean isFinal() {
-    	return this == CLOSED || this == ABANDONED;
+        return this == CLOSED || this == ABANDONED;
     }
 
     public boolean isValidTransition(RingState newRingState) {

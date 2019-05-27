@@ -12,7 +12,7 @@ import com.ms.silverking.collection.Triple;
  */
 public class RingHealthZK {
     private final MetaClient        mc;
-    private final String			ringName;
+    private final String            ringName;
     private final long              ringConfigVersion;
     private final long              configInstanceVersion;
     
@@ -30,7 +30,7 @@ public class RingHealthZK {
     }
     
     public RingHealthZK(MetaClient mc, Triple<String, Long,Long> ringNameAndVersionPair) throws KeeperException {
-    	this(mc, ringNameAndVersionPair.getV1(), ringNameAndVersionPair.getV2(), ringNameAndVersionPair.getV3());
+        this(mc, ringNameAndVersionPair.getV1(), ringNameAndVersionPair.getV2(), ringNameAndVersionPair.getV3());
     }
     
     private void ensureBasePathExists() throws KeeperException {
@@ -48,12 +48,12 @@ public class RingHealthZK {
     
     private String getRingConfigVersionPath() {
         return getRingHealthPathBase() 
-        		+"/"+ ZooKeeperExtended.padVersion(ringConfigVersion);
+                +"/"+ ZooKeeperExtended.padVersion(ringConfigVersion);
     }
     
     public String getRingInstanceHealthPath() {
         return getRingConfigVersionPath() 
-        		+"/"+ ZooKeeperExtended.padVersion(configInstanceVersion);
+                +"/"+ ZooKeeperExtended.padVersion(configInstanceVersion);
     }
     
     public void writeHealth(RingHealth health) throws KeeperException {
@@ -61,18 +61,18 @@ public class RingHealthZK {
         
         path = getRingInstanceHealthPath();
         if (!mc.getZooKeeper().exists(path)) {
-        	mc.getZooKeeper().createAllNodes(path);
+            mc.getZooKeeper().createAllNodes(path);
         }
         mc.getZooKeeper().setString(path, health.toString());
     }
     
     public RingHealth readHealth() throws KeeperException {
         try {
-        	if (mc.getZooKeeper().exists(getRingInstanceHealthPath())) {
-        		return RingHealth.valueOf(mc.getZooKeeper().getString(getRingInstanceHealthPath()));
-        	} else {
-        		return null;
-        	}
+            if (mc.getZooKeeper().exists(getRingInstanceHealthPath())) {
+                return RingHealth.valueOf(mc.getZooKeeper().getString(getRingInstanceHealthPath()));
+            } else {
+                return null;
+            }
         } catch (NoNodeException nne) {
             return null;
         }

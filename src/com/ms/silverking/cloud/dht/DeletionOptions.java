@@ -11,14 +11,14 @@ public class DeletionOptions {
      * @param version version that deletion takes place 
      */
     public DeletionOptions(long version) {
-    	this.version = version;
+        this.version = version;
     }
     
     public static DeletionOptions version(long version) {
-    	return new DeletionOptions(version);
+        return new DeletionOptions(version);
     }
     
     public long getVersion() {
-    	return version;
+        return version;
     }
 }

@@ -23,40 +23,40 @@ public class NamespacePropertiesIO {
     }
     
     public static NamespaceProperties read(File nsDir) throws IOException {
-    	try {
-	        if (!nsDir.isDirectory()) {
-	            throw new IOException("NamespacePropertiesIO.read() passed non-directory: "+ nsDir);
-	        }
-	        return _read(propertiesFile(nsDir));
-    	} catch (IOException ioe) {
-    		Log.logErrorWarning(ioe, "NamespacePropertiesIO.read() failed for: "+ nsDir);
-    		throw ioe;
-    	}
+        try {
+            if (!nsDir.isDirectory()) {
+                throw new IOException("NamespacePropertiesIO.read() passed non-directory: "+ nsDir);
+            }
+            return _read(propertiesFile(nsDir));
+        } catch (IOException ioe) {
+            Log.logErrorWarning(ioe, "NamespacePropertiesIO.read() failed for: "+ nsDir);
+            throw ioe;
+        }
     }
     
     private static NamespaceProperties _read(File propertiesFile) throws IOException {
-    	String	def;
-    	int		index;
-    	
-    	def = FileUtil.readFileAsString(propertiesFile).trim();
-    	index = def.lastIndexOf(',');
-    	if (index < 0) {
-    		throw new IOException("Failed to parse trailing creationTime from "+ def);
-    	} else {
-    		long	creationTime;
-    		
-    		Preconditions.checkArgument(index <= def.length() - 2);
-    		creationTime = Long.parseLong(def.substring(index + 1));
-    		return NamespaceProperties.parse(def.substring(0, index), creationTime);
-    	}
+        String    def;
+        int        index;
+        
+        def = FileUtil.readFileAsString(propertiesFile).trim();
+        index = def.lastIndexOf(',');
+        if (index < 0) {
+            throw new IOException("Failed to parse trailing creationTime from "+ def);
+        } else {
+            long    creationTime;
+            
+            Preconditions.checkArgument(index <= def.length() - 2);
+            creationTime = Long.parseLong(def.substring(index + 1));
+            return NamespaceProperties.parse(def.substring(0, index), creationTime);
+        }
     }
     
     public static void write(File nsDir, NamespaceProperties nsProperties) throws IOException {
-    	_write(nsDir, nsProperties, false);
+        _write(nsDir, nsProperties, false);
     }
     
     public static void rewrite(File nsDir, NamespaceProperties nsProperties) throws IOException {
-    	_write(nsDir, nsProperties, true);
+        _write(nsDir, nsProperties, true);
     }
     
     private static void _write(File nsDir, NamespaceProperties nsProperties, boolean allowRewrite) throws IOException {
@@ -64,7 +64,7 @@ public class NamespacePropertiesIO {
             throw new IOException("NamespacePropertiesIO.write() passed non-directory: "+ nsDir);
         }
         if (allowRewrite && propertiesFileExists(nsDir)) {
-        	propertiesFile(nsDir).delete();
+            propertiesFile(nsDir).delete();
         }
         if (propertiesFileExists(nsDir)) {
             NamespaceProperties existingProperties;

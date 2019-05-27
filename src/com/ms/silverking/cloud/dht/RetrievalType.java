@@ -10,28 +10,28 @@ package com.ms.silverking.cloud.dht;
  */
 public enum RetrievalType {
     /** Return values */
-	VALUE, 
+    VALUE, 
     /** Return value meta data */
-	META_DATA, 
-	/** Return both values and meta data*/
-	VALUE_AND_META_DATA, 
-	/** Only query existence. Values will not be returned. */
-	EXISTENCE;
-	
-	/**
-	 * True iff this type is guaranteed to result in value retrieval.
-	 * @return true iff this type is guaranteed to result in value retrieval.
-	 */
-	public boolean hasValue() {
-	    switch (this) {
-	    case VALUE: return true;
-	    case META_DATA: return false;
-	    case VALUE_AND_META_DATA: return true;
-	    case EXISTENCE: return false;
-	    default: throw new RuntimeException("panic");
-	    }
-	}
-	
+    META_DATA, 
+    /** Return both values and meta data*/
+    VALUE_AND_META_DATA, 
+    /** Only query existence. Values will not be returned. */
+    EXISTENCE;
+    
+    /**
+     * True iff this type is guaranteed to result in value retrieval.
+     * @return true iff this type is guaranteed to result in value retrieval.
+     */
+    public boolean hasValue() {
+        switch (this) {
+        case VALUE: return true;
+        case META_DATA: return false;
+        case VALUE_AND_META_DATA: return true;
+        case EXISTENCE: return false;
+        default: throw new RuntimeException("panic");
+        }
+    }
+    
     /**
      * True iff this type is guaranteed to result in meta data retrieval.
      * @return true iff this type is guaranteed to result in meta data retrieval

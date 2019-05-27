@@ -23,9 +23,9 @@
 // types
 
 typedef struct AttrWriteRequest {
-	AttrWriter	*attrWriter;
-	char		path[SRFS_MAX_PATH_LENGTH];
-	FileAttr	fa;
+    AttrWriter    *attrWriter;
+    char        path[SRFS_MAX_PATH_LENGTH];
+    FileAttr    fa;
 } AttrWriteRequest;
 
 

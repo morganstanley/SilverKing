@@ -21,8 +21,8 @@ public class DataSegmentWalkEntry {
     private final int           keyLength;
     private final ByteBuffer    storedFormat;
     private final long          creationTime;
-    private final ValueCreator	creator;
-    private final byte			storageState;
+    private final ValueCreator    creator;
+    private final byte            storageState;
     
     DataSegmentWalkEntry(DHTKey key, long version, int offset, int storedLength, 
             int uncompressedLength, int compressedLength, int keyLength, ByteBuffer storedFormat,
@@ -74,7 +74,7 @@ public class DataSegmentWalkEntry {
     }
     
     public ValueCreator getCreator() {
-    	return creator;
+        return creator;
     }
     
     public int nextEntryOffset() {
@@ -82,47 +82,47 @@ public class DataSegmentWalkEntry {
     }
     
     public byte getStorageState() {
-    	return storageState;
+        return storageState;
     }
     
     public ByteBuffer getStoredFormat() {
-    	return storedFormat;
+        return storedFormat;
     }
     
     public ByteBuffer getValue() {
-    	int	dataOffset;
-    	ByteBuffer	rawValue;
-    	ByteBuffer	value;
-    	
-    	dataOffset = MetaDataUtil.getDataOffset(getStoredFormat(), 0);
-    	rawValue = (ByteBuffer)getStoredFormat().duplicate().position(dataOffset);
-    	if (getStorageParameters().getCompression() == Compression.NONE) {
-    		value = rawValue;
-    	} else {
-    		byte[]	v;
-    		
-    		v = BufferUtil.arrayCopy(rawValue);
-    		try {
-				value = ByteBuffer.wrap(CompressionUtil.decompress(getStorageParameters().getCompression(), v, 0, v.length, getStorageParameters().getUncompressedSize()));
-			} catch (IOException ioe) {
-				throw new RuntimeException("Failed to decompress", ioe);
-			}
-    	}
-    	return value;
+        int    dataOffset;
+        ByteBuffer    rawValue;
+        ByteBuffer    value;
+        
+        dataOffset = MetaDataUtil.getDataOffset(getStoredFormat(), 0);
+        rawValue = (ByteBuffer)getStoredFormat().duplicate().position(dataOffset);
+        if (getStorageParameters().getCompression() == Compression.NONE) {
+            value = rawValue;
+        } else {
+            byte[]    v;
+            
+            v = BufferUtil.arrayCopy(rawValue);
+            try {
+                value = ByteBuffer.wrap(CompressionUtil.decompress(getStorageParameters().getCompression(), v, 0, v.length, getStorageParameters().getUncompressedSize()));
+            } catch (IOException ioe) {
+                throw new RuntimeException("Failed to decompress", ioe);
+            }
+        }
+        return value;
     }
     
     public StorageParameters getStorageParameters() {
-    	//System.out.println(storedFormat);
-		//System.out.println(MetaDataUtil.getCCSS(storedFormat, 0));
-		//System.out.println(MetaDataUtil.getChecksumType(storedFormat, 0));
-    	return new StorageParameters(version, 
-    			uncompressedLength, 
-    			compressedLength,
-    			MetaDataUtil.getCCSS(storedFormat, 0),
-    			MetaDataUtil.getChecksum(storedFormat, 0), 
+        //System.out.println(storedFormat);
+        //System.out.println(MetaDataUtil.getCCSS(storedFormat, 0));
+        //System.out.println(MetaDataUtil.getChecksumType(storedFormat, 0));
+        return new StorageParameters(version, 
+                uncompressedLength, 
+                compressedLength,
+                MetaDataUtil.getCCSS(storedFormat, 0),
+                MetaDataUtil.getChecksum(storedFormat, 0), 
                 creator.getBytes(), 
                 creationTime);
-    	
+        
     }
     
     @Override

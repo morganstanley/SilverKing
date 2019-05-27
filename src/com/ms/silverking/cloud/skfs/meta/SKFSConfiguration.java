@@ -14,12 +14,12 @@ import com.ms.silverking.cloud.meta.VersionedDefinition;
  */
 public class SKFSConfiguration implements VersionedDefinition {
     private final List<String> vars;
-	private final String	config;
+    private final String    config;
     private final long      version;
     private final long      zxid;
     
     public SKFSConfiguration(String configName, List<String> vars, long version, long zxid) {
-    	this.config = configName;
+        this.config = configName;
         this.version = version;
         this.zxid = zxid;
         this.vars = vars;
@@ -56,11 +56,11 @@ public class SKFSConfiguration implements VersionedDefinition {
 
     public static SKFSConfiguration parse(String skfsConfName, InputStream inStream, long version) throws IOException {
         try {
-        	List<String> strList = new LinkedList<>();
-        	String          line;
-        	BufferedReader  reader = new BufferedReader(new InputStreamReader(inStream));
+            List<String> strList = new LinkedList<>();
+            String          line;
+            BufferedReader  reader = new BufferedReader(new InputStreamReader(inStream));
             do {
-            	line = reader.readLine();
+                line = reader.readLine();
                 strList.add( line );
                 
             } while (line != null);
@@ -70,15 +70,15 @@ public class SKFSConfiguration implements VersionedDefinition {
         }
     }
 
-	@Override
-	public String toString() {
-		StringBuilder  sb;
-		sb = new StringBuilder();
+    @Override
+    public String toString() {
+        StringBuilder  sb;
+        sb = new StringBuilder();
         for (String var : vars) {
             sb.append(var);
             sb.append('\n');
         }
         return sb.toString();
-	}
+    }
     
 }

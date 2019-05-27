@@ -52,11 +52,11 @@ bool JShort::operator!=(jshort val) const
 static boost::mutex javaClassMutex;
 const JClass& JShort::staticGetJavaJniClass() throw (JNIException)
 {
-	static boost::shared_ptr<JClassImpl> result;
-	boost::mutex::scoped_lock lock(javaClassMutex);
-	if (result == 0)
-		result = boost::shared_ptr<JClassImpl>(new JClassImpl("short", "S"));
-	return *result;
+    static boost::shared_ptr<JClassImpl> result;
+    boost::mutex::scoped_lock lock(javaClassMutex);
+    if (result == 0)
+        result = boost::shared_ptr<JClassImpl>(new JClassImpl("short", "S"));
+    return *result;
 }
 
 const JClass& JShort::getJavaJniClass() const throw (JNIException)

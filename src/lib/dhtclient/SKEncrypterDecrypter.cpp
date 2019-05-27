@@ -13,8 +13,8 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::crypto::EncrypterDec
 
 
 string * SKEncrypterDecrypter::getName() const {
-	//string representation = (string)(((EncrypterDecrypter*)pImpl)->toString());
-	//return representation;
+    //string representation = (string)(((EncrypterDecrypter*)pImpl)->toString());
+    //return representation;
     return NULL;
 }
 

@@ -19,7 +19,7 @@ JNIException::JNIException(const JNIException& rhs) throw ():
 JNIException& JNIException::operator=(const JNIException& rhs) throw ()
 {
   if (this == &rhs)
-		return *this;
+        return *this;
 
   ((BaseException&) *this) = (BaseException&) rhs;
   return *this;

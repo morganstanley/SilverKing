@@ -8,13 +8,13 @@
 class SKRelNanosTimeSource
 {
 public:
-	SKAPI virtual int64_t relTimeNanos();
+    SKAPI virtual int64_t relTimeNanos();
     SKAPI virtual ~SKRelNanosTimeSource();
 
     SKRelNanosTimeSource(void * pRelNanosTimeSource = NULL);
-	void * getPImpl();  //FIXME
+    void * getPImpl();  //FIXME
 protected:
-	void * pImpl;
+    void * pImpl;
 };
 
 #endif //SKRELNANOSTIMESOURCE_H

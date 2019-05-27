@@ -18,12 +18,12 @@
 // types
 
 typedef struct FileBlockCache {
-	int	numSubCaches;
-	Cache	*permanentCache;
-	Cache	**transientCaches;
-	char permanentSuffixes[SRFS_MAX_PERMANENT_SUFFIXES][SRFS_MAX_PATH_LENGTH];
-	int numPermanentSuffixes;
-	FileIDToPathMap	*f2p;
+    int    numSubCaches;
+    Cache    *permanentCache;
+    Cache    **transientCaches;
+    char permanentSuffixes[SRFS_MAX_PERMANENT_SUFFIXES][SRFS_MAX_PATH_LENGTH];
+    int numPermanentSuffixes;
+    FileIDToPathMap    *f2p;
 } FileBlockCache;
 
 
@@ -33,12 +33,12 @@ typedef struct FileBlockCache {
 FileBlockCache *fbc_new(char *name, int transientCacheSize, int transientCacheEvictionBatch, FileIDToPathMap *f2p, int numSubCaches);
 void fbc_delete(FileBlockCache **fbCache);
 CacheReadResult fbc_read(FileBlockCache *fbCache, FileBlockID *fbid, unsigned char *buf, 
-						size_t sourceOffset, size_t size, ActiveOpRef **activeOpRef, int *cacheNumRead, 
+                        size_t sourceOffset, size_t size, ActiveOpRef **activeOpRef, int *cacheNumRead, 
                         void *fbReader, uint64_t minModificationTimeMicros,
                         uint64_t newOpTimeoutMillis);
 CacheReadResult fbc_read_no_op_creation(FileBlockCache *fbCache, FileBlockID *fbid, 
-						 unsigned char *buf, size_t sourceOffset, size_t size, int *cacheNumRead, 
-						 uint64_t minModificationTimeMicros);
+                         unsigned char *buf, size_t sourceOffset, size_t size, int *cacheNumRead, 
+                         uint64_t minModificationTimeMicros);
 CacheStoreResult fbc_store_dht_value(FileBlockCache *fbCache, FileBlockID *fbid, SKVal *pRVal,
                                     uint64_t modificationTimeMicros = CACHE_NO_MODIFICATION_TIME);
 CacheStoreResult fbc_store_raw_data(FileBlockCache *fbCache, FileBlockID *fbid, void *data, size_t size, int replace = FALSE, uint64_t modificationTimeMicros = CACHE_NO_MODIFICATION_TIME);

@@ -28,13 +28,13 @@ static void *shm_run(void *_shm);
 // implementation
 
 SKHealthMonitor *shm_new(SKSyncNSPerspective *systemNSP) {
-	SKHealthMonitor *shm;
+    SKHealthMonitor *shm;
 
-	shm = (SKHealthMonitor*)mem_alloc(1, sizeof(SKHealthMonitor));
+    shm = (SKHealthMonitor*)mem_alloc(1, sizeof(SKHealthMonitor));
     shm->systemNSP = systemNSP;
-	pthread_create(&shm->threadInstance, NULL, shm_run, shm);
+    pthread_create(&shm->threadInstance, NULL, shm_run, shm);
     shm->thread = &shm->threadInstance;
-	return shm;
+    return shm;
 }
 
 SHM_RingHealth shm_get_ring_health(SKHealthMonitor *shm) {
@@ -69,7 +69,7 @@ static SHM_RingHealth shm_read_ring_health(SKHealthMonitor *shm) {
 }
 
 static void *shm_run(void *_shm) {
-	SKHealthMonitor *shm;
+    SKHealthMonitor *shm;
     
     shm = (SKHealthMonitor *)_shm;
     srfsLog(LOG_WARNING, "shm running");

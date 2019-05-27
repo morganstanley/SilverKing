@@ -22,109 +22,109 @@ public interface Stopwatch {
     /**
      * The state of a stopwatch
      */
-	public enum State {running, stopped};
-	
-	
-	/* control methods */
-	/**
-	 * Set the start time to the current time, and start running. Must be stopped when calling this method.
-	 */
-	public void start();
+    public enum State {running, stopped};
+    
+    
+    /* control methods */
+    /**
+     * Set the start time to the current time, and start running. Must be stopped when calling this method.
+     */
+    public void start();
     /**
      * Set the stop time to the current time, and stop running. Must be running when calling this method.
      */
-	public void stop();
+    public void stop();
     /**
      * Set the start time to the current time.
      */
-	public void reset();
-	
-	
-	/* elapsed time methods */ 
-	/**
-	 * Get the elapsed StopWatch time in nanoseconds. Must be stopped when calling this method.
-	 * @return the elapsed StopWatch time in nanoseconds
-	 */
-	public long getElapsedNanos();
+    public void reset();
+    
+    
+    /* elapsed time methods */ 
+    /**
+     * Get the elapsed StopWatch time in nanoseconds. Must be stopped when calling this method.
+     * @return the elapsed StopWatch time in nanoseconds
+     */
+    public long getElapsedNanos();
     /**
      * Get the elapsed StopWatch time in milliseconds (as a long.) Must be stopped when calling this method.
      * @return the elapsed StopWatch time in milliseconds (as a long)
      */
-	public long getElapsedMillisLong();
+    public long getElapsedMillisLong();
     /**
      * Get the elapsed StopWatch time in milliseconds. Must be stopped when calling this method.
      * @return the elapsed StopWatch time in milliseconds
      */
-	public int getElapsedMillis();
+    public int getElapsedMillis();
     /**
      * Get the elapsed StopWatch time in seconds. Must be stopped when calling this method.
      * @return the elapsed StopWatch time in seconds
      */
-	public double getElapsedSeconds();
+    public double getElapsedSeconds();
     /**
      * Get the elapsed StopWatch time in seconds (as a BigDecimal.) Must be stopped when calling this method.
      * @return the elapsed StopWatch time in seconds (as a BigDecimal)
      */
-	public BigDecimal getElapsedSecondsBD();
-	
+    public BigDecimal getElapsedSecondsBD();
+    
     /* split time methods */ 
     /**
      * Get the split StopWatch time in nanoseconds.
      * @return the split StopWatch time in nanoseconds
      */
-	public long getSplitNanos();
+    public long getSplitNanos();
     /**
      * Get the split StopWatch time in milliseconds.
      * @return the split StopWatch time in milliseconds
      */
-	public long getSplitMillisLong();
+    public long getSplitMillisLong();
     /**
      * Get the split StopWatch time in milliseconds.
      * @return the split StopWatch time in milliseconds
      */
-	public int getSplitMillis();
+    public int getSplitMillis();
     /**
      * Get the split StopWatch time in seconds.
      * @return the split StopWatch time in seconds
      */
-	public double getSplitSeconds();
+    public double getSplitSeconds();
     /**
      * Get the split StopWatch time in seconds (as a BigDecimal.) 
      * @return the split StopWatch time in seconds (as a BigDecimal)
      */
-	public BigDecimal getSplitSecondsBD();
-	
-	
-	/* misc. methods */
-	/**
-	 * Get the name of this StopWatch.
-	 * @return the name of this StopWatch
-	 */
-	public String getName();
+    public BigDecimal getSplitSecondsBD();
+    
+    
+    /* misc. methods */
+    /**
+     * Get the name of this StopWatch.
+     * @return the name of this StopWatch
+     */
+    public String getName();
     /**
      * Get the State of this StopWatch.
      * @return the State of this StopWatch
      */
-	public State getState();
+    public State getState();
     /**
      * Check if the State of this StopWatch, is running.
      * @return true if State of this StopWatch is running
      */
-	public boolean isRunning();
+    public boolean isRunning();
     /**
      * Check if the State of this StopWatch, is stopped.
      * @return true if State of this StopWatch is stopped
      */
-	public boolean isStopped();
+    public boolean isStopped();
     /**
      * Get a string representation of this StopWatch including the elapsed time. 
      * Must be stopped when calling this method.
      * @return a string representation of this StopWatch including the elapsed time
      */
-	public String toStringElapsed();
+    public String toStringElapsed();
     /**
      * Get a string representation of this StopWatch including the split time. 
      * @return a string representation of this StopWatch including the split time
      */
-	public String toStringSplit();
+    public String toStringSplit();
 }

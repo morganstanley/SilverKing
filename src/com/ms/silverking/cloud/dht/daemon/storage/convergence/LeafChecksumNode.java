@@ -20,18 +20,18 @@ public class LeafChecksumNode extends AbstractChecksumNode {
     // The array is used to store the list of keys and checksums efficiently
     private long[]                        _keyAndVersionChecksums;
     
-	private LeafChecksumNode(RingRegion ringRegion, List<KeyAndVersionChecksum> keyAndVersionChecksums, Mutability mutability) {
+    private LeafChecksumNode(RingRegion ringRegion, List<KeyAndVersionChecksum> keyAndVersionChecksums, Mutability mutability) {
         super(ringRegion, mutability);
         this.keyAndVersionChecksums = keyAndVersionChecksums;
         if (mutability == Mutability.Immutable) {
-        	_freeze();
+            _freeze();
         }
     }
     
     public LeafChecksumNode(RingRegion ringRegion, List<KeyAndVersionChecksum> keyAndVersionChecksums) {
         super(ringRegion, Mutability.Immutable);
         this.keyAndVersionChecksums = keyAndVersionChecksums;
-    	_freeze();
+        _freeze();
     }
     
     public LeafChecksumNode(RingRegion ringRegion) {
@@ -70,7 +70,7 @@ public class LeafChecksumNode extends AbstractChecksumNode {
     
     @Override
     public ConvergenceChecksum getChecksum() {
-    	mutability.ensureImmutable();
+        mutability.ensureImmutable();
         return checksum;
     }
 
@@ -115,8 +115,8 @@ public class LeafChecksumNode extends AbstractChecksumNode {
     }
     
     public long[] getKeyAndVersionChecksumsAsArray() {
-		return _keyAndVersionChecksums;
-	}
+        return _keyAndVersionChecksums;
+    }
     
     @Override
     public void toString(StringBuilder sb, int depth) {

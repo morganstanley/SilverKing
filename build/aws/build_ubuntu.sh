@@ -4,7 +4,7 @@ source `dirname $0`/../lib/run_scripts_from_any_path.snippet
 
 cd ..
 source lib/common.lib
-source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
+source lib/build_sk_client.lib    # for copying kill_process_and_children.pl
 cd -
 
 source lib/common.lib
@@ -17,7 +17,7 @@ function f_ubuntu_aptgetInstall {
         aptGetOption="-y"
     fi
     
-	sudo apt-get $aptGetOption install $1
+    sudo apt-get $aptGetOption install $1
     f_aws_checkExitCode "apt-get install: $1"
 }
 
@@ -108,7 +108,7 @@ function f_ubuntu_fillin_build_skfs {
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
     f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib/x86_64-linux-gnu"
 
-    f_ubuntu_aptgetInstall "valgrind"	#(/usr/include/valgrind/valgrind.h)
+    f_ubuntu_aptgetInstall "valgrind"    #(/usr/include/valgrind/valgrind.h)
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
 

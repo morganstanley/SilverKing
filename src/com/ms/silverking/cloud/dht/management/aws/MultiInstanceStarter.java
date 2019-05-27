@@ -23,45 +23,45 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairNa
 
 public class MultiInstanceStarter {
 
-	private final AmazonEC2 ec2;
-	private final String keyPairName;
-	private List<Instance> instances;
-	
-	public MultiInstanceStarter(AmazonEC2 ec2, String launchHostIp) {
-		this.ec2         = ec2;
-		this.keyPairName = getUniqueKeyPairName(launchHostIp);
-		
-		instances = null;
-	}
-	
-	public void run() {
-		instances = findStoppedInstancesWithKeyPair(ec2, keyPairName);
-		startInstances();
-		waitForInstancesToBeRunning(  ec2, instances);
-		waitForInstancesToBeReachable(ec2, instances);
-	}
-	
-	private void startInstances() {
-		printNoDot("Starting Instances");
-		
-		List<String> ips = getIps(instances);
-		for (String ip : ips)
-			System.out.println("    " + ip);
-		StartInstancesRequest startInstancesRequest = new StartInstancesRequest();
-		startInstancesRequest.withInstanceIds( getInstanceIds(instances) );
-		
-		StartInstancesResult result = ec2.startInstances(startInstancesRequest);
-		List<InstanceStateChange> startingInstances = result.getStartingInstances();
+    private final AmazonEC2 ec2;
+    private final String keyPairName;
+    private List<Instance> instances;
+    
+    public MultiInstanceStarter(AmazonEC2 ec2, String launchHostIp) {
+        this.ec2         = ec2;
+        this.keyPairName = getUniqueKeyPairName(launchHostIp);
+        
+        instances = null;
+    }
+    
+    public void run() {
+        instances = findStoppedInstancesWithKeyPair(ec2, keyPairName);
+        startInstances();
+        waitForInstancesToBeRunning(  ec2, instances);
+        waitForInstancesToBeReachable(ec2, instances);
+    }
+    
+    private void startInstances() {
+        printNoDot("Starting Instances");
+        
+        List<String> ips = getIps(instances);
+        for (String ip : ips)
+            System.out.println("    " + ip);
+        StartInstancesRequest startInstancesRequest = new StartInstancesRequest();
+        startInstancesRequest.withInstanceIds( getInstanceIds(instances) );
+        
+        StartInstancesResult result = ec2.startInstances(startInstancesRequest);
+        List<InstanceStateChange> startingInstances = result.getStartingInstances();
 
-		print("");
-		printDone( getIds(startingInstances) );
-	}
-	
+        print("");
+        printDone( getIds(startingInstances) );
+    }
+    
     public static void main(String[] args) {
         String launchHostIp = getMyIp();
         System.out.println("Attempting to start all instances with keypair: " + getUniqueKeyPairName(launchHostIp));
         MultiInstanceStarter starter = new MultiInstanceStarter(AmazonEC2ClientBuilder.defaultClient(), launchHostIp);
         starter.run();
-	}
+    }
 
 }

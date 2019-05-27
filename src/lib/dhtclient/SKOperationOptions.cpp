@@ -32,81 +32,81 @@ using jace::proxy::com::ms::silverking::cloud::dht::SecondaryTarget;
 ////////
 
 SKOpTimeoutController * SKOperationOptions::getOpTimeoutController() {
-	OpTimeoutController *  p = new OpTimeoutController( java_cast<OpTimeoutController>( ((OperationOptions*)pImpl)->getOpTimeoutController() )) ; 
-	return new SKOpTimeoutController(p);
+    OpTimeoutController *  p = new OpTimeoutController( java_cast<OpTimeoutController>( ((OperationOptions*)pImpl)->getOpTimeoutController() )) ; 
+    return new SKOpTimeoutController(p);
 }
 
 std::set<SKSecondaryTarget*> * SKOperationOptions::getSecondaryTargets()
 {
-	try {
-		Set secondaryTargets = ((OperationOptions*)pImpl)->getSecondaryTargets();
-		set<SKSecondaryTarget*> * pTargets = NULL;
-		if(secondaryTargets.isNull() || !secondaryTargets.size()){
-			Log::fine( "no SecondaryTargets found" );
-			return pTargets;
-		}
+    try {
+        Set secondaryTargets = ((OperationOptions*)pImpl)->getSecondaryTargets();
+        set<SKSecondaryTarget*> * pTargets = NULL;
+        if(secondaryTargets.isNull() || !secondaryTargets.size()){
+            Log::fine( "no SecondaryTargets found" );
+            return pTargets;
+        }
 
-		pTargets = new set<SKSecondaryTarget*>();
-		for (Iterator it(secondaryTargets.iterator()); it.hasNext();) 
-		{
-			SecondaryTarget * entry =  new SecondaryTarget( java_cast<SecondaryTarget>(it.next()) );
-			if(!entry->isNull()) {
-				SKSecondaryTarget * pSt = new SKSecondaryTarget(entry);
-				pTargets->insert(pSt);
-			}
-		}
+        pTargets = new set<SKSecondaryTarget*>();
+        for (Iterator it(secondaryTargets.iterator()); it.hasNext();) 
+        {
+            SecondaryTarget * entry =  new SecondaryTarget( java_cast<SecondaryTarget>(it.next()) );
+            if(!entry->isNull()) {
+                SKSecondaryTarget * pSt = new SKSecondaryTarget(entry);
+                pTargets->insert(pSt);
+            }
+        }
 
-		if(pTargets->size() == 0 )
-		{
-			delete pTargets; pTargets = NULL;
-		}
-		return pTargets;
-	} catch (Throwable &t){
-		throw SKClientException( &t, __FILE__, __LINE__ );
-	}
+        if(pTargets->size() == 0 )
+        {
+            delete pTargets; pTargets = NULL;
+        }
+        return pTargets;
+    } catch (Throwable &t){
+        throw SKClientException( &t, __FILE__, __LINE__ );
+    }
 }
 
 ////////
 
 bool SKOperationOptions::equals(SKOperationOptions * other) const {
-	OperationOptions * pro = (OperationOptions *) other->pImpl;
-	return  (bool)((OperationOptions*)pImpl)->equals(*pro); 
+    OperationOptions * pro = (OperationOptions *) other->pImpl;
+    return  (bool)((OperationOptions*)pImpl)->equals(*pro); 
 }
 
 string SKOperationOptions::toString() const{
-	string representation = (string)(((OperationOptions*)pImpl)->toString());
-	return representation;
+    string representation = (string)(((OperationOptions*)pImpl)->toString());
+    return representation;
 }
 
 ////////
 
 SKOperationOptions::~SKOperationOptions()
 {
-	//FIXME: change for inheritance 
-	if(pImpl!=NULL) {
-		OperationOptions * po = (OperationOptions*)pImpl;
-		delete po; 
-		pImpl = NULL;
-	}
+    //FIXME: change for inheritance 
+    if(pImpl!=NULL) {
+        OperationOptions * po = (OperationOptions*)pImpl;
+        delete po; 
+        pImpl = NULL;
+    }
 }
 
 SKOperationOptions::SKOperationOptions(SKOpTimeoutController * opTimeoutController,
             std::set<SKSecondaryTarget*> * secondaryTargets)
 {
-	OpTimeoutController * pTimeoutCtrl = opTimeoutController->getPImpl();
-	
-	Set targets ;
-	if(secondaryTargets && secondaryTargets->size()){
-		targets = java_new<HashSet>();
-		std::set<SKSecondaryTarget*>::iterator it;
-		for (it = secondaryTargets->begin(); it != secondaryTargets->end(); ++it)
-		{
-			SecondaryTarget * pTgt = (*it)->getPImpl();
-			targets.add( *pTgt );
-		}
-	}
+    OpTimeoutController * pTimeoutCtrl = opTimeoutController->getPImpl();
+    
+    Set targets ;
+    if(secondaryTargets && secondaryTargets->size()){
+        targets = java_new<HashSet>();
+        std::set<SKSecondaryTarget*>::iterator it;
+        for (it = secondaryTargets->begin(); it != secondaryTargets->end(); ++it)
+        {
+            SecondaryTarget * pTgt = (*it)->getPImpl();
+            targets.add( *pTgt );
+        }
+    }
 
-	pImpl = new OperationOptions(java_new<OperationOptions>( *pTimeoutCtrl, targets )); 
+    pImpl = new OperationOptions(java_new<OperationOptions>( *pTimeoutCtrl, targets )); 
 }
 
 SKOperationOptions::SKOperationOptions(void * pOpt) : pImpl(pOpt) {};  //FIXME: make protected ?

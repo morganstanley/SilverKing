@@ -15,8 +15,8 @@ using std::string;
 #include "skbasictypes.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class BaseNamespacePerspective;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class BaseNamespacePerspective;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::BaseNamespacePerspective BaseNamespacePerspective;
 class SKNamespace;

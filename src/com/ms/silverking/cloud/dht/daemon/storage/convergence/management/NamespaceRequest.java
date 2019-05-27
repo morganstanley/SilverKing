@@ -23,7 +23,7 @@ class NamespaceRequest {
     private final MessageGroupBase  mgBase;
     private final Set<IPAndPort>    incompletePeers;
     private final Map<UUIDBase,NamespaceRequest>  nsRequests;
-    private final Set<Long>			namespaces;
+    private final Set<Long>            namespaces;
     
     private static final boolean    debug = false;
     
@@ -36,7 +36,7 @@ class NamespaceRequest {
     
     public boolean waitForCompletion(int waitLimitMillis) {
         synchronized (incompletePeers) {
-            Timer	timer;
+            Timer    timer;
             
             timer = new SimpleTimer(TimeUnit.MILLISECONDS, waitLimitMillis);
             while (incompletePeers.size() > 0 && !timer.hasExpired()) {
@@ -53,7 +53,7 @@ class NamespaceRequest {
     }
     
     public Set<Long> getNamespaces() {
-    	return namespaces;
+        return namespaces;
     }
     
     public void peerComplete(IPAndPort peer, Set<Long> peerNamespaces) {

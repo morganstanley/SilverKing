@@ -64,51 +64,51 @@ SKAsyncRetrieval::~SKAsyncRetrieval() {
 };
 
 SKMap<string,SKStoredValue * > *  SKAsyncRetrieval::_getStoredValues(bool latest) {
-	SKMap<string, SKStoredValue*> * valueMap = new SKMap<string, SKStoredValue * >();
-	AsyncRetrieval * pAsync = (AsyncRetrieval*)getPImpl();
+    SKMap<string, SKStoredValue*> * valueMap = new SKMap<string, SKStoredValue * >();
+    AsyncRetrieval * pAsync = (AsyncRetrieval*)getPImpl();
     Map storedValues ;
     try {
         storedValues = latest ? pAsync->getLatestStoredValues() : pAsync->getStoredValues();
-	}  catch( Throwable &t ) {
-		//throw SKClientException( &t, __FILE__, __LINE__ );
-		repackException(__FILE__, __LINE__ );
+    }  catch( Throwable &t ) {
+        //throw SKClientException( &t, __FILE__, __LINE__ );
+        repackException(__FILE__, __LINE__ );
     }
     if(storedValues.isNull()){
         Log::fine( "No values found" );
         return valueMap;
     }
 
-	Set entrySet(storedValues.entrySet());
-	Log::fine("SKAsyncRetrieval getStoredValues ");
-	for (Iterator it(entrySet.iterator()); it.hasNext();)
-	{
+    Set entrySet(storedValues.entrySet());
+    Log::fine("SKAsyncRetrieval getStoredValues ");
+    for (Iterator it(entrySet.iterator()); it.hasNext();)
+    {
         Map_Entry entry = java_cast<Map_Entry>(it.next());
-	    String key = java_cast<String>(entry.getKey());
+        String key = java_cast<String>(entry.getKey());
         try {
-		    StoredValue * value = new StoredValue(java_cast<StoredValue>(entry.getValue()));
-		    SKStoredValue * sv = new  SKStoredValue(value);
+            StoredValue * value = new StoredValue(java_cast<StoredValue>(entry.getValue()));
+            SKStoredValue * sv = new  SKStoredValue(value);
             /*
-		    cout << "\t\t key: " << key <<endl; 
-		    cout << "\t\t StoredValue: " << sv->getValue()  << endl;
-		    cout << "\t\t\t getStoredLength: " << sv->getStoredLength() << endl;
-		    cout << "\t\t\t getUncompressedLength: " << sv->getUncompressedLength() << endl;
-		    cout << "\t\t\t getVersion: " << sv->getVersion() << endl;
-		    cout << "\t\t\t getCreationTime: " << sv->getCreationTime() << endl;
-		    cout << "\t\t\t getCreatorIP: " << sv->getCreatorIP() << endl;
-		    cout << "\t\t\t getCreatorID: " << sv->getCreatorID() << endl;
-		    cout << "\t\t\t getUserData: " << sv->getUserData() << endl;
-		    cout << "\t\t\t getStorageType: " << sv->getStorageType() << endl;
+            cout << "\t\t key: " << key <<endl; 
+            cout << "\t\t StoredValue: " << sv->getValue()  << endl;
+            cout << "\t\t\t getStoredLength: " << sv->getStoredLength() << endl;
+            cout << "\t\t\t getUncompressedLength: " << sv->getUncompressedLength() << endl;
+            cout << "\t\t\t getVersion: " << sv->getVersion() << endl;
+            cout << "\t\t\t getCreationTime: " << sv->getCreationTime() << endl;
+            cout << "\t\t\t getCreatorIP: " << sv->getCreatorIP() << endl;
+            cout << "\t\t\t getCreatorID: " << sv->getCreatorID() << endl;
+            cout << "\t\t\t getUserData: " << sv->getUserData() << endl;
+            cout << "\t\t\t getStorageType: " << sv->getStorageType() << endl;
             */
-    		
-		    valueMap->insert(StrSVMap::value_type( key.toString(), sv ) );
-		}  catch( Throwable &t ) {
-			//throw SKClientException( &t, __FILE__, __LINE__ );
-			repackException(__FILE__, __LINE__ );
+            
+            valueMap->insert(StrSVMap::value_type( key.toString(), sv ) );
+        }  catch( Throwable &t ) {
+            //throw SKClientException( &t, __FILE__, __LINE__ );
+            repackException(__FILE__, __LINE__ );
         }
         valueMap->insert(StrSVMap::value_type(key.toString(),  (SKStoredValue*) NULL));
 
-	}
-	return valueMap;
+    }
+    return valueMap;
 }
 
 SKMap<string,SKStoredValue * > *  SKAsyncRetrieval::getLatestStoredValues(void) {
@@ -123,7 +123,7 @@ SKStoredValue *  SKAsyncRetrieval::getStoredValue(string& key) {
     SKStoredValue   *sv = NULL;
     
     try {
-	    AsyncRetrieval *pAsync = (AsyncRetrieval*)getPImpl();
+        AsyncRetrieval *pAsync = (AsyncRetrieval*)getPImpl();
         StoredValue _sv = pAsync->getStoredValue( String(key) );
         if (_sv.isNull()) {
             sv = NULL;
@@ -131,9 +131,9 @@ SKStoredValue *  SKAsyncRetrieval::getStoredValue(string& key) {
             StoredValue *storedValue = new StoredValue(java_cast<StoredValue>(_sv));
             sv = new SKStoredValue(storedValue);
         }
-	}  catch( Throwable &t ) {
-		//throw SKClientException( &t, __FILE__, __LINE__ );
-		repackException(__FILE__, __LINE__ );
+    }  catch( Throwable &t ) {
+        //throw SKClientException( &t, __FILE__, __LINE__ );
+        repackException(__FILE__, __LINE__ );
     }
     return sv;
 }
@@ -142,12 +142,12 @@ SKStoredValue *  SKAsyncRetrieval::getStoredValue(string& key) {
 SKStoredValue *  SKAsyncRetrieval::getStoredValue(string& key) {
     SKStoredValue * sv = NULL;
     try {
-	    AsyncRetrieval * pAsync = (AsyncRetrieval*)getPImpl();
-	    StoredValue * storedValue = new StoredValue(java_cast<StoredValue>(pAsync->getStoredValue( String(key) )));
-	    sv = new SKStoredValue(storedValue);
-	}  catch( Throwable &t ) {
-		//throw SKClientException( &t, __FILE__, __LINE__ );
-		repackException(__FILE__, __LINE__ );
+        AsyncRetrieval * pAsync = (AsyncRetrieval*)getPImpl();
+        StoredValue * storedValue = new StoredValue(java_cast<StoredValue>(pAsync->getStoredValue( String(key) )));
+        sv = new SKStoredValue(storedValue);
+    }  catch( Throwable &t ) {
+        //throw SKClientException( &t, __FILE__, __LINE__ );
+        repackException(__FILE__, __LINE__ );
     }
     return sv;
 }

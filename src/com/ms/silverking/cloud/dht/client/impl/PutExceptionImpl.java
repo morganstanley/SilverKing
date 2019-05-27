@@ -15,26 +15,26 @@ import com.ms.silverking.cloud.dht.client.PutException;
  *
  */
 class PutExceptionImpl extends PutException {
-	PutExceptionImpl(Map<Object, OperationState> operationState,
-			Map<Object, FailureCause> failureCause) {
-		super(operationState, failureCause);
-	}
+    PutExceptionImpl(Map<Object, OperationState> operationState,
+            Map<Object, FailureCause> failureCause) {
+        super(operationState, failureCause);
+    }
 
-	PutExceptionImpl(String message,
-			Map<Object, OperationState> operationState,
-			Map<Object, FailureCause> failureCause) {
-		super(message, operationState, failureCause);
-	}
+    PutExceptionImpl(String message,
+            Map<Object, OperationState> operationState,
+            Map<Object, FailureCause> failureCause) {
+        super(message, operationState, failureCause);
+    }
 
-	PutExceptionImpl(String message, Throwable cause,
-			Map<Object, OperationState> operationState,
-			Map<Object, FailureCause> failureCause) {
-		super(message, cause, operationState, failureCause);
-	}
+    PutExceptionImpl(String message, Throwable cause,
+            Map<Object, OperationState> operationState,
+            Map<Object, FailureCause> failureCause) {
+        super(message, cause, operationState, failureCause);
+    }
 
-	PutExceptionImpl(Throwable cause,
-			Map<Object, OperationState> operationState,
-			Map<Object, FailureCause> failureCause) {
-		super(cause, operationState, failureCause);
-	}
+    PutExceptionImpl(Throwable cause,
+            Map<Object, OperationState> operationState,
+            Map<Object, FailureCause> failureCause) {
+        super(cause, operationState, failureCause);
+    }
 }

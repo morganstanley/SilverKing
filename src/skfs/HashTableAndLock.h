@@ -17,7 +17,7 @@
 
 typedef struct HashTableAndLock {
     hashtable           *ht;
-	pthread_rwlock_t	rwLock;
+    pthread_rwlock_t    rwLock;
 } HashTableAndLock;
 
 #endif

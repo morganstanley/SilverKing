@@ -15,9 +15,9 @@
 // types
 
 typedef struct FileBlockID {
-	FileID		fid;
-	uint64_t	block;
-	unsigned int   hash;
+    FileID        fid;
+    uint64_t    block;
+    unsigned int   hash;
 } FileBlockID;
 
 

@@ -14,52 +14,52 @@ import com.ms.silverking.util.Mutability;
  * Basic navigable ring. Mutable during creation; immutable afterwards.
  */
 public class LongNavigableMapRing<T> implements Ring<Long, T> {
-	private final NavigableMap<Long, T>	ringMap;
-	private Mutability mutability;
-	
-	public LongNavigableMapRing() {
-		ringMap = new TreeMap<Long, T>();
-		mutability = Mutability.Mutable;
-	}
-	
-	public void freeze() {
-	    if (mutability == Mutability.Mutable) {
-	        mutability = Mutability.Immutable;
-	    } else {
-	        throw new RuntimeException("freeze() called multiple times");
-	    }
-	}
-	
-	public void ensureMutable() {
-	    mutability.ensureMutable();
-	}
-		
+    private final NavigableMap<Long, T>    ringMap;
+    private Mutability mutability;
+    
+    public LongNavigableMapRing() {
+        ringMap = new TreeMap<Long, T>();
+        mutability = Mutability.Mutable;
+    }
+    
+    public void freeze() {
+        if (mutability == Mutability.Mutable) {
+            mutability = Mutability.Immutable;
+        } else {
+            throw new RuntimeException("freeze() called multiple times");
+        }
+    }
+    
+    public void ensureMutable() {
+        mutability.ensureMutable();
+    }
+        
     public void ensureImmutable() {
         mutability.ensureImmutable();
     }
     
-	@Override
-	public void put(Long key, T member) {
-		T	oldMember;
-		
-		ensureMutable();
-		oldMember = ringMap.put(key, member);
-		if (oldMember != null) {
-			throw new RuntimeException("Attempted member mutation");
-		}
-	}
-	
-	private Map.Entry<Long, T> getEntry(Long key) {
-		Map.Entry<Long, T> entry;
-		
-		entry = ringMap.ceilingEntry(key);
-		if (entry == null) {
-			entry = ringMap.firstEntry();
-		}
-		return entry;
-	}
-	
-	@Override
+    @Override
+    public void put(Long key, T member) {
+        T    oldMember;
+        
+        ensureMutable();
+        oldMember = ringMap.put(key, member);
+        if (oldMember != null) {
+            throw new RuntimeException("Attempted member mutation");
+        }
+    }
+    
+    private Map.Entry<Long, T> getEntry(Long key) {
+        Map.Entry<Long, T> entry;
+        
+        entry = ringMap.ceilingEntry(key);
+        if (entry == null) {
+            entry = ringMap.firstEntry();
+        }
+        return entry;
+    }
+    
+    @Override
     public List<T> getOwners(Long minKey, Long maxKey) {
         List<T>             owners;
         SortedMap<Long,T>   intervalMap;
@@ -81,89 +81,89 @@ public class LongNavigableMapRing<T> implements Ring<Long, T> {
         return owners;
     }
     
-	@Override
-	public T getOwner(Long key) {
-		Map.Entry<Long, T> entry;
+    @Override
+    public T getOwner(Long key) {
+        Map.Entry<Long, T> entry;
 
-		entry = getEntry(key);
-		return entry.getValue();
-	}
-	
-	@Override
-	public T removeOwner(Long key) {
-		Map.Entry<Long, T> entry;
-		
+        entry = getEntry(key);
+        return entry.getValue();
+    }
+    
+    @Override
+    public T removeOwner(Long key) {
+        Map.Entry<Long, T> entry;
+        
         ensureMutable();
-		entry = ringMap.ceilingEntry(key);
-		if (entry == null) {
-			entry = ringMap.firstEntry();
-		}
-		ringMap.remove(entry.getKey());
-		return entry.getValue();
-	}
-	
-	/*
+        entry = ringMap.ceilingEntry(key);
+        if (entry == null) {
+            entry = ringMap.firstEntry();
+        }
+        ringMap.remove(entry.getKey());
+        return entry.getValue();
+    }
+    
+    /*
     public enum Mode {SUBSEQUENT, ROTATE};
-	@Override
-	public List<T> get(Long key, int numMembers) {
-		Map.Entry<Long, T> entry;
-		List<T>	members;
-		
-		if (numMembers < 1) {
-			throw new RuntimeException("numMembers < 1");
-		}
-		members = new ArrayList<T>(numMembers);
-		entry = getEntry(key);
-		members.add(entry.getValue());
-		switch (mode) {
-		case SUBSEQUENT: addSubsequent(members, entry, numMembers - 1); break;
-		case ROTATE: addRotated(members, entry, numMembers - 1); break;
-		default: throw new RuntimeException("panic");
-		}
-		return members;
-	}
-	
-	private void addSubsequent(List<T> members, Map.Entry<Long,T> entry, int numSubsequent) {
-		for (int i = 0; i < numSubsequent; i++) {
-			entry = ringMap.higherEntry(entry.getKey());
-			if (entry == null) {
-				entry = ringMap.firstEntry();
-			}
-			members.add(entry.getValue());
-		}
-	}
-	
-	private void addRotated(List<T> members, Map.Entry<Long,T> entry, int numSubsequent) {
-		for (int i = 0; i < numSubsequent; i++) {
-			Long	rotated;
-			
-			rotated = Long.rotateRight(entry.getKey(), 1);
-			entry = getEntry(rotated);
-			members.add(entry.getValue());
-		}
-	}
+    @Override
+    public List<T> get(Long key, int numMembers) {
+        Map.Entry<Long, T> entry;
+        List<T>    members;
+        
+        if (numMembers < 1) {
+            throw new RuntimeException("numMembers < 1");
+        }
+        members = new ArrayList<T>(numMembers);
+        entry = getEntry(key);
+        members.add(entry.getValue());
+        switch (mode) {
+        case SUBSEQUENT: addSubsequent(members, entry, numMembers - 1); break;
+        case ROTATE: addRotated(members, entry, numMembers - 1); break;
+        default: throw new RuntimeException("panic");
+        }
+        return members;
+    }
+    
+    private void addSubsequent(List<T> members, Map.Entry<Long,T> entry, int numSubsequent) {
+        for (int i = 0; i < numSubsequent; i++) {
+            entry = ringMap.higherEntry(entry.getKey());
+            if (entry == null) {
+                entry = ringMap.firstEntry();
+            }
+            members.add(entry.getValue());
+        }
+    }
+    
+    private void addRotated(List<T> members, Map.Entry<Long,T> entry, int numSubsequent) {
+        for (int i = 0; i < numSubsequent; i++) {
+            Long    rotated;
+            
+            rotated = Long.rotateRight(entry.getKey(), 1);
+            entry = getEntry(rotated);
+            members.add(entry.getValue());
+        }
+    }
     */
-	
-	@Override
-	public Collection<T> getMembers() {
-		return ringMap.values();
-	}
-	
-	@Override
-	public int numMembers() {
-	    ensureImmutable();
-		return ringMap.size();
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder	sb;
-		
-		sb = new StringBuilder();
-		for(Map.Entry<Long, T> entry : ringMap.entrySet()) {
-			sb.append(entry.getValue());
-			sb.append('\n');
-		}
-		return sb.toString();
-	}
+    
+    @Override
+    public Collection<T> getMembers() {
+        return ringMap.values();
+    }
+    
+    @Override
+    public int numMembers() {
+        ensureImmutable();
+        return ringMap.size();
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder    sb;
+        
+        sb = new StringBuilder();
+        for(Map.Entry<Long, T> entry : ringMap.entrySet()) {
+            sb.append(entry.getValue());
+            sb.append('\n');
+        }
+        return sb.toString();
+    }
 }

@@ -51,7 +51,7 @@ public class StorageValueAndParameters extends StorageParametersAndRequirements 
     }
     
     public StorageValueAndParameters ccss(short ccss) {
-    	return new StorageValueAndParameters(key, value, getVersion(), getUncompressedSize(), getCompressedSize(), ccss, getChecksum(), getValueCreator(), getCreationTime(), getRequiredPreviousVersion());
+        return new StorageValueAndParameters(key, value, getVersion(), getUncompressedSize(), getCompressedSize(), ccss, getChecksum(), getValueCreator(), getCreationTime(), getRequiredPreviousVersion());
     }
     
     public static StorageValueAndParameters createSVP(MessageGroupRetrievalResponseEntry entry) {
@@ -85,9 +85,9 @@ public class StorageValueAndParameters extends StorageParametersAndRequirements 
             valueBuffer = (ByteBuffer)rawValueBuffer.duplicate().position(
                     rawValueBuffer.position() + MetaDataUtil.getDataOffset(rawValueBuffer, 0));
             if (debug) {
-	            System.out.printf("rawValueBuffer.position() %d MetaDataUtil.getDataOffset(rawValueBuffer, 0) %d\n", rawValueBuffer.position(), MetaDataUtil.getDataOffset(rawValueBuffer, 0));
-	            System.out.printf("valueBuffer %s\n", valueBuffer);
-	            System.out.printf("valueBuffer %s\n", StringUtil.byteBufferToHexString(valueBuffer));
+                System.out.printf("rawValueBuffer.position() %d MetaDataUtil.getDataOffset(rawValueBuffer, 0) %d\n", rawValueBuffer.position(), MetaDataUtil.getDataOffset(rawValueBuffer, 0));
+                System.out.printf("valueBuffer %s\n", valueBuffer);
+                System.out.printf("valueBuffer %s\n", StringUtil.byteBufferToHexString(valueBuffer));
             }
             
             // FUTURE - consider making the nsstore allow a put that just accepts the buffer as is

@@ -35,9 +35,9 @@ public:
   /**
    * Copies a reference to an existing peer.
    */
-	JACE_API Peer& operator=(const Peer&);
+    JACE_API Peer& operator=(const Peer&);
 
-	/**
+    /**
    * Called by Jace to initialize the Peer immediately after it has been constructed.
    *
    * Empty by default, this should be overriden by Developers to provide
@@ -58,7 +58,7 @@ public:
    */
   JACE_API virtual void destroy();
 
-	/**
+    /**
    * Returns the class type of the Java Peer.
    */
   JACE_API virtual const JClass& getJavaJniClass() const throw (JNIException) = 0;
@@ -83,7 +83,7 @@ protected:
 
 private:
   /**
-	 * The weak reference.
+     * The weak reference.
    */
   jweak weakRef;
 };

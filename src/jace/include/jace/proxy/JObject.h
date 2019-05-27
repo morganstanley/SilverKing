@@ -52,117 +52,117 @@ BEGIN_NAMESPACE_2(jace, proxy)
 class JObject: public ::jace::proxy::JValue
 {
 public:
-	/**
-	 * Creates a new null reference.
-	 *
-	 * All subclasses of JObject should provide this constructor
-	 * for their own subclasses.
-	 */
-	JACE_API explicit JObject();
+    /**
+     * Creates a new null reference.
+     *
+     * All subclasses of JObject should provide this constructor
+     * for their own subclasses.
+     */
+    JACE_API explicit JObject();
 
-	/**
-	 * Creates a new reference to an existing jvalue.
-	 */
-	JACE_API explicit JObject(jvalue value);
+    /**
+     * Creates a new reference to an existing jvalue.
+     */
+    JACE_API explicit JObject(jvalue value);
 
-	/**
-	 * Creates a new reference to an existing jobject.
-	 */
-	JACE_API explicit JObject(jobject object);
+    /**
+     * Creates a new reference to an existing jobject.
+     */
+    JACE_API explicit JObject(jobject object);
 
-	/**
-	 * Creates a new reference to an existing object.
-	 *
-	 * @param object the object
-	 */
-	JACE_API JObject(const JObject& object);
+    /**
+     * Creates a new reference to an existing object.
+     *
+     * @param object the object
+     */
+    JACE_API JObject(const JObject& object);
 
-	/**
-	 * Destroys the existing java object.
-	 */
-	JACE_API virtual ~JObject() throw();
+    /**
+     * Destroys the existing java object.
+     */
+    JACE_API virtual ~JObject() throw();
 
-	/**
-	 * Sets the reference to another object.
-	 */
-	JACE_API JObject& operator=(const JObject& other);
+    /**
+     * Sets the reference to another object.
+     */
+    JACE_API JObject& operator=(const JObject& other);
 
-	/**
-	 * Returns the underlying JNI jobject for this JObject.
-	 *
-	 * WARNING: The returned jobject is valid so long as its parent JObject is valid.
-	 * Given the code: <code>jobject myThread = Thread::currentThread</code>
-	 * the returned jobject will become invalid right after the assignment operation
-	 * because the enclosing Thread goes out of scope and destroys its associated jobject.
-	 */
-	JACE_API operator jobject();
+    /**
+     * Returns the underlying JNI jobject for this JObject.
+     *
+     * WARNING: The returned jobject is valid so long as its parent JObject is valid.
+     * Given the code: <code>jobject myThread = Thread::currentThread</code>
+     * the returned jobject will become invalid right after the assignment operation
+     * because the enclosing Thread goes out of scope and destroys its associated jobject.
+     */
+    JACE_API operator jobject();
 
-	/**
-	 * Returns the underlying JNI jobject for this JObject.
-	 *
-	 * WARNING: The returned jobject is valid so long as its parent JObject is valid.
-	 * Given the code: <code>jobject myThread = Thread::currentThread</code>
-	 * the returned jobject will become invalid right after the assignment operation
-	 * because the enclosing Thread goes out of scope and destroys its associated jobject.
-	 *
-	 * Users of this method should be careful not to modify the
-	 * object through calls against the returned jobject.
-	 */
-	JACE_API operator jobject() const;
+    /**
+     * Returns the underlying JNI jobject for this JObject.
+     *
+     * WARNING: The returned jobject is valid so long as its parent JObject is valid.
+     * Given the code: <code>jobject myThread = Thread::currentThread</code>
+     * the returned jobject will become invalid right after the assignment operation
+     * because the enclosing Thread goes out of scope and destroys its associated jobject.
+     *
+     * Users of this method should be careful not to modify the
+     * object through calls against the returned jobject.
+     */
+    JACE_API operator jobject() const;
 
-	/**
-	 * Returns true if this JObject represents a null java reference.
-	 *
-	 * If this method returns true, it is not safe to call any proxy
-	 * method on this JObject. Doing so will invoke undefined behavior.
-	 */
-	JACE_API bool isNull() const;
+    /**
+     * Returns true if this JObject represents a null java reference.
+     *
+     * If this method returns true, it is not safe to call any proxy
+     * method on this JObject. Doing so will invoke undefined behavior.
+     */
+    JACE_API bool isNull() const;
 
-	/**
-	 * Returns the JClass for this class.
-	 */
-	JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
+    /**
+     * Returns the JClass for this class.
+     */
+    JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
 
-	/**
-	 * Returns the JClass that represents the static type of this class.
-	 * For example, for a String Java object, referred to by a C++ proxy object,
-	 * this method returns JClassImpl("java/lang/String").
-	 */
-	JACE_API virtual const JClass& getJavaJniClass() const throw (JNIException);
+    /**
+     * Returns the JClass that represents the static type of this class.
+     * For example, for a String Java object, referred to by a C++ proxy object,
+     * this method returns JClassImpl("java/lang/String").
+     */
+    JACE_API virtual const JClass& getJavaJniClass() const throw (JNIException);
 
 protected:
-	/**
-	 * Overridden so that a new global reference is created
-	 * for the JNI jobject which is specified in value.
-	 *
-	 * @param value The JNI jvalue which represents this JObject.
-	 * The jvalue must be must set with a jobject.
-	 *
-	 * @throws JNIException if the jobject has already been set,
-	 *   or if the JVM runs out of memory while trying to create
-	 *   a new global reference.
-	 */
-	JACE_API virtual void setJavaJniValue(jvalue value) throw (JNIException);
+    /**
+     * Overridden so that a new global reference is created
+     * for the JNI jobject which is specified in value.
+     *
+     * @param value The JNI jvalue which represents this JObject.
+     * The jvalue must be must set with a jobject.
+     *
+     * @throws JNIException if the jobject has already been set,
+     *   or if the JVM runs out of memory while trying to create
+     *   a new global reference.
+     */
+    JACE_API virtual void setJavaJniValue(jvalue value) throw (JNIException);
 
-	/**
-	 * Sets the jobject for this JObject.
-	 *
-	 * This method is simply a convenience method for calling
-	 * setValue(jvalue) with a jobject.
-	 */
-	JACE_API void setJavaJniObject(jobject object) throw (JNIException);
+    /**
+     * Sets the jobject for this JObject.
+     *
+     * This method is simply a convenience method for calling
+     * setValue(jvalue) with a jobject.
+     */
+    JACE_API void setJavaJniObject(jobject object) throw (JNIException);
 
-	/**
-	 * Constructs a new instance of the given class
-	 * with the given arguments.
-	 *
-	 * @return the JNI jobject representing the new object.
-	 *
-	 * @throws JNIException if a JNI error occurs while trying to locate the method.
-	 * @throws the corresponding C++ proxy exception, if a java exception
-	 *   is thrown during method execution.
-	 */
-	JACE_API static jobject newObject(const ::jace::JClass& jClass, const ::jace::JArguments& arguments);
+    /**
+     * Constructs a new instance of the given class
+     * with the given arguments.
+     *
+     * @return the JNI jobject representing the new object.
+     *
+     * @throws JNIException if a JNI error occurs while trying to locate the method.
+     * @throws the corresponding C++ proxy exception, if a java exception
+     *   is thrown during method execution.
+     */
+    JACE_API static jobject newObject(const ::jace::JClass& jClass, const ::jace::JArguments& arguments);
 };
 
 

@@ -18,34 +18,34 @@ using jace::proxy::com::ms::silverking::time::RelNanosTimeSource;
 using jace::proxy::com::ms::silverking::time::RelNanosAbsMillisTimeSource;
 
 SKSimpleNamedStopwatch::SKSimpleNamedStopwatch(): SKSimpleStopwatch((SimpleStopwatch*)NULL) {
-	pImpl = new SimpleNamedStopwatch(java_new<SimpleNamedStopwatch>());
+    pImpl = new SimpleNamedStopwatch(java_new<SimpleNamedStopwatch>());
 }
 
 SKSimpleNamedStopwatch::SKSimpleNamedStopwatch(const char * name){
-	pImpl = new SimpleNamedStopwatch(java_new<SimpleNamedStopwatch>(java_new<String>((char*)name)));
+    pImpl = new SimpleNamedStopwatch(java_new<SimpleNamedStopwatch>(java_new<String>((char*)name)));
 }
 
 SKSimpleNamedStopwatch::SKSimpleNamedStopwatch(SKRelNanosAbsMillisTimeSource * relNanosTimeSource, const char * name){
-	RelNanosAbsMillisTimeSource * pRelNanosTimeSource =  dynamic_cast<RelNanosAbsMillisTimeSource *>(relNanosTimeSource->getPImpl());
-	RelNanosTimeSource ts = java_cast<RelNanosTimeSource>(*pRelNanosTimeSource);
-	pImpl = new SimpleNamedStopwatch(java_new<SimpleNamedStopwatch>(ts, java_new<String>((char*)name)));
+    RelNanosAbsMillisTimeSource * pRelNanosTimeSource =  dynamic_cast<RelNanosAbsMillisTimeSource *>(relNanosTimeSource->getPImpl());
+    RelNanosTimeSource ts = java_cast<RelNanosTimeSource>(*pRelNanosTimeSource);
+    pImpl = new SimpleNamedStopwatch(java_new<SimpleNamedStopwatch>(ts, java_new<String>((char*)name)));
 }
 
 //impl
 SKSimpleNamedStopwatch::SKSimpleNamedStopwatch(SimpleNamedStopwatch * pSimpleNamedStopwatch) {
-	if(pSimpleNamedStopwatch)
-		pImpl = pSimpleNamedStopwatch;
+    if(pSimpleNamedStopwatch)
+        pImpl = pSimpleNamedStopwatch;
 } 
-	
+    
 SKSimpleNamedStopwatch::~SKSimpleNamedStopwatch()
 {
-	if(pImpl!=NULL) {
-		SimpleNamedStopwatch * pSimpleNamedStopwatch = dynamic_cast<SimpleNamedStopwatch*>(pImpl);
-		delete pSimpleNamedStopwatch; 
-		pImpl = NULL;
-	}
+    if(pImpl!=NULL) {
+        SimpleNamedStopwatch * pSimpleNamedStopwatch = dynamic_cast<SimpleNamedStopwatch*>(pImpl);
+        delete pSimpleNamedStopwatch; 
+        pImpl = NULL;
+    }
 }
 
 string SKSimpleNamedStopwatch::getName() {
-	return (string)(dynamic_cast<SimpleNamedStopwatch*>(pImpl)->getName());
+    return (string)(dynamic_cast<SimpleNamedStopwatch*>(pImpl)->getName());
 }

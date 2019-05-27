@@ -16,7 +16,7 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     private final int   itemTime_ms;
     //private final int   keyedOpMaxRelTimeout_ms; // Waiting for C++ client change to include this, for no using nonKeyed as a workaround
     private final int   nonKeyedOpMaxRelTimeout_ms;
-    private final int	exclusionChangeRetryInterval_ms;
+    private final int    exclusionChangeRetryInterval_ms;
     
     private static final int    minTransferRate_bps = 275 * 1000 * 1000;
     private static final int    minTransferRate_Bps = minTransferRate_bps / 8;
@@ -35,15 +35,15 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     
     static final OpSizeBasedTimeoutController   template = new OpSizeBasedTimeoutController();
     
-//    static final int    defaultKeyedOpMaxRelTimeout_ms    = 25 * 60 * 1000;	// this is actually unused right now, in the code, we only have keyed-ops that are available for creation
+//    static final int    defaultKeyedOpMaxRelTimeout_ms    = 25 * 60 * 1000;    // this is actually unused right now, in the code, we only have keyed-ops that are available for creation
     static final int    defaultNonKeyedOpMaxRelTimeout_ms = 25 * 60 * 1000; 
 
     static {
-    	try {
-    		ObjectDefParser2.addParser(template);
-    	} catch (Exception e) {
-    		e.printStackTrace();
-    	}
+        try {
+            ObjectDefParser2.addParser(template);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }    
     
     /*
@@ -60,8 +60,8 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
      * @param exclusionChangeRetryInterval_ms TODO
      */
     public OpSizeBasedTimeoutController(int maxAttempts, int constantTimeMillis, int itemTimeMillis,
-			/*int keyedOpMaxRelTimeoutMillis,*/ int nonKeyedOpMaxRelTimeoutMillis, int exclusionChangeRetryInterval_ms) {
-    	Util.checkAttempts(maxAttempts);
+            /*int keyedOpMaxRelTimeoutMillis,*/ int nonKeyedOpMaxRelTimeoutMillis, int exclusionChangeRetryInterval_ms) {
+        Util.checkAttempts(maxAttempts);
         this.maxAttempts = maxAttempts;
         this.constantTime_ms = constantTimeMillis;
         this.itemTime_ms = itemTimeMillis;
@@ -92,9 +92,9 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     }
     
     @Override
-	public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
-    	return exclusionChangeRetryInterval_ms;
-	}
+    public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
+        return exclusionChangeRetryInterval_ms;
+    }
 
     @Override
     public int getMaxRelativeTimeoutMillis(AsyncOperation op) {
@@ -172,30 +172,30 @@ public class OpSizeBasedTimeoutController implements OpTimeoutController {
     
     @Override
     public int hashCode() {
-    	return Integer.hashCode(maxAttempts) ^ Integer.hashCode(constantTime_ms) ^ Integer.hashCode(itemTime_ms) ^
-    			/*Integer.hashCode(keyedOpMaxRelTimeout_ms) ^*/ Integer.hashCode(nonKeyedOpMaxRelTimeout_ms)
-    			^ Integer.hashCode(exclusionChangeRetryInterval_ms);
+        return Integer.hashCode(maxAttempts) ^ Integer.hashCode(constantTime_ms) ^ Integer.hashCode(itemTime_ms) ^
+                /*Integer.hashCode(keyedOpMaxRelTimeout_ms) ^*/ Integer.hashCode(nonKeyedOpMaxRelTimeout_ms)
+                ^ Integer.hashCode(exclusionChangeRetryInterval_ms);
     }
     
     @Override
     public boolean equals(Object o) {
-    	OpSizeBasedTimeoutController	other;
-    	
-    	if (this == o) {
-    		return true;
-    	}
-    	
-    	if (this.getClass() != o.getClass()) {
-    		return false;
-    	}
-    	
-    	other = (OpSizeBasedTimeoutController)o;
-    	return maxAttempts == other.maxAttempts 
-    			&& constantTime_ms == other.constantTime_ms
-    			&& itemTime_ms == other.itemTime_ms
-    	    	//&& keyedOpMaxRelTimeout_ms == o.keyedOpMaxRelTimeout_ms
-    			&& nonKeyedOpMaxRelTimeout_ms == other.nonKeyedOpMaxRelTimeout_ms
-    			&& exclusionChangeRetryInterval_ms == other.exclusionChangeRetryInterval_ms;
+        OpSizeBasedTimeoutController    other;
+        
+        if (this == o) {
+            return true;
+        }
+        
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
+        
+        other = (OpSizeBasedTimeoutController)o;
+        return maxAttempts == other.maxAttempts 
+                && constantTime_ms == other.constantTime_ms
+                && itemTime_ms == other.itemTime_ms
+                //&& keyedOpMaxRelTimeout_ms == o.keyedOpMaxRelTimeout_ms
+                && nonKeyedOpMaxRelTimeout_ms == other.nonKeyedOpMaxRelTimeout_ms
+                && exclusionChangeRetryInterval_ms == other.exclusionChangeRetryInterval_ms;
     }
     
     @Override

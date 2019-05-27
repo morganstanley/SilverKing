@@ -143,8 +143,8 @@ function f_logSshCmd {
 }
 
 function f_sendEmail {
-	typeset to=$1
-	typeset from=$2
+    typeset to=$1
+    typeset from=$2
     
     touch $REPORT_FILE
     
@@ -162,7 +162,7 @@ function f_sendEmail {
         fi
         
         f_logReportSection "$REPORT_FILE" "FAILS" "$FAILS_FILE"
-	fi
+    fi
     
     echo -e "\tresult: $result"
     

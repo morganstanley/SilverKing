@@ -6,13 +6,13 @@
 #include "gtest/gtest.h"
 
 class PutGetWaitTest : public ::testing::Test {
-	public:
-		 PutGetWaitTest();
-		~PutGetWaitTest();
+    public:
+         PutGetWaitTest();
+        ~PutGetWaitTest();
 
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 
 };
 

@@ -48,15 +48,15 @@ public class NamespaceConvergenceGroup {
         incompleteConvergenceControllers.remove(convergenceController);
         complete = incompleteConvergenceControllers.size() == 0;
         if (complete) {
-        	try {
-        		ncgListener.convergenceComplete(this);
-        	} catch (InvalidTransitionException ite) {
-        		if (ite.getExistingRingState() == RingState.ABANDONED) {
-        			Log.warning("Ignoring completion of ncgListener as RingState == ABANDONED");
-        		} else {
-        			throw ite;
-        		}
-        	}
+            try {
+                ncgListener.convergenceComplete(this);
+            } catch (InvalidTransitionException ite) {
+                if (ite.getExistingRingState() == RingState.ABANDONED) {
+                    Log.warning("Ignoring completion of ncgListener as RingState == ABANDONED");
+                } else {
+                    throw ite;
+                }
+            }
         }
     }
 
@@ -67,7 +67,7 @@ public class NamespaceConvergenceGroup {
     public void startConvergence() {
         freeze();
         
-        ConvergenceController2	prevConvergenceController;
+        ConvergenceController2    prevConvergenceController;
 
         /*
          * Create a chain of convergence controllers so that namespace convergence is worked
@@ -76,10 +76,10 @@ public class NamespaceConvergenceGroup {
          */
         prevConvergenceController = null;
         for (ConvergenceController2 convergenceController : incompleteConvergenceControllers) {
-        	if (prevConvergenceController != null) {
-        		convergenceController.setChainNext(prevConvergenceController);
-        	}
-        	prevConvergenceController = convergenceController;
+            if (prevConvergenceController != null) {
+                convergenceController.setChainNext(prevConvergenceController);
+            }
+            prevConvergenceController = convergenceController;
         }
         prevConvergenceController.startConvergence();
     }

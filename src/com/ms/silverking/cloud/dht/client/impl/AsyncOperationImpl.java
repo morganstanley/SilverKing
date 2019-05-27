@@ -31,13 +31,13 @@ import com.ms.silverking.thread.lwt.BaseWorker;
  * and wraps an Operation with current state. 
  */
 abstract class AsyncOperationImpl implements AsyncOperation {
-	protected final Operation  operation;
+    protected final Operation  operation;
     protected byte[]           originator;
     private final Lock         lock;
     private final Condition    cv;
     private volatile OpResult           result;
     protected final EnumSet<OpResult>   allResults;
-    private volatile Set<Pair<AsyncOperationListener,EnumSet<OperationState>>>	listeners;
+    private volatile Set<Pair<AsyncOperationListener,EnumSet<OperationState>>>    listeners;
     
     private static final boolean    spin = true;
     private static final int        spinDurationNanos = 5 * 1000;
@@ -47,35 +47,35 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                                         // used to optimize the first message creation
     protected OpTimeoutState  timeoutState;
     
-	public AsyncOperationImpl(Operation operation, long curTimeMillis, byte[] originator) {
+    public AsyncOperationImpl(Operation operation, long curTimeMillis, byte[] originator) {
         OpTimeoutController   timeoutController;
         
-	    assert operation != null;
-	    assert originator != null;
+        assert operation != null;
+        assert originator != null;
         
-		this.operation = operation;
+        this.operation = operation;
         this.originator = originator;
         lock = new ReentrantLock();
         cv = lock.newCondition();
-		result = OpResult.INCOMPLETE;
-		allResults = EnumSet.noneOf(OpResult.class);
+        result = OpResult.INCOMPLETE;
+        allResults = EnumSet.noneOf(OpResult.class);
         // FUTURE - could lazily create the timeout state since most ops never need it
-		//System.out.printf("%s %d\n", timeoutParameters.hasRelTimeout(), timeoutParameters.getRelTimeout());
-		
-		timeoutController = operation.getTimeoutController();
-		timeoutState = new OpTimeoutState(this, timeoutController, curTimeMillis);
+        //System.out.printf("%s %d\n", timeoutParameters.hasRelTimeout(), timeoutParameters.getRelTimeout());
+        
+        timeoutController = operation.getTimeoutController();
+        timeoutState = new OpTimeoutState(this, timeoutController, curTimeMillis);
     }
-	
-	protected abstract NonExistenceResponse getNonExistenceResponse();
-	
-	protected final boolean isActive() {
+    
+    protected abstract NonExistenceResponse getNonExistenceResponse();
+    
+    protected final boolean isActive() {
         return !result.isComplete();
-	}
-	
-	boolean opHasTimedOut(long curTimeMillis) {
-	    return timeoutState.opHasTimedOut(curTimeMillis);
-	}
-	
+    }
+    
+    boolean opHasTimedOut(long curTimeMillis) {
+        return timeoutState.opHasTimedOut(curTimeMillis);
+    }
+    
     boolean attemptHasTimedOut(long curTimeMillis) {
         return timeoutState.attemptHasTimedOut(curTimeMillis);
     }
@@ -88,46 +88,46 @@ abstract class AsyncOperationImpl implements AsyncOperation {
         timeoutState.newAttempt(curTimeMillis);
     }
     
-	public ClientOpType getType() {
-		return operation.getOpType();
-	}
-	
-	public final OperationUUID getUUID() {
-		return operation.getUUID();
-	}
-	
-	@Override
-	public OperationState getState() {
-		return result.toOperationState(getNonExistenceResponse());
-	}
-	
-	protected OpResult getResult() {
-		return result;
-	}
-	
-	@Override
-	public FailureCause getFailureCause() {
-	    return result.toFailureCause(getNonExistenceResponse());
-	}
-	
+    public ClientOpType getType() {
+        return operation.getOpType();
+    }
+    
+    public final OperationUUID getUUID() {
+        return operation.getUUID();
+    }
+    
+    @Override
+    public OperationState getState() {
+        return result.toOperationState(getNonExistenceResponse());
+    }
+    
+    protected OpResult getResult() {
+        return result;
+    }
+    
+    @Override
+    public FailureCause getFailureCause() {
+        return result.toFailureCause(getNonExistenceResponse());
+    }
+    
     @Override
     public void close() {
         cleanup();
     }
-	
-	protected abstract int opWorkItems();
-	
+    
+    protected abstract int opWorkItems();
+    
     protected boolean isFailure(OpResult result) {
         return result.hasFailed(getNonExistenceResponse());
     }
-	
-	protected void failureCleanup(FailureCause failureCause) {
-	    cleanup();
-	}
-	
+    
+    protected void failureCleanup(FailureCause failureCause) {
+        cleanup();
+    }
+    
     protected void cleanup() {        
     }
-	
+    
     // must hold completionCheckLock
     protected void setResult(EnumSet<OpResult> results) {
         assert results.size() > 0;
@@ -150,7 +150,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                 Log.fine("AsyncOperationImpl.setResult() received duplicate completion", this);
             }
         } else {
-        	Set<Pair<AsyncOperationListener,EnumSet<OperationState>>>	_listeners;
+            Set<Pair<AsyncOperationListener,EnumSet<OperationState>>>    _listeners;
             
             _listeners = null;
             lock.lock();
@@ -163,7 +163,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                     this.result = result;
                     cv.signalAll();
                     if (listeners != null) {
-                    	_listeners = ImmutableSet.copyOf(listeners);
+                        _listeners = ImmutableSet.copyOf(listeners);
                     }
                 } else {
                     if (result != this.result) {
@@ -176,7 +176,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                 lock.unlock();
             }
             if (_listeners != null) {
-            	notificationWorker.fiterForUpdates(this, _listeners, getState());
+                notificationWorker.fiterForUpdates(this, _listeners, getState());
             }
             cleanup();
         }
@@ -187,179 +187,179 @@ abstract class AsyncOperationImpl implements AsyncOperation {
      * setResult to ensure that completion results fire exactly once.
      */
     protected void checkForUpdates() {
-    	if (listeners != null) {
-	    	Set<Pair<AsyncOperationListener,EnumSet<OperationState>>>	_listeners;
-	    	OperationState	opState;
-	        
-	    	opState = getState();
-	    	if (opState == OperationState.INCOMPLETE) {
-		        _listeners = null;
-		        lock.lock();
-		        try {
-		            if (listeners != null) {
-		            	_listeners = ImmutableSet.copyOf(listeners);
-		            }
-		        } finally {
-		            lock.unlock();
-		        }
-		        if (_listeners != null) {
-		        	notificationWorker.fiterForUpdates(this, _listeners, opState);
-		        }
-	    	}
-    	}
+        if (listeners != null) {
+            Set<Pair<AsyncOperationListener,EnumSet<OperationState>>>    _listeners;
+            OperationState    opState;
+            
+            opState = getState();
+            if (opState == OperationState.INCOMPLETE) {
+                _listeners = null;
+                lock.lock();
+                try {
+                    if (listeners != null) {
+                        _listeners = ImmutableSet.copyOf(listeners);
+                    }
+                } finally {
+                    lock.unlock();
+                }
+                if (_listeners != null) {
+                    notificationWorker.fiterForUpdates(this, _listeners, opState);
+                }
+            }
+        }
     }
-	
-	private void notifyListeners(Set<AsyncOperationListener> listeners) {
-		for (AsyncOperationListener listener : listeners) {
-			listener.asyncOperationUpdated(this);
-		}
-	}
-	
-	private static final NotificationWorker	notificationWorker = new NotificationWorker();
-	
-	private static class NotificationWorker extends BaseWorker<Pair<AsyncOperationImpl, Set<AsyncOperationListener>>> {
-		NotificationWorker() {
-		}
-		
-		void fiterForUpdates(AsyncOperationImpl opImpl, Set<Pair<AsyncOperationListener,EnumSet<OperationState>>> _listeners, OperationState opState) {
-			Set<AsyncOperationListener>	listeners;
-			
-			listeners = new HashSet<>();
-			for (Pair<AsyncOperationListener, EnumSet<OperationState>> candidate : _listeners) {
-				if (candidate.getV2().contains(opState)) {
-					listeners.add(candidate.getV1());
-				}
-			}
-        	notificationWorker.addWork(new Pair<>(opImpl, listeners), 0);
-		}
+    
+    private void notifyListeners(Set<AsyncOperationListener> listeners) {
+        for (AsyncOperationListener listener : listeners) {
+            listener.asyncOperationUpdated(this);
+        }
+    }
+    
+    private static final NotificationWorker    notificationWorker = new NotificationWorker();
+    
+    private static class NotificationWorker extends BaseWorker<Pair<AsyncOperationImpl, Set<AsyncOperationListener>>> {
+        NotificationWorker() {
+        }
+        
+        void fiterForUpdates(AsyncOperationImpl opImpl, Set<Pair<AsyncOperationListener,EnumSet<OperationState>>> _listeners, OperationState opState) {
+            Set<AsyncOperationListener>    listeners;
+            
+            listeners = new HashSet<>();
+            for (Pair<AsyncOperationListener, EnumSet<OperationState>> candidate : _listeners) {
+                if (candidate.getV2().contains(opState)) {
+                    listeners.add(candidate.getV1());
+                }
+            }
+            notificationWorker.addWork(new Pair<>(opImpl, listeners), 0);
+        }
 
-		@Override
-		public void doWork(Pair<AsyncOperationImpl, Set<AsyncOperationListener>> p) {
-			p.getV1().notifyListeners(p.getV2());
-		}		
-	}
+        @Override
+        public void doWork(Pair<AsyncOperationImpl, Set<AsyncOperationListener>> p) {
+            p.getV1().notifyListeners(p.getV2());
+        }        
+    }
 
-	public boolean waitForCompletion(long timeout, TimeUnit unit) throws OperationException {
-		long      relativeDeadlineMillis;
-		long      absoluteDeadlineMillis;
-		
-		relativeDeadlineMillis = TimeUnit.MILLISECONDS.convert(timeout, unit);
-		absoluteDeadlineMillis = SystemTimeUtil.systemTimeSource.absTimeMillis() + relativeDeadlineMillis; 
+    public boolean waitForCompletion(long timeout, TimeUnit unit) throws OperationException {
+        long      relativeDeadlineMillis;
+        long      absoluteDeadlineMillis;
+        
+        relativeDeadlineMillis = TimeUnit.MILLISECONDS.convert(timeout, unit);
+        absoluteDeadlineMillis = SystemTimeUtil.systemTimeSource.absTimeMillis() + relativeDeadlineMillis; 
         lock.lock();
-		try {
-			while (!result.isComplete()) {
-				try {
-					long	millisToDeadline;
-					
-					millisToDeadline = absoluteDeadlineMillis - SystemTimeUtil.systemTimeSource.absTimeMillis();
-					if (millisToDeadline > 0) {
-						Log.fine("activeOp awaiting ", this);
-						if (!spin) {
-						    cv.await(millisToDeadline, TimeUnit.MILLISECONDS);
-						} else {
-						    cv.awaitNanos(spinDurationNanos);
-						}
-					} else {
-					    debugTimeout();
-						return false;
-					}
-				} catch (InterruptedException ie) {
-				}
-			}
-			if (isFailure(result)) {
-			    throwFailedException();
-			}
-			return true;
-		} finally {
+        try {
+            while (!result.isComplete()) {
+                try {
+                    long    millisToDeadline;
+                    
+                    millisToDeadline = absoluteDeadlineMillis - SystemTimeUtil.systemTimeSource.absTimeMillis();
+                    if (millisToDeadline > 0) {
+                        Log.fine("activeOp awaiting ", this);
+                        if (!spin) {
+                            cv.await(millisToDeadline, TimeUnit.MILLISECONDS);
+                        } else {
+                            cv.awaitNanos(spinDurationNanos);
+                        }
+                    } else {
+                        debugTimeout();
+                        return false;
+                    }
+                } catch (InterruptedException ie) {
+                }
+            }
+            if (isFailure(result)) {
+                throwFailedException();
+            }
+            return true;
+        } finally {
             lock.unlock();
-		}
-	}
-	
-	protected void debugTimeout() {	    
-	}
-	
-	protected abstract void throwFailedException() throws OperationException;
-	
-	/**
-	 * Adds a completion listener. If the operation is already complete, the callback will be 
-	 * immediately executed, possibly in the calling thread.
-	 * Equivalent to addListener(listener, OperationState.SUCCEEDED, OperationState.FAILED)
-	 * @param listener	completion listener
-	 */
-	public void addListener(AsyncOperationListener listener) {
-		addListener(listener, OperationState.SUCCEEDED, OperationState.FAILED);
-	}
-	
-	/**
-	 * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
-	 * immediately executed, possibly in the calling thread.
-	 * Equivalent to addListeners(listeners, OperationState.SUCCEEDED, OperationState.FAILED)
-	 * @param listeners	update listeners
-	 */
-	public void addListeners(Iterable<AsyncOperationListener> listeners) {
-		addListeners(listeners, OperationState.SUCCEEDED, OperationState.FAILED);
-	}	
-	
-	/**
-	 * Adds an operation listener. If the operation is already complete, the callback will be 
-	 * immediately executed, possibly in the calling thread.
-	 * @param listener	update listener
-	 * @param listenStates	states to generate updates for
-	 */
-	public void addListener(AsyncOperationListener listener, OperationState... listenStates) {
-		EnumSet<OperationState>	_listenStates;
-		OperationState			opState;
-		
-		_listenStates = CollectionUtil.arrayToEnumSet(listenStates);
-		opState = getState();
+        }
+    }
+    
+    protected void debugTimeout() {        
+    }
+    
+    protected abstract void throwFailedException() throws OperationException;
+    
+    /**
+     * Adds a completion listener. If the operation is already complete, the callback will be 
+     * immediately executed, possibly in the calling thread.
+     * Equivalent to addListener(listener, OperationState.SUCCEEDED, OperationState.FAILED)
+     * @param listener    completion listener
+     */
+    public void addListener(AsyncOperationListener listener) {
+        addListener(listener, OperationState.SUCCEEDED, OperationState.FAILED);
+    }
+    
+    /**
+     * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
+     * immediately executed, possibly in the calling thread.
+     * Equivalent to addListeners(listeners, OperationState.SUCCEEDED, OperationState.FAILED)
+     * @param listeners    update listeners
+     */
+    public void addListeners(Iterable<AsyncOperationListener> listeners) {
+        addListeners(listeners, OperationState.SUCCEEDED, OperationState.FAILED);
+    }    
+    
+    /**
+     * Adds an operation listener. If the operation is already complete, the callback will be 
+     * immediately executed, possibly in the calling thread.
+     * @param listener    update listener
+     * @param listenStates    states to generate updates for
+     */
+    public void addListener(AsyncOperationListener listener, OperationState... listenStates) {
+        EnumSet<OperationState>    _listenStates;
+        OperationState            opState;
+        
+        _listenStates = CollectionUtil.arrayToEnumSet(listenStates);
+        opState = getState();
         lock.lock();
         try {
-        	// Trigger immediate updates for completion, but only for completion
-        	if (opState != OperationState.INCOMPLETE && _listenStates.contains(opState)) {
-        		listener.asyncOperationUpdated(this);
-        	} else {
-	        	if (listeners == null) {
-	        		listeners = new HashSet<>();
-	        	}
-	        	listeners.add(new Pair<>(listener, _listenStates));
-        	}
+            // Trigger immediate updates for completion, but only for completion
+            if (opState != OperationState.INCOMPLETE && _listenStates.contains(opState)) {
+                listener.asyncOperationUpdated(this);
+            } else {
+                if (listeners == null) {
+                    listeners = new HashSet<>();
+                }
+                listeners.add(new Pair<>(listener, _listenStates));
+            }
         } finally {
-        	lock.unlock();
+            lock.unlock();
         }
-	}    
-	
-	/**
-	 * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
-	 * immediately executed, possibly in the calling thread.
-	 * @param listeners	update listeners
-	 * @param listenStates	states to generate updates for
-	 */
-	public void addListeners(Iterable<AsyncOperationListener> _listeners, OperationState... listenStates) {
-		EnumSet<OperationState>	_listenStates;
-		OperationState			opState;
-		
-		_listenStates = CollectionUtil.arrayToEnumSet(listenStates);
-		opState = getState();
+    }    
+    
+    /**
+     * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
+     * immediately executed, possibly in the calling thread.
+     * @param listeners    update listeners
+     * @param listenStates    states to generate updates for
+     */
+    public void addListeners(Iterable<AsyncOperationListener> _listeners, OperationState... listenStates) {
+        EnumSet<OperationState>    _listenStates;
+        OperationState            opState;
+        
+        _listenStates = CollectionUtil.arrayToEnumSet(listenStates);
+        opState = getState();
         lock.lock();
         try {
-        	// Trigger immediate updates for completion, but only for completion
-        	if (opState != OperationState.INCOMPLETE && _listenStates.contains(opState)) {
-	        	for (AsyncOperationListener listener : _listeners) {
-	        		listener.asyncOperationUpdated(this);
-	        	}
-        	} else {
-	        	if (listeners == null) {
-	        		listeners = new HashSet<>();
-	        	}
-	        	for (AsyncOperationListener listener : _listeners) {
-		        	listeners.add(new Pair<>(listener, _listenStates));
-	        	}
-        	}
+            // Trigger immediate updates for completion, but only for completion
+            if (opState != OperationState.INCOMPLETE && _listenStates.contains(opState)) {
+                for (AsyncOperationListener listener : _listeners) {
+                    listener.asyncOperationUpdated(this);
+                }
+            } else {
+                if (listeners == null) {
+                    listeners = new HashSet<>();
+                }
+                for (AsyncOperationListener listener : _listeners) {
+                    listeners.add(new Pair<>(listener, _listenStates));
+                }
+            }
         } finally {
-        	lock.unlock();
+            lock.unlock();
         }
-	}	
-	
+    }    
+    
     void _waitForCompletion() throws OperationException {
         lock.lock();
         try {
@@ -381,79 +381,79 @@ abstract class AsyncOperationImpl implements AsyncOperation {
             lock.unlock();
         }
     }
-	
-	public boolean poll() {
-		boolean	complete;
-		
-		lock.lock();
-		try {
-			complete = result.isComplete();
-		} finally {
-            lock.unlock();
-		}
-		return complete;
-	}
-	
-	public boolean poll(long duration, TimeUnit timeUnit) {
-		boolean	complete;
-		
+    
+    public boolean poll() {
+        boolean    complete;
+        
         lock.lock();
-		try {
-			while (!result.isComplete()) {
-				try {
-				    if (!spin) {
-				        cv.await(duration, timeUnit);
-				    } else {
-                        cv.awaitNanos(spinDurationNanos);
-				    }
-				} catch (InterruptedException ie) {
-				}
-			}
-			complete = result.isComplete();
-		} finally {
+        try {
+            complete = result.isComplete();
+        } finally {
             lock.unlock();
-		}
-		return complete;
-	}
-	
-	protected void setSent() {
-	    sent = true;
-	}
-	
-	protected boolean getSent() {
-	    return sent;
-	}
-	
+        }
+        return complete;
+    }
+    
+    public boolean poll(long duration, TimeUnit timeUnit) {
+        boolean    complete;
+        
+        lock.lock();
+        try {
+            while (!result.isComplete()) {
+                try {
+                    if (!spin) {
+                        cv.await(duration, timeUnit);
+                    } else {
+                        cv.awaitNanos(spinDurationNanos);
+                    }
+                } catch (InterruptedException ie) {
+                }
+            }
+            complete = result.isComplete();
+        } finally {
+            lock.unlock();
+        }
+        return complete;
+    }
+    
+    protected void setSent() {
+        sent = true;
+    }
+    
+    protected boolean getSent() {
+        return sent;
+    }
+    
     abstract void addToEstimate(MessageEstimate estimate);
-	abstract MessageEstimate createMessageEstimate();
+    abstract MessageEstimate createMessageEstimate();
     abstract ProtoMessageGroup createProtoMG(MessageEstimate estimate);
     abstract ProtoMessageGroup createMessagesForIncomplete(ProtoMessageGroup protoMG, List<MessageGroup> messageGroups, MessageEstimate estimate);
-	
-	@Override
-	public String toString() {
-		StringBuilder	sb;
-		
-		sb = new StringBuilder();
-		sb.append(super.toString());
-		sb.append(operation.getOpType());
-		sb.append(':');
-		sb.append(getUUID());
-		sb.append(':');
-		sb.append(result);
-		return sb.toString();
-	}
-	
-	// for debugging
-	protected final String objectToString() {
-	    return super.toString();
-	}
+    
+    @Override
+    public String toString() {
+        StringBuilder    sb;
+        
+        sb = new StringBuilder();
+        sb.append(super.toString());
+        sb.append(operation.getOpType());
+        sb.append(':');
+        sb.append(getUUID());
+        sb.append(':');
+        sb.append(result);
+        return sb.toString();
+    }
+    
+    // for debugging
+    protected final String objectToString() {
+        return super.toString();
+    }
 
-	/**
-	 * Determine if this operation can be grouped with another operation in a single
-	 * message.
-	 * @param asyncOperationImpl
-	 * @return True iff this operation can be another operation 
-	 */
+    /**
+     * Determine if this operation can be grouped with another operation in a single
+     * message.
+     * @param asyncOperationImpl
+     * @return True iff this operation can be another operation 
+     */
     public boolean canBeGroupedWith(AsyncOperationImpl asyncOperationImpl) {
         return asyncOperationImpl.getType() == getType();
     }    

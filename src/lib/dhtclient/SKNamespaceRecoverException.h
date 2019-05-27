@@ -12,16 +12,16 @@
 #include "SKClientException.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class NamespaceRecoverException;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class NamespaceRecoverException;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::NamespaceRecoverException NamespaceRecoverException;
 
 class SKNamespaceRecoverException : public SKClientException
 {
 public:
-	SKNamespaceRecoverException(NamespaceRecoverException * pNle, const char * fileName, int lineNum);
-	SKAPI ~SKNamespaceRecoverException() throw ();	
+    SKNamespaceRecoverException(NamespaceRecoverException * pNle, const char * fileName, int lineNum);
+    SKAPI ~SKNamespaceRecoverException() throw ();    
 };
 
 

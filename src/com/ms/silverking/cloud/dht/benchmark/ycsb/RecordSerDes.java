@@ -108,8 +108,8 @@ public final class RecordSerDes implements BufferSerDes<Map> {
         return array;
     }
 
-	@Override
-	public Map emptyObject() {
-		return ImmutableMap.of();
-	}
+    @Override
+    public Map emptyObject() {
+        return ImmutableMap.of();
+    }
 }

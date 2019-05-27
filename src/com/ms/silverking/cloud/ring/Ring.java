@@ -10,10 +10,10 @@ import java.util.Collection;
  * @param <T> member type
  */
 public interface Ring<K,T> {
-	public void put(K key, T member);
-	public T getOwner(K key);
+    public void put(K key, T member);
+    public T getOwner(K key);
     public Collection<T> getOwners(K minKey, K maxKey);
-	public Collection<T> getMembers();
-	public int numMembers();
-	public T removeOwner(Long key);
+    public Collection<T> getMembers();
+    public int numMembers();
+    public T removeOwner(Long key);
 }

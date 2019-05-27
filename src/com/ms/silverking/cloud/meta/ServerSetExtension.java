@@ -13,7 +13,7 @@ abstract class ServerSetExtension implements VersionedDefinition {
     }
     
     public int size() {
-    	return serverSet.size();
+        return serverSet.size();
     }
     
     public Set<String> getServers() {

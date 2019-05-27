@@ -41,11 +41,11 @@ class ActivePutListeners {
 
     ActivePutListeners() {
         if (enableMultipleOpsPerMessage) {
-        	if (Libraries.useCustomGuava) {
+            if (Libraries.useCustomGuava) {
                 activePutListeners = new ConcurrentReferenceHashMap<>();      
-        	} else {
+            } else {
                 activePutListeners = Collections.synchronizedMap(new WeakHashMap<UUIDBase,ConcurrentMap<DHTKey,WeakReference<ActiveKeyedOperationResultListener<OpResult>>>>());        
-        	}
+            }
             this.activeOpListeners = null;
         } else {
             this.activePutListeners = null;
@@ -58,7 +58,7 @@ class ActivePutListeners {
         
         opUUID = new OperationUUID();
         if (enableMultipleOpsPerMessage) {
-        	activePutListeners.put(opUUID, new ConcurrentHashMap<DHTKey,WeakReference<ActiveKeyedOperationResultListener<OpResult>>>());
+            activePutListeners.put(opUUID, new ConcurrentHashMap<DHTKey,WeakReference<ActiveKeyedOperationResultListener<OpResult>>>());
         }
         return opUUID;
     }
@@ -72,14 +72,14 @@ class ActivePutListeners {
      */
     boolean addListener(UUIDBase opUUID, DHTKey dhtKey, ActiveKeyedOperationResultListener<OpResult> listener) {
         if (enableMultipleOpsPerMessage) {
-        	return activePutListeners.get(opUUID).putIfAbsent(dhtKey, new WeakReference<>(listener)) == null;
+            return activePutListeners.get(opUUID).putIfAbsent(dhtKey, new WeakReference<>(listener)) == null;
         } else {
             Object  prev;
             
-        	prev = activeOpListeners.putIfAbsent(opUUID, listener);
+            prev = activeOpListeners.putIfAbsent(opUUID, listener);
             if (prev != null && prev != listener) {
-            	Log.warning(prev);
-            	Log.warning(listener);
+                Log.warning(prev);
+                Log.warning(listener);
                 throw new RuntimeException("Attempted to add multiple ops in a message, "
                         +"but enableMultipleOpsPerMessage is false");
             }
@@ -93,18 +93,18 @@ class ActivePutListeners {
         Log.fine("currentPutSet()");
         ops = ImmutableSet.builder();
         if (enableMultipleOpsPerMessage) {
-	        for (ConcurrentMap<DHTKey,WeakReference<ActiveKeyedOperationResultListener<OpResult>>> map : activePutListeners.values()) {
-	            Log.fine("maps: ", map);
-	            for (WeakReference<ActiveKeyedOperationResultListener<OpResult>> listenerRef : map.values()) {
-	                ActiveKeyedOperationResultListener<OpResult> listener;
-	                
-	                listener = listenerRef.get();
-	                Log.fine("listener: ", listener);
-	                if (listener instanceof AsyncPutOperationImpl) {
-	                    ops.add((AsyncPutOperationImpl)listener);
-	                }
-	            }
-	        }
+            for (ConcurrentMap<DHTKey,WeakReference<ActiveKeyedOperationResultListener<OpResult>>> map : activePutListeners.values()) {
+                Log.fine("maps: ", map);
+                for (WeakReference<ActiveKeyedOperationResultListener<OpResult>> listenerRef : map.values()) {
+                    ActiveKeyedOperationResultListener<OpResult> listener;
+                    
+                    listener = listenerRef.get();
+                    Log.fine("listener: ", listener);
+                    if (listener instanceof AsyncPutOperationImpl) {
+                        ops.add((AsyncPutOperationImpl)listener);
+                    }
+                }
+            }
         } else {
             for (ActiveKeyedOperationResultListener<OpResult> listener : activeOpListeners.values()) {
                 if (listener instanceof AsyncPutOperationImpl) {
@@ -117,36 +117,36 @@ class ActivePutListeners {
     
     public <K,V> void receivedPutResponse(MessageGroup message) {
         if (enableMultipleOpsPerMessage) {
-	        long    version;
-	        ConcurrentMap<DHTKey,WeakReference<ActiveKeyedOperationResultListener<OpResult>>> listenerMap;
-	        
-	        version = message.getBuffers()[0].getLong(0);
-	        //Log.warning("receivedPutResponse version ", version);
-	        
-	        listenerMap = activePutListeners.get(message.getUUID());
-	        if (listenerMap != null) {
-	            for (MessageGroupKeyOrdinalEntry entry : message.getKeyOrdinalIterator()) {
-	                WeakReference<ActiveKeyedOperationResultListener<OpResult>> listenerRef;
-	                ActiveKeyedOperationResultListener<OpResult> listener;
-	                
-	                if (debug) {
-	                    System.out.println(new SimpleKey(entry.getKey()));
-	                }
-	                listenerRef = listenerMap.get(entry.getKey());
-	                listener = listenerRef.get();
-	                if (listener != null) {
-	                    listener.resultReceived(entry.getKey(), EnumValues.opResult[entry.getOrdinal()]);
-	                } else {
-	                    Log.info("receivedPutResponse. null listener ref for: ", message.getUUID() +"\t"+ entry.getKey());
-	                }
-	            }
-	        } else {
-	            // If we're receiving the error, then it's possible that we lost the
-	            // reference that was stored in the weak map.
-	            Log.warning("receivedPutResponse. No listenerMap for: ", message.getUUID());
-	        }
+            long    version;
+            ConcurrentMap<DHTKey,WeakReference<ActiveKeyedOperationResultListener<OpResult>>> listenerMap;
+            
+            version = message.getBuffers()[0].getLong(0);
+            //Log.warning("receivedPutResponse version ", version);
+            
+            listenerMap = activePutListeners.get(message.getUUID());
+            if (listenerMap != null) {
+                for (MessageGroupKeyOrdinalEntry entry : message.getKeyOrdinalIterator()) {
+                    WeakReference<ActiveKeyedOperationResultListener<OpResult>> listenerRef;
+                    ActiveKeyedOperationResultListener<OpResult> listener;
+                    
+                    if (debug) {
+                        System.out.println(new SimpleKey(entry.getKey()));
+                    }
+                    listenerRef = listenerMap.get(entry.getKey());
+                    listener = listenerRef.get();
+                    if (listener != null) {
+                        listener.resultReceived(entry.getKey(), EnumValues.opResult[entry.getOrdinal()]);
+                    } else {
+                        Log.info("receivedPutResponse. null listener ref for: ", message.getUUID() +"\t"+ entry.getKey());
+                    }
+                }
+            } else {
+                // If we're receiving the error, then it's possible that we lost the
+                // reference that was stored in the weak map.
+                Log.warning("receivedPutResponse. No listenerMap for: ", message.getUUID());
+            }
         } else {
-            ActiveKeyedOperationResultListener<OpResult>	listener;
+            ActiveKeyedOperationResultListener<OpResult>    listener;
             
             listener = activeOpListeners.get(message.getUUID());
             
@@ -162,9 +162,9 @@ class ActivePutListeners {
 
     public ConcurrentMap<DHTKey, WeakReference<ActiveKeyedOperationResultListener<OpResult>>> getKeyMap(OperationUUID opUUID) {
         if (enableMultipleOpsPerMessage) {
-        	return activePutListeners.get(opUUID);
+            return activePutListeners.get(opUUID);
         } else {
-        	return new ConcurrentHashMap<>();
+            return new ConcurrentHashMap<>();
         }
     }
 }

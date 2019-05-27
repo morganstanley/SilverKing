@@ -23,17 +23,17 @@ public class Terminator {
     public enum Mode {LogOnly, Armed};
     public enum KillType {KillTerminator, CustomTerminator};
     
-    private static Map<String,String>	killCommands;
-    private static final String	PID_VARIABLE = "__PID__";
+    private static Map<String,String>    killCommands;
+    private static final String    PID_VARIABLE = "__PID__";
     
     static {
-    	killCommands = new HashMap<>();
-    	addKillCommand(KillType.KillTerminator.toString(), killCmd +" -9 "+ PID_VARIABLE);
+        killCommands = new HashMap<>();
+        addKillCommand(KillType.KillTerminator.toString(), killCmd +" -9 "+ PID_VARIABLE);
     }
     
     public static void addKillCommand(String name, String cmd) {
-    	Log.warningf("addKillCommand '%s' '%s'", name, cmd);
-    	killCommands.put(name, cmd);
+        Log.warningf("addKillCommand '%s' '%s'", name, cmd);
+        killCommands.put(name, cmd);
     }
     
     public Terminator(Mode mode, String loggerFileName, KillType killType) {
@@ -48,18 +48,18 @@ public class Terminator {
     }
     
     private String[] resolvedKillCommand(String name, int pid) {
-    	String	unresolvedCommand;
-    	
-    	unresolvedCommand = killCommands.get(name);
-    	if (unresolvedCommand == null) {
-    		Log.warning("No such kill command: "+ name);
-    		return null;
-    	} else {
-    		String	resolvedCommand;
-    		
-    		resolvedCommand = unresolvedCommand.replaceAll(PID_VARIABLE, Integer.toString(pid));
-    		return resolvedCommand.split("\\s+");
-    	}
+        String    unresolvedCommand;
+        
+        unresolvedCommand = killCommands.get(name);
+        if (unresolvedCommand == null) {
+            Log.warning("No such kill command: "+ name);
+            return null;
+        } else {
+            String    resolvedCommand;
+            
+            resolvedCommand = unresolvedCommand.replaceAll(PID_VARIABLE, Integer.toString(pid));
+            return resolvedCommand.split("\\s+");
+        }
     }
     
     public void terminate(int pid, String msg) {

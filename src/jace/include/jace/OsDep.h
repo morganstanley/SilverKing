@@ -10,31 +10,31 @@
 #endif
 
 #ifdef _WIN32
-	#ifndef JACE_LINK_STATICALLY
-		/**
-		 * Macros used for importing and exporting Jace DLL symbols.
-		 */
-		#ifdef JACE_EXPORTS
-			#define JACE_API __declspec(dllexport)
-		#else
-			#define JACE_API __declspec(dllimport)
-		#endif
-	#else
-		#define JACE_API
-	#endif
+    #ifndef JACE_LINK_STATICALLY
+        /**
+         * Macros used for importing and exporting Jace DLL symbols.
+         */
+        #ifdef JACE_EXPORTS
+            #define JACE_API __declspec(dllexport)
+        #else
+            #define JACE_API __declspec(dllimport)
+        #endif
+    #else
+        #define JACE_API
+    #endif
 
-	#ifndef JACE_PROXIES_LINK_STATICALLY
-		/**
-		 * Macros used for importing and exporting proxy DLL symbols.
-		 */
-		#ifdef JACE_PROXY_EXPORTS
-			#define JACE_PROXY_API __declspec(dllexport)
-		#else
-			#define JACE_PROXY_API __declspec(dllimport)
-		#endif
-	#else
-		#define JACE_PROXY_API
-	#endif
+    #ifndef JACE_PROXIES_LINK_STATICALLY
+        /**
+         * Macros used for importing and exporting proxy DLL symbols.
+         */
+        #ifdef JACE_PROXY_EXPORTS
+            #define JACE_PROXY_API __declspec(dllexport)
+        #else
+            #define JACE_PROXY_API __declspec(dllimport)
+        #endif
+    #else
+        #define JACE_PROXY_API
+    #endif
 #endif
 
 /**
@@ -85,17 +85,17 @@
    */
   #pragma warning(disable : 4673)
 
-	/**
-	 * Disable warning about non-safe C/C++ functions. For portability reasons, we can't migrate to
-	 * Microsoft's functions even if we wanted to.
-	 *
-	 * @see http://www.stonesteps.ca/services/consulting/faq.asp?qid=q20060128-01&topic=consulting
-	 */
-	#ifndef _CRT_SECURE_NO_DEPRECATE
-		#define _CRT_SECURE_NO_DEPRECATE
-	#endif
+    /**
+     * Disable warning about non-safe C/C++ functions. For portability reasons, we can't migrate to
+     * Microsoft's functions even if we wanted to.
+     *
+     * @see http://www.stonesteps.ca/services/consulting/faq.asp?qid=q20060128-01&topic=consulting
+     */
+    #ifndef _CRT_SECURE_NO_DEPRECATE
+        #define _CRT_SECURE_NO_DEPRECATE
+    #endif
 
-	/**
+    /**
    * Visual C++ 6.0 and earlier requires template specialization definitions
    * to appear in the header.
    */
@@ -105,7 +105,7 @@
    * 1. Virtual inheritance doesn't work like it should. When trying to initialize the
    * virtual base class in an initializer list, the compiler complains that
    * "the object has already been initialized". Pretty much a non-sensical error.
-	 *
+     *
    * 2. Visual C++ 6.0 has a problem where you must create using declarations
    * for each parameter type of a template class.
    *
@@ -123,20 +123,20 @@
     #pragma warning(disable : 4290)
   #endif
 
-	/**
-	 * VC++ 9.0 supports the new streaming library; though, I'm not sure which version of VC++
-	 * it was introduced at.
-	 */
-	#if _MSC_VER >= 1500
-		#define SUPPORTS_SSTREAM
-	#endif
+    /**
+     * VC++ 9.0 supports the new streaming library; though, I'm not sure which version of VC++
+     * it was introduced at.
+     */
+    #if _MSC_VER >= 1500
+        #define SUPPORTS_SSTREAM
+    #endif
 
-	#ifdef _M_X64
-		/**
-		 * Indicate that we are using an amd64-class processor.
-		 */
-		#define JACE_AMD64
-	#endif
+    #ifdef _M_X64
+        /**
+         * Indicate that we are using an amd64-class processor.
+         */
+        #define JACE_AMD64
+    #endif
 
 /**
  * Deal with g++'isms. Jace has only been tested with g++3.0+, but we'll just treat
@@ -144,11 +144,11 @@
  */
 #elif defined __GNUG__
 
-	/**
-	 * All symbols that aren't local or static are exported by default.
-	 */
-	#define JACE_API
-	#define JACE_PROXY_API
+    /**
+     * All symbols that aren't local or static are exported by default.
+     */
+    #define JACE_API
+    #define JACE_PROXY_API
 
   /**
    * Requires template specialization definitions to appear in the header.
@@ -164,13 +164,13 @@
 
 #else // We assume a generic compiler on a generic Unix box.
 
-	/**
-	 * All symbols that aren't local or static are exported by default.
-	 */
-	#define JACE_API
-	#define JACE_PROXY_API
+    /**
+     * All symbols that aren't local or static are exported by default.
+     */
+    #define JACE_API
+    #define JACE_PROXY_API
 
-	#define SUPPORTS_SSTREAM
+    #define SUPPORTS_SSTREAM
 
 #endif
 

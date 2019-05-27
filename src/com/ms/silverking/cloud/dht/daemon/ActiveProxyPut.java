@@ -45,8 +45,8 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     private final int   stLength;
     private final Set<SecondaryTarget>  secondaryTargets;
     private final UUIDBase msg_uuid;
-    private final long	msg_context; 
-    private final int	msg_deadline;
+    private final long    msg_context; 
+    private final int    msg_deadline;
 
     ActiveProxyPut(MessageGroup message, MessageGroupConnectionProxy connection, MessageModule messageModule,
             StorageProtocol storageProtocol, long absDeadlineMillis, boolean local, NamespaceOptions nsOptions) {
@@ -249,7 +249,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     
     @Override
     public void sendInitialResults(PutCommunicator pComm) {
-    	sendResults(pComm.takeResults());
+        sendResults(pComm.takeResults());
     }
     
     /**

@@ -64,7 +64,7 @@ public final class BufferOffsetList extends OffsetListBase {
             Log.warning("BufferOffsetList.getOffset: "+ index +" "+ buf.getInt(entryBaseOffsetBytes(index) + offsetOffset * NumConversion.BYTES_PER_INT));
         }
         try {
-        	return buf.getInt(entryBaseOffsetBytes(index) + offsetOffset * NumConversion.BYTES_PER_INT);
+            return buf.getInt(entryBaseOffsetBytes(index) + offsetOffset * NumConversion.BYTES_PER_INT);
         } catch (IndexOutOfBoundsException e) {
             Log.warningf("%d %d %d", index, entryBaseOffsetBytes(index), entryBaseOffsetBytes(index) + offsetOffset * NumConversion.BYTES_PER_INT);
             Log.warningf("%s", buf);

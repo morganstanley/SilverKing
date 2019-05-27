@@ -21,7 +21,7 @@ public class ParallelSSH extends ParallelSSHBase implements Runnable {
     public ParallelSSH(Set<String> hosts, String[] command, 
                         int numWorkerThreads, int timeoutSeconds,
                         HostGroupTable hostGroups) {
-    	super(hostGroups);
+        super(hostGroups);
         this.hosts = new ArrayBlockingQueue<String>(hosts.size(), false, hosts);
         this.command = command;
         this.timeoutSeconds = timeoutSeconds;

@@ -36,8 +36,8 @@ public interface OpTimeoutController {
      * @param curAttemptIndex a zero-based attempt index. Ranges from 0 to the maximum number of attempts - 1.
      * @return the relative timeout in milliseconds for the given attempt
      */
-	public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex);
+    public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex);
     
-    public static final int	min_maxAttempts = 1;
+    public static final int    min_maxAttempts = 1;
     public static final int minInitialTimeout_ms = 5;
 }

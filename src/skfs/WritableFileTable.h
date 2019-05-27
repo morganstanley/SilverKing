@@ -23,19 +23,19 @@
 ////////////
 // defines
 
-#define WFT_NUM_HT	256
+#define WFT_NUM_HT    256
 
 
 //////////
 // types
 
 typedef struct WritableFileTable {
-    const char	*name;
-	AttrCache	*ac;
-	AttrWriter	*aw;
+    const char    *name;
+    AttrCache    *ac;
+    AttrWriter    *aw;
     AttrReader  *ar;
     FileBlockWriter *fbw;
-	HashTableAndLock	htl[WFT_NUM_HT];
+    HashTableAndLock    htl[WFT_NUM_HT];
 } WritableFileTable;
 
 

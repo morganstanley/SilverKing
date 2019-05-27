@@ -8,7 +8,7 @@
 
 /*
 BEGIN_NAMESPACE(boost)
-	class mutex;
+    class mutex;
 END_NAMESPACE(boost)
 */
 
@@ -20,7 +20,7 @@ END_NAMESPACE(boost)
 #endif //BOOST_NAMESPACE_OVERRIDE 
 
 BEGIN_NAMESPACE(BOOST_NAMESPACE)
-	class mutex;
+    class mutex;
 END_NAMESPACE(BOOST_NAMESPACE)
 #ifdef BOOST_NAMESPACE_OVERRIDE
 namespace boost = BOOST_NAMESPACE_OVERRIDE;  //namespace aliasing
@@ -41,75 +41,75 @@ BEGIN_NAMESPACE(jace)
 class JClassImpl: public ::jace::JClass
 {
 public:
-	/**
-	 * Creates a new JClassImpl with the given name, and
-	 * type name.
-	 *
-	 * @param internalName the internal name of the class. such as "java/lang/Object".
-	 *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
-	 *   where '.' is replaced by '/'.
-	 *
-	 * @param signature the class type signature, such as "Ljava/lang/Object;".
-	 *   For more information, see: http://download.oracle.com/javase/6/docs/technotes/guides/jni/spec/types.html#wp16432
-	 */
-	JACE_API JClassImpl(const std::string& internalName, const std::string& signature);
+    /**
+     * Creates a new JClassImpl with the given name, and
+     * type name.
+     *
+     * @param internalName the internal name of the class. such as "java/lang/Object".
+     *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
+     *   where '.' is replaced by '/'.
+     *
+     * @param signature the class type signature, such as "Ljava/lang/Object;".
+     *   For more information, see: http://download.oracle.com/javase/6/docs/technotes/guides/jni/spec/types.html#wp16432
+     */
+    JACE_API JClassImpl(const std::string& internalName, const std::string& signature);
 
-	/**
-	 * Creates a new JClassImpl with the given name.
-	 *
-	 * @param internalName the internal name of the class. such as "java/lang/Object".
-	 *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
-	 *   where '.' is replaced by '/'.
-	 *
-	 *
-	 * The signature for the class is created by prepending
-	 * "L" and appending ";" to name.
-	 *
-	 * For example,
-	 *
-	 *  JClassImpl("java/lang/String");
-	 *
-	 * is equivalent to
-	 *
-	 *  JClassImpl("java/lang/String", "Ljava/lang/String;");
-	 */
-	JACE_API JClassImpl(const std::string& internalName);
+    /**
+     * Creates a new JClassImpl with the given name.
+     *
+     * @param internalName the internal name of the class. such as "java/lang/Object".
+     *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
+     *   where '.' is replaced by '/'.
+     *
+     *
+     * The signature for the class is created by prepending
+     * "L" and appending ";" to name.
+     *
+     * For example,
+     *
+     *  JClassImpl("java/lang/String");
+     *
+     * is equivalent to
+     *
+     *  JClassImpl("java/lang/String", "Ljava/lang/String;");
+     */
+    JACE_API JClassImpl(const std::string& internalName);
 
-	/**
-	 * Destroys this JClassImpl.
-	 */
-	JACE_API virtual ~JClassImpl() throw ();
+    /**
+     * Destroys this JClassImpl.
+     */
+    JACE_API virtual ~JClassImpl() throw ();
 
-	/**
-	 * Returns the internal name of the class. such as "java/lang/Object".
-	 *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
-	 *   where '.' is replaced by '/'.
-	 */
-	JACE_API virtual const std::string& getInternalName() const;
+    /**
+     * Returns the internal name of the class. such as "java/lang/Object".
+     *   The internal name of a class is its fully qualified name, as returned by Class.getName(),
+     *   where '.' is replaced by '/'.
+     */
+    JACE_API virtual const std::string& getInternalName() const;
 
-	/**
-	 * Returns the class type signature, such as "Ljava/lang/Object;"
-	 */
-	JACE_API virtual const std::string& getSignature() const;
+    /**
+     * Returns the class type signature, such as "Ljava/lang/Object;"
+     */
+    JACE_API virtual const std::string& getSignature() const;
 
-	/**
-	 * Returns the JNI representation of this class.
-	 */
-	JACE_API virtual jclass getClass() const throw (::jace::JNIException);
+    /**
+     * Returns the JNI representation of this class.
+     */
+    JACE_API virtual jclass getClass() const throw (::jace::JNIException);
 
 private:
-	/**
-	 * Prevent copying.
-	 */
-	JClassImpl(JClassImpl&);
-	/**
-	 * Prevent assignment.
-	 */
-	JClassImpl& operator=(JClassImpl&);
-	std::string internalName;
-	std::string signature;
-	mutable jclass theClass;
-	boost::mutex* mutex;
+    /**
+     * Prevent copying.
+     */
+    JClassImpl(JClassImpl&);
+    /**
+     * Prevent assignment.
+     */
+    JClassImpl& operator=(JClassImpl&);
+    std::string internalName;
+    std::string signature;
+    mutable jclass theClass;
+    boost::mutex* mutex;
 };
 
 

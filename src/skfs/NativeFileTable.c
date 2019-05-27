@@ -34,50 +34,50 @@ static int _nftHashSize = 4 * 1024;
 // implementation
 
 NativeFileTable *nft_new(const char *name) {
-	NativeFileTable	*nft;
-	int	i;
+    NativeFileTable    *nft;
+    int    i;
 
-	nft = (NativeFileTable *)mem_alloc(1, sizeof(NativeFileTable));
+    nft = (NativeFileTable *)mem_alloc(1, sizeof(NativeFileTable));
     srfsLog(LOG_WARNING, "nft_new:\t%s\tNFT_REF_TABLE_SIZE %d\n", name, NFT_REF_TABLE_SIZE);
     nft->name = name;
-	for (i = 0; i < NFT_NUM_HT; i++) {
-		nft->htl[i].ht = create_hashtable(_nftHashSize, (unsigned int (*)(void *))stringHash, (int(*)(void *, void *))strcmp);
-		pthread_rwlock_init(&nft->htl[i].rwLock, 0); 
-	}
-	pthread_spin_init(&nft->tableRefsLock, 0);
-	return nft;
+    for (i = 0; i < NFT_NUM_HT; i++) {
+        nft->htl[i].ht = create_hashtable(_nftHashSize, (unsigned int (*)(void *))stringHash, (int(*)(void *, void *))strcmp);
+        pthread_rwlock_init(&nft->htl[i].rwLock, 0); 
+    }
+    pthread_spin_init(&nft->tableRefsLock, 0);
+    return nft;
 }
 
 void nft_delete(NativeFileTable **nft) {
-	int	i;
-	
-	if (nft != NULL && *nft != NULL) {
-		for (i = 0; i < NFT_NUM_HT; i++) {
-			// FUTURE - delete hashtable and entries
-			// all current use cases never call this
-			//delete_hashtable((*nft)->htl[i].ht);
-			pthread_rwlock_destroy(&(*nft)->htl[i].rwLock);
-		}
-		mem_free((void **)nft);
-		pthread_spin_destroy(&(*nft)->tableRefsLock);
-	} else {
-		fatalError("bad ptr in nft_delete");
-	}
+    int    i;
+    
+    if (nft != NULL && *nft != NULL) {
+        for (i = 0; i < NFT_NUM_HT; i++) {
+            // FUTURE - delete hashtable and entries
+            // all current use cases never call this
+            //delete_hashtable((*nft)->htl[i].ht);
+            pthread_rwlock_destroy(&(*nft)->htl[i].rwLock);
+        }
+        mem_free((void **)nft);
+        pthread_spin_destroy(&(*nft)->tableRefsLock);
+    } else {
+        fatalError("bad ptr in nft_delete");
+    }
 }
 
 NativeFileReference *nft_open(NativeFileTable *nft, const char *name) {
-	HashTableAndLock	*htl;
-	NativeFile       		*existingNF;
+    HashTableAndLock    *htl;
+    NativeFile               *existingNF;
     NativeFileReference    *nf_userRef;
-	
+    
     nf_userRef = NULL;
-	htl = nft_get_htl(nft, name);
-	pthread_rwlock_rdlock(&htl->rwLock);
+    htl = nft_get_htl(nft, name);
+    pthread_rwlock_rdlock(&htl->rwLock);
     existingNF = (NativeFile *)hashtable_search(htl->ht, (void *)name); 
-	if (existingNF != NULL) {
-		srfsLog(LOG_INFO, "Found existing nft entry %s", name);
+    if (existingNF != NULL) {
+        srfsLog(LOG_INFO, "Found existing nft entry %s", name);
         nf_userRef = nf_add_reference(existingNF, __FILE__, __LINE__);
-	} else {		
+    } else {        
         int fd;
     
         // drop nft lock while we open the file
@@ -119,12 +119,12 @@ NativeFileReference *nft_open(NativeFileTable *nft, const char *name) {
                 pthread_spin_unlock(&nft->tableRefsLock);
             }
         }
-	}
-	pthread_rwlock_unlock(&htl->rwLock);
-	return nf_userRef;
+    }
+    pthread_rwlock_unlock(&htl->rwLock);
+    return nf_userRef;
 }
 
 static HashTableAndLock *nft_get_htl(NativeFileTable *nft, const char *path) {
-	srfsLog(LOG_FINE, "nft_get_htl %llx %d %llx", nft, stringHash((void *)path) % NFT_NUM_HT, &nft->htl[stringHash((void *)path) % NFT_NUM_HT]);
-	return &(nft->htl[stringHash((void *)path) % NFT_NUM_HT]);
+    srfsLog(LOG_FINE, "nft_get_htl %llx %d %llx", nft, stringHash((void *)path) % NFT_NUM_HT, &nft->htl[stringHash((void *)path) % NFT_NUM_HT]);
+    return &(nft->htl[stringHash((void *)path) % NFT_NUM_HT]);
 }

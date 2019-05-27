@@ -16,7 +16,7 @@
 ////////////////////
 // private defines
 
-#define NF_MAGIC	0xabfa
+#define NF_MAGIC    0xabfa
 
 
 ///////////////////////
@@ -30,37 +30,37 @@ static int nf_close(NativeFile *nf);
 // implementation
 
 NativeFile *nf_new(const char *path, int fd, HashTableAndLock *htl) {
-	NativeFile	*nf;
-	pthread_mutexattr_t mutexAttr;
+    NativeFile    *nf;
+    pthread_mutexattr_t mutexAttr;
     
-	nf = (NativeFile *)mem_alloc(1, sizeof(NativeFile));
-	if (srfsLogLevelMet(LOG_FINE)) {
-		srfsLog(LOG_FINE, "nf_new:\t%s %llx", path, nf);
-	}
-	
-	nf->magic = NF_MAGIC;
+    nf = (NativeFile *)mem_alloc(1, sizeof(NativeFile));
+    if (srfsLogLevelMet(LOG_FINE)) {
+        srfsLog(LOG_FINE, "nf_new:\t%s %llx", path, nf);
+    }
+    
+    nf->magic = NF_MAGIC;
     nf->path = str_dup(path);
     nf->fd = fd;
     nf->htl = htl;
     
-	pthread_mutexattr_init(&mutexAttr);
-	pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);	
+    pthread_mutexattr_init(&mutexAttr);
+    pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);    
     pthread_mutex_init(&nf->lock, &mutexAttr); 
 
-	return nf;
+    return nf;
 }
 
 
 void nf_delete(NativeFile **nf) {
-	if (nf != NULL && *nf != NULL) {
+    if (nf != NULL && *nf != NULL) {
         srfsLog(LOG_FINE, "nf_delete %llx %llx", nf, *nf);
-		(*nf)->magic = 0;
+        (*nf)->magic = 0;
         mem_free((void **)&(*nf)->path);
-		pthread_mutex_destroy(&(*nf)->lock);
-		mem_free((void **)nf);
-	} else {
-		fatalError("bad ptr in nf_delete");
-	}
+        pthread_mutex_destroy(&(*nf)->lock);
+        mem_free((void **)nf);
+    } else {
+        fatalError("bad ptr in nf_delete");
+    }
 }
 
 int nf_get_fd(NativeFile *nf) {
@@ -74,10 +74,10 @@ NativeFileReference *nf_add_reference(NativeFile *nf, char *file, int line) {
 
 // called only from nf_check_for_close()
 static int nf_close(NativeFile *nf) {
-	int		result;
+    int        result;
 
-	result = 0;
-	srfsLog(LOG_FINE, "in nf_close %s", nf->path);
+    result = 0;
+    srfsLog(LOG_FINE, "in nf_close %s", nf->path);
     pthread_mutex_lock(&nf->lock);    
     
     if (nf->fd >= 0) {
@@ -86,9 +86,9 @@ static int nf_close(NativeFile *nf) {
     }
     
     pthread_mutex_unlock(&nf->lock);
-	srfsLog(LOG_FINE, "leaving nf_close %s", nf->path);
-	nf_delete(&nf);
-	srfsLog(LOG_FINE, "out nf_close");
+    srfsLog(LOG_FINE, "leaving nf_close %s", nf->path);
+    nf_delete(&nf);
+    srfsLog(LOG_FINE, "out nf_close");
     return result;
 }
 
@@ -97,10 +97,10 @@ static int nf_close(NativeFile *nf) {
 // reference code
 
 int nf_create_ref(NativeFile *nf) {
-	int	ref;
+    int    ref;
 
-	ref = -1;
-	pthread_mutex_lock(&nf->lock);
+    ref = -1;
+    pthread_mutex_lock(&nf->lock);
     
     if (nf->referentState.nextRef >= NFR_RECYCLE_THRESHOLD) {
         ref = _nf_find_empty_ref(nf);
@@ -119,13 +119,13 @@ int nf_create_ref(NativeFile *nf) {
         }
     }
     
-	pthread_mutex_unlock(&nf->lock);
-	return ref;
+    pthread_mutex_unlock(&nf->lock);
+    return ref;
 }
 
 // lock must be held
 static int _nf_find_empty_ref(NativeFile *nf) {
-	int	i;
+    int    i;
 
     for (i = 0; i < nf->referentState.nextRef; i++) {
         if (nf->referentState.refStatus[i] != NFR_Created) {
@@ -137,10 +137,10 @@ static int _nf_find_empty_ref(NativeFile *nf) {
 
 // lock must be held
 static int _nf_has_references(NativeFile *nf) {
-	int	noReferences;
-	int	i;
+    int    noReferences;
+    int    i;
 
-	noReferences = TRUE;
+    noReferences = TRUE;
     for (i = 0; i < nf->referentState.nextRef; i++) {
         if (nf->referentState.refStatus[i] != NFR_Destroyed) {
             noReferences = FALSE;
@@ -196,14 +196,14 @@ int nf_delete_ref(NativeFile *nf, int ref, int tableLockedExternally) {
     if (!tableLockedExternally) {
         pthread_rwlock_wrlock(&htl->rwLock);    
     }
-	pthread_mutex_lock(&nf->lock);
-	if (ref >= nf->referentState.nextRef) {
-		fatalError("ref >= nf->referentState.nextRef", __FILE__, __LINE__);
-	}
-	if (nf->referentState.refStatus[ref] != NFR_Created) {
-		fatalError("nf->referentState.refStatus[ref] != NFR_Created", __FILE__, __LINE__);
-	}
-	nf->referentState.refStatus[ref] = NFR_Destroyed;
+    pthread_mutex_lock(&nf->lock);
+    if (ref >= nf->referentState.nextRef) {
+        fatalError("ref >= nf->referentState.nextRef", __FILE__, __LINE__);
+    }
+    if (nf->referentState.refStatus[ref] != NFR_Created) {
+        fatalError("nf->referentState.refStatus[ref] != NFR_Created", __FILE__, __LINE__);
+    }
+    nf->referentState.refStatus[ref] = NFR_Destroyed;
     
     // Before locking the table partition [in nf_check_for_close()], 
     // check the file for references

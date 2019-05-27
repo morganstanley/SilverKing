@@ -14,7 +14,7 @@ import com.ms.silverking.text.ObjectDefParser2;
  */
 public class WaitForTimeoutController implements OpTimeoutController {
     private final int   internalRetryIntervalSeconds;
-    private final int	internalExclusionChangeRetryIntervalSeconds;
+    private final int    internalExclusionChangeRetryIntervalSeconds;
     
     // FIXME - internal retries should be specified in ms
     
@@ -33,7 +33,7 @@ public class WaitForTimeoutController implements OpTimeoutController {
     }
     
     public WaitForTimeoutController(int internalRetryIntervalSeconds) {
-    	this(internalRetryIntervalSeconds, defaultExclusionChangeInternalRetryIntervalSeconds);
+        this(internalRetryIntervalSeconds, defaultExclusionChangeInternalRetryIntervalSeconds);
     }
     
     public WaitForTimeoutController() {
@@ -52,9 +52,9 @@ public class WaitForTimeoutController implements OpTimeoutController {
     }
     
     @Override
-	public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
+    public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
         return internalExclusionChangeRetryIntervalSeconds * 1000;
-	}
+    }
 
     @Override
     public final int getMaxRelativeTimeoutMillis(AsyncOperation op) {
@@ -72,22 +72,22 @@ public class WaitForTimeoutController implements OpTimeoutController {
     
     @Override
     public int hashCode() {
-    	return Integer.hashCode(internalRetryIntervalSeconds) ^ Integer.hashCode(internalExclusionChangeRetryIntervalSeconds);
+        return Integer.hashCode(internalRetryIntervalSeconds) ^ Integer.hashCode(internalExclusionChangeRetryIntervalSeconds);
     }
     
     @Override
     public boolean equals(Object o) {
-    	if (this == o) {
-    		return true;
-    	}
-    	
-    	if (this.getClass() != o.getClass()) {
-    		return false;
-    	}
+        if (this == o) {
+            return true;
+        }
+        
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
 
-    	WaitForTimeoutController other;
-    	other = (WaitForTimeoutController)o;
-    	return internalRetryIntervalSeconds == other.internalRetryIntervalSeconds && this.internalExclusionChangeRetryIntervalSeconds == other.internalExclusionChangeRetryIntervalSeconds;
+        WaitForTimeoutController other;
+        other = (WaitForTimeoutController)o;
+        return internalRetryIntervalSeconds == other.internalRetryIntervalSeconds && this.internalExclusionChangeRetryIntervalSeconds == other.internalExclusionChangeRetryIntervalSeconds;
     }    
     
     @Override

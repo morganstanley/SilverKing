@@ -23,8 +23,8 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 
 public class RingTreeBuilder {
-	private static final long	maxMagnitudeTolerance = TopologyRingCreator.defaultMagnitudeTolerance * 10000;
-	
+    private static final long    maxMagnitudeTolerance = TopologyRingCreator.defaultMagnitudeTolerance * 10000;
+    
     public static RingTree create(RingTreeRecipe recipe, RingTree sourceTree) {
         Map<String,TopologyRing>  maps;
         
@@ -41,11 +41,11 @@ public class RingTreeBuilder {
     }
     
     private static void buildMaps(Map<String,TopologyRing> maps, Node node, RingTreeRecipe recipe, RingTree sourceTree) {
-    	Log.warningf("buildMaps %s", node.getIDString());
+        Log.warningf("buildMaps %s", node.getIDString());
         if (node.getChildren().size() > 0 && recipe.hasDescendantInHostGroups(node)) {
             buildNodeMap(maps, node, recipe, sourceTree);
             for (Node child : node.getChildren()) {
-            	Log.warningf("Child of %s is %s", node.getIDString(), child.getIDString());
+                Log.warningf("Child of %s is %s", node.getIDString(), child.getIDString());
                 if (child.getNodeClass() != NodeClass.server) {
                     for (String subPolicyName : recipe.storagePolicy.getSubPolicyNamesForNodeClass(child.getNodeClass(), child)) {
                         RingTreeRecipe  _recipe;
@@ -63,7 +63,7 @@ public class RingTreeBuilder {
         TopologyRingCreator ringCreator;
         TopologyRing        ring;
         SingleRing          sourceRing;
-        boolean				built;
+        boolean                built;
         
         System.out.println("buildNodeMap: "+ node.getIDString() +" "+ recipe.storagePolicy.getName());
         sourceRing = (SingleRing)sourceTree.getMap(node.getIDString());
@@ -73,20 +73,20 @@ public class RingTreeBuilder {
         ringCreator = new TopologyRingCreator();
         built = false;
         while (!built && ringCreator.getMagnitudeTolerance() < maxMagnitudeTolerance) {
-        	try {
-        		Log.warning("Building with magnitude tolerance: ", ringCreator.getMagnitudeTolerance());
-		        ring = ringCreator.create(recipe, node.getIDString(), sourceRing);
-		        maps.put(node.getIDString(), ring);
-		        built = true;
-		        Log.warningf("%s built successfully", node);
-        	} catch (Exception e) {
-        		Log.logErrorWarning(e);
+            try {
+                Log.warning("Building with magnitude tolerance: ", ringCreator.getMagnitudeTolerance());
+                ring = ringCreator.create(recipe, node.getIDString(), sourceRing);
+                maps.put(node.getIDString(), ring);
+                built = true;
+                Log.warningf("%s built successfully", node);
+            } catch (Exception e) {
+                Log.logErrorWarning(e);
                 ringCreator = new TopologyRingCreator(ringCreator.getMagnitudeTolerance() * 10);
-        	}
+            }
         }
         if (!built) {
-        	Log.warning("Unable to build. maxMagnitudeTolerance exceeded");
-        	System.exit(-1);
+            Log.warning("Unable to build. maxMagnitudeTolerance exceeded");
+            System.exit(-1);
         }
     }
     
@@ -102,59 +102,59 @@ public class RingTreeBuilder {
     }
     
     private static void buildMaps(Map<String,TopologyRing> maps, Node node, RingTreeRecipe recipe) {
-    	System.out.printf("buildMaps: %s %s %s\n", node, node.getChildren().size() > 0, recipe.hasDescendantInHostGroups(node));
+        System.out.printf("buildMaps: %s %s %s\n", node, node.getChildren().size() > 0, recipe.hasDescendantInHostGroups(node));
         if (node.getChildren().size() > 0 && recipe.hasDescendantInHostGroups(node)) {
             System.out.printf("node %s children %s\n", node.getIDString(), CollectionUtil.toString(node.getChildren()));
             buildNodeMap(maps, node, recipe);
             for (Node child : node.getChildren()) {
                 if (child.getNodeClass() != NodeClass.server) {
-                	boolean	foundSubPolicy;
-                	
-                	foundSubPolicy = false;
+                    boolean    foundSubPolicy;
+                    
+                    foundSubPolicy = false;
                     for (String subPolicyName : recipe.storagePolicy.getSubPolicyNamesForNodeClass(child.getNodeClass(), child)) {
                         RingTreeRecipe  _recipe;
                         
-                    	foundSubPolicy = true;
+                        foundSubPolicy = true;
                         //need to change the storagePolicy for the below recipe
                         _recipe = recipe.newParentAndStoragePolicy(child, subPolicyName);
                         buildMaps(maps, child, _recipe);
                     }
                     if (!foundSubPolicy) {
-                    	System.out.printf("No subPolicy %s %s\n", child.getIDString(), child.getNodeClass());
-                    	throw new RuntimeException(String.format("No subPolicy %s %s\n", child.getIDString(), child.getNodeClass()));
+                        System.out.printf("No subPolicy %s %s\n", child.getIDString(), child.getNodeClass());
+                        throw new RuntimeException(String.format("No subPolicy %s %s\n", child.getIDString(), child.getNodeClass()));
                     }
                 }
             }
         } else {
-        	if (!recipe.hasDescendantInHostGroups(node)) {
-        		System.out.printf("%s has no descendant in host groups %s\n", node.getIDString(), CollectionUtil.toString(recipe.hostGroups));
-        	}
+            if (!recipe.hasDescendantInHostGroups(node)) {
+                System.out.printf("%s has no descendant in host groups %s\n", node.getIDString(), CollectionUtil.toString(recipe.hostGroups));
+            }
         }
     }
 
     private static void buildNodeMap(Map<String,TopologyRing> maps, Node node, RingTreeRecipe recipe) {
         TopologyRingCreator ringCreator;
         TopologyRing        ring;
-        boolean				built;
+        boolean                built;
         
         System.out.println("buildNodeMap: "+ node.getIDString() +" "+ recipe.storagePolicy.getName());
         ringCreator = new TopologyRingCreator();        
         built = false;
         while (!built && ringCreator.getMagnitudeTolerance() < maxMagnitudeTolerance) {
-        	try {
-        		Log.warning("Building with magnitude tolerance: ", ringCreator.getMagnitudeTolerance());
+            try {
+                Log.warning("Building with magnitude tolerance: ", ringCreator.getMagnitudeTolerance());
                 ring = ringCreator.create(recipe, node.getIDString());
                 maps.put(node.getIDString(), ring);
                 built = true;
-		        Log.warningf("%s built successfully", node);
-        	} catch (Exception e) {
-        		Log.logErrorWarning(e);
+                Log.warningf("%s built successfully", node);
+            } catch (Exception e) {
+                Log.logErrorWarning(e);
                 ringCreator = new TopologyRingCreator(ringCreator.getMagnitudeTolerance() * 10);
-        	}
+            }
         }
         if (!built) {
-        	Log.warning("Unable to build. maxMagnitudeTolerance exceeded");
-        	System.exit(-1);
+            Log.warning("Unable to build. maxMagnitudeTolerance exceeded");
+            System.exit(-1);
         }
     }
     

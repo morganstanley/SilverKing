@@ -23,24 +23,24 @@ public final class LongSerDes implements BufferSerDes<Long> {
         return NumConversion.BYTES_PER_LONG;
     }
 
-	@Override
-	public Long deserialize(ByteBuffer[] buffers) {
-	    byte[] def;
-	    
-	    def = ByteArraySerDes.deserializeBuffers(buffers);
-	    if (def.length != NumConversion.BYTES_PER_LONG) {
-	        throw new RuntimeException("Unable to deserialize Long def length: "+ def.length);
-	    }
-	    return NumConversion.bytesToLong(def);
-	}
+    @Override
+    public Long deserialize(ByteBuffer[] buffers) {
+        byte[] def;
+        
+        def = ByteArraySerDes.deserializeBuffers(buffers);
+        if (def.length != NumConversion.BYTES_PER_LONG) {
+            throw new RuntimeException("Unable to deserialize Long def length: "+ def.length);
+        }
+        return NumConversion.bytesToLong(def);
+    }
 
     @Override
     public Long deserialize(ByteBuffer buffer) {
         return buffer.getLong(buffer.position());
     }
 
-	@Override
-	public Long emptyObject() {
-		return new Long(0);
-	}
+    @Override
+    public Long emptyObject() {
+        return new Long(0);
+    }
 }

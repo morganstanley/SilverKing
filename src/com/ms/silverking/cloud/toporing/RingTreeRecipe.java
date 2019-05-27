@@ -30,19 +30,19 @@ public class RingTreeRecipe {
     public final StoragePolicy  storagePolicy;
     public final HostGroupTable hostGroupTable;
     public final Set<String>    hostGroups;
-    public final long			ringConfigVersion; 
-    public final long			ringCreationTime;
+    public final long            ringConfigVersion; 
+    public final long            ringCreationTime;
     // Note that we don't have instance version information because that is a function of creation
     
-    private static final boolean	debug = false;
+    private static final boolean    debug = false;
     
     public RingTreeRecipe(Topology topology, Node ringParent, 
             WeightSpecifications weightSpecs, ExclusionSet exclusionList, 
             StoragePolicyGroup storagePolicyGroup, String storagePolicyName, 
             HostGroupTable hostGroupTable, Set<String> hostGroups,
             long ringConfigVersion, long ringCreationTime) {
-    	Preconditions.checkNotNull(topology);
-    	Preconditions.checkNotNull(ringParent);
+        Preconditions.checkNotNull(topology);
+        Preconditions.checkNotNull(ringParent);
         this.topology = topology;
         this.ringParent = ringParent;
         this.weightSpecs = evenlyDistributeWeights(topology, ringParent, weightSpecs, exclusionList, hostGroupTable, hostGroups);
@@ -73,55 +73,55 @@ public class RingTreeRecipe {
     }
     
     private static WeightSpecifications evenlyDistributeWeights(Topology topology, Node ringParent, WeightSpecifications weightSpecs, 
-    															ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
-    	Map<String,Double> nodeWeights;
-    	
-    	nodeWeights = new HashMap<>();
-    	for (Map.Entry<String,Double> e : weightSpecs.getNodeWeights()) {
-    		if (debug) {
-    			System.out.printf("\t@@@@\t%s\t%f\n", e.getKey(), e.getValue());
-    		}
-    		nodeWeights.put(e.getKey(), e.getValue());
-    	}
-    	_evenlyDistributeWeights(topology, ringParent, nodeWeights, exclusionList, hostGroupTable, hostGroups);
-    	return new WeightSpecifications(weightSpecs.getVersion(), nodeWeights);
+                                                                ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
+        Map<String,Double> nodeWeights;
+        
+        nodeWeights = new HashMap<>();
+        for (Map.Entry<String,Double> e : weightSpecs.getNodeWeights()) {
+            if (debug) {
+                System.out.printf("\t@@@@\t%s\t%f\n", e.getKey(), e.getValue());
+            }
+            nodeWeights.put(e.getKey(), e.getValue());
+        }
+        _evenlyDistributeWeights(topology, ringParent, nodeWeights, exclusionList, hostGroupTable, hostGroups);
+        return new WeightSpecifications(weightSpecs.getVersion(), nodeWeights);
     }
     
     public double getWeight(Node node) {
-    	return weightSpecs.getWeight(node);
+        return weightSpecs.getWeight(node);
     }
     
     private static double _evenlyDistributeWeights(Topology topology, Node node, Map<String, Double> nodeWeights, 
-    											ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
-    	Double	weight;
-    	
-		weight = nodeWeights.get(node.getIDString());
-		if (weight == null) {
-	    	if (node.hasChildren()) {
-	    		double	sum;
-	    		
-	    		sum = 0.0;
-	    		for (Node child : node.getChildren()) {
-	    			sum += _evenlyDistributeWeights(topology, child, nodeWeights, exclusionList, hostGroupTable, hostGroups);
-	    		}
-	    		weight = sum;
-	    	} else {
-	    		if (!Sets.intersection(hostGroupTable.getHostGroups(node.getIDString()), hostGroups).isEmpty() 
-	    				&& (!exclusionList.contains(node.getIDString()))) {
-	    			weight = WeightSpecifications.defaultWeight;
-	    		} else {
-	    			weight = 0.0;
-	    		}
-    		}
-	    	nodeWeights.put(node.getIDString(), weight);
-    	}
-		if (debug) {
-			System.out.printf("\t####\t%s\t%f\n", node.getIDString(), weight);
-		}
-		return weight;
-	}
+                                                ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
+        Double    weight;
+        
+        weight = nodeWeights.get(node.getIDString());
+        if (weight == null) {
+            if (node.hasChildren()) {
+                double    sum;
+                
+                sum = 0.0;
+                for (Node child : node.getChildren()) {
+                    sum += _evenlyDistributeWeights(topology, child, nodeWeights, exclusionList, hostGroupTable, hostGroups);
+                }
+                weight = sum;
+            } else {
+                if (!Sets.intersection(hostGroupTable.getHostGroups(node.getIDString()), hostGroups).isEmpty() 
+                        && (!exclusionList.contains(node.getIDString()))) {
+                    weight = WeightSpecifications.defaultWeight;
+                } else {
+                    weight = 0.0;
+                }
+            }
+            nodeWeights.put(node.getIDString(), weight);
+        }
+        if (debug) {
+            System.out.printf("\t####\t%s\t%f\n", node.getIDString(), weight);
+        }
+        return weight;
+    }
 
-	public RingTreeRecipe newParentAndStoragePolicy(Node newParent, String storagePolicyName) {
+    public RingTreeRecipe newParentAndStoragePolicy(Node newParent, String storagePolicyName) {
         return new RingTreeRecipe(topology, newParent, weightSpecs, 
                                   exclusionList, storagePolicyGroup, storagePolicyName, hostGroupTable, hostGroups,
                                   ringConfigVersion, DHTUtil.currentTimeMillis());

@@ -71,24 +71,24 @@ public final class ByteIteratorSerDes implements BufferSerDes<ByteIterator> {
         }
     }
 
-	@Override
-	public ByteIterator emptyObject() {
-		return new ByteBufferByteIterator(ByteBuffer.wrap(DHTConstants.emptyByteArray));
-	}
+    @Override
+    public ByteIterator emptyObject() {
+        return new ByteBufferByteIterator(ByteBuffer.wrap(DHTConstants.emptyByteArray));
+    }
                                             
                                             /*
-	@Override
-	public byte[] serialize(byte[] bytes) {
-		return bytes;
-	}
-	
-	@Override 
-	public ByteBuffer serializeToBuffer(byte[] bytes) {
-	    return ByteBuffer.wrap(bytes);
-	}
+    @Override
+    public byte[] serialize(byte[] bytes) {
+        return bytes;
+    }
+    
+    @Override 
+    public ByteBuffer serializeToBuffer(byte[] bytes) {
+        return ByteBuffer.wrap(bytes);
+    }
 
-	@Override
-	public byte[] deserialize(ByteBuffer[] buffers) {
+    @Override
+    public byte[] deserialize(ByteBuffer[] buffers) {
         if (buffers.length == 0) {
             byte[]      srcBytes;
             byte[]      destBytes;
@@ -103,8 +103,8 @@ public final class ByteIteratorSerDes implements BufferSerDes<ByteIterator> {
         } else {
             throw new RuntimeException("Deserialization error");
         }
-		// FUTURE - Could let users decide how to handle checksum copy 
-		//return bytes;
-	}
-	*/
+        // FUTURE - Could let users decide how to handle checksum copy 
+        //return bytes;
+    }
+    */
 }

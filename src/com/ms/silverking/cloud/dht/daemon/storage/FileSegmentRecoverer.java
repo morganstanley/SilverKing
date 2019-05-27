@@ -31,9 +31,9 @@ public class FileSegmentRecoverer {
     }
     
     FileSegment recoverFullSegment(int segmentNumber, NamespaceStore nsStore, 
-    							   SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) {
-    	FileSegment	_segment;
-    	
+                                   SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) {
+        FileSegment    _segment;
+        
         Log.warningf("Recovering full segment: %d %s", segmentNumber, segmentPrereadMode);
         _segment = null;
         try {
@@ -53,17 +53,17 @@ public class FileSegmentRecoverer {
                     
                     offsetList = segment.offsetListStore.getOffsetList(-offset);
                     for (Triple<Integer,Long,Long> offsetVersionAndStorageTime : offsetList.offsetVersionAndStorageTimeIterable()) {
-                    	creationTime = offsetVersionAndStorageTime.getV3();
+                        creationTime = offsetVersionAndStorageTime.getV3();
                         nsStore.putSegmentNumberAndVersion(entry.getKey(), segmentNumber, 
-                        		offsetVersionAndStorageTime.getV2(), creationTime);
+                                offsetVersionAndStorageTime.getV2(), creationTime);
                     }
                 } else {
-                	long	version;
-                	
+                    long    version;
+                    
                     if (nsStore.getNamespaceOptions().getVersionMode() == NamespaceVersionMode.SINGLE_VERSION) {
-                    	version = DHTConstants.unspecifiedVersion;
+                        version = DHTConstants.unspecifiedVersion;
                     } else {
-                    	version = segment.getVersion(offset);
+                        version = segment.getVersion(offset);
                     }
                     if (nsStore.getNamespaceOptions().getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS) {
                         creationTime = segment.getCreationTime(offset);
@@ -84,9 +84,9 @@ public class FileSegmentRecoverer {
             //}
             
             if (segmentPrereadMode != SegmentPrereadMode.Preread) {
-            	segment.close();
+                segment.close();
             } else {
-            	_segment = segment;
+                _segment = segment;
             }
             sw.stop();            
             Log.warning("Done recovering full segment: ", segmentNumber +"\t"+ sw.getElapsedSeconds());
@@ -117,7 +117,7 @@ public class FileSegmentRecoverer {
                     System.out.println(entry);
                 }
                 fileSegment._put(entry.getKey(), entry.getOffset(), entry.getVersion(), entry.getCreator().getBytes(), 
-                				nsStore.getNamespaceOptions());
+                                nsStore.getNamespaceOptions());
                 //fileSegment.getPKC().put(entry.getKey(), entry.getOffset());
                 if (verbose) {
                     System.out.println("setting: "+ entry.getOffset());
@@ -169,8 +169,8 @@ public class FileSegmentRecoverer {
             syncMode = nsOptions.getStorageType() == StorageType.FILE_SYNC ? 
                                                     FileSegment.SyncMode.Sync : FileSegment.SyncMode.NoSync;
             fileSegment = FileSegment.openForRecovery(nsDir, segmentNumber, 
-					            						nsOptions.getSegmentSize(), syncMode, 
-					            						nsOptions);
+                                                        nsOptions.getSegmentSize(), syncMode, 
+                                                        nsOptions);
             fileSegment.addReference();
             dsWalker = new DataSegmentWalker(fileSegment.dataBuf);
             lastEntry = null;
@@ -179,7 +179,7 @@ public class FileSegmentRecoverer {
                     System.out.println(entry);
                 }
                 fileSegment._put(entry.getKey(), entry.getOffset(), entry.getVersion(), entry.getCreator().getBytes(), 
-                				nsOptions);
+                                nsOptions);
                 //fileSegment.getPKC().put(entry.getKey(), entry.getOffset());
                 if (verbose) {
                     System.out.println("setting: "+ entry.getOffset());
@@ -206,8 +206,8 @@ public class FileSegmentRecoverer {
     }
     
     void readFullSegment(int segmentNumber, SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) {
-    	Stopwatch	sw;
-    	
+        Stopwatch    sw;
+        
         Log.warning("Reading full segment: ", segmentNumber);
         sw = new SimpleStopwatch();
         try {
@@ -219,7 +219,7 @@ public class FileSegmentRecoverer {
             nsProperties = NamespacePropertiesIO.read(nsDir);
             nsOptions = nsProperties.getOptions();
             segment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions, 
-            								segmentIndexLocation, segmentPrereadMode);
+                                            segmentIndexLocation, segmentPrereadMode);
             for (DHTKeyIntEntry entry : segment.getPKC()) {
                 int     offset;
                 
@@ -261,34 +261,34 @@ public class FileSegmentRecoverer {
                 File            nsDir;
                 int             minSegmentNumber;
                 int             maxSegmentNumber;
-                boolean			persist;
+                boolean            persist;
                 
                 nsDir = new File(args[0]);
                 minSegmentNumber = Integer.parseInt(args[1]);
                 if (args.length >= 3) {
                     maxSegmentNumber = Integer.parseInt(args[2]);
                 } else {
-                	maxSegmentNumber = minSegmentNumber;
+                    maxSegmentNumber = minSegmentNumber;
                 }
                 if (args.length >= 4) {
-                	persist = Boolean.parseBoolean(args[3]);
+                    persist = Boolean.parseBoolean(args[3]);
                 } else {
-                	persist = false;
+                    persist = false;
                 }
                 segmentReader = new FileSegmentRecoverer(nsDir);
-                FileSegment	segment;
+                FileSegment    segment;
                 
                 for (int segmentNumber = minSegmentNumber; segmentNumber <= maxSegmentNumber; segmentNumber++) {
-	                try {
-	                	segmentReader.readFullSegment(segmentNumber, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
-	                } catch (Exception e) {
-	                	e.printStackTrace();
-	                	System.out.printf("Exception reading full segment. Reading partial.\n");
-	                    segment = segmentReader.readPartialSegment(segmentNumber, true);
-	                    if (persist) {
-	                    	segment.persist();
-	                    }
-	                }
+                    try {
+                        segmentReader.readFullSegment(segmentNumber, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        System.out.printf("Exception reading full segment. Reading partial.\n");
+                        segment = segmentReader.readPartialSegment(segmentNumber, true);
+                        if (persist) {
+                            segment.persist();
+                        }
+                    }
                 }
             }
         } catch (Exception e) {

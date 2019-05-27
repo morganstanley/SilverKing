@@ -16,21 +16,21 @@ typedef enum {ABQ_FULL_BLOCK, ABQ_FULL_DROP} ABQFullMode;
 
 /** private type used to store entries */
 typedef struct BQEntry {
-	void *data;
+    void *data;
 } BQEntry;
 
 typedef struct ArrayBlockingQueue {
-	BQEntry	*entries;
-	int		size;
-	ABQFullMode	qFullMode;
-	int		head;
-	int		tail;
-	pthread_mutex_t	mutexInstance;
-	pthread_mutex_t	*mutex;
-	pthread_cond_t	emptyCVInstance;
-	pthread_cond_t	*emptyCV;
-	pthread_cond_t	fullCVInstance;
-	pthread_cond_t	*fullCV;
+    BQEntry    *entries;
+    int        size;
+    ABQFullMode    qFullMode;
+    int        head;
+    int        tail;
+    pthread_mutex_t    mutexInstance;
+    pthread_mutex_t    *mutex;
+    pthread_cond_t    emptyCVInstance;
+    pthread_cond_t    *emptyCV;
+    pthread_cond_t    fullCVInstance;
+    pthread_cond_t    *fullCV;
 } ArrayBlockingQueue;
 
 

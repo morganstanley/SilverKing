@@ -11,9 +11,9 @@ import com.ms.silverking.util.IncomparableException;
  */
 public class RingIDAndVersionPair implements Comparable<RingIDAndVersionPair >{
     private final RingID    ringID;
-    private final Pair<Long,Long>	ringVersionPair;
+    private final Pair<Long,Long>    ringVersionPair;
     
-    public static final int	BYTES = RingID.BYTES + NumConversion.BYTES_PER_LONG * 2;
+    public static final int    BYTES = RingID.BYTES + NumConversion.BYTES_PER_LONG * 2;
     
     public RingIDAndVersionPair(RingID ringID, Pair<Long,Long> ringVersionPair) {
         this.ringID = ringID;
@@ -21,8 +21,8 @@ public class RingIDAndVersionPair implements Comparable<RingIDAndVersionPair >{
     }
     
     public static RingIDAndVersionPair fromRingNameAndVersionPair(Triple<String,Long,Long> ringNameAndVersionPair) {
-    	return new RingIDAndVersionPair(RingID.nameToRingID(ringNameAndVersionPair.getV1()), 
-    									new Pair<>(ringNameAndVersionPair.getV2(), ringNameAndVersionPair.getV3()));
+        return new RingIDAndVersionPair(RingID.nameToRingID(ringNameAndVersionPair.getV1()), 
+                                        new Pair<>(ringNameAndVersionPair.getV2(), ringNameAndVersionPair.getV3()));
     }
     
     public RingID getRingID() {
@@ -51,12 +51,12 @@ public class RingIDAndVersionPair implements Comparable<RingIDAndVersionPair >{
         return ringID.toString() +":"+ ringVersionPair.getV1() +":"+ ringVersionPair.getV2();
     }
     
-	@Override
-	public int compareTo(RingIDAndVersionPair o) {
-		if (!this.ringID.equals(o.ringID)) {
-			throw new IncomparableException("RingIDs not equal");
-		} else {
-			return NumUtil.compare(this.getRingVersionPair(), o.getRingVersionPair());
-		}
-	}
+    @Override
+    public int compareTo(RingIDAndVersionPair o) {
+        if (!this.ringID.equals(o.ringID)) {
+            throw new IncomparableException("RingIDs not equal");
+        } else {
+            return NumUtil.compare(this.getRingVersionPair(), o.getRingVersionPair());
+        }
+    }
 }

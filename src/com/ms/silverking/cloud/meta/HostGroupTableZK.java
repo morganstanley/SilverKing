@@ -22,14 +22,14 @@ public class HostGroupTableZK extends MetaToolModuleBase<HostGroupTable,MetaPath
 
     @Override
     public HostGroupTable readFromZK(long version, MetaToolOptions options) throws KeeperException {
-    	String	base;
-    	String	vBase;
-    	
-    	base = getBase();
-    	if (version < 0) {
-    		version = zk.getLatestVersion(base);
-    	}
-    	vBase = getVBase(version);
+        String    base;
+        String    vBase;
+        
+        base = getBase();
+        if (version < 0) {
+            version = zk.getLatestVersion(base);
+        }
+        vBase = getVBase(version);
         return HostGroupTable.parse(zk.getString(vBase), version);
     }
     

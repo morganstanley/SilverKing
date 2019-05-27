@@ -31,29 +31,29 @@ struct OpenDirTable;
 // types
 
 typedef struct AttrReader {
-	AttrCache		*attrCache;
+    AttrCache        *attrCache;
     uint64_t        attrTimeoutMillis;
-	QueueProcessor	*nfsAttrQueueProcessor;
-	QueueProcessor	*dhtAttrQueueProcessor;
-	QueueProcessor	*attrPrefetchProcessor;
-	char nfsRoots[SRFS_MAX_NFS_ALIASES][SRFS_MAX_PATH_LENGTH];
-	char nfsLocalAliases[SRFS_MAX_NFS_ALIASES][SRFS_MAX_PATH_LENGTH];
-	char externalDirs[SRFS_MAX_EXTERNAL_DIRS][SRFS_MAX_PATH_LENGTH];
-	int numExternalDirs;
-	int numNFSAliases;
-	PathGroup	*noErrorCachePaths;
-	PathGroup	*noLinkCachePaths;
-	PathGroup	*snapshotOnlyPaths;
-	PathGroup	*taskOutputPaths;
-	FileIDToPathMap *f2p;
-	SRFSDHT		*sd;
-	SKSession		*(pSession[FBR_DHT_THREADS]);
+    QueueProcessor    *nfsAttrQueueProcessor;
+    QueueProcessor    *dhtAttrQueueProcessor;
+    QueueProcessor    *attrPrefetchProcessor;
+    char nfsRoots[SRFS_MAX_NFS_ALIASES][SRFS_MAX_PATH_LENGTH];
+    char nfsLocalAliases[SRFS_MAX_NFS_ALIASES][SRFS_MAX_PATH_LENGTH];
+    char externalDirs[SRFS_MAX_EXTERNAL_DIRS][SRFS_MAX_PATH_LENGTH];
+    int numExternalDirs;
+    int numNFSAliases;
+    PathGroup    *noErrorCachePaths;
+    PathGroup    *noLinkCachePaths;
+    PathGroup    *snapshotOnlyPaths;
+    PathGroup    *taskOutputPaths;
+    FileIDToPathMap *f2p;
+    SRFSDHT        *sd;
+    SKSession        *(pSession[FBR_DHT_THREADS]);
     SKAsyncNSPerspective *(ansp[FBR_DHT_THREADS]);
-	AttrWriter	*aw;
-	ResponseTimeStats	*rtsDHT;
-	ResponseTimeStats	*rtsNFS;
-	ReaderStats	*rs;
-	G2TaskOutputReader	*g2tor;
+    AttrWriter    *aw;
+    ResponseTimeStats    *rtsDHT;
+    ResponseTimeStats    *rtsNFS;
+    ReaderStats    *rs;
+    G2TaskOutputReader    *g2tor;
 } AttrReader;
 
 
@@ -61,7 +61,7 @@ typedef struct AttrReader {
 // prototypes
 
 AttrReader *ar_new(FileIDToPathMap *f2p, SRFSDHT *sd, AttrWriter *aw, 
-				   ResponseTimeStats *dhtStats, ResponseTimeStats *nfsStats, int numSubCaches,
+                   ResponseTimeStats *dhtStats, ResponseTimeStats *nfsStats, int numSubCaches,
                    uint64_t attrTimeoutMillis);
 void ar_delete(AttrReader **ar);
 void ar_set_g2tor(AttrReader *ar, G2TaskOutputReader *g2tor);

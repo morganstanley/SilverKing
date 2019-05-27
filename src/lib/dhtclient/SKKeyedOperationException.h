@@ -18,12 +18,12 @@ class SKKeyedOperationException : public SKOperationException
 public:
     SKAPI ~SKKeyedOperationException() throw ();
 /*
-	SKAPI virtual SKOperationState::SKOperationState getOperationState(string key) const ;
-	SKAPI virtual SKFailureCause::SKFailureCause getFailureCause(string key) const ;
-	SKAPI virtual SKVector<string> * getFailedKeys() const ;
+    SKAPI virtual SKOperationState::SKOperationState getOperationState(string key) const ;
+    SKAPI virtual SKFailureCause::SKFailureCause getFailureCause(string key) const ;
+    SKAPI virtual SKVector<string> * getFailedKeys() const ;
     SKAPI virtual string getDetailedFailureMessage() const ;
 protected:
-	SKKeyedOperationException(bool doNewPImpl);
+    SKKeyedOperationException(bool doNewPImpl);
 
     SKMap<string,SKOperationState::SKOperationState> * pOpStates;
     SKMap<string,SKFailureCause::SKFailureCause> * pFailureCauses;
@@ -31,7 +31,7 @@ protected:
     string message; 
 */
 protected:
-	SKKeyedOperationException(ClientException * cause, const char * fileName, int lineNum) ;
+    SKKeyedOperationException(ClientException * cause, const char * fileName, int lineNum) ;
 };
 
 

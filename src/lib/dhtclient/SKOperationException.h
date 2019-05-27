@@ -15,23 +15,23 @@ class SKOperationException : public SKClientException
 {
 /*
 public:
-	SKAPI SKOperationException(ClientException * cause, const char * fileName, int lineNum) throw ();
+    SKAPI SKOperationException(ClientException * cause, const char * fileName, int lineNum) throw ();
     SKAPI virtual string getDetailedFailureMessage() const = 0;
 
 protected:
-	SKOperationException(bool doNewPImpl) : 	SKClientException(doNewPImpl) {};
+    SKOperationException(bool doNewPImpl) :     SKClientException(doNewPImpl) {};
     friend class SKAsyncOperation;
 
     SKOperationException(std::string const & message, const SKClientException & cause );
     SKOperationException(std::string const & message);
     SKOperationException(const SKOperationException & other );
-	
+    
     SKOperationException(bool doNewPImpl);
     SKOperationException(const SKOperationException & other );
     SKOperationException & operator=(SKOperationException const & other);
 */
 protected:
-	SKOperationException(ClientException * cause, const char * fileName, int lineNum) : SKClientException(cause, fileName, lineNum) {};
+    SKOperationException(ClientException * cause, const char * fileName, int lineNum) : SKClientException(cause, fileName, lineNum) {};
 };
 
 

@@ -98,46 +98,46 @@ SKAsyncValueRetrieval::~SKAsyncValueRetrieval() {
 
 
 SKMap<string,SKVal*> *  SKAsyncValueRetrieval::_getValues(bool latest) {
-	SKMap<string, SKVal*> * pResults = new SKMap<string, SKVal*>();
-	AsyncValueRetrieval * pAsync = (AsyncValueRetrieval*)getPImpl();
-	Map values ;
+    SKMap<string, SKVal*> * pResults = new SKMap<string, SKVal*>();
+    AsyncValueRetrieval * pAsync = (AsyncValueRetrieval*)getPImpl();
+    Map values ;
     try {
         values = latest ? pAsync->getLatestValues() : pAsync->getValues() ;
     }  catch( Throwable &t ) {
-		throw SKClientException( &t, __FILE__, __LINE__ );
+        throw SKClientException( &t, __FILE__, __LINE__ );
     }
     if( values.isNull()){
         Log::fine( "get returned map null" );
         return pResults;
     }
 
-	Set entrySet(values.entrySet());
-	for (Iterator it(entrySet.iterator()); it.hasNext();){
-		Map_Entry entry = java_cast<Map_Entry>(it.next());
-		String key = java_cast<String>(entry.getKey());
-		try {
-			Object obj = entry.getValue();
-	        if(obj.isNull()) {
-		        Log::fine( key + " null value " );
-		        pResults->insert(StrValMap::value_type(key, (SKVal *) NULL));
-	        }
+    Set entrySet(values.entrySet());
+    for (Iterator it(entrySet.iterator()); it.hasNext();){
+        Map_Entry entry = java_cast<Map_Entry>(it.next());
+        String key = java_cast<String>(entry.getKey());
+        try {
+            Object obj = entry.getValue();
+            if(obj.isNull()) {
+                Log::fine( key + " null value " );
+                pResults->insert(StrValMap::value_type(key, (SKVal *) NULL));
+            }
             else {
-				ByteArray barr = java_cast<ByteArray>(obj);
-				/*
-	            if(barr.getJavaJniClass().getInternalName() == "java/lang/String" || instanceof<String>(barr) ){
-		            //Log::fine( "\t value type : String" );
-		            string val = (string) java_cast<String>(barr);
+                ByteArray barr = java_cast<ByteArray>(obj);
+                /*
+                if(barr.getJavaJniClass().getInternalName() == "java/lang/String" || instanceof<String>(barr) ){
+                    //Log::fine( "\t value type : String" );
+                    string val = (string) java_cast<String>(barr);
                     SKVal * pval = sk_create_val();
                     sk_set_val(pval, val.size(), (void*)val.c_str());
-		            pResults->insert(StrValMap::value_type(key, pval));
-		            //Log::fine( val );
-	            }
-	            else */
-				{
-		            //Log::fine( "\t value type: " + obj.getJavaJniClass().getInternalName() );
+                    pResults->insert(StrValMap::value_type(key, pval));
+                    //Log::fine( val );
+                }
+                else */
+                {
+                    //Log::fine( "\t value type: " + obj.getJavaJniClass().getInternalName() );
                     SKVal * pDhtVal = ::convertToDhtVal(&barr);
-	                pResults->insert(StrValMap::value_type(key, pDhtVal ));
-	            }
+                    pResults->insert(StrValMap::value_type(key, pDhtVal ));
+                }
             }
 
         } catch (RetrievalException& re){
@@ -149,33 +149,33 @@ SKMap<string,SKVal*> *  SKAsyncValueRetrieval::_getValues(bool latest) {
             t.printStackTrace();
             //Log::warning("Caught Throwable in SKSyncNSPerspective::_retrieve(SKVector<string> const * dhtKeys, bool isWait)");
             Log::warning( string("Key : ") + (std::string)key + " --> No value" );
-	        throw SKClientException( &t, __FILE__, __LINE__ );
+            throw SKClientException( &t, __FILE__, __LINE__ );
         }
-	}
-	return pResults;
+    }
+    return pResults;
 }
 
 
 SKMap<string,SKVal*> * SKAsyncValueRetrieval::getLatestValues(void) {
-	return _getValues(true);
+    return _getValues(true);
 }
 
 
 SKMap<string,SKVal*> * SKAsyncValueRetrieval::getValues(void) {
-	return _getValues(false);
+    return _getValues(false);
 }
 
 SKVal* SKAsyncValueRetrieval::getValue(string * key) {
     SKVal * pDhtVal = NULL; 
     try {
-	    AsyncValueRetrieval * pAsync = (AsyncValueRetrieval*)getPImpl();
-		Object obj = pAsync->getValue( String(*key) );
-	    if( !obj.isNull() ) {
-		    ByteArray barr = java_cast<ByteArray>(obj);
+        AsyncValueRetrieval * pAsync = (AsyncValueRetrieval*)getPImpl();
+        Object obj = pAsync->getValue( String(*key) );
+        if( !obj.isNull() ) {
+            ByteArray barr = java_cast<ByteArray>(obj);
             pDhtVal = ::convertToDhtVal(&barr);
-	    }
-	}  catch( Throwable &t ) {
-		throw SKClientException( &t, __FILE__, __LINE__ );
+        }
+    }  catch( Throwable &t ) {
+        throw SKClientException( &t, __FILE__, __LINE__ );
     }
     return pDhtVal;
 }

@@ -28,7 +28,7 @@ public class DHTConfiguration implements VersionedDefinition {
     private final Map<String,String>    hostGroupToClassVarsMap;
     private final long      version;
     private final long      zkid;
-    private final String	defaultClassVars;
+    private final String    defaultClassVars;
     
     private static final Set<String> optionalFields;
     
@@ -108,7 +108,7 @@ public class DHTConfiguration implements VersionedDefinition {
     }
     
     public Set<String> getPassiveNodeHostGroupsAsSet() {
-    	return CollectionUtil.parseSet(passiveNodeHostGroups, ",");
+        return CollectionUtil.parseSet(passiveNodeHostGroups, ",");
     }
     
     public NamespaceCreationOptions getNSCreationOptions() {
@@ -133,17 +133,17 @@ public class DHTConfiguration implements VersionedDefinition {
     }
     
     public String getDefaultClassVars() {
-    	return defaultClassVars;
+        return defaultClassVars;
     }
     
     public static DHTConfiguration parse(String def, long version) {
         DHTConfiguration    instance;
         
         try {
-        	instance = ObjectDefParser2.parse(DHTConfiguration.class, def);
+            instance = ObjectDefParser2.parse(DHTConfiguration.class, def);
         } catch (ObjectDefParseException odpe) {
-        	// FIXME - below is temporary to allow interaction with old instances
-        	instance = ObjectDefParser2.parse(DHTConfiguration.class, def.replaceAll("passiveNodeHostGroups", "passiveNodes"));
+            // FIXME - below is temporary to allow interaction with old instances
+            instance = ObjectDefParser2.parse(DHTConfiguration.class, def.replaceAll("passiveNodeHostGroups", "passiveNodes"));
         }
         return instance.version(version);
     }
@@ -160,7 +160,7 @@ public class DHTConfiguration implements VersionedDefinition {
         return ObjectDefParser2.objectToString(this);
     }
 
-	public boolean hasPassiveNodeHostGroups() {
-		return passiveNodeHostGroups != null && passiveNodeHostGroups.trim().length() > 0;
-	}
+    public boolean hasPassiveNodeHostGroups() {
+        return passiveNodeHostGroups != null && passiveNodeHostGroups.trim().length() > 0;
+    }
 }

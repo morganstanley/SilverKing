@@ -22,10 +22,10 @@
 ////////////
 // defines
 
-#define DD_MAGIC	0x00abacad
-#define DD_MAGIC_BYTES	4
+#define DD_MAGIC    0x00abacad
+#define DD_MAGIC_BYTES    4
 #define DD_MAX_SIZE = (1024 * 1024 * 128)
-#define DD_HEADER_BYTES	((uint64_t)(&((DirData *)0)->data))
+#define DD_HEADER_BYTES    ((uint64_t)(&((DirData *)0)->data))
 
 
 //////////
@@ -40,23 +40,23 @@
  * has been validated.)
  */
 typedef struct DirData {
-	uint32_t	magic;
-	uint32_t	dataLength; // length of data[] in bytes, including DirEntries and the DirEntryIndex
-	uint32_t	indexOffset; // offset from data[] to start of index in bytes
-	uint32_t	numEntries;
-	const char	data[]; // Must be last in structure for DD_HEADER_BYTES calculation
-		/*
-		Structure inside of data:
+    uint32_t    magic;
+    uint32_t    dataLength; // length of data[] in bytes, including DirEntries and the DirEntryIndex
+    uint32_t    indexOffset; // offset from data[] to start of index in bytes
+    uint32_t    numEntries;
+    const char    data[]; // Must be last in structure for DD_HEADER_BYTES calculation
+        /*
+        Structure inside of data:
             DirEntry...
             DirEntryIndex
-		*/
+        */
 } DirData;
 
 typedef struct MergeResult {
-		DirData	*dd;
-		int		dd0NotIn1;
-		int		dd1NotIn0;
-        DirData	*ddForUpdate;
+        DirData    *dd;
+        int        dd0NotIn1;
+        int        dd1NotIn0;
+        DirData    *ddForUpdate;
 } MergeResult;
 
 

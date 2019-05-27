@@ -7,48 +7,48 @@ import com.ms.silverking.collection.CollectionUtil;
 /**
  */
 public class ArrayUtil<T> {
-	private final Random	random;
-	
-	public enum MismatchedLengthMode {Exception, Ignore};
-	
-	public static final byte[] emptyByteArray = new byte[0];
-	
-	public ArrayUtil() {
-		random = new Random();
-	}
-	
-	public void shuffle(T[] a) {
-		for (int i = 0; i < a.length; i++) {
-			int	newPosition;
-			T	temp;
-			
-			newPosition = random.nextInt(a.length);
-			temp = a[newPosition];
-			a[newPosition] = a[i];
-			a[i] = temp;
-		}
-	}
-	
+    private final Random    random;
+    
+    public enum MismatchedLengthMode {Exception, Ignore};
+    
+    public static final byte[] emptyByteArray = new byte[0];
+    
+    public ArrayUtil() {
+        random = new Random();
+    }
+    
+    public void shuffle(T[] a) {
+        for (int i = 0; i < a.length; i++) {
+            int    newPosition;
+            T    temp;
+            
+            newPosition = random.nextInt(a.length);
+            temp = a[newPosition];
+            a[newPosition] = a[i];
+            a[i] = temp;
+        }
+    }
+    
     public boolean equals(T[] a, int startA, T[] b) {
         return equals(a, startA, b, 0, b.length);
     }
     
-	public boolean equals(T[] a, int startA, T[] b, int startB, int length) {
-	    int    ai;
-	    int    bi;
-	    
-	    ai = startA;
-	    bi = startB;
-	    for (int i = 0; i < length; i++) {
-	        if (a[ai] != b[bi]) {
-	            return false;
-	        }
-	        ai++;
-	        bi++;
-	    }
-	    return true;
-	}
-	
+    public boolean equals(T[] a, int startA, T[] b, int startB, int length) {
+        int    ai;
+        int    bi;
+        
+        ai = startA;
+        bi = startB;
+        for (int i = 0; i < length; i++) {
+            if (a[ai] != b[bi]) {
+                return false;
+            }
+            ai++;
+            bi++;
+        }
+        return true;
+    }
+    
     public static boolean equals(byte[] a, int startA, byte[] b) {
         return equals(a, startA, b, 0, b.length);
     }
@@ -70,14 +70,14 @@ public class ArrayUtil<T> {
     }
     
     public static int compareSigned(byte[] a, byte[] b) {
-    	return compareSigned(a, b, MismatchedLengthMode.Exception);
+        return compareSigned(a, b, MismatchedLengthMode.Exception);
     }
     
     public static int compareSigned(byte[] a, byte[] b, MismatchedLengthMode mismatchedLengthMode) {
         if (a.length != b.length) {
-        	if (mismatchedLengthMode == MismatchedLengthMode.Exception) {
-        		throw new RuntimeException("Mismatched lengths "+ a.length +" "+ b.length);
-        	}
+            if (mismatchedLengthMode == MismatchedLengthMode.Exception) {
+                throw new RuntimeException("Mismatched lengths "+ a.length +" "+ b.length);
+            }
         }
         return compareSigned(a, 0, b, 0, a.length);
     }
@@ -146,11 +146,11 @@ public class ArrayUtil<T> {
         ai = startA;
         bi = startB;
         for (int i = 0; i < length; i++) {
-        	int	ua;
-        	int	ub;
-        	
-        	ua = Byte.toUnsignedInt(a[ai]);
-        	ub = Byte.toUnsignedInt(b[bi]);
+            int    ua;
+            int    ub;
+            
+            ua = Byte.toUnsignedInt(a[ai]);
+            ub = Byte.toUnsignedInt(b[bi]);
             if (ua < ub) {
                 return -1;
             } else if (ua != ub) {
@@ -163,41 +163,41 @@ public class ArrayUtil<T> {
     }
     
     public static int compareSigned(byte[] a, int startA, int lengthA, byte[] b, int startB, int lengthB) {
-    	int	result;
-    	
-    	result = compareSigned(a, startA, b, startB, Math.min(lengthA, lengthB));
-    	if (result != 0) {
-    		return result;
-    	} else {
-    		if (lengthA == lengthB) {
-    			return 0;
-    		} else {
-    			if (lengthA < lengthB) {
-    				return -1;
-    			} else {
-    				return 1;
-    			}
-    		}
-    	}
+        int    result;
+        
+        result = compareSigned(a, startA, b, startB, Math.min(lengthA, lengthB));
+        if (result != 0) {
+            return result;
+        } else {
+            if (lengthA == lengthB) {
+                return 0;
+            } else {
+                if (lengthA < lengthB) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+        }
     }
     
     public static int compareUnsigned(byte[] a, int startA, int lengthA, byte[] b, int startB, int lengthB) {
-    	int	result;
-    	
-    	result = compareUnsigned(a, startA, b, startB, Math.min(lengthA, lengthB));
-    	if (result != 0) {
-    		return result;
-    	} else {
-    		if (lengthA == lengthB) {
-    			return 0;
-    		} else {
-    			if (lengthA < lengthB) {
-    				return -1;
-    			} else {
-    				return 1;
-    			}
-    		}
-    	}
+        int    result;
+        
+        result = compareUnsigned(a, startA, b, startB, Math.min(lengthA, lengthB));
+        if (result != 0) {
+            return result;
+        } else {
+            if (lengthA == lengthB) {
+                return 0;
+            } else {
+                if (lengthA < lengthB) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+        }
     }
     
     public static void display(byte[] array) {
@@ -256,7 +256,7 @@ public class ArrayUtil<T> {
     
     public static <K> String toString(K[] c, String startBrace, String endBrace, 
                                       char separator, String emptyDef) {
-    	return CollectionUtil.toString(java.util.Arrays.asList(c), startBrace, endBrace, separator, emptyDef);
+        return CollectionUtil.toString(java.util.Arrays.asList(c), startBrace, endBrace, separator, emptyDef);
     }
     
     public static <K> boolean containsNull(K[] c) {
@@ -274,17 +274,17 @@ public class ArrayUtil<T> {
      * @param a2
      */
     public static void xorInPlace(byte[] a1, byte[] a2) {
-    	if (a1.length != a2.length) {
-    		throw new RuntimeException("a1.length != a2.length"); 
-    	}
-    	for (int i = 0; i < a1.length; i++) {
-    		a1[i] ^= a2[i];
-    	}
+        if (a1.length != a2.length) {
+            throw new RuntimeException("a1.length != a2.length"); 
+        }
+        for (int i = 0; i < a1.length; i++) {
+            a1[i] ^= a2[i];
+        }
     }
     
     public static <K> void clear(K[] a) {
-    	for (int i = 0; i < a.length; i++) {
-    		a[i] = null;
-    	}
+        for (int i = 0; i < a.length; i++) {
+            a[i] = null;
+        }
     }
 }

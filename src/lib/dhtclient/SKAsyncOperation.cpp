@@ -74,78 +74,78 @@ SKAsyncOperation::~SKAsyncOperation() {
 
 /* public Java methods */
 SKOperationState::SKOperationState SKAsyncOperation::getState(){
-	AsyncOperation * pAsyncOp = (AsyncOperation*)getPImpl();
-	int opState = (jint)  pAsyncOp->getState().ordinal();
-	return static_cast<SKOperationState::SKOperationState>(opState);
-	
+    AsyncOperation * pAsyncOp = (AsyncOperation*)getPImpl();
+    int opState = (jint)  pAsyncOp->getState().ordinal();
+    return static_cast<SKOperationState::SKOperationState>(opState);
+    
 }
 
 SKFailureCause::SKFailureCause SKAsyncOperation::getFailureCause(){
-	AsyncOperation * pAsyncOp = (AsyncOperation*)getPImpl();
-	int failureCause = (jint)  pAsyncOp->getFailureCause().ordinal();
-	return static_cast<SKFailureCause::SKFailureCause>(failureCause);
+    AsyncOperation * pAsyncOp = (AsyncOperation*)getPImpl();
+    int failureCause = (jint)  pAsyncOp->getFailureCause().ordinal();
+    return static_cast<SKFailureCause::SKFailureCause>(failureCause);
 }
 
 bool SKAsyncOperation::waitForCompletion(long timeout, SKTimeUnit unit){
     AsyncOperation * pAsyncOp = (AsyncOperation*)getPImpl();
     JBoolean bdone = false;
     try {
-	    switch (unit) {
-		    case NANOSECONDS: 
-			    bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("NANOSECONDS")) );
-			    break;
-		    case MICROSECONDS: 
-			    bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("MICROSECONDS")) );
-			    break;
-		    case MILLISECONDS: 
-			    bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("MILLISECONDS")) );
-			    break;
-		    case SECONDS: 
-			    bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("SECONDS")) );
-			    break;
-		    case MINUTES: 
-			    bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("MINUTES")) );
-			    break;
-		    case HOURS: 
-			    bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("HOURS")) );
-			    break;
-		    case DAYS:
-			    bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("DAYS")) );
-			    break;
-		    default:
-			    throw std::exception();
+        switch (unit) {
+            case NANOSECONDS: 
+                bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("NANOSECONDS")) );
+                break;
+            case MICROSECONDS: 
+                bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("MICROSECONDS")) );
+                break;
+            case MILLISECONDS: 
+                bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("MILLISECONDS")) );
+                break;
+            case SECONDS: 
+                bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("SECONDS")) );
+                break;
+            case MINUTES: 
+                bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("MINUTES")) );
+                break;
+            case HOURS: 
+                bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("HOURS")) );
+                break;
+            case DAYS:
+                bdone =  pAsyncOp->waitForCompletion( JLong(timeout), TimeUnit(TimeUnit::valueOf("DAYS")) );
+                break;
+            default:
+                throw std::exception();
         }
     }  catch( Throwable &t ) {
-		//throw SKClientException( &t, __FILE__, __LINE__ );
-		repackException(__FILE__, __LINE__ );
+        //throw SKClientException( &t, __FILE__, __LINE__ );
+        repackException(__FILE__, __LINE__ );
     }
-  	return (bool) bdone;
+      return (bool) bdone;
 }
 
 void SKAsyncOperation::waitForCompletion(){
     try {
-	    AsyncOperation * pAsyncOp = (AsyncOperation*)getPImpl();
-	    pAsyncOp->waitForCompletion();
+        AsyncOperation * pAsyncOp = (AsyncOperation*)getPImpl();
+        pAsyncOp->waitForCompletion();
     }  catch( Throwable &t ) {
-		repackException(__FILE__, __LINE__ );
-		//throw SKClientException( &t, __FILE__, __LINE__ );
+        repackException(__FILE__, __LINE__ );
+        //throw SKClientException( &t, __FILE__, __LINE__ );
     }
 }
 
 void SKAsyncOperation::close(){
-	try {
-		AsyncOperation * pAsync = (AsyncOperation*)getPImpl();
-		pAsync->close();
+    try {
+        AsyncOperation * pAsync = (AsyncOperation*)getPImpl();
+        pAsync->close();
     }  catch( Throwable &t ) {
-		repackException(__FILE__, __LINE__ );
-		//throw SKClientException( &t, __FILE__, __LINE__ );
-	}
+        repackException(__FILE__, __LINE__ );
+        //throw SKClientException( &t, __FILE__, __LINE__ );
+    }
 }
 
 void SKAsyncOperation::repackException(const char * fileName , int lineNum ){
 
-	try {
-		throw;
+    try {
+        throw;
     } catch(RetrievalException & pe) {
         throw SKRetrievalException( &pe, fileName, lineNum );
     } catch (PutException & pe) {

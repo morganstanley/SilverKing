@@ -37,7 +37,7 @@ public class ObjectDefParser2 {
             String fieldDefDelimiter, 
             String nameValueDelimiter, 
             Set<String> optionalFields, Set<String> exclusionFields) {
-    	addParser(_class, template, fieldsRequirement, nonFatalExceptionResponse, fieldDefDelimiter, nameValueDelimiter, optionalFields, exclusionFields, null, null);
+        addParser(_class, template, fieldsRequirement, nonFatalExceptionResponse, fieldDefDelimiter, nameValueDelimiter, optionalFields, exclusionFields, null, null);
     }
     
     public static <T> void addParser(T template, FieldsRequirement fieldsRequirement,
@@ -73,7 +73,7 @@ public class ObjectDefParser2 {
     
     public static <T> void addParser(T template, FieldsRequirement fieldsRequirement, Set<String> optionalFields, Class[] constructorFieldClasses, String[] constructorFieldNames) {
         addParser((Class<T>)template.getClass(), template, fieldsRequirement, NonFatalExceptionResponse.THROW_EXCEPTIONS, 
-        		  null, null, optionalFields, null, constructorFieldClasses, constructorFieldNames);
+                  null, null, optionalFields, null, constructorFieldClasses, constructorFieldNames);
     }
     
     public static <T> void addParser(T template, Set<String> optionalFields, Set<String> exclusionFields) {
@@ -102,53 +102,53 @@ public class ObjectDefParser2 {
     }
     
     public static String toClassAndDefString(Object o) {
-    	return "<"+ o.getClass().getCanonicalName() +">{"+ ObjectDefParser2.objectToString(o) +"}";
+        return "<"+ o.getClass().getCanonicalName() +">{"+ ObjectDefParser2.objectToString(o) +"}";
     }
     
-	private static Pair<Class,String> getClassAndDef(String nameAndDef, Package defaultPackage) {
-		Class	_class;
-		String	def;
-		
-		nameAndDef = nameAndDef.trim();
-		if (nameAndDef.startsWith("<")) {
-			int		i1;
-			String	classDef;
-			
-			i1 = nameAndDef.indexOf('>');
-			if (i1 < 0) {
-				throw new RuntimeException("Bad nameAndDef. Missing >");
-			} else {
-				classDef = nameAndDef.substring(1, i1);
-				def = nameAndDef.substring(i1 + 1);
-				if (classDef.indexOf('.') < 0 && defaultPackage != null) {
-					classDef = defaultPackage.getName() +"."+ classDef;
-				}
-			}
-			try {
-				_class = Class.forName(classDef);
-			} catch (ClassNotFoundException e) {
-				throw new RuntimeException("Can't find class for: "+ classDef);
-			}
-		} else {
-			throw new RuntimeException("Bad nameAndDef. Missing <");
-		}
-		return new Pair<>(_class, def);
-	}
-	
+    private static Pair<Class,String> getClassAndDef(String nameAndDef, Package defaultPackage) {
+        Class    _class;
+        String    def;
+        
+        nameAndDef = nameAndDef.trim();
+        if (nameAndDef.startsWith("<")) {
+            int        i1;
+            String    classDef;
+            
+            i1 = nameAndDef.indexOf('>');
+            if (i1 < 0) {
+                throw new RuntimeException("Bad nameAndDef. Missing >");
+            } else {
+                classDef = nameAndDef.substring(1, i1);
+                def = nameAndDef.substring(i1 + 1);
+                if (classDef.indexOf('.') < 0 && defaultPackage != null) {
+                    classDef = defaultPackage.getName() +"."+ classDef;
+                }
+            }
+            try {
+                _class = Class.forName(classDef);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Can't find class for: "+ classDef);
+            }
+        } else {
+            throw new RuntimeException("Bad nameAndDef. Missing <");
+        }
+        return new Pair<>(_class, def);
+    }
+    
     public static <T> T parse(String nameAndDef, Package defaultPackage) {
-    	Pair<Class,String>	classAndDef;
-    	
-    	classAndDef = getClassAndDef(nameAndDef, defaultPackage);
-    	return parse(classAndDef.getV1(), classAndDef.getV2());
-    }	
+        Pair<Class,String>    classAndDef;
+        
+        classAndDef = getClassAndDef(nameAndDef, defaultPackage);
+        return parse(classAndDef.getV1(), classAndDef.getV2());
+    }    
     
     public static <T> T parse(Class _class, String def) {
         ClassParser<T> cp;
-        Class	type;
+        Class    type;
         
         if (debug) {
-	        Thread.dumpStack();
-	        System.out.printf("odp2.parse: %s\n", _class.getName());
+            Thread.dumpStack();
+            System.out.printf("odp2.parse: %s\n", _class.getName());
         }
         type = _class;
         if (def.startsWith(Character.toString(ClassParser.typeNameDelimiterStart))) {
@@ -190,7 +190,7 @@ public class ObjectDefParser2 {
         return cp.parse(def);
     }
     
-	public static <T> T parse(Class<T> _class, T template, String def) {
+    public static <T> T parse(Class<T> _class, T template, String def) {
         ClassParser<T> cp;
         
         cp = new ClassParser<T>(template, FieldsRequirement.ALLOW_INCOMPLETE, 

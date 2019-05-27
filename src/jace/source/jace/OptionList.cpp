@@ -54,7 +54,7 @@ std::vector<OptionList::OptionPtr>::const_iterator OptionList::end() const
 namespace
 {
   char* stringDup(const char* str)
-	{
+    {
     size_t length = strlen(str);
     char* newStr = new char[length + 1];
     strcpy(newStr, str);
@@ -66,11 +66,11 @@ JavaVMOption* OptionList::createJniOptions() const
 {
   JavaVMOption* jniOptions = new JavaVMOption[size()];
   
-	std::vector<OptionPtr>::const_iterator it = begin();
+    std::vector<OptionPtr>::const_iterator it = begin();
   std::vector<OptionPtr>::const_iterator end_it = end();
 
   for (int i = 0; it != end_it; ++it, ++i)
-	{
+    {
     jniOptions[i].optionString = stringDup((*it)->stringValue().c_str());
     jniOptions[i].extraInfo = (*it)->extraInfo();
   }
@@ -92,7 +92,7 @@ SystemProperty::SystemProperty(const string& _name, const string& _value):
 }
 
 SystemProperty::SystemProperty(const SystemProperty& other) :
-	mName (other.mName), mValue (other.mValue)
+    mName (other.mName), mValue (other.mValue)
 {
 }
 
@@ -123,17 +123,17 @@ Option* SystemProperty::clone() const
 
 string Verbose::toString(Verbose::ComponentType componentType) const
 {
-	switch (componentType)
-	{
-		case GC:
-			return "gc";
-		case JNI:
-			return "jni";
-		case CLASS:
-			return "class";
-		default:
-			throw JNIException("Unknown component: " + componentType);
-	}
+    switch (componentType)
+    {
+        case GC:
+            return "gc";
+        case JNI:
+            return "jni";
+        case CLASS:
+            return "class";
+        default:
+            throw JNIException("Unknown component: " + componentType);
+    }
 }
 
 Verbose::Verbose(ComponentType _componentType) : componentType(_componentType)
@@ -141,7 +141,7 @@ Verbose::Verbose(ComponentType _componentType) : componentType(_componentType)
 }
 
 Verbose::Verbose(const Verbose& other): 
-	componentType(other.componentType)
+    componentType(other.componentType)
 {
 }
 
@@ -161,48 +161,48 @@ Option* Verbose::clone() const
 }
 
 JavaAgent::JavaAgent(const string& _path):
-	mPath(_path), mOptions("")
+    mPath(_path), mOptions("")
 {
 }
 
 JavaAgent::JavaAgent(const string& _path, const string& _options) :
-	mPath(_path), mOptions(trim(_options))
+    mPath(_path), mOptions(trim(_options))
 {
 }
 
 JavaAgent::JavaAgent(const JavaAgent& other):
-	mPath(other.mPath), mOptions(other.mOptions)
+    mPath(other.mPath), mOptions(other.mOptions)
 {
 }
 
 string JavaAgent::trim(const string& text)
 {
-	// Trim Both leading and trailing spaces  
+    // Trim Both leading and trailing spaces  
   size_t first = text.find_first_not_of(" \t"); // Find the first non-space character
   size_t last = text.find_last_not_of(" \t"); // Find the last non-space character
   
   // if all spaces or empty return an empty string
   if ((string::npos != first) && (string::npos != last))
-		return text.substr(first, last - first + 1);
+        return text.substr(first, last - first + 1);
   return string();
 }
 
 const string JavaAgent::path()
 {
-	return mPath;
+    return mPath;
 }
 
 const string JavaAgent::options()
 {
-	return mOptions;
+    return mOptions;
 }
 
 const string JavaAgent::stringValue() const
 {
-	string result = "-javaagent:" + mPath;
-	if (mOptions != "")
-		result += "=" + mOptions;
-	return result;
+    string result = "-javaagent:" + mPath;
+    if (mOptions != "")
+        result += "=" + mOptions;
+    return result;
 }
 
 void* JavaAgent::extraInfo()
@@ -220,7 +220,7 @@ CustomOption::CustomOption(const string& _value) : value(_value)
 }
 
 CustomOption::CustomOption(const CustomOption& other):
-	value(other.value)
+    value(other.value)
 {
 }
 

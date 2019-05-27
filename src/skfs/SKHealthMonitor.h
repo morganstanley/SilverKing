@@ -19,8 +19,8 @@ typedef enum {SHM_RH_Healthy = 0, SHM_RH_Unhealthy, SHM_RH_Offline} SHM_RingHeal
 typedef struct SKHealthMonitor {
     SKSyncNSPerspective     *systemNSP;
     SHM_RingHealth          ringHealth;
-	pthread_t	            threadInstance;
-	pthread_t	            *thread;    
+    pthread_t                threadInstance;
+    pthread_t                *thread;    
 } SKHealthMonitor;
 
 

@@ -20,12 +20,12 @@
 ////////////////////
 // private defines
 
-#define WF_MAGIC	0xabac
-#define WF_INITIAL_BLOCK_SIZE	8
-#define WF_MAX_BLOCK_SIZE		1024
-#define WF_BLOCK_INCREMENT		16
-#define WF_MAX_BLOCKS_OUTSTANDING	100
-#define WF_ATTR_WRITE_MAX_ATTEMPTS	12
+#define WF_MAGIC    0xabac
+#define WF_INITIAL_BLOCK_SIZE    8
+#define WF_MAX_BLOCK_SIZE        1024
+#define WF_BLOCK_INCREMENT        16
+#define WF_MAX_BLOCKS_OUTSTANDING    100
+#define WF_ATTR_WRITE_MAX_ATTEMPTS    12
 #define WF_TRUNCATE_ON_FLUSH_ERROR  1
 #define WF_FAILED_BLOCK_RETRIES 2
 
@@ -41,9 +41,9 @@
 // private types
 
 typedef struct WF_BlockWrite {
-	WritableFileBlock	*wfb;
-	FBW_ActiveDirectPut	*adp; // freed by FileBlockWriter
-	SKOperationState::SKOperationState	result;
+    WritableFileBlock    *wfb;
+    FBW_ActiveDirectPut    *adp; // freed by FileBlockWriter
+    SKOperationState::SKOperationState    result;
 } WF_BlockWrite;
 
 
@@ -81,24 +81,24 @@ void wf_set_sync_dir_updates(int syncDirUpdates) {
 }
 
 static WF_BlockWrite *wfbw_new(WritableFileBlock *wfb, FBW_ActiveDirectPut *adp) {
-	WF_BlockWrite	*bw;
+    WF_BlockWrite    *bw;
 
-	bw = (WF_BlockWrite *)mem_alloc(1, sizeof(WF_BlockWrite));
-	if (srfsLogLevelMet(LOG_FINE)) {
-		srfsLog(LOG_FINE, "wfbw_new:\t%llx\t%llx\n", wfb, adp);
-	}
-	bw->wfb = wfb;
-	bw->adp = adp;
-	bw->result = SKOperationState::INCOMPLETE;
-	return bw;
+    bw = (WF_BlockWrite *)mem_alloc(1, sizeof(WF_BlockWrite));
+    if (srfsLogLevelMet(LOG_FINE)) {
+        srfsLog(LOG_FINE, "wfbw_new:\t%llx\t%llx\n", wfb, adp);
+    }
+    bw->wfb = wfb;
+    bw->adp = adp;
+    bw->result = SKOperationState::INCOMPLETE;
+    return bw;
 }
 
 static void wfbw_clear(WF_BlockWrite *bw) {
     if (bw->wfb != NULL) {
-		fatalError("bw->wfb != NULL");
+        fatalError("bw->wfb != NULL");
     }
     if (bw->adp != NULL) {
-		fatalError("bw->adp != NULL");
+        fatalError("bw->adp != NULL");
     }
     memset(bw, 0, sizeof(WF_BlockWrite));
 }
@@ -108,60 +108,60 @@ deletion is performed by the ArrayBlockList
 wfb is freed by wfbw_set_complete
 adp is freed by the FileBlockWriter
 static void wfbw_delete(WF_BlockWrite **bw) {
-	if (bw != NULL && *bw != NULL) {
-		if ((*bw)->wfb != NULL) {
-			wfb_delete(&(*bw)->wfb);
-		}
-		// adp is freed by the FileBlockWriter
-		mem_free((void **)bw);
-	} else {
-		fatalError("bad ptr in wfbw_delete");
-	}
+    if (bw != NULL && *bw != NULL) {
+        if ((*bw)->wfb != NULL) {
+            wfb_delete(&(*bw)->wfb);
+        }
+        // adp is freed by the FileBlockWriter
+        mem_free((void **)bw);
+    } else {
+        fatalError("bad ptr in wfbw_delete");
+    }
 }
 */
 
 static void wfbw_set_complete(WF_BlockWrite *bw, SKOperationState::SKOperationState result) {
-	if (bw->result != SKOperationState::INCOMPLETE) {
-		srfsLog(LOG_WARNING, "Ignoring multiple completion in wfbw_set_complete %llx %d %d", bw, bw->result, result);
-	} else {
-		bw->result = result;
-		if (bw->wfb != NULL && result == SKOperationState::SUCCEEDED) {
-			if (srfsLogLevelMet(LOG_FINE)) {
-				srfsLog(LOG_FINE, "bw %llx bw->wfb %llx &bw->wfb %llx", bw, bw->wfb, &bw->wfb);
-			}
-			wfb_delete(&bw->wfb);
-		}
-		// adp is freed by the FileBlockWriter
-	}
+    if (bw->result != SKOperationState::INCOMPLETE) {
+        srfsLog(LOG_WARNING, "Ignoring multiple completion in wfbw_set_complete %llx %d %d", bw, bw->result, result);
+    } else {
+        bw->result = result;
+        if (bw->wfb != NULL && result == SKOperationState::SUCCEEDED) {
+            if (srfsLogLevelMet(LOG_FINE)) {
+                srfsLog(LOG_FINE, "bw %llx bw->wfb %llx &bw->wfb %llx", bw, bw->wfb, &bw->wfb);
+            }
+            wfb_delete(&bw->wfb);
+        }
+        // adp is freed by the FileBlockWriter
+    }
 }
 
 void wf_sanityCheckNumBlocks(WritableFile *wf, char *file, int line) {
-	srfsLog(LOG_FINE, "wf->blockList->size %u wf->blockList->numBlocks %d %s %d", wf->blockList->size, wf->blockList->numBlocks, file, line);
-	if (wf->blockList->numBlocks == 0) {
-		fatalError("wf->blockList->numBlocks == 0", file, line);
-	}
+    srfsLog(LOG_FINE, "wf->blockList->size %u wf->blockList->numBlocks %d %s %d", wf->blockList->size, wf->blockList->numBlocks, file, line);
+    if (wf->blockList->numBlocks == 0) {
+        fatalError("wf->blockList->numBlocks == 0", file, line);
+    }
 }
 
 WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
                      AttrWriter *aw, FileAttr *fa, PartialBlockReader *pbr,
                      int *retryFlag) {
-	WritableFile	*wf;
+    WritableFile    *wf;
     struct timespec tp;
-	struct fuse_context	*fuseContext;	
-	SKOperationState::SKOperationState	awResult;
+    struct fuse_context    *fuseContext;    
+    SKOperationState::SKOperationState    awResult;
     time_t  curEpochTimeSeconds;
     long    curTimeNanos;
-	pthread_mutexattr_t mutexAttr;
+    pthread_mutexattr_t mutexAttr;
     uint64_t    minModificationTimeMicros;
     
-	fuseContext = fuse_get_context();
+    fuseContext = fuse_get_context();
 
-	wf = (WritableFile *)mem_alloc(1, sizeof(WritableFile));
-	if (srfsLogLevelMet(LOG_FINE)) {
-		srfsLog(LOG_FINE, "wf_new:\t%s %llx", path, wf);
-	}
-	
-	wf->magic = WF_MAGIC;
+    wf = (WritableFile *)mem_alloc(1, sizeof(WritableFile));
+    if (srfsLogLevelMet(LOG_FINE)) {
+        srfsLog(LOG_FINE, "wf_new:\t%s %llx", path, wf);
+    }
+    
+    wf->magic = WF_MAGIC;
     wf->path = str_dup(path);
     wf->htl = htl;
     
@@ -207,8 +207,8 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
     wf->fa.stat.st_mtim.tv_nsec = curTimeNanos;
     wf->fa.stat.st_atim.tv_nsec = curTimeNanos;
     
-	pthread_mutexattr_init(&mutexAttr);
-	pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);	
+    pthread_mutexattr_init(&mutexAttr);
+    pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);    
     pthread_mutex_init(&wf->lock, &mutexAttr); 
 
     minModificationTimeMicros = stat_mtime_micros(&wf->fa.stat);
@@ -216,21 +216,21 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
     uint64_t    skt;
     
     skt = curSKTimeNanos();
-	if (ar_store_attr_in_cache_static((char *)wf->path, &wf->fa, TRUE, curSKTimeNanos(),
+    if (ar_store_attr_in_cache_static((char *)wf->path, &wf->fa, TRUE, curSKTimeNanos(),
             SKFS_DEF_ATTR_TIMEOUT_SECS * 1000) != CACHE_STORE_SUCCESS) {
-		wf_delete(&wf); // sets wf to NULL
-	}
-	
-	/*	
-	awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, NULL, WF_ATTR_WRITE_MAX_ATTEMPTS);
-	
-	if (awResult != SKOperationState::SUCCEEDED) {
-		//result = EIO;
-		srfsLog(LOG_ERROR, "Couldn't write attribute for %s due to %d", path, awResult);
-		wf_delete(&wf); // sets wf to NULL
-	}
-	*/
-	return wf;
+        wf_delete(&wf); // sets wf to NULL
+    }
+    
+    /*    
+    awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, NULL, WF_ATTR_WRITE_MAX_ATTEMPTS);
+    
+    if (awResult != SKOperationState::SUCCEEDED) {
+        //result = EIO;
+        srfsLog(LOG_ERROR, "Couldn't write attribute for %s due to %d", path, awResult);
+        wf_delete(&wf); // sets wf to NULL
+    }
+    */
+    return wf;
 }
 
 static int wf_init_cur_block(WritableFile *wf, PartialBlockReader *pbr) {
@@ -267,10 +267,10 @@ static void wf_init_blockList(WritableFile *wf, size_t size) {
 }
 
 void wf_delete(WritableFile **wf) {
-	if (wf != NULL && *wf != NULL) {
+    if (wf != NULL && *wf != NULL) {
         srfsLog(LOG_FINE, "wf_delete %llx %llx", wf, *wf);
-		(*wf)->magic = 0;
-		abl_delete(&(*wf)->blockList);
+        (*wf)->magic = 0;
+        abl_delete(&(*wf)->blockList);
         mem_free((void **)&(*wf)->path);
         if ((*wf)->pendingRename != NULL) {
             mem_free((void **)&(*wf)->pendingRename);
@@ -278,11 +278,11 @@ void wf_delete(WritableFile **wf) {
         if ((*wf)->curBlock != NULL) {
             wfb_delete(&(*wf)->curBlock);
         }
-		pthread_mutex_destroy(&(*wf)->lock);
-		mem_free((void **)wf);
-	} else {
-		fatalError("bad ptr in wf_delete");
-	}
+        pthread_mutex_destroy(&(*wf)->lock);
+        mem_free((void **)wf);
+    } else {
+        fatalError("bad ptr in wf_delete");
+    }
 }
 
 void wf_set_parent_dir(WritableFile *wf, OpenDir *parentDir, uint64_t parentDirUpdateTimeMillis) {
@@ -299,11 +299,11 @@ WritableFileReference *wf_add_reference(WritableFile *wf, char *file, int line) 
 }
 
 static void wf_new_block(WritableFile *wf) {
-	WritableFileBlock    *newBlock;
-	
-	newBlock = wfb_new();
-	wf->curBlock = newBlock;
-	wf->numBlocks++;
+    WritableFileBlock    *newBlock;
+    
+    newBlock = wfb_new();
+    wf->curBlock = newBlock;
+    wf->numBlocks++;
 }
 
 void wf_set_pending_rename(WritableFile *wf, const char *newName) {
@@ -329,10 +329,10 @@ static void wf_skip_ahead(WritableFile *wf, off_t writeOffset, FileBlockWriter *
         
         // Zero out the remainder of the current block, and write it
         wf->fa.stat.st_size += wfb_zero_out_remainder(wf->curBlock);
-		wf_write_block(wf, wf->curBlock, wf_cur_block_index(wf), fbw);
+        wf_write_block(wf, wf->curBlock, wf_cur_block_index(wf), fbw);
         // Write zero blocks (reader will interpret these as full blocks of zeros)
         for (zbIndex = wf->numBlocks; zbIndex < newBlockIndex; zbIndex++) {
-			wf_write_block(wf, wfb_new(), zbIndex, fbw);
+            wf_write_block(wf, wfb_new(), zbIndex, fbw);
             wf->numBlocks++;
             wf->fa.stat.st_size += SRFS_BLOCK_SIZE;
         }
@@ -389,7 +389,7 @@ static size_t wf_rewrite_past_blocks(WritableFile *wf, const char *src, size_t p
         size_t  bytesWritten;
         WritableFileBlock   *wfb;
         CacheStoreResult    blockCacheStoreResult;
-        FileBlockID	*fbid;
+        FileBlockID    *fbid;
         void    *cacheBlock;
         
         wfb = wfb_new();
@@ -429,7 +429,7 @@ static size_t wf_rewrite(WritableFile *wf, const char *src, size_t writeSize, of
     
     srfsLog(LOG_FINE, "wf_rewrite %llx %s %u %u", wf, src, writeSize, writeOffset);
     // first flush all new blocks
-	wf_limit_outstanding_blocks(wf, fbw, 0);
+    wf_limit_outstanding_blocks(wf, fbw, 0);
     
     if (writeOffset + (off_t)writeSize >= wf->fa.stat.st_size) {
         rewriteSize = wf->fa.stat.st_size - writeOffset;
@@ -489,14 +489,14 @@ int wf_write(WritableFile *wf, const char *src, size_t writeSize, off_t writeOff
     size_t  totalBytesWritten;
     size_t  rewriteSize;
     
-	if (srfsLogLevelMet(LOG_FINE)) {
-		srfsLog(LOG_FINE, "wf_write %lx %lx %u %lu %lx", wf, (uint64_t)src, writeSize, writeOffset, fbw);
-	}
+    if (srfsLogLevelMet(LOG_FINE)) {
+        srfsLog(LOG_FINE, "wf_write %lx %lx %u %lu %lx", wf, (uint64_t)src, writeSize, writeOffset, fbw);
+    }
     totalBytesWritten = 0;
     rewriteSize = 0;
     pthread_mutex_lock(&wf->lock);
-	if (writeOffset < wf->fa.stat.st_size) {
-		srfsLog(LOG_FINE, "writeOffset < wf->fa.stat.st_size %u %u", writeOffset, wf->fa.stat.st_size);
+    if (writeOffset < wf->fa.stat.st_size) {
+        srfsLog(LOG_FINE, "writeOffset < wf->fa.stat.st_size %u %u", writeOffset, wf->fa.stat.st_size);
         rewriteSize = wf_rewrite(wf, src, writeSize, writeOffset, fbw, pbr, fbc);
         if (rewriteSize > writeSize) {
             fatalError("rewriteSize > writeSize", __FILE__, __LINE__);
@@ -511,7 +511,7 @@ int wf_write(WritableFile *wf, const char *src, size_t writeSize, off_t writeOff
             writeOffset += rewriteSize;
             totalBytesWritten = rewriteSize;
         }
-	} else {
+    } else {
         if (writeOffset > wf->fa.stat.st_size) {
             wf_skip_ahead(wf, writeOffset, fbw);
         }
@@ -528,7 +528,7 @@ int wf_write(WritableFile *wf, const char *src, size_t writeSize, off_t writeOff
             wf_write_block(wf, wf->curBlock, wf_cur_block_index(wf), fbw);
             wf_new_block(wf);
         }
-    } while (totalBytesWritten < writeSize);		
+    } while (totalBytesWritten < writeSize);        
     wf->fa.stat.st_size += writeSize - rewriteSize;
     pthread_mutex_unlock(&wf->lock);
     srfsLog(LOG_FINE, "writeSize.b %u", writeSize);
@@ -621,23 +621,23 @@ int wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *
 
 // lock must be held
 static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac) {
-	int	blocksOK;
+    int    blocksOK;
     int result;
-	
-	srfsLog(LOG_FINE, "in wf_flush");
-	srfsLog(LOG_FINE, "wf_flush. wait for writes to complete");
+    
+    srfsLog(LOG_FINE, "in wf_flush");
+    srfsLog(LOG_FINE, "wf_flush. wait for writes to complete");
     result = 0;
     blocksOK = TRUE;
-	wf_sanityCheckNumBlocks(wf, __FILE__, __LINE__);
-	// Wait for all block writes to complete
-	wf_limit_outstanding_blocks(wf, fbw, 0);
-	srfsLog(LOG_FINE, "wf_flush. ensure blocks written successfully");
+    wf_sanityCheckNumBlocks(wf, __FILE__, __LINE__);
+    // Wait for all block writes to complete
+    wf_limit_outstanding_blocks(wf, fbw, 0);
+    srfsLog(LOG_FINE, "wf_flush. ensure blocks written successfully");
     blocksOK = wf_blocks_written_successfully(wf, abl_size(wf->blockList), fbw);
     // FUTURE - consider retrying failed blocks
-	if (!wfb_is_empty(wf->curBlock)) { // attempt this write even if others failed
-        SKOperationState::SKOperationState	bwResult;
+    if (!wfb_is_empty(wf->curBlock)) { // attempt this write even if others failed
+        SKOperationState::SKOperationState    bwResult;
         
-		bwResult = wf_write_block_sync(wf, wf->curBlock, wf_cur_block_index(wf), fbw);    
+        bwResult = wf_write_block_sync(wf, wf->curBlock, wf_cur_block_index(wf), fbw);    
         if (bwResult != SKOperationState::SUCCEEDED) {
             blocksOK = FALSE;
         }
@@ -671,13 +671,13 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
         }
         result = EIO;
     }
-	srfsLog(LOG_FINE, "out wf_flush %d", result);
+    srfsLog(LOG_FINE, "out wf_flush %d", result);
     return result;
 }
 
 static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int cacheOnly) {
-    SKOperationState::SKOperationState	awResult;
-	time_t	curTimeSeconds;
+    SKOperationState::SKOperationState    awResult;
+    time_t    curTimeSeconds;
     long    curTimeNanos;
     struct timespec tp;
     int result;
@@ -694,21 +694,21 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
     wf->fa.stat.st_atime = curTimeSeconds;
     wf->fa.stat.st_mtim.tv_nsec = curTimeNanos;
     wf->fa.stat.st_atim.tv_nsec = curTimeNanos;
-	if (!wfb_is_empty(wf->curBlock)) {
+    if (!wfb_is_empty(wf->curBlock)) {
         wf->fa.stat.st_blocks = statBlockConversion(wf->numBlocks);
     } else {
         wf->fa.stat.st_blocks = statBlockConversion(wf->numBlocks - 1);
     }
     
     if (cacheOnly) {
-		CacheStoreResult	acResult;
-		
-		acResult = ac_store_raw_data(ac, (char *)wf->path, fa_dup(&wf->fa), TRUE, 
+        CacheStoreResult    acResult;
+        
+        acResult = ac_store_raw_data(ac, (char *)wf->path, fa_dup(&wf->fa), TRUE, 
                         curSKTimeNanos(), SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
-		if (acResult != CACHE_STORE_SUCCESS) {
-			srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d for %s at %s %d", acResult, wf->path, __FILE__, __LINE__);
-			result = EIO;
-		}
+        if (acResult != CACHE_STORE_SUCCESS) {
+            srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d for %s at %s %d", acResult, wf->path, __FILE__, __LINE__);
+            result = EIO;
+        }
     } else {
         //aw_write_attr(aw, wf->path, &wf->fa); // old queued async write
         // Write out attribute information & wait for the write to complete
@@ -724,41 +724,41 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
 
 // called only from wf_check_for_close()
 static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac) {
-	int		result;
+    int        result;
 
-	result = 0;
-	srfsLog(LOG_FINE, "in wf_close %s", wf->path);
+    result = 0;
+    srfsLog(LOG_FINE, "in wf_close %s", wf->path);
     pthread_mutex_lock(&wf->lock);    
     
     // wf_flush() only updates the cached attribute. Update the the key-value store.
     // UPDATE: wf_flush() is now updating both the cached attribute and the key-value store
     // Assumption: fuse is calling flush() after every OS close() operation
-	//result = wf_update_attr(wf, aw, NULL);
+    //result = wf_update_attr(wf, aw, NULL);
     wfb_delete(&wf->curBlock);
     
     pthread_mutex_unlock(&wf->lock);
-	srfsLog(LOG_FINE, "leaving wf_close %s", wf->path);
-	wf_delete(&wf);
-	srfsLog(LOG_FINE, "out wf_close");
+    srfsLog(LOG_FINE, "leaving wf_close %s", wf->path);
+    wf_delete(&wf);
+    srfsLog(LOG_FINE, "out wf_close");
     return result;
 }
 
 static SKOperationState::SKOperationState wf_write_block_sync(WritableFile *wf, WritableFileBlock *wfb, uint64_t blockIndex, FileBlockWriter *fbw, int maxAttempts) {
-	FileBlockID	*fbid;
-	FBW_ActiveDirectPut	*adp;
-	SKOperationState::SKOperationState	result;
+    FileBlockID    *fbid;
+    FBW_ActiveDirectPut    *adp;
+    SKOperationState::SKOperationState    result;
     int attempt;
-	
+    
     if (wfb == NULL) {
         srfsLog(LOG_WARNING, "NULL wfb %s %d", wf->path, blockIndex);
         return SKOperationState::FAILED;
     }
     attempt = 1;
     wf->kvAttrStale = TRUE;
-	if (srfsLogLevelMet(LOG_FINE)) {
-		srfsLog(LOG_FINE, "wf_rewrite_block %u", wfb->size);
-	}
-	fbid = fbid_new(&wf->fa.fid, blockIndex);
+    if (srfsLogLevelMet(LOG_FINE)) {
+        srfsLog(LOG_FINE, "wf_rewrite_block %u", wfb->size);
+    }
+    fbid = fbid_new(&wf->fa.fid, blockIndex);
     do {
         adp = fbw_put_direct(fbw, fbid, wfb);
         result = fbw_wait_for_direct_put(fbw, &adp);
@@ -769,28 +769,28 @@ static SKOperationState::SKOperationState wf_write_block_sync(WritableFile *wf, 
             srfsLog(LOG_ERROR, "wf_write_block_sync failed %s %d %s. Attempt %d of %d", wf->path, result, key, attempt, maxAttempts);
         }
     } while (result != SKOperationState::SUCCEEDED && attempt++ < maxAttempts);
-	fbid_delete(&fbid);
+    fbid_delete(&fbid);
     return result;
 }
 
 static void wf_write_block(WritableFile *wf, WritableFileBlock *wfb, uint64_t blockIndex, FileBlockWriter *fbw) {
-	FileBlockID	*fbid;
-	FBW_ActiveDirectPut	*adp;
-	
+    FileBlockID    *fbid;
+    FBW_ActiveDirectPut    *adp;
+    
     wf->kvAttrStale = TRUE;
-	if (srfsLogLevelMet(LOG_FINE)) {
-		srfsLog(LOG_FINE, "wf_write_block %u %u", blockIndex, wfb->size);
-	}
-	fbid = fbid_new(&wf->fa.fid, blockIndex);
-	adp = fbw_put_direct(fbw, fbid, wfb);
-	abl_add(wf->blockList, wfbw_new(wfb, adp));
-	fbid_delete(&fbid);
+    if (srfsLogLevelMet(LOG_FINE)) {
+        srfsLog(LOG_FINE, "wf_write_block %u %u", blockIndex, wfb->size);
+    }
+    fbid = fbid_new(&wf->fa.fid, blockIndex);
+    adp = fbw_put_direct(fbw, fbid, wfb);
+    abl_add(wf->blockList, wfbw_new(wfb, adp));
+    fbid_delete(&fbid);
 }
 
 WritableFile *wf_fuse_fi_fh_to_wf(struct fuse_file_info *fi) {
     SKFSOpenFile    *sof;
     WritableFile    *wf;
-	
+    
     sof = (SKFSOpenFile*)fi->fh;
     if (!sof_is_valid(sof)) {
         srfsLog(LOG_ERROR, "Bogus fi->fh");
@@ -802,18 +802,18 @@ WritableFile *wf_fuse_fi_fh_to_wf(struct fuse_file_info *fi) {
         wf = wfr_get_wf(wf_ref);
         if (wf != NULL) {
             if (wf->magic != WF_MAGIC) {
-                srfsLog(LOG_ERROR, "Bogus wfr in sof. wf->magic is %x", wf->magic);			
+                srfsLog(LOG_ERROR, "Bogus wfr in sof. wf->magic is %x", wf->magic);            
                 wf = NULL;
             }
         }
     }
-	return wf;
+    return wf;
 }
 
 // number of blocks written, but not known to have completed
 // this does not count unwritten blocks
 static uint64_t wf_blocks_outstanding(WritableFile *wf) {
-	return abl_size(wf->blockList) - wf->leastIncompleteBlockIndex;
+    return abl_size(wf->blockList) - wf->leastIncompleteBlockIndex;
 }
 
 static uint64_t wf_cur_block_index(WritableFile *wf) {
@@ -822,48 +822,48 @@ static uint64_t wf_cur_block_index(WritableFile *wf) {
 
 // lock must be held
 static void wf_limit_outstanding_blocks(WritableFile *wf, FileBlockWriter *fbw, uint64_t limit) {
-	while (wf_blocks_outstanding(wf) > limit) {
-		SKOperationState::SKOperationState	result;
-		WF_BlockWrite	*bw;
-	
-		bw = (WF_BlockWrite *)abl_get(wf->blockList, wf->leastIncompleteBlockIndex);
-		if (bw == NULL) {
-			fatalError("Unexpected bw == NULL", __FILE__, __LINE__);
+    while (wf_blocks_outstanding(wf) > limit) {
+        SKOperationState::SKOperationState    result;
+        WF_BlockWrite    *bw;
+    
+        bw = (WF_BlockWrite *)abl_get(wf->blockList, wf->leastIncompleteBlockIndex);
+        if (bw == NULL) {
+            fatalError("Unexpected bw == NULL", __FILE__, __LINE__);
         }
-		if (bw->result != SKOperationState::INCOMPLETE) {
-			fatalError("Unexpected complete operation", __FILE__, __LINE__);
-		}
-		if (bw->adp == NULL) {
-			fatalError("Unexpected null adp", __FILE__, __LINE__);
-		}
-		result = fbw_wait_for_direct_put(fbw, &bw->adp);
-		wfbw_set_complete(bw, result);
-		wf->leastIncompleteBlockIndex++;
-	}
+        if (bw->result != SKOperationState::INCOMPLETE) {
+            fatalError("Unexpected complete operation", __FILE__, __LINE__);
+        }
+        if (bw->adp == NULL) {
+            fatalError("Unexpected null adp", __FILE__, __LINE__);
+        }
+        result = fbw_wait_for_direct_put(fbw, &bw->adp);
+        wfbw_set_complete(bw, result);
+        wf->leastIncompleteBlockIndex++;
+    }
 }
 
 // Verifies that all blocks that have been written to SK have succeeded.
 // Does not consider blocks that have not yet been written to SK.
 static int wf_all_blocks_written_successfully(WritableFile *wf, FileBlockWriter *fbw) {
-	return wf_blocks_written_successfully(wf, wf->numBlocks, fbw);
+    return wf_blocks_written_successfully(wf, wf->numBlocks, fbw);
 }
 
 static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks, FileBlockWriter *fbw) {
-	size_t	i;
-	
-	for (i = 0; i < numBlocks; i++) {
-		WF_BlockWrite	*bw;
-		
-		bw = (WF_BlockWrite *)abl_get(wf->blockList, i);
-		if (bw != NULL && bw->result != SKOperationState::SUCCEEDED) {
+    size_t    i;
+    
+    for (i = 0; i < numBlocks; i++) {
+        WF_BlockWrite    *bw;
+        
+        bw = (WF_BlockWrite *)abl_get(wf->blockList, i);
+        if (bw != NULL && bw->result != SKOperationState::SUCCEEDED) {
             SKOperationState::SKOperationState  retryResult;
-            char	    key[SRFS_FBID_KEY_SIZE];
-            FileBlockID	*fbid;
+            char        key[SRFS_FBID_KEY_SIZE];
+            FileBlockID    *fbid;
             
             fbid = fbid_new(&wf->fa.fid, i);
             fbid_to_string(fbid, key);            
             fbid_delete(&fbid);
-			srfsLog(LOG_WARNING, "Block not successful: %s %d %s %d", wf->path, i, key, bw->result);
+            srfsLog(LOG_WARNING, "Block not successful: %s %d %s %d", wf->path, i, key, bw->result);
             retryResult = wf_write_block_sync(wf, bw->wfb, i, fbw, WF_FAILED_BLOCK_RETRIES);
             if (retryResult == SKOperationState::SUCCEEDED) {
                 srfsLog(LOG_WARNING, "Block retried successfully: %s %d %s %d", wf->path, i, key, bw->result);
@@ -874,27 +874,27 @@ static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks, Fi
                 }
                 return FALSE;
             }
-		}
-	}
-	return TRUE;
+        }
+    }
+    return TRUE;
 }
 
 static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fbw) {
-	size_t	i;
-	
-	for (i = 0; i < wf->numBlocks; i++) {
-		WF_BlockWrite	*bw;
-		
-		bw = (WF_BlockWrite *)abl_get(wf->blockList, i);
-		if (bw != NULL && bw->result != SKOperationState::SUCCEEDED) {
+    size_t    i;
+    
+    for (i = 0; i < wf->numBlocks; i++) {
+        WF_BlockWrite    *bw;
+        
+        bw = (WF_BlockWrite *)abl_get(wf->blockList, i);
+        if (bw != NULL && bw->result != SKOperationState::SUCCEEDED) {
             SKOperationState::SKOperationState  retryResult;
-            char	    key[SRFS_FBID_KEY_SIZE];
-            FileBlockID	*fbid;
+            char        key[SRFS_FBID_KEY_SIZE];
+            FileBlockID    *fbid;
             
             fbid = fbid_new(&wf->fa.fid, i);
             fbid_to_string(fbid, key);            
             fbid_delete(&fbid);
-			srfsLog(LOG_WARNING, "Block not successful: %s %d %s %d", wf->path, i, key, bw->result);
+            srfsLog(LOG_WARNING, "Block not successful: %s %d %s %d", wf->path, i, key, bw->result);
             retryResult = wf_write_block_sync(wf, bw->wfb, i, fbw, WF_FAILED_BLOCK_RETRIES);
             if (retryResult == SKOperationState::SUCCEEDED) {
                 srfsLog(LOG_WARNING, "Block retried successfully: %s %d %s %d", wf->path, i, key, bw->result);
@@ -902,9 +902,9 @@ static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fb
             } else {
                 return i * SRFS_BLOCK_SIZE;
             }
-		}
-	}
-	return wf->fa.stat.st_size;
+        }
+    }
+    return wf->fa.stat.st_size;
 }
 
 int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid, 
@@ -942,10 +942,10 @@ int wf_modify_attr(WritableFile *wf, mode_t *mode, uid_t *uid, gid_t *gid,
 // reference code
 
 int wf_create_ref(WritableFile *wf) {
-	int	ref;
+    int    ref;
 
-	ref = -1;
-	pthread_mutex_lock(&wf->lock);
+    ref = -1;
+    pthread_mutex_lock(&wf->lock);
     
     if (wf->referentState.nextRef >= WFR_RECYCLE_THRESHOLD) {
         ref = _wf_find_empty_ref(wf);
@@ -964,13 +964,13 @@ int wf_create_ref(WritableFile *wf) {
         }
     }
     
-	pthread_mutex_unlock(&wf->lock);
-	return ref;
+    pthread_mutex_unlock(&wf->lock);
+    return ref;
 }
 
 // lock must be held
 static int _wf_find_empty_ref(WritableFile *wf) {
-	int	i;
+    int    i;
 
     for (i = 0; i < wf->referentState.nextRef; i++) {
         if (wf->referentState.refStatus[i] != WFR_Created) {
@@ -982,10 +982,10 @@ static int _wf_find_empty_ref(WritableFile *wf) {
 
 // lock must be held
 static int _wf_has_references(WritableFile *wf) {
-	int	noReferences;
-	int	i;
+    int    noReferences;
+    int    i;
 
-	noReferences = TRUE;
+    noReferences = TRUE;
     for (i = 0; i < wf->referentState.nextRef; i++) {
         if (wf->referentState.refStatus[i] != WFR_Destroyed) {
             noReferences = FALSE;
@@ -999,38 +999,38 @@ static int _wf_has_references(WritableFile *wf) {
 int wf_has_references(WritableFile *wf) {
     int hasReferences;
     
-	pthread_mutex_lock(&wf->lock);
+    pthread_mutex_lock(&wf->lock);
     hasReferences = _wf_has_references(wf);
-	pthread_mutex_unlock(&wf->lock);
+    pthread_mutex_unlock(&wf->lock);
     return hasReferences;
 }
 */
 
 /*
 static void wf_check_for_deletion(WritableFile *wf) {
-	int	doDelete;
-	int	i;
+    int    doDelete;
+    int    i;
 
-	doDelete = TRUE;
-	//pthread_mutex_lock(&wf->lock); - this must already be held
-	if (!wf->referentState.toDelete) {
-		for (i = 0; i < wf->referentState.nextRef; i++) {
-			if (wf->referentState.refStatus[i] != WFR_Destroyed) {
-				doDelete = FALSE;
-				break;
-			}
-		}
-		if (doDelete) {
-			wf->referentState.toDelete = TRUE;
-		}
-	} else {
-		doDelete = FALSE;
-	}
-	pthread_mutex_unlock(&wf->lock);
-	if (doDelete) {
-		srfsLog(LOG_FINE, "All WritableFile references destroyed. Deleting %llx", wf);
-		wf_delete(&wf);
-	}
+    doDelete = TRUE;
+    //pthread_mutex_lock(&wf->lock); - this must already be held
+    if (!wf->referentState.toDelete) {
+        for (i = 0; i < wf->referentState.nextRef; i++) {
+            if (wf->referentState.refStatus[i] != WFR_Destroyed) {
+                doDelete = FALSE;
+                break;
+            }
+        }
+        if (doDelete) {
+            wf->referentState.toDelete = TRUE;
+        }
+    } else {
+        doDelete = FALSE;
+    }
+    pthread_mutex_unlock(&wf->lock);
+    if (doDelete) {
+        srfsLog(LOG_FINE, "All WritableFile references destroyed. Deleting %llx", wf);
+        wf_delete(&wf);
+    }
 }
 */
 
@@ -1084,14 +1084,14 @@ int wf_delete_ref(WritableFile *wf, int ref, AttrWriter *aw, FileBlockWriter *fb
 
     htl = wf->htl;
     pthread_rwlock_wrlock(&htl->rwLock);    
-	pthread_mutex_lock(&wf->lock);
-	if (ref >= wf->referentState.nextRef) {
-		fatalError("ref >= wf->referentState.nextRef", __FILE__, __LINE__);
-	}
-	if (wf->referentState.refStatus[ref] != WFR_Created) {
-		fatalError("wf->referentState.refStatus[ref] != WFR_Created", __FILE__, __LINE__);
-	}
-	wf->referentState.refStatus[ref] = WFR_Destroyed;
+    pthread_mutex_lock(&wf->lock);
+    if (ref >= wf->referentState.nextRef) {
+        fatalError("ref >= wf->referentState.nextRef", __FILE__, __LINE__);
+    }
+    if (wf->referentState.refStatus[ref] != WFR_Created) {
+        fatalError("wf->referentState.refStatus[ref] != WFR_Created", __FILE__, __LINE__);
+    }
+    wf->referentState.refStatus[ref] = WFR_Destroyed;
     
     // Before locking the table partition [in wf_check_for_close()], 
     // check the file for references
@@ -1146,7 +1146,7 @@ int wf_read(WritableFile *wf, FileBlockWriter *fbw, PartialBlockReader *pbr, con
     }
     
     // Flush all new blocks
-	wf_limit_outstanding_blocks(wf, fbw, 0);
+    wf_limit_outstanding_blocks(wf, fbw, 0);
     
     firstBlockIndex = offsetToBlock(readOffset);
     lastBlockIndex = offsetToBlock(readOffset + readSize - 1);

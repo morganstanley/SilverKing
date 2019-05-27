@@ -13,17 +13,17 @@ import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
 public class AsyncInvalidationExample {    
-	private static final String	key = "ai.key";
-	private static final String	value = "ai.value";
+    private static final String    key = "ai.key";
+    private static final String    value = "ai.value";
 
-	public static String runExample(SKGridConfiguration gridConfig) {
-		try {
+    public static String runExample(SKGridConfiguration gridConfig) {
+        try {
             AsynchronousNamespacePerspective<String, String>    asyncNSP;
-            AsyncInvalidation<String>	asyncInvalidation;
+            AsyncInvalidation<String>    asyncInvalidation;
             AsyncPut<String>    asyncPut;
             AsyncSingleValueRetrieval<String,String>    asyncGet;
-            DHTSession	session;
-            Namespace	ns;
+            DHTSession    session;
+            Namespace    ns;
             
             session = new DHTClient().openSession(gridConfig);
             ns = session.createNamespace("MyNamespace" + System.currentTimeMillis(), session.getDefaultNamespaceOptions().versionMode(NamespaceVersionMode.SYSTEM_TIME_NANOS));
@@ -50,9 +50,9 @@ public class AsyncInvalidationExample {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-	}
-	
+    }
+    
     public static void main(String[] args) throws IOException {
-    	System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
+        System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
     }
 }

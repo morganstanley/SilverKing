@@ -12,12 +12,12 @@ import com.ms.silverking.cloud.meta.VersionedDefinition;
  * ZooKeeper ensemble.) 
  */
 public class DHTSKFSConfiguration implements VersionedDefinition {
-	private final String	skfsConfigName;
+    private final String    skfsConfigName;
     private final long      version;
     private final long      zxid;
     
     public DHTSKFSConfiguration(String skfsConfigName, long version, long zxid) {
-    	this.skfsConfigName = skfsConfigName;
+        this.skfsConfigName = skfsConfigName;
         this.version = version;
         this.zxid = zxid;
     }
@@ -43,12 +43,12 @@ public class DHTSKFSConfiguration implements VersionedDefinition {
         return zxid;
     }
 
-	public static DHTSKFSConfiguration parse(String def, long version) {
-		return new DHTSKFSConfiguration(def, version, 0);
-	}
-	
-	@Override
-	public String toString() {
-		return skfsConfigName;
-	}
+    public static DHTSKFSConfiguration parse(String def, long version) {
+        return new DHTSKFSConfiguration(def, version, 0);
+    }
+    
+    @Override
+    public String toString() {
+        return skfsConfigName;
+    }
 }

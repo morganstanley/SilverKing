@@ -53,7 +53,7 @@ JObject::JObject()
  */
 JObject::JObject(const JObject& other)
 {
-	JValue::setJavaJniValue(static_cast<jvalue>(other));
+    JValue::setJavaJniValue(static_cast<jvalue>(other));
 }
 
 /**
@@ -61,24 +61,24 @@ JObject::JObject(const JObject& other)
  */
 JObject::~JObject() throw ()
 {
-	try
-	{
-		jobject ref = *this;
-		if (ref)
-		{
-			// skip for null references
-			JNIEnv* env = attach();
-			deleteGlobalRef(env, ref);
-		}
-	}
-	catch (VirtualMachineShutdownError&)
-	{
-		// instance already deleted
-	}
-	catch (exception& e)
-	{
-		cout << "JObject::~JObject - Unable to delete the global ref." << endl;
-		cout << e.what() << endl;
+    try
+    {
+        jobject ref = *this;
+        if (ref)
+        {
+            // skip for null references
+            JNIEnv* env = attach();
+            deleteGlobalRef(env, ref);
+        }
+    }
+    catch (VirtualMachineShutdownError&)
+    {
+        // instance already deleted
+    }
+    catch (exception& e)
+    {
+        cout << "JObject::~JObject - Unable to delete the global ref." << endl;
+        cout << e.what() << endl;
   }
 }
 
@@ -88,7 +88,7 @@ JObject::~JObject() throw ()
  */
 JObject::operator jobject()
 {
-	return static_cast<jvalue>(*this).l;
+    return static_cast<jvalue>(*this).l;
 }
 
 
@@ -100,7 +100,7 @@ JObject::operator jobject()
  */
 JObject::operator jobject() const
 {
-	return static_cast<jvalue>(*this).l;
+    return static_cast<jvalue>(*this).l;
 }
 
 
@@ -117,7 +117,7 @@ bool JObject::isNull() const
 
 JObject& JObject::operator=(const JObject& object)
 {
-	// We don't check if (this == &object) because setJavaJniObject() already does
+    // We don't check if (this == &object) because setJavaJniObject() already does
   setJavaJniObject(static_cast<jobject>(object));
   return *this;
 }
@@ -148,25 +148,25 @@ void JObject::setJavaJniValue(jvalue newValue) throw (JNIException)
 {
   JNIEnv* env = attach();
 
-	// Save a copy of the old value
+    // Save a copy of the old value
   jobject oldValue = *this;
-	if (env->IsSameObject(newValue.l, oldValue) == JNI_TRUE)
-		return;
-	jvalue ourCopy;
+    if (env->IsSameObject(newValue.l, oldValue) == JNI_TRUE)
+        return;
+    jvalue ourCopy;
 
   if (!newValue.l)
-	{
-		// If the new value is a null reference, we save time by not creating a new global reference.
-		ourCopy = newValue;
+    {
+        // If the new value is a null reference, we save time by not creating a new global reference.
+        ourCopy = newValue;
   }
-	else
-	{
-		// Create our own global reference to the object
-		jobject object = newGlobalRef(env, newValue.l);
-		ourCopy.l = object;
-	}
+    else
+    {
+        // Create our own global reference to the object
+        jobject object = newGlobalRef(env, newValue.l);
+        ourCopy.l = object;
+    }
 
-	// Delete the old value
+    // Delete the old value
   if (oldValue)
     deleteGlobalRef(env, oldValue);
   JValue::setJavaJniValue(ourCopy);
@@ -191,11 +191,11 @@ jobject JObject::newObject(const JClass& jClass, const JArguments& arguments)
 static boost::mutex javaClassMutex;
 const JClass& JObject::staticGetJavaJniClass() throw (JNIException)
 {
-	static boost::shared_ptr<JClassImpl> result;
-	boost::mutex::scoped_lock lock(javaClassMutex);
-	if (result == 0)
-		result = boost::shared_ptr<JClassImpl>(new JClassImpl("java/lang/Object"));
-	return *result;
+    static boost::shared_ptr<JClassImpl> result;
+    boost::mutex::scoped_lock lock(javaClassMutex);
+    if (result == 0)
+        result = boost::shared_ptr<JClassImpl>(new JClassImpl("java/lang/Object"));
+    return *result;
 }
 
 const JClass& JObject::getJavaJniClass() const throw (JNIException)

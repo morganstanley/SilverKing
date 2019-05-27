@@ -21,23 +21,23 @@ import com.ms.silverking.log.Log;
  * Enable redirection of stdout/stderr within the JVM
  */
 public class LogStreamConfig {
-	public static void configureLogStreams(SKGridConfiguration gc, String logFileName) throws IOException, KeeperException {
-		MetaClient			dhtMC;
-		DHTConfiguration	dhtConfig;
-		ClassVarsZK			classVarsZK;
-		ClassVars			defaultClassVars;
-        PrintStream			logStream;
-        File				logDir;
-		
-		dhtMC = new com.ms.silverking.cloud.dht.meta.MetaClient(gc);
-		dhtConfig = dhtMC.getDHTConfiguration();
-		classVarsZK = new ClassVarsZK(dhtMC);
-		if (dhtConfig.getDefaultClassVars() != null) {
-			defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(classVarsZK.getClassVars(dhtConfig.getDefaultClassVars()));
-		} else {
-			defaultClassVars = DHTConstants.defaultDefaultClassVars;
-		}
-		
+    public static void configureLogStreams(SKGridConfiguration gc, String logFileName) throws IOException, KeeperException {
+        MetaClient            dhtMC;
+        DHTConfiguration    dhtConfig;
+        ClassVarsZK            classVarsZK;
+        ClassVars            defaultClassVars;
+        PrintStream            logStream;
+        File                logDir;
+        
+        dhtMC = new com.ms.silverking.cloud.dht.meta.MetaClient(gc);
+        dhtConfig = dhtMC.getDHTConfiguration();
+        classVarsZK = new ClassVarsZK(dhtMC);
+        if (dhtConfig.getDefaultClassVars() != null) {
+            defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(classVarsZK.getClassVars(dhtConfig.getDefaultClassVars()));
+        } else {
+            defaultClassVars = DHTConstants.defaultDefaultClassVars;
+        }
+        
         
         logDir = new File(DHTConstants.getSKInstanceLogDir(defaultClassVars, gc));
         Log.warning("Ensuring created: ", logDir);
@@ -46,5 +46,5 @@ public class LogStreamConfig {
         System.setOut(logStream);
         System.setErr(logStream);
         Log.setPrintStreams(logStream);
-	}
+    }
 }

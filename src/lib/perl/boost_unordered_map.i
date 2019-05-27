@@ -43,7 +43,7 @@ namespace boost {
                     throw std::out_of_range("key not found");
             }
             void set(const K& key, const T& x) {
-				self->insert(boost::unordered_map<K,T >::value_type(key, x));
+                self->insert(boost::unordered_map<K,T >::value_type(key, x));
             }
             void del(const K& key) throw (std::out_of_range) {
                 boost::unordered_map<K,T >::iterator i = self->find(key);

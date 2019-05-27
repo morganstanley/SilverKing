@@ -127,7 +127,7 @@ class SimpleRetrievalOperation extends BaseRetrievalOperation<RetrievalEntrySing
                         System.out.printf("forward entry state %s %s\n", key, nextReplica);
                     }
                     if (nextReplica == null) {
-                    	if (forwardingMode == ForwardingMode.ALL) {
+                        if (forwardingMode == ForwardingMode.ALL) {
                             entryState.setState(RetrievalState.NO_SUCH_VALUE);
                             synchronized (rvComm) {
                                 rvComm.sendResult(update);
@@ -136,7 +136,7 @@ class SimpleRetrievalOperation extends BaseRetrievalOperation<RetrievalEntrySing
                             if (_completeEntries >= numEntries) {
                                 setOpResult(OpResult.SUCCEEDED);
                             }
-                    	}
+                        }
                         return;
                     }
                     synchronized (rvComm) {

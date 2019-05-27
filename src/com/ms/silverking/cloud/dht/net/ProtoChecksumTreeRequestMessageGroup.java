@@ -25,9 +25,9 @@ public class ProtoChecksumTreeRequestMessageGroup extends ProtoMessageGroup {
     private static final int    regionStartOffset = sourceCPOffset + ConvergencePoint.serializedSizeBytes;
     private static final int    regionEndOffset = regionStartOffset + NumConversion.BYTES_PER_LONG;
     
-    private static final int	replicaOffset = regionEndOffset + NumConversion.BYTES_PER_LONG;
+    private static final int    replicaOffset = regionEndOffset + NumConversion.BYTES_PER_LONG;
     
-    private static final int	localFlagOffset = replicaOffset + IPAndPort.SIZE_BYTES;
+    private static final int    localFlagOffset = replicaOffset + IPAndPort.SIZE_BYTES;
     
     private static final int    deadlineRelativeMillis = 25 * 60 * 1000; // For now, interpreted as a progress deadline, not at absolute op deadline
     
@@ -60,7 +60,7 @@ public class ProtoChecksumTreeRequestMessageGroup extends ProtoMessageGroup {
             ConvergencePoint curCP, byte[] originator, 
             RingRegion ringRegion,
             boolean localFlag) {
-    	this(uuid, context, targetCP, curCP, originator, ringRegion, IPAndPort.emptyIPAndPort, localFlag);
+        this(uuid, context, targetCP, curCP, originator, ringRegion, IPAndPort.emptyIPAndPort, localFlag);
     }    
 
     @Override
@@ -94,7 +94,7 @@ public class ProtoChecksumTreeRequestMessageGroup extends ProtoMessageGroup {
     }
     
     public static IPAndPort getReplica(MessageGroup mg) {
-    	return IPAndPort.fromByteBuffer(mg.getBuffers()[dataBufferIndex], replicaOffset);
+        return IPAndPort.fromByteBuffer(mg.getBuffers()[dataBufferIndex], replicaOffset);
     }
     
     public static boolean getLocalFlag(MessageGroup mg) {

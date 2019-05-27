@@ -6,13 +6,13 @@
 
 class AsyncPutAsyncGetTest : public ::testing::Test {
 
-	public:
-		 AsyncPutAsyncGetTest();
-		~AsyncPutAsyncGetTest();
+    public:
+         AsyncPutAsyncGetTest();
+        ~AsyncPutAsyncGetTest();
 
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 
 };
 

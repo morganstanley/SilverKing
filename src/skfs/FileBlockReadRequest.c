@@ -13,24 +13,24 @@
 
 FileBlockReadRequest *fbrr_new(FileBlockReader *fileBlockReader, FileBlockID *fbid,
                                uint64_t minModificationTimeMicros) {
-	FileBlockReadRequest *fbrr;
+    FileBlockReadRequest *fbrr;
 
-	fbrr = (FileBlockReadRequest*)mem_alloc(1, sizeof(FileBlockReadRequest));
-	fbrr->fileBlockReader = fileBlockReader;
-	fbrr->fbid = fbid_dup(fbid);
+    fbrr = (FileBlockReadRequest*)mem_alloc(1, sizeof(FileBlockReadRequest));
+    fbrr->fileBlockReader = fileBlockReader;
+    fbrr->fbid = fbid_dup(fbid);
     fbrr->minModificationTimeMicros = minModificationTimeMicros;
-	return fbrr;
+    return fbrr;
 }
 
 void fbrr_delete(FileBlockReadRequest **fbrr) {
-	if (fbrr != NULL && *fbrr != NULL) {
-		fbid_delete(&(*fbrr)->fbid);
-		mem_free((void **)fbrr);
-	} else {
-		fatalError("bad ptr in fbrr_delete");
-	}
+    if (fbrr != NULL && *fbrr != NULL) {
+        fbid_delete(&(*fbrr)->fbid);
+        mem_free((void **)fbrr);
+    } else {
+        fatalError("bad ptr in fbrr_delete");
+    }
 }
 
 void fbrr_display(FileBlockReadRequest *fbrr, LogLevel level) {
-	srfsLog(level, "fbrr@%lxx", fbrr);
+    srfsLog(level, "fbrr@%lxx", fbrr);
 }

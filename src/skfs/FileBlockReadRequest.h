@@ -15,8 +15,8 @@
 // types
 
 typedef struct FileBlockReadRequest {
-	FileBlockReader	*fileBlockReader;
-	FileBlockID	*fbid;
+    FileBlockReader    *fileBlockReader;
+    FileBlockID    *fbid;
     uint64_t    minModificationTimeMicros;
 } FileBlockReadRequest;
 

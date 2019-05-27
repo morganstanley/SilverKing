@@ -17,7 +17,7 @@ import com.ms.silverking.id.UUIDBase;
 abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     protected final int   opSize;
     protected ByteBuffer  valueBuffer;
-    protected int      	  curMultiValueBufferIndex;
+    protected int            curMultiValueBufferIndex;
     protected int         totalValueBytes;
     
     // FIXME - valueBufferSize should be computed based on some
@@ -72,9 +72,9 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
     }
     
     public boolean canBeAdded(int valueSize) {
-    	// Check that we are below maxValueBytesPerMessage
-    	// Exception is granted for single values of any length
-    	// (If fragmentation threshold is very high, we need to handle very large values)
+        // Check that we are below maxValueBytesPerMessage
+        // Exception is granted for single values of any length
+        // (If fragmentation threshold is very high, we need to handle very large values)
         return (totalValueBytes == 0) || (totalValueBytes + valueSize < maxValueBytesPerMessage);
     }
     

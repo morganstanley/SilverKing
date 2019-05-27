@@ -20,9 +20,9 @@
 // types
 
 typedef struct FileInvalidationRequest {
-	FileBlockWriter	*fileBlockWriter;
-	FileID		    *fid;
-	int 			numBlocks;
+    FileBlockWriter    *fileBlockWriter;
+    FileID            *fid;
+    int             numBlocks;
 } FileInvalidationRequest;
 
 
@@ -30,7 +30,7 @@ typedef struct FileInvalidationRequest {
 // prototypes
 
 FileInvalidationRequest *fir_new(FileBlockWriter *fileBlockWriter, FileID *fid,
-								 int numBlocks);
+                                 int numBlocks);
 void fir_delete(FileInvalidationRequest **fir);
 
 #endif

@@ -18,7 +18,7 @@ UnixVmLoader::UnixVmLoader(std::string _path, jint jniVersion) throw (JNIExcepti
 {
   lib = dlopen(path.c_str(), RTLD_NOW | RTLD_GLOBAL);
   if (!lib)
-	{
+    {
     string msg = "Unable to load the library at " + path;
     throw JNIException(msg);
   }
@@ -26,7 +26,7 @@ UnixVmLoader::UnixVmLoader(std::string _path, jint jniVersion) throw (JNIExcepti
   createJavaVMPtr = (CreateJavaVM_t) dlsym(lib, "JNI_CreateJavaVM");
 
   if (!createJavaVMPtr)
-	{
+    {
     string msg = "Unable to resolve the function, JNI_CreateJavaVM from library " + path;
     throw JNIException(msg);
   }
@@ -34,7 +34,7 @@ UnixVmLoader::UnixVmLoader(std::string _path, jint jniVersion) throw (JNIExcepti
   getCreatedJavaVMsPtr = (GetCreatedJavaVMs_t) dlsym(lib, "JNI_GetCreatedJavaVMs");
 
   if (!getCreatedJavaVMsPtr)
-	{
+    {
     string msg = "Unable to resolve the function, JNI_GetCreatedJavaVMs from library " 
       + path;
     throw JNIException(msg);
@@ -54,7 +54,7 @@ jint UnixVmLoader::getCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs) 
 UnixVmLoader::~UnixVmLoader()
 {
   if (lib)
-	{
+    {
     dlclose(lib);
     lib = 0;
   }

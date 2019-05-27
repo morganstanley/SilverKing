@@ -48,7 +48,7 @@ class RAMOffsetListStore implements OffsetListStore {
     }
     
     public int getNumLists() {
-    	return lists.size();
+        return lists.size();
     }
     
     private int headerSizeBytes() {

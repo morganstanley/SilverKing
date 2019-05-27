@@ -35,49 +35,49 @@ SKClientException::~SKClientException(void) throw ()
 
 const char* SKClientException::what() const throw ()
 {
-	return  mAll.c_str();
+    return  mAll.c_str();
 }
 
 SKClientException::SKClientException(Throwable * cause, const char * fileName, int lineNum) throw (){
-	//Throwable ce = java_cast<Throwable>(*cause);
-	String strCause = cause->toString();
-	if(!strCause.isNull()) {
-		msg  = (std::string)(strCause);
-	}
-	else {
-		msg  = cause->getMessage();
-	}
-	mStack    = (std::string)(Throwables::getStackTraceAsString(*cause));
-	mFileName = fileName;
-	mLineNum  = lineNum;
-	std::ostringstream str ;
-	str << msg << "\n" << mStack << "\ncaught in " << mFileName << " : " << mLineNum << " \n" << mStack;
-	mAll = str.str();
+    //Throwable ce = java_cast<Throwable>(*cause);
+    String strCause = cause->toString();
+    if(!strCause.isNull()) {
+        msg  = (std::string)(strCause);
+    }
+    else {
+        msg  = cause->getMessage();
+    }
+    mStack    = (std::string)(Throwables::getStackTraceAsString(*cause));
+    mFileName = fileName;
+    mLineNum  = lineNum;
+    std::ostringstream str ;
+    str << msg << "\n" << mStack << "\ncaught in " << mFileName << " : " << mLineNum << " \n" << mStack;
+    mAll = str.str();
 }
 SKClientException::SKClientException(ClientException * cause, const char * fileName, int lineNum) throw (){
-	//ClientException ce = java_cast<ClientException>(*cause);
-	String strCause = cause->toString();
-	if(!strCause.isNull()) {
-		msg  = (std::string)(strCause);
-	}
-	else {
-		msg  = cause->getMessage();
-	}
-	mStack    = (std::string)(Throwables::getStackTraceAsString(*cause));
-	mFileName = fileName;
-	mLineNum  = lineNum;
-	std::ostringstream str ;
-	str << msg << mStack << " in " << mFileName << " : " << mLineNum <<"\n" ;
-	mAll = str.str();
+    //ClientException ce = java_cast<ClientException>(*cause);
+    String strCause = cause->toString();
+    if(!strCause.isNull()) {
+        msg  = (std::string)(strCause);
+    }
+    else {
+        msg  = cause->getMessage();
+    }
+    mStack    = (std::string)(Throwables::getStackTraceAsString(*cause));
+    mFileName = fileName;
+    mLineNum  = lineNum;
+    std::ostringstream str ;
+    str << msg << mStack << " in " << mFileName << " : " << mLineNum <<"\n" ;
+    mAll = str.str();
 }
 
 void SKClientException::printStackTrace(){
-	Log::warning(java_new<String>((char *)mStack.c_str()));
+    Log::warning(java_new<String>((char *)mStack.c_str()));
     //pImpl->printStackTrace();
 }
 
 string SKClientException::getStackTrace(){
-	return mStack ;
+    return mStack ;
 }
 
 string SKClientException::getMessage() const {

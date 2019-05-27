@@ -78,8 +78,8 @@ public class TwoLevelParallelSSHWorker implements Runnable {
         try {
             while (running) {
                 try {
-                    HostAndCommand	hostAndCommand;
-                    HostResult  	result;
+                    HostAndCommand    hostAndCommand;
+                    HostResult      result;
 
                     Log.warning("Calling getHost");
                     hostAndCommand = getHostAndCommand();

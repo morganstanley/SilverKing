@@ -5,5 +5,5 @@ package com.ms.silverking.cloud.dht.client;
  *
  */
 enum ClientOpType {
-	PUT, RETRIEVE, PING
+    PUT, RETRIEVE, PING
 }

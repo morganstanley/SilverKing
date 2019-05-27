@@ -16,7 +16,7 @@ class SKValueCreator;
 struct SKVal;
 namespace jace { namespace proxy { namespace com { namespace ms { 
     namespace silverking { namespace cloud { namespace dht { namespace client {
-	    class MetaData;
+        class MetaData;
 } } } } } } } };
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::MetaData MetaData;
 
@@ -78,12 +78,12 @@ public:
     SKAPI virtual ~SKMetaData();
 
 protected:
-	friend class SKStoredValue;
-	SKMetaData(MetaData * pMdImpl);
+    friend class SKStoredValue;
+    SKMetaData(MetaData * pMdImpl);
     SKMetaData();
-	MetaData * getPImpl();
+    MetaData * getPImpl();
 
-	MetaData * pImpl;
+    MetaData * pImpl;
 };
 
 #endif  //SKMETADATA_H

@@ -11,7 +11,7 @@ import com.ms.silverking.text.StringUtil;
  * creating new ByteBuffers that are views into the original buffers.
  */
 public abstract class MessageGroupKVEntry extends MessageGroupKeyEntry {
-    private final int	bufferIndex;
+    private final int    bufferIndex;
     private final int   bufferOffset;
     protected int       storedLength;
     

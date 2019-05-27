@@ -44,7 +44,7 @@ public class StopwatchBasedTimer implements Timer {
 
     @Override
     public long getRemainingMillisLong() {
-    	return nanos2millisLong( getRemainingNanos() );
+        return nanos2millisLong( getRemainingNanos() );
     }
 
     @Override
@@ -59,12 +59,12 @@ public class StopwatchBasedTimer implements Timer {
 
     @Override
     public double getRemainingSeconds() {
-    	return nanos2seconds( getRemainingNanos() );
+        return nanos2seconds( getRemainingNanos() );
     }
 
     @Override
     public BigDecimal getRemainingSecondsBD() {
-		return nanos2secondsBD( getRemainingNanos() );
+        return nanos2secondsBD( getRemainingNanos() );
     }
 
     @Override
@@ -74,7 +74,7 @@ public class StopwatchBasedTimer implements Timer {
 
     @Override
     public long getTimeLimitMillisLong() {
-    	return nanos2millisLong( getTimeLimitNanos() );
+        return nanos2millisLong( getTimeLimitNanos() );
     }
 
     @Override
@@ -89,12 +89,12 @@ public class StopwatchBasedTimer implements Timer {
 
     @Override
     public double getTimeLimitSeconds() {
-    	return nanos2seconds( getTimeLimitNanos() );
+        return nanos2seconds( getTimeLimitNanos() );
     }
 
     @Override
     public BigDecimal getTimeLimitSecondsBD() {
-		return nanos2secondsBD( getTimeLimitNanos() );
+        return nanos2secondsBD( getTimeLimitNanos() );
     }
     
     // StopwatchWrapper methods
@@ -199,8 +199,8 @@ public class StopwatchBasedTimer implements Timer {
         return toStringSplit();
     }
 
-	@Override
-	public boolean await(Condition cv) throws InterruptedException {
-		return cv.await(getRemainingMillisLong(), TimeUnit.MILLISECONDS);
-	}
+    @Override
+    public boolean await(Condition cv) throws InterruptedException {
+        return cv.await(getRemainingMillisLong(), TimeUnit.MILLISECONDS);
+    }
 }

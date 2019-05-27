@@ -37,12 +37,12 @@ BEGIN_NAMESPACE(jace)
 class VmLoader
 {
 public:
-	/**
-	 * Creates a new VmLoader.
-	 *
-	 * @param jniVersion the JNI version the JVM must support
-	 */
-	JACE_API VmLoader(jint jniVersion);
+    /**
+     * Creates a new VmLoader.
+     *
+     * @param jniVersion the JNI version the JVM must support
+     */
+    JACE_API VmLoader(jint jniVersion);
 
   /**
    * Returns the the JNI version the JVM must support.
@@ -59,13 +59,13 @@ public:
    */
   JACE_API virtual jint getCreatedJavaVMs(JavaVM** vmBuf, jsize bufLen, jsize* nVMs) const = 0;
 
-	JACE_API virtual ~VmLoader() {}
+    JACE_API virtual ~VmLoader() {}
 private:
-	/**
-	 * Prevent copying.
-	 */
-	VmLoader& operator=(VmLoader&);
-	const jint jniVersion;
+    /**
+     * Prevent copying.
+     */
+    VmLoader& operator=(VmLoader&);
+    const jint jniVersion;
 };
 
 END_NAMESPACE(jace)

@@ -108,38 +108,38 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
         return nsOptions;
     }
     
-	@Override
-	public <K, V> NamespacePerspectiveOptions<K, V> getDefaultNSPOptions(Class<K> keyClass, Class<V> valueClass) {
-		VersionProvider	versionProvider;
-		
-		// FUTURE - Currently we intercept request for NS-supplied versions and provide them here.
-		// We may want to provide them on the server. Code for this is already in ActiveProxyPut.
-		switch (nsOptions.getVersionMode()) {
-		case SINGLE_VERSION: 
-			// SINGLE_VERSION internally expects the version number to be abs millis
-			versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource);
-			break;
-		case CLIENT_SPECIFIED:
-			versionProvider = new ConstantVersionProvider(SystemTimeUtil.systemTimeSource.absTimeMillis());
-			break;
-		case SYSTEM_TIME_MILLIS:
-			versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource);
-			break;
-		case SEQUENTIAL: // FIXME - for now treat sequential as nanos
-		case SYSTEM_TIME_NANOS:
-			versionProvider = new AbsNanosVersionProvider(SystemTimeUtil.systemTimeSource);
-			break;
-	    default: throw new RuntimeException("panic");
-		}
-		
-		return new NamespacePerspectiveOptions<K,V>(keyClass, valueClass, 
-												KeyDigestType.MD5, // FUTURE - centralize 
-												nsOptions.getDefaultPutOptions(),
-												nsOptions.getDefaultInvalidationOptions(),
-												nsOptions.getDefaultGetOptions(), 
-												nsOptions.getDefaultWaitOptions(), 
-												versionProvider, null);
-	}
+    @Override
+    public <K, V> NamespacePerspectiveOptions<K, V> getDefaultNSPOptions(Class<K> keyClass, Class<V> valueClass) {
+        VersionProvider    versionProvider;
+        
+        // FUTURE - Currently we intercept request for NS-supplied versions and provide them here.
+        // We may want to provide them on the server. Code for this is already in ActiveProxyPut.
+        switch (nsOptions.getVersionMode()) {
+        case SINGLE_VERSION: 
+            // SINGLE_VERSION internally expects the version number to be abs millis
+            versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource);
+            break;
+        case CLIENT_SPECIFIED:
+            versionProvider = new ConstantVersionProvider(SystemTimeUtil.systemTimeSource.absTimeMillis());
+            break;
+        case SYSTEM_TIME_MILLIS:
+            versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource);
+            break;
+        case SEQUENTIAL: // FIXME - for now treat sequential as nanos
+        case SYSTEM_TIME_NANOS:
+            versionProvider = new AbsNanosVersionProvider(SystemTimeUtil.systemTimeSource);
+            break;
+        default: throw new RuntimeException("panic");
+        }
+        
+        return new NamespacePerspectiveOptions<K,V>(keyClass, valueClass, 
+                                                KeyDigestType.MD5, // FUTURE - centralize 
+                                                nsOptions.getDefaultPutOptions(),
+                                                nsOptions.getDefaultInvalidationOptions(),
+                                                nsOptions.getDefaultGetOptions(), 
+                                                nsOptions.getDefaultWaitOptions(), 
+                                                versionProvider, null);
+    }
 
     DHTSessionImpl getSession() {
         return session;
@@ -232,19 +232,19 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
                                          new NamespacePerspectiveOptionsImpl<>(nspOptions, serializationRegistry));
     }
 
-	@Override
-	public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective(
-			Class<K> keyClass, Class<V> valueClass) {
+    @Override
+    public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective(
+            Class<K> keyClass, Class<V> valueClass) {
         return new AsynchronousNamespacePerspectiveImpl<K,V>(this, name,
                 new NamespacePerspectiveOptionsImpl<>(getDefaultNSPOptions(keyClass, valueClass), serializationRegistry));
-	}
-	
-	@Override
-	public AsynchronousNamespacePerspective<String,byte[]> openAsyncPerspective() {
-		return openAsyncPerspective(DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
-	}
-	
-	
+    }
+    
+    @Override
+    public AsynchronousNamespacePerspective<String,byte[]> openAsyncPerspective() {
+        return openAsyncPerspective(DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
+    }
+    
+    
     @Override
     public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
                                                                     NamespacePerspectiveOptions<K,V> nspOptions) {
@@ -252,17 +252,17 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
                 new NamespacePerspectiveOptionsImpl<>(nspOptions, serializationRegistry));
     }
 
-	@Override
-	public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
-			Class<K> keyClass, Class<V> valueClass) {
+    @Override
+    public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
+            Class<K> keyClass, Class<V> valueClass) {
         return new SynchronousNamespacePerspectiveImpl<K, V>(this, name, 
                 new NamespacePerspectiveOptionsImpl<>(getDefaultNSPOptions(keyClass, valueClass), serializationRegistry));
-	}
+    }
     
-	@Override
-	public SynchronousNamespacePerspective<String,byte[]> openSyncPerspective() {
-		return openSyncPerspective(DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
-	}
+    @Override
+    public SynchronousNamespacePerspective<String,byte[]> openSyncPerspective() {
+        return openSyncPerspective(DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
+    }
     
     // misc.
 
@@ -342,15 +342,15 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
         }
     }
 
-	public void validatePutOptions(PutOptions putOptions) {
-		if (nsOptions.getMaxValueSize() > nsOptions.getSegmentSize()) {
-			// Values > a segment are allowed. Ensure that fragmentation is set to a sane value
-			if (putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin) {
-				throw new IllegalArgumentException("Values larger than a segment are allowed, "
-						+"but putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin");
-			}
-		} else {
-			// Values can all fit in one segment
-		}
-	}
+    public void validatePutOptions(PutOptions putOptions) {
+        if (nsOptions.getMaxValueSize() > nsOptions.getSegmentSize()) {
+            // Values > a segment are allowed. Ensure that fragmentation is set to a sane value
+            if (putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin) {
+                throw new IllegalArgumentException("Values larger than a segment are allowed, "
+                        +"but putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin");
+            }
+        } else {
+            // Values can all fit in one segment
+        }
+    }
 }

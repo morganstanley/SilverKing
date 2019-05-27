@@ -51,9 +51,9 @@ BEGIN_NAMESPACE(jace)
  * @throws JNIException if the virtual machine cannot be created
  */
 JACE_API void createVm(const VmLoader& loader,
-											 const OptionList& options,
-											 bool ignoreUnrecognized = true)
-											 throw (JNIException);
+                                             const OptionList& options,
+                                             bool ignoreUnrecognized = true)
+                                             throw (JNIException);
 
 /**
  * Destroys the current Java Virtual Machine and tells Jace that it
@@ -120,7 +120,7 @@ JACE_API JNIEnv* attach() throw (JNIException, VirtualMachineShutdownError);
  * @throws VirtualMachineShutdownError if the virtual machine is not running
  */
 JACE_API JNIEnv* attach(const jobject threadGroup, const char* name, const bool daemon)
-	throw (JNIException, VirtualMachineShutdownError);
+    throw (JNIException, VirtualMachineShutdownError);
 
 
 /**
@@ -217,12 +217,12 @@ JACE_API void setClassLoader(jobject classLoader);
 template <class T> std::string toString(T value)
 {
 #ifdef SUPPORTS_SSTREAM
-		std::stringstream stream;
+        std::stringstream stream;
 #else
-		std::strstream stream;
+        std::strstream stream;
 #endif
-		stream << value;
-		return stream.str();
+        stream << value;
+        return stream.str();
 }
 
 /**
@@ -266,7 +266,7 @@ JACE_API bool isRunning();
 template <typename T>
 T java_new()
 {
-	return T::Factory::create();
+    return T::Factory::create();
 }
 
 /**
@@ -279,7 +279,7 @@ T java_new()
 template <typename T, typename A0>
 T java_new(A0 a0)
 {
-	return T::Factory::create(a0);
+    return T::Factory::create(a0);
 }
 
 /**
@@ -292,7 +292,7 @@ T java_new(A0 a0)
 template <typename T, typename A0, typename A1>
 T java_new(A0 a0, A1 a1)
 {
-	return T::Factory::create(a0, a1);
+    return T::Factory::create(a0, a1);
 }
 
 /**
@@ -305,7 +305,7 @@ T java_new(A0 a0, A1 a1)
 template <typename T, typename A0, typename A1, typename A2>
 T java_new(A0 a0, A1 a1, A2 a2)
 {
-	return T::Factory::create(a0, a1, a2);
+    return T::Factory::create(a0, a1, a2);
 }
 
 /**
@@ -318,7 +318,7 @@ T java_new(A0 a0, A1 a1, A2 a2)
 template <typename T, typename A0, typename A1, typename A2, typename A3>
 T java_new(A0 a0, A1 a1, A2 a2, A3 a3)
 {
-	return T::Factory::create(a0, a1, a2, a3);
+    return T::Factory::create(a0, a1, a2, a3);
 }
 
 /**
@@ -331,7 +331,7 @@ T java_new(A0 a0, A1 a1, A2 a2, A3 a3)
 template <typename T, typename A0, typename A1, typename A2, typename A3, typename A4>
 T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4)
 {
-	return T::Factory::create(a0, a1, a2, a3, a4);
+    return T::Factory::create(a0, a1, a2, a3, a4);
 }
 
 /**
@@ -344,7 +344,7 @@ T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4)
 template <typename T, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5>
 T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5)
 {
-	return T::Factory::create(a0, a1, a2, a3, a4, a5);
+    return T::Factory::create(a0, a1, a2, a3, a4, a5);
 }
 
 /**
@@ -358,7 +358,7 @@ template <typename T, typename A0, typename A1, typename A2, typename A3, typena
           typename A6>
 T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6)
 {
-	return T::Factory::create(a0, a1, a2, a3, a4, a5, a6);
+    return T::Factory::create(a0, a1, a2, a3, a4, a5, a6);
 }
 
 /**
@@ -372,7 +372,7 @@ template <typename T, typename A0, typename A1, typename A2, typename A3, typena
           typename A6, typename A7>
 T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7)
 {
-	return T::Factory::create(a0, a1, a2, a3, a4, a5, a6, a7);
+    return T::Factory::create(a0, a1, a2, a3, a4, a5, a6, a7);
 }
 
 /**
@@ -386,7 +386,7 @@ template <typename T, typename A0, typename A1, typename A2, typename A3, typena
           typename A6, typename A7, typename A8>
 T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8)
 {
-	return T::Factory::create(a0, a1, a2, a3, a4, a5, a6, a7, a8);
+    return T::Factory::create(a0, a1, a2, a3, a4, a5, a6, a7, a8);
 }
 
 /**
@@ -400,7 +400,7 @@ template <typename T, typename A0, typename A1, typename A2, typename A3, typena
           typename A6, typename A7, typename A8, typename A9>
 T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
 {
-	return T::Factory::create(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
+    return T::Factory::create(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
 }
 
 /**
@@ -415,7 +415,7 @@ T java_new(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4, A5 a5, A6 a6, A7 a7, A8 a8, A9 a9)
 template <typename T>
 T java_new(const char* text)
 {
-	return T::Factory::create(text);
+    return T::Factory::create(text);
 }
 
 /**
@@ -430,7 +430,7 @@ T java_new(const char* text)
 template <typename T>
 T java_new(const ::std::string& text)
 {
-	return T::Factory::create(text);
+    return T::Factory::create(text);
 }
 
 /**
@@ -445,25 +445,25 @@ T java_new(const ::std::string& text)
  */
 template <typename T> T java_cast(const ::jace::proxy::JObject& obj)
 {
-	JNIEnv* env = attach();
-	jclass argClass = env->GetObjectClass(obj);
+    JNIEnv* env = attach();
+    jclass argClass = env->GetObjectClass(obj);
 
-	if (!argClass)
-	{
-		std::string msg = "[java_cast] Failed to retrieve the class type for obj.";
-		throw JNIException(msg);
-	}
+    if (!argClass)
+    {
+        std::string msg = "[java_cast] Failed to retrieve the class type for obj.";
+        throw JNIException(msg);
+    }
 
-	const ::jace::JClass& resultClass = T::staticGetJavaJniClass();
+    const ::jace::JClass& resultClass = T::staticGetJavaJniClass();
 
-	bool isValid = env->IsAssignableFrom(argClass, resultClass.getClass());
-	env->DeleteLocalRef(argClass);
+    bool isValid = env->IsAssignableFrom(argClass, resultClass.getClass());
+    env->DeleteLocalRef(argClass);
 
-	if (isValid)
-		return T(static_cast<jobject>(obj));
+    if (isValid)
+        return T(static_cast<jobject>(obj));
 
-	std::string msg = "Can not cast to " + resultClass.getInternalName();
-	throw JNIException(msg);
+    std::string msg = "Can not cast to " + resultClass.getInternalName();
+    throw JNIException(msg);
 }
 
 /**
@@ -482,24 +482,24 @@ template <typename T> T java_cast(const ::jace::proxy::JObject& obj)
  */
 template <typename T> bool instanceof(const ::jace::proxy::JObject& object)
 {
-	if (object.isNull())
-		return false;
+    if (object.isNull())
+        return false;
 
-	JNIEnv* env = attach();
-	jclass argClass = env->GetObjectClass(object);
+    JNIEnv* env = attach();
+    jclass argClass = env->GetObjectClass(object);
 
-	if (!argClass)
-	{
-		std::string msg = "[instanceof] Failed to retrieve the dynamic class type for object.";
-		throw JNIException(msg);
-	}
+    if (!argClass)
+    {
+        std::string msg = "[instanceof] Failed to retrieve the dynamic class type for object.";
+        throw JNIException(msg);
+    }
 
-	const ::jace::JClass& resultClass = T::staticGetJavaJniClass();
+    const ::jace::JClass& resultClass = T::staticGetJavaJniClass();
 
-	bool isValid = env->IsAssignableFrom(argClass, resultClass.getClass());
-	env->DeleteLocalRef(argClass);
+    bool isValid = env->IsAssignableFrom(argClass, resultClass.getClass());
+    env->DeleteLocalRef(argClass);
 
-	return isValid;
+    return isValid;
 }
 
 END_NAMESPACE(jace)

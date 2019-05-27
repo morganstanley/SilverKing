@@ -35,209 +35,209 @@ import com.ms.silverking.net.IPAndPort;
  *    loss for a specific ring. 
  */
 public class ComputeRingStats {
-	private final SKGridConfiguration	gc;
-	private final PrintStream			out;
-	private final MetaUtil				metaUtil;
-	private final com.ms.silverking.cloud.dht.meta.MetaClient	dhtMC;
-	private final String				ringParentName; // FUTURE - remove to make functional
-	
-	private final ResolvedReplicaMap	sMap;
-	private final List<IPAndPort>		replicas;
-	
-	
-	public ComputeRingStats(SKGridConfiguration gc, Triple<String, Long, Long> sourceRing) throws IOException, KeeperException, ClientException {
-		this.gc = gc;
-		this.out = System.out;
-		
-		metaUtil = new MetaUtil(gc.getClientDHTConfiguration().getName(), gc.getClientDHTConfiguration().getZKConfig(), MetaUtilOptions.dhtVersionUnspecified);
-		dhtMC = metaUtil.getDHTMC();
-		ringParentName = metaUtil.getRingConfiguration().getRingParentName();
-		
-		sMap = readReplicaMap(sourceRing);
-		
-		replicas = ImmutableList.copyOf(sMap.allReplicas());
-	}
-	
-	private ResolvedReplicaMap readReplicaMap(Triple<String,Long,Long> ring) throws IOException, KeeperException {
-		return readTree(ring).getResolvedMap(ringParentName, new ReplicaNaiveIPPrioritizer());
-	}
-	
-	private InstantiatedRingTree readTree(Triple<String,Long,Long> ring) throws IOException, KeeperException {
-		MetaClient	ringMC;
-		long	ringConfigVersion;
-		long	configInstanceVersion;
-		InstantiatedRingTree	ringTree;
-		
-		ringConfigVersion = ring.getTail().getV1();
-		configInstanceVersion = ring.getTail().getV2();
-		
-		ringMC = metaUtil.getRingMC();
-		
-		ringTree = SingleRingZK.readTree(ringMC, ringConfigVersion, configInstanceVersion);
-		return ringTree;
-	}
-	
-	private static Triple<String,Long,Long> getRingAndVersionPair(String ringNameAndVersionPair) {
-		String[]	s;
-		
-		s = ringNameAndVersionPair.split(",");
-		return new Triple<>(s[0], Long.parseLong(s[1]), Long.parseLong(s[2]));
-	}
-	
-	private static Triple<String,Long,Long> parseRing(String s) {
-		String	ringName;
-		
-		ringName = s.substring(0, s.indexOf(','));
-		return Triple.of(ringName, getVersionPair(s.substring(s.indexOf(',') + 1)));
-	}
-	
-	private static Pair<Long,Long> getVersionPair(String versionPair) {
-		String[]	s;
-		
-		s = versionPair.split(",");
-		return new Pair<>(Long.parseLong(s[0]), Long.parseLong(s[1]));
-	}	
-	
-	private double computeLossProbability(int s) {
-		return computeLossProbability(s, 100);
-	}
-	
-	private double computeLossProbability(int s, int simulations) {
-		int	losses;
-		
-		losses = 0;
-		for (int i = 0; i < simulations; i++) {
-			if (lossTrial(s)) {
-				++losses;
-			}
-		}
-		return (double)losses / (double)simulations;
-	}
-	
-	private boolean lossTrial(int s) {
-		Set<IPAndPort>	lostServers;
-		
-		lostServers = generateLostServers(s);
-		for (Set<IPAndPort> replicaSet : this.sMap.getReplicaSets()) {
-			boolean	lost;
-			
-			lost = true;
-			for (IPAndPort replica : replicaSet) {
-				if (!lostServers.contains(replica)) {
-					lost = false;
-					break;
-				}
-			}
-			if (lost) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private Set<IPAndPort> generateLostServers(int s) {
-		Set<IPAndPort>	lostServers;
-		
-		// Currently a simple algorithm appropriate only when s <<< |replicas|
-		lostServers = new HashSet<>();
-		while (lostServers.size() < s) {
-			int			index;
-			IPAndPort	replica;
-			
-			index = ThreadLocalRandom.current().nextInt(replicas.size());
-			replica = replicas.get(index);
-			if (!lostServers.contains(replica)) {
-				lostServers.add(replica);
-			}
-		}
-		return lostServers;
-	}
-	
-	public void computeLossProbability(int[] serversLost, int simulations) {
-		out.println("*******************************");
-		for (int s : serversLost) {
-			double	lp;
-			
-			lp = computeLossProbability(s, simulations);
-			out.printf("%d\t%.7f\n", s, lp);
-		}
-	}
-	
-	///////////////////////////////////////////////////////////
-	
-	public boolean lostData(File lostServerFile) throws IOException {
-		return lostData(new FileInputStream(lostServerFile));
-	}
-	
-	private boolean lostData(FileInputStream in) throws IOException {
-		Set<IPAndPort>	lostServers;
-		BufferedReader	reader;
-		String			line;
-		
-		reader = new BufferedReader(new InputStreamReader(in));
-		lostServers = new HashSet<>();
-		do {
-			line = reader.readLine();
-			if (line != null) {
-				line = line.trim();
-				if (line.length() > 0) {
-					lostServers.add(new IPAndPort(line, 0/*gc.getClientDHTConfiguration().getPort()*/));
-				}
-			}
-		} while (line != null);
-		return lostData(lostServers);
-	}
+    private final SKGridConfiguration    gc;
+    private final PrintStream            out;
+    private final MetaUtil                metaUtil;
+    private final com.ms.silverking.cloud.dht.meta.MetaClient    dhtMC;
+    private final String                ringParentName; // FUTURE - remove to make functional
+    
+    private final ResolvedReplicaMap    sMap;
+    private final List<IPAndPort>        replicas;
+    
+    
+    public ComputeRingStats(SKGridConfiguration gc, Triple<String, Long, Long> sourceRing) throws IOException, KeeperException, ClientException {
+        this.gc = gc;
+        this.out = System.out;
+        
+        metaUtil = new MetaUtil(gc.getClientDHTConfiguration().getName(), gc.getClientDHTConfiguration().getZKConfig(), MetaUtilOptions.dhtVersionUnspecified);
+        dhtMC = metaUtil.getDHTMC();
+        ringParentName = metaUtil.getRingConfiguration().getRingParentName();
+        
+        sMap = readReplicaMap(sourceRing);
+        
+        replicas = ImmutableList.copyOf(sMap.allReplicas());
+    }
+    
+    private ResolvedReplicaMap readReplicaMap(Triple<String,Long,Long> ring) throws IOException, KeeperException {
+        return readTree(ring).getResolvedMap(ringParentName, new ReplicaNaiveIPPrioritizer());
+    }
+    
+    private InstantiatedRingTree readTree(Triple<String,Long,Long> ring) throws IOException, KeeperException {
+        MetaClient    ringMC;
+        long    ringConfigVersion;
+        long    configInstanceVersion;
+        InstantiatedRingTree    ringTree;
+        
+        ringConfigVersion = ring.getTail().getV1();
+        configInstanceVersion = ring.getTail().getV2();
+        
+        ringMC = metaUtil.getRingMC();
+        
+        ringTree = SingleRingZK.readTree(ringMC, ringConfigVersion, configInstanceVersion);
+        return ringTree;
+    }
+    
+    private static Triple<String,Long,Long> getRingAndVersionPair(String ringNameAndVersionPair) {
+        String[]    s;
+        
+        s = ringNameAndVersionPair.split(",");
+        return new Triple<>(s[0], Long.parseLong(s[1]), Long.parseLong(s[2]));
+    }
+    
+    private static Triple<String,Long,Long> parseRing(String s) {
+        String    ringName;
+        
+        ringName = s.substring(0, s.indexOf(','));
+        return Triple.of(ringName, getVersionPair(s.substring(s.indexOf(',') + 1)));
+    }
+    
+    private static Pair<Long,Long> getVersionPair(String versionPair) {
+        String[]    s;
+        
+        s = versionPair.split(",");
+        return new Pair<>(Long.parseLong(s[0]), Long.parseLong(s[1]));
+    }    
+    
+    private double computeLossProbability(int s) {
+        return computeLossProbability(s, 100);
+    }
+    
+    private double computeLossProbability(int s, int simulations) {
+        int    losses;
+        
+        losses = 0;
+        for (int i = 0; i < simulations; i++) {
+            if (lossTrial(s)) {
+                ++losses;
+            }
+        }
+        return (double)losses / (double)simulations;
+    }
+    
+    private boolean lossTrial(int s) {
+        Set<IPAndPort>    lostServers;
+        
+        lostServers = generateLostServers(s);
+        for (Set<IPAndPort> replicaSet : this.sMap.getReplicaSets()) {
+            boolean    lost;
+            
+            lost = true;
+            for (IPAndPort replica : replicaSet) {
+                if (!lostServers.contains(replica)) {
+                    lost = false;
+                    break;
+                }
+            }
+            if (lost) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private Set<IPAndPort> generateLostServers(int s) {
+        Set<IPAndPort>    lostServers;
+        
+        // Currently a simple algorithm appropriate only when s <<< |replicas|
+        lostServers = new HashSet<>();
+        while (lostServers.size() < s) {
+            int            index;
+            IPAndPort    replica;
+            
+            index = ThreadLocalRandom.current().nextInt(replicas.size());
+            replica = replicas.get(index);
+            if (!lostServers.contains(replica)) {
+                lostServers.add(replica);
+            }
+        }
+        return lostServers;
+    }
+    
+    public void computeLossProbability(int[] serversLost, int simulations) {
+        out.println("*******************************");
+        for (int s : serversLost) {
+            double    lp;
+            
+            lp = computeLossProbability(s, simulations);
+            out.printf("%d\t%.7f\n", s, lp);
+        }
+    }
+    
+    ///////////////////////////////////////////////////////////
+    
+    public boolean lostData(File lostServerFile) throws IOException {
+        return lostData(new FileInputStream(lostServerFile));
+    }
+    
+    private boolean lostData(FileInputStream in) throws IOException {
+        Set<IPAndPort>    lostServers;
+        BufferedReader    reader;
+        String            line;
+        
+        reader = new BufferedReader(new InputStreamReader(in));
+        lostServers = new HashSet<>();
+        do {
+            line = reader.readLine();
+            if (line != null) {
+                line = line.trim();
+                if (line.length() > 0) {
+                    lostServers.add(new IPAndPort(line, 0/*gc.getClientDHTConfiguration().getPort()*/));
+                }
+            }
+        } while (line != null);
+        return lostData(lostServers);
+    }
 
-	public boolean lostData(Set<IPAndPort> lostServers) {
-		//out.println(lostServers);
-		for (Set<IPAndPort> replicaSet : this.sMap.getReplicaSets()) {
-			boolean	lost;
-			
-			lost = true;
-			//out.println(replicaSet);
-			for (IPAndPort replica : replicaSet) {
-				//out.println(replica);
-				if (!lostServers.contains(replica)) {
-					lost = false;
-					break;
-				}
-			}
-			if (lost) {
-				return true;
-			}
-		}
-		return false;
-	}
+    public boolean lostData(Set<IPAndPort> lostServers) {
+        //out.println(lostServers);
+        for (Set<IPAndPort> replicaSet : this.sMap.getReplicaSets()) {
+            boolean    lost;
+            
+            lost = true;
+            //out.println(replicaSet);
+            for (IPAndPort replica : replicaSet) {
+                //out.println(replica);
+                if (!lostServers.contains(replica)) {
+                    lost = false;
+                    break;
+                }
+            }
+            if (lost) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-	public static void main(String[] args) {
-		if (args.length < 3) {
-			System.err.println("args: <gridConfig> <sourceRing> <simulations> <serversLost...>");
-			System.err.println("args: <gridConfig> <sourceRing> <serverFile>");
-		} else {
-			try {
-				ComputeRingStats	crs;
-				SKGridConfiguration	gc;
-				Triple<String, Long, Long>	sourceRing;
-				int					simulations;
-				int[]				serversLost;
-				
-				gc = SKGridConfiguration.parseFile(args[0]);
-				sourceRing = parseRing(args[1]);
-				crs = new ComputeRingStats(gc, sourceRing);
-				if (args.length > 3) {
-					serversLost = new int[args.length - 3];
-					simulations = Integer.parseInt(args[2]);
-					for (int i = 3; i < args.length; i++) {
-						serversLost[i - 3] = Integer.parseInt(args[i]);
-					}
-					crs.computeLossProbability(serversLost, simulations);
-				} else {
-					System.out.printf("Result: %s\n", crs.lostData(new File(args[2])));
-				}
-				System.exit(0);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+    public static void main(String[] args) {
+        if (args.length < 3) {
+            System.err.println("args: <gridConfig> <sourceRing> <simulations> <serversLost...>");
+            System.err.println("args: <gridConfig> <sourceRing> <serverFile>");
+        } else {
+            try {
+                ComputeRingStats    crs;
+                SKGridConfiguration    gc;
+                Triple<String, Long, Long>    sourceRing;
+                int                    simulations;
+                int[]                serversLost;
+                
+                gc = SKGridConfiguration.parseFile(args[0]);
+                sourceRing = parseRing(args[1]);
+                crs = new ComputeRingStats(gc, sourceRing);
+                if (args.length > 3) {
+                    serversLost = new int[args.length - 3];
+                    simulations = Integer.parseInt(args[2]);
+                    for (int i = 3; i < args.length; i++) {
+                        serversLost[i - 3] = Integer.parseInt(args[i]);
+                    }
+                    crs.computeLossProbability(serversLost, simulations);
+                } else {
+                    System.out.printf("Result: %s\n", crs.lostData(new File(args[2])));
+                }
+                System.exit(0);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }

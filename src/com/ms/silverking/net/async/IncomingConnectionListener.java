@@ -5,5 +5,5 @@ package com.ms.silverking.net.async;
  * new connection is accepted.
  */
 public interface IncomingConnectionListener<T extends Connection> {
-	public void incomingConnection(T connection);
+    public void incomingConnection(T connection);
 }

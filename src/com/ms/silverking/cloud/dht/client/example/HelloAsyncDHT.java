@@ -10,8 +10,8 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
 public class HelloAsyncDHT {    
 
-	public static String runExample(SKGridConfiguration gridConfig) {
-		try {
+    public static String runExample(SKGridConfiguration gridConfig) {
+        try {
             AsynchronousNamespacePerspective<String, String>    asyncNSP;
             AsyncPut<String>    asyncPut;
             AsyncSingleValueRetrieval<String,String>    asyncGet;
@@ -26,9 +26,9 @@ public class HelloAsyncDHT {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-	}
-	
+    }
+    
     public static void main(String[] args) throws IOException {
-    	System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
+        System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
     }
 }

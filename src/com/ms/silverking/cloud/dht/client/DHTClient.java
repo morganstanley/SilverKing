@@ -40,81 +40,81 @@ import com.ms.silverking.time.TimerDrivenTimeSource;
  * to specific DHT instances.
  */
 public class DHTClient {
-	private final Lock				       sessionCreationLock;
-	private final Map<String,DHTSession>   dhtNameToSessionMap;
-	private final SerializationRegistry    serializationRegistry;
-	
-	private static final double	concurrentExtraThreadFactor = 1.25;
-	private static final double	nonConcurrentExtraThreadFactor = 1.0;
-	
-	private static ValueCreator    valueCreator;
-	
-	private static final AbsMillisTimeSource   absMillisTimeSource;
-	
-    private static final int defaultInactiveNodeTimeoutSeconds = 30;	
-	
-	/*
-	private static void initLog4j() {  
-		Logger rootLogger = Logger.getRootLogger();  
-		if (!rootLogger.getAllAppenders().hasMoreElements()) {      
-			rootLogger.setLevel(org.apache.log4j.Level.WARN);      
-			rootLogger.addAppender(new ConsoleAppender(             
-					new PatternLayout("%-5p [%t]: %m%n")));
-		}
-	}
-	*/
+    private final Lock                       sessionCreationLock;
+    private final Map<String,DHTSession>   dhtNameToSessionMap;
+    private final SerializationRegistry    serializationRegistry;
+    
+    private static final double    concurrentExtraThreadFactor = 1.25;
+    private static final double    nonConcurrentExtraThreadFactor = 1.0;
+    
+    private static ValueCreator    valueCreator;
+    
+    private static final AbsMillisTimeSource   absMillisTimeSource;
+    
+    private static final int defaultInactiveNodeTimeoutSeconds = 30;    
+    
+    /*
+    private static void initLog4j() {  
+        Logger rootLogger = Logger.getRootLogger();  
+        if (!rootLogger.getAllAppenders().hasMoreElements()) {      
+            rootLogger.setLevel(org.apache.log4j.Level.WARN);      
+            rootLogger.addAppender(new ConsoleAppender(             
+                    new PatternLayout("%-5p [%t]: %m%n")));
+        }
+    }
+    */
 
     private static final int   defaultClientWorkUnit = 16;
-	
-	static {
+    
+    static {
         Log.initAsyncLogging();
-	    AsyncGlobals.setVerbose(false);
-	    TopoRingConstants.setVerbose(false);
+        AsyncGlobals.setVerbose(false);
+        TopoRingConstants.setVerbose(false);
         LWTPoolProvider.createDefaultWorkPools(DefaultWorkPoolParameters.defaultParameters().workUnit(defaultClientWorkUnit).ignoreDoubleInit(true));
-		//initLog4j();
+        //initLog4j();
         //WorkPoolProvider.createWorkPools(concurrentExtraThreadFactor, nonConcurrentExtraThreadFactor, true);
         //if (!Log.levelMet(Level.INFO)) {
-        //	AsyncServer.verbose = false;
+        //    AsyncServer.verbose = false;
         //}
-	    valueCreator = SimpleValueCreator.forLocalProcess();
-	    absMillisTimeSource = new TimerDrivenTimeSource();
-	    OutgoingData.setAbsMillisTimeSource(absMillisTimeSource);
-	}
-	
-	/**
-	 * Return the ValueCreator in use
-	 * @return the ValueCreator in use
-	 */
-	public static ValueCreator getValueCreator() {
-	    return valueCreator;
-	}
-	
-	/**
-	 * Construct DHTClient with the specified SerializationRegistry. 
-	 * @param serializationRegistry TODO
-	 * @throws IOException TODO
-	 */
-	@OmitGeneration
-	public DHTClient(SerializationRegistry serializationRegistry) throws IOException {
-		sessionCreationLock = new ReentrantLock();
-		dhtNameToSessionMap = new HashMap<>();
-		this.serializationRegistry = serializationRegistry;
-	}
+        valueCreator = SimpleValueCreator.forLocalProcess();
+        absMillisTimeSource = new TimerDrivenTimeSource();
+        OutgoingData.setAbsMillisTimeSource(absMillisTimeSource);
+    }
+    
+    /**
+     * Return the ValueCreator in use
+     * @return the ValueCreator in use
+     */
+    public static ValueCreator getValueCreator() {
+        return valueCreator;
+    }
+    
+    /**
+     * Construct DHTClient with the specified SerializationRegistry. 
+     * @param serializationRegistry TODO
+     * @throws IOException TODO
+     */
+    @OmitGeneration
+    public DHTClient(SerializationRegistry serializationRegistry) throws IOException {
+        sessionCreationLock = new ReentrantLock();
+        dhtNameToSessionMap = new HashMap<>();
+        this.serializationRegistry = serializationRegistry;
+    }
 
-	/**
+    /**
      * Construct DHTClient with default SerializationRegistry. 
-	 * @throws IOException TODO
-	 */
+     * @throws IOException TODO
+     */
     public DHTClient() throws IOException {
         this(SerializationRegistry.createDefaultRegistry());
     }
     
-	/**
-	 * Open a new session to the specified SilverKing DHT instance using default SessionOptions.
-	 * @param dhtConfigProvider specifies the SilverKing DHT instance 
-	 * @return a new session to the given instance
-	 * @throws ClientException TODO
-	 */
+    /**
+     * Open a new session to the specified SilverKing DHT instance using default SessionOptions.
+     * @param dhtConfigProvider specifies the SilverKing DHT instance 
+     * @return a new session to the given instance
+     * @throws ClientException TODO
+     */
     public DHTSession openSession(ClientDHTConfigurationProvider dhtConfigProvider) throws ClientException {        
         return openSession(new SessionOptions(dhtConfigProvider.getClientDHTConfiguration()));
     }
@@ -125,101 +125,101 @@ public class DHTClient {
      * @return a new session to the given instance
      * @throws ClientException TODO
      */
-	public DHTSession openSession(SessionOptions sessionOptions) throws ClientException {
-	    ClientDHTConfiguration dhtConfig;
-	    String preferredServer;
-	    
-	    dhtConfig = sessionOptions.getDHTConfig();
-	    preferredServer = sessionOptions.getPreferredServer();
-	    
-	    if (preferredServer != null) {
-	    	if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
-	    		embedPassiveNode(dhtConfig);
-		    	preferredServer = null;
-	    	} else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
-	    		String	gcBase;
-	    		String	gcName;
-	    		
-	    		dhtConfig = embedKVS();
-	    		gcBase = "/tmp"; // FIXME - make user configurable
-	    		gcName = "GC_"+ dhtConfig.getName();
-	    		try {
-	    			Log.warningf("GridConfigBase: %s", gcBase);
-	    			Log.warningf("GridConfigName: %s", gcName);
-					StaticDHTCreator.writeGridConfig(dhtConfig, gcBase, gcName);
-				} catch (IOException e) {
-					throw new ClientException("Error creating embedded kvs", e);
-				}
-		    	preferredServer = null;
-	    	}
-	    }
-	    
-		sessionCreationLock.lock();
-		try {			
-			DHTSession   session;
-			
-			if (preferredServer == null) {
-			    preferredServer = IPAddrUtil.localIPString();
-			}
-			//session = dhtNameToSessionMap.get(dhtConfig.getName());
-			session = null; // FUTURE - this forces a new session
-			                // think about whether we want to use multiple or cache to common
-			if (session == null) {
-				int         serverPort;
+    public DHTSession openSession(SessionOptions sessionOptions) throws ClientException {
+        ClientDHTConfiguration dhtConfig;
+        String preferredServer;
+        
+        dhtConfig = sessionOptions.getDHTConfig();
+        preferredServer = sessionOptions.getPreferredServer();
+        
+        if (preferredServer != null) {
+            if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
+                embedPassiveNode(dhtConfig);
+                preferredServer = null;
+            } else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
+                String    gcBase;
+                String    gcName;
+                
+                dhtConfig = embedKVS();
+                gcBase = "/tmp"; // FIXME - make user configurable
+                gcName = "GC_"+ dhtConfig.getName();
+                try {
+                    Log.warningf("GridConfigBase: %s", gcBase);
+                    Log.warningf("GridConfigName: %s", gcName);
+                    StaticDHTCreator.writeGridConfig(dhtConfig, gcBase, gcName);
+                } catch (IOException e) {
+                    throw new ClientException("Error creating embedded kvs", e);
+                }
+                preferredServer = null;
+            }
+        }
+        
+        sessionCreationLock.lock();
+        try {            
+            DHTSession   session;
+            
+            if (preferredServer == null) {
+                preferredServer = IPAddrUtil.localIPString();
+            }
+            //session = dhtNameToSessionMap.get(dhtConfig.getName());
+            session = null; // FUTURE - this forces a new session
+                            // think about whether we want to use multiple or cache to common
+            if (session == null) {
+                int         serverPort;
 
-				try {
-				    if (dhtConfig.hasPort()) {
+                try {
+                    if (dhtConfig.hasPort()) {
                         serverPort = dhtConfig.getPort();
                     } else {
-    				    MetaClient      mc;
-    				    MetaPaths       mp;
-    				    long            latestConfigVersion;
+                        MetaClient      mc;
+                        MetaPaths       mp;
+                        long            latestConfigVersion;
 
-    				    Log.warning("dhtConfig.getZkLocs(): "+ dhtConfig.getZKConfig());
-    				    mc = new MetaClient(dhtConfig);
-    				    mp = mc.getMetaPaths();
-    				    
-    				    Log.warning("getting latest version: "+ mp.getInstanceConfigPath());
-    				    latestConfigVersion = mc.getZooKeeper().getLatestVersion(mp.getInstanceConfigPath()); 
-    				    Log.warning("latestConfigVersion: "+ latestConfigVersion);
-    				    serverPort = new DHTConfigurationZK(mc).readFromZK(latestConfigVersion, null).getPort();
-				    }
-				} catch (Exception e) {
-				    throw new ClientException(e);
-				}
-				try {
-				    session = new DHTSessionImpl(dhtConfig,
-				        new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort),
-				        absMillisTimeSource, serializationRegistry, sessionOptions.getTimeoutController());
+                        Log.warning("dhtConfig.getZkLocs(): "+ dhtConfig.getZKConfig());
+                        mc = new MetaClient(dhtConfig);
+                        mp = mc.getMetaPaths();
+                        
+                        Log.warning("getting latest version: "+ mp.getInstanceConfigPath());
+                        latestConfigVersion = mc.getZooKeeper().getLatestVersion(mp.getInstanceConfigPath()); 
+                        Log.warning("latestConfigVersion: "+ latestConfigVersion);
+                        serverPort = new DHTConfigurationZK(mc).readFromZK(latestConfigVersion, null).getPort();
+                    }
+                } catch (Exception e) {
+                    throw new ClientException(e);
+                }
+                try {
+                    session = new DHTSessionImpl(dhtConfig,
+                        new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort),
+                        absMillisTimeSource, serializationRegistry, sessionOptions.getTimeoutController());
                 } catch (IOException ioe) {
                     throw new ClientException(ioe);
-				}
-				Log.info("session returned: ", session);
-			}
-			return session;
-		} finally {
-			sessionCreationLock.unlock();
-		}
-	}
+                }
+                Log.info("session returned: ", session);
+            }
+            return session;
+        } finally {
+            sessionCreationLock.unlock();
+        }
+    }
 
-	private void embedPassiveNode(ClientDHTConfiguration dhtConfig) {
-		DHTNode	embeddedNode;
-		Path	tempDir;
-		File	skDir;
-		
-		try {
-			tempDir = Files.createTempDirectory(null);
-			skDir = new File(tempDir.toFile(), "silverking");
-			skDir.mkdirs();
-		} catch (IOException ioe) {
-			throw new RuntimeException(ioe);
-		}
-		
-		DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
-		embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
-	}
-	
-	private ClientDHTConfiguration embedKVS() {
-		return EmbeddedSK.createEmbeddedSKInstance();
-	}
+    private void embedPassiveNode(ClientDHTConfiguration dhtConfig) {
+        DHTNode    embeddedNode;
+        Path    tempDir;
+        File    skDir;
+        
+        try {
+            tempDir = Files.createTempDirectory(null);
+            skDir = new File(tempDir.toFile(), "silverking");
+            skDir.mkdirs();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+        
+        DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
+        embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
+    }
+    
+    private ClientDHTConfiguration embedKVS() {
+        return EmbeddedSK.createEmbeddedSKInstance();
+    }
 }

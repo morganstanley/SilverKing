@@ -15,32 +15,32 @@ import com.ms.silverking.cloud.dht.common.RawRetrievalResult;
 class RetrievalResult<V> extends RetrievalResultBase<V> {
     private final RawRetrievalResult    rawResult;
     
-	public RetrievalResult(RawRetrievalResult rawResult, BufferSourceDeserializer<V> valueDeserializer) {
-	    super(valueDeserializer);
-	    this.rawResult = rawResult;
-	}
-	
-	@Override
-	public OpResult getOpResult() {
-	    return rawResult.getOpResult();
-	}
-	
+    public RetrievalResult(RawRetrievalResult rawResult, BufferSourceDeserializer<V> valueDeserializer) {
+        super(valueDeserializer);
+        this.rawResult = rawResult;
+    }
+    
     @Override
-	public V getValue() {
-	    if (value == valueNotSet) {
-	        ByteBuffer rawValue;
-	        
-	        // FUTURE - have an option to perform an eager deserialization
-	        rawValue = rawResult.getValue();
-	        if (rawValue != null) {
-	            value = valueDeserializer.deserialize(rawValue);
-	        } else {
-	            value = null;
-	        }
-	    }
-		return value;
-	}
-	
+    public OpResult getOpResult() {
+        return rawResult.getOpResult();
+    }
+    
+    @Override
+    public V getValue() {
+        if (value == valueNotSet) {
+            ByteBuffer rawValue;
+            
+            // FUTURE - have an option to perform an eager deserialization
+            rawValue = rawResult.getValue();
+            if (rawValue != null) {
+                value = valueDeserializer.deserialize(rawValue);
+            } else {
+                value = null;
+            }
+        }
+        return value;
+    }
+    
     @Override
     public MetaData getMetaData() {
         return rawResult.getMetaData();

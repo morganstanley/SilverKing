@@ -25,21 +25,21 @@
 // types
 
 typedef struct FileBlockWriter {
-	QueueProcessor	*qp;
-	QueueProcessor	*blockDeletionQP;
-	SRFSDHT			*sd;
-	int				useCompression;
-	SKSession		*pSession;
+    QueueProcessor    *qp;
+    QueueProcessor    *blockDeletionQP;
+    SRFSDHT            *sd;
+    int                useCompression;
+    SKSession        *pSession;
     SKAsyncNSPerspective *ansp;
-	SKSession		*_pSession[FBW_DHT_SESSIONS];
+    SKSession        *_pSession[FBW_DHT_SESSIONS];
     SKAsyncNSPerspective *_ansp[FBW_DHT_SESSIONS];
     FileBlockCache  *fbc;
 } FileBlockWriter;
 
 typedef struct FBW_ActiveDirectPut {
-	char		key[SRFS_FBID_KEY_SIZE];
-	SKVal		*pVal;
-	SKAsyncPut	*pPut;
+    char        key[SRFS_FBID_KEY_SIZE];
+    SKVal        *pVal;
+    SKAsyncPut    *pPut;
 } FBW_ActiveDirectPut;
 
 
