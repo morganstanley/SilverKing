@@ -1,5 +1,8 @@
-
 ### ide's
 ide
+
 # VS
 .vscode
+
+# git
+*.orig
