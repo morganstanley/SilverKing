@@ -3,10 +3,10 @@ package com.ms.silverking.cloud.dht;
 import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultAllowLinks;
 import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultNamespaceServerSideCode;
 import static com.ms.silverking.cloud.dht.NamespaceOptions.defaultRetentionPolicy;
-import static com.ms.silverking.cloud.dht.NamespaceOptions.maxSegmentSize;
-import static com.ms.silverking.cloud.dht.NamespaceOptions.minSegmentSize;
 import static com.ms.silverking.cloud.dht.NamespaceOptions.maxMaxValueSize;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.maxSegmentSize;
 import static com.ms.silverking.cloud.dht.NamespaceOptions.minMaxValueSize;
+import static com.ms.silverking.cloud.dht.NamespaceOptions.minSegmentSize;
 import static com.ms.silverking.cloud.dht.TestUtil.goCopy;
 import static com.ms.silverking.cloud.dht.TestUtil.goDiff;
 import static com.ms.silverking.cloud.dht.TestUtil.ioCopy;
@@ -16,6 +16,7 @@ import static com.ms.silverking.cloud.dht.TestUtil.poDiff;
 import static com.ms.silverking.cloud.dht.TestUtil.woCopy;
 import static com.ms.silverking.cloud.dht.TestUtil.woDiff;
 import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultConsistencyProtocol;
+import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultMaxValueSize;
 import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultRevisionMode;
 import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultSecondarySyncIntervalSeconds;
 import static com.ms.silverking.cloud.dht.common.DHTConstants.defaultSegmentSize;
@@ -42,7 +43,6 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
-import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.code.ConstraintViolationException;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 
@@ -68,6 +68,9 @@ public class NamespaceOptionsTest {
     private static final int ssCopy                    = 67_108_864;
     private static final int ssDiff                    = 67_108_863;
 
+    private static final int mvsCopy                   = 1_073_741_824;
+    private static final int mvsDiff                   = 1_073_741_823;
+    
     private static boolean alCopy                      = false;
     private static boolean alDiff                      = true;
 
@@ -79,11 +82,11 @@ public class NamespaceOptionsTest {
     private static NamespaceServerSideCode nsscNull    = null;
 
     private static final NamespaceOptions defaultNsOptions           =     NamespaceOptions.templateOptions;
-    private static final NamespaceOptions defaultNsOptionsCopy       = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, DHTConstants.defaultMaxValueSize, alCopy, vrpCopy, nsscCopy);
-    private static final NamespaceOptions defaultNsOptionsAlmostCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, DHTConstants.defaultMaxValueSize, alCopy, vrpCopy, nsscDiff);
-    private static final NamespaceOptions defaultNsOptionsDiff       = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, DHTConstants.defaultMaxValueSize, alDiff, vrpDiff, nsscDiff);
-    private static final NamespaceOptions defaultNsOptionsNsscNull1  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, DHTConstants.defaultMaxValueSize, alDiff, vrpDiff, nsscNull);
-    private static final NamespaceOptions defaultNsOptionsNsscNull2  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, DHTConstants.defaultMaxValueSize, alDiff, vrpDiff, null);
+    private static final NamespaceOptions defaultNsOptionsCopy       = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, mvsCopy, alCopy, vrpCopy, nsscCopy);
+    private static final NamespaceOptions defaultNsOptionsAlmostCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, mvsCopy, alCopy, vrpCopy, nsscDiff);
+    private static final NamespaceOptions defaultNsOptionsDiff       = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, vrpDiff, nsscDiff);
+    private static final NamespaceOptions defaultNsOptionsNsscNull1  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, vrpDiff, nsscNull);
+    private static final NamespaceOptions defaultNsOptionsNsscNull2  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, vrpDiff, null);
     
     private StorageType getStorageType(NamespaceOptions nsOptions) {
         return nsOptions.getStorageType();
@@ -123,6 +126,10 @@ public class NamespaceOptionsTest {
     
     private int getSegmentSize(NamespaceOptions nsOptions) {
         return nsOptions.getSegmentSize();
+    }
+    
+    private int getMaxValueSize(NamespaceOptions nsOptions) {
+        return nsOptions.getMaxValueSize();
     }
 
     private boolean getAllowLinks(NamespaceOptions nsOptions) {
@@ -211,6 +218,7 @@ public class NamespaceOptionsTest {
             {standardWaitOptions,                 getDefaultWaitOptions(defaultNsOptions)},
             {defaultSecondarySyncIntervalSeconds, getSecondarySyncIntervalSeconds(defaultNsOptions)},
             {defaultSegmentSize,                  getSegmentSize(defaultNsOptions)},
+            {defaultMaxValueSize,                 getMaxValueSize(defaultNsOptions)},
             {defaultAllowLinks,                   getAllowLinks(defaultNsOptions)},
             {defaultRetentionPolicy,              getValueRetentionPolicy(defaultNsOptions)},
             {defaultNamespaceServerSideCode,      getNamespaceServerSideCode(defaultNsOptions)},
@@ -232,10 +240,11 @@ public class NamespaceOptionsTest {
             {"defaultInvalidationOptions = null",       new ExceptionChecker() { @Override public void check() { setDefaultInvalidationOptions(null);               } },         NullPointerException.class},
             {"defaultGetOptions = null",                new ExceptionChecker() { @Override public void check() { setDefaultGetOptions(null);                        } },         NullPointerException.class},
             {"defaultWaitOptions = null",               new ExceptionChecker() { @Override public void check() { setDefaultWaitOptions(null);                       } },         NullPointerException.class},
+            {"segmentSize = min-1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(minMaxValueSize-1);                 } },     IllegalArgumentException.class},
             {"segmentSize = min-1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(minSegmentSize-1);                  } }, ConstraintViolationException.class},
             {"segmentSize = max+1",                     new ExceptionChecker() { @Override public void check() { setSegmentSize(maxSegmentSize+1);                  } }, ConstraintViolationException.class},
-            {"maxValueSize = min-1",                     new ExceptionChecker() { @Override public void check() { setMaxValueSize(minMaxValueSize-1);                  } }, ConstraintViolationException.class},
-            {"maxValueSize = max+1",                     new ExceptionChecker() { @Override public void check() { setMaxValueSize(maxMaxValueSize+1);                  } }, ConstraintViolationException.class},
+            {"maxValueSize = min-1",                    new ExceptionChecker() { @Override public void check() { setMaxValueSize(minMaxValueSize-1);                } },     IllegalArgumentException.class},
+            {"maxValueSize = max+1",                    new ExceptionChecker() { @Override public void check() { setMaxValueSize(maxMaxValueSize+1);                } },     IllegalArgumentException.class},
             {"valueRetentionPolicy = null",             new ExceptionChecker() { @Override public void check() { setValueRetentionPolicy(null);                     } },         NullPointerException.class},
 // null is allowed for backwards compatibility, so commenting this out            {"namespaceServerSideCode = null",          new ExceptionChecker() { @Override public void check() { setNamespaceServerSideCode(null);                  } },         NullPointerException.class},
         };
@@ -262,6 +271,9 @@ public class NamespaceOptionsTest {
 
         for (int size : new int[]{minSegmentSize, (minSegmentSize+maxSegmentSize)/2, maxSegmentSize})
             check_Setter(size, getSegmentSize( setSegmentSize(size) ) );
+
+        for (int size : new int[]{minMaxValueSize, (minMaxValueSize+maxMaxValueSize)/2, maxMaxValueSize})
+            check_Setter(size, getMaxValueSize( setMaxValueSize(size) ) );
         
         for (boolean val : new boolean[]{false, true})
             check_Setter(val, getAllowLinks( setAllowLinks(val) ) );
@@ -320,6 +332,7 @@ public class NamespaceOptionsTest {
             {defaultNsOptions,           setDefaultWaitOptions(woCopy),             setDefaultWaitOptions(woDiff)},
             {defaultNsOptions,           setSecondarySyncIntervalSeconds(ssisCopy), setSecondarySyncIntervalSeconds(ssisDiff)},
             {defaultNsOptions,           setSegmentSize(ssCopy),                    setSegmentSize(ssDiff)},
+            {defaultNsOptions,           setMaxValueSize(mvsCopy),                  setMaxValueSize(mvsDiff)},
             {defaultNsOptions,           setAllowLinks(alCopy),                     setAllowLinks(alDiff)},
             {defaultNsOptions,           setValueRetentionPolicy(vrpCopy),          setValueRetentionPolicy(vrpDiff)},
             {defaultNsOptions,           setNamespaceServerSideCode(nsscCopy),      setNamespaceServerSideCode(nsscDiff)},
