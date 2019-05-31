@@ -322,14 +322,14 @@ public class SKAdmin {
         return servers.build();
     }
     
-    private String getJavaCmdStart(SKAdminOptions options, ClassVars classVars) {        
+    private String getJavaCmdStart(SKAdminOptions options, ClassVars classVars, boolean escaped) {        
         return options.javaBinary +" -cp "+ options.classPath
                 +" "+ options.assertionOption 
                 +" "+ getJVMOptions(classVars)
                 +" "+ getProfilingOptions(options)
                 +" "+ getJVMMemoryOptions(classVars)
                 +" "+ getDHTOptions(options, classVars)
-                +" "+ getExtraOptions(options, classVars);
+                +" "+ getExtraOptions(options, classVars, escaped);
     }
     
     private String getJVMOptions(ClassVars classVars) {
@@ -397,13 +397,13 @@ public class SKAdmin {
         return property;
     }
     
-    private String getExtraOptions(SKAdminOptions options, ClassVars classVars) {
+    private String getExtraOptions(SKAdminOptions options, ClassVars classVars, boolean escaped) {
         String    s;
         
         // FUTURE - change to generic mechanism to pipe through properties
         s = "";
         if (options.aclImplSkStrDef != null) {
-            s += getSystemPropertyFormattedWithValueEscaped(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef);
+            s += getSystemPropertyFormattedWithValueEscaped(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef, escaped);
         }
 
         if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
@@ -414,7 +414,7 @@ public class SKAdmin {
         }
         
         if (options.authImplSkStrDef != null) {
-            s += getSystemPropertyFormattedWithValueEscaped(Authenticator.authImplProperty, options.authImplSkStrDef);
+            s += getSystemPropertyFormattedWithValueEscaped(Authenticator.authImplProperty, options.authImplSkStrDef, escaped);
         }
         
         s += " " + options.startNodeExtraJVMOptions;
@@ -451,13 +451,74 @@ public class SKAdmin {
                 + getPreJavaCommand(classVars) +" "
                 + getNodeEnv(classVars)
                 + getTaskset(options)
-                + getJavaCmdStart(options, classVars) 
+                + _generateNodeStartCommand(classVars, options, reapPolicy, true)
+                +( destructive ? (" 1>"+ daemonLogFile +" 2>&1 &") : (" 1>"+ daemonLogFile +"; 2>&1; } & fi") )
+                ;
+    }
+
+    private boolean generateSingleNodeStartCommand(SKAdminOptions options) throws IOException, KeeperException {
+        ClassVars classVars;
+        String thisServer;
+
+        Set<String>                activeHostGroupNames;
+        Map<String,ClassVars>    hostGroupToClassVars;
+        HostGroupTable            hostGroupTable;
+        String                    hostGroupTableName;
+        Set<String>                passiveNodeHostGroupNames;
+        Set<String>             parsedTargets;
+        String                  generetedCmd;
+        ReapPolicy              reapPolicy;
+
+        parsedTargets = CollectionUtil.parseSet(options.targets, ",");
+
+        if (parsedTargets.size() > 1) {
+            throw new IllegalArgumentException("generation of single node start command should only be passed a single target, got " + parsedTargets.toString());
+        } else if (parsedTargets.isEmpty()) {
+            throw new IllegalArgumentException("target server for start command generation must be provided via -t");
+        }
+
+        thisServer = parsedTargets.iterator().next();
+        Log.warning("Generating start command for target " + thisServer);
+
+        activeHostGroupNames = dhtConfig.getHostGroups();
+        Log.warning("hostGroupNames: ", CollectionUtil.toString(activeHostGroupNames));
+        hostGroupToClassVars = getHostGroupToClassVarsMap(dhtConfig);
+        Log.warning("hostGroupToClassVars: ", CollectionUtil.mapToString(hostGroupToClassVars));
+        Log.warning("ringConfig: ", ringConfig);
+        hostGroupTableName = ringConfig.getCloudConfiguration().getHostGroupTableName();
+        Log.warning("hostGroupTableName: ", hostGroupTableName);
+        hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
+        Log.warning("HostGroupTable: " + hostGroupTable.toString());
+
+        passiveNodeHostGroupNames = dhtConfig.getPassiveNodeHostGroupsAsSet();
+        Log.warning("passiveNodeHostGroupNames: ", CollectionUtil.toString(passiveNodeHostGroupNames));
+
+        classVars =  getServerClassVars(thisServer, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames, hostGroupToClassVars);
+
+        reapPolicy = options.getReapPolicy();
+        generatedCmd = _generateNodeStartCommand(classVars, options, reapPolicy, false);
+        Log.warning("Command generated for target " + thisServer);
+
+        System.out.println(generatedCmd);
+        return true;
+    }
+
+    private String _generateNodeStartCommand(ClassVars classVars, SKAdminOptions options, ReapPolicy reapPolicy, boolean escaped){
+        String reapPolicyOptions;
+
+        if (escaped) {
+            reapPolicyOptions = "-reapPolicy "+ escapeStr + ObjectDefParser2.toClassAndDefString(reapPolicy) + escapeStr;
+        } else {
+            // non-escaped path is for generation of commands to run through e.g. zapp
+            reapPolicyOptions = "-reapPolicy " + ObjectDefParser2.toClassAndDefString(reapPolicy);
+        }
+
+        return getJavaCmdStart(options, classVars, escaped)
                 +" "+ DHTNode.class.getCanonicalName()
-                +" -reapPolicy "+ escapeStr + ObjectDefParser2.toClassAndDefString(reapPolicy) + escapeStr
-                +" -n "+ gc.getClientDHTConfiguration().getName() 
+                +" " + reapPolicyOptions
+                +" -n "+ gc.getClientDHTConfiguration().getName()
                 +" -z "+ gc.getClientDHTConfiguration().getZKConfig()
                 +" -into "+ options.inactiveNodeTimeoutSeconds
-                +( destructive ? (" 1>"+ daemonLogFile +" 2>&1 &") : (" 1>"+ daemonLogFile +"; 2>&1; } & fi") )
                 ;
     }
     
@@ -717,6 +778,9 @@ public class SKAdmin {
                     break;
                 case GetRingHealth:
                     _result = displayRingHealth();
+                    break;
+                case GenerateNodeStartCmd:
+                    _result = generateSingleNodeStartCommand(options);
                     break;
                 default:
                     throw new RuntimeException("panic");
