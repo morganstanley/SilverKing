@@ -382,9 +382,6 @@ public class SKAdmin {
     public static String getSystemPropertyFormatted(String key, String value) {
         return getSystemPropertyFormatted(key, value, false);
     }
-    public static String getSystemPropertyFormattedWithValueEscaped(String key, String value) {
-        return getSystemPropertyFormatted(key, value, true);
-    }
     private static final String escapeStr = "\\\"";
     public static String getSystemPropertyFormatted(String key, String value, boolean escaped) {
         String property = " " + javaSystemPropertyFlag + key + "=";
@@ -403,7 +400,7 @@ public class SKAdmin {
         // FUTURE - change to generic mechanism to pipe through properties
         s = "";
         if (options.aclImplSkStrDef != null) {
-            s += getSystemPropertyFormattedWithValueEscaped(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef, escaped);
+            s += getSystemPropertyFormatted(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef, escaped);
         }
 
         if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
@@ -414,7 +411,7 @@ public class SKAdmin {
         }
         
         if (options.authImplSkStrDef != null) {
-            s += getSystemPropertyFormattedWithValueEscaped(Authenticator.authImplProperty, options.authImplSkStrDef, escaped);
+            s += getSystemPropertyFormatted(Authenticator.authImplProperty, options.authImplSkStrDef, escaped);
         }
         
         s += " " + options.startNodeExtraJVMOptions;
@@ -466,7 +463,7 @@ public class SKAdmin {
         String                    hostGroupTableName;
         Set<String>                passiveNodeHostGroupNames;
         Set<String>             parsedTargets;
-        String                  generetedCmd;
+        String                  generatedCmd;
         ReapPolicy              reapPolicy;
 
         parsedTargets = CollectionUtil.parseSet(options.targets, ",");
