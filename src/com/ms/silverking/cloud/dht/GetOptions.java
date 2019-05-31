@@ -46,7 +46,31 @@ public final class GetOptions extends RetrievalOptions {
             NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, 
             boolean returnInvalidations, ForwardingMode forwardingMode, boolean updateSecondariesOnMiss) {
         super(opTimeoutController, secondaryTargets, retrievalType, WaitMode.GET, versionConstraint, 
-                nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, false);
+                nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, false, null);
+  }
+    
+    /**
+     * Construct a fully-specified GetOptions.
+     * Usage should be avoided; an instance should be obtained and modified from an enclosing environment.
+     * @param opTimeoutController opTimeoutController for the operation
+     * @param secondaryTargets constrains queried secondary replicas 
+     * to operation solely on the node that receives this operation
+     * @param retrievalType type of retrieval
+     * @param versionConstraint specify the version
+     * @param nonExistenceResponse action to perform for non-existent keys
+     * @param verifyChecksums whether or not to verify checksums
+     * @param returnInvalidations normally false, true causes invalidated values to be returned.
+     * only valid for META_DATA retrievals
+     * @param updateSecondariesOnMiss update secondary replicas when a value is not found at the
+     * replica, but is found at the primary
+     * @param userOptions side channel for user options that can be handled with custom logic
+     */
+    public GetOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
+            RetrievalType retrievalType, VersionConstraint versionConstraint, 
+            NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, 
+            boolean returnInvalidations, ForwardingMode forwardingMode, boolean updateSecondariesOnMiss, byte[] userOptions) {
+        super(opTimeoutController, secondaryTargets, retrievalType, WaitMode.GET, versionConstraint, 
+                nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, updateSecondariesOnMiss, userOptions);
     }
     
     /**
@@ -58,7 +82,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(opTimeoutController, getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -70,7 +94,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), secondaryTargets, 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -83,7 +107,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -95,7 +119,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 retrievalType, getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -107,7 +131,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), versionConstraint, 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -119,7 +143,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 nonExistenceResponse, getVerifyChecksums(), 
-                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -131,7 +155,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), verifyChecksums, 
-                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -143,7 +167,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                returnInvalidations, getForwardingMode(), getUpdateSecondariesOnMiss());
+                returnInvalidations, getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions());
     }
     
     /**
@@ -155,7 +179,7 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), getForwardingMode(), updateSecondariesOnMiss);
+                getReturnInvalidations(), getForwardingMode(), updateSecondariesOnMiss, getUserOptions());
     }
     
     /**
@@ -167,7 +191,19 @@ public final class GetOptions extends RetrievalOptions {
         return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), 
                 getRetrievalType(), getVersionConstraint(), 
                 getNonExistenceResponse(), getVerifyChecksums(), 
-                getReturnInvalidations(), forwardingMode, getUpdateSecondariesOnMiss());
+                getReturnInvalidations(), forwardingMode, getUpdateSecondariesOnMiss(), getUserOptions());
+    }
+
+    /**
+     * Return a GetOptions instance like this instance, but with a new userOptions.
+     * @param userOptions the new field value
+     * @return the modified GetOptions
+     */
+    public GetOptions userOptions(byte[] userOptions) {
+        return new GetOptions(getOpTimeoutController(), getSecondaryTargets(),
+            getRetrievalType(), getVersionConstraint(),
+            getNonExistenceResponse(), getVerifyChecksums(),
+            getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), userOptions);
     }
     
     @Override

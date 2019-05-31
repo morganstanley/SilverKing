@@ -5,6 +5,7 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -73,7 +74,40 @@ public final class WaitOptions extends RetrievalOptions {
         super(opTimeoutController, secondaryTargets, retrievalType, 
                 WaitMode.WAIT_FOR, versionConstraint, 
                 nonExistenceResponse, verifyChecksums,
-                returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss);
+                returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss, DHTConstants.noUserOptions);
+        Preconditions.checkArgument(timeoutSeconds >= 0);
+        Preconditions.checkArgument(threshold >= 0);
+        this.timeoutSeconds = timeoutSeconds;
+        this.threshold = threshold;
+        this.timeoutResponse = timeoutResponse;
+    }
+
+    /**
+     * Construct fully-specified WaitOptions
+     * Usage should be avoided; an instance should be obtained and modified from an enclosing environment.
+     * @param opTimeoutController opTimeoutController to use for *internal* retries. See class notes.
+     * of the requested values could be retrieved
+     * @param secondaryTargets constrains queried secondary replicas
+     * @param retrievalType what to retrieve (data, meta data, etc.)
+     * @param versionConstraint filter on the allowed versions
+     * @param verifyChecksums
+     * @param updateSecondariesOnMiss when true, secondary replicas queried in this operation will be updated on a miss
+     * @param timeoutSeconds return after timeoutSeconds if the values cannot be retrieved
+     * @param threshold return after a percentage of requested values are available
+     * @param timeoutResponse specifies whether or not to throw an exception when a timeout occurs before all
+     * @param userOptions specifies additional custom options from user
+     */
+    public WaitOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
+            RetrievalType retrievalType, VersionConstraint versionConstraint,
+            NonExistenceResponse nonExistenceResponse, boolean verifyChecksums,
+            boolean returnInvalidations,
+            boolean updateSecondariesOnMiss, byte[] userOptions, int timeoutSeconds,
+            int threshold,
+            TimeoutResponse timeoutResponse) {
+        super(opTimeoutController, secondaryTargets, retrievalType,
+                WaitMode.WAIT_FOR, versionConstraint,
+                nonExistenceResponse, verifyChecksums,
+                returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss, userOptions);
         Preconditions.checkArgument(timeoutSeconds >= 0);
         Preconditions.checkArgument(threshold >= 0);
         this.timeoutSeconds = timeoutSeconds;
@@ -231,6 +265,13 @@ public final class WaitOptions extends RetrievalOptions {
                    timeoutSeconds, threshold, timeoutResponse);
     }
     
+    public WaitOptions userOptions(byte[] userOptions) {
+        return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getRetrievalType(), getVersionConstraint(),
+                getNonExistenceResponse(), getVerifyChecksums(),
+                getReturnInvalidations(), getUpdateSecondariesOnMiss(), userOptions,
+                timeoutSeconds, threshold, getTimeoutResponse());
+    }
+
     /**
      * timeoutSeconds getter
      * @return timeoutSeconds

@@ -59,7 +59,7 @@ public class OptionsHelper {
                         : DHTConstants.standardWaitForTimeoutController,
                 DHTConstants.noSecondaryTargets, retrievalType, waitMode,
                 versionConstraint, nonExistenceResponse, verifyChecksums,
-                false, ForwardingMode.FORWARD, false);
+                false, ForwardingMode.FORWARD, false, DHTConstants.noUserOptions);
     }
 
     /**
@@ -128,7 +128,38 @@ public class OptionsHelper {
                 secondaryTargets, retrievalType, waitMode,
                 versionConstraint, NonExistenceResponse.defaultResponse, true,
                 false, ForwardingMode.FORWARD,
-                updateSecondariesOnMiss);
+                updateSecondariesOnMiss, DHTConstants.noUserOptions);
+    }
+
+    /**
+     * Construct RetrievalOptions with null values returned for non-existent
+     * keys and checksumVerification on
+     *
+     * @param retrievalType
+     *            type of retrieval
+     * @param waitMode
+     *            whether to perform a WaitFor or a Get
+     * @param versionConstraint
+     *            specify the version
+     * @param secondaryTargets
+     *            constrains queried secondary replicas
+     * @param userOptions
+     *            additional side data options from user
+     */
+    public static RetrievalOptions newRetrievalOptions(
+            RetrievalType retrievalType, WaitMode waitMode,
+            VersionConstraint versionConstraint,
+            boolean updateSecondariesOnMiss,
+            Set<SecondaryTarget> secondaryTargets,
+            byte[] userOptions
+    ) {
+        return new RetrievalOptions(
+                waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
+                        : DHTConstants.standardWaitForTimeoutController,
+                secondaryTargets, retrievalType, waitMode,
+                versionConstraint, NonExistenceResponse.defaultResponse, true,
+                false, ForwardingMode.FORWARD,
+                updateSecondariesOnMiss, userOptions);
     }
 
     /**
@@ -154,7 +185,7 @@ public class OptionsHelper {
     public static GetOptions newGetOptions(OpTimeoutController opTimeoutController,
                                         RetrievalType retrievalType, VersionConstraint versionConstraint) {
         return new GetOptions(opTimeoutController, DHTConstants.noSecondaryTargets, retrievalType,
-                versionConstraint, NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, false);
+                versionConstraint, NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, false, DHTConstants.noUserOptions);
     }
 
     public static GetOptions newGetOptions(RetrievalType retrievalType, VersionConstraint versionConstraint) {
@@ -186,7 +217,7 @@ public class OptionsHelper {
                        retrievalType, versionConstraint, 
                        NonExistenceResponse.defaultResponse, true,
                        false,
-                       false, timeoutSeconds,
+                       false, DHTConstants.noUserOptions, timeoutSeconds,
                        threshold,
                        timeoutResponse);
     }

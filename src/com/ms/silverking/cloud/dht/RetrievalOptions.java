@@ -1,11 +1,13 @@
 package com.ms.silverking.cloud.dht;
 
+import java.util.Arrays;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
 import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -17,14 +19,15 @@ import com.ms.silverking.text.ObjectDefParser2;
  * whether or not to validate value checksums.
  */
 public class RetrievalOptions extends OperationOptions {
-    private final RetrievalType           retrievalType;
-    private final WaitMode               waitMode;
+    private final RetrievalType        retrievalType;
+    private final WaitMode             waitMode;
     private final VersionConstraint    versionConstraint;
     private final NonExistenceResponse nonExistenceResponse;
     private final boolean              verifyChecksums;
     private final boolean              returnInvalidations;
     private final ForwardingMode       forwardingMode;
     private final boolean              updateSecondariesOnMiss;
+    private final byte[]               userOptions;
     
     // for parsing only
     private static final RetrievalOptions templateOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE, WaitMode.GET);
@@ -34,6 +37,17 @@ public class RetrievalOptions extends OperationOptions {
         ObjectDefParser2.addSetType(RetrievalOptions.class, "secondaryTargets", SecondaryTarget.class);
     }
     
+  public RetrievalOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
+      RetrievalType retrievalType, WaitMode waitMode,
+      VersionConstraint versionConstraint,
+      NonExistenceResponse nonExistenceResponse, boolean verifyChecksums,
+      boolean returnInvalidations, ForwardingMode forwardingMode,
+      boolean updateSecondariesOnMiss) {
+
+    this(opTimeoutController, secondaryTargets, retrievalType, waitMode, versionConstraint, nonExistenceResponse,
+        verifyChecksums, returnInvalidations, forwardingMode, updateSecondariesOnMiss, DHTConstants.noUserOptions);
+  }
+
     /**
      * Construct a fully-specified RetrievalOptions.
      * Usage should be avoided; an instance should be obtained and modified from an enclosing environment.
@@ -51,13 +65,14 @@ public class RetrievalOptions extends OperationOptions {
      * to the receiving node
      * @param updateSecondariesOnMiss update secondary replicas when a value is not found at the
      * replica, but is found at the primary 
+   * @param userOptions additional space for user defined options which may be required by custom handlers
      */
     public RetrievalOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
                             RetrievalType retrievalType, WaitMode waitMode,
                             VersionConstraint versionConstraint, 
                             NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, 
                             boolean returnInvalidations, ForwardingMode forwardingMode,
-                            boolean updateSecondariesOnMiss) {
+      boolean updateSecondariesOnMiss, byte[] userOptions) {
         super(opTimeoutController, secondaryTargets);
         if (waitMode == WaitMode.WAIT_FOR) {
             if (!(opTimeoutController instanceof WaitForTimeoutController)) {
@@ -80,6 +95,7 @@ public class RetrievalOptions extends OperationOptions {
         }
         this.forwardingMode = forwardingMode;
         this.updateSecondariesOnMiss = updateSecondariesOnMiss;
+        this.userOptions = userOptions;
     }
     
     /**
@@ -92,7 +108,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+        updateSecondariesOnMiss, userOptions);
     }
 
     /**
@@ -105,7 +121,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
 
     /**
@@ -119,7 +135,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
     
     /**
@@ -132,7 +148,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
     
     /**
@@ -145,7 +161,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
     
     /**
@@ -158,7 +174,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
     
     /**
@@ -171,7 +187,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
 
     /**
@@ -184,7 +200,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
 
     /**
@@ -197,7 +213,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
     
     /**
@@ -210,7 +226,7 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
     }
 
     /**
@@ -223,7 +239,20 @@ public class RetrievalOptions extends OperationOptions {
                                     retrievalType, waitMode, versionConstraint, 
                                     nonExistenceResponse, verifyChecksums, 
                                     returnInvalidations, forwardingMode,
-                                    updateSecondariesOnMiss);
+                                    updateSecondariesOnMiss, userOptions);
+  }
+
+  /**
+   * Return a RetrievalOptions instance like this instance, but with a new userOptions.
+   * @param userOptions the new field value
+   * @return the modified RetrievalOptions
+   */
+  public RetrievalOptions userOptions(byte[] userOptions) {
+    return new RetrievalOptions(getOpTimeoutController(), getSecondaryTargets(),
+                                retrievalType, waitMode, versionConstraint,
+                                nonExistenceResponse, verifyChecksums,
+                                returnInvalidations, forwardingMode,
+                                updateSecondariesOnMiss, userOptions);
     }
         
     /**
@@ -290,6 +319,14 @@ public class RetrievalOptions extends OperationOptions {
         return updateSecondariesOnMiss;
     }
     
+  /**
+   * Return userOptions
+   * @return userOptions
+   */
+  public byte[] getUserOptions() {
+    return userOptions;
+  }
+
     @Override
     public int hashCode() {
         return super.hashCode() 
@@ -300,7 +337,8 @@ public class RetrievalOptions extends OperationOptions {
                 ^ Boolean.hashCode(verifyChecksums)
                 ^ Boolean.hashCode(returnInvalidations) 
                 ^ forwardingMode.hashCode() 
-                ^ Boolean.hashCode(updateSecondariesOnMiss);
+                ^ Boolean.hashCode(updateSecondariesOnMiss)
+                ^ Arrays.hashCode(userOptions);
     }
     
     @Override
@@ -319,6 +357,7 @@ public class RetrievalOptions extends OperationOptions {
                     && this.returnInvalidations == oRetrievalOptions.returnInvalidations
                     && this.forwardingMode == oRetrievalOptions.forwardingMode
                     && this.updateSecondariesOnMiss == oRetrievalOptions.updateSecondariesOnMiss
+                    && Arrays.equals(this.userOptions, oRetrievalOptions.userOptions)
                     && super.equals(other);
         }
     }

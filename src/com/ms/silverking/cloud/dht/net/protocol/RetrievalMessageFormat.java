@@ -11,6 +11,8 @@ public class RetrievalMessageFormat extends KeyedMessageFormat {
     public static final int getOptionsBufferLength(RetrievalOptions retrievalOptions) {
         return RetrievalResponseMessageFormat.optionBytesSize // same format for both directions
                 + NumConversion.BYTES_PER_SHORT 
-                + SecondaryTargetSerializer.serializedLength(retrievalOptions.getSecondaryTargets());
+                + SecondaryTargetSerializer.serializedLength(retrievalOptions.getSecondaryTargets())
+                + NumConversion.BYTES_PER_INT
+                + retrievalOptions.getUserOptions().length;
     }
 }
