@@ -15,7 +15,7 @@ import com.ms.silverking.net.IPAndPort;
 public class LooseConsistencyWrite extends BaseStorageOperation<StorageEntrySingleState> {
     private static final boolean    debug = false;
     
-    private static final int	looseConsistencySuccessThreshold = 1;
+    private static final int    looseConsistencySuccessThreshold = 1;
     
     LooseConsistencyWrite(PutOperationContainer putOperationContainer, ForwardingMode forwardingMode, long deadline) {
         super(deadline, putOperationContainer, forwardingMode);
@@ -55,8 +55,8 @@ public class LooseConsistencyWrite extends BaseStorageOperation<StorageEntrySing
                         pvComm.sendResult(key, looseResult);
                         _completeEntries = completeEntries.incrementAndGet();
                         if (_completeEntries >= looseConsistencySuccessThreshold) {
-                        	// FIXME - not waiting for all replicas can cause memory issues
-                        	// only allow single to succeed after a timeout
+                            // FIXME - not waiting for all replicas can cause memory issues
+                            // only allow single to succeed after a timeout
                             setOpResult(OpResult.SUCCEEDED);
                         }                    
                     }
