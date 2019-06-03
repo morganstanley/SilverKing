@@ -38,7 +38,18 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
         } else {
             RetrievalOptions    retrievalOptions;
             
-            retrievalOptions = new RetrievalOptions(null, null, options.getRetrievalType(), WaitMode.GET, options.getVersionConstraint(), null, options.getVerifyIntegrity(), options.getReturnInvalidations(), null, false);
+            retrievalOptions = new RetrievalOptions(
+                null,
+                null,
+                options.getRetrievalType(),
+                WaitMode.GET,
+                options.getVersionConstraint(),
+                null,
+                options.getVerifyIntegrity(),
+                options.getReturnInvalidations(),
+                null,
+                false,
+                null);
             return new InternalRetrievalOptions(retrievalOptions, options.getVerifyIntegrity());
         }
     }
@@ -104,6 +115,14 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
         return retrievalOptions.getNonExistenceResponse();
     }
     
+    /**
+     * userOptions getter
+     * @return
+     */
+    public final byte[] getUserOptions() {
+        return retrievalOptions.getUserOptions();
+    }
+
     /**
      * Return copy of this object with modified VersionConstraint
      * @param vc

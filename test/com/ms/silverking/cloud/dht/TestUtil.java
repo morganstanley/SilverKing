@@ -25,10 +25,10 @@ public class TestUtil {
     public static final InvalidationOptions ioCopy      = new InvalidationOptions(new OpSizeBasedTimeoutController(), null,            0, 0);
     public static final InvalidationOptions ioDiff      = new InvalidationOptions(new WaitForTimeoutController(),     new HashSet<>(), 0, 0);
     
-    public static final GetOptions goCopy               = new GetOptions(new OpSizeBasedTimeoutController(), null,            RetrievalType.VALUE, new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, ForwardingMode.FORWARD, false);
-    public static final GetOptions goDiff               = new GetOptions(new WaitForTimeoutController(),     new HashSet<>(), RetrievalType.VALUE, new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, ForwardingMode.FORWARD, false);
+    public static final GetOptions goCopy               = new GetOptions(new OpSizeBasedTimeoutController(), null,            RetrievalType.VALUE, new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, ForwardingMode.FORWARD, false, null);
+    public static final GetOptions goDiff               = new GetOptions(new WaitForTimeoutController(),     new HashSet<>(), RetrievalType.VALUE, new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, ForwardingMode.FORWARD, false, null);
     
-    public static final WaitOptions woCopy              = new WaitOptions(new WaitForTimeoutController(), null,            RetrievalType.VALUE,     new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, false, Integer.MAX_VALUE, 100, TimeoutResponse.EXCEPTION);
+    public static final WaitOptions woCopy              = new WaitOptions(new WaitForTimeoutController(), null,            RetrievalType.VALUE,     new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, false, null, Integer.MAX_VALUE, 100, TimeoutResponse.EXCEPTION);
     public static final WaitOptions woDiff              = new WaitOptions(new WaitForTimeoutController(), new HashSet<>(), RetrievalType.EXISTENCE, new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true, false, false, Integer.MAX_VALUE, 100, TimeoutResponse.EXCEPTION);
 
     public static ImplementationType getImplementationType(ValueRetentionPolicy policy) {
