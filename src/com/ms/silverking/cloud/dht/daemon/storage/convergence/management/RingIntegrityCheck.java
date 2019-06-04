@@ -115,36 +115,33 @@ public class RingIntegrityCheck {
         setsExcluded = 0;
         for (Set<IPAndPort> replicaSet : rMap.getReplicaSets()) {
             boolean    allExcluded;
-            int        numExcluded;
-            int        setSize;
-            
-            setSize = 0;
-            numExcluded = 0;
+
             allExcluded = true;
             //System.out.printf("replicaSet %s\n", replicaSet);
+            Set<IPAndPort>  currentMembers = new HashSet<>();
+            Set<IPAndPort> excludedMembers = new HashSet<>();
             for (IPAndPort member : replicaSet) {
                 //System.out.printf("member %s %s\n", member.getIPAsString(), exclusionSet.contains(member.getIPAsString()));
                 if (!exclusionSet.contains(member.getIPAsString())) {
                     allExcluded = false;
-                    ++setSize;
+                    currentMembers.add(member);
                 } else {
-                    ++numExcluded;
+                    excludedMembers.add(member);
                 }
             }
-            if (setSize < minReplicaSetSize) {
-                minReplicaSetSize = setSize;
+            if (currentMembers.size() < minReplicaSetSize) {
+                minReplicaSetSize = currentMembers.size();
                 if (verbose) {
-                    System.out.printf("new minReplicaSet of %s: %s\t%d\n", minReplicaSetSize, replicaSet, numExcluded);
+                    System.out.printf("new minReplicaSet of %s: %s\t%d\n", minReplicaSetSize, replicaSet, excludedMembers.size());
                 }
             }
 
-            int originalSize = setSize + numExcluded;
-            updateCount(originalReplicaSetCounts, originalSize);
-            updateCount(currentReplicaSetCounts,  setSize);
-            updateCount(excludedReplicaSetCounts, numExcluded);
+            updateCount(originalReplicaSetCounts, replicaSet.size());
+            updateCount(currentReplicaSetCounts,  currentMembers.size());
+            updateCount(excludedReplicaSetCounts, excludedMembers.size());
             
             if (verbose) {
-                System.out.printf("%s\t%d\t%d\n", replicaSet, numExcluded, setSize);
+                System.out.printf("%s\t%d\t%d\te=%s\tc=%s\n", replicaSet, excludedMembers.size(), currentMembers.size(), excludedMembers, currentMembers);
             }
             if (allExcluded) {
                 ++setsExcluded;
