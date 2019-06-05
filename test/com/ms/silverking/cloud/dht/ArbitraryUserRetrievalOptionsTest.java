@@ -7,6 +7,7 @@ import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
+import com.ms.silverking.cloud.dht.net.protocol.RetrievalMessageFormat;
 import com.ms.silverking.id.UUIDBase;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -48,8 +49,11 @@ public class ArbitraryUserRetrievalOptionsTest {
         .getRetrievalOptions(message.toMessageGroup())
         .getRetrievalOptions();
 
-    byte[] rebuiltUserOpts = rebuiltOpts.getUserOptions();
+    int optsLength = RetrievalMessageFormat.getOptionsBufferLength(rebuiltOpts);
+    int expectedLength = RetrievalMessageFormat.getOptionsBufferLength(opts);
+    assertEquals("options length should be preserved", expectedLength, optsLength);
 
+    byte[] rebuiltUserOpts = rebuiltOpts.getUserOptions();
     assertUserOptions(rebuiltUserOpts, usrStr, usrBytes);
   }
 
@@ -80,10 +84,42 @@ public class ArbitraryUserRetrievalOptionsTest {
 
     byte[] rebuiltUserOpts = rebuiltOpts.getUserOptions();
 
+    int optsLength = RetrievalMessageFormat.getOptionsBufferLength(rebuiltOpts);
+    int expectedLength = RetrievalMessageFormat.getOptionsBufferLength(opts);
+    assertEquals("options length should be preserved", expectedLength, optsLength);
+
     assertUserOptions(rebuiltUserOpts, usrStr, usrBytes);
 
     Set<SecondaryTarget> rebuiltSecondaries = rebuiltOpts.getSecondaryTargets();
     assertEquals("Rebuilt secondaries and original should match", rebuiltSecondaries, secondaryTargets);
+  }
+
+  @Test public void testNullUserOptionsPreserved() {
+    GetOptions opts = DHTConstants.standardGetOptions;
+    assertNull("Standard options should have null user options", opts.getUserOptions());
+
+    InternalRetrievalOptions internalOpts = new InternalRetrievalOptions(opts);
+
+    byte[] originator = {0, 1, 2, 3, 4, 5, 6, 7};
+    ProtoRetrievalMessageGroup message = new ProtoRetrievalMessageGroup(
+        UUIDBase.random(),
+        1L,
+        internalOpts,
+        originator,
+        1,
+        MessageGroup.minDeadlineRelativeMillis,
+        ForwardingMode.DO_NOT_FORWARD);
+
+    RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup
+        .getRetrievalOptions(message.toMessageGroup())
+        .getRetrievalOptions();
+
+    assertNull("Rebuilt options should still be null", rebuiltOpts.getUserOptions());
+
+    int optsLength = RetrievalMessageFormat.getOptionsBufferLength(rebuiltOpts);
+    int expectedLength = RetrievalMessageFormat.getOptionsBufferLength(opts);
+     assertEquals("options length should be preserved", expectedLength, optsLength);
+
   }
 
 }
