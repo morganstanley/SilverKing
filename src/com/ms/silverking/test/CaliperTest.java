@@ -1,7 +1,7 @@
 package com.ms.silverking.test;
 
 import com.google.caliper.Benchmark;
-import com.google.caliper.runner/CaliperMain;
+import com.google.caliper.runner.CaliperMain;
 import com.ms.silverking.thread.ThreadUtil;
 
 public class CaliperTest {
