@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class DHTNodeOptionsReflectionTest {
+    
     @Test
     public void testReapPolicyReflection() {
         DHTNodeOptions options = new DHTNodeOptions();
@@ -21,7 +22,7 @@ public class DHTNodeOptionsReflectionTest {
         ReapPolicy p4 = new ReapOnIdlePolicy(true, true, false, true, false, 1000, 500, 999, 777, 78, 182, ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap);
 
         ReapPolicy[] policyTestSet1 = {p1, p2, p3, p4};
-        for(ReapPolicy policy: policyTestSet1) {
+        for (ReapPolicy policy: policyTestSet1) {
             options.reapPolicy = ObjectDefParser2.toClassAndDefString(policy);
             ReapPolicy reflectedPolicy = options.getReapPolicy();
 
