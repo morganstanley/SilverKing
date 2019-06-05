@@ -26,12 +26,17 @@ public class MultiDHTExampleTest {
 
     @Test(timeout=10_000)
     public void testOneGcOneServer_OneIteration() throws IOException, ClientException {
-        mDht.start(1);
+        startTest(1);
     }
 
     @Test(timeout=10_000)
     public void testOneGcOneServer_TenIterations() throws IOException, ClientException {
-        mDht.start(10);
+        startTest(10);
+    }
+    
+    private void startTest(int iterations) throws ClientException, IOException {
+        if (!Util.isSetSkipMultiMachineTests())
+            mDht.start(iterations);
     }
     
     public static void main(String[] args) {

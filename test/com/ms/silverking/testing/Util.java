@@ -229,6 +229,32 @@ public class Util {
         return getEnvVariable("SK_SERVERS");
     }
     
+    public static boolean isSetQuietMode() {
+        return isSet("SK_QUIET_OUTPUT");
+    }
+    
+    public static boolean isSetSkipMultiMachineTests() {
+        return isSet("SK_SKIP_MULTI_MACHINE_TESTS");
+    }
+    
+    private static boolean isSet(String name) {
+        try {
+            return getEnvVariable(name).equals("true");
+        }
+        catch (RuntimeException ex) {
+        }
+        
+        return false;
+    }
+    
+    public static String getEnvVariable(String name) {
+        String value = System.getenv(name);
+        if (null == value)
+            throw new RuntimeException(name + ": env variable undefined");
+        
+        return value;
+    }
+    
     public static String getServer1() {
         return getServer(0);
     }
@@ -241,23 +267,5 @@ public class Util {
         String servers = getServers();
         String[] serversSplit = servers.split(",");
         return serversSplit[num];
-    }
-    
-    public static String getEnvVariable(String name) {
-        String value = System.getenv(name);
-        if (null == value)
-            throw new RuntimeException(name + ": env variable undefined");
-        
-        return value;
-    }
-    
-    public static boolean isSetQuietMode() {
-        try {
-            if (getEnvVariable("QUIET_OUTPUT").equals("true"))
-                return true;
-        }
-        catch (RuntimeException ex) {}
-        
-        return false;
     }
 }

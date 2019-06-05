@@ -41,6 +41,11 @@ public class TruncateTest {
 
     @Test(timeout=20_000)
     public void testTruncate() {
+        if (!Util.isSetSkipMultiMachineTests())
+            _testTruncate();
+    }
+    
+    private void _testTruncate() {
         String fileName = "file1.txt";
         String cdToDir  = "cd " + truncateDir.getAbsolutePath();
         

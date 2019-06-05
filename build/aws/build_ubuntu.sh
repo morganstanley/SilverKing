@@ -11,7 +11,7 @@ source lib/common.lib
 
 function f_ubuntu_aptgetInstall {
     typeset aptGetOption;
-    if [[ $QUIET_OUTPUT == "true" ]]; then
+    if [[ $SK_QUIET_OUTPUT == "true" ]]; then
         aptGetOption="-qq"
     else
         aptGetOption="-y"
@@ -58,7 +58,7 @@ function f_ubuntu_install_fuse {
     
     f_ubuntu_aptgetInstall "python3"
     f_ubuntu_aptgetInstall "python3-pip"
-    if [[ $BUILD_TYPE == "travisci" ]]; then
+    if [[ $BUILD_TYPE == $TRAVIS_CI ]]; then
         sudo pip3 install --upgrade setuptools
         sudo pip3 install --upgrade wheel
     fi
@@ -119,8 +119,10 @@ function f_ubuntu_download_maven {
     f_aws_checkExitCode "mvn"
 }
 
-TRUSTY="trusty"
-BUILD_TYPE=$1
+   TRUSTY="trusty"
+TRAVIS_CI="travisci"
+
+typeset BUILD_TYPE=$1
 f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")

@@ -29,7 +29,7 @@ function f_aws_downloadTar {
     
     typeset wgetOption;
     typeset tarOption;
-    if [[ $QUIET_OUTPUT == "true" ]]; then
+    if [[ $SK_QUIET_OUTPUT == "true" ]]; then
         wgetOption="-nv"
     else
         tarOption="-v"
@@ -190,6 +190,7 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     f_aws_symlink_skjar_for_skc
 
     export IS_OSS_BUILD="true"
+    export SK_SKIP_MULTI_MACHINE_TESTS="true"
     $AWS_DIR/$ZK_START_SCRIPT_NAME
     $BUILD_DIR/$BUILD_SCRIPT_NAME
     $AWS_DIR/$ZK_STOP_SCRIPT_NAME
@@ -254,7 +255,7 @@ function f_aws_compile_sample_app {
     
     cd $LIB_ROOT/$SPARK_VERSION
     typeset mvnOption;
-    if [[ $QUIET_OUTPUT == "true" ]]; then
+    if [[ $SK_QUIET_OUTPUT == "true" ]]; then
         mvnOption="-q"
     fi
     mvn $mvnOption package

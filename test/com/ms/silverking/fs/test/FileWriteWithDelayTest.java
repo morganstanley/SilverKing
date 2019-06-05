@@ -1,22 +1,21 @@
 package com.ms.silverking.fs.test;
 
-import static org.junit.Assert.*;
 import static com.ms.silverking.fs.TestUtil.setupAndCheckTestsDirectory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.ms.silverking.fs.TestUtil;
 import com.ms.silverking.process.ProcessExecutor;
 import com.ms.silverking.testing.Util;
 import com.ms.silverking.testing.annotations.SkfsLarge;
-import com.ms.silverking.fs.TestUtil;
 
 @SkfsLarge
 public class FileWriteWithDelayTest {
@@ -45,6 +44,11 @@ public class FileWriteWithDelayTest {
     
     @Test(timeout=45_000)
     public void testWrite_GiveWriter1AHeadstartExpectFileToBeAllWriter2Data() throws InterruptedException {
+        if (!Util.isSetSkipMultiMachineTests())
+            testWrite();
+    }
+    
+    private void testWrite() throws InterruptedException {
         File f = new File(fileWriteWithDelayDir, "this_file_should_be_the_data_of_the_remote_delayed_writer_aka_server2");
         int size = 15_000_000;
         int rateLimit = 1;
