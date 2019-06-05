@@ -5,10 +5,10 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.google.caliper.Param;
-import com.google.caliper.Runner;
-import com.google.caliper.SimpleBenchmark;
+import com.google.caliper.Benchmark;
+import com.google.caliper.runner.CaliperMain;
 
-public class SimpleMapTest extends SimpleBenchmark {
+public class SimpleMapTest {
     //@Param({"10", "25", "50"})
     @Param({"25"})
     int writePercentage;
@@ -59,6 +59,7 @@ public class SimpleMapTest extends SimpleBenchmark {
         System.out.println(total);
     }
     
+    @Benchmark
     public void timeHashMap(int reps) {
         doMap(reps, new HashMap<Integer, Integer>());
     }
@@ -73,10 +74,12 @@ public class SimpleMapTest extends SimpleBenchmark {
     }
     */
     
+    @Benchmark
     public void timeSimpleHashMap(int reps) {
         doMap(reps, new SimpleHashMap<Integer, Integer>());
     }
     
+    @Benchmark
     public void timeIntHashMap(int reps) {
         doMap(reps, new IntHashMap<Integer>());
     }
@@ -85,6 +88,6 @@ public class SimpleMapTest extends SimpleBenchmark {
      * @param args
      */
     public static void main(String[] args) {
-        Runner.main(SimpleMapTest.class, args);
+        CaliperMain.main(SimpleMapTest.class, args);
     }
 }

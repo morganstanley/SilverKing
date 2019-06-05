@@ -3,7 +3,7 @@ package com.ms.silverking.cloud.dht;
 import java.util.List;
 import java.util.Map;
 
-import com.google.caliper.internal.guava.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUKeyedInfo;
