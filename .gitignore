@@ -3,6 +3,3 @@ ide
 
 # VS
 .vscode
-
-# git
-*.orig
