@@ -13,6 +13,6 @@ public class RetrievalMessageFormat extends KeyedMessageFormat {
                 + NumConversion.BYTES_PER_SHORT 
                 + SecondaryTargetSerializer.serializedLength(retrievalOptions.getSecondaryTargets())
                 + NumConversion.BYTES_PER_INT
-                + retrievalOptions.getUserOptions().length;
+                + (retrievalOptions.getUserOptions() == null ? 0 : retrievalOptions.getUserOptions().length);
     }
 }
