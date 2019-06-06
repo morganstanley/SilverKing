@@ -2,9 +2,9 @@
 
 source `dirname $0`/../lib/run_scripts_from_any_path.snippet
 
+# I think this source should really be in aws/lib/common.lib..
 cd ..
 source lib/common.lib
-source lib/build_sk_client.lib    # for copying kill_process_and_children.pl
 cd -
 
 source lib/common.lib
