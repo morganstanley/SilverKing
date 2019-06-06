@@ -17,7 +17,12 @@ public class MultiDHTExampleTest {
     private static MultiDHTExample mDht;
 
     @BeforeClass
-    public static void setUpBeforeClass() throws ClientException, IOException {
+    public static void setUpBeforeClass() throws IOException {
+        if (!Util.isSetSkipMultiMachineTests())
+            setup();
+    }
+    
+    private static void setup() throws IOException {
         SKGridConfiguration gc = Util.getTestGridConfig();
         SKGridConfiguration[] gridConfigurations = {gc,                gc};
         String[] preferredServers                = {Util.getServer1(), Util.getServer2()};

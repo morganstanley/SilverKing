@@ -35,6 +35,11 @@ public class FileWriteWithDelayTest {
     
     @BeforeClass
     public static void setUpBeforeClass() {
+        if (!Util.isSetSkipMultiMachineTests())
+            setup();
+    }
+    
+    private static void setup() {
         setupAndCheckTestsDirectory(fileWriteWithDelayDir);
 
         skClasspath = Util.getEnvVariable("SK_CLASSPATH");

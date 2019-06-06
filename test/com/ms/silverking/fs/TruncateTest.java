@@ -33,6 +33,11 @@ public class TruncateTest {
     
     @BeforeClass
     public static void setUpBeforeClass() {
+        if (!Util.isSetSkipMultiMachineTests())
+            setup();
+    }
+    
+    private static void setup() {
         setupAndCheckTestsDirectory(truncateDir);
 
         truncateBin = Util.getEnvVariable("TRUNCATE_BIN");
