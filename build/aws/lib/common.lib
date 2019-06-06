@@ -188,7 +188,6 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     f_aws_edit_config_files
     f_copySkfsConfig
     f_aws_symlink_skjar_for_skc
-    f_copyKillProcessAndChildrenScript  #FIXME:bph: doing this b/c we aren't building perl (where this happens) in build_sk_client.sh for OSS, right now, i.e. f_buildPerlClient is failing..
 
     export IS_OSS_BUILD="true"
     export SK_SKIP_MULTI_MACHINE_TESTS="true"

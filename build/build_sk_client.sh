@@ -84,6 +84,8 @@ typeset output_filename=$(f_getBuildSkClient_RunOutputFilename)
         f_buildKdbQ3 "$cc" "$ld_opts" "$lib_opts_3" "$rpath_dir";
         f_buildPerlClient "$swig_cc" "$inc_opts_with_proxy" "$swig_ld" "$lib_opts_3" "$gcc_r_lib";
         f_buildWrapperApps "$cc" "$cc_opts" "$INC_OPTS" "$ld" "$ld_opts" "$lib_opts_5";
+    else
+        f_copyKillProcessAndChildrenScript  #FIXME:bph: doing this b/c we aren't building perl (where this happens)
     fi
     f_printSummary "$output_filename";
     f_printLocalElapsed;
