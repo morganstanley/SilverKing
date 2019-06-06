@@ -5,7 +5,8 @@ public enum SKAdminCommand {
     ClearInstanceExclusions, SetInstanceExclusions, GetInstanceExclusions, AddToInstanceExclusions, RemoveFromInstanceExclusions,
     ClearInstanceExclusionsData,
     GetActiveDaemons, EnsureNoActiveDaemons,
-    SetRingHealth, GetRingHealth;
+    SetRingHealth, GetRingHealth,
+    GenerateNodeStartCmd;
     
     public static final String    commandDelimiter = ",";
     
@@ -31,6 +32,7 @@ public enum SKAdminCommand {
         case EnsureNoActiveDaemons:
         case SetRingHealth:
         case GetRingHealth:
+        case GenerateNodeStartCmd:
             return false;
         default: throw new RuntimeException("panic");
         }

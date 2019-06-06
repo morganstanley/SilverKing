@@ -152,6 +152,7 @@ public class DHTConstants {
     }
     
     public static final Set<SecondaryTarget> noSecondaryTargets = null;
+    public static final byte[] noUserOptions = null;
     public static final OpTimeoutController    standardTimeoutController = new OpSizeBasedTimeoutController();
     public static final OpTimeoutController    standardWaitForTimeoutController = new WaitForTimeoutController();
     /** 

@@ -30,6 +30,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
                 size, RetrievalMessageFormat.size - KeyedMessageFormat.baseBytesPerKeyEntry, 
                 originator, deadlineRelativeMillis, forward);
         Set<SecondaryTarget>   secondaryTargets;
+        byte[] userOptions;
         
         // FUTURE - merge with ProtoValueMessagGroup code?
         bufferList.add(optionsByteBuffer);
@@ -54,6 +55,14 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
             serializedST = SecondaryTargetSerializer.serialize(secondaryTargets);
             optionsByteBuffer.putShort((short)serializedST.length);
             optionsByteBuffer.put(serializedST);
+        }
+
+        userOptions = retrievalOptions.getUserOptions();
+        if (userOptions == null) {
+            optionsByteBuffer.putInt(0);
+        } else {
+            optionsByteBuffer.putInt(userOptions.length);
+            optionsByteBuffer.put(userOptions);
         }
     }
     
@@ -102,7 +111,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
                        EnumValues.versionConstraint_Mode[optionBuffer.get(RetrievalResponseMessageFormat.vcModeOffset)],
                        optionBuffer.getLong(RetrievalResponseMessageFormat.vcMaxStorageTimeOffset));
         return new InternalRetrievalOptions(OptionsHelper.newRetrievalOptions(retrievalType, waitMode, 
-                                                vc, updateSecondariesOnMiss, getSecondaryTargets(mg)), verifyIntegrity);
+                                                vc, updateSecondariesOnMiss, getSecondaryTargets(mg), getUserOptions(mg)), verifyIntegrity);
     }
     
     public static int getSTLength(MessageGroup mg) {
@@ -124,6 +133,32 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
         }
     }
     
+    public static int getUOStart(MessageGroup mg) {
+        return RetrievalMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT  + getSTLength(mg) ;
+    }
+
+    public static int getUOLength(MessageGroup mg) {
+        int start = getUOStart(mg);
+        return mg.getBuffers()[optionBufferIndex].getInt(start);
+    }
+
+    private static byte[] getUserOptions(MessageGroup mg) {
+        int uoLength;
+        byte[] uo;
+        int uoStartPos;
+
+        uoStartPos = getUOStart(mg);
+        uoLength = getUOLength(mg);
+        if (uoLength == 0) {
+            return DHTConstants.noUserOptions;
+        } else {
+            uo = new byte[uoLength];
+            System.arraycopy(mg.getBuffers()[optionBufferIndex].array(),
+                uoStartPos + NumConversion.BYTES_PER_INT, uo, 0, uoLength);
+            return uo;
+        }
+    }
+
     protected MessageGroup toMessageGroup(boolean flip) {
         MessageGroup    mg;
         
