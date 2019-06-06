@@ -1,0 +1,30 @@
+plugins {
+    id 'java-library'
+    id 'application'
+}
+
+apply from: 'commons.gradle'
+
+repositories {
+    mavenCentral()
+    maven {
+	url 'http://kompics.sics.se/maven/repository/'
+    }		
+}
+
+task downloadLibs {
+    copy {
+        from configurations.compileCore
+        into 'lib'
+    }
+    copy {
+        from configurations.awslib
+        into 'lib/aws-java-sdk-1.11.333/lib' 
+    }
+    copy {		
+        from configurations.thirdparty
+        into 'lib/aws-java-sdk-1.11.333/thirdparty/lib'
+    }
+}
+
+createJar.dependsOn downloadLibs
