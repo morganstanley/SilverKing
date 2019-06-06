@@ -35,7 +35,7 @@ alias  checkskfull='pgrep -f "tmp/silverking" | while read pid; do ps p $pid ww;
 #$eclipse_classes/../../../lib/slf4j-simple-1.6.1.jar:\
 #$eclipse_classes/../../../lib/slf4j-api-1.6.1.jar:\
 #$eclipse_classes/../../../lib/core-0.1.4.jar:\
-#$eclipse_classes/../../../lib/commons-io-1.1.jar:\
+#$eclipse_classes/../../../lib/commons-io-2.6.jar:\
 #$eclipse_classes/../../../lib/zookeeper-3.4.8.jar
 
 #jars=""

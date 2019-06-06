@@ -20,7 +20,7 @@
 	<classpathentry kind="lib" path="../../lib/slf4j-api-1.6.1.jar"/>
 	<classpathentry kind="lib" path="../../lib/slf4j-simple-1.6.1.jar"/>
 	<classpathentry kind="lib" path="../../lib/core-0.1.4.jar"/>
-	<classpathentry kind="lib" path="../../lib/commons-io-1.1.jar"/>
+	<classpathentry kind="lib" path="../../lib/commons-io-2.6.jar"/>
 	<classpathentry kind="lib" path="../../lib/zookeeper-3.4.8.jar"/>
 	<classpathentry kind="lib" path="../../lib/aws-java-sdk-1.11.333/lib/aws-java-sdk-1.11.333.jar"/>
 	<classpathentry kind="output" path="build-classes"/>
