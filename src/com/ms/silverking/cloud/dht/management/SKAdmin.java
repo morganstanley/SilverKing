@@ -454,27 +454,27 @@ public class SKAdmin {
     }
 
     private boolean generateSingleNodeStartCommand(SKAdminOptions options) throws IOException, KeeperException {
-        ClassVars classVars;
+        ClassVars serverClassVars;
         String thisServer;
 
-        Set<String>                activeHostGroupNames;
-        Map<String,ClassVars>    hostGroupToClassVars;
-        HostGroupTable            hostGroupTable;
-        String                    hostGroupTableName;
-        Set<String>                passiveNodeHostGroupNames;
-        Set<String>             parsedTargets;
-        String                  generatedCmd;
-        ReapPolicy              reapPolicy;
+        Set<String>           activeHostGroupNames;
+        Map<String,ClassVars> hostGroupToClassVars;
+        HostGroupTable        hostGroupTable;
+        String                hostGroupTableName;
+        Set<String>           passiveNodeHostGroupNames;
+        Set<String>           targetServers;
+        String                generatedCmd;
+        ReapPolicy            reapPolicy;
 
-        parsedTargets = CollectionUtil.parseSet(options.targets, ",");
+        targetServers = CollectionUtil.parseSet(options.targets, ",");
 
-        if (parsedTargets.size() > 1) {
-            throw new IllegalArgumentException("generation of single node start command should only be passed a single target, got " + parsedTargets.toString());
-        } else if (parsedTargets.isEmpty()) {
+        if (targetServers.size() > 1) {
+            throw new IllegalArgumentException("generation of single node start command should only be passed a single target, got " + targetServers.toString());
+        } else if (targetServers.isEmpty()) {
             throw new IllegalArgumentException("target server for start command generation must be provided via -t");
         }
 
-        thisServer = parsedTargets.iterator().next();
+        thisServer = targetServers.iterator().next();
         Log.warning("Generating start command for target " + thisServer);
 
         activeHostGroupNames = dhtConfig.getHostGroups();
@@ -490,10 +490,10 @@ public class SKAdmin {
         passiveNodeHostGroupNames = dhtConfig.getPassiveNodeHostGroupsAsSet();
         Log.warning("passiveNodeHostGroupNames: ", CollectionUtil.toString(passiveNodeHostGroupNames));
 
-        classVars =  getServerClassVars(thisServer, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames, hostGroupToClassVars);
+        serverClassVars = getServerClassVars(thisServer, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames, hostGroupToClassVars);
 
         reapPolicy = options.getReapPolicy();
-        generatedCmd = _generateNodeStartCommand(classVars, options, reapPolicy, false);
+        generatedCmd = _generateNodeStartCommand(serverClassVars, options, reapPolicy, false);
         Log.warning("Command generated for target " + thisServer);
 
         System.out.println(generatedCmd);

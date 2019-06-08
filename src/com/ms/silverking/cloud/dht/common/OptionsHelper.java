@@ -34,44 +34,40 @@ public class OptionsHelper {
     // RetrievalOptions
 
     /**
-     * Construct a RetrievalOptions instance that is fully-specified with the
-     * exception of forwardingMode which is set to FORWARD for normal operation
-     * and OpTimeoutController, and updateSecondariesOnMiss which is set to
-     * false.
+     * Construct RetrievalOptions with VersionConstraint set to return the
+     * greatest version, null values returned for non-existent keys, and
+     * checksumVerification on.
      * 
-     * @param retrievalType
-     *            type of retrieval
-     * @param waitMode
-     *            whether to perform a WaitFor or a Get
-     * @param versionConstraint
-     *            specify the version
-     * @param nonExistenceResponse
-     *            action to perform for non-existent keys
-     * @param verifyChecksums
-     *            whether or not to verify checksums
+     * @param retrievalType type of retrieval
+     * @param waitMode whether to perform a WaitFor or a Get
      */
     public static RetrievalOptions newRetrievalOptions(
-            RetrievalType retrievalType, WaitMode waitMode,
-            VersionConstraint versionConstraint,
-            NonExistenceResponse nonExistenceResponse, boolean verifyChecksums) {
-        return new RetrievalOptions(
-                waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
-                        : DHTConstants.standardWaitForTimeoutController,
-                DHTConstants.noSecondaryTargets, retrievalType, waitMode,
-                versionConstraint, nonExistenceResponse, verifyChecksums,
-                false, ForwardingMode.FORWARD, false, DHTConstants.noUserOptions);
+            RetrievalType retrievalType, WaitMode waitMode) {
+        return newRetrievalOptions(retrievalType, waitMode, VersionConstraint.defaultConstraint);
     }
-
+    
     /**
      * Construct RetrievalOptions with null values returned for non-existent
      * keys and checksumVerification on
      * 
-     * @param retrievalType
-     *            type of retrieval
-     * @param waitMode
-     *            whether to perform a WaitFor or a Get
-     * @param versionConstraint
-     *            specify the version
+     * @param retrievalType type of retrieval
+     * @param waitMode whether to perform a WaitFor or a Get
+     * @param versionConstraint specify the version
+     */
+    public static RetrievalOptions newRetrievalOptions(
+            RetrievalType retrievalType, WaitMode waitMode,
+            VersionConstraint versionConstraint) {
+        return newRetrievalOptions(retrievalType, waitMode, versionConstraint, NonExistenceResponse.defaultResponse, true);
+    }
+    
+    /**
+     * Construct RetrievalOptions with null values returned for non-existent
+     * keys and checksumVerification on
+     * 
+     * @param opTimeoutController
+     * @param retrievalType type of retrieval
+     * @param waitMode whether to perform a WaitFor or a Get
+     * @param versionConstraint specify the version
      */
     /*
     public static RetrievalOptions newRetrievalOptions(
@@ -85,98 +81,79 @@ public class OptionsHelper {
     }
     */
     
-
     /**
-     * Construct RetrievalOptions with null values returned for non-existent
-     * keys and checksumVerification on
+     * Construct a RetrievalOptions instance that is fully-specified with the
+     * exception of forwardingMode which is set to FORWARD for normal operation
+     * and OpTimeoutController, and updateSecondariesOnMiss which is set to
+     * false.
      * 
-     * @param retrievalType
-     *            type of retrieval
-     * @param waitMode
-     *            whether to perform a WaitFor or a Get
-     * @param versionConstraint
-     *            specify the version
+     * @param retrievalType type of retrieval
+     * @param waitMode whether to perform a WaitFor or a Get
+     * @param versionConstraint specify the version
+     * @param nonExistenceResponse action to perform for non-existent keys
+     * @param verifyChecksums whether or not to verify checksums
      */
     public static RetrievalOptions newRetrievalOptions(
             RetrievalType retrievalType, WaitMode waitMode,
-            VersionConstraint versionConstraint) {
-        return newRetrievalOptions(retrievalType, waitMode, versionConstraint,
-                NonExistenceResponse.defaultResponse, true);
+            VersionConstraint versionConstraint,
+            NonExistenceResponse nonExistenceResponse, boolean verifyChecksums) {
+        return newRetrievalOptions(retrievalType, waitMode, versionConstraint, nonExistenceResponse, verifyChecksums, false, DHTConstants.noSecondaryTargets, DHTConstants.noUserOptions);
     }
 
     /**
      * Construct RetrievalOptions with null values returned for non-existent
      * keys and checksumVerification on
      * 
-     * @param retrievalType
-     *            type of retrieval
-     * @param waitMode
-     *            whether to perform a WaitFor or a Get
-     * @param versionConstraint
-     *            specify the version
-     * @param secondaryTargets
-     *            constrains queried secondary replicas
+     * @param retrievalType type of retrieval
+     * @param waitMode whether to perform a WaitFor or a Get
+     * @param versionConstraint specify the version
+     * @param secondaryTargets constrains queried secondary replicas
      */
     public static RetrievalOptions newRetrievalOptions(
             RetrievalType retrievalType, WaitMode waitMode,
             VersionConstraint versionConstraint,
             boolean updateSecondariesOnMiss,
             Set<SecondaryTarget> secondaryTargets) {
-        return new RetrievalOptions(
-                waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
-                        : DHTConstants.standardWaitForTimeoutController,
-                secondaryTargets, retrievalType, waitMode,
-                versionConstraint, NonExistenceResponse.defaultResponse, true,
-                false, ForwardingMode.FORWARD,
-                updateSecondariesOnMiss, DHTConstants.noUserOptions);
+        return newRetrievalOptions(retrievalType, waitMode, versionConstraint, updateSecondariesOnMiss, secondaryTargets, DHTConstants.noUserOptions);
     }
 
     /**
      * Construct RetrievalOptions with null values returned for non-existent
      * keys and checksumVerification on
      *
-     * @param retrievalType
-     *            type of retrieval
-     * @param waitMode
-     *            whether to perform a WaitFor or a Get
-     * @param versionConstraint
-     *            specify the version
-     * @param secondaryTargets
-     *            constrains queried secondary replicas
-     * @param userOptions
-     *            additional side data options from user
+     * @param retrievalType type of retrieval
+     * @param waitMode whether to perform a WaitFor or a Get
+     * @param versionConstraint specify the version
+     * @param secondaryTargets constrains queried secondary replicas
+     * @param userOptions additional side data options from user
      */
     public static RetrievalOptions newRetrievalOptions(
             RetrievalType retrievalType, WaitMode waitMode,
             VersionConstraint versionConstraint,
             boolean updateSecondariesOnMiss,
             Set<SecondaryTarget> secondaryTargets,
-            byte[] userOptions
-    ) {
+            byte[] userOptions) {
+        return newRetrievalOptions(retrievalType, waitMode, versionConstraint, NonExistenceResponse.defaultResponse, true, updateSecondariesOnMiss, secondaryTargets, userOptions);
+    }
+    
+    private static RetrievalOptions newRetrievalOptions(
+            RetrievalType retrievalType, WaitMode waitMode,
+            VersionConstraint versionConstraint,
+            NonExistenceResponse nonExistenceResponse,
+            boolean verifyChecksums,
+            boolean updateSecondariesOnMiss,
+            Set<SecondaryTarget> secondaryTargets,
+            byte[] userOptions) {
         return new RetrievalOptions(
                 waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
                         : DHTConstants.standardWaitForTimeoutController,
                 secondaryTargets, retrievalType, waitMode,
-                versionConstraint, NonExistenceResponse.defaultResponse, true,
+                versionConstraint, nonExistenceResponse, verifyChecksums,
                 false, ForwardingMode.FORWARD,
                 updateSecondariesOnMiss, userOptions);
     }
 
-    /**
-     * Construct RetrievalOptions with VersionConstraint set to return the
-     * greatest version, null values returned for non-existent keys, and
-     * checksumVerification on.
-     * 
-     * @param retrievalType
-     *            type of retrieval
-     * @param waitMode
-     *            whether to perform a WaitFor or a Get
-     */
-    public static RetrievalOptions newRetrievalOptions(
-            RetrievalType retrievalType, WaitMode waitMode) {
-        return newRetrievalOptions(retrievalType, waitMode,
-                VersionConstraint.defaultConstraint);
-    }
+    
 
     
     ///////////////
@@ -189,8 +166,7 @@ public class OptionsHelper {
     }
 
     public static GetOptions newGetOptions(RetrievalType retrievalType, VersionConstraint versionConstraint) {
-        return newGetOptions(DHTConstants.standardTimeoutController, retrievalType,
-                versionConstraint);
+        return newGetOptions(DHTConstants.standardTimeoutController, retrievalType, versionConstraint);
     }
 
     public static GetOptions newGetOptions(RetrievalType retrievalType) {

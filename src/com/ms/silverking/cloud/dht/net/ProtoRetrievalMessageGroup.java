@@ -134,7 +134,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
     }
     
     public static int getUOStart(MessageGroup mg) {
-        return RetrievalMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT  + getSTLength(mg) ;
+        return RetrievalMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT + getSTLength(mg);
     }
 
     public static int getUOLength(MessageGroup mg) {
@@ -148,7 +148,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
         int uoStartPos;
 
         uoStartPos = getUOStart(mg);
-        uoLength = getUOLength(mg);
+        uoLength   = getUOLength(mg);
         if (uoLength == 0) {
             return DHTConstants.noUserOptions;
         } else {

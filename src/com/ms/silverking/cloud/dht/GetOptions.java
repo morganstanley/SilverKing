@@ -23,31 +23,35 @@ public final class GetOptions extends RetrievalOptions {
     static {
         ObjectDefParser2.addParserWithExclusions(template, exclusionFields);
     }
-    
-    /**
-     * Construct a fully-specified GetOptions.
-     * Usage should be avoided; an instance should be obtained and modified from an enclosing environment.
-     * @param opTimeoutController opTimeoutController for the operation
-     * @param secondaryTargets constrains queried secondary replicas 
-     * to operation solely on the node that receives this operation
-     * @param retrievalType type of retrieval
-     * @param versionConstraint specify the version
-     * @param nonExistenceResponse action to perform for non-existent keys
-     * @param verifyChecksums whether or not to verify checksums
-     * @param returnInvalidations normally false, true causes invalidated values to be returned.
-     * only valid for META_DATA retrievals
-     * @param forwardingMode FORWARD is for normal operation. DO_NOT_FORWARD restricts the get
-     * to the receiving node
-     * @param updateSecondariesOnMiss update secondary replicas when a value is not found at the
-     * replica, but is found at the primary
-     */
-    public GetOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
-            RetrievalType retrievalType, VersionConstraint versionConstraint, 
-            NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, 
-            boolean returnInvalidations, ForwardingMode forwardingMode, boolean updateSecondariesOnMiss) {
-        super(opTimeoutController, secondaryTargets, retrievalType, WaitMode.GET, versionConstraint, 
-                nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, false, null);
-  }
+
+     ///
+     /// REMOVEME! - this is C++ only.
+     /// This should be removed once C++ SKGetptions.cpp is using the other constructor below properly.
+     ///
+     /**
+      * Construct a fully-specified GetOptions.
+      * Usage should be avoided; an instance should be obtained and modified from an enclosing environment.
+      * @param opTimeoutController opTimeoutController for the operation
+      * @param secondaryTargets constrains queried secondary replicas 
+      * to operation solely on the node that receives this operation
+      * @param retrievalType type of retrieval
+      * @param versionConstraint specify the version
+      * @param nonExistenceResponse action to perform for non-existent keys
+      * @param verifyChecksums whether or not to verify checksums
+      * @param returnInvalidations normally false, true causes invalidated values to be returned.
+      * only valid for META_DATA retrievals
+      * @param forwardingMode FORWARD is for normal operation. DO_NOT_FORWARD restricts the get
+      * to the receiving node
+      * @param updateSecondariesOnMiss update secondary replicas when a value is not found at the
+      * replica, but is found at the primary
+      */
+     public GetOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
+             RetrievalType retrievalType, VersionConstraint versionConstraint, 
+             NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, 
+             boolean returnInvalidations, ForwardingMode forwardingMode, boolean updateSecondariesOnMiss) {
+         super(opTimeoutController, secondaryTargets, retrievalType, WaitMode.GET, versionConstraint, 
+                 nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, false, null);
+     }
     
     /**
      * Construct a fully-specified GetOptions.

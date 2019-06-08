@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.net.protocol;
 
 import com.ms.silverking.cloud.dht.RetrievalOptions;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.net.SecondaryTargetSerializer;
 import com.ms.silverking.numeric.NumConversion;
 
@@ -13,6 +14,6 @@ public class RetrievalMessageFormat extends KeyedMessageFormat {
                 + NumConversion.BYTES_PER_SHORT 
                 + SecondaryTargetSerializer.serializedLength(retrievalOptions.getSecondaryTargets())
                 + NumConversion.BYTES_PER_INT
-                + (retrievalOptions.getUserOptions() == null ? 0 : retrievalOptions.getUserOptions().length);
+                + (retrievalOptions.getUserOptions() == DHTConstants.noUserOptions ? 0 : retrievalOptions.getUserOptions().length);
     }
 }
