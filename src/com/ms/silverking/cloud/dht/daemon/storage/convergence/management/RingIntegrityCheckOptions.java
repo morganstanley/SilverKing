@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.kohsuke.args4j.Option;
 
-import com.google.caliper.internal.guava.collect.ImmutableList;
+import com.google.common.collect.ImmutableList;
 import com.ms.silverking.collection.Pair;
 
 public class RingIntegrityCheckOptions {
