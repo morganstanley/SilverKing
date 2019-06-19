@@ -14,30 +14,30 @@ function f_checkFolderAndDatacenter {
 }
 
 function f_startTimer {
-	f_getSeconds
+    f_getSeconds
 }
 
 function f_getSeconds {
-	echo `date +%s`
+    echo `date +%s`
 }
 
 function f_printElapsed {
-	typeset elapsedSeconds=$(f_getElapsed "$1")
-	f_printElapsedHelper "$elapsedSeconds"
+    typeset elapsedSeconds=$(f_getElapsed "$1")
+    f_printElapsedHelper "$elapsedSeconds"
 }
 
 function f_getElapsed {
-	typeset startTime=$1
-	typeset endTime=$(f_getSeconds)
-	typeset elapsed=$((endTime-startTime))
-	echo $elapsed
+    typeset startTime=$1
+    typeset endTime=$(f_getSeconds)
+    typeset elapsed=$((endTime-startTime))
+    echo $elapsed
 }
 
 function f_printElapsedHelper {
-	typeset elapsedSeconds=$1
-	typeset time=`date -u -d @${elapsedSeconds} +"%T"`
-	echo 
-	echo "Run took: $time ($elapsedSeconds s)" 
+    typeset elapsedSeconds=$1
+    typeset time=`date -u -d @${elapsedSeconds} +"%T"`
+    echo 
+    echo "Run took: $time ($elapsedSeconds s)" 
 }
 
 function f_createRunDir  {
