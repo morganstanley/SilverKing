@@ -56,12 +56,12 @@ public class SimpleTimeoutController implements OpTimeoutController {
 
     @Override
     public int getRelativeTimeoutMillisForAttempt(AsyncOperation op, int attemptIndex) {
-        return Integer.MAX_VALUE;
+        return maxRelativeTimeoutMillis;
     }
     
     @Override
     public long getRelativeExclusionChangeRetryMillisForAttempt(AsyncOperation op, int curAttemptIndex) {
-        return Integer.MAX_VALUE;
+        return maxRelativeTimeoutMillis;
     }
 
     @Override
