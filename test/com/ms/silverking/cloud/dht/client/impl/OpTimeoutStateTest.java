@@ -20,10 +20,10 @@ public class OpTimeoutStateTest {
     private static final int opSizeBasedTimeoutController_defaultMaxAttempts                             = 4;
     private static final int opSizeBasedTimeoutController_defaultExclusionChangeRetryIntervalMS          = 5 * 1000;
     
-    private static final int simpleTimeoutController_getRelativeTimeoutMillisForAttempt                  = int_maxVal;
+    private static final int simpleTimeoutController_getRelativeTimeoutMillisForAttempt                  = 2 * 60 * 1000;
     private static final int simpleTimeoutController_defaultMaxRelativeTimeoutMillis                     = 2 * 60 * 1000;
     private static final int simpleTimeoutController_defaultMaxAttempts                                  = 5;
-    private static final int simpleTimeoutController_getRelativeExclusionChangeRetryMillisForAttempt     = int_maxVal;
+    private static final int simpleTimeoutController_getRelativeExclusionChangeRetryMillisForAttempt     = 2 * 60 * 1000;
     
     private static final int waitForTimeoutController_defaultInternalRetryIntervalSeconds                = 20 * 1000;
     private static final int waitForTimeoutController_defaultMaxAttempts                                 = int_maxVal;
