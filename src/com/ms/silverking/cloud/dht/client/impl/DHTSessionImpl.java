@@ -6,6 +6,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.GetOptions;
@@ -15,6 +16,8 @@ import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.WaitOptions;
+import com.ms.silverking.cloud.dht.client.AsyncRetrieval;
+import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.DHTSession;
@@ -65,7 +68,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final NamespaceOptionsClient    nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
     
-    private SynchronousNamespacePerspective<String,String>    systemNSP;
+    private AsynchronousNamespacePerspective<String,String>    systemNSP;
     private ExclusionSet    exclusionSet;
     
     /*
@@ -98,6 +101,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private static final int    timeoutCheckIntervalMillis = 4 * 1000;
     private static final int    serverCheckIntervalMillis = 2 * 60 * 1000;
     private static final int    serverOrderIntervalMillis = 5 * 60 * 1000;
+    private static final int    timeoutExclusionSetRetrievalMillis = 1000;
     
     private static final int   connectionQueueLimit = 0;
     
@@ -407,7 +411,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     void initializeExclusionSet() {
         try {
             if (systemNSP == null) {
-                systemNSP = getClientNamespace(Namespace.systemName).openSyncPerspective(String.class, String.class);
+                systemNSP = getClientNamespace(Namespace.systemName).openAsyncPerspective(String.class, String.class);
             }
             exclusionSet = getCurrentExclusionSet();
         } catch (Exception e) {
@@ -418,13 +422,22 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     ExclusionSet getCurrentExclusionSet() {
         try {
             String    exclusionSetDef;
-            
-            exclusionSetDef = systemNSP.get("exclusionSet");
-            if (exclusionSetDef != null) {
-                return ExclusionSet.parse(exclusionSetDef);
+            AsyncSingleValueRetrieval<String,String> asyncRetrieval;
+            boolean       complete;
+
+            asyncRetrieval = systemNSP.get("exclusionSet");
+            complete = asyncRetrieval.waitForCompletion(timeoutExclusionSetRetrievalMillis, TimeUnit.MILLISECONDS);
+            if (complete) {
+              exclusionSetDef = String.valueOf(asyncRetrieval.getStoredValue());
             } else {
-                return null;
+              exclusionSetDef = null;
             }
+            if (exclusionSetDef != null) {
+                  return ExclusionSet.parse(exclusionSetDef);
+              } else {
+                  return null;
+              }
+
         } catch (Exception e) {
             Log.logErrorWarning(e, "getCurrentExclusionSet() failed");
             return null;
@@ -440,7 +453,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             boolean            exclusionSetHasChanged;
             
             newExclusionSet = getCurrentExclusionSet();
-            exclusionSetHasChanged = !exclusionSet.equals(newExclusionSet);
+            exclusionSetHasChanged = newExclusionSet == null || !exclusionSet.equals(newExclusionSet);
             exclusionSet = newExclusionSet;
             return exclusionSetHasChanged;
         }
