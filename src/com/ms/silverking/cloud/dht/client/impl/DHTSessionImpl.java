@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.WaitOptions;
+import com.ms.silverking.cloud.dht.client.AsyncRetrieval;
 import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
@@ -100,6 +101,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private static final int    timeoutCheckIntervalMillis = 4 * 1000;
     private static final int    serverCheckIntervalMillis = 2 * 60 * 1000;
     private static final int    serverOrderIntervalMillis = 5 * 60 * 1000;
+    private static final int    timeoutExclusionSetRetrievalMillis = 1000;
     
     private static final int    exclusionSetRetrievalTimeoutSeconds = 10;
     
@@ -432,7 +434,6 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             AsyncSingleValueRetrieval<String,String>    retrieval;
             String    exclusionSetDef;
             boolean    complete;
-            
             retrieval = systemNSP.get("exclusionSet");
             complete = retrieval.waitForCompletion(exclusionSetRetrievalTimeoutSeconds, TimeUnit.SECONDS);
             if (complete) {
@@ -440,11 +441,15 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             } else {
                 exclusionSetDef = null;
             }
-            if (exclusionSetDef != null) {
-                return ExclusionSet.parse(exclusionSetDef);
             } else {
-                return null;
+              exclusionSetDef = null;
             }
+            if (exclusionSetDef != null) {
+                  return ExclusionSet.parse(exclusionSetDef);
+              } else {
+                  return null;
+              }
+
         } catch (Exception e) {
             Log.logErrorWarning(e, "getCurrentExclusionSet() failed");
             return null;
