@@ -45,7 +45,7 @@ public class SimpleTimeoutControllerTest {
         Object[][] testCases = {
             {defaultMaxAttempts,              getMaxAttempts_Null(defaultController)},
             {defaultMaxRelativeTimeoutMillis, getRelativeTimeoutMillisForAttempt_Null(defaultController)},
-            {defaultMaxRelativeTimeoutMillis, getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultController)},
+            {defaultMaxRelativeTimeoutMillis, (int)getRelativeExclusionChangeRetryMillisForAttempt_Null(defaultController)},
             {defaultMaxRelativeTimeoutMillis, getMaxRelativeTimeoutMillis_Null(defaultController)},
         };
         
@@ -70,7 +70,7 @@ public class SimpleTimeoutControllerTest {
         Object[][] testCases = {
             {maDiff,           getMaxAttempts_Null(maController)},
             {mrtomDiff,        getRelativeTimeoutMillisForAttempt_Null(mrtomController)},
-            {mrtomDiff,        getRelativeExclusionChangeRetryMillisForAttempt_Null(mrtomController)},
+            {mrtomDiff,        (int)getRelativeExclusionChangeRetryMillisForAttempt_Null(mrtomController)},
             {mrtomDiff,        getMaxRelativeTimeoutMillis_Null(mrtomController)},
         };
         
