@@ -106,7 +106,7 @@ function f_aws_install_gradle {
     typeset gradle_zip=$gradle_version-bin.zip
     f_aws_downloadZip "$gradle_zip" "https://services.gradle.org/distributions/$gradle_zip"
 
-    f_fillInBuildConfigVariable "GRADLE" "$LIB_ROOT/$gradle_version/bin/gradle"
+    f_fillInBuildConfigVariable "GRADLE_HOME" "$LIB_ROOT/$gradle_version"
 }
 
 function f_aws_install_zk {

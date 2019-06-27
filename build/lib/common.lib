@@ -300,11 +300,11 @@ function f_runGradle {
     
     f_printSection "Running Gradle"
     typeset vars="
-         PATH=/usr/bin:/bin:$ANT_9_HOME/bin
+         PATH=/usr/bin:/bin:$GRADLE_HOME/bin
     JAVA_HOME=$JAVA_8_HOME 
 $extraVars
     "
-    f_runCmdInEvalEnv "$vars" "$GRADLE \"$task\""
+    f_runCmdInEvalEnv "$vars" "gradle \"$task\""
 }
 
 function f_printSummary_BuildFlow {
