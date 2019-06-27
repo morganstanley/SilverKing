@@ -375,7 +375,7 @@ public class NamespaceStore implements SSNamespaceStore {
         nsStats = new NamespaceStats();
         deletedSegments = new HashSet<>();
         
-        Pair<PutTrigger,RetrieveTrigger>    triggers;        
+        Pair<PutTrigger,RetrieveTrigger>    triggers;
         triggers = instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
         putTrigger = triggers.getV1();
         retrieveTrigger = triggers.getV2();
@@ -685,7 +685,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     // write lock must be held
-    private long newestVersion(DHTKey key) {
+    protected long newestVersion(DHTKey key) {
         Integer newestSegment;
     
         newestSegment = newestSegment(key);
@@ -931,13 +931,15 @@ public class NamespaceStore implements SSNamespaceStore {
                     }
                 } else {
                     debug = 3;
+                    Log.warning(storageParams.getChecksumType() + " " + MetaDataUtil.getChecksumType(result, 0));
+
                     return SegmentStorageResult.mutation;
                 }
             }
         }
     }
 
-    protected final OpResult _put(DHTKey key, ByteBuffer value, StorageParametersAndRequirements storageParams, byte[] userData, 
+    protected final OpResult _put(DHTKey key, ByteBuffer value, StorageParametersAndRequirements storageParams, byte[] userData,
                                 NamespaceVersionMode nsVersionMode) {
         WritableSegmentBase     storageSegment;
         SegmentStorageResult    storageResult;
@@ -966,26 +968,25 @@ public class NamespaceStore implements SSNamespaceStore {
         } else {
             versionCheckResult = checkPutVersion(key, storageParams.getVersion(), storageParams.getRequiredPreviousVersion());
         }
-        switch (versionCheckResult) {
-        case Invalid:
+        if(versionCheckResult == VersionCheckResult.Invalid) {
             if (debug) {
                 Log.fineAsync("_put returning INVALID_VERSION");
             }
             return OpResult.INVALID_VERSION;
-        case Equal:
-            storageResult = checkForDuplicateStore(key, value, storageParams, userData);
-            if (debug) {
-                Log.fineAsync("checkForDuplicateStore result %s", storageResult);
+        } else {
+            if(versionCheckResult == VersionCheckResult.Equal || nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION) {
+                storageResult = checkForDuplicateStore(key, value, storageParams, userData);
+                if (debug) {
+                    Log.fineAsync("checkForDuplicateStore result %s", storageResult);
+                }
+                if (storageResult != SegmentStorageResult.previousStoreIncomplete) {
+                    return storageResult.toOpResult();
+                }
+                if (debug) {
+                    Log.fineAsync("fall through after checkForDuplicateStore");
+                }
             }
-            if (storageResult != SegmentStorageResult.previousStoreIncomplete) {
-                break;
-            } else {
-                // fall through and store fresh
-            }
-            if (debug) {
-                Log.fineAsync("fall through after checkForDuplicateStore");
-            }
-        case Valid:
+
             storageSegment = headSegment;
             try {
                 storageResult = storageSegment.put(key, value, storageParams, userData, nsOptions);
@@ -1005,17 +1006,14 @@ public class NamespaceStore implements SSNamespaceStore {
                 storageResult = storageSegment.put(key, value, storageParams, userData, nsOptions);
             }
             if (storageResult == SegmentStorageResult.stored) {
-                putSegmentNumberAndVersion(key, storageSegment.getSegmentNumber(), storageParams.getVersion(), 
-                                           storageParams.getCreationTime());
+                putSegmentNumberAndVersion(key, storageSegment.getSegmentNumber(), storageParams.getVersion(),
+                        storageParams.getCreationTime());
                 addToSizeStats(storageParams);
             } else {
                 if (debugSegments) {
                     Log.warning("not stored "+ storageResult);
                 }
             }
-            break;
-        default:
-            throw new RuntimeException("panic");
         }
         //if (storageResult != SegmentStorageResult.stored) Log.warningf("!stored _put2 %s %s %d %s", KeyUtil.keyToString(key), storageResult, storageParams.getVersion(), storageParams); // for debugging
         return storageResult.toOpResult();
