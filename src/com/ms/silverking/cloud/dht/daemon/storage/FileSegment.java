@@ -254,7 +254,7 @@ public class FileSegment extends WritableSegmentBase {
                 offsetList = null;
             }
             if (offsetList != null) {
-                System.out.println("\nOffset list: "+ i);
+                Log.finef("Offset list: %s", i);
                 offsetList.displayForDebug();
                 i++;
             } else {

@@ -13,6 +13,7 @@ public class LRUReapPolicy extends BaseReapPolicy<LRUReapPolicyState> {
     private static final int        defaultIdleReapPauseMillis = 5;
     private static final int        defaultReapIntervalMillis = 1 * 1000;
     private static final int        defaultBatchLimit = 1000;
+    private static final boolean    defaultLruVerboseReap = false;
     
     private static final boolean    debug = false;
     
@@ -23,7 +24,7 @@ public class LRUReapPolicy extends BaseReapPolicy<LRUReapPolicyState> {
     }        
     
     public LRUReapPolicy() {
-        this(defaultVerboseReap, defaultVerboseReapPhase, defaultVerboseSegmentDeletion, defaultIdleReapPauseMillis, defaultReapIntervalMillis, defaultBatchLimit);
+        this(defaultLruVerboseReap, defaultVerboseReapPhase, defaultVerboseSegmentDeletion, defaultIdleReapPauseMillis, defaultReapIntervalMillis, defaultBatchLimit);
     }
     
     public LRUReapPolicy(boolean verboseReap, boolean verboseReapPhase, boolean verboseSegmentDeletion, int idleReapPauseMillis, int reapIntervalMillis, int batchLimit) {
