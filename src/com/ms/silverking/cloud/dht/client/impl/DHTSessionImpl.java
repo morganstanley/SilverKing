@@ -67,7 +67,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final NamespaceCreator  namespaceCreator;
     private final NamespaceOptionsClient    nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
-    
+
     private AsynchronousNamespacePerspective<String,String>    systemNSP;
     private ExclusionSet    exclusionSet;
     
@@ -413,7 +413,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             if (systemNSP == null) {
                 systemNSP = getClientNamespace(Namespace.systemName).openAsyncPerspective(String.class, String.class);
             }
-            exclusionSet = getCurrentExclusionSet();
+            setExclusionSet(getCurrentExclusionSet());
         } catch (Exception e) {
             Log.logErrorWarning(e, "initializeExclusionSet() failed");
         }
@@ -428,7 +428,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             asyncRetrieval = systemNSP.get("exclusionSet");
             complete = asyncRetrieval.waitForCompletion(timeoutExclusionSetRetrievalMillis, TimeUnit.MILLISECONDS);
             if (complete) {
-              exclusionSetDef = String.valueOf(asyncRetrieval.getStoredValue());
+              exclusionSetDef = asyncRetrieval.getValue();
             } else {
               exclusionSetDef = null;
             }
@@ -445,7 +445,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     }
     
     boolean exclusionSetHasChanged() {
-        if (exclusionSet == null) {
+        if (getExclusionSet() == null) {
             initializeExclusionSet();
             return false;
         } else {
@@ -453,8 +453,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             boolean            exclusionSetHasChanged;
             
             newExclusionSet = getCurrentExclusionSet();
-            exclusionSetHasChanged = newExclusionSet == null || !exclusionSet.equals(newExclusionSet);
-            exclusionSet = newExclusionSet;
+            exclusionSetHasChanged = newExclusionSet == null || !getExclusionSet().equals(newExclusionSet);
+            setExclusionSet(newExclusionSet);
             return exclusionSetHasChanged;
         }
     }
@@ -463,8 +463,9 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         long    curTimeMillis;
         boolean    exclusionSetHasChanged;
         
-        curTimeMillis = absMillisTimeSource.absTimeMillis();
+        curTimeMillis = getAbsMillisTimeSource().absTimeMillis();
         exclusionSetHasChanged = exclusionSetHasChanged();
+        List<ClientNamespace> clientNamespaceList = getClientNamespaceList();
         for (ClientNamespace clientNamespace : clientNamespaceList) {
             clientNamespace.checkForTimeouts(curTimeMillis, exclusionSetHasChanged);
         }
@@ -478,5 +479,21 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                 Log.logErrorWarning(e);
             }
         }
+    }
+
+  ExclusionSet getExclusionSet() {
+    return exclusionSet;
+  }
+
+  void setExclusionSet(ExclusionSet exclusionSet) {
+    this.exclusionSet = exclusionSet;
+  }
+
+  List<ClientNamespace> getClientNamespaceList() {
+        return clientNamespaceList;
+    }
+
+    AbsMillisTimeSource getAbsMillisTimeSource() {
+        return absMillisTimeSource;
     }
 }
