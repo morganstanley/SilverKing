@@ -148,15 +148,13 @@ public class FileSegment extends WritableSegmentBase {
         try {
         htBuf = ((ByteBuffer)rawHTBuf.duplicate().position(NumConversion.BYTES_PER_INT + CuckooConfig.BYTES)).slice();
         } catch (RuntimeException re) {
-            System.out.println(nsDir);
-            System.out.println(segmentNumber);
-            System.out.println(dataMapMode);
-            System.out.println();
-            System.out.println(dataBuf);
-            System.out.printf("%d\t%d\t%d\t%d\n", dataSegmentSize, raFile.length(), 
+            Log.severe(nsDir);
+            Log.severe(segmentNumber);
+            Log.severe(dataMapMode);
+            Log.severe(dataBuf);
+            Log.severef("%d\t%d\t%d\t%d\n", dataSegmentSize, raFile.length(),
                               dataSegmentSize, raFile.length() - dataSegmentSize);
-            System.out.println();
-            System.out.println(rawHTBuf);
+            Log.severe(rawHTBuf);
             throw re;
         }
         htBuf = htBuf.order(ByteOrder.nativeOrder());
@@ -353,7 +351,7 @@ public class FileSegment extends WritableSegmentBase {
                 offsetList = null;
             }
             if (offsetList != null) {
-                System.out.println("\nOffset list: "+ i);
+                Log.finef("Offset list: %s", i);
                 offsetList.displayForDebug();
                 i++;
             } else {

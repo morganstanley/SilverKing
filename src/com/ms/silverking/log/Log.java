@@ -199,7 +199,7 @@ public final class Log {
     
     public static void warningAsyncf(String f, Object... args) {
         if (levelMet(Level.WARNING)) {
-            warningAsync(String.format(f, args));
+            warningAsyncInternal(new LogEntry(Level.WARNING, String.format(f, args)));
         }
     }
     
@@ -211,13 +211,10 @@ public final class Log {
     
     public static void warningAsync(String m, Object o) {
         if (levelMet(Level.WARNING)) {
-            try {
-                logQueue.put(new LogEntry(Level.WARNING, o, m));
-            } catch (InterruptedException ie) {
-            }
+            warningAsyncInternal(new LogEntry(Level.WARNING, o, m));
         }
-    }    
-    
+    }
+
     public static void warningAsync(Object o) {
         if (o == null) {
             warningAsync("null");
@@ -228,13 +225,17 @@ public final class Log {
     
     public static void warningAsync(String m) {
         if (levelMet(Level.WARNING)) {
-            try {
-                logQueue.put(new LogEntry(Level.WARNING, m));
-            } catch (InterruptedException ie) {
-            }
+            warningAsyncInternal(new LogEntry(Level.WARNING, m));
         }
-    }    
-    
+    }
+
+    private static void warningAsyncInternal(LogEntry le) {
+        try {
+            logQueue.put(le);
+        } catch (InterruptedException ie) {
+        }
+    }
+
     public static void severe(String m, String className, String methodName) {
         log(Level.SEVERE, className + "." + methodName + ": " + m);
     }
@@ -297,21 +298,28 @@ public final class Log {
     
     public static void infoAsync(String m, Object o) {
         if (levelMet(Level.INFO)) {
-            try {
-                logQueue.put(new LogEntry(Level.INFO, o, m));
-            } catch (InterruptedException ie) {
-            }
+            infoAsyncInternal(new LogEntry(Level.INFO, o, m));
         }
     }    
     
     public static void infoAsync(String m) {
         if (levelMet(Level.INFO)) {
-            try {
-                logQueue.put(new LogEntry(Level.INFO, m));
-            } catch (InterruptedException ie) {
-            }
+            infoAsyncInternal(new LogEntry(Level.INFO, m));
         }
-    }    
+    }
+
+    public static void infoAsyncf(String f, Object... args) {
+        if (levelMet(Level.INFO)) {
+            infoAsyncInternal(new LogEntry(Level.INFO, String.format(f, args)));
+        }
+    }
+
+    private static void infoAsyncInternal(LogEntry le) {
+        try {
+            logQueue.put(le);
+        } catch (InterruptedException ie) {
+        }
+    }
     
     public static void info(String m, Object o) {
         if (levelMet(Level.INFO)) {
@@ -383,28 +391,26 @@ public final class Log {
     
     public static void fineAsync(String m, Object o) {
         if (levelMet(Level.FINE)) {
-            try {
-                logQueue.put(new LogEntry(Level.FINE, o, m));
-            } catch (InterruptedException ie) {
-            }
+            fineAsyncInternal(new LogEntry(Level.FINE, o, m));
         }
     }   
     
     public static void fineAsync(Object o) {
         if (levelMet(Level.FINE)) {
-            try {
-                logQueue.put(new LogEntry(Level.FINE, o.toString()));
-            } catch (InterruptedException ie) {
-            }
+            fineAsyncInternal(new LogEntry(Level.FINE, o.toString()));
         }
     }   
 
     public static void fineAsync(String m) {
         if (levelMet(Level.FINE)) {
-            try {
-                logQueue.put(new LogEntry(Level.FINE, m));
-            } catch (InterruptedException ie) {
-            }
+            fineAsyncInternal(new LogEntry(Level.FINE, m));
+        }
+    }
+
+    private static void fineAsyncInternal(LogEntry le) {
+        try {
+            logQueue.put(le);
+        } catch (InterruptedException ie) {
         }
     }
     
@@ -428,7 +434,13 @@ public final class Log {
         if (levelMet(Level.FINE)) {
             fine(String.format(f, args));
         }
-    }    
+    }
+
+    public static void fineAsyncf(String f, Object... args) {
+        if (levelMet(Level.FINE)) {
+            fineAsyncInternal(new LogEntry(Level.FINE, String.format(f, args)));
+        }
+    }
     
     public static void fine(String m) {
         if (Log.levelMet(Level.FINE)) {

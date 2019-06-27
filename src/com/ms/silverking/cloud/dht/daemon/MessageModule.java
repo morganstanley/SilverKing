@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
+import com.ms.silverking.util.PropertiesHelper;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.ImmutableList;
@@ -100,7 +101,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private final StorageProtocol localConsistencyModeToStorageProtocol[];
     private final RetrievalProtocol consistencyModeToRetrievalProtocol[];
     
-    private static final boolean    debug = false;
+    private static final boolean    debug = PropertiesHelper.systemHelper.getBoolean("com.ms.silverking.cloud.dht.daemon.MessageModule.debug", false);
     private static final boolean    debugReceivedMessages = false || debug;
     private static final boolean    debugCleanup = false || debug;
     private static final boolean    debugShortTimeMessages = false || debug;
@@ -497,7 +498,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         version = ProtoPutUpdateMessageGroup.getPutVersion(message);
         storageState = ProtoPutUpdateMessageGroup.getStorageState(message);
         if (debug) {
-            System.out.println("handlePutUpdate storageState: "+ storageState);
+            Log.fineAsyncf("handlePutUpdate storageState: %s ", storageState);
         }
         results = new ArrayList<>();
         for (MessageGroupKeyEntry entry : message.getKeyIterator()) {
@@ -532,11 +533,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                                     results.size(), 
                                     mgBase.getMyID(), storageState, deadlineRelativeMillis); // FUTURE - allow constructor without this?
             if (debug) {
-                System.out.println("results.size "+ results.size());
+                Log.fineAsyncf("results.size: %d"+ results.size());
             }
             for (PutResult result : results) {
                 if (debug) {
-                    System.out.println(result);
+                    Log.fineAsync(result);
                 }
                 response.addResult(result.getKey(), result.getResult());           
             }
@@ -585,12 +586,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             PrimarySecondaryIPListPair  replicaListPair;
             
             if (debug) {
-                System.out.println("\t\tgetReplicaListPair "+ key);
+                Log.fineAsyncf("getReplicaListPair: %s ", key);
             }
             // FUTURE - think about improvements
             replicaListPair = ringMaster.getReplicaListPair(key, ownerQueryOpType);
             if (debug) {
-                System.out.println("\t\t"+ key +"\t"+ replicaListPair +':');
+                Log.fineAsyncf("%s \t %s :", key , replicaListPair);
             }
             return replicaListPair;
         }
@@ -603,12 +604,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             List<IPAndPort>   replicaList;
             
             if (debug) {
-                System.out.println("\t\tgetReplicas "+ key +"\t"+ oqm);
+                Log.fineAsyncf("getReplicas %s \t %s",key , oqm);
             }
             // FUTURE - think about improvements
             replicaList = ringMaster.getReplicaList(key, oqm, ownerQueryOpType);
             if (debug) {
-                System.out.println("\t\t"+ key +"\t"+ CollectionUtil.toString(replicaList, ':'));
+                Log.fineAsyncf("%s \t %s",key , CollectionUtil.toString(replicaList, ':'));
             }
             return replicaList;
         }
@@ -619,12 +620,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         IPAndPort[]   replicas;
         
         if (debug) {
-            System.out.println("\t\tgetPrimaryReplicas "+ key);
+            Log.fineAsyncf("getPrimaryReplicas ", key);
         }
         // FUTURE - think about improvements
         replicas = ringMaster.getReplicas(key, oqm, ownerQueryOpType);
         if (debug) {
-            System.out.println("\t\t"+ key +"\t"+ IPAndPort.arrayToString(replicas));
+            Log.fineAsyncf("%s \t %s", key , IPAndPort.arrayToString(replicas));
         }
         return replicas;
     }
@@ -636,7 +637,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     @Override
     public boolean isLocal(IPAndPort replica) {
         if (debug) {
-            System.out.println("\t\t#### "+ replica +" "+ myIPAndPort +"\t"+ replica.equals(myIPAndPort));
+            Log.fineAsyncf("#### %s %s\t%s",replica, myIPAndPort, replica.equals(myIPAndPort));
         }
         return replica.equals(myIPAndPort);
     }

@@ -493,7 +493,7 @@ public class StorageModule implements LinkCreationListener {
     public void startupReap() {
         Stopwatch    sw;
         
-        Log.warning("Startup reap");
+        Log.info("Startup reap");
         sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
             if (!ns.isDynamic()) {
@@ -501,7 +501,7 @@ public class StorageModule implements LinkCreationListener {
             }
         }
         sw.stop();
-        Log.warning("Startup reap complete: "+ sw);
+        Log.infof("Startup reap complete: %f", sw.getElapsedSeconds());
     }
     
     public void liveReap() {
@@ -509,7 +509,7 @@ public class StorageModule implements LinkCreationListener {
             Stopwatch    sw;
             
             if (reapPolicy.verboseReap()) {
-                Log.warningAsync("Live reap");
+                Log.infoAsync("Live reap");
             }
             sw = new SimpleStopwatch();
             for (NamespaceStore ns : namespaces.values()) {
@@ -519,11 +519,11 @@ public class StorageModule implements LinkCreationListener {
             }
             sw.stop();
             if (reapPolicy.verboseReap()) {
-                Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
+                Log.infoAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
             }
         } else {
             if (reapPolicy.verboseReap()) {
-                Log.warningAsync("Skipping live reap. Local node is excluded.");
+                Log.infoAsync("Skipping live reap. Local node is excluded.");
             }
         }
     }
