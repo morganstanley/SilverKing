@@ -1,41 +1,10 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import com.ms.silverking.cloud.dht.GetOptions;
-import com.ms.silverking.cloud.dht.NamespaceCreationOptions;
-import com.ms.silverking.cloud.dht.NamespaceOptions;
-import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
-import com.ms.silverking.cloud.dht.NamespaceVersionMode;
-import com.ms.silverking.cloud.dht.PutOptions;
-import com.ms.silverking.cloud.dht.WaitOptions;
-import com.ms.silverking.cloud.dht.client.AsyncRetrieval;
-import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
-import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
-import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
-import com.ms.silverking.cloud.dht.client.DHTSession;
+import com.ms.silverking.cloud.dht.*;
 import com.ms.silverking.cloud.dht.client.Namespace;
-import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
-import com.ms.silverking.cloud.dht.client.NamespaceDeletionException;
-import com.ms.silverking.cloud.dht.client.NamespaceRecoverException;
-import com.ms.silverking.cloud.dht.client.RetrievalException;
-import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
-import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
+import com.ms.silverking.cloud.dht.client.*;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
-import com.ms.silverking.cloud.dht.common.Context;
-import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.cloud.dht.common.DHTUtil;
-import com.ms.silverking.cloud.dht.common.NamespaceOptionsClient;
-import com.ms.silverking.cloud.dht.common.NamespaceProperties;
-import com.ms.silverking.cloud.dht.common.NamespaceUtil;
-import com.ms.silverking.cloud.dht.common.TimeoutException;
+import com.ms.silverking.cloud.dht.common.*;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.NamespaceLinksZK;
@@ -50,6 +19,15 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.async.QueueingConnectionLimitListener;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.time.AbsMillisTimeSource;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 /**
  * Concrete implementation of DHTSession. 
@@ -101,7 +79,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private static final int    timeoutCheckIntervalMillis = 4 * 1000;
     private static final int    serverCheckIntervalMillis = 2 * 60 * 1000;
     private static final int    serverOrderIntervalMillis = 5 * 60 * 1000;
-    private static final int    timeoutExclusionSetRetrievalMillis = 1000;
+    private static final int    timeoutExclusionSetRetrievalMillis = 2000;
     
     private static final int   connectionQueueLimit = 0;
     
@@ -407,7 +385,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     }
     
     /////////////////////
-    
+
     void initializeExclusionSet() {
         try {
             if (systemNSP == null) {
@@ -418,51 +396,51 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             Log.logErrorWarning(e, "initializeExclusionSet() failed");
         }
     }
-    
+
     ExclusionSet getCurrentExclusionSet() {
         try {
-            String    exclusionSetDef;
-            AsyncSingleValueRetrieval<String,String> asyncRetrieval;
-            boolean       complete;
+            String exclusionSetDef;
+            AsyncSingleValueRetrieval<String, String> asyncRetrieval;
+            boolean complete;
 
             asyncRetrieval = systemNSP.get("exclusionSet");
             complete = asyncRetrieval.waitForCompletion(timeoutExclusionSetRetrievalMillis, TimeUnit.MILLISECONDS);
             if (complete) {
-              exclusionSetDef = asyncRetrieval.getValue();
+                exclusionSetDef = asyncRetrieval.getValue();
             } else {
-              exclusionSetDef = null;
+                exclusionSetDef = null;
             }
             if (exclusionSetDef != null) {
-                  return ExclusionSet.parse(exclusionSetDef);
-              } else {
-                  return null;
-              }
+                return ExclusionSet.parse(exclusionSetDef);
+            } else {
+                return null;
+            }
 
         } catch (Exception e) {
             Log.logErrorWarning(e, "getCurrentExclusionSet() failed");
             return null;
         }
     }
-    
+
     boolean exclusionSetHasChanged() {
         if (getExclusionSet() == null) {
             initializeExclusionSet();
             return false;
         } else {
-            ExclusionSet    newExclusionSet;
-            boolean            exclusionSetHasChanged;
-            
+            ExclusionSet newExclusionSet;
+            boolean exclusionSetHasChanged;
+
             newExclusionSet = getCurrentExclusionSet();
             exclusionSetHasChanged = newExclusionSet == null || !getExclusionSet().equals(newExclusionSet);
             setExclusionSet(newExclusionSet);
             return exclusionSetHasChanged;
         }
     }
-            
+
     void checkForTimeouts() {
-        long    curTimeMillis;
-        boolean    exclusionSetHasChanged;
-        
+        long curTimeMillis;
+        boolean exclusionSetHasChanged;
+
         curTimeMillis = getAbsMillisTimeSource().absTimeMillis();
         exclusionSetHasChanged = exclusionSetHasChanged();
         List<ClientNamespace> clientNamespaceList = getClientNamespaceList();
@@ -470,7 +448,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             clientNamespace.checkForTimeouts(curTimeMillis, exclusionSetHasChanged);
         }
     }
-        
+
     public class TimeoutCheckTask extends TimerTask {
         public void run() {
             try {
@@ -481,15 +459,15 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         }
     }
 
-  ExclusionSet getExclusionSet() {
-    return exclusionSet;
-  }
+    ExclusionSet getExclusionSet() {
+        return exclusionSet;
+    }
 
-  void setExclusionSet(ExclusionSet exclusionSet) {
-    this.exclusionSet = exclusionSet;
-  }
+    void setExclusionSet(ExclusionSet exclusionSet) {
+        this.exclusionSet = exclusionSet;
+    }
 
-  List<ClientNamespace> getClientNamespaceList() {
+    List<ClientNamespace> getClientNamespaceList() {
         return clientNamespaceList;
     }
 
