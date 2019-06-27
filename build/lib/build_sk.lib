@@ -23,8 +23,9 @@ function f_runBuildAntScript {
 }
 
 function f_runBuildGradleScript {
+    rm -rf $LIB_DIR
     f_runGradle "downloadLibs"
-    f_runBuildChecks
+    # f_runBuildChecks
 }
 
 function f_runBuildChecks {
