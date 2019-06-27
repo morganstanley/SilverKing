@@ -14,20 +14,20 @@ apply from: 'dependencies.gradle'
 
 mainClassName = 'com.ms.silverking.compression.Main'
 
-def buildOutput        = 'build/silverking-build'
-def buildCompileOutput = buildOutput+'/classes'
+def buildOutput        = 'silverking-build'
+def buildCompileOutput = $buildOutput+'/classes'
 
 sourceSets {
     main {
         java {
             srcDir 'src'
-            outputDir = file(buildCompileOutput+'/src')
+            outputDir = file($buildCompileOutput+'/src')
         }
     }
     test {
         java {
             srcDir 'test'
-            outputDir = file(buildCompileOutput+'/test')
+            outputDir = file($buildCompileOutput+'/test')
         }
     }
 }
@@ -36,27 +36,28 @@ configurations.all {
     transitive = false
 }
 
+def libFolder = '../lib'
 task downloadLibs {
     copy {
         from configurations.compileCore
-        into 'lib'
+        into $libFolder
     }
     copy {
         from configurations.awslib
-        into 'lib/aws-java-sdk-1.11.333/lib' 
+        into $libFolder+'/aws-java-sdk-1.11.333/lib' 
     }
     copy {
         from configurations.thirdparty
-        into 'lib/aws-java-sdk-1.11.333/thirdparty/lib'
+        into $libFolder+'/aws-java-sdk-1.11.333/thirdparty/lib'
     }
 }
 
 task copyTestTxt(type: Copy) { 
-    from("$rootDir/test") { 
+    from("$rootDir/../test") { 
         include "com/ms/silverking/fs/**/*.txt" 
         include "com/ms/silverking/cloud/gridconfig/**/*.txt" 
     }
-    into "$rootDir/build/silverking-build/classes/test" 
+    into "$buildCompileOutput/test" 
 } 
 
 testClasses.dependsOn copyTestTxt
@@ -68,7 +69,7 @@ task createJar(type: Jar) {
         )
     }
     archiveName = 'silverking.jar'
-    destinationDir = file(buildOutput+"/jar")
+    destinationDir = file($buildOutput+"/jar")
     with jar
 }
 
