@@ -21,6 +21,7 @@ typeset                       mutt=${16}
 typeset                     emails=${17}
 typeset                fatalEmails=${18}
 typeset               phoneNumbers=${19}
+typeset            activeHostsFile=${20}
 
 f_checkFolderAndDatacenter "$scriptName" "$folderDate" "$datacenterAbbreviation"
 
@@ -107,7 +108,7 @@ typeset output_filename="/tmp/${USER}__${dateAndTime}__${datacenterName}__${scri
         f_createReportDir "$report_output_dir"
         
         typeset hostsNotExcludedFile="$run_dir/hosts_not_excluded_sorted.txt"
-        f_getHostsNotExcluded "$gcDefaultBase" "$run_dir" "$report_output_dir" "$gcName" "$hostsFile" "$passiveHostsGroups" "$exclusionFile" "$healthReportExcludeFile" "$hostsNotExcludedFile" 
+        f_getHostsNotExcluded "$gcDefaultBase" "$run_dir" "$report_output_dir" "$gcName" "$hostsFile" "$passiveHostsGroups" "$exclusionFile" "$healthReportExcludeFile" "$hostsNotExcludedFile" "$activeHostsFile"
         if [[ $scriptName =~ log_checker.sh$ ]]; then
             check_logs.sh       "$hostsNotExcludedFile" "/tmp/$skLogPath" "/var/tmp/$skFolderName/skfs/logs" "$run_dir" "$datacenterName" "$report_output_dir" "$sshCmd" "$mutt" "$emails" "$fatalEmails" "$phoneNumbers"
             f_sendNetcoolAlert  "$datacenterName" "$datacenterAbbreviation" "$report_output_dir"

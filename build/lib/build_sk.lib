@@ -22,6 +22,11 @@ function f_runBuildAntScript {
     f_runBuildChecks
 }
 
+function f_runBuildGradleScript {
+    f_runGradle "downloadLibs"
+    f_runBuildChecks
+}
+
 function f_runBuildChecks {
     f_printSection "CHECKS"
     

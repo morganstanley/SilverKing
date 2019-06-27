@@ -294,6 +294,19 @@ $extraVars
     f_runCmdInEvalEnv "$vars" "ant -v -f \"$BUILD_DIR/$ANT_BUILD_SCRIPT_NAME\" \"$target\""
 }
 
+function f_runGradle {
+    typeset task=$1
+    typeset extraVars=$2
+    
+    f_printSection "Running Gradle"
+    typeset vars="
+         PATH=/usr/bin:/bin:$ANT_9_HOME/bin
+    JAVA_HOME=$JAVA_8_HOME 
+$extraVars
+    "
+    f_runCmdInEvalEnv "$vars" "$GRADLE \"$task\""
+}
+
 function f_printSummary_BuildFlow {
     f_printSummary_BuildFlow_FirstHalf_HeaderAndBuildAndBuildSk $(f_getBuild_RunOutputFilename)
     f_printSummary     $(f_getBuildSkClient_RunOutputFilename)

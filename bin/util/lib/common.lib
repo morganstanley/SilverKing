@@ -63,12 +63,17 @@ function f_getHostsNotExcluded {
     typeset    hardwareExcludedHostsFile=$7
     typeset healtReportExcludedHostsFile=$8
     typeset                      outFile=$9
+    typeset              activeHostsFile=${10}
  
     echo "Getting hosts that aren't excluded... "
     
-    typeset activeHostsOutput=`export GC_DEFAULT_BASE=$gcDefaultBase; ../RingInfo.sh $gcName`
-    typeset activeHostsFileSorted="$runDir/active_hosts_sorted.txt"
-    echo "$activeHostsOutput" | grep -P "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" | cut -d ':' -f 1 | sort -n > $activeHostsFileSorted
+    if [[ -z $activeHostsFile ]]; then
+        typeset activeHostsOutput=`export GC_DEFAULT_BASE=$gcDefaultBase; ../RingInfo.sh $gcName`
+        typeset activeHostsFileSorted="$runDir/active_hosts_sorted.txt"
+        echo "$activeHostsOutput" | grep -P "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" | cut -d ':' -f 1 | sort -n > $activeHostsFileSorted
+    else
+        activeHostsFileSorted=$activeHostsFile
+    fi
     
     typeset passiveHostsFileSorted="$runDir/passive_hosts_sorted.txt"
     grep -P "$passiveHostsGroups" $hostsFile | awk '{print $1}' | sort -n > $passiveHostsFileSorted

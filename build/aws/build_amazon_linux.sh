@@ -95,6 +95,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     
     echo "BUILD"
     f_aws_install_ant
+    f_aws_install_gradle
     f_amazon_linux_install_java
     f_aws_install_zk
 

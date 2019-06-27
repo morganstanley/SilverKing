@@ -24,8 +24,17 @@ function f_aws_fail {
 } 
 
 function f_aws_downloadTar {
-    typeset tar=$1
+    f_aws_downloadHelper "$1" "$2" "$TAR_TYPE"
+}
+
+function f_aws_downloadZip {
+    f_aws_downloadHelper "$1" "$2" "$ZIP_TYPE"
+}
+
+function f_aws_downloadHelper {
+    typeset name=$1
     typeset url=$2
+	typeset type=$3
     
     typeset wgetOption;
     typeset tarOption;
@@ -36,12 +45,19 @@ function f_aws_downloadTar {
     fi
     
     cd $LIB_ROOT
+	
     wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
     f_aws_checkExitCode "wget: $url"
-    tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
-    f_aws_checkExitCode "tar: $tar"
-    rm $tar
-    f_aws_checkExitCode "rm: $tar"
+	
+	if [[ $type == $TAR_TYPE ]]; then
+		tar $tarOption -xf $name # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $name'
+		f_aws_checkExitCode "tar: $name"
+	elif [[ $type == $ZIP_TYPE ]]; then
+		unzip $name
+	fi
+	
+    rm $name
+    f_aws_checkExitCode "rm: $name"
 }
 
 function f_aws_downloadJar {
@@ -80,6 +96,17 @@ function f_aws_install_ant {
     f_aws_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
     
     f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
+}
+
+# taken from https://gradle.org/install/
+function f_aws_install_gradle {
+    echo "installing gradle"
+    cd $LIB_ROOT
+    typeset gradle_version="gradle-5.4.1"
+    typeset gradle_zip=$gradle_version-bin.zip
+    f_aws_downloadZip "$gradle_zip" "https://services.gradle.org/distributions/$gradle_zip"
+
+    f_fillInBuildConfigVariable "GRADLE" "$LIB_ROOT/$gradle_version/bin/gradle"
 }
 
 function f_aws_install_zk {
@@ -317,6 +344,9 @@ JACE_CORE_JAR=$JACE_CORE-1.2.22.jar
 ZK_VERSION="zookeeper-3.4.13"
 SPARK_VERSION="spark-2.4.0-bin-hadoop2.7"
     
+ZIP_TYPE="ZIP"
+TAR_TYPE="TAR"
+	
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
 # SSH_OPTIONS="-v -x -o StrictHostKeyChecking=no"
 SSH_OPTIONS="-x -o StrictHostKeyChecking=no"

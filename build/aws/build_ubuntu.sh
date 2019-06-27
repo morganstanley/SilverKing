@@ -139,6 +139,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 
     echo "BUILD"
     f_aws_install_ant
+	f_aws_install_gradle
     f_ubuntu_install_java
     f_aws_install_zk
 
