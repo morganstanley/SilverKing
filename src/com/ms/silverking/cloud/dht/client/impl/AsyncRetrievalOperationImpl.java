@@ -182,9 +182,18 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
     }
     
     private RetrievalException newRetrievalException() throws RetrievalException {
-        return new RetrievalExceptionImpl((Map<Object,OperationState>)getOperationStateMap(), 
-                (Map<Object,FailureCause>)getFailureCauses(),
-                (Map<Object, StoredValue>)getPartialResults());
+        Map<Object,FailureCause> failureCause = (Map<Object,FailureCause>)getFailureCauses();
+        StringBuilder errorMessage = new StringBuilder();
+        for (Map.Entry<Object,FailureCause> entry : failureCause.entrySet())
+            errorMessage.append(
+                    String.format("Error for %s caused by %s,", entry.getKey().toString(), entry.getValue().name()));
+        errorMessage.deleteCharAt(errorMessage.length()-1);
+        return new RetrievalExceptionImpl(
+                errorMessage.toString(),
+                (Map<Object,OperationState>)getOperationStateMap(),
+                failureCause,
+                (Map<Object, StoredValue>)getPartialResults()
+        );
     }
     
     @Override
