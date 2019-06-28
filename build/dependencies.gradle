@@ -9,7 +9,7 @@ dependencies {
     compileCore group: 'org.ow2.asm',                      name: 'asm',                     version: '4.1',               configuration: 'runtime'
     compileCore group: 'org.ow2.asm',                      name: 'asm-tree',                version: '4.1',               configuration: 'runtime'
     compileCore group: 'com.google.caliper',               name: 'caliper',                 version: '1.0-beta-2',        configuration: 'runtime'
-    compileCore group: 'commons-io',                       name: 'commons-io',              version: '2.6'                configuration: 'runtime'
+    compileCore group: 'commons-io',                       name: 'commons-io',              version: '2.6',               configuration: 'runtime'
     compileCore group: 'it.unimi.dsi',                     name: 'fastutil',                version: '6.4.2',             configuration: 'runtime'
     compileCore group: 'com.google.guava',                 name: 'guava',                   version: '20.0',              configuration: 'runtime'
     compileCore group: 'org.apache.hadoop',                name: 'hadoop-common',           version: '2.5.1',             configuration: 'runtime'
