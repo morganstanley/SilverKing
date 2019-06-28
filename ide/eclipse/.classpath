@@ -6,7 +6,8 @@
 	<classpathentry kind="lib" path="../../lib/args4j-2.0.12.jar"/>
 	<classpathentry kind="lib" path="../../lib/asm-3.2.jar"/>
 	<classpathentry kind="lib" path="../../lib/asm-tree-3.2.jar"/>
-	<classpathentry kind="lib" path="../../lib/caliper-r356.jar"/>
+	<classpathentry kind="lib" path="../../lib/caliper-1.0-beta-2.jar"/>
+	<classpathentry kind="lib" path="../../lib/commons-io-2.6.jar"/>
 	<classpathentry kind="lib" path="../../lib/fastutil-6.4.2.jar"/>
 	<classpathentry kind="lib" path="../../lib/guava-20.0.jar"/>
 	<classpathentry kind="lib" path="../../lib/hadoop-common-2.5.1.jar"/>

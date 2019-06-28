@@ -6,7 +6,7 @@ plugins {
 repositories {
     mavenCentral()
     maven {
-        url 'http://kompics.sics.se/maven/repository/'
+        url 'http://kompics.sics.se/maven/repository/'  // for ycsb
     }
 }
 

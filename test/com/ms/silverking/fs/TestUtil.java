@@ -1,6 +1,5 @@
 package com.ms.silverking.fs;
 
-import static com.ms.silverking.fs.TestUtil.checkChecksum;
 import static com.ms.silverking.process.ProcessExecutor.runCmd;
 import static com.ms.silverking.process.ProcessExecutor.runDirSumCmd;
 import static com.ms.silverking.process.ProcessExecutor.separator;
@@ -14,7 +13,9 @@ import java.io.IOException;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 
-import com.google.caliper.internal.guava.io.Files;
+import org.apache.commons.io.FileUtils;
+
+import com.google.common.io.Files;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.process.ProcessExecutor;
 import com.ms.silverking.testing.Util;
@@ -133,7 +134,7 @@ public class TestUtil {
     static void deleteRecursive(File dir) {
         if (dir.exists()) {
             try {
-                Files.deleteRecursively(dir);
+                FileUtils.deleteDirectory(dir);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
