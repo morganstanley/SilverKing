@@ -15,19 +15,19 @@ apply from: 'dependencies.gradle'
 mainClassName = 'com.ms.silverking.compression.Main'
 
 def buildOutput        = 'silverking-build'
-def buildCompileOutput = $buildOutput+'/classes'
+def buildCompileOutput = buildOutput+'/classes'
 
 sourceSets {
     main {
         java {
             srcDir 'src'
-            outputDir = file($buildCompileOutput+'/src')
+            outputDir = file(buildCompileOutput+'/src')
         }
     }
     test {
         java {
             srcDir 'test'
-            outputDir = file($buildCompileOutput+'/test')
+            outputDir = file(buildCompileOutput+'/test')
         }
     }
 }
@@ -57,7 +57,7 @@ task copyTestTxt(type: Copy) {
         include "com/ms/silverking/fs/**/*.txt" 
         include "com/ms/silverking/cloud/gridconfig/**/*.txt" 
     }
-    into "$buildCompileOutput/test" 
+    into buildCompileOutput+"/test" 
 } 
 
 testClasses.dependsOn copyTestTxt
@@ -69,7 +69,7 @@ task createJar(type: Jar) {
         )
     }
     archiveName = 'silverking.jar'
-    destinationDir = file($buildOutput+"/jar")
+    destinationDir = file(buildOutput+"/jar")
     with jar
 }
 
