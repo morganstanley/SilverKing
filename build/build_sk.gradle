@@ -40,15 +40,15 @@ def libFolder = '../lib'
 task downloadLibs {
     copy {
         from configurations.compileCore
-        into $libFolder
+        into libFolder
     }
     copy {
         from configurations.awslib
-        into $libFolder+'/aws-java-sdk-1.11.333/lib' 
+        into libFolder+'/aws-java-sdk-1.11.333/lib' 
     }
     copy {
         from configurations.thirdparty
-        into $libFolder+'/aws-java-sdk-1.11.333/thirdparty/lib'
+        into libFolder+'/aws-java-sdk-1.11.333/thirdparty/lib'
     }
 }
 
