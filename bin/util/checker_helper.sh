@@ -80,11 +80,6 @@ if [[ -z "$emails" ]]; then
     exit
 fi
 
-if [[ -z "$fatalEmails" ]]; then
-    echo "fatalEmails needs to be set"
-    exit
-fi
-
 typeset      rootDataPath="$rootDataBasePath/health-report/$scriptName/$datacenterName/$folderDate"
 typeset   RUNS_OUTPUT_DIR="$rootDataPath/hosts-data"
 typeset REPORT_OUTPUT_DIR="$rootDataPath/report-data"
