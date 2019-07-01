@@ -54,7 +54,7 @@ public class ValueWatcher extends WatcherBase {
                 Log.warning("ValueCheck complete: ", basePath);
             }
         } catch (KeeperException ke) {
-            System.out.println("*** ZooKeeper state: "+ metaClientCore.getZooKeeper().getState());
+            Log.warningf("*** ZooKeeper state: %s", metaClientCore.getZooKeeper().getState());
             throw ke;
         }
     }
