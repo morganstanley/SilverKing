@@ -172,7 +172,7 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private static final byte[] emptyUserData = new byte[0];
     
-    private static final boolean debug = PropertiesHelper.systemHelper.getBoolean("com.ms.silverking.cloud.dht.daemon.storage.NamespaceStorage.debug", false);;
+    private static final boolean debug = PropertiesHelper.systemHelper.getBoolean(NamespaceStore.class.getCanonicalName() + ".debug", false);
     private static final boolean debugConvergence = false || debug;
     private static final boolean debugParent = false || debug;
     private static final boolean debugVersion = false || debug;

@@ -101,7 +101,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private final StorageProtocol localConsistencyModeToStorageProtocol[];
     private final RetrievalProtocol consistencyModeToRetrievalProtocol[];
     
-    private static final boolean    debug = PropertiesHelper.systemHelper.getBoolean("com.ms.silverking.cloud.dht.daemon.MessageModule.debug", false);
+    private static final boolean    debug = PropertiesHelper.systemHelper.getBoolean(MessageModule.class.getCanonicalName()+ ".debug", false);
     private static final boolean    debugReceivedMessages = false || debug;
     private static final boolean    debugCleanup = false || debug;
     private static final boolean    debugShortTimeMessages = false || debug;
