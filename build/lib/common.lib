@@ -304,7 +304,7 @@ function f_runGradle {
     JAVA_HOME=$JAVA_8_HOME 
 $extraVars
     "
-    f_runCmdInEvalEnv "$vars" "gradle -b $BUILD_DIR/$GRADLE_BUILD_SCRIPT_NAME \"$task\""
+    f_runCmdInEvalEnv "$vars" "gradle -b $BUILD_DIR/gradle/$GRADLE_BUILD_SCRIPT_NAME \"$task\""
 }
 
 function f_printSummary_BuildFlow {
