@@ -34,7 +34,7 @@ function f_aws_downloadZip {
 function f_aws_downloadHelper {
     typeset name=$1
     typeset url=$2
-	typeset type=$3
+    typeset type=$3
     
     typeset wgetOption;
     typeset tarOption;
@@ -45,17 +45,17 @@ function f_aws_downloadHelper {
     fi
     
     cd $LIB_ROOT
-	
+    
     wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
     f_aws_checkExitCode "wget: $url"
-	
-	if [[ $type == $TAR_TYPE ]]; then
-		tar $tarOption -xf $name # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $name'
-		f_aws_checkExitCode "tar: $name"
-	elif [[ $type == $ZIP_TYPE ]]; then
-		unzip $name
-	fi
-	
+    
+    if [[ $type == $TAR_TYPE ]]; then
+        tar $tarOption -xf $name # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $name'
+        f_aws_checkExitCode "tar: $name"
+    elif [[ $type == $ZIP_TYPE ]]; then
+        unzip $name
+    fi
+    
     rm $name
     f_aws_checkExitCode "rm: $name"
 }
