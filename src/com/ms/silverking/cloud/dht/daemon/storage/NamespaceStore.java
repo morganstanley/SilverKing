@@ -1102,8 +1102,6 @@ public class NamespaceStore implements SSNamespaceStore {
                     }
                 } else {
                     debug = 3;
-                    Log.warning(storageParams.getChecksumType() + " " + MetaDataUtil.getChecksumType(result, 0));
-
                     return SegmentStorageResult.mutation;
                 }
             }
