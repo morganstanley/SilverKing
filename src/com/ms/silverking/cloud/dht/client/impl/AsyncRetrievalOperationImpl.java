@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -183,13 +184,12 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
     
     private RetrievalException newRetrievalException() throws RetrievalException {
         Map<Object,FailureCause> failureCause = (Map<Object,FailureCause>)getFailureCauses();
-        StringBuilder errorMessage = new StringBuilder();
+        StringJoiner errorMessageJoiner = new StringJoiner(",");
         for (Map.Entry<Object,FailureCause> entry : failureCause.entrySet())
-            errorMessage.append(
-                    String.format("Error for %s caused by %s,", entry.getKey().toString(), entry.getValue().name()));
-        errorMessage.deleteCharAt(errorMessage.length()-1);
+            errorMessageJoiner.add(
+                    String.format("Error for %s caused by %s", entry.getKey().toString(), entry.getValue().name()));
         return new RetrievalExceptionImpl(
-                errorMessage.toString(),
+                errorMessageJoiner.toString(),
                 (Map<Object,OperationState>)getOperationStateMap(),
                 failureCause,
                 (Map<Object, StoredValue>)getPartialResults()
