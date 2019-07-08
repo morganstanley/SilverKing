@@ -17,6 +17,7 @@ import com.ms.silverking.collection.CollectionUtil;
 
 public class JNIUtil {
 	private static final boolean	debugReferencedClasses = false;
+	private static final boolean	debugEnums = false;
 	
 	private static final Set<String>	enumMethodOmissions;
 	
@@ -153,6 +154,9 @@ public class JNIUtil {
 			if (c.isEnum()) {
 				enums.add(c);
 			}
+		}
+		if (debugEnums) {
+			System.out.printf("getInnerEnums %s %s\n", class_.getName(), CollectionUtil.toString(enums));
 		}
 		return enums.toArray(new Class[0]);
 	}
