@@ -346,7 +346,7 @@ SPARK_VERSION="spark-2.4.0-bin-hadoop2.7"
     
 ZIP_TYPE="ZIP"
 TAR_TYPE="TAR"
-	
+
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
 # SSH_OPTIONS="-v -x -o StrictHostKeyChecking=no"
 SSH_OPTIONS="-x -o StrictHostKeyChecking=no"
