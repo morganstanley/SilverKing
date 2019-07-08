@@ -18,20 +18,21 @@ public abstract class KeyedOperationException extends OperationException {
     private final Map<Object, FailureCause>        failureCause;
     private final Set<Object>  failedKeys;
 
-    private static final String delimiter = ",";
+    private static final String failuresDelimiter = ",";
+    private static final String keyValueDelimiter = ":";
     private static final int keysLimit = 10;
 
     private static String createFailureMessage(Map<Object, FailureCause> failureCause, String delimiter, int keysLimit) {
         StringJoiner errorMessageJoiner = new StringJoiner(delimiter);
         failureCause.entrySet().stream().limit(keysLimit).forEach((entry) -> {
             errorMessageJoiner.add(
-                    String.format("Error for %s caused by %s", entry.getKey().toString(), entry.getValue().name()));
+                    String.format("%s%s%s", entry.getKey().toString(), keyValueDelimiter, entry.getValue().name()));
         });
         return errorMessageJoiner.toString();
     }
 
     protected KeyedOperationException(Map<Object, OperationState> operationState, Map<Object, FailureCause> failureCause) {
-        super(createFailureMessage(failureCause, delimiter, keysLimit));
+        super(createFailureMessage(failureCause, failuresDelimiter, keysLimit));
         this.operationState = ImmutableMap.copyOf(operationState);
         this.failureCause = ImmutableMap.copyOf(failureCause);
         this.failedKeys = failureCause.keySet();
@@ -78,8 +79,12 @@ public abstract class KeyedOperationException extends OperationException {
         return failedKeys;
     }
 
-    public static String getDelimiter() {
-        return delimiter;
+    public static String getFailuresDelimiter() {
+        return failuresDelimiter;
+    }
+
+    public static String getKeyValueDelimiter() {
+        return keyValueDelimiter;
     }
 
     public static int getKeysLimit() {
