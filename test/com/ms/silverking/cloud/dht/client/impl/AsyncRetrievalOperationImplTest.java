@@ -55,7 +55,7 @@ public class AsyncRetrievalOperationImplTest {
             String errorMessage = e.getMessage();
             for (Map.Entry<String, FailureCause> entry : failureCauses.entrySet()) {
                 assert (errorMessage.contains(
-                        String.format("Error for %s caused by %s", entry.getKey(), entry.getValue().name())));
+                        String.format("%s%s%s", entry.getKey(), KeyedOperationException.getKeyValueDelimiter(), entry.getValue().name())));
             }
         }
     }
@@ -78,7 +78,7 @@ public class AsyncRetrievalOperationImplTest {
             retrievalOperationMock.throwFailedException();
         } catch (OperationException e) {
             String errorMessage = e.getMessage();
-            assert (errorMessage.split(KeyedOperationException.getDelimiter()).length == keysLimit);
+            assert (errorMessage.split(KeyedOperationException.getFailuresDelimiter()).length == keysLimit);
         }
     }
 }
