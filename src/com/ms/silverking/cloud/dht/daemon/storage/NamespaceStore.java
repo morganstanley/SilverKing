@@ -207,7 +207,7 @@ public class NamespaceStore implements SSNamespaceStore {
         CreateNSDir, DoNotCreateNSDir
     };
     
-    private enum VersionCheckResult {Invalid, Valid, Equal};
+    private enum VersionCheckResult {Invalid, Valid, Equal, Valid_New_Key};
     
     private static final int    VERSION_INDEX = 0;
     private static final int    STORAGE_TIME_INDEX = 1;
@@ -676,7 +676,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         return VersionCheckResult.Equal;
                     }
                 } else {
-                    return VersionCheckResult.Valid;
+                    return VersionCheckResult.Valid_New_Key;
                 }
             } else {
                 return VersionCheckResult.Valid;
@@ -966,13 +966,14 @@ public class NamespaceStore implements SSNamespaceStore {
         } else {
             versionCheckResult = checkPutVersion(key, storageParams.getVersion(), storageParams.getRequiredPreviousVersion());
         }
-        if(versionCheckResult == VersionCheckResult.Invalid) {
+        if (versionCheckResult == VersionCheckResult.Invalid) {
             if (debug) {
                 Log.fineAsync("_put returning INVALID_VERSION");
             }
             return OpResult.INVALID_VERSION;
         } else {
-            if(versionCheckResult == VersionCheckResult.Equal || nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION) {
+            if (versionCheckResult == VersionCheckResult.Equal || (versionCheckResult != VersionCheckResult.Valid_New_Key
+                    && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION)) {
                 storageResult = checkForDuplicateStore(key, value, storageParams, userData);
                 if (debug) {
                     Log.fineAsync("checkForDuplicateStore result %s", storageResult);
