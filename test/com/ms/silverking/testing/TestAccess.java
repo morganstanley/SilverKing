@@ -23,7 +23,7 @@ public class TestAccess {
                
             t = new TestFieldAccessSubject();
                
-            FieldAccessor.set(t, TestFieldAccessSubject.stringFieldName, stringValue);
+            FieldAccessor.set(t, TestFieldAccessSubject.stringFieldName, new Integer(1));
             FieldAccessor.set(t, TestFieldAccessSubject.byteFieldName, byteValue);
             FieldAccessor.set(t, TestFieldAccessSubject.shortFieldName, shortValue);
             FieldAccessor.set(t, TestFieldAccessSubject.intFieldName, intValue);
