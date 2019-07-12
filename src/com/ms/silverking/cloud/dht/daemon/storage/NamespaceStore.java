@@ -217,7 +217,7 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private enum FileSegmentLoadMode {ReadWrite, ReadOnly, ReadIndexOnly};
     
-    private enum VersionCheckResult {Invalid, Valid, Equal};
+    private enum VersionCheckResult {Invalid, Valid, Equal, Valid_New_Key};
     private enum LockCheckResult {Unlocked, Locked, Ignored};
     
     private static final int    VERSION_INDEX = 0;
@@ -688,7 +688,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         return VersionCheckResult.Valid;
                     }
                 } else {
-                    return VersionCheckResult.Valid;
+                    return VersionCheckResult.Valid_New_Key;
                 }
             } else { // requiredPreviousVersion has been specified
                 if (nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS) {
@@ -1146,13 +1146,14 @@ public class NamespaceStore implements SSNamespaceStore {
                 Log.warningf("%s %d %d %s", key, storageParams.getVersion(), storageParams.getRequiredPreviousVersion(), versionCheckResult);
             }
         }
-        if(versionCheckResult == VersionCheckResult.Invalid) {
+        if (versionCheckResult == VersionCheckResult.Invalid) {
             if (debug) {
                 Log.fineAsync("_put returning INVALID_VERSION");
             }
             return OpResult.INVALID_VERSION;
         } else {
-            if(versionCheckResult == VersionCheckResult.Equal || nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION) {
+            if (versionCheckResult == VersionCheckResult.Equal || (versionCheckResult != VersionCheckResult.Valid_New_Key
+                    && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION)) {
                 storageResult = checkForDuplicateStore(key, value, storageParams, userData);
                 if (debug) {
                     Log.fineAsync("checkForDuplicateStore result %s", storageResult);
