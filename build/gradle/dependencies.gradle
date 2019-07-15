@@ -30,7 +30,7 @@ dependencies {
     compileCore group: 'org.objenesis',                    name: 'objenesis',               version: '2.6',               configuration: 'runtime'
     compile configurations.compileCore
     
-    awslib      group: 'com.amazonaws',                    name: 'aws-java-sdk-osgi',       version: '1.11.333',          configuration: 'runtime'
+    awslib      group: 'com.amazonaws',                    name: 'aws-java-sdk',            version: '1.11.333',          configuration: 'runtime'
     compile configurations.awslib
     
     thirdparty  group: 'org.aspectj',                      name: 'aspectjrt',               version: '1.8.2',             configuration: 'runtime'

@@ -23,10 +23,22 @@ function f_runBuildAntScript {
 }
 
 function f_runBuildGradleScript {
-    rm -rf $LIB_DIR
-    f_runGradle "downloadLibs"
-    # f_runBuildChecks
+    # rm -rf $LIB_DIR, once lib/ jars are actually no longer committed in the repo, we can remove this
+    f_runGradle "downloadLibs" "$1"
+    f_runJarChecks "$2"
 }
+
+function f_runJarChecks {
+    typeset expectedCount=$1
+    
+    if [[ -z $expectedCount ]]; then
+        expectedCount=47
+    fi
+    
+    f_printSection "CHECKS"
+    
+    f_testEquals "$LIB_DIR" "*.jar" "$expectedCount"
+} 
 
 function f_runBuildChecks {
     f_printSection "CHECKS"

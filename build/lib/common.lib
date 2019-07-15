@@ -296,7 +296,12 @@ $extraVars
 
 function f_runGradle {
     typeset task=$1
-    typeset extraVars=$2
+    typeset gradleScriptName=$2
+    typeset extraVars=$3
+    
+    if [[ -z $gradleScriptName ]]; then
+        gradleScriptName=$GRADLE_BUILD_SCRIPT_NAME
+    fi
     
     f_printSection "Running Gradle"
     typeset vars="
@@ -304,7 +309,7 @@ function f_runGradle {
     JAVA_HOME=$JAVA_8_HOME 
 $extraVars
     "
-    f_runCmdInEvalEnv "$vars" "gradle -b $BUILD_DIR/gradle/$GRADLE_BUILD_SCRIPT_NAME \"$task\""
+    f_runCmdInEvalEnv "$vars" "gradle -b $BUILD_DIR/gradle/$gradleScriptName \"$task\""
 }
 
 function f_printSummary_BuildFlow {
