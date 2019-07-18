@@ -16,7 +16,9 @@ public enum RetrievalType {
     /** Return both values and meta data*/
     VALUE_AND_META_DATA, 
     /** Only query existence. Values will not be returned. */
-    EXISTENCE;
+    EXISTENCE,
+    /** Return values, and attempt a read through if none is found */
+    VALUE_AND_READ_THROUGH;
     
     /**
      * True iff this type is guaranteed to result in value retrieval.
@@ -28,6 +30,7 @@ public enum RetrievalType {
         case META_DATA: return false;
         case VALUE_AND_META_DATA: return true;
         case EXISTENCE: return false;
+        case VALUE_AND_READ_THROUGH: return true;
         default: throw new RuntimeException("panic");
         }
     }
@@ -42,7 +45,12 @@ public enum RetrievalType {
         case META_DATA: return true;
         case VALUE_AND_META_DATA: return true;
         case EXISTENCE: return false;
+        case VALUE_AND_READ_THROUGH: return false;
         default: throw new RuntimeException("panic");
         }
+    }
+
+    public boolean isReadThrough() {
+        return this == VALUE_AND_READ_THROUGH;
     }
 }
