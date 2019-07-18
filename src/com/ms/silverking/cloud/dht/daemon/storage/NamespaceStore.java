@@ -251,6 +251,22 @@ public class NamespaceStore implements SSNamespaceStore {
     public static void setPeerHealthMonitor(PeerHealthMonitor _peerHealthMonitor) {
         peerHealthMonitor = _peerHealthMonitor; 
     }
+
+    // A read-through plugin may be provided and invoked on misses
+    // the default is a noop, so a miss will remain a miss.
+    // users may override this by setting a system property which selects
+    // an alternative plugin visible on the classpath
+    private static ReadThroughPlugin _readThroughPlugin;
+    static {
+        _readThroughPlugin = ReadThroughPlugin.getPlugin();
+        Log.info("Read Through: using "+ _readThroughPlugin.getName());
+    }
+    ReadThroughPlugin readThroughPlugin() {
+        return _readThroughPlugin;
+    }
+    void setReadThroughPlugin(ReadThroughPlugin plugin){
+        _readThroughPlugin = plugin;
+    }
     
     /////////////////////////////////
     /*
@@ -1205,7 +1221,7 @@ public class NamespaceStore implements SSNamespaceStore {
     public void addToSizeStats(int uncompressedSize, int compressedSize) {
         nsStats.addBytes(uncompressedSize, compressedSize);
     }
-    
+
     private StorageParameters getSystemVersionParams(DHTKey key, StorageParameters storageParams) {
         long    version;
         
@@ -1479,6 +1495,7 @@ public class NamespaceStore implements SSNamespaceStore {
         if (retrieveTrigger == null) {
             DHTKey[]          _keys;
             ByteBuffer[]    _results;
+            ArrayList<Pair<DHTKey, Integer>> _readThroughKeys;
             
             if (debugVersion) {
                 Log.fineAsync("retrieve internal options: %s", options);
@@ -1496,7 +1513,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 _results = new ByteBuffer[1];
                 _results[0] = _retrieve(_keys[0], options);
             }
-            
+
+            _readThroughKeys = new ArrayList<>();
             for (int i = 0; i < _results.length; i++) {
                 if (parent != null) {
                     VersionConstraint   vc;
@@ -1549,11 +1567,28 @@ public class NamespaceStore implements SSNamespaceStore {
                     // Note that since we hold the readLock, a write cannot come
                     // in while we add the pending wait for.
                     addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
+                } else if (_results[i] == null && options.getRetrievalType().isReadThrough()) {
+                    _readThroughKeys.add(new Pair<>(_keys[i], i));
                 }
                 if (options.getVerifyIntegrity()) {
                     _results[i] = verifyIntegrity(_keys[i], _results[i]);
                 }
             }
+
+            if(!_readThroughKeys.isEmpty() && options.getRetrievalType().isReadThrough()) {
+                DHTKey[] _rtKeys = new DHTKey[_readThroughKeys.size()];
+
+                for (int i = 0; i < _readThroughKeys.size(); i++) {
+                    _rtKeys[i] = _readThroughKeys.get(i).getV1();
+                }
+                ByteBuffer[] rtResults;
+                rtResults = _readThroughPlugin.readThroughBatch(_rtKeys, options, this);
+                for (Pair<DHTKey, Integer> readThroughKey : _readThroughKeys) {
+                    int index = readThroughKey.getV2();
+                    _results[index] = rtResults[index];
+                }
+            }
+
             return SKImmutableList.copyOf(_results);
         } else {
             return retrieve_nongroupedImpl(keys, options, opUUID);
@@ -1690,10 +1725,8 @@ public class NamespaceStore implements SSNamespaceStore {
                                 // that all parent versions are < child versions - the parent
                                 // result is preferred
                                 result = parentResult;
-                                if (result != null) {
-                                    if (debugParent) {
-                                        Log.warning("Found result in parent");
-                                    }
+                                if (debugParent) {
+                                    Log.warning("Found result in parent");
                                 }
                             }
                         }
@@ -1705,6 +1738,8 @@ public class NamespaceStore implements SSNamespaceStore {
                     // Note that since we hold the readLock, a write cannot come
                     // in while we add the pending wait for.
                     addPendingWaitFor(key, options.getRetrievalOptions(), opUUID);
+                } else if (result == null && options.getRetrievalType().isReadThrough()) {
+                    result = _readThroughPlugin.readThroughSingle(key, options, this);
                 }
                 if (options.getVerifyIntegrity()) {
                     result = verifyIntegrity(key, result);
@@ -2166,10 +2201,10 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (waiter == null) {
                     if (debugWaitFor) {
                         Log.fineAsyncf("No active retrieval for %s", pendingWaitFor.getKey());
-                    } else {
-                        Log.fineAsyncf("Found active retrieval for %s", pendingWaitFor.getKey());
                     }
                     entry.getValue().remove(pendingWaitFor);
+                } else {
+                    Log.fineAsyncf("Found active retrieval for %s", pendingWaitFor.getKey());
                 }
             }
             if (entry.getValue().size() == 0) {
@@ -3551,6 +3586,7 @@ public class NamespaceStore implements SSNamespaceStore {
     public ReadWriteLock getReadWriteLock() {
         return rwLock;
     }
+
     
     private class SegmentLoader implements Callable<FileSegment> {
         private final int                   segmentNumber;
