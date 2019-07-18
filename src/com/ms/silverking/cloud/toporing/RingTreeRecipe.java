@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.toporing;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +18,8 @@ import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.cloud.topology.NodeClass;
 import com.ms.silverking.cloud.topology.Topology;
 import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
+import com.ms.silverking.collection.CollectionUtil;
+import com.ms.silverking.log.Log;
 
 /**
  * Immutable collection of all parameters necessary to create
@@ -30,19 +34,17 @@ public class RingTreeRecipe {
     public final StoragePolicy  storagePolicy;
     public final HostGroupTable hostGroupTable;
     public final Set<String>    hostGroups;
-    public final long			ringConfigVersion; 
-    public final long			ringCreationTime;
+    public final long            ringConfigVersion; 
+    public final long            ringCreationTime;
     // Note that we don't have instance version information because that is a function of creation
-    
-    private static final boolean	debug = false;
     
     public RingTreeRecipe(Topology topology, Node ringParent, 
             WeightSpecifications weightSpecs, ExclusionSet exclusionList, 
             StoragePolicyGroup storagePolicyGroup, String storagePolicyName, 
             HostGroupTable hostGroupTable, Set<String> hostGroups,
             long ringConfigVersion, long ringCreationTime) {
-    	Preconditions.checkNotNull(topology);
-    	Preconditions.checkNotNull(ringParent);
+        Preconditions.checkNotNull(topology);
+        Preconditions.checkNotNull(ringParent);
         this.topology = topology;
         this.ringParent = ringParent;
         this.weightSpecs = evenlyDistributeWeights(topology, ringParent, weightSpecs, exclusionList, hostGroupTable, hostGroups);
@@ -70,58 +72,74 @@ public class RingTreeRecipe {
         if (topology.getNodeByID(ringParent) == null) {
             throw new RuntimeException("Can't find parent with id: "+ ringParent);
         }
+        System.out.println("Host groups: " + CollectionUtil.toString(hostGroups));
+    }
+    
+    private static boolean isAllowedWeightSpec(String nodeID, HostGroupTable hostGroupTable, Set<String> hostGroups) {
+        try {
+            InetAddress addr;
+            
+            addr = InetAddress.getByName(nodeID);
+            if (addr != null) {
+                return hostGroupTable.serverInHostGroupSet(nodeID, hostGroups);
+            } else {
+                return true;
+            }
+        } catch (UnknownHostException uhe) {
+            return true;
+        }
     }
     
     private static WeightSpecifications evenlyDistributeWeights(Topology topology, Node ringParent, WeightSpecifications weightSpecs, 
-    															ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
-    	Map<String,Double> nodeWeights;
-    	
-    	nodeWeights = new HashMap<>();
-    	for (Map.Entry<String,Double> e : weightSpecs.getNodeWeights()) {
-    		if (debug) {
-    			System.out.printf("\t@@@@\t%s\t%f\n", e.getKey(), e.getValue());
-    		}
-    		nodeWeights.put(e.getKey(), e.getValue());
-    	}
-    	_evenlyDistributeWeights(topology, ringParent, nodeWeights, exclusionList, hostGroupTable, hostGroups);
-    	return new WeightSpecifications(weightSpecs.getVersion(), nodeWeights);
+                                                                ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
+        Map<String,Double> nodeWeights;
+        
+        nodeWeights = new HashMap<>();
+        for (Map.Entry<String,Double> e : weightSpecs.getNodeWeights()) {
+            if (isAllowedWeightSpec(e.getKey(), hostGroupTable, hostGroups)) {
+                Log.finef("\tweight\t%s\t%f\n", e.getKey(), e.getValue());
+                nodeWeights.put(e.getKey(), e.getValue());
+            } else {
+                Log.finef("\tIgnoring weight\t%s\t%f\tserver not in host groups\n", e.getKey(), e.getValue());
+            }
+        }
+        _evenlyDistributeWeights(topology, ringParent, nodeWeights, exclusionList, hostGroupTable, hostGroups);
+        return new WeightSpecifications(weightSpecs.getVersion(), nodeWeights);
     }
     
     public double getWeight(Node node) {
-    	return weightSpecs.getWeight(node);
+        return weightSpecs.getWeight(node);
     }
     
     private static double _evenlyDistributeWeights(Topology topology, Node node, Map<String, Double> nodeWeights, 
-    											ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
-    	Double	weight;
-    	
-		weight = nodeWeights.get(node.getIDString());
-		if (weight == null) {
-	    	if (node.hasChildren()) {
-	    		double	sum;
-	    		
-	    		sum = 0.0;
-	    		for (Node child : node.getChildren()) {
-	    			sum += _evenlyDistributeWeights(topology, child, nodeWeights, exclusionList, hostGroupTable, hostGroups);
-	    		}
-	    		weight = sum;
-	    	} else {
-	    		if (!Sets.intersection(hostGroupTable.getHostGroups(node.getIDString()), hostGroups).isEmpty() 
-	    				&& (!exclusionList.contains(node.getIDString()))) {
-	    			weight = WeightSpecifications.defaultWeight;
-	    		} else {
-	    			weight = 0.0;
-	    		}
-    		}
-	    	nodeWeights.put(node.getIDString(), weight);
-    	}
-		if (debug) {
-			System.out.printf("\t####\t%s\t%f\n", node.getIDString(), weight);
-		}
-		return weight;
-	}
+                                                ExclusionSet exclusionList, HostGroupTable hostGroupTable, Set<String> hostGroups) {
+        Double    weight;
+        
+        weight = nodeWeights.get(node.getIDString());
+        if (weight == null) {
+            if (node.hasChildren()) {
+                double    sum;
+                
+                sum = 0.0;
+                for (Node child : node.getChildren()) {
+                    sum += _evenlyDistributeWeights(topology, child, nodeWeights, exclusionList, hostGroupTable, hostGroups);
+                }
+                weight = sum;
+            } else {
+                if (!Sets.intersection(hostGroupTable.getHostGroups(node.getIDString()), hostGroups).isEmpty() 
+                        && (!exclusionList.contains(node.getIDString()))) {
+                    weight = WeightSpecifications.defaultWeight;
+                } else {
+                    weight = 0.0;
+                }
+            }
+            nodeWeights.put(node.getIDString(), weight);
+        }
+        Log.finef("\t_weightt%s\t%f\n", node.getIDString(), weight);
+        return weight;
+    }
 
-	public RingTreeRecipe newParentAndStoragePolicy(Node newParent, String storagePolicyName) {
+    public RingTreeRecipe newParentAndStoragePolicy(Node newParent, String storagePolicyName) {
         return new RingTreeRecipe(topology, newParent, weightSpecs, 
                                   exclusionList, storagePolicyGroup, storagePolicyName, hostGroupTable, hostGroups,
                                   ringConfigVersion, DHTUtil.currentTimeMillis());
