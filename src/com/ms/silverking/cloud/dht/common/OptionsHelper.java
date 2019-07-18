@@ -30,147 +30,147 @@ import com.ms.silverking.cloud.dht.net.ForwardingMode;
  */
 public class OptionsHelper {
 
-	/////////////////////
-	// RetrievalOptions
+    /////////////////////
+    // RetrievalOptions
 
-	/**
-	 * Construct a RetrievalOptions instance that is fully-specified with the
-	 * exception of forwardingMode which is set to FORWARD for normal operation
-	 * and OpTimeoutController, and updateSecondariesOnMiss which is set to
-	 * false.
-	 * 
-	 * @param retrievalType
-	 *            type of retrieval
-	 * @param waitMode
-	 *            whether to perform a WaitFor or a Get
-	 * @param versionConstraint
-	 *            specify the version
-	 * @param nonExistenceResponse
-	 *            action to perform for non-existent keys
-	 * @param verifyChecksums
-	 *            whether or not to verify checksums
-	 */
-	public static RetrievalOptions newRetrievalOptions(
-			RetrievalType retrievalType, WaitMode waitMode,
-			VersionConstraint versionConstraint,
-			NonExistenceResponse nonExistenceResponse, boolean verifyChecksums) {
-		return new RetrievalOptions(
-				waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
-						: DHTConstants.standardWaitForTimeoutController,
-				DHTConstants.noSecondaryTargets, retrievalType, waitMode,
-				versionConstraint, nonExistenceResponse, verifyChecksums,
-				false, ForwardingMode.FORWARD, false);
-	}
+    /**
+     * Construct a RetrievalOptions instance that is fully-specified with the
+     * exception of forwardingMode which is set to FORWARD for normal operation
+     * and OpTimeoutController, and updateSecondariesOnMiss which is set to
+     * false.
+     * 
+     * @param retrievalType
+     *            type of retrieval
+     * @param waitMode
+     *            whether to perform a WaitFor or a Get
+     * @param versionConstraint
+     *            specify the version
+     * @param nonExistenceResponse
+     *            action to perform for non-existent keys
+     * @param verifyChecksums
+     *            whether or not to verify checksums
+     */
+    public static RetrievalOptions newRetrievalOptions(
+            RetrievalType retrievalType, WaitMode waitMode,
+            VersionConstraint versionConstraint,
+            NonExistenceResponse nonExistenceResponse, boolean verifyChecksums) {
+        return new RetrievalOptions(
+                waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
+                        : DHTConstants.standardWaitForTimeoutController,
+                DHTConstants.noSecondaryTargets, retrievalType, waitMode,
+                versionConstraint, nonExistenceResponse, verifyChecksums,
+                false, ForwardingMode.FORWARD, false);
+    }
 
-	/**
-	 * Construct RetrievalOptions with null values returned for non-existent
-	 * keys and checksumVerification on
-	 * 
-	 * @param retrievalType
-	 *            type of retrieval
-	 * @param waitMode
-	 *            whether to perform a WaitFor or a Get
-	 * @param versionConstraint
-	 *            specify the version
-	 */
-	/*
-	public static RetrievalOptions newRetrievalOptions(
-			OpTimeoutController opTimeoutController,
-			RetrievalType retrievalType, WaitMode waitMode,
-			VersionConstraint versionConstraint) {
-		return new RetrievalOptions(opTimeoutController, retrievalType,
-				waitMode, versionConstraint,
-				NonExistenceResponse.defaultResponse, true, false,
-				ForwardingMode.FORWARD, false, null);
-	}
-	*/
-	
+    /**
+     * Construct RetrievalOptions with null values returned for non-existent
+     * keys and checksumVerification on
+     * 
+     * @param retrievalType
+     *            type of retrieval
+     * @param waitMode
+     *            whether to perform a WaitFor or a Get
+     * @param versionConstraint
+     *            specify the version
+     */
+    /*
+    public static RetrievalOptions newRetrievalOptions(
+            OpTimeoutController opTimeoutController,
+            RetrievalType retrievalType, WaitMode waitMode,
+            VersionConstraint versionConstraint) {
+        return new RetrievalOptions(opTimeoutController, retrievalType,
+                waitMode, versionConstraint,
+                NonExistenceResponse.defaultResponse, true, false,
+                ForwardingMode.FORWARD, false, null);
+    }
+    */
+    
 
-	/**
-	 * Construct RetrievalOptions with null values returned for non-existent
-	 * keys and checksumVerification on
-	 * 
-	 * @param retrievalType
-	 *            type of retrieval
-	 * @param waitMode
-	 *            whether to perform a WaitFor or a Get
-	 * @param versionConstraint
-	 *            specify the version
-	 */
-	public static RetrievalOptions newRetrievalOptions(
-			RetrievalType retrievalType, WaitMode waitMode,
-			VersionConstraint versionConstraint) {
-		return newRetrievalOptions(retrievalType, waitMode, versionConstraint,
-				NonExistenceResponse.defaultResponse, true);
-	}
+    /**
+     * Construct RetrievalOptions with null values returned for non-existent
+     * keys and checksumVerification on
+     * 
+     * @param retrievalType
+     *            type of retrieval
+     * @param waitMode
+     *            whether to perform a WaitFor or a Get
+     * @param versionConstraint
+     *            specify the version
+     */
+    public static RetrievalOptions newRetrievalOptions(
+            RetrievalType retrievalType, WaitMode waitMode,
+            VersionConstraint versionConstraint) {
+        return newRetrievalOptions(retrievalType, waitMode, versionConstraint,
+                NonExistenceResponse.defaultResponse, true);
+    }
 
-	/**
-	 * Construct RetrievalOptions with null values returned for non-existent
-	 * keys and checksumVerification on
-	 * 
-	 * @param retrievalType
-	 *            type of retrieval
-	 * @param waitMode
-	 *            whether to perform a WaitFor or a Get
-	 * @param versionConstraint
-	 *            specify the version
-	 * @param secondaryTargets
-	 *            constrains queried secondary replicas
-	 */
-	public static RetrievalOptions newRetrievalOptions(
-			RetrievalType retrievalType, WaitMode waitMode,
-			VersionConstraint versionConstraint,
-			boolean updateSecondariesOnMiss,
-			Set<SecondaryTarget> secondaryTargets) {
-		return new RetrievalOptions(
-				waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
-						: DHTConstants.standardWaitForTimeoutController,
-				secondaryTargets, retrievalType, waitMode,
-				versionConstraint, NonExistenceResponse.defaultResponse, true,
-				false, ForwardingMode.FORWARD,
-				updateSecondariesOnMiss);
-	}
+    /**
+     * Construct RetrievalOptions with null values returned for non-existent
+     * keys and checksumVerification on
+     * 
+     * @param retrievalType
+     *            type of retrieval
+     * @param waitMode
+     *            whether to perform a WaitFor or a Get
+     * @param versionConstraint
+     *            specify the version
+     * @param secondaryTargets
+     *            constrains queried secondary replicas
+     */
+    public static RetrievalOptions newRetrievalOptions(
+            RetrievalType retrievalType, WaitMode waitMode,
+            VersionConstraint versionConstraint,
+            boolean updateSecondariesOnMiss,
+            Set<SecondaryTarget> secondaryTargets) {
+        return new RetrievalOptions(
+                waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
+                        : DHTConstants.standardWaitForTimeoutController,
+                secondaryTargets, retrievalType, waitMode,
+                versionConstraint, NonExistenceResponse.defaultResponse, true,
+                false, ForwardingMode.FORWARD,
+                updateSecondariesOnMiss);
+    }
 
-	/**
-	 * Construct RetrievalOptions with VersionConstraint set to return the
-	 * greatest version, null values returned for non-existent keys, and
-	 * checksumVerification on.
-	 * 
-	 * @param retrievalType
-	 *            type of retrieval
-	 * @param waitMode
-	 *            whether to perform a WaitFor or a Get
-	 */
-	public static RetrievalOptions newRetrievalOptions(
-			RetrievalType retrievalType, WaitMode waitMode) {
-		return newRetrievalOptions(retrievalType, waitMode,
-				VersionConstraint.defaultConstraint);
-	}
+    /**
+     * Construct RetrievalOptions with VersionConstraint set to return the
+     * greatest version, null values returned for non-existent keys, and
+     * checksumVerification on.
+     * 
+     * @param retrievalType
+     *            type of retrieval
+     * @param waitMode
+     *            whether to perform a WaitFor or a Get
+     */
+    public static RetrievalOptions newRetrievalOptions(
+            RetrievalType retrievalType, WaitMode waitMode) {
+        return newRetrievalOptions(retrievalType, waitMode,
+                VersionConstraint.defaultConstraint);
+    }
 
-	
-	///////////////
-	// GetOptions
+    
+    ///////////////
+    // GetOptions
 
-	public static GetOptions newGetOptions(OpTimeoutController opTimeoutController,
-										RetrievalType retrievalType, VersionConstraint versionConstraint) {
-		return new GetOptions(opTimeoutController, DHTConstants.noSecondaryTargets, retrievalType,
-				versionConstraint, NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, false);
-	}
+    public static GetOptions newGetOptions(OpTimeoutController opTimeoutController,
+                                        RetrievalType retrievalType, VersionConstraint versionConstraint) {
+        return new GetOptions(opTimeoutController, DHTConstants.noSecondaryTargets, retrievalType,
+                versionConstraint, NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, false);
+    }
 
-	public static GetOptions newGetOptions(RetrievalType retrievalType, VersionConstraint versionConstraint) {
-		return newGetOptions(DHTConstants.standardTimeoutController, retrievalType,
-				versionConstraint);
-	}
+    public static GetOptions newGetOptions(RetrievalType retrievalType, VersionConstraint versionConstraint) {
+        return newGetOptions(DHTConstants.standardTimeoutController, retrievalType,
+                versionConstraint);
+    }
 
-	public static GetOptions newGetOptions(RetrievalType retrievalType) {
-		return newGetOptions(retrievalType, VersionConstraint.defaultConstraint);
-	}
+    public static GetOptions newGetOptions(RetrievalType retrievalType) {
+        return newGetOptions(retrievalType, VersionConstraint.defaultConstraint);
+    }
 
-	
-	////////////////
-	// WaitOptions
+    
+    ////////////////
+    // WaitOptions
 
-	
+    
     /**
      * Construct fully-specified static WaitOptions newWaitOptions except for OpTimeoutController which will use the default.
      * @param retrievalType what to retrieve (data, meta data, etc.)
@@ -182,7 +182,7 @@ public class OptionsHelper {
      */
     public static WaitOptions newWaitOptions(RetrievalType retrievalType, VersionConstraint versionConstraint,
                        int timeoutSeconds, int threshold, TimeoutResponse timeoutResponse) {
-    	return new WaitOptions(DHTConstants.standardWaitForTimeoutController, DHTConstants.noSecondaryTargets,
+        return new WaitOptions(DHTConstants.standardWaitForTimeoutController, DHTConstants.noSecondaryTargets,
                        retrievalType, versionConstraint, 
                        NonExistenceResponse.defaultResponse, true,
                        false,
@@ -210,10 +210,10 @@ public class OptionsHelper {
      * @param versionConstraint filter on the allowed versions
      * @param timeoutSeconds return after timeoutSeconds if the values cannot be retrieved
      */
-	public static WaitOptions newWaitOptions(RetrievalType retrievalType, VersionConstraint versionConstraint, int timeoutSeconds) {
-		return newWaitOptions(retrievalType, versionConstraint, timeoutSeconds, WaitOptions.THRESHOLD_MAX);
-	}
-	
+    public static WaitOptions newWaitOptions(RetrievalType retrievalType, VersionConstraint versionConstraint, int timeoutSeconds) {
+        return newWaitOptions(retrievalType, versionConstraint, timeoutSeconds, WaitOptions.THRESHOLD_MAX);
+    }
+    
     /**
      * Construct static WaitOptions newWaitOptions specifying to wait forever until all values are returned, and using the
      * default VersionConstraint of the greatest of all available versions
@@ -230,38 +230,38 @@ public class OptionsHelper {
     public static WaitOptions newWaitOptions() {
         return newWaitOptions(RetrievalType.VALUE);
     }
-	
+    
     ///////////////
     // PutOptions
     
-	public static InvalidationOptions newInvalidationOptions(OpTimeoutController opTimeoutController,
-														long version, long requiredPreviousVersion, Set<SecondaryTarget> secondaryTargets) {
-		return new InvalidationOptions(opTimeoutController, secondaryTargets, version, requiredPreviousVersion);
-	}
+    public static InvalidationOptions newInvalidationOptions(OpTimeoutController opTimeoutController,
+                                                        long version, long requiredPreviousVersion, short lockSeconds, Set<SecondaryTarget> secondaryTargets) {
+        return new InvalidationOptions(opTimeoutController, secondaryTargets, version, requiredPreviousVersion, lockSeconds);
+    }
     
-	/////////////////////
-	// NamespaceOptions
-	
-	public static NamespaceOptions newNamespaceOptions(StorageType storageType,
-			ConsistencyProtocol consistencyProtocol,
-			NamespaceVersionMode versionMode, RevisionMode revisionMode,
-			PutOptions defaultPutOptions,
-			InvalidationOptions defaultInvalidationOptions,
-			GetOptions defaultGetOptions, WaitOptions defaultWaitOptions,
-			int secondarySyncIntervalSeconds, int segmentSize, int maxValueSize) {
-		return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode,
-				defaultPutOptions, defaultInvalidationOptions,
-				defaultGetOptions, defaultWaitOptions,
-				secondarySyncIntervalSeconds, segmentSize, maxValueSize, false);
-	}	
-	
+    /////////////////////
+    // NamespaceOptions
+    
+    public static NamespaceOptions newNamespaceOptions(StorageType storageType,
+            ConsistencyProtocol consistencyProtocol,
+            NamespaceVersionMode versionMode, RevisionMode revisionMode,
+            PutOptions defaultPutOptions,
+            InvalidationOptions defaultInvalidationOptions,
+            GetOptions defaultGetOptions, WaitOptions defaultWaitOptions,
+            int secondarySyncIntervalSeconds, int segmentSize, int maxValueSize) {
+        return new NamespaceOptions(storageType, consistencyProtocol, versionMode, revisionMode,
+                defaultPutOptions, defaultInvalidationOptions,
+                defaultGetOptions, defaultWaitOptions,
+                secondarySyncIntervalSeconds, segmentSize, maxValueSize, false);
+    }    
+    
     public static NamespaceOptions newNamespaceOptions(StorageType storageType, ConsistencyProtocol consistencyProtocol, 
                             NamespaceVersionMode versionMode, 
                             PutOptions defaultPutOptions, InvalidationOptions defaultInvalidationOptions,
                             GetOptions defaultGetOptions, WaitOptions defaultWaitOptions) {
         return new NamespaceOptions(storageType, consistencyProtocol, versionMode, DHTConstants.defaultRevisionMode, 
-					        		defaultPutOptions, defaultInvalidationOptions, 
-					                defaultGetOptions, defaultWaitOptions, DHTConstants.defaultSecondarySyncIntervalSeconds, 
-					                DHTConstants.defaultSegmentSize, DHTConstants.defaultMaxValueSize, false);
-    }	
+                                    defaultPutOptions, defaultInvalidationOptions, 
+                                    defaultGetOptions, defaultWaitOptions, DHTConstants.defaultSecondarySyncIntervalSeconds, 
+                                    DHTConstants.defaultSegmentSize, DHTConstants.defaultMaxValueSize, false);
+    }    
 }

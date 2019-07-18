@@ -28,6 +28,7 @@ import com.ms.silverking.util.ArrayUtil;
  * creationTime (8)
  * creator (8)
  * ccss (2)         (compression type, checksum type, StorageState)
+ * lockSeconds (2)
  * userDataLength (1)
  * checksum (variable)
  * data...
@@ -41,7 +42,8 @@ public class MetaDataUtil {
     private static final int    versionOffset = uncompressedLengthOffset + NumConversion.BYTES_PER_INT;
     private static final int    creationTimeOffset = versionOffset + NumConversion.BYTES_PER_LONG;
     private static final int    creatorOffset = creationTimeOffset + NumConversion.BYTES_PER_LONG;
-    private static final int    ccss = creatorOffset + ValueCreator.BYTES;
+    private static final int    lockSecondsOffset = creatorOffset + ValueCreator.BYTES;
+    private static final int    ccss = lockSecondsOffset + NumConversion.BYTES_PER_SHORT;
     private static final int    userDataLengthOffset = ccss + NumConversion.BYTES_PER_SHORT;
                                 // checksum if any is stored here
     private static final int    dataOffset = userDataLengthOffset + 1;
@@ -107,14 +109,14 @@ public class MetaDataUtil {
         ChecksumType checksumType;
         
         checksumType = getChecksumType(storedValue, baseOffset);
-    	if (checksumType == ChecksumType.SYSTEM) {
+        if (checksumType == ChecksumType.SYSTEM) {
             byte[] actualChecksum;
             
             actualChecksum = getChecksum(storedValue, baseOffset);
             return SystemChecksum.isInvalidationChecksum(actualChecksum);
-    	} else {
-    		return false;
-    	}
+        } else {
+            return false;
+        }
     }    
     
     public static boolean isCompressed(byte[] storedValue, int baseOffset) {
@@ -149,7 +151,7 @@ public class MetaDataUtil {
     }
     
     public static int getDataOffset(ChecksumType checksumType) {
-    	return dataOffset + checksumType.length();
+        return dataOffset + checksumType.length();
     }
     
     public static long getCreationTime(ByteBuffer buf, int baseOffset) {
@@ -162,6 +164,14 @@ public class MetaDataUtil {
     
     public static ValueCreator getCreator(byte[] storedValue, int baseOffset) {
         return new SimpleValueCreator(storedValue, baseOffset + creatorOffset);
+    }
+    
+    public static short getLockSeconds(ByteBuffer buf, int baseOffset) {
+        return buf.getShort(baseOffset + lockSecondsOffset);
+    }
+    
+    public static short getLockSeconds(byte[] storedValue, int baseOffset) {
+        return NumConversion.bytesToShort(storedValue, baseOffset + lockSecondsOffset);
     }
     
     public static boolean isSegmented(byte[] storedValue, int baseOffset) {
@@ -275,14 +285,14 @@ public class MetaDataUtil {
         ChecksumType checksumType;
         
         checksumType = getChecksumType(storedValue, baseOffset);
-    	if (checksumType == ChecksumType.SYSTEM) {
+        if (checksumType == ChecksumType.SYSTEM) {
             byte[] actualChecksum;
             
             actualChecksum = getChecksum(storedValue, baseOffset);
             return SystemChecksum.isInvalidationChecksum(actualChecksum);
-    	} else {
-    		return false;
-    	}
+        } else {
+            return false;
+        }
     }    
     
     public static ValueCreator getCreator(ByteBuffer storedValue, int baseOffset) {

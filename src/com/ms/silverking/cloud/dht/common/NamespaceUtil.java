@@ -26,8 +26,8 @@ public class NamespaceUtil {
     public static final Namespace   metaInfoNamespace = creator.createNamespace(metaInfoNamespaceName);
     public static final GetOptions metaNSDefaultGetOptions = DHTConstants.standardGetOptions.forwardingMode(ForwardingMode.ALL); // Required to bootstrap lost replicas
     public static final PutOptions  metaNSDefaultPutOptions = new PutOptions(DHTConstants.standardTimeoutController, 
-    		DHTConstants.noSecondaryTargets, Compression.NONE, ChecksumType.MD5, false, PutOptions.defaultVersion, PutOptions.noVersionRequired, DHTConstants.defaultFragmentationThreshold, null); 
-    public static final InvalidationOptions  metaNSDefaultInvalidationOptions = OptionsHelper.newInvalidationOptions(DHTConstants.standardTimeoutController, PutOptions.defaultVersion, PutOptions.noVersionRequired, DHTConstants.noSecondaryTargets); 
+            DHTConstants.noSecondaryTargets, Compression.NONE, ChecksumType.MD5, false, PutOptions.defaultVersion, PutOptions.noVersionRequired, PutOptions.noLock, DHTConstants.defaultFragmentationThreshold, null); 
+    public static final InvalidationOptions  metaNSDefaultInvalidationOptions = OptionsHelper.newInvalidationOptions(DHTConstants.standardTimeoutController, PutOptions.defaultVersion, PutOptions.noVersionRequired, PutOptions.noLock, DHTConstants.noSecondaryTargets); 
     public static final NamespaceOptions    metaInfoNamespaceOptions 
         = OptionsHelper.newNamespaceOptions(StorageType.FILE, ConsistencyProtocol.TWO_PHASE_COMMIT, 
                                NamespaceVersionMode.SINGLE_VERSION, 
@@ -39,16 +39,16 @@ public class NamespaceUtil {
                                // That's probably a sensible invariant to require anyway.
     public static final NamespaceProperties metaInfoNamespaceProperties 
         = new NamespaceProperties(metaInfoNamespaceOptions);
-    public static final Map<Long,NamespaceProperties>	systemNamespaceProperties;
+    public static final Map<Long,NamespaceProperties>    systemNamespaceProperties;
     
     static {
-    	SimpleNamespaceCreator	nsCreator;
-    	
-    	nsCreator = new SimpleNamespaceCreator();
-    	systemNamespaceProperties = new HashMap<>();
-    	systemNamespaceProperties.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.systemName).contextAsLong(), new NamespaceProperties(DHTConstants.dynamicNamespaceOptions));
-    	systemNamespaceProperties.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.nodeName).contextAsLong(), new NamespaceProperties(DHTConstants.dynamicNamespaceOptions));
-    	systemNamespaceProperties.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.replicasName).contextAsLong(), new NamespaceProperties(DHTConstants.dynamicNamespaceOptions));
+        SimpleNamespaceCreator    nsCreator;
+        
+        nsCreator = new SimpleNamespaceCreator();
+        systemNamespaceProperties = new HashMap<>();
+        systemNamespaceProperties.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.systemName).contextAsLong(), new NamespaceProperties(DHTConstants.dynamicNamespaceOptions));
+        systemNamespaceProperties.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.nodeName).contextAsLong(), new NamespaceProperties(DHTConstants.dynamicNamespaceOptions));
+        systemNamespaceProperties.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.replicasName).contextAsLong(), new NamespaceProperties(DHTConstants.dynamicNamespaceOptions));
     }
 
     public static final NamespacePerspectiveOptions<String,String>    metaNSPOptions =
@@ -69,8 +69,8 @@ public class NamespaceUtil {
     }
     
     public static void main(String[] args) {
-    	for (String ns : args) {
-    		System.out.printf("%s\t%s\n", ns, nameToHexString(ns));
-    	}
+        for (String ns : args) {
+            System.out.printf("%s\t%s\n", ns, nameToHexString(ns));
+        }
     }
 }

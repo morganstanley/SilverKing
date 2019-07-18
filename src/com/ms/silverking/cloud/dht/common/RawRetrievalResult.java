@@ -28,37 +28,37 @@ import com.ms.silverking.text.StringUtil;
  */
 public class RawRetrievalResult implements StoredValue<ByteBuffer> {
     private final RetrievalType   retrievalType;
-	private OpResult		result;
-	private ByteBuffer      storedValue; // data + metadata
+    private OpResult        result;
+    private ByteBuffer      storedValue; // data + metadata
     private ByteBuffer      cookedValue; // data + metadata
-	
-	private static final boolean   debugChecksum = false;
-	
-	public RawRetrievalResult(RetrievalType retrievalType) {
-	    this.retrievalType = retrievalType;
-		result = OpResult.INCOMPLETE;
-	}
-	
+    
+    private static final boolean   debugChecksum = false;
+    
+    public RawRetrievalResult(RetrievalType retrievalType) {
+        this.retrievalType = retrievalType;
+        result = OpResult.INCOMPLETE;
+    }
+    
     @Override
     public StoredValue<ByteBuffer> next() {
         return null;
     }
-	
-	public OpResult getOpResult() {
-		return result;
-	}
-	
+    
+    public OpResult getOpResult() {
+        return result;
+    }
+    
     public void setOpResult(OpResult result) {
         setOpResult(result, false);
     }
     
-	public void setOpResult(OpResult result, boolean allowReset) {
-		if (!allowReset && this.result == OpResult.SUCCEEDED) {
-			throw new RuntimeException("Attempted to set result for successful op");
-		}
-		this.result = result;
-	}
-	
+    public void setOpResult(OpResult result, boolean allowReset) {
+        if (!allowReset && this.result == OpResult.SUCCEEDED) {
+            throw new RuntimeException("Attempted to set result for successful op");
+        }
+        this.result = result;
+    }
+    
     public void setStoredValue_direct(ByteBuffer storedValue) {
         assert storedValue != null;
         if (this.storedValue != null) {
@@ -85,7 +85,7 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
         if (result == OpResult.SUCCEEDED) {
             baseOffset = storedValue.position();
             storedData = storedValue.array();
-        	//System.out.printf("%d\t%d\n", baseOffset, storedData.length);
+            //System.out.printf("%d\t%d\n", baseOffset, storedData.length);
             compressedLength = MetaDataUtil.getCompressedLength(storedData, baseOffset);
             uncompressedLength = MetaDataUtil.getUncompressedLength(storedData, baseOffset);
             if (debugChecksum) {
@@ -95,94 +95,94 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
             dataOffset = MetaDataUtil.getDataOffset(storedData, baseOffset);
             
             if (retrievalType.hasValue()) {
-            	if (encrypterDecrypter != null) {
-                    byte[]	_storedData;
-            		byte[]	plainText;
-            		int		offset;
-            		int		tailLength;
-            		
-            		offset = MetaDataUtil.getDataOffset(storedData, baseOffset);
-            		plainText = encrypterDecrypter.decrypt(storedData, offset, compressedLength);
-	                dataToVerify = new byte[compressedLength];
-	                verifyDataOffset = 0;
-	                System.arraycopy(storedData, offset, dataToVerify, 0, compressedLength);
-            		tailLength = storedData.length - offset - compressedLength;
-            		_storedData = new byte[offset + plainText.length + tailLength]; 
-            		System.arraycopy(storedData, 0, _storedData, 0, offset);
-            		System.arraycopy(plainText, 0, _storedData, offset, plainText.length);
-            		System.arraycopy(storedData, offset + compressedLength, _storedData, offset + plainText.length, tailLength);
-            		storedData = _storedData;
-            	}
-	            compression = EnumValues.compression[MetaDataUtil.getCompression(storedData, baseOffset)];
-	            if (MetaDataUtil.isCompressed(storedData, baseOffset)) {
-	                byte[]          uncompressedData;
-	                Decompressor    decompressor;
-	                
-	                Log.fine("Compressed");
-	                decompressor = CodecProvider.getDecompressor(compression);
-	                if (decompressor == null) {
-	                    if (compression == Compression.NONE) {
-	                    	Log.warningf("%s", compression);
-	                        Log.warningf("compressedLength: %d", compressedLength);
-	                        Log.warningf("uncompressedLength: %d", uncompressedLength);
-	                    	Log.warningf("%s", StringUtil.byteArrayToHexString(storedData, baseOffset, compressedLength));
-	                        Log.warning("MetaDataUtil.isCompressed() returning true for uncompressed data");
-	                        Log.warningf("%s", MetaDataTextUtil.toMetaDataString(storedData, baseOffset, true));
-	                        throw new RuntimeException("MetaDataUtil.isCompressed() returning true for uncompressed data");
-	                    } else {
-	                        throw new RuntimeException("Can't find compressor for: "+ compression);
-	                    }
-	                }
-	                try {
-	                    //System.out.println(compression +" "+ decompressor);
-	                    uncompressedData = decompressor.decompress(storedData, dataOffset, compressedLength, uncompressedLength);
-	                    if (encrypterDecrypter == null) {
-	                    	dataToVerify = uncompressedData;
-	                    	verifyDataOffset = 0;
-	                    }
-	                } catch (Exception e) {
-	                	if (Log.levelMet(Level.INFO)) {
-	                		Log.logErrorWarning(e);
-	                	}
-	                    throw new CorruptValueException(e);
-	                }
-	            } else {
-                    if (encrypterDecrypter == null) {
-		                dataToVerify = storedData;
-		                verifyDataOffset = dataOffset;
+                if (encrypterDecrypter != null) {
+                    byte[]    _storedData;
+                    byte[]    plainText;
+                    int        offset;
+                    int        tailLength;
+                    
+                    offset = MetaDataUtil.getDataOffset(storedData, baseOffset);
+                    plainText = encrypterDecrypter.decrypt(storedData, offset, compressedLength);
+                    dataToVerify = new byte[compressedLength];
+                    verifyDataOffset = 0;
+                    System.arraycopy(storedData, offset, dataToVerify, 0, compressedLength);
+                    tailLength = storedData.length - offset - compressedLength;
+                    _storedData = new byte[offset + plainText.length + tailLength]; 
+                    System.arraycopy(storedData, 0, _storedData, 0, offset);
+                    System.arraycopy(plainText, 0, _storedData, offset, plainText.length);
+                    System.arraycopy(storedData, offset + compressedLength, _storedData, offset + plainText.length, tailLength);
+                    storedData = _storedData;
+                }
+                compression = EnumValues.compression[MetaDataUtil.getCompression(storedData, baseOffset)];
+                if (MetaDataUtil.isCompressed(storedData, baseOffset)) {
+                    byte[]          uncompressedData;
+                    Decompressor    decompressor;
+                    
+                    Log.fine("Compressed");
+                    decompressor = CodecProvider.getDecompressor(compression);
+                    if (decompressor == null) {
+                        if (compression == Compression.NONE) {
+                            Log.warningf("%s", compression);
+                            Log.warningf("compressedLength: %d", compressedLength);
+                            Log.warningf("uncompressedLength: %d", uncompressedLength);
+                            Log.warningf("%s", StringUtil.byteArrayToHexString(storedData, baseOffset, compressedLength));
+                            Log.warning("MetaDataUtil.isCompressed() returning true for uncompressed data");
+                            Log.warningf("%s", MetaDataTextUtil.toMetaDataString(storedData, baseOffset, true));
+                            throw new RuntimeException("MetaDataUtil.isCompressed() returning true for uncompressed data");
+                        } else {
+                            throw new RuntimeException("Can't find compressor for: "+ compression);
+                        }
                     }
-	            }
+                    try {
+                        //System.out.println(compression +" "+ decompressor);
+                        uncompressedData = decompressor.decompress(storedData, dataOffset, compressedLength, uncompressedLength);
+                        if (encrypterDecrypter == null) {
+                            dataToVerify = uncompressedData;
+                            verifyDataOffset = 0;
+                        }
+                    } catch (Exception e) {
+                        if (Log.levelMet(Level.INFO)) {
+                            Log.logErrorWarning(e);
+                        }
+                        throw new CorruptValueException(e);
+                    }
+                } else {
+                    if (encrypterDecrypter == null) {
+                        dataToVerify = storedData;
+                        verifyDataOffset = dataOffset;
+                    }
+                }
             } else {
                 dataToVerify = storedData;
                 verifyDataOffset = dataOffset;
             }
             
             if (filterInvalidated && ValueUtil.isInvalidated(storedData, baseOffset)) {
-            	result = OpResult.NO_SUCH_VALUE;
+                result = OpResult.NO_SUCH_VALUE;
             } else {
                 if (retrievalType.hasValue()) {
-		            if (verifyChecksum) {
-		                int	   verifyDataLength;
-		                
-		                verifyDataLength = dataToVerify.length - verifyDataOffset;
-		                ValueUtil.verifyChecksum(storedData, baseOffset, dataToVerify, verifyDataOffset, verifyDataLength);
-		            }
-		            cookedValue = checkedWrap(dataToVerify, verifyDataOffset, uncompressedLength);
-		            //cookedValue = checkedWrap(storedData, dataOffset, uncompressedLength);
+                    if (verifyChecksum) {
+                        int       verifyDataLength;
+                        
+                        verifyDataLength = dataToVerify.length - verifyDataOffset;
+                        ValueUtil.verifyChecksum(storedData, baseOffset, dataToVerify, verifyDataOffset, verifyDataLength);
+                    }
+                    cookedValue = checkedWrap(dataToVerify, verifyDataOffset, uncompressedLength);
+                    //cookedValue = checkedWrap(storedData, dataOffset, uncompressedLength);
                 }
             }
         }
     }
     
-	public ByteBuffer getValue() {
-	    if (!retrievalType.hasValue() || result != OpResult.SUCCEEDED) {
-	        return null;
+    public ByteBuffer getValue() {
+        if (!retrievalType.hasValue() || result != OpResult.SUCCEEDED) {
+            return null;
         } else {
             return cookedValue;
-	    }
-	}
-	    
-	private ByteBuffer checkedWrap(byte[] array, int offset, int length) {
+        }
+    }
+        
+    private ByteBuffer checkedWrap(byte[] array, int offset, int length) {
         try {
             return ByteBuffer.wrap(array, offset, length);
         } catch (RuntimeException re) {
@@ -191,7 +191,7 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
                     + ((offset + length > array.length) ? "!!!!" : ""));
             throw re;
         }
-	}
+    }
 
     public ByteBuffer getValueForSegmentedMetaData() {
         int    baseOffset;
@@ -218,44 +218,44 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
             throw re;
         }
     }
-	
-	public MetaData getMetaData() {
-	    if (!isSegmented()) {
-	        if (!retrievalType.hasMetaData() || result != OpResult.SUCCEEDED) {
+    
+    public MetaData getMetaData() {
+        if (!isSegmented()) {
+            if (!retrievalType.hasMetaData() || result != OpResult.SUCCEEDED) {
                 return null;
-	        } else {
+            } else {
                 return this;
-	        }
-	    } else {
-	        return SegmentationUtil.getMetaData(this, getValueForSegmentedMetaData());
-	    }
-	}
-	
-	void setResult(OpResult result) {
-		if (result != OpResult.INCOMPLETE) {
-			throw new RuntimeException("Attempted to reset result of "+ this +" to "+ result);
-		}
-		this.result = result;
-	}
-	
-	OpResult getResult() {
-		return result;
-	}
-	
-	/*
-	static RawRetrievalResult[] newArray(int size) {
-		RawRetrievalResult[]	retrievalResults;
-		
-		retrievalResults = new RawRetrievalResult[size];
-		for (int i = 0; i < retrievalResults.length; i++) {
-			retrievalResults[i] = new RawRetrievalResult();
-		}
-		return retrievalResults;
-	}
-	*/
-	
-	// begin MetaData implementation
-	
+            }
+        } else {
+            return SegmentationUtil.getMetaData(this, getValueForSegmentedMetaData());
+        }
+    }
+    
+    void setResult(OpResult result) {
+        if (result != OpResult.INCOMPLETE) {
+            throw new RuntimeException("Attempted to reset result of "+ this +" to "+ result);
+        }
+        this.result = result;
+    }
+    
+    OpResult getResult() {
+        return result;
+    }
+    
+    /*
+    static RawRetrievalResult[] newArray(int size) {
+        RawRetrievalResult[]    retrievalResults;
+        
+        retrievalResults = new RawRetrievalResult[size];
+        for (int i = 0; i < retrievalResults.length; i++) {
+            retrievalResults[i] = new RawRetrievalResult();
+        }
+        return retrievalResults;
+    }
+    */
+    
+    // begin MetaData implementation
+    
     @Override
     public int getStoredLength() {
         return MetaDataUtil.getStoredLength(storedValue.array(), storedValue.position());
@@ -285,19 +285,24 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
         return MetaDataUtil.getCreator(storedValue.array(), storedValue.position());
     }
     
+    @Override
+    public short getLockSeconds() {
+        return MetaDataUtil.getLockSeconds(storedValue.array(), storedValue.position());
+    }
+    
     public boolean isSegmented() {
-    	if (getOpResult() == OpResult.SUCCEEDED) {
-    		return MetaDataUtil.isSegmented(storedValue.array(), storedValue.position());
-    	} else {
-    		return false;
-    	}
+        if (getOpResult() == OpResult.SUCCEEDED) {
+            return MetaDataUtil.isSegmented(storedValue.array(), storedValue.position());
+        } else {
+            return false;
+        }
     }
 
     @Override
     public byte[] getUserData() {
         return MetaDataUtil.getUserData(storedValue.array(), storedValue.position());
     }
-	
+    
     @Override
     public byte[] getChecksum() {
         return MetaDataUtil.getChecksum(storedValue.array(), storedValue.position());
@@ -305,16 +310,16 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
     
     // end MetaData implementation
     
-	@Override
-	public String toString() {
-		StringBuilder	sb;
-		
-		sb = new StringBuilder();
-		sb.append(storedValue);
-		//sb.append(':');
-		//sb.append(metaData);
-		return sb.toString();
-	}
+    @Override
+    public String toString() {
+        StringBuilder    sb;
+        
+        sb = new StringBuilder();
+        sb.append(storedValue);
+        //sb.append(':');
+        //sb.append(metaData);
+        return sb.toString();
+    }
 
     @Override
     public String toString(boolean labeled) {

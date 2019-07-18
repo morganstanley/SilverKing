@@ -19,37 +19,37 @@ public enum OpResult {
     // success and no such value
     SUCCEEDED_AND_NO_SUCH_VALUE,
     // failure
-    ERROR, TIMEOUT, MUTATION, NO_SUCH_VALUE, SIMULTANEOUS_PUT, MULTIPLE, INVALID_VERSION, NO_SUCH_NAMESPACE, CORRUPT;
+    ERROR, TIMEOUT, MUTATION, NO_SUCH_VALUE, SIMULTANEOUS_PUT, MULTIPLE, INVALID_VERSION, NO_SUCH_NAMESPACE, CORRUPT, LOCKED;
         
     public boolean isComplete() {
         return this != INCOMPLETE;
     }
     
     public boolean hasFailed(NonExistenceResponse nonExistenceResponse) {
-    	if (this == SUCCEEDED || this == INCOMPLETE) {
-    		return false;
-    	} else {
-    		if (this != NO_SUCH_VALUE) {
-    			return true;
-    		} else {
-    			return nonExistenceResponse == NonExistenceResponse.EXCEPTION; 
-    		}
-    	}
+        if (this == SUCCEEDED || this == INCOMPLETE) {
+            return false;
+        } else {
+            if (this != NO_SUCH_VALUE) {
+                return true;
+            } else {
+                return nonExistenceResponse == NonExistenceResponse.EXCEPTION; 
+            }
+        }
     }
     
     public boolean hasFailed() {
-    	if (this == SUCCEEDED || this == INCOMPLETE) {
-    		return false;
-    	} else {
-    		if (this != NO_SUCH_VALUE) {
-    			return true;
-    		} else {
-    			// For a context where NO_SUCH_VALUE may exist, the NonExistenceResponse version must be used
-    			//throw new RuntimeException("Unexpected NO_SUCH_VALUE in hasFailed() ");
-    			// We allow this as setting the OpResult may occur after results are added, due to async access
-    			return false;
-    		}
-    	}
+        if (this == SUCCEEDED || this == INCOMPLETE) {
+            return false;
+        } else {
+            if (this != NO_SUCH_VALUE) {
+                return true;
+            } else {
+                // For a context where NO_SUCH_VALUE may exist, the NonExistenceResponse version must be used
+                //throw new RuntimeException("Unexpected NO_SUCH_VALUE in hasFailed() ");
+                // We allow this as setting the OpResult may occur after results are added, due to async access
+                return false;
+            }
+        }
     }
     
     public OperationState toOperationState(NonExistenceResponse nonExistenceResponse) {
@@ -65,7 +65,7 @@ public enum OpResult {
         switch (this) {
         case INCOMPLETE: return OperationState.INCOMPLETE;
         case SUCCEEDED: return OperationState.SUCCEEDED;
-		// For a context where NO_SUCH_VALUE may exist, the NonExistenceResponse version must be used
+        // For a context where NO_SUCH_VALUE may exist, the NonExistenceResponse version must be used
         case NO_SUCH_VALUE: throw new RuntimeException("Unexpected NO_SUCH_VALUE in toOperationState()"); 
         default: return OperationState.FAILED;
         }
@@ -74,17 +74,18 @@ public enum OpResult {
     public FailureCause toFailureCause(NonExistenceResponse nonExistenceResponse) {
         switch (this) {
         case NO_SUCH_VALUE: 
-        	if (nonExistenceResponse == NonExistenceResponse.NULL_VALUE) {
-        		throw new RuntimeException("toFailureCause() can't be called for "+ this +" with NonExistenceResponse.NULL_VALUE");
-        	} else {
-        		return FailureCause.NO_SUCH_VALUE;
-        	}
+            if (nonExistenceResponse == NonExistenceResponse.NULL_VALUE) {
+                throw new RuntimeException("toFailureCause() can't be called for "+ this +" with NonExistenceResponse.NULL_VALUE");
+            } else {
+                return FailureCause.NO_SUCH_VALUE;
+            }
         case INCOMPLETE: // fall through
         case SUCCEEDED: throw new RuntimeException("toFailureCause() can't be called for "+ this);
         case CORRUPT: return FailureCause.CORRUPT;
         case ERROR: return FailureCause.ERROR;
         case TIMEOUT: return FailureCause.TIMEOUT;
         case MUTATION: return FailureCause.MUTATION;
+        case LOCKED: return FailureCause.LOCKED;
         case SIMULTANEOUS_PUT: return FailureCause.SIMULTANEOUS_PUT;
         case MULTIPLE: return FailureCause.MULTIPLE;
         case INVALID_VERSION: return FailureCause.INVALID_VERSION;
@@ -94,7 +95,7 @@ public enum OpResult {
     }
     
     public FailureCause toFailureCause() {
-    	return toFailureCause(null);
+        return toFailureCause(null);
     }
     
     public static OpResult fromFailureCause(FailureCause failureCause) {
@@ -103,6 +104,7 @@ public enum OpResult {
         case ERROR: return ERROR;
         case TIMEOUT: return TIMEOUT;
         case MUTATION: return MUTATION;
+        case LOCKED: return LOCKED;
         case SIMULTANEOUS_PUT: return SIMULTANEOUS_PUT;
         case MULTIPLE: return MULTIPLE;
         case INVALID_VERSION: return INVALID_VERSION;
