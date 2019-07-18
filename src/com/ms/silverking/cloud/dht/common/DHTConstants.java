@@ -54,8 +54,9 @@ public class DHTConstants {
     public static final int                    defaultNSPrereadGB = 0;
     public static final int                    defaultMinPrimaryUnderFailure = 1;
     public static final int                    defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
+    public static final boolean                defaultEnablePendingPuts = true;
     public static final long                   defaultMaxUnfinalizedDeletedBytes = 10L * 1024L * 1024L * 1024L;
-    
+
     public static final int                    minSegmentSize = 2 * 1024;
     public static final int                    defaultSegmentSize = 64 * 1024 * 1024;
     public static final int                    segmentSafetyMargin = 1 * 1024;
@@ -106,10 +107,11 @@ public class DHTConstants {
     public static final String    nsPrereadGBVar = "nsPrereadGB";
     public static final String    nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";    
     public static final String    minFinalizationIntervalMillisProperty = daemonPackageBase +".MinFinalizationIntervalMillis";
+    public static final String    enablePendingPutsProperty = daemonPackageBase +".EnablePendingPuts";
     public static final String    maxUnfinalizedDeletedBytesProperty = daemonPackageBase +".MaxUnfinalizedDeletedBytes";
-    
+
     public static final String    ssSubDirName = "ss";
-    
+
     public static final String classpathEnv = "SK_CLASSPATH";
     public static final String classpathProperty = "java.class.path";
     public static final String jaceHomeEnv = "SK_JACE_HOME";

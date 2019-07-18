@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.SafeTimerTask;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.ImmutableList;
@@ -90,6 +91,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private final List<IPAndPort> systemNamespaceReplicaList;
     private final Set<IPAndPort>  systemNamespaceReplicas;
     private final PeerHealthMonitor peerHealthMonitor;
+    private final SafeTimerTask cleanerTask;
     //private final Timer    pingTimer;
     //private final GlobalCommandServer globalCommandServer;
     
@@ -138,7 +140,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private static final long    interPingDelayMillis = 100;
     
     public static final String    nodePingerThreadName = "NodePinger";
-    
+    private Pinger pingerThread;
+
     public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, 
                          AbsMillisTimeSource absMillisTimeSource,
                          Timer timer, int serverPort, MetaClient mc) throws IOException {
@@ -148,7 +151,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         this.ringMaster = ringMaster;
         this.storage = storage;
         this.absMillisTimeSource = absMillisTimeSource;
-        worker = new Worker();
+        LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
+        worker = new Worker(workerPool);
         // FUTURE - could consider using soft maps instead of explicit cleaning
         //activePuts = new MapMaker().softValues().makeMap();
         activePuts = new ConcurrentHashMap<>();
@@ -163,7 +167,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         storage.recoverExistingNamespaces();
         storage.ensureMetaNamespaceStoreExists();
         storage.setReady();
-        timer.scheduleAtFixedRate(new Cleaner(), cleanupPeriodMillis, cleanupPeriodMillis);
+        cleanerTask = new SafeTimerTask(new Cleaner());
+        timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
         //timer.scheduleAtFixedRate(new StatsWorker(), statsPeriodMillis, statsPeriodMillis);
         //timer.scheduleAtFixedRate(new ReplicaTimeoutChecker(), replicaTimeoutCheckPeriodMillis, replicaTimeoutCheckPeriodMillis);
         systemNamespaceReplicas = ImmutableSet.of(myIPAndPort);
@@ -206,7 +211,15 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         establishConnections();
         startPinger();
     }
-    
+
+    public void stop() {
+        cleanerTask.cancel();
+        if (pingerThread != null)
+            pingerThread.stop();
+        mgBase.shutdown();
+        worker.stopLWTPool();
+    }
+
     private void startPinger() {
         /*
         int        numReplicas;
@@ -219,7 +232,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         pingTimer.scheduleAtFixedRate(new Pinger(), pingPeriodMillis, pingPeriodMillis);
         */
         Log.warning("Starting Pinger");
-        new SafeThread(new Pinger(), nodePingerThreadName, true).start();
+        pingerThread  = new Pinger();
+        new SafeThread(pingerThread, nodePingerThreadName, true).start();
     }
     
     public void setAddressStatusProvider(AddressStatusProvider addressStatusProvider) {
@@ -850,7 +864,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     public String toString() {
         return mgBase.toString();
     }
-    
+
     ///////////////////////////////////
     
     static class MessageAndConnection {
@@ -865,11 +879,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     
     private static final int    workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
     private static final int    workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
-    
-    static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
-    
+
     class Worker extends BaseWorker<MessageAndConnection> {
-        Worker() {
+        Worker(LWTPool workerPool) {
             super(workerPool, true, maxDirectCallDepth);
         }
 
@@ -973,13 +985,14 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     class Pinger extends TimerTask {
+        private boolean running = true ;
         Pinger() {
         }
         
         @Override
         public void run() {
             Log.warning("Pinger running");
-            while (true) {
+            while (running) {
                 try {
                     pingReplicas();
                     peerHealthMonitor.refreshZK();
@@ -995,6 +1008,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 mgBase.send(new ProtoPingMessageGroup(mgBase.getMyID()).toMessageGroup(), replica);
                 ThreadUtil.sleep(interPingDelayMillis);
             }
+        }
+        private void stop() {
+            running = false;
         }
     }    
     

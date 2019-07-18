@@ -1,6 +1,7 @@
 package com.ms.silverking.thread.lwt;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -381,5 +382,44 @@ class LWTPoolImpl implements LWTPool {
     @Override
     public LWTPoolLoadStats getLoad() {
         return loadStats;
+    }
+
+    @Override
+    public void stop() {
+        synchronized (this) {
+            controller.stop();
+            for (LWTThread thread : idleThreads) {
+                thread.lwtStop();
+                thread.setActive();
+            }
+            for (LWTThread thread : activeThreads) {
+                thread.lwtStop();
+            }
+            try {
+                NoopWork  noopWork = new NoopWork(new NoopWorker());
+                for(int i=0; i< workUnit*(activeThreads.size() + idleThreads.size()); i++)
+                {
+                    commonQueue.put(noopWork);
+                }
+            } catch (InterruptedException e) {
+                Log.logErrorWarning(e);
+            }
+        }
+    }
+
+    private static class NoopWork extends AssignedWork {
+
+        public NoopWork(BaseWorker worker) {
+            super(worker, null, -1);
+        }
+
+        @Override
+        public void doWork() {}
+
+    }
+
+    private static class NoopWorker extends BaseWorker<Object> {
+        @Override
+        public void doWork(Object m) {}
     }
 }

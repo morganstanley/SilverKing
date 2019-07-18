@@ -5,6 +5,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,6 +14,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
+import com.ms.silverking.util.SafeTimerTask;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.zookeeper.CancelableObserver;
 import com.ms.silverking.collection.LightLinkedBlockingQueue;
@@ -24,7 +26,7 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
     protected final MetaClientCore    metaClientCore;
     protected final String    basePath;
     protected volatile boolean    active;
-    private final WatcherTimerTask   timerTask;
+    private final SafeTimerTask timerTask;
     private final Lock              lock;
     private final long                minIntervalMillis;
     private final long                intervalMillis;
@@ -40,12 +42,13 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
     private static final LightLinkedBlockingQueue<EventAndWatcher>    watchedEventQueue;
     private static final int    watchedEventQueueTimeoutSeconds = 10;
     private static final int    processRunnerThreads = 6;
-    
-    
+
+    public static AtomicReference<ProcessRunner> processRunner = new AtomicReference();
+
     static {
         _timer = new SafeTimer(timerName, true);
         watchedEventQueue = new LightLinkedBlockingQueue<>();
-        new ProcessRunner();
+        startProcessRunner();
     }
     
     public WatcherBase(MetaClientCore metaClientCore, Timer timer, String basePath, long intervalMillis, long maxInitialSleep) {
@@ -59,7 +62,7 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
         this.intervalMillis = intervalMillis;
         this.minIntervalMillis = Math.max(intervalMillis - minIntervalReductionMillis, 0);
         lastCheckMillis = new AtomicLong();
-        timerTask = new WatcherTimerTask();
+        timerTask = new SafeTimerTask(new WatcherTimerTask());
         timer.schedule(timerTask, ThreadLocalRandom.current().nextInt(Math.max(minSleepMS, (int)maxInitialSleep + 1)), 
                        intervalMillis);
     }
@@ -138,14 +141,16 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
     }
     
     static class ProcessRunner implements Runnable {
+        private boolean running;
         ProcessRunner() {
+            running = true;
             for (int i = 0; i < processRunnerThreads; i++) {
                 new SafeThread(this, "WB.ProcessRunner."+ i, true).start();
             }
         }
         
         public void run() {
-            while (true) {
+            while (running) {
                 try {
                     EventAndWatcher    ew;
                     
@@ -160,8 +165,23 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
                 }
             }
         }
+
+        public void shutdown() {
+            running = false;
+        }
     }
-    
+
+    public static void stopProcessRunner() {
+        ProcessRunner pr = processRunner.getAndSet(null);
+        if (pr != null)
+            pr.shutdown();
+    }
+
+    public static void startProcessRunner() {
+        processRunner.compareAndSet(null, new ProcessRunner());
+    }
+
+
     static class EventAndWatcher {
         final WatchedEvent    event;
         final WatcherBase    watcherBase;

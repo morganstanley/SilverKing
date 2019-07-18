@@ -106,4 +106,8 @@ public class NamespaceMetaStore {
     public void setNamespaceProperties(long namespace, NamespaceProperties nsProperties) {
         nsPropertiesMap.putIfAbsent(namespace, nsProperties);
     }
+
+    public void stop() {
+        session.close();
+    }
 }

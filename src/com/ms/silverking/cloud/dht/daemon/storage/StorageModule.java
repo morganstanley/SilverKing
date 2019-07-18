@@ -58,6 +58,7 @@ import com.ms.silverking.thread.lwt.asyncmethod.MethodCallWorker;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.SafeTimerTask;
 import com.ms.silverking.util.memory.JVMMonitor;
 
 public class StorageModule implements LinkCreationListener {
@@ -80,6 +81,8 @@ public class StorageModule implements LinkCreationListener {
     private final ValueCreator      myOriginatorID;
     private final NodeInfoZK		nodeInfoZK;
     private final ReapPolicy		reapPolicy;
+    private SafeTimerTask cleanerTask;
+    private SafeTimerTask reapTask;
     
     private NamespaceStore  metaNamespaceStore; // used to bootstrap the meta NS store
                                                 // reference held here merely to ensure no GC
@@ -131,8 +134,8 @@ public class StorageModule implements LinkCreationListener {
         this.reapPolicy = reapPolicy;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
-        baseDir = new File(DHTNodeConfiguration.getDataBasePath(), dhtName);
-//        baseDir = new File(DHTNodeConfiguration.dataBasePath);	// replace above with this to get rid of double directory name in path
+        baseDir = new File(nodeInfoZK.getDHTNodeConfiguration().dataBasePath, dhtName);
+//        baseDir = new File(DHTNodeConfiguration.dataBasePath);    // replace above with this to get rid of double directory name in path
         clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
         nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
         //spGroup = createTestPolicy();
@@ -157,7 +160,7 @@ public class StorageModule implements LinkCreationListener {
                 .maxSize(methodCallBlockingPoolMaxSize).targetSize(methodCallBlockingPoolTargetSize)
                 .workUnit(methodCallPoolWorkUnit).commonQueue(true), this);
         Log.warning("methodCallPools created");
-        
+
         nsCreationLock = new ReentrantLock();
         
         try {
@@ -187,13 +190,30 @@ public class StorageModule implements LinkCreationListener {
         
         systemNSStore = new SystemNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values(), nodeInfoZK);
         addDynamicNamespace(systemNSStore);
-        
-        timer.scheduleAtFixedRate(new Cleaner(), cleanupPeriodMillis, cleanupPeriodMillis);
+
+        this.cleanerTask = new SafeTimerTask(new Cleaner());
+        timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
         if (reapPolicy.supportsLiveReap()) {
-        	timer.scheduleAtFixedRate(new Reaper(), reapPolicy.getReapIntervalMillis(), reapPolicy.getReapIntervalMillis());
+        	this.reapTask = new SafeTimerTask(new Reaper());
+            timer.scheduleAtFixedRate(reapTask, reapPolicy.getReapIntervalMillis(), reapPolicy.getReapIntervalMillis());
         }
     }
-    
+
+    public void stop() {
+        if (cleanerTask != null)
+            cleanerTask.cancel();
+        if (reapTask != null)
+            reapTask.cancel();
+
+        methodCallNonBlockingWorker.stopLWTPool();
+        methodCallBlockingWorker.stopLWTPool();
+        if (nsMetaStore != null)
+            nsMetaStore.stop();
+        namespaces.clear();
+        zk.close();
+
+    }
+
     private void createMetaNSStore() {
         long            metaNS;
 
@@ -242,7 +262,7 @@ public class StorageModule implements LinkCreationListener {
     
     private void startLinkWatches() {
     	for (NamespaceStore nsStore: namespaces.values()) {
-            nsStore.startWatches(zk, nsLinkBasePath, this);                	
+            nsStore.startWatches(zk, nsLinkBasePath, this);
     	}
     }
 
@@ -492,7 +512,7 @@ public class StorageModule implements LinkCreationListener {
     
     public void startupReap() {
     	Stopwatch	sw;
-    	
+
     	Log.info("Startup reap");
     	sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
@@ -642,7 +662,7 @@ public class StorageModule implements LinkCreationListener {
 	public void handleReap(MessageGroup message, MessageGroupConnection connection) {
 		OpResult	result;
 		ProtoOpResponseMessageGroup	response;
-		
+
         asyncInvocationNonBlocking("reap");
 		result = OpResult.SUCCEEDED;
 		response = new ProtoOpResponseMessageGroup(message.getUUID(), 0, result, myOriginatorID.getBytes(), message.getDeadlineRelativeMillis());
@@ -652,9 +672,9 @@ public class StorageModule implements LinkCreationListener {
 			Log.logErrorWarning(ioe);
 		}
 	}
-	
+
     /////////////////////////////////
-	
+
     private static final String methodCallBlockingPoolName = "StorageBlockingMethodCallPool";
     private static final String methodCallNonBlockingPoolName = "StorageNonBlockingMethodCallPool";
     private static final int	_methodCallPoolSize = NumUtil.bound(20, 2, Runtime.getRuntime().availableProcessors() / 2);

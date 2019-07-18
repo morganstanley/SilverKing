@@ -128,7 +128,7 @@ class LWTThread extends Thread implements LWTCompatibleThread {
         ThreadState.setLWTThread();
         while (running) {
             try {
-                while (active) {
+                if (active) {
                     AssignedWork    work;
                     
                     work = q.take();
@@ -143,7 +143,7 @@ class LWTThread extends Thread implements LWTCompatibleThread {
                         ThreadUtil.pauseAfterException();                
                     }
                 }
-                while (!active) {
+                if (!active) {
                     idleLock.lock();
                     try {
                         idleCV.await();
@@ -241,7 +241,7 @@ class LWTThread extends Thread implements LWTCompatibleThread {
         workList = new AssignedWork[workUnit];
         while (running) {
             try {
-                while (active) {
+                if (active) {
                     activeMultiple(workList);
                     Arrays.fill(workList, null); 
                     // Above null fill is to ensure that complete work is GC'd
@@ -250,7 +250,7 @@ class LWTThread extends Thread implements LWTCompatibleThread {
                     // We could do this one-by-one if needed, but this is
                     // unlikely due to the fact that tasks should be very quick.
                 }
-                while (!active) {
+                if (!active) {
                     idleLock.lock();
                     try {
                         idleCV.await();

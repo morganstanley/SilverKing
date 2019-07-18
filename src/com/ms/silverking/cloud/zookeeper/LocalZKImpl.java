@@ -1,8 +1,12 @@
 package com.ms.silverking.cloud.zookeeper;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.zookeeper.server.LocalZookeeperServerMain;
+import org.apache.zookeeper.server.ServerConfig;
+import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -21,11 +25,13 @@ public class LocalZKImpl {
     public static final String    zkPortProperty = LocalZKImpl.class.getName() +".ZKPort";
     public static final int        defaultZKPort = 0;
     private static final int    zkPort;
+
+    private static LocalZookeeperServerMain mainZkServer;
     
     static {
         zkPort = PropertiesHelper.systemHelper.getInt(zkPortProperty, defaultZKPort, ParseExceptionAction.RethrowParseException);
-    }    
-    
+    }
+
     public static int startLocalZK(String dataDirBase) {
         int    port;
         boolean    success;
@@ -87,9 +93,16 @@ public class LocalZKImpl {
             args = new String[2];
             args[0] = Integer.toString(port);
             args[1] = dataDir;
-            org.apache.zookeeper.server.quorum.QuorumPeerMain.main(args);
+            mainZkServer = new LocalZookeeperServerMain();
+            ServerConfig config = new ServerConfig();
+            config.parse(args);
+            try {
+                mainZkServer.runFromConfig(config);
+            } catch (IOException e){
+                throw new RuntimeException(e);
+            }
         }
-        
+
         public void run() {
             startLocalZK(port, dataDir);
             failed = true;
@@ -99,6 +112,11 @@ public class LocalZKImpl {
             ThreadUtil.sleep(presumedSuccessTimeMillis);
             return !failed;
         }
+    }
+
+    public static void shutdown(){
+        mainZkServer.shutdownZk();
+        mainZkServer = null;
     }
 
     public static void main(String[] args) {

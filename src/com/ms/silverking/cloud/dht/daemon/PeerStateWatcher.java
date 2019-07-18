@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentSkipListSet;
 
+import com.ms.silverking.util.SafeTimerTask;
 import org.apache.zookeeper.KeeperException;
 
 import com.ms.silverking.cloud.dht.common.DHTUtil;
@@ -32,7 +33,7 @@ public class PeerStateWatcher implements ChildrenListener {
     private final Set<IPAndPort>    nodesMissingInZK;
     private final Set<RingState>    statesMet;
     private volatile boolean    active;
-    private final TimeoutTask    timeoutTask;
+    private final SafeTimerTask    timeoutTask;
     
     private static final int    peerInitialZKUpdateTimeoutMillis = 1 * 60 * 1000;
 
@@ -60,7 +61,7 @@ public class PeerStateWatcher implements ChildrenListener {
         nodesMissingInZK = new ConcurrentSkipListSet<>();
         statesMet = new ConcurrentSkipListSet<>();
         
-        timeoutTask = new TimeoutTask();
+        timeoutTask = new SafeTimerTask(new TimeoutTask());
         DHTUtil.timer().schedule(timeoutTask, peerInitialZKUpdateTimeoutMillis);
         Log.warning("Created PeerStateWatcher "+ ringVersionPair);        
     }

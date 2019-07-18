@@ -13,4 +13,5 @@ public interface LWTPool {
     public String getName();
     public void dumpStatsOnShutdown();
     public void debug();
+    public void stop();
 }

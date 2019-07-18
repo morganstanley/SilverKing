@@ -203,6 +203,9 @@ public class RingMapState2 {
             if (exclusionWatcher != null) {
                 exclusionWatcher.stop();
             }
+            if (healthWatcher != null){
+                healthWatcher.stop();
+            }
         }
     }
     
@@ -389,6 +392,7 @@ public class RingMapState2 {
         
         public void stop() { // FIXME - ensure that this is used
             versionWatcher.stop();
+            dhtVersionWatcher.stop();
         }
 
         /*

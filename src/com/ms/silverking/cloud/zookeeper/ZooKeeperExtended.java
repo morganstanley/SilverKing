@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -62,6 +63,8 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     private static final int ANY_VERSION = -1;
     
     public static final int AUTO_VERSION_FIELD_SIZE = 10;
+
+    public static AtomicReference<ProcessRunner> processRunner = new AtomicReference();
     
     private final Watcher   watcher;
     private final SKAclProvider acl;
@@ -90,7 +93,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     static {
         defaultAclProvider = resolveDefaultAclProvider();
         asyncGetResults = new LightLinkedBlockingQueue<>();
-        new ProcessRunner();
+        startProcessRunner();
     }
 
     /**
@@ -721,14 +724,16 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
     
     static class ProcessRunner implements Runnable {
+        private boolean running;
         ProcessRunner() {
+            running = true;
             for (int i = 0; i < processRunnerThreads; i++) {
                 new SafeThread(this, "ZKE.ProcessRunner."+ i, true).start();
             }
         }
         
         public void run() {
-            while (true) {
+            while (running) {
                 try {
                     Result    r;
                     
@@ -744,8 +749,22 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
                 }
             }
         }
+
+        public void shutdown() {
+            running = false;
+        }
     }
-    
+
+    public static void stopProcessRunner() {
+        ProcessRunner pr = processRunner.getAndSet(null);
+            if (pr != null)
+                pr.shutdown();
+    }
+
+    public static void startProcessRunner() {
+        processRunner.compareAndSet(null, new ProcessRunner());
+    }
+
     class Result {
         private final AsyncGet    asyncGet;
         private final int        rc;

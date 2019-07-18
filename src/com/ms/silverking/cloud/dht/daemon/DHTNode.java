@@ -41,7 +41,9 @@ public class DHTNode {
     private final MemoryManager  memoryManager;
     private final DaemonStateZK  daemonStateZK;
     private final NodeInfoZK     nodeInfoZK;
-    private boolean       running = true;
+    private final MetaClient    mc;
+
+    private boolean running;
      
     // FUTURE - make port non-static
     // also possibly make it a per-node rather than per-DHT notion
@@ -78,11 +80,11 @@ public class DHTNode {
         ConvergenceController2.setAbsMillisTimeSource(absMillisTimeSource);
     }
     
-    public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy) {
+    public DHTNode(String dhtName, ZooKeeperConfig zkConfig, DHTNodeConfiguration nodeConfig, int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy) {
         try {
+            running = true;
             IPAndPort  daemonIPAndPort;
             //DHTRingCurTargetWatcher    dhtRingCurTargetWatcher;
-            MetaClient    mc;
             DHTConfiguration    dhtConfig;
             ExclusionSetAddressStatusProvider    exclusionSetAddressStatusProvider;
             
@@ -102,18 +104,18 @@ public class DHTNode {
             daemonStateZK = new DaemonStateZK(mc, daemonIPAndPort, daemonStateTimer);
             daemonStateZK.setState(DaemonState.INITIAL_MAP_WAIT);
             ringMaster.initializeMap(dhtConfig);
-            
-            if (!daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT, 
+
+            if (!daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT,
                     inactiveNodeTimeoutSeconds)) {
-                daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT, 
+                daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT,
                         inactiveNodeTimeoutSeconds);
             }
             daemonStateZK.setState(DaemonState.RECOVERY);
-            daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY, 
+            daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY,
                     recoveryInactiveNodeTimeoutSeconds);
-            nodeInfoZK = new NodeInfoZK(mc, daemonIPAndPort, daemonStateTimer);       
+            nodeInfoZK = new NodeInfoZK(mc, nodeConfig, daemonIPAndPort, daemonStateTimer);
             storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy);
-            msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort, 
+            msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort,
                                           mc);
             msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
             memoryManager = new MemoryManager();
@@ -137,6 +139,29 @@ public class DHTNode {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void stop() {
+        daemonStateZK.stopStateChecker();
+        nodeInfoZK.stop();
+        daemonStateTimer.purge();
+        ConvergenceController2.cancelAllOngoingConvergence();
+
+        msgModule.getStorage().stop();
+        storageModuleTimer.purge();
+        msgModule.stop();
+        messageModuleTimer.purge();
+
+        ringMaster.stop();
+
+        //mc.closeZkExtendeed();
+        //ringMaster.stopMetaReaderZk();
+        running = false;
+    }
+
+    public void stopZk() {
+        mc.closeZkExtendeed();
+        ringMaster.stopMetaReaderZk();
     }
     
     private void cleanVM() {
@@ -180,8 +205,8 @@ public class DHTNode {
                 parser.parseArgument(args);
                 
                 dhtName = options.dhtName;
-                zkConfig = new ZooKeeperConfig(options.zkConfig);                
-                dhtNode = new DHTNode(dhtName, zkConfig, options.inactiveNodeTimeoutSeconds, options.getReapPolicy());
+                zkConfig = new ZooKeeperConfig(options.zkConfig);
+                dhtNode = new DHTNode(dhtName, zkConfig, new DHTNodeConfiguration(), options.inactiveNodeTimeoutSeconds, options.getReapPolicy());
                 //Log.setLevelAll();
                 Log.initAsyncLogging();
                 dhtNode.run();

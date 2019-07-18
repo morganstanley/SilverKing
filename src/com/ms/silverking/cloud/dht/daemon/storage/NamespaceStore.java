@@ -219,7 +219,7 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private enum VersionCheckResult {Invalid, Valid, Equal, Valid_New_Key};
     private enum LockCheckResult {Unlocked, Locked, Ignored};
-    
+
     private static final int    VERSION_INDEX = 0;
     private static final int    STORAGE_TIME_INDEX = 1;
     
@@ -228,11 +228,11 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final SegmentPrereadMode    readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     private static final SegmentPrereadMode    updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     
-    private static final boolean    enablePendingPuts = true;
+    private static final boolean    enablePendingPuts;
     
     private static final int    minFinalizationIntervalMillis;
     private static final long    maxUnfinalizedDeletedBytes;
-    
+
     static {
         segmentIndexLocation = SegmentIndexLocation.valueOf(PropertiesHelper.systemHelper.getString(DHTConstants.segmentIndexLocationProperty, DHTConstants.defaultSegmentIndexLocation.toString()));
         Log.warningf("segmentIndexLocation: %s", segmentIndexLocation);
@@ -240,6 +240,8 @@ public class NamespaceStore implements SSNamespaceStore {
         Log.warningf("nsPrereadGB: %s", nsPrereadGB);
         minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
         Log.warningf("minFinalizationIntervalMillis %d", minFinalizationIntervalMillis);
+        enablePendingPuts = false;//PropertiesHelper.systemHelper.getBoolean(DHTConstants.enablePendingPutsProperty, DHTConstants.defaultEnablePendingPuts);
+        Log.warningf("enablePendingPuts: %s", enablePendingPuts);
         maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getLong(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
         Log.warningf("maxUnfinalizedDeletedBytes %d", maxUnfinalizedDeletedBytes);
         Log.warningf("fileSegmentCacheCapacity %d", fileSegmentCacheCapacity);
@@ -784,7 +786,7 @@ public class NamespaceStore implements SSNamespaceStore {
             RetrievalOptions options;
             ByteBuffer         result;
 
-            options = OptionsHelper.newRetrievalOptions(RetrievalType.META_DATA, WaitMode.GET, 
+            options = OptionsHelper.newRetrievalOptions(RetrievalType.META_DATA, WaitMode.GET,
                             VersionConstraint.greatest, NonExistenceResponse.NULL_VALUE, true);
             result = _retrieve(key, new InternalRetrievalOptions(options), false);
             if (result == null) {
@@ -792,7 +794,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 return LockCheckResult.Unlocked;
             } else {
                 short    existingLockSeconds;
-                
+
                 existingLockSeconds = MetaDataUtil.getLockSeconds(result, 0);
                 //Log.warningf("%s %d %d %d %s %s", KeyUtil.keyToString(key), storageParams != null ? storageParams.getVersion() : -1, existingLockSeconds, MetaDataUtil.getVersion(result, 0), writeLock, writeLock.isHeldByCurrentThread());
                 if (existingLockSeconds == PutOptions.noLock) {
@@ -1060,15 +1062,14 @@ public class NamespaceStore implements SSNamespaceStore {
      * @return
      */
     private SegmentStorageResult checkForDuplicateStore(DHTKey key, ByteBuffer value, StorageParameters storageParams,
-            byte[] userData) {
+            byte[] userData, VersionConstraint vc) {
         RetrievalOptions options;
         ByteBuffer result;
         int    debug = 0;
 
         // this comparison isn't returning invalid version like it should for some cases
         options = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE, WaitMode.GET, 
-                        VersionConstraint.exactMatch(storageParams.getVersion()), 
-                        NonExistenceResponse.EXCEPTION, true);
+                        vc, NonExistenceResponse.EXCEPTION, true);
         result = _retrieve(key, options);
         if (result == null) {
             debug = -1;
@@ -1131,7 +1132,7 @@ public class NamespaceStore implements SSNamespaceStore {
         if (lockCheckResult == LockCheckResult.Locked) {
             return OpResult.LOCKED;
         }
-        
+
         // FUTURE - Improve below. Note that we've moved time-based out of here
         // for now, and possibly forever. The feature that currently is not supported
         // is sequential versioning
@@ -1154,7 +1155,10 @@ public class NamespaceStore implements SSNamespaceStore {
         } else {
             if (versionCheckResult == VersionCheckResult.Equal || (versionCheckResult != VersionCheckResult.Valid_New_Key
                     && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION)) {
-                storageResult = checkForDuplicateStore(key, value, storageParams, userData);
+                VersionConstraint vc = (versionCheckResult == VersionCheckResult.Equal  || nsOptions.getRevisionMode() != RevisionMode.NO_REVISIONS)
+                        ? VersionConstraint.exactMatch(storageParams.getVersion())
+                        : VersionConstraint.maxBelowOrEqual(storageParams.getVersion());
+                storageResult = checkForDuplicateStore(key, value, storageParams, userData, vc);
                 if (debug) {
                     Log.fineAsync("checkForDuplicateStore result %s", storageResult);
                 }
@@ -1256,7 +1260,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     valueSegmentsPut(key, segmentNumber);
                 } else {
                     int    prevSegment;
-                    
+
                     prevSegment = rawPrevSegment;
                     // this key has been stored previously; check to see if
                     // we need to do more work
@@ -1271,7 +1275,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         OffsetList offsetList;
                         long[] prevVersionAndStorageTime;
                         boolean removed;
-    
+
                         // only a single previous segment exists
                         // we need to save the old and the new segments in the
                         // offset list
@@ -1288,7 +1292,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         if (debugSegments) {
                             Log.warning("prevVersion: ", prevVersionAndStorageTime[VERSION_INDEX]);
                         }
-                        offsetList.putOffset(prevVersionAndStorageTime[VERSION_INDEX], prevSegment, 
+                        offsetList.putOffset(prevVersionAndStorageTime[VERSION_INDEX], prevSegment,
                                              prevVersionAndStorageTime[STORAGE_TIME_INDEX]);
                         offsetList.putOffset(version, segmentNumber, creationTime);
                         removed = valueSegments.remove(key);
@@ -2973,7 +2977,7 @@ public class NamespaceStore implements SSNamespaceStore {
             emptyTrashAndCompaction();
         }
     }
-    
+
     /**
      * Empty trash and compaction directories. Run finalization if *either*
      * maxUnfinalizedDeletedBytes has been exceeded or minFinalizationIntervalMillis
@@ -2986,9 +2990,9 @@ public class NamespaceStore implements SSNamespaceStore {
             deletionsSinceFinalization = 0;
             JVMUtil.finalization.forceFinalization(0);
         } else {
-            // If deletionsSinceFinalization doesn't trigger finalization, then consider minFinalizationIntervalMillis 
+            // If deletionsSinceFinalization doesn't trigger finalization, then consider minFinalizationIntervalMillis
             if (JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis)) {
-                deletionsSinceFinalization = 0;                
+                deletionsSinceFinalization = 0;
             }
         }
     }
@@ -3336,11 +3340,13 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final int    numPendingPutWorkers = Math.min(8, Runtime.getRuntime().availableProcessors());
     private static final int    maxWorkBatchSize = 128;
     private static final BlockingQueue<PendingPut>    pendingPuts = new ArrayBlockingQueue<>(numPendingPutWorkers * maxWorkBatchSize);
-    
+
     static {
-        Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
-        for (int i = 0; i < numPendingPutWorkers; i++) {
-            new PendingPutWorker(i, pendingPuts);
+        if(enablePendingPuts) {
+            Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
+            for (int i = 0; i < numPendingPutWorkers; i++) {
+                new PendingPutWorker(i, pendingPuts);
+            }
         }
     }
     
@@ -3390,6 +3396,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     static class PendingPutWorker implements Runnable {
+        private boolean running;
         private final BlockingQueue<PendingPut>    q;
         private final PendingPut[]    work;
         
@@ -3399,6 +3406,7 @@ public class NamespaceStore implements SSNamespaceStore {
             work = new PendingPut[maxWorkBatchSize];
             this.q = q;
             t = ThreadUtil.newDaemonThread(this, "PendingPutWorker."+ index);
+            running = true;
             t.start();
         }
         
@@ -3515,7 +3523,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
                 
         public void run() {
-            while (true) {
+            while (running) {
                 try {
                     process();
                 } catch (Exception e) {
@@ -3523,6 +3531,9 @@ public class NamespaceStore implements SSNamespaceStore {
                     ThreadUtil.pauseAfterException();
                 }
             }
+        }
+        public void stop() {
+            running = false;
         }
     }
     

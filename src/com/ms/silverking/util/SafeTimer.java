@@ -30,13 +30,20 @@ public class SafeTimer extends Timer {
      * @param task  task to be scheduled.
      * @param delay delay in milliseconds before task is to be executed.
      * @throws IllegalArgumentException if <tt>delay</tt> is negative, or
-     *         <tt>delay + System.currentTimeMillis()</tt> is negative.
+     *         <tt>delay + System.currentTimeMillis()</tt> is negative
      * @throws IllegalStateException if task was already scheduled or
      *         cancelled, timer was cancelled, or timer thread terminated.
      * @throws NullPointerException if {@code task} is null
      */
+    public void schedule(SafeTimerTask task, long delay) {
+        super.schedule(task, delay);
+    }
+
     public void schedule(TimerTask task, long delay) {
-        super.schedule(new SafeTimerTask(task), delay);
+        if (task instanceof SafeTimerTask)
+            schedule((SafeTimerTask) task, delay);
+        else
+            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
     }
 
     /**
@@ -45,13 +52,21 @@ public class SafeTimer extends Timer {
      *
      * @param task task to be scheduled.
      * @param time time at which task is to be executed.
-     * @throws IllegalArgumentException if <tt>time.getTime()</tt> is negative.
+     * @throws IllegalArgumentException if <tt>time.getTime()</tt> is negative, or
+     *         the timer task is not a SafeTimerTask
      * @throws IllegalStateException if task was already scheduled or
-     *         cancelled, timer was cancelled, or timer thread terminated.
+     *         cancelled, timer was cancelled
      * @throws NullPointerException if {@code task} or {@code time} is null
      */
+    public void schedule(SafeTimerTask task, Date time) {
+        super.schedule(task, time);
+    }
+
     public void schedule(TimerTask task, Date time) {
-        super.schedule(new SafeTimerTask(task), time);
+        if (task instanceof SafeTimerTask)
+            schedule((SafeTimerTask) task, time);
+        else
+            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
     }
 
     /**
@@ -81,16 +96,23 @@ public class SafeTimer extends Timer {
      * @param period time in milliseconds between successive task executions.
      * @throws IllegalArgumentException if {@code delay < 0}, or
      *         {@code delay + System.currentTimeMillis() < 0}, or
-     *         {@code period <= 0}
+     *         {@code period <= 0} ,or the timer task is not a SafeTimerTask
      * @throws IllegalStateException if task was already scheduled or
      *         cancelled, timer was cancelled, or timer thread terminated.
      * @throws NullPointerException if {@code task} is null
      */
-    public void schedule(TimerTask task, long delay, long period) {
-        super.schedule(new SafeTimerTask(task), delay, period);
+    public void schedule(SafeTimerTask task, long delay, long period) {
+        super.schedule(task, delay, period);
     }
 
-    /**
+    public void schedule(TimerTask task, long delay, long period) {
+        if (task instanceof SafeTimerTask)
+            schedule((SafeTimerTask) task, delay, period);
+        else
+            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
+    }
+
+      /**
      * Schedules the specified task for repeated <i>fixed-delay execution</i>,
      * beginning at the specified time. Subsequent executions take place at
      * approximately regular intervals, separated by the specified period.
@@ -123,8 +145,15 @@ public class SafeTimer extends Timer {
      *         cancelled, timer was cancelled, or timer thread terminated.
      * @throws NullPointerException if {@code task} or {@code firstTime} is null
      */
+    public void schedule(SafeTimerTask task, Date firstTime, long period) {
+        super.schedule(task, firstTime, period);
+    }
+
     public void schedule(TimerTask task, Date firstTime, long period) {
-        super.schedule(new SafeTimerTask(task), firstTime, period);
+        if (task instanceof SafeTimerTask)
+            schedule((SafeTimerTask) task, firstTime, period);
+        else
+            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
     }
 
     /**
@@ -160,8 +189,15 @@ public class SafeTimer extends Timer {
      *         cancelled, timer was cancelled, or timer thread terminated.
      * @throws NullPointerException if {@code task} is null
      */
+    public void scheduleAtFixedRate(SafeTimerTask task, long delay, long period) {
+        super.scheduleAtFixedRate(task, delay, period);
+    }
+
     public void scheduleAtFixedRate(TimerTask task, long delay, long period) {
-        super.scheduleAtFixedRate(new SafeTimerTask(task), delay, period);
+        if (task instanceof SafeTimerTask)
+            scheduleAtFixedRate((SafeTimerTask) task, delay, period);
+        else
+            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
     }
 
     /**
@@ -199,8 +235,14 @@ public class SafeTimer extends Timer {
      *         cancelled, timer was cancelled, or timer thread terminated.
      * @throws NullPointerException if {@code task} or {@code firstTime} is null
      */
-    public void scheduleAtFixedRate(TimerTask task, Date firstTime,
-                                    long period) {
-        super.scheduleAtFixedRate(new SafeTimerTask(task), firstTime, period);
+    public void scheduleAtFixedRate(SafeTimerTask task, Date firstTime, long period) {
+        super.scheduleAtFixedRate(task, firstTime, period);
+    }
+
+    public void scheduleAtFixedRate(TimerTask task, Date firstTime, long period) {
+        if (task instanceof SafeTimerTask)
+            scheduleAtFixedRate((SafeTimerTask) task, firstTime, period);
+        else
+            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
     }
 }

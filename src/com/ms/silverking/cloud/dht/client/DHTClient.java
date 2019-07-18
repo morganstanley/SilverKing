@@ -214,8 +214,8 @@ public class DHTClient {
             throw new RuntimeException(ioe);
         }
         
-        DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
-        embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
+        DHTNodeConfiguration nodeConfig  = new DHTNodeConfiguration(skDir.getAbsolutePath() +"/data");
+        embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), nodeConfig, defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
     }
     
     private ClientDHTConfiguration embedKVS() {

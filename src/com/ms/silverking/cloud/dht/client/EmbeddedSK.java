@@ -37,7 +37,7 @@ public class EmbeddedSK {
     public static final String    skPortProperty = EmbeddedSK.class.getName() +".SKPort";
     public static final int        defaultSKPort = 0;
     private static final int    skPort;
-    
+
     static {
         skPort = PropertiesHelper.systemHelper.getInt(skPortProperty, defaultSKPort, ParseExceptionAction.RethrowParseException);
     }    
@@ -92,7 +92,7 @@ public class EmbeddedSK {
             zkConfig = new ZooKeeperConfig(InetAddress.getLoopbackAddress().getHostAddress() +":"+ zkPort);
             Log.warning("Embedded ZooKeeper running at: "+ zkConfig);
             
-            DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
+            DHTNodeConfiguration nodeConfig  = new DHTNodeConfiguration(skDir.getAbsolutePath() +"/data");
             
             // 2) Create ring in ZK        
             Log.warning("Creating ring");
@@ -130,7 +130,7 @@ public class EmbeddedSK {
             
             // 4) Start DHTNode
             Log.warning("Starting DHTNode");
-            new DHTNode(config.getDHTName(), zkConfig, 0, new ReapOnIdlePolicy());
+            new DHTNode(config.getDHTName(), zkConfig, nodeConfig, 0, new ReapOnIdlePolicy());
             Log.warning("DHTNode started");
             
             // 5) Return the configuration to the caller

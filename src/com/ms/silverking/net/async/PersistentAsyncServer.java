@@ -36,7 +36,7 @@ public class PersistentAsyncServer<T extends Connection>
     
     private AddressStatusProvider    addressStatusProvider;
     private SuspectAddressListener    suspectAddressListener;
-    
+    private boolean isRunning;
     private static final int    connectionCreationAttemptTimeoutMS = 1000;
     private static final int    connectionCreationMaximumTimeoutMS = 40 * 1000;
     private static final int    maxConnectBackoffNum = 16;
@@ -60,6 +60,7 @@ public class PersistentAsyncServer<T extends Connection>
                                 NewConnectionTimeoutController newConnectionTimeoutController,
                                 LWTPool lwtPool, int selectionThreadWorkLimit, boolean enabled, 
                                 boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
+        isRunning = true;
         this.debug = debug;
         this.newConnectionTimeoutController = newConnectionTimeoutController;
         asyncServer = new AsyncServer<T>(port, backlog, 
@@ -134,6 +135,7 @@ public class PersistentAsyncServer<T extends Connection>
             connection.close();
         }
         asyncServer.shutdown();
+        isRunning = false;
         ThreadUtil.sleep(shutdownDelayMillis);
         JVMUtil.finalization.forceFinalization(0);
     }
@@ -312,7 +314,7 @@ public class PersistentAsyncServer<T extends Connection>
         deadline = Math.min(deadline, SystemTimeSource.instance.absTimeMillis() + newConnectionTimeoutController.getMaxRelativeTimeoutMillis(_dest));
         
         backoff = null;
-        while (true) {
+        while (isRunning) {
             if (addressStatusProvider != null
                     && !addressStatusProvider.isAddressStatusProviderThread()
                     && !addressStatusProvider.isHealthy(dest)) {
@@ -378,6 +380,7 @@ public class PersistentAsyncServer<T extends Connection>
                 throw new RuntimeException("Unexpected IOException", ioe);
             }
         }
+        return null;
     }
     
     @Override

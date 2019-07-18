@@ -40,6 +40,7 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.async.QueueingConnectionLimitListener;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.time.AbsMillisTimeSource;
+import com.ms.silverking.util.SafeTimerTask;
 
 import java.io.IOException;
 import java.util.List;
@@ -66,7 +67,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final NamespaceCreator  namespaceCreator;
     private final NamespaceOptionsClient    nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
-
+    private SafeTimerTask timeoutCheckTask;
     private AsynchronousNamespacePerspective<String,String>    systemNSP;
     private ExclusionSet    exclusionSet;
     
@@ -101,9 +102,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private static final int    serverCheckIntervalMillis = 2 * 60 * 1000;
     private static final int    serverOrderIntervalMillis = 5 * 60 * 1000;
     private static final int    timeoutExclusionSetRetrievalMillis = 2000;
-    
     private static final int    exclusionSetRetrievalTimeoutSeconds = 10;
-    
+
     private static final int   connectionQueueLimit = 0;
     
     private static final int   numSelectorControllers = 1;
@@ -132,7 +132,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         clientNamespaceList = new CopyOnWriteArrayList<>();
         
         worker = new Worker();
-        DHTUtil.timer().scheduleAtFixedRate(new TimeoutCheckTask(), 
+        timeoutCheckTask = new SafeTimerTask(new TimeoutCheckTask());
+        DHTUtil.timer().scheduleAtFixedRate(timeoutCheckTask,
                                               timeoutCheckIntervalMillis, 
                                               timeoutCheckIntervalMillis);
         namespaceCreator = new SimpleNamespaceCreator();
@@ -365,6 +366,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     @Override
     public void close() {
         mgBase.shutdown();
+        timeoutCheckTask.cancel();
         // FUTURE - consider additional actions
     }
     
@@ -412,7 +414,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     void initializeExclusionSet() {
         try {
             ExclusionSet    newExclusionSet;
-            
+
             if (systemNSP == null) {
                 systemNSP = getClientNamespace(Namespace.systemName).openAsyncPerspective(String.class, String.class);
             }
@@ -470,7 +472,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             }
             exclusionSetHasChanged = !exclusionSet.equals(newExclusionSet);
             setExclusionSet(newExclusionSet);
-            
+
             return exclusionSetHasChanged;
         }
     }

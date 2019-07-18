@@ -7,6 +7,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.ms.silverking.util.SafeTimerTask;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
@@ -25,18 +26,22 @@ public class NodeInfoZK implements Watcher {
     private final IPAndPort     myIPAndPort;
     private final String        instanceNodeInfoPath;
     private volatile NodeInfo    nodeInfo;
-    
+    private SafeTimerTask infoCheckerTask;
+    private DHTNodeConfiguration dhtNodeConfiguration;
+
     private static final int     infoCheckPeriodMillis = 1 * 60 * 1000;
     private static final int    dfTimeoutSeconds = 2 * 60;
     private static final int    nodeInfoCheckPeriodMillis = 100; 
     
     private static final boolean    verbose = true;
     
-    public NodeInfoZK(MetaClient mc, IPAndPort myIPAndPort, Timer timer) {
+    public NodeInfoZK(MetaClient mc, DHTNodeConfiguration dhtNodeConfiguration, IPAndPort myIPAndPort, Timer timer) {
+        this.dhtNodeConfiguration = dhtNodeConfiguration;
         this.mc = mc;
         this.myIPAndPort = myIPAndPort;
         instanceNodeInfoPath = mc.getMetaPaths().getInstanceNodeInfoPath();
-        timer.scheduleAtFixedRate(new InfoChecker(), 
+        infoCheckerTask = new SafeTimerTask(new InfoChecker());
+        timer.scheduleAtFixedRate(infoCheckerTask,
                 ThreadLocalRandom.current().nextInt(infoCheckPeriodMillis), 
                 infoCheckPeriodMillis);
     }
@@ -44,7 +49,11 @@ public class NodeInfoZK implements Watcher {
     private String getNodeInfoPath(IPAndPort node) {
         return instanceNodeInfoPath +"/"+ node;
     }
-    
+
+    public DHTNodeConfiguration getDHTNodeConfiguration() {
+        return dhtNodeConfiguration;
+    }
+
     public void setNodeInfo(NodeInfo nodeInfo) {
         this.nodeInfo = nodeInfo;
         ensureNodeInfoSet();
@@ -122,12 +131,16 @@ public class NodeInfoZK implements Watcher {
             Quadruple<Long,Long,Long,Integer>    dfInfo;
             
             try {
-                dfInfo = DF.df(DHTNodeConfiguration.getDataBasePath(), dfTimeoutSeconds);
+                dfInfo = DF.df(dhtNodeConfiguration.dataBasePath, dfTimeoutSeconds);
                 return new NodeInfo(dfInfo.getV1(), dfInfo.getV2(), dfInfo.getV3(), dfInfo.getV4());
             } catch (Exception e) {
                 Log.logErrorWarning(e, "Unable to getNodeInfo(");
                 return null;
             }
         }
+    }
+
+    public void stop() {
+        infoCheckerTask.cancel();
     }
 }

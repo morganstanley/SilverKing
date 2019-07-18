@@ -986,8 +986,12 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     }
     
     static {
-        new Thread(new PausedChecksumWorker(), "PausedChecksumWorker").start();
-        new Thread(new PausedSignalWorker(), "PausedSignalWorker").start();
+        Thread pausedChecksumWorker = new Thread(new PausedChecksumWorker(), "PausedChecksumWorker");
+        pausedChecksumWorker.setDaemon(true);
+        pausedChecksumWorker.start();
+        Thread pausedSignalWorker = new Thread(new PausedSignalWorker(), "PausedSignalWorker");
+        pausedSignalWorker.setDaemon(true);
+        pausedSignalWorker.start();
     }
     
     private static class MQListener implements MultipleConnectionQueueLengthListener {
