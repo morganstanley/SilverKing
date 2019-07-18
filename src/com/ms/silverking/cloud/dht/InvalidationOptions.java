@@ -18,87 +18,98 @@ import com.ms.silverking.text.ObjectDefParser2;
  */
 public class InvalidationOptions extends PutOptions {
     private static final OpTimeoutController    standardTimeoutController = new OpSizeBasedTimeoutController();
-    private static final PutOptions template = OptionsHelper.newInvalidationOptions(standardTimeoutController, PutOptions.defaultVersion, PutOptions.noVersionRequired, DHTConstants.noSecondaryTargets);
+    private static final PutOptions template = OptionsHelper.newInvalidationOptions(standardTimeoutController, PutOptions.defaultVersion, PutOptions.noVersionRequired, PutOptions.noLock, DHTConstants.noSecondaryTargets);
 
     static {
         ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
     }
     
     // FIXME - temp until legacy instances have current defs
-	public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
-							Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, long version, byte[] userData) {
-		super(opTimeoutController, secondaryTargets, compression, checksumType, checksumCompressedValues, version, noVersionRequired, DHTConstants.defaultFragmentationThreshold, userData);
-	}
-	
-	/**
-	 * Complete constructor. We ignore any fragmentationThreshold passed in as it does not make sense for an invalidation
-	 */
-	public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-			Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, 
-			long version, long requiredPreviousVersion,
-			int fragmentationThreshold, byte[] userData) {
-		super(opTimeoutController, secondaryTargets, compression, checksumType, checksumCompressedValues, version,
-				requiredPreviousVersion, DHTConstants.defaultFragmentationThreshold, userData);
-	}	
+    public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
+                            Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, long version, byte[] userData) {
+        super(opTimeoutController, secondaryTargets, compression, checksumType, checksumCompressedValues, version, noVersionRequired, PutOptions.noLock, DHTConstants.defaultFragmentationThreshold, userData);
+    }
+    
+    /**
+     * Complete constructor. We ignore any fragmentationThreshold passed in as it does not make sense for an invalidation
+     * @param lockSeconds seconds to lock this key
+     */
+    public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
+            Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, 
+            long version, long requiredPreviousVersion,
+            short lockSeconds, int fragmentationThreshold, byte[] userData) {
+        super(opTimeoutController, secondaryTargets, compression, checksumType, checksumCompressedValues, version,
+                requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, userData);
+    }    
 
     /**
-	 * Construct InvalidationOptions from the given arguments. Usage is generally not recommended.
-	 * Instead of using this constructor, most applications should obtain an InvalidationOptions
-	 * object from a valid source such as the session, the namespace, or the namespace perspective.
+     * Construct InvalidationOptions from the given arguments. Usage is generally not recommended.
+     * Instead of using this constructor, most applications should obtain an InvalidationOptions
+     * object from a valid source such as the session, the namespace, or the namespace perspective.
      * @param opTimeoutController opTimeoutController for the operation
      * @param secondaryTargets constrains queried secondary replicas 
      * to operation solely on the node that receives this operation
      * @param version version of this object
+     * @param lockSeconds seconds to lock this key
      */
-	public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-								long version, long requiredPreviousVersion) {
-		super(opTimeoutController, secondaryTargets, Compression.NONE, ChecksumType.SYSTEM, false, 
-				version, requiredPreviousVersion, DHTConstants.defaultFragmentationThreshold, null);
-	}
-	
+    public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
+                                long version, long requiredPreviousVersion, short lockSeconds) {
+        super(opTimeoutController, secondaryTargets, Compression.NONE, ChecksumType.SYSTEM, false, 
+                version, requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, null);
+    }
+    
     /**
      * Return an InvalidationOptions instance like this instance, but with a new OpTimeoutController.
      * @param opTimeoutController the new field value
      * @return the modified InvalidationOptions
      */
-	public InvalidationOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-		return new InvalidationOptions(opTimeoutController, getSecondaryTargets(), getVersion(), getRequiredPreviousVersion());
-	}
-	
+    public InvalidationOptions opTimeoutController(OpTimeoutController opTimeoutController) {
+        return new InvalidationOptions(opTimeoutController, getSecondaryTargets(), getVersion(), getRequiredPreviousVersion(), getLockSeconds());
+    }
+    
     /**
      * Return an InvalidationOptions instance like this instance, but with a new secondaryTargets.
      * @param secondaryTargets the new field value
      * @return the modified InvalidationOptions
      */
-	public InvalidationOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-		return new InvalidationOptions(getOpTimeoutController(), secondaryTargets, getVersion(), getRequiredPreviousVersion());
-	}
-	
+    public InvalidationOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
+        return new InvalidationOptions(getOpTimeoutController(), secondaryTargets, getVersion(), getRequiredPreviousVersion(), getLockSeconds());
+    }
+    
     /**
      * Return an InvalidationOptions instance like this instance, but with a new secondaryTargets.
      * @param secondaryTarget the new field value
      * @return the modified InvalidationOptions
      */
-	public InvalidationOptions secondaryTargets(SecondaryTarget secondaryTarget) {
-		Preconditions.checkNotNull(secondaryTarget);
-		return new InvalidationOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getVersion(), getRequiredPreviousVersion());
-	}
-	
+    public InvalidationOptions secondaryTargets(SecondaryTarget secondaryTarget) {
+        Preconditions.checkNotNull(secondaryTarget);
+        return new InvalidationOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getVersion(), getRequiredPreviousVersion(), getLockSeconds());
+    }
+    
     /**
      * Return an InvalidationOptions instance like this instance, but with a new version.
      * @param version the new field value
      * @return the modified InvalidationOptions
      */
-	public InvalidationOptions version(long version) {
-		return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), version, getRequiredPreviousVersion());
-	}
-	
+    public InvalidationOptions version(long version) {
+        return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), version, getRequiredPreviousVersion(), getLockSeconds());
+    }
+    
     /**
      * Return an InvalidationOptions instance like this instance, but with a new requiredPreviousVersion.
      * @param requiredPreviousVersion the new field value
      * @return the modified InvalidationOptions
      */
-	public InvalidationOptions requiredPreviousVersion(long requiredPreviousVersion) {
-		return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), getVersion(), requiredPreviousVersion);
-	}
+    public InvalidationOptions requiredPreviousVersion(long requiredPreviousVersion) {
+        return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), getVersion(), requiredPreviousVersion, getLockSeconds());
+    }
+    
+    /**
+     * Return an InvalidationOptions instance like this instance, but with a new lockSeconds.
+     * @param lockSeconds the new field value
+     * @return the modified InvalidationOptions
+     */
+    public InvalidationOptions lockSeconds(short lockSeconds) {
+        return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), getVersion(), getRequiredPreviousVersion(), lockSeconds);
+    }
 }

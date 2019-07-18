@@ -100,16 +100,9 @@ public class NamespaceOptions {
         checkTimeoutControllerForValidity(defaultGetOptions);
         checkTimeoutControllerForValidity(defaultWaitOptions);
         Preconditions.checkNotNull(valueRetentionPolicy);
-        
-        if (segmentSize < DHTConstants.minSegmentSize) {
-        	throw new IllegalArgumentException("segmentSize < DHTConstants.minSegmentSize");
-        }
-        if (maxValueSize < minMaxValueSize) {
-        	throw new IllegalArgumentException("maxValueSize < minMaxValueSize");
-        }
-        if (maxValueSize > maxMaxValueSize) {
-        	throw new IllegalArgumentException("maxValueSize > maxMaxValueSize");
-        }
+
+        Constraint.checkBounds(DHTConstants.minSegmentSize, Integer.MAX_VALUE, segmentSize, "Invalid segmentSize");
+        Constraint.checkBounds(minMaxValueSize, maxMaxValueSize, maxValueSize, "Invalid maxValueSize");
         
         this.storageType = storageType;
         this.consistencyProtocol = consistencyProtocol;
