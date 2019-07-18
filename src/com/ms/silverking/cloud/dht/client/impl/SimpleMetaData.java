@@ -12,7 +12,8 @@ public class SimpleMetaData implements MetaData {
     private final long          version;
     private final long          creationTime;
     private final ValueCreator  valueCreator;
-    private final byte[]         userData;
+    private final short         lockSeconds;
+    private final byte[]        userData;
     private final byte[]        checksum;
     private final Compression   compression;
     private final ChecksumType  checksumType;
@@ -20,15 +21,16 @@ public class SimpleMetaData implements MetaData {
     public SimpleMetaData(int storedLength, int uncompressedLength,
                           long version, long creationTime,
                           ValueCreator valueCreator, 
-                          byte[] userData, 
+                          short lockSeconds, 
+                          byte[] userData,
                           byte[] checksum,
-                          Compression compression,
-                          ChecksumType checksumType) {
+                          Compression compression, ChecksumType checksumType) {
         this.storedLength = storedLength;
         this.uncompressedLength = uncompressedLength;
         this.version = version;
         this.creationTime = creationTime;
         this.valueCreator = valueCreator;
+        this.lockSeconds = lockSeconds;
         this.userData = userData;
         this.checksum = checksum;
         this.compression = compression;
@@ -39,34 +41,34 @@ public class SimpleMetaData implements MetaData {
         this(metaData.getStoredLength(), metaData.getUncompressedLength(),
                 metaData.getVersion(), metaData.getCreationTime().inNanos(),
                 metaData.getCreator(),
+                metaData.getLockSeconds(), 
                 metaData.getUserData(), 
-                metaData.getChecksum(), 
-                metaData.getCompression(),
-                metaData.getChecksumType());
+                metaData.getChecksum(),
+                metaData.getCompression(), metaData.getChecksumType());
     }
     
     public SimpleMetaData setValueCreator(ValueCreator _valueCreator) {
         return new SimpleMetaData(storedLength, uncompressedLength,
                 version, creationTime, _valueCreator,
-                userData, checksum, compression, checksumType);
+                lockSeconds, userData, checksum, compression, checksumType);
     }
     
     public SimpleMetaData setStoredLength(int _storedLength) {
         return new SimpleMetaData(_storedLength, uncompressedLength,
                 version, creationTime, valueCreator,
-                userData, checksum, compression, checksumType);
+                lockSeconds, userData, checksum, compression, checksumType);
     }
 
     public SimpleMetaData setUncompressedLength(int _uncompressedLength) {
         return new SimpleMetaData(storedLength, _uncompressedLength,
                 version, creationTime, valueCreator,
-                userData, checksum, compression, checksumType);
+                lockSeconds, userData, checksum, compression, checksumType);
     }
     
     public SimpleMetaData setChecksumTypeAndChecksum(ChecksumType checksumType, byte[] checksum) {
         return new SimpleMetaData(storedLength, uncompressedLength,
                 version, creationTime, valueCreator,
-                userData, checksum, compression, checksumType);
+                lockSeconds, userData, checksum, compression, checksumType);
     }
     
     @Override
@@ -92,6 +94,11 @@ public class SimpleMetaData implements MetaData {
     @Override
     public ValueCreator getCreator() {
         return valueCreator;
+    }
+    
+    @Override
+    public short getLockSeconds() {
+        return lockSeconds;
     }
 
     @Override

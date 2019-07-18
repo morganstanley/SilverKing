@@ -187,12 +187,17 @@ public class WrapperGenerator {
 	private Field[] getStaticFieldsForGeneration(Class c) {
 		List<Field>	fields;
 		
+		System.out.printf("in getStaticFieldsForGeneration %s\n", c.getName());
 		fields= new ArrayList<>();
 		for (Field f : c.getFields()) {
 			if (Modifier.isPublic(f.getModifiers()) && Modifier.isStatic(f.getModifiers()) && Modifier.isFinal(f.getModifiers())) {
+				System.out.printf("Static field %s\n", f.getName());
 				fields.add(f);
+			} else {
+				System.out.printf("Non-static field %s\n", f.getName());
 			}
 		}
+		System.out.printf("out getStaticFieldsForGeneration %s\n", c.getName());
 		return fields.toArray(new Field[0]);
 	}
 	
@@ -271,6 +276,9 @@ public class WrapperGenerator {
 							Context	classContext;
 							
 							classContext = _c.class_(_class);
+							if (_class.isEnum()) {
+								classContext = classContext.enum_(_class);
+							}
 							generate(classContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
 						}
 						break;
@@ -334,25 +342,35 @@ public class WrapperGenerator {
 						break;
 					case StaticFields:
 						for (Field f : getStaticFieldsForGeneration(c.getClass_())) {
-							if (referenceFinder.referencePresent(f.getClass())) {
+							//if (referenceFinder.referencePresent(f.getClass())) {
 								Context	fieldContext;
 								
 								fieldContext = _c.field(f);
 								generate(fieldContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
-							}
+							//}
 						}
 						break;
 					case Enums:
-						for (Class ec : getEnumsForGeneration(c.getClass_())) {
-							if (referenceFinder.referencePresent(ec)) {
-								Context	enumContext;
-								
-								enumContext = _c.enum_(ec);
-								generate(enumContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
+						/*
+						if (_c.getClass_().isEnum()) {
+							Context	enumContext;
+							
+							enumContext = _c.enum_(_c.getClass_());
+							generate(enumContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
+						} else {
+						*/
+							for (Class ec : getEnumsForGeneration(c.getClass_())) {
+								if (true || referenceFinder.referencePresent(ec)) {
+									Context	enumContext;
+									
+									enumContext = _c.enum_(ec);
+									generate(enumContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
+								}
 							}
-						}
+						//}
 						break;
 					case EnumValues:
+						//System.out.printf("getEnumValuesForGeneration %s %s %s\n", c, c.getClass_().getName(), c.getEnum());
 						for (String v : getEnumValuesForGeneration(c.getEnum())) {
 							Context	enumValueContext;
 							
@@ -446,16 +464,20 @@ public class WrapperGenerator {
 	}
 
 	private String[] getEnumValuesForGeneration(Class class_) {
-		if (!class_.isEnum()) {
-			throw new RuntimeException(String.format("%s is not an Enum", class_.getName())); 
+		if (class_ == null) {
+			return new String[0];
 		} else {
-			List<String>	values;
-			
-			values = new ArrayList<>();
-			for (Object o : class_.getEnumConstants()) {
-				values.add(o.toString());
+			if (!class_.isEnum()) {
+				throw new RuntimeException(String.format("%s is not an Enum", class_.getName())); 
+			} else {
+				List<String>	values;
+				
+				values = new ArrayList<>();
+				for (Object o : class_.getEnumConstants()) {
+					values.add(o.toString());
+				}
+				return values.toArray(new String[0]);
 			}
-			return values.toArray(new String[0]);
 		}
 	}
 
@@ -482,7 +504,8 @@ public class WrapperGenerator {
 						|| target == LoopElement.Target.Constructors
 						|| target == LoopElement.Target.StaticMethods
 						|| target == LoopElement.Target.StaticFields
-						|| target == LoopElement.Target.Enums
+						|| target == LoopElement.Target.Enums // Embedded enums
+						|| target == LoopElement.Target.EnumValues // Values of an enum class
 						|| target == LoopElement.Target.ReferencedClasses
 						|| target == LoopElement.Target.Interfaces
 						|| target == LoopElement.Target.InheritedClasses

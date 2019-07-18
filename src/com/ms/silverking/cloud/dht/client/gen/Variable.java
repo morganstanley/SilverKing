@@ -28,7 +28,7 @@ public class Variable implements Expression {
 	
 	private static final int classMD5Length = 12;
 	
-	private enum VariableType {Class, Package, MethodName, LoopIndex, LoopElements,
+	private enum VariableType {Class, Package, MethodName, LoopIndex, LoopIndex_0Base, LoopElements,
 								ClassMD5,
 								ClassHasEmptyConstructor,
 								MethodReturnType, MethodReturnTypeSimple, MethodReturnTypeWrapper, MethodReturnTypeRaw, MethodReturnTypePackage, 
@@ -165,6 +165,7 @@ public class Variable implements Expression {
 		case Package: return c.getPackage_().getName();
 		case MethodName: return c.getMethod().getName();
 		case LoopIndex: return Integer.toString(c.getLoopIndex());
+		case LoopIndex_0Base: return Integer.toString(c.getLoopIndex() - 1);
 		case LoopElements: return Integer.toString(c.getLoopElements());
 		case MethodReturnTypeRaw: return getReturnTypeRaw(c.getMethod());
 		case MethodReturnType: return getReturnType(c.getMethod(), false, null);

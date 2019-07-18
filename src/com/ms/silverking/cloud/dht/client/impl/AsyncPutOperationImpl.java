@@ -92,11 +92,6 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
         return new PutMessageEstimate();
     }
 	
-	@Override
-    ProtoMessageGroup createProtoMG(MessageEstimate estimate) {
-        return createProtoPutMG((PutMessageEstimate)estimate, DHTClient.getValueCreator().getBytes());
-    }
-	
 	PutOptions putOptions() {
 	    return putOperation.putOptions();
 	}
@@ -130,12 +125,17 @@ class AsyncPutOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
             resolvedVersion.compareAndSet(DHTConstants.noSuchVersion, v);
 	    }
 	}
+	
+    @Override
+    ProtoMessageGroup createProtoMG(MessageEstimate estimate) {
+        return createProtoPutMG((PutMessageEstimate)estimate, DHTClient.getValueCreator().getBytes());
+    }
     
-    ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate) {
+    private ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate) {
         return createProtoPutMG(estimate, DHTClient.getValueCreator().getBytes());
     }
     
-	ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate, byte[] creator) {
+	private ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate, byte[] creator) {
 	    OperationUUID  opUUID;
 	    ConcurrentMap<DHTKey,ActiveKeyedOperationResultListener<OpResult>>  newMap;
 	    long	resolvedVersion;

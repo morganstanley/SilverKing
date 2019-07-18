@@ -6,6 +6,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.GetOptions;
@@ -15,6 +16,7 @@ import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.WaitOptions;
+import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.DHTSession;
@@ -52,10 +54,10 @@ import com.ms.silverking.time.AbsMillisTimeSource;
  * Concrete implementation of DHTSession. 
  */
 public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, QueueingConnectionLimitListener {
-	private final MessageGroupBase	mgBase;
-	private final ClientDHTConfiguration	dhtConfig;
-	//private final ServerPool		serverPool;
-	private final ConcurrentMap<Long,ClientNamespace>  clientNamespaces;
+    private final MessageGroupBase    mgBase;
+    private final ClientDHTConfiguration    dhtConfig;
+    //private final ServerPool        serverPool;
+    private final ConcurrentMap<Long,ClientNamespace>  clientNamespaces;
     private final List<ClientNamespace> clientNamespaceList;
     private final byte[]            myIPAndPort;
     private final AbsMillisTimeSource   absMillisTimeSource;
@@ -65,8 +67,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final NamespaceOptionsClient    nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
     
-    private SynchronousNamespacePerspective<String,String>	systemNSP;
-    private ExclusionSet	exclusionSet;
+    private AsynchronousNamespacePerspective<String,String>    systemNSP;
+    private ExclusionSet    exclusionSet;
     
     /*
      * FUTURE - This class can be improved significantly. It contains remnants of the ActiveOperation* implementation.
@@ -74,80 +76,82 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
      * side. It currently does not, but it did when the ActiveOperation* implementation was in place.
      */
     
-	
+    
     // FUTURE - server selection currently pinned to preferredServer only; allow for others
     private AddrAndPort  server;
-	
-	//private final Map<OperationUUID,ActiveOperation>	activeOps;
-	
-	// new implementation
-	//private final ActiveOperationTable   activeOpTable;
-	// FUTURE - THINK IF WE WANT OPERATION TABLE ANY MORE
-	
-	// retrieve
-	// map of retrievals ns, key to retrieval list
-	    // this list then maps back to active operation
-	    // retrieval list maps version to active operation
-	
-	// put
-	// map of puts ns, key to put list
-	
-	
+    
+    //private final Map<OperationUUID,ActiveOperation>    activeOps;
+    
+    // new implementation
+    //private final ActiveOperationTable   activeOpTable;
+    // FUTURE - THINK IF WE WANT OPERATION TABLE ANY MORE
+    
+    // retrieve
+    // map of retrievals ns, key to retrieval list
+        // this list then maps back to active operation
+        // retrieval list maps version to active operation
+    
+    // put
+    // map of puts ns, key to put list
+    
+    
     // end new implementation
-	
-	private static final int	timeoutCheckIntervalMillis = 4 * 1000;
-	private static final int	serverCheckIntervalMillis = 2 * 60 * 1000;
-	private static final int	serverOrderIntervalMillis = 5 * 60 * 1000;
-	
-	private static final int   connectionQueueLimit = 0;
-	
-	private static final int   numSelectorControllers = 1;
+    
+    private static final int    timeoutCheckIntervalMillis = 4 * 1000;
+    private static final int    serverCheckIntervalMillis = 2 * 60 * 1000;
+    private static final int    serverOrderIntervalMillis = 5 * 60 * 1000;
+    
+    private static final int    exclusionSetRetrievalTimeoutSeconds = 10;
+    
+    private static final int   connectionQueueLimit = 0;
+    
+    private static final int   numSelectorControllers = 1;
     private static final String selectorControllerClass = "DHTSessionImpl";
-	
-	public DHTSessionImpl(ClientDHTConfiguration dhtConfig, 
-	                      AddrAndPort preferredServer,
-	                      AbsMillisTimeSource absMillisTimeSource, 
-	                      SerializationRegistry serializationRegistry, 
-	                      SessionEstablishmentTimeoutController timeoutController) throws IOException {
+    
+    public DHTSessionImpl(ClientDHTConfiguration dhtConfig, 
+                          AddrAndPort preferredServer,
+                          AbsMillisTimeSource absMillisTimeSource, 
+                          SerializationRegistry serializationRegistry, 
+                          SessionEstablishmentTimeoutController timeoutController) throws IOException {
         mgBase = new MessageGroupBase(0, this, absMillisTimeSource, new NewConnectionTimeoutControllerWrapper(timeoutController), 
                                       this, connectionQueueLimit, numSelectorControllers, selectorControllerClass);
         mgBase.enable();
         server = preferredServer;
         // Eagerly create the connection so that failures occur here, rather than after the session object is returned
         if (!DHTConstants.isDaemon) {
-        	mgBase.ensureConnected(preferredServer);
+            mgBase.ensureConnected(preferredServer);
         }
-		this.dhtConfig = dhtConfig;
-		this.absMillisTimeSource = absMillisTimeSource;
-		this.serializationRegistry = serializationRegistry;
-		myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getPort());
+        this.dhtConfig = dhtConfig;
+        this.absMillisTimeSource = absMillisTimeSource;
+        this.serializationRegistry = serializationRegistry;
+        myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getPort());
         Log.info("Session IP:Port ", IPAddrUtil.addrAndPortToString(myIPAndPort));
-		
-		clientNamespaces = new ConcurrentHashMap<>();  
+        
+        clientNamespaces = new ConcurrentHashMap<>();  
         clientNamespaceList = new CopyOnWriteArrayList<>();
-		
-		worker = new Worker();
-		DHTUtil.timer().scheduleAtFixedRate(new TimeoutCheckTask(), 
-											  timeoutCheckIntervalMillis, 
-											  timeoutCheckIntervalMillis);
-		namespaceCreator = new SimpleNamespaceCreator();
+        
+        worker = new Worker();
+        DHTUtil.timer().scheduleAtFixedRate(new TimeoutCheckTask(), 
+                                              timeoutCheckIntervalMillis, 
+                                              timeoutCheckIntervalMillis);
+        namespaceCreator = new SimpleNamespaceCreator();
         nsOptionsClient = new NamespaceOptionsClient(this, dhtConfig, timeoutController);
-	}
-	
-	MessageGroupBase getMessageGroupBase() {
-	    return mgBase;
-	}
-	
-	@Override
-	public NamespaceCreationOptions getNamespaceCreationOptions() {
-	    return nsOptionsClient.getNamespaceCreationOptions();
-	}
-	
-	@Override
-	public NamespaceOptions getDefaultNamespaceOptions() {
-	    return getNamespaceCreationOptions().getDefaultNamespaceOptions();
-	}
-	
+    }
+    
+    MessageGroupBase getMessageGroupBase() {
+        return mgBase;
+    }
+    
+    @Override
+    public NamespaceCreationOptions getNamespaceCreationOptions() {
+        return nsOptionsClient.getNamespaceCreationOptions();
+    }
+    
+    @Override
+    public NamespaceOptions getDefaultNamespaceOptions() {
+        return getNamespaceCreationOptions().getDefaultNamespaceOptions();
+    }
+    
     @Override
     public PutOptions getDefaultPutOptions() {
         return getDefaultNamespaceOptions().getDefaultPutOptions();
@@ -162,22 +166,22 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     public WaitOptions getDefaultWaitOptions() {
         return getDefaultNamespaceOptions().getDefaultWaitOptions();
     }
-	
-	private NamespaceLinkMeta getNSLinkMeta() {
-	    synchronized (this) {
-	        if (nsLinkMeta == null) {
-	            try {
+    
+    private NamespaceLinkMeta getNSLinkMeta() {
+        synchronized (this) {
+            if (nsLinkMeta == null) {
+                try {
                     MetaClient      mc;
     
                     mc = new MetaClient(dhtConfig.getName(), dhtConfig.getZKConfig());
                     nsLinkMeta = new NamespaceLinkMeta(new NamespaceLinksZK(mc));
-	            } catch (Exception e) {
-	                throw new RuntimeException(e);
-	            }
-	        }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
             return nsLinkMeta;
-	    }
-	}
+        }
+    }
 
     @Override
     public void queueAboveLimit() {
@@ -201,7 +205,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                 return nsOptionsClient.getNamespaceProperties(namespace);
             } catch (TimeoutException te) {
                 throw new RuntimeException("Timeout retrieving namespace meta information "+ 
-                		Long.toHexString(NamespaceUtil.nameToLong(namespace)) +" "+ namespace, te);
+                        Long.toHexString(NamespaceUtil.nameToLong(namespace)) +" "+ namespace, te);
             } catch (RetrievalException re) {
                 SynchronousNamespacePerspective<Long,String>  syncNSP;
                 String  locations;
@@ -218,7 +222,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                     Log.warning("Unexpected failure attempting to find key locations "
                                +"during failed ns retrieval processing");
                 }
-            	Log.warning(re.getDetailedFailureMessage());
+                Log.warning(re.getDetailedFailureMessage());
                 throw new RuntimeException("Unable to retrieve namespace meta information "+ Long.toHexString(ns), re);
             }
         }
@@ -293,7 +297,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     
     @Override
     public void deleteNamespace(String namespace) throws NamespaceDeletionException {
-    	// Placeholder for future implementation
+        // Placeholder for future implementation
         /*
         try {
             //GlobalCommandZK zk;
@@ -313,76 +317,76 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     public void recoverNamespace(String namespace) throws NamespaceRecoverException {
     }
     
-	@Override
-	public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncNamespacePerspective(String namespace, 
-	                                                                NamespacePerspectiveOptions<K,V> nspOptions) {
+    @Override
+    public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncNamespacePerspective(String namespace, 
+                                                                    NamespacePerspectiveOptions<K,V> nspOptions) {
         return new AsynchronousNamespacePerspectiveImpl<K,V>(getClientNamespace(namespace), namespace,
-	                                                           new NamespacePerspectiveOptionsImpl<>(nspOptions, serializationRegistry));
-	}
-	
-	@Override
-	public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncNamespacePerspective(
-															String namespace, Class<K> keyClass, Class<V> valueClass) {
-		ClientNamespace	ns;
-		
-		ns = getClientNamespace(namespace);
+                                                               new NamespacePerspectiveOptionsImpl<>(nspOptions, serializationRegistry));
+    }
+    
+    @Override
+    public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncNamespacePerspective(
+                                                            String namespace, Class<K> keyClass, Class<V> valueClass) {
+        ClientNamespace    ns;
+        
+        ns = getClientNamespace(namespace);
         return new AsynchronousNamespacePerspectiveImpl<K,V>(ns, namespace,
                 new NamespacePerspectiveOptionsImpl<>(ns.getDefaultNSPOptions(keyClass, valueClass), serializationRegistry));
-	}
+    }
 
-	@Override
-	public AsynchronousNamespacePerspective<String,byte[]> openAsyncNamespacePerspective(String namespace) {
-		return openAsyncNamespacePerspective(namespace, DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
-	}
-	
-	@Override
-	public <K, V> SynchronousNamespacePerspective<K, V> openSyncNamespacePerspective(String namespace, 
-	                                                                NamespacePerspectiveOptions<K,V> nspOptions) {
+    @Override
+    public AsynchronousNamespacePerspective<String,byte[]> openAsyncNamespacePerspective(String namespace) {
+        return openAsyncNamespacePerspective(namespace, DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
+    }
+    
+    @Override
+    public <K, V> SynchronousNamespacePerspective<K, V> openSyncNamespacePerspective(String namespace, 
+                                                                    NamespacePerspectiveOptions<K,V> nspOptions) {
         return new SynchronousNamespacePerspectiveImpl<K, V>(getClientNamespace(namespace), namespace, 
                 new NamespacePerspectiveOptionsImpl<>(nspOptions, serializationRegistry));
-	}
+    }
 
-	@Override
-	public <K, V> SynchronousNamespacePerspective<K, V> openSyncNamespacePerspective(
-															String namespace, Class<K> keyClass, Class<V> valueClass) {
-		ClientNamespace	ns;
-		
-		ns = getClientNamespace(namespace);
+    @Override
+    public <K, V> SynchronousNamespacePerspective<K, V> openSyncNamespacePerspective(
+                                                            String namespace, Class<K> keyClass, Class<V> valueClass) {
+        ClientNamespace    ns;
+        
+        ns = getClientNamespace(namespace);
         return new SynchronousNamespacePerspectiveImpl<K, V>(ns, namespace, 
                 new NamespacePerspectiveOptionsImpl<>(ns.getDefaultNSPOptions(keyClass, valueClass), serializationRegistry));
-	}
-	
-	@Override
-	public SynchronousNamespacePerspective<String,byte[]> openSyncNamespacePerspective(String namespace) {
-		return openSyncNamespacePerspective(namespace, DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
-	}
+    }
+    
+    @Override
+    public SynchronousNamespacePerspective<String,byte[]> openSyncNamespacePerspective(String namespace) {
+        return openSyncNamespacePerspective(namespace, DHTConstants.defaultKeyClass, DHTConstants.defaultValueClass);
+    }
 
-	@Override
-	public void close() {
-	    mgBase.shutdown();
-	    // FUTURE - consider additional actions
-	}
-	
-	static class MessageAndConnection {
-	    final MessageGroup             message;
-	    final MessageGroupConnection   connection;
-	    
-	    MessageAndConnection(MessageGroup message, MessageGroupConnection connection) {
-	        this.message = message;
-	        this.connection = connection;
-	    }
-	}
-	
-	class Worker extends BaseWorker<MessageAndConnection> {
-	    Worker() {
-	    }
-	    
+    @Override
+    public void close() {
+        mgBase.shutdown();
+        // FUTURE - consider additional actions
+    }
+    
+    static class MessageAndConnection {
+        final MessageGroup             message;
+        final MessageGroupConnection   connection;
+        
+        MessageAndConnection(MessageGroup message, MessageGroupConnection connection) {
+            this.message = message;
+            this.connection = connection;
+        }
+    }
+    
+    class Worker extends BaseWorker<MessageAndConnection> {
+        Worker() {
+        }
+        
         @Override
         public void doWork(MessageAndConnection mac) {
             _receive(mac.message, mac.connection);
         }   
-	}
-	
+    }
+    
     @Override
     public void receive(MessageGroup message, MessageGroupConnection connection) {
         _receive(message, connection);
@@ -391,64 +395,85 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     }
     
     private void _receive(MessageGroup message, MessageGroupConnection connection) {
-	    ClientNamespace    clientNamespace;
-	    
-	    Log.fine("received from ", connection);
-	    clientNamespace = clientNamespaces.get(message.getContext());
-	    if (clientNamespace != null) {
-	        clientNamespace.receive(message, connection);
-	    } else {
-	        Log.warning("No context found for: ", message);
-	    }
-	}
+        ClientNamespace    clientNamespace;
+        
+        Log.fine("received from ", connection);
+        clientNamespace = clientNamespaces.get(message.getContext());
+        if (clientNamespace != null) {
+            clientNamespace.receive(message, connection);
+        } else {
+            Log.warning("No context found for: ", message);
+        }
+    }
     
     /////////////////////
     
     void initializeExclusionSet() {
-    	try {
-    		if (systemNSP == null) {
-    			systemNSP = getClientNamespace(Namespace.systemName).openSyncPerspective(String.class, String.class);
-    		}
-	    	exclusionSet = getCurrentExclusionSet();
-    	} catch (Exception e) {
-    		Log.logErrorWarning(e, "initializeExclusionSet() failed");
-    	}
+        try {
+            ExclusionSet    newExclusionSet;
+            
+            if (systemNSP == null) {
+                systemNSP = getClientNamespace(Namespace.systemName).openAsyncPerspective(String.class, String.class);
+            }
+            newExclusionSet = getCurrentExclusionSet();
+            if (newExclusionSet != null) {
+                exclusionSet = newExclusionSet;
+            } else {
+                Log.warning("initializeExclusionSet() failed to read exclusion set. Presuming empty");
+                exclusionSet = ExclusionSet.emptyExclusionSet(ExclusionSet.NO_VERSION);
+            }
+        } catch (Exception e) {
+            Log.logErrorWarning(e, "initializeExclusionSet() failed");
+        }
     }
     
     ExclusionSet getCurrentExclusionSet() {
-    	try {
-	    	String	exclusionSetDef;
-	    	
-	    	exclusionSetDef = systemNSP.get("exclusionSet");
-	    	if (exclusionSetDef != null) {
-	    		return ExclusionSet.parse(exclusionSetDef);
-	    	} else {
-	    		return null;
-	    	}
-    	} catch (Exception e) {
-    		Log.logErrorWarning(e, "getCurrentExclusionSet() failed");
-    		return null;
-    	}
+        try {
+            AsyncSingleValueRetrieval<String,String>    retrieval;
+            String    exclusionSetDef;
+            boolean    complete;
+            
+            retrieval = systemNSP.get("exclusionSet");
+            complete = retrieval.waitForCompletion(exclusionSetRetrievalTimeoutSeconds, TimeUnit.SECONDS);
+            if (complete) {
+                exclusionSetDef = retrieval.getValue();
+            } else {
+                exclusionSetDef = null;
+            }
+            if (exclusionSetDef != null) {
+                return ExclusionSet.parse(exclusionSetDef);
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            Log.logErrorWarning(e, "getCurrentExclusionSet() failed");
+            return null;
+        }
     }
     
     boolean exclusionSetHasChanged() {
-    	if (exclusionSet == null) {
-    		initializeExclusionSet();
-    		return false;
-    	} else {
-    		ExclusionSet	newExclusionSet;
-    		boolean			exclusionSetHasChanged;
-    		
-    		newExclusionSet = getCurrentExclusionSet();
-    		exclusionSetHasChanged = !exclusionSet.equals(newExclusionSet);
-    		exclusionSet = newExclusionSet;
-    		return exclusionSetHasChanged;
-    	}
+        if (exclusionSet == null) {
+            initializeExclusionSet();
+            return false;
+        } else {
+            ExclusionSet    newExclusionSet;
+            boolean            exclusionSetHasChanged;
+            
+            newExclusionSet = getCurrentExclusionSet();
+            if (newExclusionSet == null) {
+                Log.warning("exclusionSetHasChanged() failed to read exclusion set. Presuming empty");
+                newExclusionSet = ExclusionSet.emptyExclusionSet(ExclusionSet.NO_VERSION);
+            }
+            exclusionSetHasChanged = !exclusionSet.equals(newExclusionSet);
+            exclusionSet = newExclusionSet;
+            
+            return exclusionSetHasChanged;
+        }
     }
-			
+
     void checkForTimeouts() {
         long    curTimeMillis;
-        boolean	exclusionSetHasChanged;
+        boolean    exclusionSetHasChanged;
         
         curTimeMillis = absMillisTimeSource.absTimeMillis();
         exclusionSetHasChanged = exclusionSetHasChanged();
@@ -456,14 +481,14 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             clientNamespace.checkForTimeouts(curTimeMillis, exclusionSetHasChanged);
         }
     }
-    	
-	public class TimeoutCheckTask extends TimerTask {
-		public void run() {
-			try {
-				checkForTimeouts();
-			} catch (Exception e) {
-				Log.logErrorWarning(e);
-			}
-		}
-	}
+        
+    public class TimeoutCheckTask extends TimerTask {
+        public void run() {
+            try {
+                checkForTimeouts();
+            } catch (Exception e) {
+                Log.logErrorWarning(e);
+            }
+        }
+    }
 }

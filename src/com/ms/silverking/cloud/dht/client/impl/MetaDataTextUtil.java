@@ -19,6 +19,7 @@ public class MetaDataTextUtil {
         format(sb, "CreationTime", metaData.getCreationTime() 
                 +"\t["+ metaData.getCreationTime().toDateString() +"]", labeled);
         format(sb, "ValueCreator", metaData.getCreator().toString(), labeled);
+        format(sb, "LockSeconds", Integer.toString(metaData.getLockSeconds()), labeled);
         format(sb, "ChecksumType", metaData.getChecksumType().toString(), labeled);
         format(sb, "Checksum", StringUtil.byteArrayToHexString(metaData.getChecksum()), labeled);
         /*
@@ -48,6 +49,7 @@ public class MetaDataTextUtil {
         format(sb, "CreationTime", MetaDataUtil.getCreationTime(sv, baseOffset) 
                 +"\t["+ MetaDataUtil.getCreationTime(sv, baseOffset) +"]", labeled);
         format(sb, "ValueCreator", MetaDataUtil.getCreator(sv, baseOffset).toString(), labeled);
+        format(sb, "LockSeconds", Integer.toString(MetaDataUtil.getLockSeconds(sv, baseOffset)), labeled);
         format(sb, "ChecksumType", MetaDataUtil.getChecksumType(sv, baseOffset).toString(), labeled);
         format(sb, "Checksum", StringUtil.byteArrayToHexString(MetaDataUtil.getChecksum(sv, baseOffset)), labeled);
         /*

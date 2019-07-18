@@ -11,16 +11,16 @@ import com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 
 class SilverkingDBConstants {
-	private static final int	secondarySyncIntervalSeconds = 1800;
-	private static final int	segmentSize = 67108864;
-	
+    private static final int    secondarySyncIntervalSeconds = 1800;
+    private static final int    segmentSize = 67108864;
+    
     static final PutOptions putOptions = new PutOptions( new OpSizeBasedTimeoutController(),
-    										DHTConstants.noSecondaryTargets, 
-    										Compression.NONE,
+                                            DHTConstants.noSecondaryTargets, 
+                                            Compression.NONE,
                                             ChecksumType.NONE,
                                             false,
                                             PutOptions.defaultVersion,
-                                            0, DHTConstants.defaultFragmentationThreshold, null
+                                            0, PutOptions.noLock, DHTConstants.defaultFragmentationThreshold, null
                                             );
 
     static final String namespace = "ycsb.1";

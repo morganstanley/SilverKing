@@ -21,6 +21,7 @@ import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
 import com.ms.silverking.cloud.dht.common.Context;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
+import com.ms.silverking.cloud.dht.common.OptionsValidator;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
@@ -343,6 +344,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
     }
 
 	public void validatePutOptions(PutOptions putOptions) {
+	    OptionsValidator.validatePutOptions(putOptions);
 		if (nsOptions.getMaxValueSize() > nsOptions.getSegmentSize()) {
 			// Values > a segment are allowed. Ensure that fragmentation is set to a sane value
 			if (putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin) {

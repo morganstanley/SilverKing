@@ -33,6 +33,11 @@ public interface MetaData {
      */
     public ValueCreator getCreator();
     /**
+     * Seconds to maintain advisory lock
+     * @return seconds to maintain advisory lock
+     */
+    public short getLockSeconds();
+    /**
      * User data associated with a value.
      * @return user data associated with a value
      */
