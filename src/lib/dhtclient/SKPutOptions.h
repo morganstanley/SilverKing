@@ -12,6 +12,9 @@ using std::string;
 #include "SKOperationOptions.h"
 #include "SKVersionConstraint.h"
 
+#include "jace/proxy/com/ms/silverking/cloud/dht/PutOptions.h"
+using jace::proxy::com::ms::silverking::cloud::dht::PutOptions;
+
 
 //class PutOptions;
 class SKSecondaryTarget;
@@ -26,38 +29,43 @@ public:
     SKAPI SKPutOptions * secondaryTargets(SKSecondaryTarget * secondaryTarget);
     SKAPI SKPutOptions * compression(SKCompression::SKCompression compression);
     SKAPI SKPutOptions * checksumType(SKChecksumType::SKChecksumType checksumType);
-	SKAPI SKPutOptions * checksumCompressedValues(bool checksumCompressedValues );
+    SKAPI SKPutOptions * checksumCompressedValues(bool checksumCompressedValues );
     SKAPI SKPutOptions * version(int64_t version);
     SKAPI SKPutOptions * requiredPreviousVersion(int64_t requiredPreviousVersion);
+    SKAPI SKPutOptions * lockSeconds(int16_t lockSeconds);
     SKAPI SKPutOptions * fragmentationThreshold(int64_t fragmentationThreshold);
     SKAPI SKPutOptions * userData(SKVal * userData);
 
-	SKAPI SKCompression::SKCompression getCompression() const;
+    SKAPI SKCompression::SKCompression getCompression() const;
     SKAPI SKChecksumType::SKChecksumType getChecksumType() const;
     SKAPI bool getChecksumCompressedValues() const;
     SKAPI int64_t getVersion() const;
     SKAPI int64_t getRequiredPreviousVersion() const;
+    SKAPI int16_t getLockSeconds() const;
     SKAPI int64_t getFragmentationThreshold() const;
     SKAPI SKVal * getUserData() const;
     
     SKAPI static SKPutOptions * parse(const char * def);
     SKAPI virtual bool equals(SKPutOptions * other) const;
     SKAPI virtual string toString() const;    
-				
+                
     SKAPI virtual ~SKPutOptions();
     SKAPI SKPutOptions(SKOpTimeoutController * opTimeoutController, 
         std::set<SKSecondaryTarget*> * secondaryTargets, 
-		SKCompression::SKCompression compression, SKChecksumType::SKChecksumType checksumType,
-		bool checksumCompressedValues, int64_t version, int64_t requiredPreviousVersion,
-        int64_t fragmentationThreshold,
-		SKVal * userData );
+        SKCompression::SKCompression compression, SKChecksumType::SKChecksumType checksumType,
+        bool checksumCompressedValues, int64_t version, int64_t requiredPreviousVersion,
+        int16_t lockSeconds, int64_t fragmentationThreshold,
+        SKVal * userData );
 
+    SKAPI static int64_t previousVersionNonexistent();
+    SKAPI static int64_t previousVersionNonexistentOrInvalid();
+        
     SKPutOptions();
     SKPutOptions(void * pPutOptsImpl);  //FIXME:
     void * getPImpl();  //FIXME:
 
 //private:
-	void * pImpl;
+    void * pImpl;
 };
 
 #endif // SKPUTOPTIONS_H

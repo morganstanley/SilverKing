@@ -37,42 +37,46 @@ typedef JArray< jace::proxy::types::JByte > ByteArray;
 
 
 SKMetaData::SKMetaData(MetaData * pMdImpl) { 
-	pImpl = pMdImpl ;
+    pImpl = pMdImpl ;
 }
 
 SKMetaData::~SKMetaData() {
-	if(pImpl) {
-		delete pImpl;
-		pImpl = NULL;
-	}
+    if(pImpl) {
+        delete pImpl;
+        pImpl = NULL;
+    }
 };
 
 MetaData * SKMetaData::getPImpl(){
-	return pImpl;
+    return pImpl;
 }
 
 SKMetaData::SKMetaData() { };
 
 
 int SKMetaData::getStoredLength() const {
-	return (int)(pImpl->getStoredLength());
+    return (int)(pImpl->getStoredLength());
 }
 
 int SKMetaData::getUncompressedLength() const {
-	return (int)(pImpl->getUncompressedLength());
+    return (int)(pImpl->getUncompressedLength());
 }
 
 int64_t SKMetaData::getVersion() const {
-	return (int64_t)(pImpl->getVersion());
+    return (int64_t)(pImpl->getVersion());
 }
 
 int64_t SKMetaData::getCreationTime() const {
-	return (int64_t)(pImpl->getCreationTime().inNanos());
+    return (int64_t)(pImpl->getCreationTime().inNanos());
 }
 
 SKValueCreator * SKMetaData::getCreator() const {
-	ValueCreator * pvc = new ValueCreator(java_cast<ValueCreator>(pImpl->getCreator()));
-	return new SKValueCreator(pvc);
+    ValueCreator * pvc = new ValueCreator(java_cast<ValueCreator>(pImpl->getCreator()));
+    return new SKValueCreator(pvc);
+}
+
+int16_t SKMetaData::getLockSeconds() const {
+    return (int16_t)(pImpl->getLockSeconds());
 }
 
 SKVal * SKMetaData::getUserData() const {
@@ -85,22 +89,22 @@ SKVal * SKMetaData::getUserData() const {
 }
 
 char * SKMetaData::toString(bool labeled) const {
-	string str = (string)(pImpl->toString(labeled));
-	return skStrDup(str.c_str(), __FILE__, __LINE__);
+    string str = (string)(pImpl->toString(labeled));
+    return skStrDup(str.c_str(), __FILE__, __LINE__);
 }
 
 SKVal * SKMetaData::getChecksum() const {
-	ByteArray obj = java_cast<ByteArray>(pImpl->getChecksum());
-	return convertToDhtVal(&obj);
+    ByteArray obj = java_cast<ByteArray>(pImpl->getChecksum());
+    return convertToDhtVal(&obj);
 }
 
 SKCompression::SKCompression SKMetaData::getCompression() const {
-	int compr = (int)(pImpl->getCompression().ordinal());
-	return static_cast<SKCompression::SKCompression>(compr);
+    int compr = (int)(pImpl->getCompression().ordinal());
+    return static_cast<SKCompression::SKCompression>(compr);
 }
 
 SKChecksumType::SKChecksumType SKMetaData::getChecksumType() const {
-	int chktype = (int)(pImpl->getChecksumType().ordinal());
+    int chktype = (int)(pImpl->getChecksumType().ordinal());
     return static_cast<SKChecksumType::SKChecksumType>(chktype);
 }
 
