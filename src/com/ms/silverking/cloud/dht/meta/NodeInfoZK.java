@@ -24,11 +24,11 @@ public class NodeInfoZK implements Watcher {
     private final MetaClient    mc;
     private final IPAndPort     myIPAndPort;
     private final String        instanceNodeInfoPath;
-    private volatile NodeInfo	nodeInfo;
+    private volatile NodeInfo    nodeInfo;
     
-    private static final int 	infoCheckPeriodMillis = 1 * 60 * 1000;
-    private static final int	dfTimeoutSeconds = 2 * 60;
-    private static final int	nodeInfoCheckPeriodMillis = 100; 
+    private static final int     infoCheckPeriodMillis = 1 * 60 * 1000;
+    private static final int    dfTimeoutSeconds = 2 * 60;
+    private static final int    nodeInfoCheckPeriodMillis = 100; 
     
     private static final boolean    verbose = true;
     
@@ -46,15 +46,15 @@ public class NodeInfoZK implements Watcher {
     }
     
     public void setNodeInfo(NodeInfo nodeInfo) {
-    	this.nodeInfo = nodeInfo;
-    	ensureNodeInfoSet();
+        this.nodeInfo = nodeInfo;
+        ensureNodeInfoSet();
     }
     
     public void ensureNodeInfoSet() {
         try {
-        	if (nodeInfo != null) {
-	        	mc.getZooKeeper().setEphemeral(getNodeInfoPath(myIPAndPort), nodeInfo.toArray());
-        	}
+            if (nodeInfo != null) {
+                mc.getZooKeeper().setEphemeral(getNodeInfoPath(myIPAndPort), nodeInfo.toArray());
+            }
         } catch (KeeperException ke) {
             Log.logErrorWarning(ke);
         }
@@ -62,38 +62,38 @@ public class NodeInfoZK implements Watcher {
     
     @Override
     public void process(WatchedEvent event) {
-    	Log.fine(event);
+        Log.fine(event);
         //if (mc.getZooKeeper().getState() == States.CONNECTED) {
         //    ensureStateSet();
         //}
-    	switch (event.getType()) {
-    	case None:
-    		if (event.getState() == KeeperState.SyncConnected) {
-    			ensureNodeInfoSet();
-    		}
-    		break;
-    	case NodeCreated:
-    		break;
-    	case NodeDeleted:
-    		break;
-    	case NodeDataChanged:
-    		break;
-    	case NodeChildrenChanged:
-    		break;
-    	default:
-    		Log.warning("Unknown event type: ", event.getType());
-    	}
+        switch (event.getType()) {
+        case None:
+            if (event.getState() == KeeperState.SyncConnected) {
+                ensureNodeInfoSet();
+            }
+            break;
+        case NodeCreated:
+            break;
+        case NodeDeleted:
+            break;
+        case NodeDataChanged:
+            break;
+        case NodeChildrenChanged:
+            break;
+        default:
+            Log.warning("Unknown event type: ", event.getType());
+        }
     }
     
     public NodeInfo getNodeInfo(IPAndPort node) throws KeeperException {
-    	try {
-	    	byte[]	data;
-	    	
-	    	data = mc.getZooKeeper().getByteArray(getNodeInfoPath(node), this);
+        try {
+            byte[]    data;
+            
+            data = mc.getZooKeeper().getByteArray(getNodeInfoPath(node), this);
             return NodeInfo.fromArray(data);
-    	} catch (NoNodeException nne) {
-    		return null;
-    	}
+        } catch (NoNodeException nne) {
+            return null;
+        }
     }
     
     public Map<IPAndPort, NodeInfo> getNodeInfo(Set<IPAndPort> nodes) throws KeeperException {
@@ -101,10 +101,10 @@ public class NodeInfoZK implements Watcher {
         
         allNodeInfo = new HashMap<>();
         for (IPAndPort node : nodes) {
-            NodeInfo	nodeInfo;
+            NodeInfo    nodeInfo;
             
             nodeInfo = getNodeInfo(node);
-    		allNodeInfo.put(node, nodeInfo);
+            allNodeInfo.put(node, nodeInfo);
         }
         return allNodeInfo;
     }
@@ -119,15 +119,15 @@ public class NodeInfoZK implements Watcher {
         }
         
         public NodeInfo getNodeInfo() {
-        	Quadruple<Long,Long,Long,Integer>	dfInfo;
-        	
-        	try {
-				dfInfo = DF.df(DHTNodeConfiguration.dataBasePath, dfTimeoutSeconds);
-				return new NodeInfo(dfInfo.getV1(), dfInfo.getV2(), dfInfo.getV3(), dfInfo.getV4());
-			} catch (Exception e) {
-				Log.logErrorWarning(e, "Unable to getNodeInfo(");
-				return null;
-			}
+            Quadruple<Long,Long,Long,Integer>    dfInfo;
+            
+            try {
+                dfInfo = DF.df(DHTNodeConfiguration.getDataBasePath(), dfTimeoutSeconds);
+                return new NodeInfo(dfInfo.getV1(), dfInfo.getV2(), dfInfo.getV3(), dfInfo.getV4());
+            } catch (Exception e) {
+                Log.logErrorWarning(e, "Unable to getNodeInfo(");
+                return null;
+            }
         }
     }
 }
