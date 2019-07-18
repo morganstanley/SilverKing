@@ -29,7 +29,7 @@ public class Constraint {
             throw new ConstraintViolationException("ensureNonZero failed: "+ i);
         }        
     }
-    
+
     /**
      * Check bounds inclusive
      * @param min
@@ -37,10 +37,20 @@ public class Constraint {
      * @param x
      */
     public static void checkBounds(int min, int max, int i) {
+        checkBounds(min, max, i, "");
+    }
+    
+    /**
+     * Check bounds inclusive
+     * @param min
+     * @param max
+     * @param x
+     */
+    public static void checkBounds(int min, int max, int i, String msg) {
         if (i < min) {
-            throw new ConstraintViolationException("checkBounds min bound failed: "+ i +" < "+ min);
+            throw new ConstraintViolationException("checkBounds min bound failed: "+ i +" < "+ min +" "+ msg);
         } else if (i > max) {
-            throw new ConstraintViolationException("checkBounds max bound failed: "+ i +" > "+ max);
+            throw new ConstraintViolationException("checkBounds max bound failed: "+ i +" > "+ max +" "+ msg);
         }
     }
 }
