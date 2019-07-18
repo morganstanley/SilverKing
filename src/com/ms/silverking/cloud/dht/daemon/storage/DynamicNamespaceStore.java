@@ -71,7 +71,7 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
     
     private void storeStaticKVPair(MessageGroupBase mgBase, long curTimeMillis, 
                                    DHTKey key, ByteBuffer value) {
-        StorageParametersAndRequirements	storageParams;
+        StorageParametersAndRequirements    storageParams;
         
         storageParams = new StorageParametersAndRequirements(
                                 0, 
@@ -81,7 +81,8 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
                                 new byte[0], 
                                 dynamicCreator,
                                 systemTimeSource.absTimeNanos(),
-                                PutOptions.noVersionRequired);
+                                PutOptions.noVersionRequired, 
+                                PutOptions.noLock);
         //System.out.println("storeSystemKVPair");
         _put(key, value, storageParams, dynamicUserData, DHTConstants.dynamicNamespaceOptions.getVersionMode());
     }
@@ -109,7 +110,7 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
 
         results = new ByteBuffer[keys.length];
         for (int i = 0; i < results.length; i ++) {
-        	results[i] = _retrieve(keys[i], options);
+            results[i] = _retrieve(keys[i], options);
         }
         return results;
     }    
@@ -136,9 +137,10 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
                                 0, 
                                 value.length,
                                 StorageParameters.compressedSizeNotSet,
-                                CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), 
-                                new byte[0], // currently no checksum on system namespace 
-                                dynamicCreator,
+                                PutOptions.noLock, 
+                                CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), // currently no checksum on system namespace 
+                                new byte[0],
+                                dynamicCreator, 
                                 SystemTimeUtil.systemTimeSource.absTimeNanos());
 
         // FUTURE - could reduce duplication with WritablesSegmentBase

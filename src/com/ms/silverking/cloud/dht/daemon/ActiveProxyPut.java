@@ -42,11 +42,12 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     private final StorageOperation storageOperation;
     private final long  version;
     private final long  requiredPreviousVersion;
+    private final short lockSeconds;
     private final int   stLength;
     private final Set<SecondaryTarget>  secondaryTargets;
     private final UUIDBase msg_uuid;
-    private final long	msg_context; 
-    private final int	msg_deadline;
+    private final long    msg_context; 
+    private final int    msg_deadline;
 
     ActiveProxyPut(MessageGroup message, MessageGroupConnectionProxy connection, MessageModule messageModule,
             StorageProtocol storageProtocol, long absDeadlineMillis, boolean local, NamespaceOptions nsOptions) {
@@ -70,6 +71,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
         }
         version = _version;
         requiredPreviousVersion = ProtoPutMessageGroup.getPutRequiredPreviousVersion(message);
+        lockSeconds = ProtoPutMessageGroup.getLockSeconds(message);
         
         stLength = ProtoPutMessageGroup.getSTLength(message);
         storageOperation = storageProtocol
@@ -153,7 +155,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
             values = new ArrayList<>(_entries.size());
             for (DHTKey _entry : _entries) {
                 values.add(new StorageValueAndParameters((MessageGroupPutEntry)_entry, (PutOperationContainer)this, 
-                                                        creationTime, requiredPreviousVersion));
+                                                        creationTime, requiredPreviousVersion, lockSeconds));
                 if (debug) {
                     System.out.printf("localOp: %s\n", _entry);
                 }
@@ -249,7 +251,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     
     @Override
     public void sendInitialResults(PutCommunicator pComm) {
-    	sendResults(pComm.takeResults());
+        sendResults(pComm.takeResults());
     }
     
     /**

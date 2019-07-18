@@ -24,14 +24,14 @@ public class StorageValueAndParameters extends StorageParametersAndRequirements 
                                     long version, int uncompressedSize, int compressedSize,
                                     short ccss, byte[] checksum, 
                                     byte[] valueCreator, long creationTime,
-                                    long requiredPreviousVersion) {
-        super(version, uncompressedSize, compressedSize, ccss, checksum, valueCreator, creationTime, requiredPreviousVersion);
+                                    long requiredPreviousVersion, short lockSeconds) {
+        super(version, uncompressedSize, compressedSize, ccss, checksum, valueCreator, creationTime, requiredPreviousVersion, lockSeconds);
         this.key = key;
         this.value = value;
     }
     
     public StorageValueAndParameters(MessageGroupPutEntry entry, PutOperationContainer putOperationContainer,
-                                    long creationTime, long requiredPreviousVersion) {
+                                    long creationTime, long requiredPreviousVersion, short lockSeconds) {
         this(entry, entry.getValue(), putOperationContainer.getVersion(),
             entry.getUncompressedLength(),
             compressedSizeNotSet,
@@ -39,7 +39,7 @@ public class StorageValueAndParameters extends StorageParametersAndRequirements 
             entry.getChecksum(),
             putOperationContainer.getValueCreator(), 
             creationTime,
-            requiredPreviousVersion);
+            requiredPreviousVersion, lockSeconds);
     }
     
     public DHTKey getKey() {
@@ -51,7 +51,7 @@ public class StorageValueAndParameters extends StorageParametersAndRequirements 
     }
     
     public StorageValueAndParameters ccss(short ccss) {
-    	return new StorageValueAndParameters(key, value, getVersion(), getUncompressedSize(), getCompressedSize(), ccss, getChecksum(), getValueCreator(), getCreationTime(), getRequiredPreviousVersion());
+        return new StorageValueAndParameters(key, value, getVersion(), getUncompressedSize(), getCompressedSize(), ccss, getChecksum(), getValueCreator(), getCreationTime(), getRequiredPreviousVersion(), getLockSeconds());
     }
     
     public static StorageValueAndParameters createSVP(MessageGroupRetrievalResponseEntry entry) {
@@ -85,9 +85,9 @@ public class StorageValueAndParameters extends StorageParametersAndRequirements 
             valueBuffer = (ByteBuffer)rawValueBuffer.duplicate().position(
                     rawValueBuffer.position() + MetaDataUtil.getDataOffset(rawValueBuffer, 0));
             if (debug) {
-	            System.out.printf("rawValueBuffer.position() %d MetaDataUtil.getDataOffset(rawValueBuffer, 0) %d\n", rawValueBuffer.position(), MetaDataUtil.getDataOffset(rawValueBuffer, 0));
-	            System.out.printf("valueBuffer %s\n", valueBuffer);
-	            System.out.printf("valueBuffer %s\n", StringUtil.byteBufferToHexString(valueBuffer));
+                System.out.printf("rawValueBuffer.position() %d MetaDataUtil.getDataOffset(rawValueBuffer, 0) %d\n", rawValueBuffer.position(), MetaDataUtil.getDataOffset(rawValueBuffer, 0));
+                System.out.printf("valueBuffer %s\n", valueBuffer);
+                System.out.printf("valueBuffer %s\n", StringUtil.byteBufferToHexString(valueBuffer));
             }
             
             // FUTURE - consider making the nsstore allow a put that just accepts the buffer as is
@@ -99,7 +99,7 @@ public class StorageValueAndParameters extends StorageParametersAndRequirements 
                     MetaDataUtil.getCompressedLength(rawValueBuffer, 0), 
                     rawRetrievalResult.getCCSS(), rawRetrievalResult.getChecksum(), 
                     rawRetrievalResult.getCreator().getBytes(), rawRetrievalResult.getCreationTimeRaw(),
-                    PutOptions.noVersionRequired);
+                    PutOptions.noVersionRequired, PutOptions.noLock);
             return valueAndParameters;
         } catch (CorruptValueException cve) {
             Log.warning("Corrupt value in convergence: ", entry);

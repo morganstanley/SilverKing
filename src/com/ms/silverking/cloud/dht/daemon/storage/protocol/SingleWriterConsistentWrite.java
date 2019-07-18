@@ -29,7 +29,8 @@ public class SingleWriterConsistentWrite extends BaseStorageOperation<SingleWrit
                        PutVirtualCommunicator pvComm) {
         assert replica != null;
         if (update == OpResult.SUCCEEDED || update == OpResult.INVALID_VERSION 
-                || update == OpResult.MUTATION || update == OpResult.NO_SUCH_NAMESPACE) {
+                || update == OpResult.MUTATION || update == OpResult.NO_SUCH_NAMESPACE
+                || update == OpResult.LOCKED) {
             SingleWriterConsistentStorageEntryState entryState;
 
             if (debug) {

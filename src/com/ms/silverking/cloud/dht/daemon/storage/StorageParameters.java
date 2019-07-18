@@ -10,6 +10,7 @@ public class StorageParameters implements SSStorageParameters {
     private final long          version;
     private final int           uncompressedSize;
     private final int           compressedSize;
+    private final short            lockSeconds;
     private final short         ccss;
     private final byte[]        checksum;
     private final byte[]        valueCreator;
@@ -20,13 +21,15 @@ public class StorageParameters implements SSStorageParameters {
     public StorageParameters(long version, 
                           int uncompressedSize,
                           int compressedSize,
-                          short ccss,
+                          short lockSeconds,
+                          short ccss, 
                           byte[] checksum, 
                           byte[] valueCreator, 
                           long creationTime) {
         this.version = version;
         this.compressedSize = compressedSize;
         this.uncompressedSize = uncompressedSize;
+        this.lockSeconds = lockSeconds;
         this.ccss = ccss;
         this.checksum = checksum;
         this.valueCreator = valueCreator;
@@ -34,24 +37,24 @@ public class StorageParameters implements SSStorageParameters {
     }
     
     public static StorageParameters fromSSStorageParameters(SSStorageParameters sp) {
-    	if (sp instanceof StorageParameters) {
-    		return (StorageParameters)sp;
-    	} else {
-    		return new StorageParameters(sp.getVersion(), sp.getUncompressedSize(), sp.getCompressedSize(), 
-					    			CCSSUtil.createCCSS(sp.getCompression(), sp.getChecksumType(), sp.getStorageState()), 
-					    			sp.getChecksum(), sp.getValueCreator(), sp.getCreationTime());
-    	}
+        if (sp instanceof StorageParameters) {
+            return (StorageParameters)sp;
+        } else {
+            return new StorageParameters(sp.getVersion(), sp.getUncompressedSize(), sp.getCompressedSize(), sp.getLockSeconds(),
+                                    CCSSUtil.createCCSS(sp.getCompression(), sp.getChecksumType(), sp.getStorageState()), 
+                                    sp.getChecksum(), sp.getValueCreator(), sp.getCreationTime());
+        }
     }
         
     public static StorageParameters fromSSStorageParameters(SSStorageParameters sp, int uncompressedSize, 
-    													int compressedSize, Compression compression) {
-    	if (sp instanceof StorageParameters) {
-    		return (StorageParameters)sp;
-    	} else {
-    		return new StorageParameters(sp.getVersion(), uncompressedSize, compressedSize, 
-					    			CCSSUtil.createCCSS(compression, sp.getChecksumType(), sp.getStorageState()), 
-					    			sp.getChecksum(), sp.getValueCreator(), sp.getCreationTime());
-    	}
+                                                        int compressedSize, Compression compression) {
+        if (sp instanceof StorageParameters) {
+            return (StorageParameters)sp;
+        } else {
+            return new StorageParameters(sp.getVersion(), uncompressedSize, compressedSize, sp.getLockSeconds(),
+                                    CCSSUtil.createCCSS(compression, sp.getChecksumType(), sp.getStorageState()), 
+                                    sp.getChecksum(), sp.getValueCreator(), sp.getCreationTime());
+        }
     }
     
     public long getVersion() {
@@ -70,20 +73,24 @@ public class StorageParameters implements SSStorageParameters {
         return compressedSize;
     }
     
+    public short getLockSeconds() {
+        return lockSeconds;
+    }
+    
     public short getCCSS() {
         return ccss;
     }
     
 
-	@Override
-	public Compression getCompression() {
-		return Compression.values()[CCSSUtil.getCompression(getCCSS())];
-	}
+    @Override
+    public Compression getCompression() {
+        return Compression.values()[CCSSUtil.getCompression(getCCSS())];
+    }
 
-	@Override
-	public byte getStorageState() {
-		return CCSSUtil.getStorageState(getCCSS());
-	}
+    @Override
+    public byte getStorageState() {
+        return CCSSUtil.getStorageState(getCCSS());
+    }
     
     public byte[] getChecksum() {
         return checksum;
@@ -102,8 +109,8 @@ public class StorageParameters implements SSStorageParameters {
     }
     
     public StorageParameters version(long version) {
-        return new StorageParameters(version, uncompressedSize, compressedSize, ccss, 
-                                     checksum, valueCreator, creationTime);
+        return new StorageParameters(version, uncompressedSize, compressedSize, lockSeconds, 
+                                     ccss, checksum, valueCreator, creationTime);
     }
     
     @Override
@@ -116,6 +123,8 @@ public class StorageParameters implements SSStorageParameters {
         sb.append(uncompressedSize);
         sb.append(':');
         sb.append(compressedSize);
+        sb.append(':');
+        sb.append(lockSeconds);
         sb.append(':');
         sb.append(getCompression());
         sb.append(':');
