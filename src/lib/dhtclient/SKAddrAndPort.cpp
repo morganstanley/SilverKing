@@ -5,29 +5,29 @@ using jace::proxy::com::ms::silverking::net::AddrAndPort;
 class AddrAndPortImpl{
 public:
 
-	AddrAndPort addrAndPort;
+    AddrAndPort addrAndPort;
 };
 
 
 SKAddrAndPort::SKAddrAndPort(AddrAndPort * pAddrAndPort) { //FIXME: ?
-	if(pAddrAndPort)
-		pImpl = pAddrAndPort;
+    if(pAddrAndPort)
+        pImpl = pAddrAndPort;
 }
 
 SKAddrAndPort::~SKAddrAndPort() {
-	if(pImpl) {
-		delete pImpl;
-		pImpl = NULL;
-	}
+    if(pImpl) {
+        delete pImpl;
+        pImpl = NULL;
+    }
 };
 
 AddrAndPort * SKAddrAndPort::getPImpl(){
-	return pImpl;
+    return pImpl;
 }
 
 /*
 SKnetSocketAddress SKAddrAndPort::toInetSocketAddress(){
-	SKnetSocketAddress inetSocketAddress = java_cast<SKnetSocketAddress>(((AddrAndPort*)pImpl)->toInetSocketAddress()) ;
-	return inetSocketAddress;
+    SKnetSocketAddress inetSocketAddress = java_cast<SKnetSocketAddress>(((AddrAndPort*)pImpl)->toInetSocketAddress()) ;
+    return inetSocketAddress;
 }
 */

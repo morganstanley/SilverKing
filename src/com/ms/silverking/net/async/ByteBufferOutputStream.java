@@ -9,24 +9,24 @@ import java.util.List;
 /**
  */
 public class ByteBufferOutputStream extends ByteArrayOutputStream {
-	private List<ByteBuffer>	byteBuffers;
-	
-	public ByteBufferOutputStream() {
-		byteBuffers = new LinkedList<ByteBuffer>();
-	}
-	
-	@Override
-	public synchronized void write(byte[] b, int off, int len) {
-		super.write(b, off, len);
-	}
-	
-	public ByteBuffer[] toBuffers() {
-		/*
-		byte[]		objBytes;
-		ByteBuffer	objByteBuffer;
-		
-		objBytes = toByteArray();
-		*/
-		return null;
-	}
+    private List<ByteBuffer>    byteBuffers;
+    
+    public ByteBufferOutputStream() {
+        byteBuffers = new LinkedList<ByteBuffer>();
+    }
+    
+    @Override
+    public synchronized void write(byte[] b, int off, int len) {
+        super.write(b, off, len);
+    }
+    
+    public ByteBuffer[] toBuffers() {
+        /*
+        byte[]        objBytes;
+        ByteBuffer    objByteBuffer;
+        
+        objBytes = toByteArray();
+        */
+        return null;
+    }
 }

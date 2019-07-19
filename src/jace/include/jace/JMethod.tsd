@@ -45,7 +45,7 @@ template <> inline
   jboolean result;
   
   if (arguments.asList().size() > 0)
-	result = env->CallBooleanMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
+    result = env->CallBooleanMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
   else
     result = env->CallBooleanMethod(static_cast<jobject>(object), methodID);
 
@@ -119,7 +119,7 @@ template <> inline
   jchar result;
   
   if (arguments.asList().size() > 0)
-	result = env->CallStaticCharMethodA(jClass.getClass(), methodID, &toVector(arguments)[0]);
+    result = env->CallStaticCharMethodA(jClass.getClass(), methodID, &toVector(arguments)[0]);
   else
     result = env->CallStaticCharMethod(jClass.getClass(), methodID);
 
@@ -199,7 +199,7 @@ template <> inline
   jdouble result;
   
   if (arguments.asList().size() > 0)
-	result = env->CallDoubleMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
+    result = env->CallDoubleMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
   else
     result = env->CallDoubleMethod(static_cast<jobject>(object), methodID);
 
@@ -273,7 +273,7 @@ template <> inline
   jint result;
   
   if (arguments.asList().size() > 0)
-	result = env->CallStaticIntMethodA(jClass.getClass(), methodID, &toVector(arguments)[0]);
+    result = env->CallStaticIntMethodA(jClass.getClass(), methodID, &toVector(arguments)[0]);
   else
     result = env->CallStaticIntMethod(jClass.getClass(), methodID);
 
@@ -301,9 +301,9 @@ template <> inline
   jint result;
   
   if (arguments.asList().size() > 0)
-	result = env->CallIntMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
+    result = env->CallIntMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
   else
-	result = env->CallIntMethod(static_cast<jobject>(object), methodID);
+    result = env->CallIntMethod(static_cast<jobject>(object), methodID);
 
   // Catch any java exception that occured during the method call,
   // and throw it as a C++ exception.
@@ -324,9 +324,9 @@ template <> inline
   jlong result;
   
   if (arguments.asList().size() > 0)
-	result = env->CallStaticLongMethodA(jClass.getClass(), methodID, &toVector(arguments)[0]);
+    result = env->CallStaticLongMethodA(jClass.getClass(), methodID, &toVector(arguments)[0]);
   else
-	result = env->CallStaticLongMethod(jClass.getClass(), methodID);
+    result = env->CallStaticLongMethod(jClass.getClass(), methodID);
 
   // Catch any java exception that occured during the method call,
   // and throw it as a C++ exception. 
@@ -451,9 +451,9 @@ template <> inline
   JNIEnv* env = attach();
 
   if (arguments.asList().size() > 0)
-	env->CallVoidMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
+    env->CallVoidMethodA(static_cast<jobject>(object), methodID, &toVector(arguments)[0]);
   else
-	env->CallVoidMethod(static_cast<jobject>(object), methodID);
+    env->CallVoidMethod(static_cast<jobject>(object), methodID);
 
   // Catch any java exception that occured during the method call,
   // and throw it as a C++ exception.

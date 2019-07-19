@@ -23,24 +23,24 @@ public final class ShortSerDes implements BufferSerDes<Short> {
         return NumConversion.BYTES_PER_SHORT;
     }
 
-	@Override
-	public Short deserialize(ByteBuffer[] buffers) {
-	    byte[] def;
-	    
-	    def = ByteArraySerDes.deserializeBuffers(buffers);
-	    if (def.length != NumConversion.BYTES_PER_SHORT) {
-	        throw new RuntimeException("Unable to deserialize Short def length: "+ def.length);
-	    }
-	    return NumConversion.bytesToShort(def);
-	}
+    @Override
+    public Short deserialize(ByteBuffer[] buffers) {
+        byte[] def;
+        
+        def = ByteArraySerDes.deserializeBuffers(buffers);
+        if (def.length != NumConversion.BYTES_PER_SHORT) {
+            throw new RuntimeException("Unable to deserialize Short def length: "+ def.length);
+        }
+        return NumConversion.bytesToShort(def);
+    }
 
     @Override
     public Short deserialize(ByteBuffer buffer) {
         return buffer.getShort(buffer.position());
     }
 
-	@Override
-	public Short emptyObject() {
-		return new Short((short)0);
-	}
+    @Override
+    public Short emptyObject() {
+        return new Short((short)0);
+    }
 }

@@ -22,7 +22,7 @@ void *SKAsyncInvalidation::getPImpl() {
 
 SKAsyncInvalidation::~SKAsyncInvalidation() { 
     if (pImpl) {
-		AsyncInvalidation * pInvalidation = dynamic_cast<AsyncInvalidation*>(pImpl);
+        AsyncInvalidation * pInvalidation = dynamic_cast<AsyncInvalidation*>(pImpl);
         pImpl = NULL;
         delete pInvalidation;
     }

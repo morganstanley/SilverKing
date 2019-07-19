@@ -34,49 +34,49 @@ import com.ms.silverking.text.StringUtil;
  * (e.g. singleton instances or static DHTs.)
  */
 public class StaticRingCreator {
-	private static final String	hostGroupName = "SimpleHostGroup";
-	
-	public static class RingCreationResults {
-		public final String	exclusionSpecsName;
-		public final String	hostGroupTableName;
-		public final HostGroupTable	hostGroupTable;
-		public final String	hostGroupName;
-		
-		RingCreationResults(String exclusionSpecsName, String hostGroupTableName, HostGroupTable hostGroupTable,
-							String hostGroupName) {
-			this.exclusionSpecsName = exclusionSpecsName;
-			this.hostGroupTableName = hostGroupTableName;
-			this.hostGroupTable = hostGroupTable;
-			this.hostGroupName = hostGroupName;
-		}
-	}
-	
-	/**
-	 * Create a static ring with primary replication only
-	 * @param servers set of servers
-	 * @param replication primary replication factor
-	 */
-	public static RingCreationResults createStaticRing(String ringName, ZooKeeperConfig zkConfig, Set<String> servers, int replication) {
-		return createStaticRing(ringName, zkConfig, servers, replication, new UUIDBase(false));
-	}
-	
-	public static RingCreationResults createStaticRing(String ringName, ZooKeeperConfig zkConfig, Set<String> servers, int replication, UUIDBase myID) {
+    private static final String    hostGroupName = "SimpleHostGroup";
+    
+    public static class RingCreationResults {
+        public final String    exclusionSpecsName;
+        public final String    hostGroupTableName;
+        public final HostGroupTable    hostGroupTable;
+        public final String    hostGroupName;
+        
+        RingCreationResults(String exclusionSpecsName, String hostGroupTableName, HostGroupTable hostGroupTable,
+                            String hostGroupName) {
+            this.exclusionSpecsName = exclusionSpecsName;
+            this.hostGroupTableName = hostGroupTableName;
+            this.hostGroupTable = hostGroupTable;
+            this.hostGroupName = hostGroupName;
+        }
+    }
+    
+    /**
+     * Create a static ring with primary replication only
+     * @param servers set of servers
+     * @param replication primary replication factor
+     */
+    public static RingCreationResults createStaticRing(String ringName, ZooKeeperConfig zkConfig, Set<String> servers, int replication) {
+        return createStaticRing(ringName, zkConfig, servers, replication, new UUIDBase(false));
+    }
+    
+    public static RingCreationResults createStaticRing(String ringName, ZooKeeperConfig zkConfig, Set<String> servers, int replication, UUIDBase myID) {
         try {
-        	MetaClient	mc;
-            com.ms.silverking.cloud.meta.MetaClient	cloudMC;
-            NamedRingConfiguration	namedRingConfig;
-            RingConfiguration		ringConfig;
+            MetaClient    mc;
+            com.ms.silverking.cloud.meta.MetaClient    cloudMC;
+            NamedRingConfiguration    namedRingConfig;
+            RingConfiguration        ringConfig;
             RingTreeRecipe  recipe;
             Topology topology;
             WeightSpecifications weightSpecs;
             ExclusionSet exclusionSet;
             StoragePolicyGroup  storagePolicyGroup;
             HostGroupTable  hostGroupTable;
-            long	ringConfigVersion;
+            long    ringConfigVersion;
             
-            CloudConfiguration	cloudConfig;
-            String				exclusionSpecsName;
-            String				hostGroupTableName;
+            CloudConfiguration    cloudConfig;
+            String                exclusionSpecsName;
+            String                hostGroupTableName;
 
             topology = StaticTopologyCreator.createTopology("topology."+ myID, servers);            
             exclusionSpecsName = "exclusionSpecs."+ myID;
@@ -88,7 +88,7 @@ public class StaticRingCreator {
             
             mc = new MetaClient(NamedRingConfiguration.emptyTemplate.ringName(ringName), zkConfig);
             ringConfig = new RingConfiguration(cloudConfig, "weightSpecsName", StaticTopologyCreator.parentID, 
-            		SimpleStoragePolicyCreator.storagePolicyGroupName, SimpleStoragePolicyCreator.storagePolicyName, null);
+                    SimpleStoragePolicyCreator.storagePolicyGroupName, SimpleStoragePolicyCreator.storagePolicyName, null);
             new RingConfigurationZK(mc).writeToZK(ringConfig, null);
             
             namedRingConfig = new NamedRingConfiguration(ringName, ringConfig);
@@ -132,27 +132,27 @@ public class StaticRingCreator {
             Log.logErrorWarning(ke);
             return null;
         }
-		
-	}
+        
+    }
 
-	public static void main(String[] args) {
-		if (args.length != 4) {
-			System.out.println("args: <ringName> <zkConfig> <servers> <replication>");
-		} else {
-			try {
-				String ringName;
-				ZooKeeperConfig zkConfig;
-				Set<String> servers;
-				int replication;
-				
-				ringName = args[0];
-				zkConfig = new ZooKeeperConfig(args[1]);
-				servers = ImmutableSet.copyOf(StringUtil.splitAndTrim(args[2], ","));
-				replication = Integer.parseInt(args[3]);
-				createStaticRing(ringName, zkConfig, servers, replication);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+    public static void main(String[] args) {
+        if (args.length != 4) {
+            System.out.println("args: <ringName> <zkConfig> <servers> <replication>");
+        } else {
+            try {
+                String ringName;
+                ZooKeeperConfig zkConfig;
+                Set<String> servers;
+                int replication;
+                
+                ringName = args[0];
+                zkConfig = new ZooKeeperConfig(args[1]);
+                servers = ImmutableSet.copyOf(StringUtil.splitAndTrim(args[2], ","));
+                replication = Integer.parseInt(args[3]);
+                createStaticRing(ringName, zkConfig, servers, replication);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }

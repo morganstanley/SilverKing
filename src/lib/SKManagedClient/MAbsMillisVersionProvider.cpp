@@ -11,25 +11,25 @@ namespace SKManagedClient {
 
 MAbsMillisVersionProvider::~MAbsMillisVersionProvider()
 {
-	this->!MAbsMillisVersionProvider();
+    this->!MAbsMillisVersionProvider();
 }
 
 MAbsMillisVersionProvider::!MAbsMillisVersionProvider()
 {
-	delete ((SKAbsMillisVersionProvider*)pImpl); 
-	pImpl = NULL;
+    delete ((SKAbsMillisVersionProvider*)pImpl); 
+    pImpl = NULL;
 }
 
 MAbsMillisVersionProvider::MAbsMillisVersionProvider(MAbsMillisTimeSource ^ absMillisTimeSource)
 {
-	SKAbsMillisTimeSource* pTimeSource = (SKAbsMillisTimeSource*)(absMillisTimeSource->getPImpl()->pTimeSource);
-	SKAbsMillisVersionProvider* pVersionProvider = new SKAbsMillisVersionProvider(pTimeSource);
-	pImpl = (void *) pVersionProvider;
+    SKAbsMillisTimeSource* pTimeSource = (SKAbsMillisTimeSource*)(absMillisTimeSource->getPImpl()->pTimeSource);
+    SKAbsMillisVersionProvider* pVersionProvider = new SKAbsMillisVersionProvider(pTimeSource);
+    pImpl = (void *) pVersionProvider;
 }
 
 MAbsMillisVersionProvider::MAbsMillisVersionProvider(SKAbsMillisVersionProvider_M ^ versionProviderImpl)
 {
-	pImpl = versionProviderImpl->pVersionProvider;
+    pImpl = versionProviderImpl->pVersionProvider;
 }
 
 }

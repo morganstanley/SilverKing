@@ -51,11 +51,11 @@ bool JBoolean::operator!=(jboolean val) const
 static boost::mutex javaClassMutex;
 const JClass& JBoolean::staticGetJavaJniClass() throw (JNIException)
 {
-	static boost::shared_ptr<JClassImpl> result;
-	boost::mutex::scoped_lock lock(javaClassMutex);
-	if (result == 0)
-		result = boost::shared_ptr<JClassImpl>(new JClassImpl("boolean", "Z"));
-	return *result;
+    static boost::shared_ptr<JClassImpl> result;
+    boost::mutex::scoped_lock lock(javaClassMutex);
+    if (result == 0)
+        result = boost::shared_ptr<JClassImpl>(new JClassImpl("boolean", "Z"));
+    return *result;
 }
 
 const JClass& JBoolean::getJavaJniClass() const throw (JNIException)

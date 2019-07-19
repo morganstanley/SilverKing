@@ -49,7 +49,7 @@ public interface Namespace {
      * @return the opened AsynchronousNamespacePerspective
      */
     public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective(
-    											Class<K> keyClass, Class<V> valueClass);
+                                                Class<K> keyClass, Class<V> valueClass);
     public <K, V> AsynchronousNamespacePerspective<K, V> openAsyncPerspective();
     /**
      * Open an SynchronousNamespacePerspective for the given key, value types
@@ -70,7 +70,7 @@ public interface Namespace {
      * @return the opened SynchronousNamespacePerspective
      */
     public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective(
-    											Class<K> keyClass, Class<V> valueClass);
+                                                Class<K> keyClass, Class<V> valueClass);
     public <K, V> SynchronousNamespacePerspective<K, V> openSyncPerspective();
     /**
      * Create a clone of this namespace. For user-defined versioned namespaces,

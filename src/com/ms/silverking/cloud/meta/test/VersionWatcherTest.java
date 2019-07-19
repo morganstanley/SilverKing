@@ -12,7 +12,7 @@ import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 
 public class VersionWatcherTest implements VersionListener {
     private final ZooKeeperExtended zk;
-    private final MetaClientCore	mcCore;
+    private final MetaClientCore    mcCore;
     
     public VersionWatcherTest(ZooKeeperExtended zk) throws IOException, KeeperException {
         this.zk = zk;

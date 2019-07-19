@@ -12,8 +12,8 @@
 #include "SKAsyncRetrieval.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class AsyncValueRetrieval;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class AsyncValueRetrieval;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::AsyncValueRetrieval AsyncValueRetrieval;
 
@@ -24,9 +24,9 @@ public:
     SKAPI SKMap<string,SKVal*> *  getLatestValues();
     SKAPI SKMap<string,SKVal*> *  getValues() ;
     SKAPI SKVal* getValue(string * key) ;
-	SKAPI virtual ~SKAsyncValueRetrieval();
+    SKAPI virtual ~SKAsyncValueRetrieval();
 
-	SKAsyncValueRetrieval(AsyncValueRetrieval * pAsyncValueRetrieval);
+    SKAsyncValueRetrieval(AsyncValueRetrieval * pAsyncValueRetrieval);
     void * getPImpl();
 protected:
     SKMap<string,SKVal*> *  _getValues(bool latest) ;

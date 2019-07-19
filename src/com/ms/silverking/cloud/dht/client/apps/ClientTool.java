@@ -40,43 +40,43 @@ import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 
 public class ClientTool {
-	private final DHTClient	dhtClient;
-	
-	private static final int	warmupDelayMillis = 500;
-	
-	private static final int   clientWorkUnit = 10;
-	
-	private static final String    multiKeyDelimiter = ":";
+    private final DHTClient    dhtClient;
+    
+    private static final int    warmupDelayMillis = 500;
+    
+    private static final int   clientWorkUnit = 10;
+    
+    private static final String    multiKeyDelimiter = ":";
     private static final String    noSuchValue = "No such value";
-	
-	public ClientTool() throws IOException {
-		dhtClient = new DHTClient();
-	}
-	
-	private void doWaitFor(ClientOptions options, SynchronousNamespacePerspective<String,byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
-		SynchronousNamespacePerspective<String,byte[]>	ns;
-		WaitOptions			waitOptions;
-		StoredValue<byte[]>	storedValue;
-		
+    
+    public ClientTool() throws IOException {
+        dhtClient = new DHTClient();
+    }
+    
+    private void doWaitFor(ClientOptions options, SynchronousNamespacePerspective<String,byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
+        SynchronousNamespacePerspective<String,byte[]>    ns;
+        WaitOptions            waitOptions;
+        StoredValue<byte[]>    storedValue;
+        
         waitOptions = OptionsHelper.newWaitOptions(RetrievalType.VALUE);
-		if (options.timeoutSeconds != 0) {
-	        waitOptions = waitOptions.timeoutSeconds(options.timeoutSeconds).timeoutResponse(options.timeoutResponse);
-		}
-		
-		Log.warning("Getting value...");
-		storedValue = null;
-		sw.reset();
-		for (int i = 0; i < options.reps; i++) {
-			storedValue = syncNSP.waitFor(options.key, waitOptions);
-		}
-		sw.stop();
-		if (storedValue == null) {
-			Log.warning(noSuchValue);
-		} else {
-			Log.warning(new String(storedValue.getValue()));
-		}
-	}
-	
+        if (options.timeoutSeconds != 0) {
+            waitOptions = waitOptions.timeoutSeconds(options.timeoutSeconds).timeoutResponse(options.timeoutResponse);
+        }
+        
+        Log.warning("Getting value...");
+        storedValue = null;
+        sw.reset();
+        for (int i = 0; i < options.reps; i++) {
+            storedValue = syncNSP.waitFor(options.key, waitOptions);
+        }
+        sw.stop();
+        if (storedValue == null) {
+            Log.warning(noSuchValue);
+        } else {
+            Log.warning(new String(storedValue.getValue()));
+        }
+    }
+    
     private void doMultiGet(ClientOptions options, SynchronousNamespacePerspective<String,byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
         Map<String, ? extends StoredValue<byte[]>>  storedValues;
         
@@ -84,26 +84,26 @@ public class ClientTool {
         displayValueMap(storedValues);
     }
     
-	private void displayValueMap(Map<String, ? extends StoredValue<byte[]>> storedValues) {
-	    for (Map.Entry<String, ? extends StoredValue<byte[]>> entry : storedValues.entrySet()) {
-	        StoredValue<byte[]>    storedValue;
-	        
-	        storedValue = entry.getValue();
-	        System.out.printf("%10s => %s\n", entry.getKey(), storedValue != null ? new String(storedValue.getValue()) : noSuchValue);
-	    }
+    private void displayValueMap(Map<String, ? extends StoredValue<byte[]>> storedValues) {
+        for (Map.Entry<String, ? extends StoredValue<byte[]>> entry : storedValues.entrySet()) {
+            StoredValue<byte[]>    storedValue;
+            
+            storedValue = entry.getValue();
+            System.out.printf("%10s => %s\n", entry.getKey(), storedValue != null ? new String(storedValue.getValue()) : noSuchValue);
+        }
     }
 
     private void doGet(ClientOptions options, SynchronousNamespacePerspective<String,byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
-		StoredValue<byte[]>	storedValue;
-		
+        StoredValue<byte[]>    storedValue;
+        
         storedValue = doRetrieve(options, syncNSP, sw, RetrievalType.VALUE, WaitMode.GET);
-		if (storedValue == null) {
-			Log.warning(noSuchValue);
-		} else {
-		    System.out.println(new String(storedValue.getValue()));
-		}
-	}
-	
+        if (storedValue == null) {
+            Log.warning(noSuchValue);
+        } else {
+            System.out.println(new String(storedValue.getValue()));
+        }
+    }
+    
     private void doGetMeta(ClientOptions options, SynchronousNamespacePerspective<String, byte[]> syncNSP, Stopwatch sw)
             throws OperationException, IOException {
         StoredValue<byte[]> storedValue;
@@ -192,31 +192,31 @@ public class ClientTool {
         }
     }
     
-	private void doPut(ClientOptions options, DHTSession session, SynchronousNamespacePerspective<String,byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
-		PutOptions		putOptions;
-		long            version;
-		byte[]          value;
-		
-	    version = options.version;
-		putOptions = session.getDefaultPutOptions()
+    private void doPut(ClientOptions options, DHTSession session, SynchronousNamespacePerspective<String,byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
+        PutOptions        putOptions;
+        long            version;
+        byte[]          value;
+        
+        version = options.version;
+        putOptions = session.getDefaultPutOptions()
                         .compression(options.compression != null ? options.compression : Compression.NONE)
-		                .checksumType(options.checksumType)
-		                .version(version);
-		Log.warning("Putting value for version:", version);
-		value = options.getValue();
+                        .checksumType(options.checksumType)
+                        .version(version);
+        Log.warning("Putting value for version:", version);
+        value = options.getValue();
         sw.reset();
         try {
-    		for (int i = 0; i < options.reps; i++) {
+            for (int i = 0; i < options.reps; i++) {
                 syncNSP.put(options.key, value);
-    			//syncNSP.put(options.key, value, putOptions);
-    		}
+                //syncNSP.put(options.key, value, putOptions);
+            }
         } catch (PutException pe) {
             System.out.println(pe.getDetailedFailureMessage());
             throw pe;
         }
         sw.stop();
-	}
-	
+    }
+    
     private void doMultiPut(ClientOptions options, DHTSession session, SynchronousNamespacePerspective<String,byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
         PutOptions      putOptions;
         long            version;
@@ -256,7 +256,7 @@ public class ClientTool {
         }
         Log.warning("Creating snapshot");
         sw.reset();
-    	// snapshots deprecated for now
+        // snapshots deprecated for now
         /*
         try {
             for (int i = 0; i < options.reps; i++) {
@@ -269,7 +269,7 @@ public class ClientTool {
         */
         sw.stop();
     }
-	
+    
     private void doSyncRequest(ClientOptions options, SynchronousNamespacePerspective<String, byte[]> syncNSP, Stopwatch sw) throws OperationException, IOException {
         long            version;
         
@@ -330,69 +330,69 @@ public class ClientTool {
         System.out.println(nsOptions);
     }
     
-	public void doAction(ClientOptions options) throws Exception {
-		DHTSession	session;
-		Action		action;
-		SynchronousNamespacePerspective<String,byte[]>	syncNSP;
-		Stopwatch	sw;
-		int			outerReps;
-		NamespacePerspectiveOptions<String,byte[]> nspOptions;
-		
-		// FUTURE - IMPLEMENT VALIDATION FLAG
-		//DHTClient.setValidateChecksums(!options.noValidation);
-		// note - server may be null
-		
+    public void doAction(ClientOptions options) throws Exception {
+        DHTSession    session;
+        Action        action;
+        SynchronousNamespacePerspective<String,byte[]>    syncNSP;
+        Stopwatch    sw;
+        int            outerReps;
+        NamespacePerspectiveOptions<String,byte[]> nspOptions;
+        
+        // FUTURE - IMPLEMENT VALIDATION FLAG
+        //DHTClient.setValidateChecksums(!options.noValidation);
+        // note - server may be null
+        
         session = dhtClient.openSession(new SessionOptions(SKGridConfiguration.parseFile(options.gridConfig), options.server));
-		if (session == null) {
-			throw new RuntimeException("null session");
-		}
-		//System.out.println("nspOptions: "+ nspOptions);
-		
-		if (options.action != Action.CreateNamespace) {
-			Namespace	ns;
-			
-			ns = session.getNamespace(options.namespace);
-			nspOptions = ns.getDefaultNSPOptions(String.class, byte[].class);
-			if (options.checksumType != null) {
-	            nspOptions = nspOptions.defaultPutOptions(
-	                        session.getDefaultPutOptions().checksumType(options.checksumType));
-			}
-		    syncNSP = ns.openSyncPerspective(nspOptions);
-		} else {
-		    syncNSP = null;
-		}
-		//syncNSP = session.openSyncNamespacePerspective(options.namespace, nspOptions);
-		if (options.warmup) {
-			outerReps = 2;
-		} else {
-			outerReps = 1;
-		}
-		for (int i = 0; i < outerReps; i++) {
-			sw = new SimpleStopwatch();
-			try {
-				action = options.action;
-				switch (action) {
-				case Put:
-					doPut(options, session, syncNSP, sw);
-					break;
+        if (session == null) {
+            throw new RuntimeException("null session");
+        }
+        //System.out.println("nspOptions: "+ nspOptions);
+        
+        if (options.action != Action.CreateNamespace) {
+            Namespace    ns;
+            
+            ns = session.getNamespace(options.namespace);
+            nspOptions = ns.getDefaultNSPOptions(String.class, byte[].class);
+            if (options.checksumType != null) {
+                nspOptions = nspOptions.defaultPutOptions(
+                            session.getDefaultPutOptions().checksumType(options.checksumType));
+            }
+            syncNSP = ns.openSyncPerspective(nspOptions);
+        } else {
+            syncNSP = null;
+        }
+        //syncNSP = session.openSyncNamespacePerspective(options.namespace, nspOptions);
+        if (options.warmup) {
+            outerReps = 2;
+        } else {
+            outerReps = 1;
+        }
+        for (int i = 0; i < outerReps; i++) {
+            sw = new SimpleStopwatch();
+            try {
+                action = options.action;
+                switch (action) {
+                case Put:
+                    doPut(options, session, syncNSP, sw);
+                    break;
                 case MultiPut:
                     doMultiPut(options, session, syncNSP, sw);
                     break;
                 case MultiGet:
                     doMultiGet(options, syncNSP, sw);
                     break;
-				case Get:
-					doGet(options, syncNSP, sw);
-					break;
+                case Get:
+                    doGet(options, syncNSP, sw);
+                    break;
                 case GetMeta:
                     doGetMeta(options, syncNSP, sw);
                     break;
                 case GetValueAndMeta:
                     doGetValueAndMeta(options, syncNSP, sw);
                     break;
-				case WaitFor:
-					doWaitFor(options, syncNSP, sw);
-					break;
+                case WaitFor:
+                    doWaitFor(options, syncNSP, sw);
+                    break;
                 case Snapshot:
                     doSnapshot(options, syncNSP, sw);
                     break;
@@ -405,56 +405,56 @@ public class ClientTool {
                 case GetNamespaceOptions:
                     doGetNamespaceOptions(options, session, sw);
                     break;
-				default:
-					throw new RuntimeException("panic");
-				}
-			} finally {
-				session.close();
-			}
-			//sw.stop();
-			Log.warning("Elapsed:\t"+ sw.getElapsedSeconds());
-			if (options.warmup || i < outerReps - 1) {
-				ThreadUtil.sleep(warmupDelayMillis);
-			}
-		}
-	}
-	
+                default:
+                    throw new RuntimeException("panic");
+                }
+            } finally {
+                session.close();
+            }
+            //sw.stop();
+            Log.warning("Elapsed:\t"+ sw.getElapsedSeconds());
+            if (options.warmup || i < outerReps - 1) {
+                ThreadUtil.sleep(warmupDelayMillis);
+            }
+        }
+    }
+    
     private void displayRetrievalExceptionDetails(RetrievalException re) {
         System.err.println("Failed keys: ");
         for (Object key : re.getFailedKeys()) {
             System.out.printf("%s\t%s\n", key, re.getFailureCause(key));
         }
     }
-		
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-    	try {
-    		ClientTool		clientTool;
-    		ClientOptions	options;
-    		CmdLineParser	parser;
-    		
+        
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {
+        try {
+            ClientTool        clientTool;
+            ClientOptions    options;
+            CmdLineParser    parser;
+            
             LWTPoolProvider.createDefaultWorkPools(DefaultWorkPoolParameters.defaultParameters().workUnit(clientWorkUnit));
-    		options = new ClientOptions();
-    		parser = new CmdLineParser(options);
-    		try {
-    			parser.parseArgument(args);
-    		} catch (CmdLineException cle) {
-    			System.err.println(cle.getMessage());
-    			parser.printUsage(System.err);
-    			return;
-    		}
-    		Log.fine(options);
-    		if (options.verbose) {
-    		    Log.setLevelAll();
-    		}
-    		clientTool = new ClientTool();
+            options = new ClientOptions();
+            parser = new CmdLineParser(options);
+            try {
+                parser.parseArgument(args);
+            } catch (CmdLineException cle) {
+                System.err.println(cle.getMessage());
+                parser.printUsage(System.err);
+                return;
+            }
+            Log.fine(options);
+            if (options.verbose) {
+                Log.setLevelAll();
+            }
+            clientTool = new ClientTool();
             System.out.println(options.namespace +":"+ options.key);
-    		clientTool.doAction(options);
-    		System.exit(0);
-    	} catch (Exception e) {
-    		e.printStackTrace();
-    	}
+            clientTool.doAction(options);
+            System.exit(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

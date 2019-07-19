@@ -9,7 +9,7 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
 public class HelloByteArray {        
     
-	public static byte[] runExample(SKGridConfiguration gridConfig) {
+    public static byte[] runExample(SKGridConfiguration gridConfig) {
         try {
             SynchronousNamespacePerspective<String, byte[]>    syncNSP;
             
@@ -22,8 +22,8 @@ public class HelloByteArray {
             throw new RuntimeException(e);
         }
     }
-	
+    
     public static void main(String[] args) throws IOException {
-    	System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
+        System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
     }
 }

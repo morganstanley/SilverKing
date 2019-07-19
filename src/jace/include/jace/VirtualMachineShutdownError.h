@@ -14,12 +14,12 @@ BEGIN_NAMESPACE(jace)
 class VirtualMachineShutdownError: public ::jace::JNIException
 {
 public:
-	/**
-	 * Creates a new VirtualMachineShutdownError with the given message.
-	 */
-	VirtualMachineShutdownError(const std::string& value) throw ():
-			JNIException(value)
-	{}
+    /**
+     * Creates a new VirtualMachineShutdownError with the given message.
+     */
+    VirtualMachineShutdownError(const std::string& value) throw ():
+            JNIException(value)
+    {}
 };
 
 END_NAMESPACE(jace)

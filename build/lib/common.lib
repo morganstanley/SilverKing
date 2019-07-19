@@ -3,267 +3,267 @@ source lib/common.vars
 
 ### common/shared
 function f_clearOutEnvVariables {
-	export   DISPLAY=
-	export CLASSPATH=
+    export   DISPLAY=
+    export CLASSPATH=
 }
 
 ### functions
 function f_getExecutablePath {
-	((EXECUTABLE_COUNT++))
-	typeset path=`which $1`;
-	echo "$EXECUTABLE_COUNT. $1 - $path";
-	if [[ "$?" != "0" ]] ; then
-		f_exit "please install $1: $path";
-	fi
-	
-	return path;
+    ((EXECUTABLE_COUNT++))
+    typeset path=`which $1`;
+    echo "$EXECUTABLE_COUNT. $1 - $path";
+    if [[ "$?" != "0" ]] ; then
+        f_exit "please install $1: $path";
+    fi
+    
+    return path;
 }
 
 function f_printSection {
-	((SECTION_COUNT++))
-	echo
-	f_printHeaderHelper "${SECTION_COUNT}." "$1"
+    ((SECTION_COUNT++))
+    echo
+    f_printHeaderHelper "${SECTION_COUNT}." "$1"
 }
 
 function f_printHeader {
-	f_printHeaderHelper "" "$1"
+    f_printHeaderHelper "" "$1"
 }
 
 function f_printHeaderHelper {
-	tput setaf 4; echo "##### $1 $2 #####"; tput sgr 0;
+    tput setaf 4; echo "##### $1 $2 #####"; tput sgr 0;
 }
 
 function f_printSubSection {
-	echo
-	tput setaf 5; echo "  ---> $1 "; tput sgr 0;
+    echo
+    tput setaf 5; echo "  ---> $1 "; tput sgr 0;
 }
 
 function f_printStep {
-	echo
-	tput setaf 6; echo " ($1) $2"; tput sgr 0;
+    echo
+    tput setaf 6; echo " ($1) $2"; tput sgr 0;
 }
 
 function f_getSectionItemId {
-	typeset section=$1
-	typeset itemNumber=$2
-	typeset totalItems=$3
-	
-	echo "[$section - ${itemNumber}/${totalItems}]"
+    typeset section=$1
+    typeset itemNumber=$2
+    typeset totalItems=$3
+    
+    echo "[$section - ${itemNumber}/${totalItems}]"
 }
 
 function f_printSectionItemId {
-	typeset section=$(f_getSectionItemId "$1" "$2" "$3")
-	echo
-	echo "$section"
+    typeset section=$(f_getSectionItemId "$1" "$2" "$3")
+    echo
+    echo "$section"
 }
 
 function f_cleanOrMakeDirectory {
-	typeset title=" clean/make: "
-	if [[ -d $1 ]] ; then
-		echo "$title (cleaning) $1"
-		f_remove "$1/*"
-	else
-		echo "$title (making) $1"
-		f_makeWithParents $1
-	fi
+    typeset title=" clean/make: "
+    if [[ -d $1 ]] ; then
+        echo "$title (cleaning) $1"
+        f_remove "$1/*"
+    else
+        echo "$title (making) $1"
+        f_makeWithParents $1
+    fi
 }
 
 function f_makeAndCopy {
-	typeset src=$1
-	typeset dest=$2
-	echo "from: $src"
-	echo "  to: $dest" 
-	f_makeWithParents $dest
-	cp -rf $src/* $dest
+    typeset src=$1
+    typeset dest=$2
+    echo "from: $src"
+    echo "  to: $dest" 
+    f_makeWithParents $dest
+    cp -rf $src/* $dest
 }
 
 function f_makeVerbose {
-	mkdir -pv $1
+    mkdir -pv $1
 }
 
 function f_make {
-	mkdir $1
+    mkdir $1
 }
 
 function f_makeWithParents {
-	mkdir -p $1
+    mkdir -p $1
 }
 
 function f_removeVerboseList {
-	typeset filenames=$1
-	typeset directory=$2
-	
-	for file in $filenames ; do
-		f_removeVerbose $directory/$file
-	done
+    typeset filenames=$1
+    typeset directory=$2
+    
+    for file in $filenames ; do
+        f_removeVerbose $directory/$file
+    done
 }
 
 function f_removeVerbose {
-	rm -rv $1
+    rm -rv $1
 }
 
 function f_removeIfExists {
-	f_doNonDirectoryChecks "$1"
-	echo "Removing $1"
-	rm -rf $1
+    f_doNonDirectoryChecks "$1"
+    echo "Removing $1"
+    rm -rf $1
 }
 
 function f_remove {
-	f_doDefensiveChecks "$1"
-	echo "Removing $1"
-	rm -rf $1
+    f_doDefensiveChecks "$1"
+    echo "Removing $1"
+    rm -rf $1
 }
 
 # some cmd's are from: #http://stackoverflow.com/questions/16679369/count-occurrences-of-char-in-string-using-bash
 # http://stackoverflow.com/questions/16533748/the-wc-l-gives-wrong-result
 function f_doDefensiveChecks {
-	typeset dir=$1
-	
-	typeset errorMsg="rm -rf request. Doing defensive checks. Quitting b/c: '$dir'"
-		
-	# check is a directory, if we don't end with "*"
-	if [[ `echo -n "$dir" | grep -P '\*$' | wc -l` -eq 0 ]]; then
-		if [[ ! -d $dir ]]; then
-			f_exit "$errorMsg is not a directory"
-		fi
-	fi
-		
-	f_doNonDirectoryChecks "$dir" "$errorMsg"
+    typeset dir=$1
+    
+    typeset errorMsg="rm -rf request. Doing defensive checks. Quitting b/c: '$dir'"
+        
+    # check is a directory, if we don't end with "*"
+    if [[ `echo -n "$dir" | grep -P '\*$' | wc -l` -eq 0 ]]; then
+        if [[ ! -d $dir ]]; then
+            f_exit "$errorMsg is not a directory"
+        fi
+    fi
+        
+    f_doNonDirectoryChecks "$dir" "$errorMsg"
 }
 
 function f_doNonDirectoryChecks {
-	typeset dir=$1
-	typeset errorMsg=$2
-	
-	# check contains only dots, slashes, and asterisks. e.g. ../../*
-	if [[ `echo -n "$dir" | tr -d './*' | wc -m` -eq 0 ]]; then	
-		f_exit "$errorMsg only contains '.' '/' '*', which is not allowed"
-	fi
-	
-	# check that the ending isn't ../*
-	if [[ `echo -n "$dir" | grep -P '\.\./\*$' | wc -l` -eq 1 ]]; then
-		f_exit "$errorMsg can't end with ../*"
-	fi
-	
-	# check that it's at least X paths deep, if we don't start with '../' and end with '*'
-	# could use this cmd: echo -n "$dir" | tr -dc '/' | wc -m, but doing grep instead for fun
-	if [[ `echo -n "$dir" | grep -P '^\.\./.+\*$' | wc -l` -eq 0 ]]; then
-		typeset minNumSlashes=5
-		typeset depth=$(f_getDepth "$dir")
-		# if it has no slashes, we will skip it
-		if [[ $depth -ne 0 && $depth -lt $minNumSlashes ]]; then
-			f_exit "$errorMsg needs to be at least $minNumSlashes paths deep (e.g. contain $minNumSlashes '/', /this/is/a/path/to/blah/blah...)"
-		fi
-	fi
+    typeset dir=$1
+    typeset errorMsg=$2
+    
+    # check contains only dots, slashes, and asterisks. e.g. ../../*
+    if [[ `echo -n "$dir" | tr -d './*' | wc -m` -eq 0 ]]; then    
+        f_exit "$errorMsg only contains '.' '/' '*', which is not allowed"
+    fi
+    
+    # check that the ending isn't ../*
+    if [[ `echo -n "$dir" | grep -P '\.\./\*$' | wc -l` -eq 1 ]]; then
+        f_exit "$errorMsg can't end with ../*"
+    fi
+    
+    # check that it's at least X paths deep, if we don't start with '../' and end with '*'
+    # could use this cmd: echo -n "$dir" | tr -dc '/' | wc -m, but doing grep instead for fun
+    if [[ `echo -n "$dir" | grep -P '^\.\./.+\*$' | wc -l` -eq 0 ]]; then
+        typeset minNumSlashes=5
+        typeset depth=$(f_getDepth "$dir")
+        # if it has no slashes, we will skip it
+        if [[ $depth -ne 0 && $depth -lt $minNumSlashes ]]; then
+            f_exit "$errorMsg needs to be at least $minNumSlashes paths deep (e.g. contain $minNumSlashes '/', /this/is/a/path/to/blah/blah...)"
+        fi
+    fi
 }
 
 function f_getDepth {
-	typeset dir=$1
-	
-	echo `grep -o '/' <<< "$dir" | grep -c .`
+    typeset dir=$1
+    
+    echo `grep -o '/' <<< "$dir" | grep -c .`
 }
 
 function f_exit {
-	tput setaf 1; echo "$1"; tput sgr0;
-	exit 1;
+    tput setaf 1; echo "$1"; tput sgr0;
+    exit 1;
 }
 
 function f_findAndRemove {
-	typeset directory=$1
-	typeset filename=$2
-	
-	for file in `find $directory -type f -name "$filename"`; do
-		f_removeVerbose $file
-	done
+    typeset directory=$1
+    typeset filename=$2
+    
+    for file in `find $directory -type f -name "$filename"`; do
+        f_removeVerbose $file
+    done
 }
 
 function f_copyVerbose {
-	f_copyHelper $1 $2 "-rv"
+    f_copyHelper $1 $2 "-rv"
 }
 
 function f_copy {
-	echo "Copying $1 => $2"
-	f_copyHelper $1 $2 "-r"
+    echo "Copying $1 => $2"
+    f_copyHelper $1 $2 "-r"
 }
 
 function f_copyHelper {
-	typeset flags=$3
-	cp $flags $1 $2
+    typeset flags=$3
+    cp $flags $1 $2
 }
 
 function f_rsyncCopy {
-	typeset src=$1
-	typeset dest=$2
-	typeset excludes=$3
+    typeset src=$1
+    typeset dest=$2
+    typeset excludes=$3
 
-	excludeList=""
-	for exclude in $excludes ; do
-		excludeList="$excludeList --exclude $exclude"
-	done
-	
-	f_rsyncHelper "$src" "$dest" "$excludeList"
+    excludeList=""
+    for exclude in $excludes ; do
+        excludeList="$excludeList --exclude $exclude"
+    done
+    
+    f_rsyncHelper "$src" "$dest" "$excludeList"
 }
 
 function f_rsyncCut {
-	typeset src=$1
-	typeset dest=$2
-	
-	f_rsyncHelper "$src" "$dest" "--remove-source-files"
+    typeset src=$1
+    typeset dest=$2
+    
+    f_rsyncHelper "$src" "$dest" "--remove-source-files"
 }
 
 function f_rsyncHelper {
-	typeset src=$1
-	typeset dest=$2
-	typeset options=$3
-	
-	rsync -avh --progress $options $src $dest
+    typeset src=$1
+    typeset dest=$2
+    typeset options=$3
+    
+    rsync -avh --progress $options $src $dest
 }
 
 function f_move {
-	typeset src=$1
-	typeset dest=$2
-	
-	mv -v $src $dest
+    typeset src=$1
+    typeset dest=$2
+    
+    mv -v $src $dest
 }
 
 function f_symlinkVerboseWithMake {
-	typeset link_name=$1
-	typeset link_value=$2
-	
-	f_makeVerbose `dirname $link_name`
-	ln -sv $link_value $link_name
+    typeset link_name=$1
+    typeset link_value=$2
+    
+    f_makeVerbose `dirname $link_name`
+    ln -sv $link_value $link_name
 }
 
 function f_symlinkVerbose {
-	typeset link_name=$1
-	typeset link_value=$2
-	
-	ln -sv $link_value $link_name
+    typeset link_name=$1
+    typeset link_value=$2
+    
+    ln -sv $link_value $link_name
 }
 
 function f_checkAndSetBuildTimestamp {
-	typeset extra_info=$1
-	
-	if [[ -z $BUILD_TIMESTAMP ]]; then
-		f_setBuildTimestamp $(f_getBuildTime) "$extra_info"
-	fi
+    typeset extra_info=$1
+    
+    if [[ -z $BUILD_TIMESTAMP ]]; then
+        f_setBuildTimestamp $(f_getBuildTime) "$extra_info"
+    fi
 }
 
 function f_setBuildTimestamp {
- 	typeset time=$1
-	typeset extra_info=$2
-	
-	typeset timestamp=$time
-	if [[ -n $extra_info ]]; then
-		timestamp="${time}${FILENAME_SEGMENT_SEPARATOR}${extra_info}"
-	fi
-	
-	export BUILD_TIMESTAMP=$timestamp
+     typeset time=$1
+    typeset extra_info=$2
+    
+    typeset timestamp=$time
+    if [[ -n $extra_info ]]; then
+        timestamp="${time}${FILENAME_SEGMENT_SEPARATOR}${extra_info}"
+    fi
+    
+    export BUILD_TIMESTAMP=$timestamp
 }
 
 function f_getBuildTime {
-	typeset delim=$FILENAME_WORD_DELIMETER
-	echo `date +"%Y${delim}%m${delim}%d${delim}${delim}%H${delim}%M${delim}%S"`
+    typeset delim=$FILENAME_WORD_DELIMETER
+    echo `date +"%Y${delim}%m${delim}%d${delim}${delim}%H${delim}%M${delim}%S"`
 }
 
 # for PATH, those 3 are the bare minimum to get ant running
@@ -275,95 +275,113 @@ function f_getBuildTime {
 # we don't want this, so we set them, so that across different machines (rh5, rh6, etc) we get a consistent build 
 # using options/env-vars (java, ant, etc) we know will compile the code                                                                                               
 function f_runAnt {
-	typeset target=$1
-	typeset extraVars=$2
-	
-	f_printSection "Running Ant"
-#	env -i \
-#		 PATH=/usr/bin:/bin:$ANT_9_HOME/bin\
-#	JAVA_HOME=$JAVA_8_HOME\ 
-#	 ANT_HOME=$ANT_9_HOME\
-#	ant -v -f "$BUILD_DIR/$ANT_BUILD_SCRIPT_NAME" "$target"
-	# formatted this way (newlines in vars), for when looking at the output file
-	typeset vars="
-	     PATH=/usr/bin:/bin:$ANT_9_HOME/bin
-	JAVA_HOME=$JAVA_8_HOME 
-	 ANT_HOME=$ANT_9_HOME
+    typeset target=$1
+    typeset extraVars=$2
+    
+    f_printSection "Running Ant"
+#    env -i \
+#         PATH=/usr/bin:/bin:$ANT_9_HOME/bin\
+#    JAVA_HOME=$JAVA_8_HOME\ 
+#     ANT_HOME=$ANT_9_HOME\
+#    ant -v -f "$BUILD_DIR/$ANT_BUILD_SCRIPT_NAME" "$target"
+    # formatted this way (newlines in vars), for when looking at the output file
+    typeset vars="
+         PATH=/usr/bin:/bin:$ANT_9_HOME/bin
+    JAVA_HOME=$JAVA_8_HOME 
+     ANT_HOME=$ANT_9_HOME
 $extraVars
-	"
-	f_runCmdInEvalEnv "$vars" "ant -v -f \"$BUILD_DIR/$ANT_BUILD_SCRIPT_NAME\" \"$target\""
+    "
+    f_runCmdInEvalEnv "$vars" "ant -v -f \"$BUILD_DIR/$ANT_BUILD_SCRIPT_NAME\" \"$target\""
+}
+
+function f_runGradle {
+    typeset task=$1
+    typeset gradleScriptName=$2
+    typeset extraVars=$3
+    
+    if [[ -z $gradleScriptName ]]; then
+        gradleScriptName=$GRADLE_BUILD_SCRIPT_NAME
+    fi
+    
+    f_printSection "Running Gradle"
+    typeset vars="
+         PATH=/usr/bin:/bin:$GRADLE_HOME/bin
+    JAVA_HOME=$JAVA_8_HOME 
+$extraVars
+    "
+    f_runCmdInEvalEnv "$vars" "gradle -b $BUILD_DIR/gradle/$gradleScriptName \"$task\""
 }
 
 function f_printSummary_BuildFlow {
-	f_printSummary_BuildFlow_FirstHalf_HeaderAndBuildAndBuildSk $(f_getBuild_RunOutputFilename)
-	f_printSummary     $(f_getBuildSkClient_RunOutputFilename)
-	f_printTestSummary $(f_getTestSkClient_RunOutputFilename)
-	f_printSummary     $(f_getBuildSkfs_RunOutputFilename)
-	f_printTestSummary $(f_getTestSkfs_RunOutputFilename)
+    f_printSummary_BuildFlow_FirstHalf_HeaderAndBuildAndBuildSk $(f_getBuild_RunOutputFilename)
+    f_printSummary     $(f_getBuildSkClient_RunOutputFilename)
+    f_printTestSummary $(f_getTestSkClient_RunOutputFilename)
+    f_printSummary     $(f_getBuildSkfs_RunOutputFilename)
+    f_printTestSummary $(f_getTestSkfs_RunOutputFilename)
 }
 
 function f_printSummary_BuildFlow_FirstHalf_HeaderAndBuildAndBuildSk {
-	echo -e "\n\n+++++ OVERALL SUMMARY FOR ENTIRE FLOW +++++"
-	f_printSummary "$1";
-	echo -e "\n-----"
-	f_printSummary     $(f_getBuildSk_RunOutputFilename)
-	f_printTestSummary $(f_getTestSk_RunOutputFilename)
+    echo -e "\n\n+++++ OVERALL SUMMARY FOR ENTIRE FLOW +++++"
+    f_printSummary "$1";
+    echo -e "\n-----"
+    f_printSummary     $(f_getBuildSk_RunOutputFilename)
+    f_printTestSummary $(f_getTestSk_RunOutputFilename)
 }
 
 function f_getBuild_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$BUILD_NAME")
+    echo $(f_getRunOutputFilename_Helper "$BUILD_NAME")
 }
 
 function f_getBuildSk_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_NAME")
+    echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_NAME")
 }
 
 function f_getBuildJace_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$BUILD_JACE_NAME")
+    echo $(f_getRunOutputFilename_Helper "$BUILD_JACE_NAME")
 }
 
 function f_getBuildSkClient_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_CLIENT_NAME")
+    echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_CLIENT_NAME")
 }
 
 function f_getBuildSkfs_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_FS_NAME")
+    echo $(f_getRunOutputFilename_Helper "$BUILD_SILVERKING_FS_NAME")
 }
 
 function f_getTestSk_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$TEST_SILVERKING_NAME")
+    echo $(f_getRunOutputFilename_Helper "$TEST_SILVERKING_NAME")
 }
 
 function f_getTestSkClient_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$TEST_SILVERKING_CLIENT_NAME")
+    echo $(f_getRunOutputFilename_Helper "$TEST_SILVERKING_CLIENT_NAME")
 }
 
 function f_getTestSkfs_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$TEST_SILVERKING_FS_NAME")
+    echo $(f_getRunOutputFilename_Helper "$TEST_SILVERKING_FS_NAME")
 }
 
 function f_getStartInstance_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$START_INSTANCE_NAME")
+    echo $(f_getRunOutputFilename_Helper "$START_INSTANCE_NAME")
 }
 
 function f_getStopInstance_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$STOP_INSTANCE_NAME")
+    echo $(f_getRunOutputFilename_Helper "$STOP_INSTANCE_NAME")
 }
 
 # currently unused
 #function f_getRelease_RunOutputFilename {
-#	echo $(f_getRunOutputFilename_Helper "$RELEASE_NAME")
+#    echo $(f_getRunOutputFilename_Helper "$RELEASE_NAME")
 #}
 
 function f_getRegression_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$REGRESSION_NAME")
+    echo $(f_getRunOutputFilename_Helper "$REGRESSION_NAME")
 }
 
 function f_getRunOutputFilename_Helper {
-	typeset filename=$1
-	
-	typeset sep=$FILENAME_SEGMENT_SEPARATOR
-	echo "${TMP_AREA}${USER}${sep}${BUILD_TIMESTAMP}${sep}${filename}.out"
+    typeset filename=$1
+    
+    typeset sep=$FILENAME_SEGMENT_SEPARATOR
+    echo "${TMP_AREA}${USER}${sep}${BUILD_TIMESTAMP}${sep}${filename}.out"
 }
 
 function f_exitIfFailed {
@@ -374,260 +392,260 @@ function f_exitIfFailed {
 }
 
 function f_printSummary {
-	typeset file=$1
-	
-	typeset keyWordCount=$(f_getKeyWordCount "$file")
-	echo
-	echo "SUMMARY for $file"
-	# f_getResult "$file" "$keyWordCount" "$TRUE" - commenting out for now so that if there are 0 FAILS we actually get PASSED
-	f_getResult "$file" "0" "$TRUE"
+    typeset file=$1
+    
+    typeset keyWordCount=$(f_getKeyWordCount "$file")
+    echo
+    echo "SUMMARY for $file"
+    # f_getResult "$file" "$keyWordCount" "$TRUE" - commenting out for now so that if there are 0 FAILS we actually get PASSED
+    f_getResult "$file" "0" "$TRUE"
 }
 
 function f_printTestSummary {
-	typeset file=$1
-	
-	typeset keyWordCount=$(f_getTestKeyWordCount "$file")
-	echo
-	echo "SUMMARY for $file"
-	# f_getResult "$file" "$keyWordCount" "$TRUE" - commenting out for now so that if there are 0 FAILS we actually get PASSED
-	f_getResult "$file" "0" "$TRUE"
+    typeset file=$1
+    
+    typeset keyWordCount=$(f_getTestKeyWordCount "$file")
+    echo
+    echo "SUMMARY for $file"
+    # f_getResult "$file" "$keyWordCount" "$TRUE" - commenting out for now so that if there are 0 FAILS we actually get PASSED
+    f_getResult "$file" "0" "$TRUE"
 }
 
 function f_getResult {
-	typeset file=$1
-	typeset keyWordCount=$2
-	typeset print=$3	# optional param
-	
-	typeset    passCount=$(f_getPassCount "$file")
-	typeset    failCount=$(f_getFailCount "$file")
-	typeset       result=$(f_getResultHelper "$passCount" "$failCount" "$keyWordCount")
-	
-	if [[ $print == $TRUE ]] ; then
-		echo "   PASS: $passCount"
-		echo "   FAIL: $failCount"
-		echo "KEYWORD: $keyWordCount" 
+    typeset file=$1
+    typeset keyWordCount=$2
+    typeset print=$3    # optional param
+    
+    typeset    passCount=$(f_getPassCount "$file")
+    typeset    failCount=$(f_getFailCount "$file")
+    typeset       result=$(f_getResultHelper "$passCount" "$failCount" "$keyWordCount")
+    
+    if [[ $print == $TRUE ]] ; then
+        echo "   PASS: $passCount"
+        echo "   FAIL: $failCount"
+        echo "KEYWORD: $keyWordCount" 
         typeset color=2
         if [[ $result == $FAILED_TEXT ]]; then
             color=1
         fi
-		tput setaf $color; echo " RESULT: $result"; tput sgr0;
-		
-		if [[ $failCount -gt 0 ]] ; then
-			typeset failList=$(f_getList "$file" "$FAIL_TEXT")
-			typeset subbedList=`echo "$failList" | sed "s/$FAIL_TEXT/-${FAIL_TEXT}/"`
-			tput setaf 1; echo "$subbedList"; tput sgr0;
-		fi
-	else
-		echo $result
-	fi
+        tput setaf $color; echo " RESULT: $result"; tput sgr0;
+        
+        if [[ $failCount -gt 0 ]] ; then
+            typeset failList=$(f_getList "$file" "$FAIL_TEXT")
+            typeset subbedList=`echo "$failList" | sed "s/$FAIL_TEXT/-${FAIL_TEXT}/"`
+            tput setaf 1; echo "$subbedList"; tput sgr0;
+        fi
+    else
+        echo $result
+    fi
 }
 
 function f_getResultHelper {
-	typeset passCount=$1
-	typeset failCount=$2
-	typeset keyWordCount=$3	# optional param
-	
-	if [[ -z $keyWordCount ]] ; then
-		keyWordCount=0
-	fi
-	
-	typeset totalCount=$((passCount+failCount+keyWordCount))
-	
-	if [[ $totalCount -eq 0 || $failCount -ne 0 || $keyWordCount -ne 0 ]]; then
-		echo $FAILED_TEXT
-	else
-		echo $PASSED_TEXT
-	fi
+    typeset passCount=$1
+    typeset failCount=$2
+    typeset keyWordCount=$3    # optional param
+    
+    if [[ -z $keyWordCount ]] ; then
+        keyWordCount=0
+    fi
+    
+    typeset totalCount=$((passCount+failCount+keyWordCount))
+    
+    if [[ $totalCount -eq 0 || $failCount -ne 0 || $keyWordCount -ne 0 ]]; then
+        echo $FAILED_TEXT
+    else
+        echo $PASSED_TEXT
+    fi
 }
 
 function f_getPassCount {
-	echo $(f_getCount "$1" "$PASS_TEXT")
+    echo $(f_getCount "$1" "$PASS_TEXT")
 }
 
 function f_getFailCount {
-	echo $(f_getCount "$1" "$FAIL_TEXT")
+    echo $(f_getCount "$1" "$FAIL_TEXT")
 }
 
 function f_getCount {
-	typeset file=$1
-	typeset text=$2
-	
-	typeset pattern=$(f_getPassFailPattern "$text")
-	typeset count=`grep -P "$pattern" $file -c`	# -c, rather than "... | wc -l", because wc -l still gives you count of 1, with empty hits
-	echo $count
+    typeset file=$1
+    typeset text=$2
+    
+    typeset pattern=$(f_getPassFailPattern "$text")
+    typeset count=`grep -P "$pattern" $file -c`    # -c, rather than "... | wc -l", because wc -l still gives you count of 1, with empty hits
+    echo $count
 }
 
 function f_getKeyWordCount {
-	typeset file=$1
-	
-	typeset count=`grep -P '(not found|error|undefined|no such file or directory|exit status|No space left on device)' -i $1 | grep -P '(javadoc|jar|junit|PASS|errorCode|which has non-virtual|debug1:)' -v | wc -l`
-	echo $count
+    typeset file=$1
+    
+    typeset count=`grep -P '(not found|error|undefined|no such file or directory|exit status|No space left on device)' -i $1 | grep -P '(javadoc|jar|junit|PASS|errorCode|which has non-virtual|debug1:)' -v | wc -l`
+    echo $count
 }
 
 function f_getTestKeyWordCount {
-	typeset file=$1
-	
-	typeset count=`grep -P '(This is not a bug)' -i $1 | wc -l`
-	echo $count
+    typeset file=$1
+    
+    typeset count=`grep -P '(This is not a bug)' -i $1 | wc -l`
+    echo $count
 }
 
 function f_getList {
-	typeset file=$1
-	typeset text=$2
-	
-	typeset pattern=$(f_getPassFailPattern "$text")
-	typeset list=`grep -P "$pattern" $file`
-	echo "$list"
+    typeset file=$1
+    typeset text=$2
+    
+    typeset pattern=$(f_getPassFailPattern "$text")
+    typeset list=`grep -P "$pattern" $file`
+    echo "$list"
 }
 
 function f_getPassFailPattern {
-	echo "^\s+$1\s+"
+    echo "^\s+$1\s+"
 }
 
 function f_printFileOutputLine {
-	echo "Full run output is in: $1"
+    echo "Full run output is in: $1"
 }
 
 function f_testEquals {
-	typeset directory=$1
-	typeset name=$2
-	typeset expectedSize=$3
-	
-	typeset folderName=`basename $directory`
-	typeset matchingFileCount=$(f_getMatchingFilesCount "$directory" "$name")
-	
-	f_printChecking "$folderName";
-	typeset result=$(f_getEqualsResult "$matchingFileCount" "$expectedSize")
-	f_printResult "$result" "files matching $name == $expectedSize" "$matchingFileCount";
+    typeset directory=$1
+    typeset name=$2
+    typeset expectedSize=$3
+    
+    typeset folderName=`basename $directory`
+    typeset matchingFileCount=$(f_getMatchingFilesCount "$directory" "$name")
+    
+    f_printChecking "$folderName";
+    typeset result=$(f_getEqualsResult "$matchingFileCount" "$expectedSize")
+    f_printResult "$result" "files matching $name == $expectedSize" "$matchingFileCount";
 }
 
 function f_testGreaterThanOrEquals {
-	typeset directory=$1
-	typeset name=$2
-	typeset expectedSize=$3
-	
-	typeset folderName=`basename $directory`
-	typeset matchingFileCount=$(f_getMatchingFilesCount "$directory" "$name")
-	
-	f_printChecking "$folderName";
-	typeset result=$(f_getGreaterThanOrEqualsResult "$matchingFileCount" "$expectedSize")
-	f_printResult "$result" "size is >= $expectedSize" "$matchingFileCount";
+    typeset directory=$1
+    typeset name=$2
+    typeset expectedSize=$3
+    
+    typeset folderName=`basename $directory`
+    typeset matchingFileCount=$(f_getMatchingFilesCount "$directory" "$name")
+    
+    f_printChecking "$folderName";
+    typeset result=$(f_getGreaterThanOrEqualsResult "$matchingFileCount" "$expectedSize")
+    f_printResult "$result" "size is >= $expectedSize" "$matchingFileCount";
 }
 
 function f_getMatchingFilesCount {
-	typeset directory=$1
-	typeset filename=$2
+    typeset directory=$1
+    typeset filename=$2
 
-	typeset count=`find $directory -type f -name "$filename" | wc -l`
-	
-	echo $count
+    typeset count=`find $directory -type f -name "$filename" | wc -l`
+    
+    echo $count
 }
 
 function f_printChecking {
-	echo
-	echo "Checking /$1"
+    echo
+    echo "Checking /$1"
 }
 
 function f_testExists {
-	typeset pathToFile=$1
-	
-	typeset result=$(f_getTestExistsResult "$pathToFile")
-	typeset file=`basename $pathToFile`
-	
-	if [[ $result == $FAIL_TEXT ]]; then
-		file=""
-	fi
-	
-	f_printResult "$result" "is a file and size > 0" "$file";
+    typeset pathToFile=$1
+    
+    typeset result=$(f_getTestExistsResult "$pathToFile")
+    typeset file=`basename $pathToFile`
+    
+    if [[ $result == $FAIL_TEXT ]]; then
+        file=""
+    fi
+    
+    f_printResult "$result" "is a file and size > 0" "$file";
 }
 
 function f_printResult {
-	typeset result=$1
-	typeset comment=$2
-	typeset actual=$3
-	typeset filename=$4
+    typeset result=$1
+    typeset comment=$2
+    typeset actual=$3
+    typeset filename=$4
 
-	printf "   $result - %-50s actual=$actual\n" "($comment)"
-	
-	if [[ -n $filename ]] ; then
-		printf "   $result - %-50s actual=$actual\n" "($comment)" >> $filename
-	fi
+    printf "   $result - %-50s actual=$actual\n" "($comment)"
+    
+    if [[ -n $filename ]] ; then
+        printf "   $result - %-50s actual=$actual\n" "($comment)" >> $filename
+    fi
 }
 
 function f_getEqualsResult {
-	typeset actualSize=$1
-	typeset expectedSize=$2
-	
-	if [[ $actualSize -eq $expectedSize ]]; then
-		echo $PASS_TEXT
-	else
-		echo $FAIL_TEXT
-	fi
+    typeset actualSize=$1
+    typeset expectedSize=$2
+    
+    if [[ $actualSize -eq $expectedSize ]]; then
+        echo $PASS_TEXT
+    else
+        echo $FAIL_TEXT
+    fi
 }
 
 function f_getGreaterThanOrEqualsResult {
-	typeset actualSize=$1
-	typeset expectedSize=$2
-	
-	if [[ $actualSize -ge $expectedSize ]]; then
-		echo $PASS_TEXT
-	else
-		echo $FAIL_TEXT
-	fi
+    typeset actualSize=$1
+    typeset expectedSize=$2
+    
+    if [[ $actualSize -ge $expectedSize ]]; then
+        echo $PASS_TEXT
+    else
+        echo $FAIL_TEXT
+    fi
 }
 
 function f_getTestExistsResult {
-	typeset pathToFile=$1
-	
-	if [[ -f $pathToFile && -s $pathToFile ]]; then
-		echo $PASS_TEXT
-	else
-		echo $FAIL_TEXT
-	fi	
+    typeset pathToFile=$1
+    
+    if [[ -f $pathToFile && -s $pathToFile ]]; then
+        echo $PASS_TEXT
+    else
+        echo $FAIL_TEXT
+    fi    
 }
 
 function f_startGlobalTimer {
-	START_GLOBAL=$(f_getSeconds)
+    START_GLOBAL=$(f_getSeconds)
 }
 
 function f_getSeconds {
-	echo `date +%s`
+    echo `date +%s`
 }
 
 function f_printGlobalElapsed {
-	typeset elapsedTime=$(f_getGlobalElapsed)
-	f_printElapsed "$elapsedTime"
+    typeset elapsedTime=$(f_getGlobalElapsed)
+    f_printElapsed "$elapsedTime"
 }
 
 function f_getGlobalElapsed {
-	echo $(f_getElapsed "$START_GLOBAL")
+    echo $(f_getElapsed "$START_GLOBAL")
 }
 
 function f_startLocalTimer {
-	START_LOCAL=$(f_getSeconds)
+    START_LOCAL=$(f_getSeconds)
 }
 
 function f_printLocalElapsed {
-	typeset elapsedTime=$(f_getLocalElapsed)
-	f_printElapsed "$elapsedTime"
+    typeset elapsedTime=$(f_getLocalElapsed)
+    f_printElapsed "$elapsedTime"
 }
 
 function f_printElapsed {
-	typeset seconds=$1
-	typeset time=`date -u -d @${seconds} +"%T"`
-	echo 
-	echo "Total Elapsed Time: $time ($seconds s)" 
+    typeset seconds=$1
+    typeset time=`date -u -d @${seconds} +"%T"`
+    echo 
+    echo "Total Elapsed Time: $time ($seconds s)" 
 }
 
 function f_getLocalElapsed {
-	echo $(f_getElapsed "$START_LOCAL")
+    echo $(f_getElapsed "$START_LOCAL")
 }
 
 function f_getElapsed {
-	typeset startTime=$1
-	typeset endTime=$(f_getSeconds)
-	typeset elapsed=$((endTime-startTime))
-	echo $elapsed
+    typeset startTime=$1
+    typeset endTime=$(f_getSeconds)
+    typeset elapsed=$((endTime-startTime))
+    echo $elapsed
 }
 
 ##### 
@@ -635,191 +653,191 @@ function f_getElapsed {
 #####
 
 function f_compileAssemble {
-	# params
-	typeset filename=$1
-	typeset out_filename=$2
-	typeset cc=$3
-	typeset cc_opts=$4
-	typeset inc_opts=$5
-	
-	echo "compiling and assembling $filename => $out_filename"
-	f_runCmd "$cc $cc_opts $inc_opts -c -o $out_filename $filename"
+    # params
+    typeset filename=$1
+    typeset out_filename=$2
+    typeset cc=$3
+    typeset cc_opts=$4
+    typeset inc_opts=$5
+    
+    echo "compiling and assembling $filename => $out_filename"
+    f_runCmd "$cc $cc_opts $inc_opts -c -o $out_filename $filename"
 }
 
 function f_compileAssembleLink {
-	# params
-	typeset filename=$1
-	typeset out_filename=$2
-	typeset cc=$3
-	typeset ld_opts=$4
-	typeset inc_opts=$5
-	typeset lib_opts=$6
+    # params
+    typeset filename=$1
+    typeset out_filename=$2
+    typeset cc=$3
+    typeset ld_opts=$4
+    typeset inc_opts=$5
+    typeset lib_opts=$6
 
-	echo "compiling and assembling and linking $filename => $out_filename"
-	f_runCmd "$cc $ld_opts $inc_opts $lib_opts -o $out_filename $filename"
+    echo "compiling and assembling and linking $filename => $out_filename"
+    f_runCmd "$cc $ld_opts $inc_opts $lib_opts -o $out_filename $filename"
 }
 
 function f_compileAssembleDirectory {
-	# params
-	typeset directoryToCompile=$1
-	typeset outputDirectory=$2
-	typeset cc=$3
-	typeset cc_opts=$4
-	typeset inc_opts=$5
-	
-	f_compileAssembleDirectoryHelper "$directoryToCompile" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts" "-L" "-maxdepth 1"
+    # params
+    typeset directoryToCompile=$1
+    typeset outputDirectory=$2
+    typeset cc=$3
+    typeset cc_opts=$4
+    typeset inc_opts=$5
+    
+    f_compileAssembleDirectoryHelper "$directoryToCompile" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts" "-L" "-maxdepth 1"
 }
 
 function f_compileAssembleDirectoryTree {
-	# params
-	typeset directoryToCompile=$1
-	typeset outputDirectory=$2
-	typeset cc=$3
-	typeset cc_opts=$4
-	typeset inc_opts=$5
-	
-	f_compileAssembleDirectoryHelper "$directoryToCompile" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts" "" ""
+    # params
+    typeset directoryToCompile=$1
+    typeset outputDirectory=$2
+    typeset cc=$3
+    typeset cc_opts=$4
+    typeset inc_opts=$5
+    
+    f_compileAssembleDirectoryHelper "$directoryToCompile" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts" "" ""
 }
 
 function f_compileAssembleDirectoryHelper {
-	# params
-	typeset directoryToCompile=$1
-	typeset outputDirectory=$2
-	typeset cc=$3
-	typeset cc_opts=$4
-	typeset inc_opts=$5
-	typeset sym_link_opt=$6
-	typeset find_opts=$7
-	
-	typeset cmd="find $sym_link_opt $directoryToCompile $find_opts -type f -name '*.cpp'"
-	typeset filenames=`eval $cmd`
-	typeset totalFiles=$(f_countHelper "$filenames")
-	
-	f_printSubSection "Compiling and Assembling ($totalFiles in $directoryToCompile)"
-	f_compileAssembleFilesUsingMake "cpp" "$filenames" "$totalFiles" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts"
+    # params
+    typeset directoryToCompile=$1
+    typeset outputDirectory=$2
+    typeset cc=$3
+    typeset cc_opts=$4
+    typeset inc_opts=$5
+    typeset sym_link_opt=$6
+    typeset find_opts=$7
+    
+    typeset cmd="find $sym_link_opt $directoryToCompile $find_opts -type f -name '*.cpp'"
+    typeset filenames=`eval $cmd`
+    typeset totalFiles=$(f_countHelper "$filenames")
+    
+    f_printSubSection "Compiling and Assembling ($totalFiles in $directoryToCompile)"
+    f_compileAssembleFilesUsingMake "cpp" "$filenames" "$totalFiles" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts"
 }
 
 function f_compileAssembleFilesUsingMake {
-	typeset fileExt=$1
-	typeset filenames=$2
-	typeset totalFiles=$3
-	typeset outputDirectory=$4
-	typeset cc=$5
-	typeset cc_opts=$6
-	typeset inc_opts=$7
-	
-	typeset allDependencies;
-	typeset fileTargets;
-	typeset fileNum=1
-	for filename in $filenames; do
-		allDependencies+="$fileNum "
-		fileTargets+=$(f_createTargetNoDependencies "$fileNum")
-		typeset sectionNum=$(f_getSectionItemId "$SECTION_COUNT" "$fileNum" "$totalFiles")
-		fileTargets+=$(f_createRule "echo $sectionNum")
-		fileTargets+=$(f_getCompileRule "$fileExt" "$filename" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts")
-		((fileNum++))
-	done
-	
-	typeset allTarget=$(f_createTargetDependencies "compileAll" "$allDependencies")
-	typeset targets="$allTarget\n$fileTargets"
-	f_runMakeCmd "$targets"
+    typeset fileExt=$1
+    typeset filenames=$2
+    typeset totalFiles=$3
+    typeset outputDirectory=$4
+    typeset cc=$5
+    typeset cc_opts=$6
+    typeset inc_opts=$7
+    
+    typeset allDependencies;
+    typeset fileTargets;
+    typeset fileNum=1
+    for filename in $filenames; do
+        allDependencies+="$fileNum "
+        fileTargets+=$(f_createTargetNoDependencies "$fileNum")
+        typeset sectionNum=$(f_getSectionItemId "$SECTION_COUNT" "$fileNum" "$totalFiles")
+        fileTargets+=$(f_createRule "echo $sectionNum")
+        fileTargets+=$(f_getCompileRule "$fileExt" "$filename" "$outputDirectory" "$cc" "$cc_opts" "$inc_opts")
+        ((fileNum++))
+    done
+    
+    typeset allTarget=$(f_createTargetDependencies "compileAll" "$allDependencies")
+    typeset targets="$allTarget\n$fileTargets"
+    f_runMakeCmd "$targets"
 }
 
 function f_getCompileRule {
-	# params
-	typeset fileExt=$1
-	typeset filename=$2
-	typeset outputDirectory=$3
-	typeset cc=$4
-	typeset cc_opts=$5
-	typeset inc_opts=$6
+    # params
+    typeset fileExt=$1
+    typeset filename=$2
+    typeset outputDirectory=$3
+    typeset cc=$4
+    typeset cc_opts=$5
+    typeset inc_opts=$6
 
-	typeset out_filename=`$BASENAME $filename`
-	out_filename=$outputDirectory/`echo -n $out_filename | $SED "s/.${fileExt}$/.o/"` # with pound signs has to be like this for some reason... "s#.${fileExt}\\$#.o#"`
-	f_createRule "$cc $cc_opts $inc_opts -c -o $out_filename $filename"
+    typeset out_filename=`$BASENAME $filename`
+    out_filename=$outputDirectory/`echo -n $out_filename | $SED "s/.${fileExt}$/.o/"` # with pound signs has to be like this for some reason... "s#.${fileExt}\\$#.o#"`
+    f_createRule "$cc $cc_opts $inc_opts -c -o $out_filename $filename"
 }
 
 function f_createTargetDependencies {
-	echo "$1: $2\n"
+    echo "$1: $2\n"
 }
 
 function f_createTargetNoDependencies {
-	echo "$1:\n"
+    echo "$1:\n"
 }
 
 function f_createRule {
-	echo "\t$1\n"
+    echo "\t$1\n"
 }
 
 function f_createStaticLibraryName {
-	echo $(f_createLibraryName "$1" "a");
+    echo $(f_createLibraryName "$1" "a");
 }
 
 function f_createSharedLibraryName {
-	echo $(f_createLibraryName "$1" "so");
+    echo $(f_createLibraryName "$1" "so");
 }
 
 function f_createLibraryName {
-	typeset lib_name=$1
-	typeset ext=$2
-	
-	echo lib${lib_name}.${ext}
+    typeset lib_name=$1
+    typeset ext=$2
+    
+    echo lib${lib_name}.${ext}
 }
 
 function f_createStaticLibrary {
-	typeset lib_name=$1
-	typeset out_dir=$2
-	typeset obj_files=$3
-	typeset lib_files=$4
-	
-	typeset static_lib_name=$(f_createStaticLibraryName "$lib_name");
-	typeset static_lib=$out_dir/$static_lib_name
-	
-	f_printSubSection "creating static lib: $static_lib"
-	f_runCmd "$AR rcs $static_lib $obj_files $lib_files"
+    typeset lib_name=$1
+    typeset out_dir=$2
+    typeset obj_files=$3
+    typeset lib_files=$4
+    
+    typeset static_lib_name=$(f_createStaticLibraryName "$lib_name");
+    typeset static_lib=$out_dir/$static_lib_name
+    
+    f_printSubSection "creating static lib: $static_lib"
+    f_runCmd "$AR rcs $static_lib $obj_files $lib_files"
 }
 
 function f_createSharedLibrary {
-	# params
-	typeset lib_name=$1
-	typeset out_dir=$2
-	typeset obj_files=$3
-	typeset ld=$4
-	typeset ld_opts=$5
-	typeset lib_opts=$6
+    # params
+    typeset lib_name=$1
+    typeset out_dir=$2
+    typeset obj_files=$3
+    typeset ld=$4
+    typeset ld_opts=$5
+    typeset lib_opts=$6
 
-	typeset shared_lib_name=$(f_createSharedLibraryName "$lib_name");
-	typeset shared_lib=$out_dir/$shared_lib_name
-	f_link "$shared_lib" "$obj_files" "$ld" "$ld_opts -shared" "$lib_opts"
+    typeset shared_lib_name=$(f_createSharedLibraryName "$lib_name");
+    typeset shared_lib=$out_dir/$shared_lib_name
+    f_link "$shared_lib" "$obj_files" "$ld" "$ld_opts -shared" "$lib_opts"
 }
 
 function f_link {
-	# params
-	typeset out_filename=$1
-	typeset obj_files=$2
-	typeset ld=$3
-	typeset ld_opts=$4
-	typeset lib_opts=$5
-	
-	f_printSubSection "linking $obj_files => $out_filename"
-	f_runCmd "$ld $ld_opts -o $out_filename $obj_files $lib_opts"
+    # params
+    typeset out_filename=$1
+    typeset obj_files=$2
+    typeset ld=$3
+    typeset ld_opts=$4
+    typeset lib_opts=$5
+    
+    f_printSubSection "linking $obj_files => $out_filename"
+    f_runCmd "$ld $ld_opts -o $out_filename $obj_files $lib_opts"
 }
 
 function f_runCmd {
-	typeset cmd=$1
-	
-	echo "$cmd"
-	$cmd
+    typeset cmd=$1
+    
+    echo "$cmd"
+    $cmd
 }
 
 function f_runMakeCmd {
-	typeset contents=$1
-	
-	typeset tmpFile=$(f_getRunOutputFilename_Helper "make")
-	
-	#echo -e "$contents"	# big message, hide for now
-	echo -e "$contents" > $tmpFile
-	make -f $tmpFile -j $MAKE_JOBS
+    typeset contents=$1
+    
+    typeset tmpFile=$(f_getRunOutputFilename_Helper "make")
+    
+    #echo -e "$contents"    # big message, hide for now
+    echo -e "$contents" > $tmpFile
+    make -f $tmpFile -j $MAKE_JOBS
 }
 
 # normally would run that same command minus the eval statement 
@@ -829,53 +847,53 @@ function f_runMakeCmd {
 # then it won't work right without the eval, you will get:
 #    env: 123": No such file or directory
 function f_runCmdInEvalEnv {
-	typeset variables=$1
-	typeset command=$2
-	
-	f_runCmd "eval env -i $variables $command"
+    typeset variables=$1
+    typeset command=$2
+    
+    f_runCmd "eval env -i $variables $command"
 }
 
 function f_checkoutRepo {
-	f_checkoutRepoHelper $REPO_URL $REPO_NAME
+    f_checkoutRepoHelper $REPO_URL $REPO_NAME
 }
 
 function f_checkoutRepoHelper {
-	$GIT clone ${1}${2}.git
+    $GIT clone ${1}${2}.git
 }
 
 # surrounding double "" is important
 function f_getAllFilesIn {
-	echo "`find $1`"
+    echo "`find $1`"
 }
 
 function f_getAllFilesCount {
-	typeset fileList=$(f_getAllFilesIn "$1")
-	typeset count=$(f_countHelper "$fileList")
-	count=$((count-1))	# -1, filter out "." (the root, which is $1)
-	echo $count
+    typeset fileList=$(f_getAllFilesIn "$1")
+    typeset count=$(f_countHelper "$fileList")
+    count=$((count-1))    # -1, filter out "." (the root, which is $1)
+    echo $count
 }
 
 function f_getSymLinksIn {
-	typeset list=$(f_parseTypeOutOfList "$1" 'l')
-	echo "$list"
+    typeset list=$(f_parseTypeOutOfList "$1" 'l')
+    echo "$list"
 }
 
 function f_getSymLinksCount {
-	typeset list=$(f_getSymLinksIn "$1")
-	typeset count=$(f_countHelper "$list")
-	echo $count
+    typeset list=$(f_getSymLinksIn "$1")
+    typeset count=$(f_countHelper "$list")
+    echo $count
 }
 
 function f_getDirectoriesIn {
-	typeset list=$(f_parseTypeOutOfList "$1" 'd')
-	typeset dirs=`echo "$list" | awk '{print $9}'`
-	echo "$dirs"
+    typeset list=$(f_parseTypeOutOfList "$1" 'd')
+    typeset dirs=`echo "$list" | awk '{print $9}'`
+    echo "$dirs"
 }
 
 function f_getDirectoriesCount {
-	typeset dirs=$(f_getDirectoriesIn "$1")
-	typeset count=$(f_countHelper "$dirs")
-	echo $count
+    typeset dirs=$(f_getDirectoriesIn "$1")
+    typeset count=$(f_countHelper "$dirs")
+    echo $count
 }
 
 #./src:    -------> this line is the directory line, it can also look like ('.:' or '/a/dev/src/blah:')
@@ -884,187 +902,187 @@ function f_getDirectoriesCount {
 #drwxrwsr-x 6 bph cc3Y65  4096 Nov  9 11:04 lib
 #drwxrwsr-x 2 bph cc3Y65 12288 Nov  9 11:04 skfs      
 function f_getFilesIn {
-	typeset list=$(f_getLongRecursiveList $1)
-	typeset             dirsList=`echo "$list" | grep '^[ld]' -v | grep '^total' -v`
-	typeset	  dirsRemovedDirLine=`echo "$dirsList" | grep -P '^\.(/.+)*:$' -v | grep -P '^(/.+)+:' -v`
-	typeset dirsRemoveEmptyLines=`echo "$dirsRemovedDirLine" | grep -P '^\s*$' -v`
-	echo "$dirsRemoveEmptyLines"
+    typeset list=$(f_getLongRecursiveList $1)
+    typeset             dirsList=`echo "$list" | grep '^[ld]' -v | grep '^total' -v`
+    typeset      dirsRemovedDirLine=`echo "$dirsList" | grep -P '^\.(/.+)*:$' -v | grep -P '^(/.+)+:' -v`
+    typeset dirsRemoveEmptyLines=`echo "$dirsRemovedDirLine" | grep -P '^\s*$' -v`
+    echo "$dirsRemoveEmptyLines"
 }
 
 function f_getFilesCount {
-	typeset files=$(f_getFilesIn "$1")
-	typeset count=$(f_countHelper "$files")
-	echo $count
+    typeset files=$(f_getFilesIn "$1")
+    typeset count=$(f_countHelper "$files")
+    echo $count
 }
 
 function f_parseTypeOutOfList {
-	typeset list=$(f_getLongRecursiveList "$1")
-	typeset parsed=`echo "$list" | grep "^$2"`
-	echo "$parsed"
+    typeset list=$(f_getLongRecursiveList "$1")
+    typeset parsed=`echo "$list" | grep "^$2"`
+    echo "$parsed"
 }
 
 function f_getLongRecursiveList {
-	echo "`ls -lR $1`"
+    echo "`ls -lR $1`"
 }
 
 # quotes around $1 is important!
 function f_countHelper {
-	if [[ `echo "$1" | wc -w` == 0 ]] ; then
-		echo "0"
-	else
-		echo "`echo -e \"$1\" | wc -l`"
-	fi 
+    if [[ `echo "$1" | wc -w` == 0 ]] ; then
+        echo "0"
+    else
+        echo "`echo -e \"$1\" | wc -l`"
+    fi 
 }
 
 function f_getIncrementedFolderIn {
-	typeset latest=$(f_getLatestFolder "$1")
-	typeset incremented=`echo $latest | gawk 'BEGIN{FS=OFS="."}{$NF++;print $0}'`
-	echo $incremented
+    typeset latest=$(f_getLatestFolder "$1")
+    typeset incremented=`echo $latest | gawk 'BEGIN{FS=OFS="."}{$NF++;print $0}'`
+    echo $incremented
 }
 
 function f_getLatestFolder {
-	typeset latest=`ls -1t $1 | grep -P -v "prod|qa|git" | head -n 1`
-	echo $latest
+    typeset latest=`ls -1t $1 | grep -P -v "prod|qa|git" | head -n 1`
+    echo $latest
 }
 
 function f_sendEmail {
-	typeset to=$1
-	typeset from=$2
-	typeset subject=$3
-	typeset body=$4
-	typeset attachments=$5
-	
-	typeset attachmentsList;
-	if [[ -n $attachments ]] ; then
-		attachmentsList="-a $attachments"
-	fi
-	
-	echo -e "$body" | $MUTT -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
+    typeset to=$1
+    typeset from=$2
+    typeset subject=$3
+    typeset body=$4
+    typeset attachments=$5
+    
+    typeset attachmentsList;
+    if [[ -n $attachments ]] ; then
+        attachmentsList="-a $attachments"
+    fi
+    
+    echo -e "$body" | $MUTT -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
 }
 
 function f_getFullJarNames {
-	typeset dir=$1
-	
-	typeset list=""
-	for jar in $dir/*.jar; do
-		list+="${jar}:"
-	done
-	
-	echo $list
+    typeset dir=$1
+    
+    typeset list=""
+    for jar in $dir/*.jar; do
+        list+="${jar}:"
+    done
+    
+    echo $list
 }
 
 function f_getSkClasspath {
-	typeset all_lib_jars=$(f_getFullJarNames "$LIB_DIR")
-	
-	echo "$SILVERKING_JAR:$all_lib_jars"
+    typeset all_lib_jars=$(f_getFullJarNames "$LIB_DIR")
+    
+    echo "$SILVERKING_JAR:$all_lib_jars"
 }
 
 function f_startAll {
-	f_startSilverking
-	f_startSkfs
+    f_startSilverking
+    f_startSkfs
 }
 
 function f_stopAll {
-	f_stopSkfs
-	f_stopSilverking
+    f_stopSkfs
+    f_stopSilverking
 }
 
 function f_startSilverking {
-	f_printSection "STARTING Silverking"
-	
-	if [[ -e $SK_GRID_CONFIG_DIR/${SK_GRID_CONFIG_NAME}.env ]]; then
-		f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known state"
-		f_stopAll
-	fi
-	
-	f_startSilverking_Helper
+    f_printSection "STARTING Silverking"
+    
+    if [[ -e $SK_GRID_CONFIG_DIR/${SK_GRID_CONFIG_NAME}.env ]]; then
+        f_printSubSection "Trying to shut down old sk/skfs, just to start from a good-known state"
+        f_stopAll
+    fi
+    
+    f_startSilverking_Helper
 }
 
 function f_startSilverking_Helper {
-	f_runStaticInstanceCreator
-	f_runSkAdmin "StartNodes"
-	
+    f_runStaticInstanceCreator
+    f_runSkAdmin "StartNodes"
+    
     f_skUserProcessCheck "1"
 }
 
 function f_runStaticInstanceCreator {
     f_printSubSection "StaticInstanceCreator"
-	
-	typeset vars=$(f_getUserAndBinScriptVars)
-	f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE"
+    
+    typeset vars=$(f_getUserAndBinScriptVars)
+    f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE"
 }
 
 function f_stopSilverking {
-	f_printSection "STOPPING Silverking"
-	
-	f_runSkAdmin "StopNodes,ClearData"
-	
+    f_printSection "STOPPING Silverking"
+    
+    f_runSkAdmin "StopNodes,ClearData"
+    
     f_skUserProcessCheck "0"
 }
 
 function f_startSkfs {
-	f_printSection "STARTING SKFS"
-	
-	f_addBinSkfsD
-	f_startSkfs_Helper
+    f_printSection "STARTING SKFS"
+    
+    f_addBinSkfsD
+    f_startSkfs_Helper
 }
 
 function f_startSkfs_Helper {
-	f_runSkAdmin "CreateSKFSns,CheckSKFS"
-	
+    f_runSkAdmin "CreateSKFSns,CheckSKFS"
+    
     f_skfsUserProcessCheck "1"
-	
-	f_mountAccessibleCheck "0"
+    
+    f_mountAccessibleCheck "0"
 }
 
 function f_stopSkfs {
-	f_printSection "STOPPING SKFS"
-	
-	f_stopSkfs_Helper
-	f_removeBinSkfsD
+    f_printSection "STOPPING SKFS"
+    
+    f_stopSkfs_Helper
+    f_removeBinSkfsD
 }
 
 function f_stopSkfs_Helper {
-	f_runSkAdmin "StopSKFS"
-	
+    f_runSkAdmin "StopSKFS"
+    
     f_skfsUserProcessCheck "0"
-	
-	f_mountAccessibleCheck "2"
+    
+    f_mountAccessibleCheck "2"
 }
 
 function f_runSkAdmin {
-	typeset command=$1
-	
-	f_printSubSection "SKAdmin"
-	typeset userAndBinScriptVars=$(f_getUserAndBinScriptVars)
-	typeset sshVarForParallelSSH=$(f_getSshVar)
+    typeset command=$1
+    
+    f_printSubSection "SKAdmin"
+    typeset userAndBinScriptVars=$(f_getUserAndBinScriptVars)
+    typeset sshVarForParallelSSH=$(f_getSshVar)
     # why we need PATH, I'm not exactly sure. I haven't traced it down even more. If I do "PATH=/bin", it'll still error out.
     # I think it's something to do with ParallelSSH workers running the commands
     # I thought maybe these needed it, but I'm not sure: netstat, grep, mkdir, rm, mv
     typeset vars="
-	     $userAndBinScriptVars
-	     PATH=$PATH
-	     $sshVarForParallelSSH
-	"
-	f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command -uwc 1"
+         $userAndBinScriptVars
+         PATH=$PATH
+         $sshVarForParallelSSH
+    "
+    f_runCmdInEvalEnv "$vars" "$BIN_DIR/SKAdmin.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -c $command -uwc 1"
 }
 
 # for StaticInstanceCreator
 # for SKAdmin
 function f_getUserAndBinScriptVars {
-	typeset skClasspath=$(f_getSkClasspath)
-	
+    typeset skClasspath=$(f_getSkClasspath)
+    
     # USER - so that the stats file will have a user to log instead of being empty: ',,'
     
-	# if you set skGlobalCodebase you need to set skDevJavaHome as well. skDevJavaHome is used to launch all the scripts in bin/
-	# SK_JACE_HOME needs to be set, but it's getting set and picked up automatically in bin/lib/sk.config
-	# SK_JAVA_HOME doesn't need to be set. it's optional. if not set, SKAdmin.java will set default for us 
-	# formatted this way (newlines in vars), for when looking at the output file
-	echo "
+    # if you set skGlobalCodebase you need to set skDevJavaHome as well. skDevJavaHome is used to launch all the scripts in bin/
+    # SK_JACE_HOME needs to be set, but it's getting set and picked up automatically in bin/lib/sk.config
+    # SK_JAVA_HOME doesn't need to be set. it's optional. if not set, SKAdmin.java will set default for us 
+    # formatted this way (newlines in vars), for when looking at the output file
+    echo "
                     USER=$USER
-		skGlobalCodebase=$skClasspath
-		   skDevJavaHome=$JAVA_8_HOME
-	"
+        skGlobalCodebase=$skClasspath
+           skDevJavaHome=$JAVA_8_HOME
+    "
 }
 
 # for SKAdmin - so that it doesn't loop on "WARNING: 2018:11:16 21:33:05 EST workerSSH.numCompleted(): 0    numWorkers: 1"
@@ -1081,51 +1099,51 @@ function f_addBinSkfsD {
 }
 
 function f_removeBinSkfsD {
-	f_removeVerbose "$BIN_SKFS_DIR/$SKFS_EXEC_NAME"
+    f_removeVerbose "$BIN_SKFS_DIR/$SKFS_EXEC_NAME"
 }
 
 function f_skUserProcessCheck {
-	f_userProcessCheck "$SK_PROCESS_NAME" "$SK_PROCESS_PATTERN" "$1"
+    f_userProcessCheck "$SK_PROCESS_NAME" "$SK_PROCESS_PATTERN" "$1"
 }
 
 function f_skfsUserProcessCheck {
-	f_userProcessCheck "$SKFS_PROCESS_NAME" "$SKFS_PROCESS_PATTERN" "$1" "15"
+    f_userProcessCheck "$SKFS_PROCESS_NAME" "$SKFS_PROCESS_PATTERN" "$1" "15"
 }
 
 function f_userProcessCheck {
     typeset processName=$1
-	typeset processPattern=$2
-	typeset expectedCount=$3
-	typeset retries=$4
-	
-	if [[ -z $retries ]]; then
-		retries=1
-	fi
-	
-	typeset startOrStopText="start"
-	typeset expectingText="exists"
-	if [[ $expectedCount -eq 0 ]] ; then
-		startOrStopText="stop"
-		expectingText="doesn't exist"
-	fi
-	
-	f_printChecking "$processName"
-	typeset userProcessInfo=;
-	typeset actualCount=;
-	typeset result=;
-	typeset retry=0;
-	while [[ $result != $PASS_TEXT && $retry -lt $retries ]]; do
-		sleep 1;
-		
-		((retry++))
-		echo "($retry) checking for $startOrStopText" 
-				
-		userProcessInfo=$(f_getProcesses "$processPattern")
-		actualCount=$(f_getProcessCount "$userProcessInfo")
-		result=$(f_getEqualsResult "$actualCount" "$expectedCount")
-	done
-		
-	f_printResult "$result" "process $expectingText with \"$processName\"" "$actualCount  $userProcessInfo";
+    typeset processPattern=$2
+    typeset expectedCount=$3
+    typeset retries=$4
+    
+    if [[ -z $retries ]]; then
+        retries=1
+    fi
+    
+    typeset startOrStopText="start"
+    typeset expectingText="exists"
+    if [[ $expectedCount -eq 0 ]] ; then
+        startOrStopText="stop"
+        expectingText="doesn't exist"
+    fi
+    
+    f_printChecking "$processName"
+    typeset userProcessInfo=;
+    typeset actualCount=;
+    typeset result=;
+    typeset retry=0;
+    while [[ $result != $PASS_TEXT && $retry -lt $retries ]]; do
+        sleep 1;
+        
+        ((retry++))
+        echo "($retry) checking for $startOrStopText" 
+                
+        userProcessInfo=$(f_getProcesses "$processPattern")
+        actualCount=$(f_getProcessCount "$userProcessInfo")
+        result=$(f_getEqualsResult "$actualCount" "$expectedCount")
+    done
+        
+    f_printResult "$result" "process $expectingText with \"$processName\"" "$actualCount  $userProcessInfo";
 }
 
 function f_getProcesses {
@@ -1133,34 +1151,34 @@ function f_getProcesses {
 }
 
 function f_getProcessCount {
-	echo "$1" | grep -c -P "."
+    echo "$1" | grep -c -P "."
 }
 
 function f_mountAccessibleCheck {
-	typeset expectedErrorCode=$1
-	typeset retries=15
-	
-	typeset expectingText="is"
-	if [[ $expectedErrorCode -ne 0 ]] ; then
-		expectingText="isn't"
-	fi
-	
-	echo
-	typeset actualCode;
-	typeset result=;
-	typeset retry=0;
-	while [[ $result != $PASS_TEXT && $retry -lt $retries ]]; do
-		sleep 1;
-		
-		((retry++))
-		echo "($retry) checking $SKFS_MNT_AREA $expectingText accessible" 
-		
-		ls -l $SKFS_MNT_AREA
-		actualCode=$?
-		result=$(f_getEqualsResult "$actualCode" "$expectedErrorCode")
-	done
-	
-	f_printResult "$result" "$SKFS_MNT_AREA $expectingText accessible, expectedErrorCode is $expectedErrorCode" "$actualCode";
+    typeset expectedErrorCode=$1
+    typeset retries=15
+    
+    typeset expectingText="is"
+    if [[ $expectedErrorCode -ne 0 ]] ; then
+        expectingText="isn't"
+    fi
+    
+    echo
+    typeset actualCode;
+    typeset result=;
+    typeset retry=0;
+    while [[ $result != $PASS_TEXT && $retry -lt $retries ]]; do
+        sleep 1;
+        
+        ((retry++))
+        echo "($retry) checking $SKFS_MNT_AREA $expectingText accessible" 
+        
+        ls -l $SKFS_MNT_AREA
+        actualCode=$?
+        result=$(f_getEqualsResult "$actualCode" "$expectedErrorCode")
+    done
+    
+    f_printResult "$result" "$SKFS_MNT_AREA $expectingText accessible, expectedErrorCode is $expectedErrorCode" "$actualCode";
 }
 
 function f_fillInBuildConfigVariable {
@@ -1168,49 +1186,49 @@ function f_fillInBuildConfigVariable {
 }
 
 function f_overrideBuildConfigVariable {
-	f_overrideVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
+    f_overrideVariable_Helper "$BUILD_CONFIG_FILE" "$1" "$2"
 }
 
 function f_fillInSkfsConfig {
-	f_overrideSkfsConfigVariable "silverkingBase" "$SK_DATA_HOME"
-	f_overrideSkfsConfigVariable "heapDumpBase"   "$SK_LOG_HOME"
+    f_overrideSkfsConfigVariable "silverkingBase" "$SK_DATA_HOME"
+    f_overrideSkfsConfigVariable "heapDumpBase"   "$SK_LOG_HOME"
 }
 
 function f_fillInSkfsConfigVariable {
-	f_fillInVariable_Helper "$SKFS_CONFIG_FILE" "$1" "$2"
+    f_fillInVariable_Helper "$SKFS_CONFIG_FILE" "$1" "$2"
 }
 
 function f_overrideSkfsConfigVariable {
-	f_overrideVariable_Helper "$SKFS_CONFIG_FILE" "$1" "$2"
+    f_overrideVariable_Helper "$SKFS_CONFIG_FILE" "$1" "$2"
 }
 
 function f_fillInSkConfig {
-	f_fillInSkConfigVariable "skJavaHome"   "$JAVA_8_HOME"
-	f_fillInSkConfigVariable "SK_JACE_HOME" "$JACE_HOME"
+    f_fillInSkConfigVariable "skJavaHome"   "$JAVA_8_HOME"
+    f_fillInSkConfigVariable "SK_JACE_HOME" "$JACE_HOME"
 }
 
 function f_fillInSkConfigVariable {
-	f_fillInVariable_Helper "$SK_CONFIG_FILE" "$1" "$2"
+    f_fillInVariable_Helper "$SK_CONFIG_FILE" "$1" "$2"
 }
 
 function f_fillInVariable_Helper {
-	typeset filename=$1
-	typeset variable=$2
-	typeset value=$3
-	
-	sed -ri "s#(${variable}=)#\1$value#" $filename	# double quotes important so the variable will be expanded
+    typeset filename=$1
+    typeset variable=$2
+    typeset value=$3
+    
+    sed -ri "s#(${variable}=)#\1$value#" $filename    # double quotes important so the variable will be expanded
 }
 
 function f_overrideVariable_Helper {
-	typeset filename=$1
-	typeset variable=$2
-	typeset value=$3
-	
-	# we pretty much want to override everything after the '=' up until there is a possible comment starting with '#'
-	# FIXME:bph: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
-	sed -ri "s#(${variable}=)(\S+\s*.*)(\#)?#\1${value}\3#" $filename	# double quotes important so the variable will be expanded
+    typeset filename=$1
+    typeset variable=$2
+    typeset value=$3
+    
+    # we pretty much want to override everything after the '=' up until there is a possible comment starting with '#'
+    # FIXME:bph: currently it overrides the comment too, b/c the '.*' of (\S+\s*.*) is greedy since the '\#' is optional
+    sed -ri "s#(${variable}=)(\S+\s*.*)(\#)?#\1${value}\3#" $filename    # double quotes important so the variable will be expanded
 }
 
 function f_copySkfsConfig {
-	f_copyHelper "$SKFS_CONFIG_FILE" "$BIN_DIR/$LIB_FOLDER_NAME"
+    f_copyHelper "$SKFS_CONFIG_FILE" "$BIN_DIR/$LIB_FOLDER_NAME"
 }

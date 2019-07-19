@@ -16,8 +16,8 @@
 ////////////
 // defines
 
-#define DEI_MAGIC	0xaaddaabb
-#define DEI_HEADER_BYTES	((uint64_t)(&((DirEntryIndex *)0)->entries))
+#define DEI_MAGIC    0xaaddaabb
+#define DEI_HEADER_BYTES    ((uint64_t)(&((DirEntryIndex *)0)->entries))
 #define DEI_ENTRY_SIZE sizeof(DEIndexEntry)
 #define DEI_NOT_FOUND 0xffffffff
 
@@ -30,9 +30,9 @@ typedef uint32_t DEIndexEntry;
  * Single directory entry in a DirData structure.
  */
 typedef struct DirEntryIndex {
-	uint32_t		magic;
-	uint32_t		numEntries;
-	DEIndexEntry	entries[]; // must be last in structure for DE_HEADER_BYTES calculation
+    uint32_t        magic;
+    uint32_t        numEntries;
+    DEIndexEntry    entries[]; // must be last in structure for DE_HEADER_BYTES calculation
 } DirEntryIndex;
 
 

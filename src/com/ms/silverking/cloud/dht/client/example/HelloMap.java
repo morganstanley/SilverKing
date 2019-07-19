@@ -10,7 +10,7 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
 public class HelloMap {        
     
-	public static Map<String, String> runExample(SKGridConfiguration gridConfig) {
+    public static Map<String, String> runExample(SKGridConfiguration gridConfig) {
         try {
             SynchronousNamespacePerspective<String, String>    syncNSP;
             Map<String,String>    mapA;
@@ -29,7 +29,7 @@ public class HelloMap {
             throw new RuntimeException(e);
         }
     }
-	
+    
     public static void main(String[] args) throws IOException {
         Map<String,String> mapB = runExample( SKGridConfiguration.parseFile(args[0]) );
         for (String name : mapB.keySet()) {

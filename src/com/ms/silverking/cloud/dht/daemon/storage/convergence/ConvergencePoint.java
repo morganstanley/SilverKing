@@ -18,7 +18,7 @@ public class ConvergencePoint implements Comparable<ConvergencePoint> {
     
     public ConvergencePoint(long dhtConfigVersion, RingIDAndVersionPair ringIDAndVersion, long dataVersion) {
         //this.dhtConfigVersion = dhtConfigVersion;
-    								// dhtConfigVersion is to be deprecated
+                                    // dhtConfigVersion is to be deprecated
         this.dhtConfigVersion = 16; // dhtConfigVersion hasn't proven to be useful as the remaining members are sufficient to describe a CP. 
         this.ringIDAndVersionPair = ringIDAndVersion;
         this.dataVersion = dataVersion;
@@ -59,25 +59,25 @@ public class ConvergencePoint implements Comparable<ConvergencePoint> {
         return dhtConfigVersion +":"+ ringIDAndVersionPair.toString() +":"+ dataVersion;
     }
     
-	@Override
-	public int compareTo(ConvergencePoint o) {
-		int	c;
-		
-		c = Long.compare(dhtConfigVersion, o.dhtConfigVersion);
-		if (c != 0) {
-			return c;
-		} else {
-			try {
-				return this.getRingIDAndVersionPair().compareTo(o.getRingIDAndVersionPair());
-			} catch (IncomparableException ie) {
-				// This should not happen since any time the ring name changes, it should
-				// have been caused by a corresponding dhtConfig change which should
-				// be caught above
-				Log.logErrorSevere(ie, "Unexpected IncomparableException", getClass().getName(), "compareTo");
-				throw ie;
-			}
-		}
-	}
+    @Override
+    public int compareTo(ConvergencePoint o) {
+        int    c;
+        
+        c = Long.compare(dhtConfigVersion, o.dhtConfigVersion);
+        if (c != 0) {
+            return c;
+        } else {
+            try {
+                return this.getRingIDAndVersionPair().compareTo(o.getRingIDAndVersionPair());
+            } catch (IncomparableException ie) {
+                // This should not happen since any time the ring name changes, it should
+                // have been caused by a corresponding dhtConfig change which should
+                // be caught above
+                Log.logErrorSevere(ie, "Unexpected IncomparableException", getClass().getName(), "compareTo");
+                throw ie;
+            }
+        }
+    }
     
     
     //////////////////
@@ -89,7 +89,7 @@ public class ConvergencePoint implements Comparable<ConvergencePoint> {
     private static final int    configInstanceVersionOffset = ringConfigVersionOffset + NumConversion.BYTES_PER_LONG;
     private static final int    versionOffset = configInstanceVersionOffset + NumConversion.BYTES_PER_LONG;
     
-    public static final int	serializedSizeBytes = RingIDAndVersionPair.BYTES + NumConversion.BYTES_PER_LONG * 2;
+    public static final int    serializedSizeBytes = RingIDAndVersionPair.BYTES + NumConversion.BYTES_PER_LONG * 2;
     
     public void writeToBuffer(ByteBuffer dataByteBuffer) {
         dataByteBuffer.putLong(getDHTConfigVersion()); 

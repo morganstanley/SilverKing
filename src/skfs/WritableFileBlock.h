@@ -22,8 +22,8 @@
 // types
 
 typedef struct WritableFileBlock {
-    unsigned char	block[SRFS_BLOCK_SIZE];
-	size_t	size;
+    unsigned char    block[SRFS_BLOCK_SIZE];
+    size_t    size;
 } WritableFileBlock;
 
 

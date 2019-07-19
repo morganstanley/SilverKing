@@ -6,7 +6,7 @@ using jace::proxy::java::lang::String;
 using jace::proxy::com::ms::silverking::cloud::dht::client::SnapshotException;
 
 SKSnapshotException::SKSnapshotException(SnapshotException * pSe, const char * fileName, int lineNum) 
-		: SKClientException(pSe, fileName, lineNum) { 	/*pImpl = pSe;*/ } 
+        : SKClientException(pSe, fileName, lineNum) {     /*pImpl = pSe;*/ } 
 
 SKSnapshotException::~SKSnapshotException()  throw () { }
 

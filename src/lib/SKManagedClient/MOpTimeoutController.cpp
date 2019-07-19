@@ -14,39 +14,39 @@ namespace SKManagedClient {
 
 MOpTimeoutController::~MOpTimeoutController()
 {
-	this->!MOpTimeoutController();
+    this->!MOpTimeoutController();
 }
 
 MOpTimeoutController::!MOpTimeoutController()
 {
-	if(pImpl)
-	{
-		delete (SKOpTimeoutController*)pImpl ;
-		pImpl = NULL;
-	}
+    if(pImpl)
+    {
+        delete (SKOpTimeoutController*)pImpl ;
+        pImpl = NULL;
+    }
 }
 
 //MOpTimeoutController::MOpTimeoutController() : pImpl(NULL) {}
 
 SKOpTimeoutController_M ^ MOpTimeoutController::getPImpl(){
-	SKOpTimeoutController_M ^ opc = gcnew SKOpTimeoutController_M;
-	opc->pOpTimeoutController = pImpl;
-	return opc;
+    SKOpTimeoutController_M ^ opc = gcnew SKOpTimeoutController_M;
+    opc->pOpTimeoutController = pImpl;
+    return opc;
 }
 
 int MOpTimeoutController::getMaxAttempts(MAsyncOperation ^ op){
-	SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
-	return ((SKOpTimeoutController*)pImpl)->getMaxAttempts(pOp);
+    SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
+    return ((SKOpTimeoutController*)pImpl)->getMaxAttempts(pOp);
 }
 
 int MOpTimeoutController::getRelativeTimeoutMillisForAttempt(MAsyncOperation ^ op, int attemptIndex){
-	SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
-	return ((SKOpTimeoutController*)pImpl)->getRelativeTimeoutMillisForAttempt(pOp, attemptIndex);
+    SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
+    return ((SKOpTimeoutController*)pImpl)->getRelativeTimeoutMillisForAttempt(pOp, attemptIndex);
 }
 
 int MOpTimeoutController::getMaxRelativeTimeoutMillis(MAsyncOperation ^ op){
-	SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
-	return ((SKOpTimeoutController*)pImpl)->getMaxRelativeTimeoutMillis(pOp);
+    SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
+    return ((SKOpTimeoutController*)pImpl)->getMaxRelativeTimeoutMillis(pOp);
 }
 
 

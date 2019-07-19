@@ -14,36 +14,36 @@
 // implementation
 
 WritableFileBlock *wfb_new() {
-	WritableFileBlock    *wfb;
+    WritableFileBlock    *wfb;
 
-	wfb = (WritableFileBlock *)mem_alloc(1, sizeof(WritableFileBlock));
+    wfb = (WritableFileBlock *)mem_alloc(1, sizeof(WritableFileBlock));
     srfsLog(LOG_FINE, "wfb_new %llx\n", wfb);
-	return wfb;
+    return wfb;
 }
 
 void wfb_delete(WritableFileBlock **wfb) {
-	if (wfb != NULL && *wfb != NULL) {
-		mem_free((void **)wfb);
-	} else {
-		fatalError("bad ptr in wfb_delete");
-	}
+    if (wfb != NULL && *wfb != NULL) {
+        mem_free((void **)wfb);
+    } else {
+        fatalError("bad ptr in wfb_delete");
+    }
 }
 
 size_t wfb_read(WritableFileBlock *wfb, char *dest, size_t srcOffset, size_t length) {
     if (srcOffset + length > wfb->size) {
         fatalError("srcOffset + length > wfb->size", __FILE__, __LINE__);
     }
-	memcpy(dest, wfb->block + srcOffset, length);
-	return length;
+    memcpy(dest, wfb->block + srcOffset, length);
+    return length;
 }
 
 size_t wfb_write(WritableFileBlock *wfb, const char *src, size_t length) {
-	size_t  bytesToWrite;
-	
-	bytesToWrite = size_min(length, SRFS_BLOCK_SIZE - wfb->size);
-	memcpy(wfb->block + wfb->size, src, bytesToWrite);
-	wfb->size += bytesToWrite;
-	return bytesToWrite;
+    size_t  bytesToWrite;
+    
+    bytesToWrite = size_min(length, SRFS_BLOCK_SIZE - wfb->size);
+    memcpy(wfb->block + wfb->size, src, bytesToWrite);
+    wfb->size += bytesToWrite;
+    return bytesToWrite;
 }
 
 size_t wfb_rewrite(WritableFileBlock *wfb, const char *src, size_t offset, size_t length) {
@@ -52,8 +52,8 @@ size_t wfb_rewrite(WritableFileBlock *wfb, const char *src, size_t offset, size_
         // This is a rewrite; we shouldn't be exceeding the current size
         fatalError("offset + length > wfb->size", __FILE__, __LINE__);
     }
-	memcpy(wfb->block + offset, src, length);
-	return length;
+    memcpy(wfb->block + offset, src, length);
+    return length;
 }
 
 void wfb_truncate(WritableFileBlock *wfb, size_t length) {
@@ -72,10 +72,10 @@ int wfb_is_empty(WritableFileBlock *wfb) {
 }
 
 size_t wfb_zero_out_remainder(WritableFileBlock *wfb) {
-	size_t  bytesToWrite;
-	
-	bytesToWrite = SRFS_BLOCK_SIZE - wfb->size;
-	memcpy(wfb->block + wfb->size, zeroBlock, bytesToWrite);
-	wfb->size += bytesToWrite;
+    size_t  bytesToWrite;
+    
+    bytesToWrite = SRFS_BLOCK_SIZE - wfb->size;
+    memcpy(wfb->block + wfb->size, zeroBlock, bytesToWrite);
+    wfb->size += bytesToWrite;
     return bytesToWrite;
 }

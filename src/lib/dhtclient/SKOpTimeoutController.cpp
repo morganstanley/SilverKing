@@ -9,23 +9,23 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::AsyncOperation;
 using jace::proxy::java::lang::String;
 
 int SKOpTimeoutController::getMaxAttempts(SKAsyncOperation * op) {
-	int  v = (int)((OpTimeoutController*)pImpl)->getMaxAttempts(*(AsyncOperation*)op->getPImpl()); 
-	return v;
+    int  v = (int)((OpTimeoutController*)pImpl)->getMaxAttempts(*(AsyncOperation*)op->getPImpl()); 
+    return v;
 }
 
 int SKOpTimeoutController::getRelativeTimeoutMillisForAttempt(SKAsyncOperation * op, int attemptIndex) {
-	int  v = (int)((OpTimeoutController*)pImpl)->getRelativeTimeoutMillisForAttempt(*(AsyncOperation*)op->getPImpl(), attemptIndex); 
-	return v;
+    int  v = (int)((OpTimeoutController*)pImpl)->getRelativeTimeoutMillisForAttempt(*(AsyncOperation*)op->getPImpl(), attemptIndex); 
+    return v;
 }
 
 int SKOpTimeoutController::getMaxRelativeTimeoutMillis(SKAsyncOperation *op) {
-	int  v = (int)((OpTimeoutController*)pImpl)->getMaxRelativeTimeoutMillis(*(AsyncOperation*)op->getPImpl()); 
-	return v;
+    int  v = (int)((OpTimeoutController*)pImpl)->getMaxRelativeTimeoutMillis(*(AsyncOperation*)op->getPImpl()); 
+    return v;
 }
 
 std::string SKOpTimeoutController::toString() {
-	std::string s = (std::string)(((OpTimeoutController*)pImpl)->toString());
-	return s;
+    std::string s = (std::string)(((OpTimeoutController*)pImpl)->toString());
+    return s;
 }
 
 OpTimeoutController * SKOpTimeoutController::getPImpl() {
@@ -46,11 +46,11 @@ SKOpTimeoutController::SKOpTimeoutController()
 
 SKOpTimeoutController::~SKOpTimeoutController() 
 { 
-	if (pImpl) {
-		OpTimeoutController* pOpTimeoutController = (OpTimeoutController*)pImpl;
-		delete pOpTimeoutController;
-		pImpl = NULL;
-	}
+    if (pImpl) {
+        OpTimeoutController* pOpTimeoutController = (OpTimeoutController*)pImpl;
+        delete pOpTimeoutController;
+        pImpl = NULL;
+    }
 }
 
 

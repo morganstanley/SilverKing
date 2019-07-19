@@ -33,8 +33,8 @@ public class VersionWatcher extends WatcherBase {
     }
     
     protected void _doCheck() throws KeeperException {
-		Log.fine("checkVersions");
-    	try {
+        Log.fine("checkVersions");
+        try {
             ZooKeeperExtended   _zk;
             List<String>    children;
             List<Long>      currentVersions;
@@ -63,36 +63,36 @@ public class VersionWatcher extends WatcherBase {
                 Log.warning("VersionCheck complete: ", basePath);
             }
         } catch (KeeperException ke) {
-    		System.out.println("*** ZooKeeper state: "+ metaClientCore.getZooKeeper().getState());
-    		throw ke;
+            System.out.println("*** ZooKeeper state: "+ metaClientCore.getZooKeeper().getState());
+            throw ke;
         }
     }
 
-	private void checkVersions() {
-		try {
-			doCheck();
-		} catch (KeeperException re) {
-			throw new RuntimeException(re);
-		}
-	}
+    private void checkVersions() {
+        try {
+            doCheck();
+        } catch (KeeperException re) {
+            throw new RuntimeException(re);
+        }
+    }
     
     public void connected(WatchedEvent event) {
-    	Log.fine("connected");
-    	checkVersions();
+        Log.fine("connected");
+        checkVersions();
     }
     
     public void nodeCreated(WatchedEvent event) {
-    	Log.fine("nodeCreated");
-    	checkVersions();
+        Log.fine("nodeCreated");
+        checkVersions();
     }
     
     public void nodeDeleted(WatchedEvent event) {
-    	Log.warning("nodeDeleted ", event.getPath());
-    	checkVersions();
+        Log.warning("nodeDeleted ", event.getPath());
+        checkVersions();
     }
     
     public void nodeChildrenChanged(WatchedEvent event) {
-    	Log.fine("nodeChildrenChanged");
-    	checkVersions();
+        Log.fine("nodeChildrenChanged");
+        checkVersions();
     }    
 }

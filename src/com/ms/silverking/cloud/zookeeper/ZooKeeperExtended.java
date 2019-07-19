@@ -48,16 +48,16 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
 //    private final ConcurrentMap<ZKRequestUUID, ActiveOp> activeOps;
     private final ConcurrentMap<ZKRequestUUID, AsyncCallbackOp>   callbacks;
     
-    private static final LightLinkedBlockingQueue<Result>	asyncGetResults;
-    private static final int	processRunnerIdleTimeoutSeconds = 10;
-    private static final int	processRunnerThreads = 6;
+    private static final LightLinkedBlockingQueue<Result>    asyncGetResults;
+    private static final int    processRunnerIdleTimeoutSeconds = 10;
+    private static final int    processRunnerThreads = 6;
     
     private static final int    connectionCheckIntervalMillis = 100;
     private static final List<ACL> defaultACL = ZooDefs.Ids.OPEN_ACL_UNSAFE;
     
-    private static final int	displayMissingIntervalSeconds = 20;
-    private static final int	reissueIntervalSeconds = 1 * 60;
-    private static final int	timeoutSeconds = 3 * 1 * 60 + 10;
+    private static final int    displayMissingIntervalSeconds = 20;
+    private static final int    reissueIntervalSeconds = 1 * 60;
+    private static final int    timeoutSeconds = 3 * 1 * 60 + 10;
     
     private static final int ANY_VERSION = -1;
     
@@ -90,7 +90,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     static {
         defaultAclProvider = resolveDefaultAclProvider();
         asyncGetResults = new LightLinkedBlockingQueue<>();
-    	new ProcessRunner();
+        new ProcessRunner();
     }
 
     /**
@@ -326,7 +326,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     private List<ACL> getAclForPath(String path) {
         List<ACL> aclToUse = acl.getAclForPath(path);
         if (aclToUse == null) {
-        	aclToUse = acl.getDefaultAcl(); 
+            aclToUse = acl.getDefaultAcl(); 
         }
         return aclToUse;
     }
@@ -348,11 +348,11 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
     
     public String ensureCreated(String path) throws KeeperException {
-    	if (!exists(path)) {
-    		return create(path, "".getBytes());
-    	} else {
-    		return path;
-    	}
+        if (!exists(path)) {
+            return create(path, "".getBytes());
+        } else {
+            return path;
+        }
     }
     
     public StringCallbackOp createAsync(String path, byte[] data, List<ACL> acl, CreateMode createMode) 
@@ -416,7 +416,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
 
     public int getInt(String path) throws KeeperException {
-    	return getInt(path, null);
+        return getInt(path, null);
     }
 
     public int getInt(String path, Watcher watcher) throws KeeperException {
@@ -466,332 +466,332 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
     
     public Map<String,String> getStrings(Set<String> paths) throws KeeperException {
-    	return convertToStringData(getByteArrays(paths));
+        return convertToStringData(getByteArrays(paths));
     }
     
     public Map<String,String> getStrings(Set<String> paths, Watcher watcher) throws KeeperException {
-    	return convertToStringData(getByteArrays(paths, watcher));
+        return convertToStringData(getByteArrays(paths, watcher));
     }
     
-	public Map<String, Integer> getInts(Set<String> paths) throws KeeperException {
-    	return convertToIntData(getByteArrays(paths));
-	}    
+    public Map<String, Integer> getInts(Set<String> paths) throws KeeperException {
+        return convertToIntData(getByteArrays(paths));
+    }    
     
-	public Map<String, Integer> getInts(Set<String> paths, Watcher watcher) throws KeeperException {
-    	return convertToIntData(getByteArrays(paths, watcher));
-	}
-	
-	public Map<String,byte[]> getByteArrays(Set<String> paths) throws KeeperException {
-    	AsyncGet	aGet;
-    	
-    	aGet = new AsyncGet(paths);
-    	aGet.issueGets();
-    	aGet.waitForCompletion();
-    	return aGet.getDataMap();
+    public Map<String, Integer> getInts(Set<String> paths, Watcher watcher) throws KeeperException {
+        return convertToIntData(getByteArrays(paths, watcher));
     }
     
-	public Map<String,byte[]> getByteArrays(Set<String> paths, Watcher watcher) throws KeeperException {
-    	AsyncGet	aGet;
-    	
-    	aGet = new AsyncGet(paths, watcher, null);
-    	aGet.issueGets();
-    	aGet.waitForCompletion();
-    	return aGet.getDataMap();
+    public Map<String,byte[]> getByteArrays(Set<String> paths) throws KeeperException {
+        AsyncGet    aGet;
+        
+        aGet = new AsyncGet(paths);
+        aGet.issueGets();
+        aGet.waitForCompletion();
+        return aGet.getDataMap();
     }
-	
+    
+    public Map<String,byte[]> getByteArrays(Set<String> paths, Watcher watcher) throws KeeperException {
+        AsyncGet    aGet;
+        
+        aGet = new AsyncGet(paths, watcher, null);
+        aGet.issueGets();
+        aGet.waitForCompletion();
+        return aGet.getDataMap();
+    }
+    
     public Map<String,byte[]> getByteArrays(String basePath, Set<String> children, Watcher watcher, CancelableObserver observer) throws KeeperException {
-        ImmutableSet.Builder<String>	childrenPaths;
-    	AsyncGet	aGet;
+        ImmutableSet.Builder<String>    childrenPaths;
+        AsyncGet    aGet;
         
         childrenPaths = ImmutableSet.builder();
         for (String child : children) {
-        	childrenPaths.add(basePath +"/"+ child);
+            childrenPaths.add(basePath +"/"+ child);
         }
-    	
-    	aGet = new AsyncGet(childrenPaths.build(), watcher, observer);
-    	aGet.issueGets();
-    	aGet.waitForCompletion();
-    	
-    	return stripBasePathFromKeys(aGet.getDataMap(), basePath);
+        
+        aGet = new AsyncGet(childrenPaths.build(), watcher, observer);
+        aGet.issueGets();
+        aGet.waitForCompletion();
+        
+        return stripBasePathFromKeys(aGet.getDataMap(), basePath);
     }
     
     public Map<String,byte[]> getByteArrays(String basePath, Set<String> children) throws KeeperException {
-    	return getByteArrays(basePath, children, null, null);
+        return getByteArrays(basePath, children, null, null);
     }
     
     private Map<String, byte[]> stripBasePathFromKeys(Map<String, byte[]> rawMap, String basePath) {
-		ImmutableMap.Builder<String, byte[]>	strippedMap;
-		
-		strippedMap = ImmutableMap.builder();
-		for (Map.Entry<String, byte[]> entry : rawMap.entrySet()) {
-			strippedMap.put(stripBasePath(entry.getKey(), basePath), entry.getValue());
-		}
-		return strippedMap.build();
-	}
+        ImmutableMap.Builder<String, byte[]>    strippedMap;
+        
+        strippedMap = ImmutableMap.builder();
+        for (Map.Entry<String, byte[]> entry : rawMap.entrySet()) {
+            strippedMap.put(stripBasePath(entry.getKey(), basePath), entry.getValue());
+        }
+        return strippedMap.build();
+    }
     
     private String stripBasePath(String rawPath, String basePath) {
-    	if (rawPath.startsWith(basePath +"/")) {
-    		return rawPath.substring(basePath.length() + 1);
-    	} else {
-    		throw new RuntimeException(String.format("%s does not start with %s", rawPath, basePath));
-    	}
+        if (rawPath.startsWith(basePath +"/")) {
+            return rawPath.substring(basePath.length() + 1);
+        } else {
+            throw new RuntimeException(String.format("%s does not start with %s", rawPath, basePath));
+        }
     }
     
-	//////////////////////////////////////////
+    //////////////////////////////////////////
     
-	class AsyncGet implements DataCallback {
-		private final CancelableObserver observer;
-    	private final Set<String>	paths;
-    	private final Map<String,byte[]>	dataMap;
-    	private final Lock	lock;
-    	private final Condition	cv;
-    	private volatile boolean	complete;
-    	private Watcher	watcher;
-    	private int	lastNumIncomplete;
-    	private Stopwatch	retrySW;
-    	private Stopwatch	timeoutSW;
-    	private Set<String>	errorKeys;
-    	private Stopwatch	displayMissingSW;
-    	
-    	AsyncGet(Set<String> paths, Watcher	watcher, CancelableObserver observer) {
-    		this.paths = paths;
-    		this.dataMap = new ConcurrentHashMap<>();
-    		this.errorKeys = new ConcurrentSkipListSet<>();
-    		this.lock = new ReentrantLock();
-    		this.cv = lock.newCondition();
-    		this.watcher = watcher;
-    		this.observer = observer;
-    		retrySW = new SimpleStopwatch();
-    		timeoutSW = new SimpleStopwatch();
-    		displayMissingSW = new SimpleStopwatch();
-    	}
-    	
-    	AsyncGet(Set<String> paths) {
-    		this(paths, null, null);
-    	}
-    	
-		Map<String,byte[]> getDataMap() {
-    		return dataMap;
-    	}
-    	
-    	void issueGets() {
-    		for (String path : paths) {
-    			//System.out.println("g: "+ path);
-    			getData(path, watcher, this, null);
-    		}
-    		retrySW.reset();
-    	}
-    	
-		public void issueGetsForIncomplete() {
-			if (observer == null || observer.isActive()) {
-				for (String path : paths) {
-					if (!dataMap.containsKey(path) && !errorKeys.contains(path)) {
-						Log.warning("Issuing sync zk get: ", path);
-		    			try {
-							byte[]	data;
-							
-							data = getData(path, watcher, null);
-							if (data != null) {
-								Log.warning("Sync zk get success: ", path);
-								dataMap.put(path, data);
-							} else {
-								Log.warning("Sync zk get failed to retrieve data; adding to error keys: ", path);
-								errorKeys.add(path);
-							}
-						} catch (KeeperException | InterruptedException e) {
-							Log.logErrorWarning(e, "Sync zk get hit exception");
-						}
-						//Log.warning("Re-issuing zk get: ", path);
-		    			//getData(path, watcher, this, null);
-					}
-				}
-	    		retrySW.reset();
-			}
-		}
-    	
-		public void markIncompleteAsErrors() {
-			for (String path : paths) {
-				if (!dataMap.containsKey(path)) {
-					Log.warning("Timed out: ", path);
-					errorKeys.add(path);
-				}
-			}
-    		retrySW.reset();
-			notifyWaiter();
-		}
-    	
-		// precondition: only a single caller allowed in this method
-    	public void waitForCompletion() throws KeeperException {
-			while (!complete && (observer == null || observer.isActive())) {
-				boolean	displayMissing;
-				
-				displayMissing = false;
-				try {
-		    		lock.lock();
-		    		try {
-						cv.await(displayMissingIntervalSeconds, TimeUnit.SECONDS);
-		    		} finally {
-		    			lock.unlock();
-		    		}
-					if (displayMissingSW.getSplitSeconds() > displayMissingIntervalSeconds) {
-						displayMissing = true;
-						displayMissingSW.reset();
-					}
-				} catch (InterruptedException ie) {
-				}
-				if (!complete) {
-					if (getState() != ZooKeeper.States.CONNECTED) {
-						throw KeeperException.create(Code.SESSIONEXPIRED);
-					}
-				}
-				if (!complete) {
-					checkForCompletion(displayMissing);
-				}
-			}
-		}
+    class AsyncGet implements DataCallback {
+        private final CancelableObserver observer;
+        private final Set<String>    paths;
+        private final Map<String,byte[]>    dataMap;
+        private final Lock    lock;
+        private final Condition    cv;
+        private volatile boolean    complete;
+        private Watcher    watcher;
+        private int    lastNumIncomplete;
+        private Stopwatch    retrySW;
+        private Stopwatch    timeoutSW;
+        private Set<String>    errorKeys;
+        private Stopwatch    displayMissingSW;
+        
+        AsyncGet(Set<String> paths, Watcher    watcher, CancelableObserver observer) {
+            this.paths = paths;
+            this.dataMap = new ConcurrentHashMap<>();
+            this.errorKeys = new ConcurrentSkipListSet<>();
+            this.lock = new ReentrantLock();
+            this.cv = lock.newCondition();
+            this.watcher = watcher;
+            this.observer = observer;
+            retrySW = new SimpleStopwatch();
+            timeoutSW = new SimpleStopwatch();
+            displayMissingSW = new SimpleStopwatch();
+        }
+        
+        AsyncGet(Set<String> paths) {
+            this(paths, null, null);
+        }
+        
+        Map<String,byte[]> getDataMap() {
+            return dataMap;
+        }
+        
+        void issueGets() {
+            for (String path : paths) {
+                //System.out.println("g: "+ path);
+                getData(path, watcher, this, null);
+            }
+            retrySW.reset();
+        }
+        
+        public void issueGetsForIncomplete() {
+            if (observer == null || observer.isActive()) {
+                for (String path : paths) {
+                    if (!dataMap.containsKey(path) && !errorKeys.contains(path)) {
+                        Log.warning("Issuing sync zk get: ", path);
+                        try {
+                            byte[]    data;
+                            
+                            data = getData(path, watcher, null);
+                            if (data != null) {
+                                Log.warning("Sync zk get success: ", path);
+                                dataMap.put(path, data);
+                            } else {
+                                Log.warning("Sync zk get failed to retrieve data; adding to error keys: ", path);
+                                errorKeys.add(path);
+                            }
+                        } catch (KeeperException | InterruptedException e) {
+                            Log.logErrorWarning(e, "Sync zk get hit exception");
+                        }
+                        //Log.warning("Re-issuing zk get: ", path);
+                        //getData(path, watcher, this, null);
+                    }
+                }
+                retrySW.reset();
+            }
+        }
+        
+        public void markIncompleteAsErrors() {
+            for (String path : paths) {
+                if (!dataMap.containsKey(path)) {
+                    Log.warning("Timed out: ", path);
+                    errorKeys.add(path);
+                }
+            }
+            retrySW.reset();
+            notifyWaiter();
+        }
+        
+        // precondition: only a single caller allowed in this method
+        public void waitForCompletion() throws KeeperException {
+            while (!complete && (observer == null || observer.isActive())) {
+                boolean    displayMissing;
+                
+                displayMissing = false;
+                try {
+                    lock.lock();
+                    try {
+                        cv.await(displayMissingIntervalSeconds, TimeUnit.SECONDS);
+                    } finally {
+                        lock.unlock();
+                    }
+                    if (displayMissingSW.getSplitSeconds() > displayMissingIntervalSeconds) {
+                        displayMissing = true;
+                        displayMissingSW.reset();
+                    }
+                } catch (InterruptedException ie) {
+                }
+                if (!complete) {
+                    if (getState() != ZooKeeper.States.CONNECTED) {
+                        throw KeeperException.create(Code.SESSIONEXPIRED);
+                    }
+                }
+                if (!complete) {
+                    checkForCompletion(displayMissing);
+                }
+            }
+        }
 
-		private void checkForCompletion(boolean displayMissing) {
-			if (observer == null || observer.isActive()) {
-				int		numIncomplete;
-				
-				numIncomplete = 0;
-				for (String path : paths) {
-					if (!dataMap.containsKey(path) && !errorKeys.contains(path)) {
-						++numIncomplete;
-						if (displayMissing) {
-							Log.warning("checkForCompletion still waiting for: ", path);
-						}
-						break;
-					}
-				}
-	    		if (numIncomplete == 0) {
-	    			complete = true;
-	    		} else {
-	    			if (retrySW.getSplitSeconds() > reissueIntervalSeconds) {
-	    				if (timeoutSW.getSplitSeconds() > timeoutSeconds) {
-	    					markIncompleteAsErrors();
-	    				} else {
-	    					issueGetsForIncomplete();
-	    				}
-	    			}
-	    		}
-			}
-		}
-		
-		/**
-		 * Notify waiter. Let the waiter check for completion, resend etc.
-		 * We want to keep callback operations as light as possible.
-		 */
-		private void notifyWaiter() {
-			lock.lock();
-			try {
-				cv.signalAll();
-			} finally {
-				lock.unlock();
-			}
-			
-		}
-		
-		@Override
-		public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat) {
-			try {
-				asyncGetResults.put(new Result(this, rc, path, ctx, data, stat));
-			} catch (InterruptedException e) {
-				Log.logErrorWarning(e);
-			}
-		}
-		
-		public void processSafely(int rc, String path, Object ctx, byte[] data, Stat stat) {
-			try {
-				if (rc == 0 && data != null) {
-					//System.out.printf("rc %d path %s\n", rc, path);
-					dataMap.put(path, data);
-				} else {
-					Log.warningf("Error %d reading path %s", rc, path);
-					errorKeys.add(path);
-				}
-				notifyWaiter();
-				//System.out.println(complete);
-			} catch (RuntimeException re) {
-				re.printStackTrace();
-			//} finally {
-				//System.out.println("!"+ complete);
-			}
-		}
+        private void checkForCompletion(boolean displayMissing) {
+            if (observer == null || observer.isActive()) {
+                int        numIncomplete;
+                
+                numIncomplete = 0;
+                for (String path : paths) {
+                    if (!dataMap.containsKey(path) && !errorKeys.contains(path)) {
+                        ++numIncomplete;
+                        if (displayMissing) {
+                            Log.warning("checkForCompletion still waiting for: ", path);
+                        }
+                        break;
+                    }
+                }
+                if (numIncomplete == 0) {
+                    complete = true;
+                } else {
+                    if (retrySW.getSplitSeconds() > reissueIntervalSeconds) {
+                        if (timeoutSW.getSplitSeconds() > timeoutSeconds) {
+                            markIncompleteAsErrors();
+                        } else {
+                            issueGetsForIncomplete();
+                        }
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Notify waiter. Let the waiter check for completion, resend etc.
+         * We want to keep callback operations as light as possible.
+         */
+        private void notifyWaiter() {
+            lock.lock();
+            try {
+                cv.signalAll();
+            } finally {
+                lock.unlock();
+            }
+            
+        }
+        
+        @Override
+        public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat) {
+            try {
+                asyncGetResults.put(new Result(this, rc, path, ctx, data, stat));
+            } catch (InterruptedException e) {
+                Log.logErrorWarning(e);
+            }
+        }
+        
+        public void processSafely(int rc, String path, Object ctx, byte[] data, Stat stat) {
+            try {
+                if (rc == 0 && data != null) {
+                    //System.out.printf("rc %d path %s\n", rc, path);
+                    dataMap.put(path, data);
+                } else {
+                    Log.warningf("Error %d reading path %s", rc, path);
+                    errorKeys.add(path);
+                }
+                notifyWaiter();
+                //System.out.println(complete);
+            } catch (RuntimeException re) {
+                re.printStackTrace();
+            //} finally {
+                //System.out.println("!"+ complete);
+            }
+        }
     }
-	
+    
     static class ProcessRunner implements Runnable {
-    	ProcessRunner() {
-    		for (int i = 0; i < processRunnerThreads; i++) {
-    			new SafeThread(this, "ZKE.ProcessRunner."+ i, true).start();
-    		}
-    	}
-    	
-    	public void run() {
-    		while (true) {
-	    		try {
-	    			Result	r;
-	    			
-	    			r = asyncGetResults.poll(processRunnerIdleTimeoutSeconds, TimeUnit.SECONDS);
-	    			if (r != null) {
-	    				r.asyncGet.processSafely(r.rc, r.path, r.ctx, r.data, r.stat);
-	    			} else {
-	    				// FUTURE - have a pool of threads that can resize when some time out
-	    				// or consider using lwt
-	    			}
-	    		} catch (Exception e) {
-	    			e.printStackTrace();
-	    		}
-    		}
-    	}
+        ProcessRunner() {
+            for (int i = 0; i < processRunnerThreads; i++) {
+                new SafeThread(this, "ZKE.ProcessRunner."+ i, true).start();
+            }
+        }
+        
+        public void run() {
+            while (true) {
+                try {
+                    Result    r;
+                    
+                    r = asyncGetResults.poll(processRunnerIdleTimeoutSeconds, TimeUnit.SECONDS);
+                    if (r != null) {
+                        r.asyncGet.processSafely(r.rc, r.path, r.ctx, r.data, r.stat);
+                    } else {
+                        // FUTURE - have a pool of threads that can resize when some time out
+                        // or consider using lwt
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
     
-	class Result {
-		private final AsyncGet	asyncGet;
-		private final int		rc;
-		private final String	path;
-		private final Object	ctx;
-		private final byte[]	data;
-		private final Stat		stat;
-		
-		Result(AsyncGet asyncGet, int rc, String path, Object ctx, byte[] data, Stat stat) {
-			this.asyncGet = asyncGet;
-			this.rc = rc;
-			this.path = path;
-			this.ctx = ctx;
-			this.data = data;
-			this.stat = stat;
-		}
-	}		
+    class Result {
+        private final AsyncGet    asyncGet;
+        private final int        rc;
+        private final String    path;
+        private final Object    ctx;
+        private final byte[]    data;
+        private final Stat        stat;
+        
+        Result(AsyncGet asyncGet, int rc, String path, Object ctx, byte[] data, Stat stat) {
+            this.asyncGet = asyncGet;
+            this.rc = rc;
+            this.path = path;
+            this.ctx = ctx;
+            this.data = data;
+            this.stat = stat;
+        }
+    }        
 
-	//////////////////////////////////////////
+    //////////////////////////////////////////
     
     private Map<String,String> convertToStringData(Map<String,byte[]> data) {
-    	Map<String,String>	stringData;
-    	
-    	stringData = new HashMap<>();
-    	for (Map.Entry<String, byte[]> e : data.entrySet()) {
-    		stringData.put(e.getKey(), new String(e.getValue()));
-    	}
-    	return stringData;
+        Map<String,String>    stringData;
+        
+        stringData = new HashMap<>();
+        for (Map.Entry<String, byte[]> e : data.entrySet()) {
+            stringData.put(e.getKey(), new String(e.getValue()));
+        }
+        return stringData;
     }
     
     private Map<String, Integer> convertToIntData(Map<String, byte[]> data) {
-    	Map<String,Integer>	intData;
-    	
-    	intData = new HashMap<>();
-    	for (Map.Entry<String, byte[]> e : data.entrySet()) {
-    		intData.put(e.getKey(), NumConversion.bytesToInt(e.getValue()));
-    	}
-    	return intData;
-	}
+        Map<String,Integer>    intData;
+        
+        intData = new HashMap<>();
+        for (Map.Entry<String, byte[]> e : data.entrySet()) {
+            intData.put(e.getKey(), NumConversion.bytesToInt(e.getValue()));
+        }
+        return intData;
+    }
         
     public byte[] getByteArray(String path) throws KeeperException {
-    	return getByteArray(path, null);
+        return getByteArray(path, null);
     }
 
     public byte[] getByteArray(String path, Watcher watcher) throws KeeperException {
-    	return getByteArray(path, watcher, new Stat());
+        return getByteArray(path, watcher, new Stat());
     }
     
     public byte[] getByteArray(String path, Watcher watcher, Stat stat) throws KeeperException {
@@ -844,7 +844,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
 
     public List<String> getChildren(String path) throws KeeperException {
         try {
-        	return getChildren(path, false);
+            return getChildren(path, false);
         } catch (InterruptedException ie) {
             throw new RuntimeException("panic");
         }
@@ -968,7 +968,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
                 create(path.substring(0, index));
             } catch (KeeperException ke) {
                 if (ke.code() != Code.NODEEXISTS && ke.code() != Code.AUTHFAILED && ke.code() != Code.NOAUTH) {
-                	Log.logErrorWarning(ke, "Error in create("+ path.substring(0, index) +")");
+                    Log.logErrorWarning(ke, "Error in create("+ path.substring(0, index) +")");
                     throw ke;
                 }
             }
@@ -984,7 +984,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
     
     public long getCreationTime(String path) throws KeeperException {
-    	return getStat(path).getCtime();
+        return getStat(path).getCtime();
     }
     
     public long getLatestVersion(String path) throws KeeperException {

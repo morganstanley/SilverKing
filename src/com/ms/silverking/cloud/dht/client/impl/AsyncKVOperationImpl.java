@@ -10,12 +10,12 @@ package com.ms.silverking.cloud.dht.client.impl;
  * @param <V> value type
  */
 abstract class AsyncKVOperationImpl<K,V> extends AsyncKeyedOperationImpl<K> {
-	protected final NamespacePerspectiveOptionsImpl<K,V>   nspoImpl;
+    protected final NamespacePerspectiveOptionsImpl<K,V>   nspoImpl;
 
-	public AsyncKVOperationImpl(KeyedNamespaceOperation<K> operation, ClientNamespace namespace, 
-	                            NamespacePerspectiveOptionsImpl<K,V> nspoImpl, long curTime,
-	                            byte[] originator) {
-		super(operation, nspoImpl.getKeyCreator(), namespace, curTime, originator);		
-		this.nspoImpl = nspoImpl;
-	}
+    public AsyncKVOperationImpl(KeyedNamespaceOperation<K> operation, ClientNamespace namespace, 
+                                NamespacePerspectiveOptionsImpl<K,V> nspoImpl, long curTime,
+                                byte[] originator) {
+        super(operation, nspoImpl.getKeyCreator(), namespace, curTime, originator);        
+        this.nspoImpl = nspoImpl;
+    }
 }

@@ -11,31 +11,31 @@ public class Snappy implements Compressor, Decompressor {
     }
     
     public byte[] compress(byte[] rawValue, int offset, int length) throws IOException {
-    	/*
-    	SnappyCompressor	sc;
-    	byte[]				output;
-    	
-    	sc = new SnappyCompressor();
-    	sc.setInput(rawValue, offset, length);
-    	output = new byte[length];
-    	sc.compress(output, 0, length);
-    	return output;
-    	*/
-    	return rawValue;
+        /*
+        SnappyCompressor    sc;
+        byte[]                output;
+        
+        sc = new SnappyCompressor();
+        sc.setInput(rawValue, offset, length);
+        output = new byte[length];
+        sc.compress(output, 0, length);
+        return output;
+        */
+        return rawValue;
     }
 
     public byte[] decompress(byte[] value, int offset, int length, int uncompressedLength) throws IOException {
-    	/*
-    	SnappyDecompressor	sd;
-    	byte[]	output;
-    	
-    	sd = new SnappyDecompressor();
-    	sd.setInput(value, offset, length);
-    	output = new byte[length];
-    	sd.decompress(output, 0, length);
-    	return output;
-    	*/
-    	return value;
+        /*
+        SnappyDecompressor    sd;
+        byte[]    output;
+        
+        sd = new SnappyDecompressor();
+        sd.setInput(value, offset, length);
+        output = new byte[length];
+        sd.decompress(output, 0, length);
+        return output;
+        */
+        return value;
     }
     
     /**

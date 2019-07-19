@@ -17,9 +17,9 @@
 // types
 
 typedef struct PartialBlockReader {
-	AttrReader			*ar;
-	FileBlockReader		*fbr;
-	G2TaskOutputReader	*g2tor;
+    AttrReader            *ar;
+    FileBlockReader        *fbr;
+    G2TaskOutputReader    *g2tor;
 } PartialBlockReader;
 
 

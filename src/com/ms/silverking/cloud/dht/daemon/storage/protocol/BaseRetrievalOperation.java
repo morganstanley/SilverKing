@@ -94,9 +94,9 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
     }
     
     public Set<IPAndPort> checkForInternalTimeouts(long curTimeMillis, RetrievalVirtualCommunicator rvComm) {
-    	Set<IPAndPort>	timedOutReplicas;
-    	
-    	timedOutReplicas = new HashSet<>();
+        Set<IPAndPort>    timedOutReplicas;
+        
+        timedOutReplicas = new HashSet<>();
         if (getMinInternalTimeoutMillis() < curTimeMillis) {
             // before checking entries, make sure that we're past the minimum timeout
             // this also has the effect of making it less difficult to catch the operation
@@ -107,13 +107,13 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
                     
                     entryState = getEntryState(key);
                     if (entryState.hasTimedOut(curTimeMillis)) {
-                    	IPAndPort	replica;
-                    	
-                    	replica = entryState.currentReplica();
-                    	if (replica != null && !entryState.prevReplicaSameAsCurrent()) {
-                    		Log.warning("Non-fatal replica timedOut "+ replica +" "+ this);
-                    		timedOutReplicas.add(replica);
-                    	}
+                        IPAndPort    replica;
+                        
+                        replica = entryState.currentReplica();
+                        if (replica != null && !entryState.prevReplicaSameAsCurrent()) {
+                            Log.warning("Non-fatal replica timedOut "+ replica +" "+ this);
+                            timedOutReplicas.add(replica);
+                        }
                         tryNextReplica(key, entryState, rvComm);
                     }
                 }

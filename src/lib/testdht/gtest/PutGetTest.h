@@ -5,13 +5,13 @@
 #include "gtest/gtest.h"
 
 class PutGetTest : public ::testing::Test {
-	public:
-		 PutGetTest();
-		~PutGetTest();
+    public:
+         PutGetTest();
+        ~PutGetTest();
 
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 
 };
 

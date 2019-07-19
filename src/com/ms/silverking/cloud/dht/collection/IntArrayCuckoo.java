@@ -33,25 +33,25 @@ public class IntArrayCuckoo extends CuckooBase implements Iterable<DHTKeyIntEntr
     }
     
     public int persistedSizeBytes() {
-    	int	total;
-    	
-    	// a bit pedantic since the subtables are identical, but leave for now
-    	total = 0;
+        int    total;
+        
+        // a bit pedantic since the subtables are identical, but leave for now
+        total = 0;
         for (int i = 0; i < subTables.length; i++) {
-        	total += subTables[i].persistedSizeBytes();
+            total += subTables[i].persistedSizeBytes();
         }
         return total;
     }
     
     public byte[] getAsBytes() {
-    	byte[]	b;
-    	int		curOffset;
-    	
-    	b = new byte[persistedSizeBytes()];
-    	curOffset = 0;
+        byte[]    b;
+        int        curOffset;
+        
+        b = new byte[persistedSizeBytes()];
+        curOffset = 0;
         for (int i = 0; i < subTables.length; i++) {
-        	subTables[i].getAsBytes(b, curOffset);
-        	curOffset += subTables[i].persistedSizeBytes();
+            subTables[i].getAsBytes(b, curOffset);
+            curOffset += subTables[i].persistedSizeBytes();
         }
         return b;
     }
@@ -138,14 +138,14 @@ public class IntArrayCuckoo extends CuckooBase implements Iterable<DHTKeyIntEntr
             clear();
         }
         
-		int persistedSizeBytes() {
-        	return buf.length * Long.BYTES + values.length * Integer.BYTES;
+        int persistedSizeBytes() {
+            return buf.length * Long.BYTES + values.length * Integer.BYTES;
         }
         
         public void getAsBytes(byte[] b, int offset) {
-        	int	o;
-        	
-        	o = offset;
+            int    o;
+            
+            o = offset;
             for (int i = 0; i < buf.length; i++) {
                 NumConversion.longToBytes(buf[i], b, o);
                 o += Long.BYTES;
@@ -154,7 +154,7 @@ public class IntArrayCuckoo extends CuckooBase implements Iterable<DHTKeyIntEntr
                 NumConversion.intToBytes(values[i], b, o);
                 o += Integer.BYTES;
             }
-		}
+        }
         
         void clear() {
             for (int i = 0; i < bufferSizeLongs; i++) {

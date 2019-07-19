@@ -14,22 +14,22 @@ class SKAddrAndPort;
 class SKClientDHTConfiguration : public SKClientDHTConfigurationProvider 
 {
 public:
-	SKAPI static SKClientDHTConfiguration * create(map<string,string> * envMap);
+    SKAPI static SKClientDHTConfiguration * create(map<string,string> * envMap);
 
-	//SKAPI SKClientDHTConfiguration(const char * dhtName, int dhtPort, SKAddrAndPort zkLocs[]);
+    //SKAPI SKClientDHTConfiguration(const char * dhtName, int dhtPort, SKAddrAndPort zkLocs[]);
     //SKAPI SKClientDHTConfiguration(const char * dhtName, SKAddrAndPort zkLocs[]);
     SKAPI SKClientDHTConfiguration(const char * dhtName, const char * zkLocs);
     SKAPI SKClientDHTConfiguration(const char * dhtName, int dhtPort, const char * zkLocs);
 
-	SKAPI char * getName();
+    SKAPI char * getName();
     SKAPI int getPort();
-	//SKAPI SKAddrAndPort* getZkLocs();   //should be deallocated with delete[]
-	SKAPI char * toString();
+    //SKAPI SKAddrAndPort* getZkLocs();   //should be deallocated with delete[]
+    SKAPI char * toString();
     SKAPI bool hasPort();
     SKAPI virtual SKClientDHTConfiguration * getClientDHTConfiguration();
-	SKAPI virtual ~SKClientDHTConfiguration();
+    SKAPI virtual ~SKClientDHTConfiguration();
 
-	SKClientDHTConfiguration(void * pClientDHTConfiguration);
+    SKClientDHTConfiguration(void * pClientDHTConfiguration);
 protected:
 };
 

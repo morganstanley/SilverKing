@@ -22,25 +22,25 @@ import com.ms.silverking.testing.annotations.SkLarge;
 @SkLarge
 public class NamespaceOptionsClientTest {
 
-	private static DHTSession session;
-	private static final String namespaceName = "NamespaceOptionsClientTest";
+    private static DHTSession session;
+    private static final String namespaceName = "NamespaceOptionsClientTest";
 
-	@BeforeClass
-	public static void setUpBeforeClass() throws ClientException, IOException {
+    @BeforeClass
+    public static void setUpBeforeClass() throws ClientException, IOException {
         session = createSession();
-		_createNamespace(SINGLE_VERSION, UNRESTRICTED_REVISIONS);
-	}
-	
-	@Test(expected = NamespaceCreationException.class)
-	public void test() throws ClientException, IOException {
-		_createNamespace(CLIENT_SPECIFIED, UNRESTRICTED_REVISIONS);
-	}
-	
-	private static void _createNamespace(NamespaceVersionMode versionMode, RevisionMode revisionMode) throws NamespaceCreationException {
-		createNamespace(session, namespaceName, versionMode, revisionMode);
-	}
-	
-	public static void main(String[] args) {
-		Util.runTests(NamespaceOptionsClientTest.class);
-	}
+        _createNamespace(SINGLE_VERSION, UNRESTRICTED_REVISIONS);
+    }
+    
+    @Test(expected = NamespaceCreationException.class)
+    public void test() throws ClientException, IOException {
+        _createNamespace(CLIENT_SPECIFIED, UNRESTRICTED_REVISIONS);
+    }
+    
+    private static void _createNamespace(NamespaceVersionMode versionMode, RevisionMode revisionMode) throws NamespaceCreationException {
+        createNamespace(session, namespaceName, versionMode, revisionMode);
+    }
+    
+    public static void main(String[] args) {
+        Util.runTests(NamespaceOptionsClientTest.class);
+    }
 }

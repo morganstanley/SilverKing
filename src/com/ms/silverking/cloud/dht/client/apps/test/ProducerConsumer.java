@@ -22,8 +22,8 @@ import com.ms.silverking.time.Stopwatch;
 public class ProducerConsumer {
     private final Mode  mode;
     private final SynchronousNamespacePerspective<String,String>  syncNSP;
-    private final int	delay;
-    private final int	displayUnit;
+    private final int    delay;
+    private final int    displayUnit;
     
     private static final int    defaultDisplayUnit = 1000;
     
@@ -34,7 +34,7 @@ public class ProducerConsumer {
     public ProducerConsumer(SKGridConfiguration gc, String id, Mode mode, int delay) throws ClientException, IOException {
         DHTSession  session;
         Namespace   ns;
-        WaitOptions	waitOptions;
+        WaitOptions    waitOptions;
         
         this.mode = mode;
         this.delay = delay;
@@ -104,16 +104,16 @@ public class ProducerConsumer {
                 int     items;
                 SKGridConfiguration   gc;
                 String  id;
-                int		delay;
+                int        delay;
 
                 gc = SKGridConfiguration.parseFile(args[0]);
                 id = args[1];
                 mode = Mode.valueOf(args[2]);
                 items = Integer.parseInt(args[3]);
                 if (args.length == 5) {
-                	delay = Integer.parseInt(args[4]);
+                    delay = Integer.parseInt(args[4]);
                 } else {
-                	delay = 0;
+                    delay = 0;
                 }
                 pc = new ProducerConsumer(gc, id, mode, delay);
                 pc.run(items);

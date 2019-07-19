@@ -150,27 +150,27 @@ vector<string> * parseJvmArgs(const char * str) {
 }
 
 std::string resolveLibPath(void) {
-	std::string path;
-	
+    std::string path;
+    
   #ifndef _MSC_VER
-	Dl_info dl_info;
-	dladdr((void *)sk_create_val, &dl_info);
-	path = dl_info.dli_fname;
+    Dl_info dl_info;
+    dladdr((void *)sk_create_val, &dl_info);
+    path = dl_info.dli_fname;
   #else
-	char thisLibPath[2048];
-	HMODULE dllHandle = GetModuleHandleA("silverking");
-	if (!dllHandle) {
-		cout << "ERROR: cannot get silverking handle" <<endl;
-		throw std::exception();
-	}
-	if (!GetModuleFileNameA( dllHandle, thisLibPath, 2048 )) {
-		cout << "ERROR: cannot get silverking lib path" <<endl;
-		throw std::exception();
-	}
+    char thisLibPath[2048];
+    HMODULE dllHandle = GetModuleHandleA("silverking");
+    if (!dllHandle) {
+        cout << "ERROR: cannot get silverking handle" <<endl;
+        throw std::exception();
+    }
+    if (!GetModuleFileNameA( dllHandle, thisLibPath, 2048 )) {
+        cout << "ERROR: cannot get silverking lib path" <<endl;
+        throw std::exception();
+    }
 
-	path = thisLibPath;
+    path = thisLibPath;
   #endif
-	return path;
+    return path;
 }
 
 string checkEnvLibPath(LoggingLevel level) {
@@ -209,52 +209,52 @@ string checkEnvLibPath(LoggingLevel level) {
 
 static void addJvmDebugOpts(OptionList& list, const string &hprofName) {
 #ifdef _DEBUG
-	//various logging opts
-	//string logFileDef = string("-Dorg.slf4j.simpleLogger.logFile=") + logName ;
-	//list.push_back(jace::CustomOption(logFileDef ) );  // slf4j logger file
-	//list.push_back(jace::CustomOption("-Dorg.slf4j.simpleLogger.defaultLogLevel=trace") );  // set slf4j log level to tracing
+    //various logging opts
+    //string logFileDef = string("-Dorg.slf4j.simpleLogger.logFile=") + logName ;
+    //list.push_back(jace::CustomOption(logFileDef ) );  // slf4j logger file
+    //list.push_back(jace::CustomOption("-Dorg.slf4j.simpleLogger.defaultLogLevel=trace") );  // set slf4j log level to tracing
 
-	list.push_back(jace::Verbose (Verbose::JNI));
-	list.push_back(jace::Verbose (Verbose::CLASS));
+    list.push_back(jace::Verbose (Verbose::JNI));
+    list.push_back(jace::Verbose (Verbose::CLASS));
 
-	// set profiling options
-	char * hprofEnvOpts = getenv(GC_SK_JVM_HPROF_OPT);
-	if (hprofEnvOpts && strstr(hprofEnvOpts, "-agentlib:hprof") != NULL) {
-		cout << "setting hprof options: " << hprofEnvOpts <<endl;
-		list.push_back( jace::CustomOption( hprofEnvOpts ) );
-	} else {
-		string profOpts="-agentlib:hprof=heap=all,doe=y,format=a,thread=y,file=";
-		profOpts += hprofName;
-		list.push_back( jace::CustomOption( profOpts ) );
-		cout << "enabling jvm profiling to file " << hprofName <<endl;
-	}
+    // set profiling options
+    char * hprofEnvOpts = getenv(GC_SK_JVM_HPROF_OPT);
+    if (hprofEnvOpts && strstr(hprofEnvOpts, "-agentlib:hprof") != NULL) {
+        cout << "setting hprof options: " << hprofEnvOpts <<endl;
+        list.push_back( jace::CustomOption( hprofEnvOpts ) );
+    } else {
+        string profOpts="-agentlib:hprof=heap=all,doe=y,format=a,thread=y,file=";
+        profOpts += hprofName;
+        list.push_back( jace::CustomOption( profOpts ) );
+        cout << "enabling jvm profiling to file " << hprofName <<endl;
+    }
 
-	//enable remote debugging 
-	list.push_back( jace::CustomOption( "-Xdebug" ) );
-	char * remoteDebugOpts = getenv(GC_SK_JVM_JDWP_OPT);
-	if (remoteDebugOpts && strstr(remoteDebugOpts, "-agentlib:jdwp") != NULL) {
-		cout << "setting remoteDebugOpts: " << remoteDebugOpts <<endl;
-		list.push_back( jace::CustomOption( remoteDebugOpts ) );
-	} else {
-		cout << "setting default remoteDebugOpts" <<endl;
-		list.push_back( jace::CustomOption( "-agentlib:jdwp=transport=dt_socket,address=8357,server=y,suspend=n" ) );
-		////list.push_back( jace::CustomOption( "-agentlib:jdwp=transport=dt_socket,address=127.0.0.1:9009,server=y,suspend=n" ) );
-	}
-	list.push_back( jace::CustomOption( "-XX:+TraceClassUnloading") );
-	list.push_back( jace::CustomOption( string("-XX:HeapDumpPath=") + hprofName + string(".heap") ) );
-	list.push_back( jace::CustomOption( "-XX:-AllowUserSignalHandlers") );
+    //enable remote debugging 
+    list.push_back( jace::CustomOption( "-Xdebug" ) );
+    char * remoteDebugOpts = getenv(GC_SK_JVM_JDWP_OPT);
+    if (remoteDebugOpts && strstr(remoteDebugOpts, "-agentlib:jdwp") != NULL) {
+        cout << "setting remoteDebugOpts: " << remoteDebugOpts <<endl;
+        list.push_back( jace::CustomOption( remoteDebugOpts ) );
+    } else {
+        cout << "setting default remoteDebugOpts" <<endl;
+        list.push_back( jace::CustomOption( "-agentlib:jdwp=transport=dt_socket,address=8357,server=y,suspend=n" ) );
+        ////list.push_back( jace::CustomOption( "-agentlib:jdwp=transport=dt_socket,address=127.0.0.1:9009,server=y,suspend=n" ) );
+    }
+    list.push_back( jace::CustomOption( "-XX:+TraceClassUnloading") );
+    list.push_back( jace::CustomOption( string("-XX:HeapDumpPath=") + hprofName + string(".heap") ) );
+    list.push_back( jace::CustomOption( "-XX:-AllowUserSignalHandlers") );
 
-	list.push_back( jace::CustomOption( "-XX:+PrintGC") );
-	list.push_back( jace::CustomOption( "-XX:+PrintGCDetails") );
-	string gclog = string("-Xloggc:") + hprofName + string(".gclog") ;
-	list.push_back( jace::CustomOption( gclog ) );
+    list.push_back( jace::CustomOption( "-XX:+PrintGC") );
+    list.push_back( jace::CustomOption( "-XX:+PrintGCDetails") );
+    string gclog = string("-Xloggc:") + hprofName + string(".gclog") ;
+    list.push_back( jace::CustomOption( gclog ) );
 #endif  //_DEBUG
 }
 
 static const char *getJvmlibPath(LoggingLevel level) {
     char* p;
     
-	p = getenv(SK_JVM_LIB_PATH_ENV);
+    p = getenv(SK_JVM_LIB_PATH_ENV);
     if (p == NULL) {
         int size;
         
@@ -275,7 +275,7 @@ SKClient * SKClient::pClient = NULL;
 static boost::recursive_mutex sClientLock;
 
 static void vmInit(LoggingLevel level, const char * pJvmOptions) {
-	try	{
+    try    {
         javaHome = getenv(JAVA_HOME_ENV);
         if (javaHome == NULL) {
             fprintf(stderr, "FATAL ERROR: %s not set\n", JAVA_HOME_ENV);
@@ -286,55 +286,55 @@ static void vmInit(LoggingLevel level, const char * pJvmOptions) {
             fprintf(stderr, "FATAL ERROR: %s not set\n", JACE_HOME_ENV);
             exit(-1);
         }
-		string envPath = checkEnvLibPath(level);
-		const char *jvmlibPath = getJvmlibPath(level);
+        string envPath = checkEnvLibPath(level);
+        const char *jvmlibPath = getJvmlibPath(level);
 
-	#if defined(_MSC_VER) 
-		if (level < LVL_INFO) {
-			cout <<"Using Win32VmLoader with java lib path: " <<jvmlibPath <<endl;
+    #if defined(_MSC_VER) 
+        if (level < LVL_INFO) {
+            cout <<"Using Win32VmLoader with java lib path: " <<jvmlibPath <<endl;
         }
-		Win32VmLoader loader(jvmlibPath, JNI_VERSION_1_6);
+        Win32VmLoader loader(jvmlibPath, JNI_VERSION_1_6);
     #elif defined(JACE_WANT_DYNAMIC_LOAD)
-		if (level < LVL_INFO) {
-			cout <<"Using UnixVmLoader with java lib path: " <<jvmlibPath <<endl;
+        if (level < LVL_INFO) {
+            cout <<"Using UnixVmLoader with java lib path: " <<jvmlibPath <<endl;
         }
-		UnixVmLoader loader(jvmlibPath, JNI_VERSION_1_6);
-	#else
-		if (level < LVL_INFO) {
-			cout <<"Using StaticVmLoader " <<endl;
+        UnixVmLoader loader(jvmlibPath, JNI_VERSION_1_6);
+    #else
+        if (level < LVL_INFO) {
+            cout <<"Using StaticVmLoader " <<endl;
         }
-		StaticVmLoader loader(JNI_VERSION_1_6);
-	#endif
+        StaticVmLoader loader(JNI_VERSION_1_6);
+    #endif
 
-		jsize nVMs = -1;
-		jint retCode = loader.getCreatedJavaVMs(NULL, 0, &nVMs); //get the number of created MVs
-		//cout << "getCreatedJavaVMs " << (int) nVMs <<"\n";
-		if (retCode!=0) {
-			//error
-			cout << "getCreatedJavaVMs Failed with err code :" << (int) retCode <<"\n";
-			throw std::exception();
-		}
-		if (nVMs > 0) {  //already initialized;
-			isJvmInitialized = true;
-			return;
-		}
+        jsize nVMs = -1;
+        jint retCode = loader.getCreatedJavaVMs(NULL, 0, &nVMs); //get the number of created MVs
+        //cout << "getCreatedJavaVMs " << (int) nVMs <<"\n";
+        if (retCode!=0) {
+            //error
+            cout << "getCreatedJavaVMs Failed with err code :" << (int) retCode <<"\n";
+            throw std::exception();
+        }
+        if (nVMs > 0) {  //already initialized;
+            isJvmInitialized = true;
+            return;
+        }
 
-		OptionList list;
+        OptionList list;
 
         vector<string> *pJvmArgs = parseJvmArgs(pJvmOptions);
         vector<string>::iterator it ;
         for (it = pJvmArgs->begin(); it!=pJvmArgs->end(); it++) {
-    		list.push_back(jace::CustomOption(*it));
+            list.push_back(jace::CustomOption(*it));
             //cout <<"Java Custom Options: " <<it->c_str() <<endl;
         }
         delete pJvmArgs;
 
-		//get set of *.jar from env var
-		char *pClassPath = getenv(SK_CLASSPATH);
+        //get set of *.jar from env var
+        char *pClassPath = getenv(SK_CLASSPATH);
         if (pClassPath && strlen(pClassPath) > 1) {
-			list.push_back(jace::ClassPath(pClassPath));
+            list.push_back(jace::ClassPath(pClassPath));
             if (level < LVL_WARNING) {
-	    	    cout << "env ClassPath : " << pClassPath << endl;
+                cout << "env ClassPath : " << pClassPath << endl;
             }
         } else {
             fprintf(stderr, "FATAL_ERROR: Unresolved CLASSPATH\n");
@@ -343,76 +343,76 @@ static void vmInit(LoggingLevel level, const char * pJvmOptions) {
 
         ostringstream os ;
         int myPid;
-		string logName;
-		string hprofName;
+        string logName;
+        string hprofName;
 #ifdef  _WINDOWS
         myPid = (int)_getpid();
         os << "skclient."  <<(int)myPid << ".log" ;
 
-		const int pathLen = 4096;
-		TCHAR tempPath[pathLen] ;
-		int actualPathLen = ::GetTempPath(pathLen, tempPath);
-		cout << "set sk client logs to: " << tempPath <<endl;
-		logName = string (tempPath) + os.str();
-		hprofName = string (tempPath) + string("hprof.") + os.str();
+        const int pathLen = 4096;
+        TCHAR tempPath[pathLen] ;
+        int actualPathLen = ::GetTempPath(pathLen, tempPath);
+        cout << "set sk client logs to: " << tempPath <<endl;
+        logName = string (tempPath) + os.str();
+        hprofName = string (tempPath) + string("hprof.") + os.str();
 #else
         myPid = getpid();
         os << "/tmp/skclient." << (int)getuid() <<"." <<(int)myPid ;
-		logName = os.str() +  ".log";
-		hprofName = os.str() + ".jvmprof";
+        logName = os.str() +  ".log";
+        hprofName = os.str() + ".jvmprof";
 #endif
-   		//list.push_back(jace::CustomOption("-Dorg.slf4j.simpleLogger.defaultLogLevel=error") );
-		if (level == LVL_ALL) {
-			addJvmDebugOpts(list, hprofName);
-		}
+           //list.push_back(jace::CustomOption("-Dorg.slf4j.simpleLogger.defaultLogLevel=error") );
+        if (level == LVL_ALL) {
+            addJvmDebugOpts(list, hprofName);
+        }
 
-		string libPathOpt = string("-Djava.library.path=") + envPath ;  // "base\\ia32.nt.xp\\Debug";
-		list.push_back(jace::CustomOption(libPathOpt) );
+        string libPathOpt = string("-Djava.library.path=") + envPath ;  // "base\\ia32.nt.xp\\Debug";
+        list.push_back(jace::CustomOption(libPathOpt) );
 
         jace::createVm(loader, list, false);
-		if (level <= LVL_INFO) {
-			cout << "vm created " <<endl;
+        if (level <= LVL_INFO) {
+            cout << "vm created " <<endl;
         }
-		SKClient::setLogLevel(level);
+        SKClient::setLogLevel(level);
 
-		isJvmInitialized = true;
-	} catch (VirtualMachineShutdownError&) {
-		cout << "The JVM was terminated in mid-execution. " << "\n";
+        isJvmInitialized = true;
+    } catch (VirtualMachineShutdownError&) {
+        cout << "The JVM was terminated in mid-execution. " << "\n";
         throw;
-	} catch (JNIException& jniException) {
-		cout << "An unexpected JNI error has occurred: " << jniException.what() << "\n";
+    } catch (JNIException& jniException) {
+        cout << "An unexpected JNI error has occurred: " << jniException.what() << "\n";
         throw;
-	} catch (Throwable& t) {
+    } catch (Throwable& t) {
         cout << "A Throwable caugth in SKClient c-tor: "  << "\n";
         Log::logErrorWarning(t);
-		t.printStackTrace();
+        t.printStackTrace();
         throw;
-	}
+    }
     printf("%s %d\n", __FILE__, __LINE__);
 }
 
 bool SKClient::init(LoggingLevel level, const char *pJvmOptions) {
     if (pClient == NULL) {
 
-	    boost::recursive_mutex::scoped_lock  lock(sClientLock);
-	    if (pClient == NULL){
-			vmInit(level, pJvmOptions);
-	    }
+        boost::recursive_mutex::scoped_lock  lock(sClientLock);
+        if (pClient == NULL){
+            vmInit(level, pJvmOptions);
+        }
     }
-	return true;
+    return true;
 }
 
 SKClient *SKClient::getClient(LoggingLevel level, const char *pJvmOptions) {
     if (pClient == NULL) {
-	    boost::recursive_mutex::scoped_lock  lock(sClientLock);
-	    if (pClient == NULL){
-			if (isJvmInitialized == false) {
-				vmInit(level, pJvmOptions);
-			}
-			pClient = new SKClient();
-		}
-	}
-	return pClient;
+        boost::recursive_mutex::scoped_lock  lock(sClientLock);
+        if (pClient == NULL){
+            if (isJvmInitialized == false) {
+                vmInit(level, pJvmOptions);
+            }
+            pClient = new SKClient();
+        }
+    }
+    return pClient;
 }
 
 SKClient *SKClient::getClient(LoggingLevel level) {
@@ -424,102 +424,102 @@ SKClient *SKClient::getClient() {
 }
 
 SKClient::SKClient() {
-	try	{
-		pImpl = new DHTClient ( java_new<DHTClient>() );
+    try    {
+        pImpl = new DHTClient ( java_new<DHTClient>() );
         if ( pImpl->isNull() ) {
             cout << "failed to instantiate new DHT Client" <<endl;
-			throw std::exception(); //CLASSPATH env var is not specified
+            throw std::exception(); //CLASSPATH env var is not specified
         }
-	} catch (VirtualMachineShutdownError&) {
-		cout << "The JVM was terminated in mid-execution. " << endl;
+    } catch (VirtualMachineShutdownError&) {
+        cout << "The JVM was terminated in mid-execution. " << endl;
         throw;
-	} catch ( JNIException& jniException ) {
-		cout << "An unexpected JNI error has occurred: " << jniException.what() << endl;
+    } catch ( JNIException& jniException ) {
+        cout << "An unexpected JNI error has occurred: " << jniException.what() << endl;
         throw;
-	}
-	catch (Throwable& t) {
+    }
+    catch (Throwable& t) {
         cout << "A Throwable caugth in SKClient c-tor: "  << endl;
         Log::logErrorWarning(t);
-		t.printStackTrace();
+        t.printStackTrace();
         throw;
-	}
+    }
 }
 
 SKValueCreator * SKClient::getValueCreator() {
-	ValueCreator * pValueCreator  = new ValueCreator(java_cast<ValueCreator>(
-		DHTClient::getValueCreator()
-		)); 
-	return new SKValueCreator(pValueCreator);
+    ValueCreator * pValueCreator  = new ValueCreator(java_cast<ValueCreator>(
+        DHTClient::getValueCreator()
+        )); 
+    return new SKValueCreator(pValueCreator);
 }
 
 SKClient::~SKClient() {
-	try {
-		if (pImpl!=NULL) {
-			DHTClient * po = (DHTClient*)pImpl;
-			{
-				boost::recursive_mutex::scoped_lock lock(sClientLock);
-				if (this == SKClient::pClient)
-					SKClient::pClient = NULL;
-					
-				pImpl = NULL;
-			}
-			delete po; 
-		}
-	} catch ( VirtualMachineShutdownError& ) {
-		cout << "The JVM was terminated in SKClient d-tor. " << endl;
+    try {
+        if (pImpl!=NULL) {
+            DHTClient * po = (DHTClient*)pImpl;
+            {
+                boost::recursive_mutex::scoped_lock lock(sClientLock);
+                if (this == SKClient::pClient)
+                    SKClient::pClient = NULL;
+                    
+                pImpl = NULL;
+            }
+            delete po; 
+        }
+    } catch ( VirtualMachineShutdownError& ) {
+        cout << "The JVM was terminated in SKClient d-tor. " << endl;
         throw;
-	} catch ( JNIException& jniException ) {
-		cout << "An unexpected JNI error has occurred in ~SKClient: " << jniException.what() << endl;
+    } catch ( JNIException& jniException ) {
+        cout << "An unexpected JNI error has occurred in ~SKClient: " << jniException.what() << endl;
         throw;
-	} catch ( Throwable& t ) {
+    } catch ( Throwable& t ) {
         cout << "A Throwable caugth in SKClient d-tor: "  << endl;
         Log::logErrorWarning(t);
-		t.printStackTrace();
+        t.printStackTrace();
         throw;
-	} catch(std::exception& ex) {
-		cout << "An unexpected std::exception has occurred in SKClient d-tor: " << ex.what() << endl;
+    } catch(std::exception& ex) {
+        cout << "An unexpected std::exception has occurred in SKClient d-tor: " << ex.what() << endl;
         throw;
-	} catch(...) {
-		cout << "An unexpected error has occurred in SKClient d-tor " <<  endl;
+    } catch(...) {
+        cout << "An unexpected error has occurred in SKClient d-tor " <<  endl;
         throw;
-	}
+    }
 }
 
 void SKClient::shutdown() {
-	try {
-		{
-		boost::recursive_mutex::scoped_lock lock(sClientLock);
-		if (pClient) {
-			delete pClient;
-			pClient = NULL;
-		}
+    try {
+        {
+        boost::recursive_mutex::scoped_lock lock(sClientLock);
+        if (pClient) {
+            delete pClient;
+            pClient = NULL;
+        }
 
-		jace::detach();
-		jace::destroyVm();
-		}
-	} catch ( VirtualMachineShutdownError& ) {
-		cout << "The JVM was terminated in SKClient::shutdown. " << endl;
+        jace::detach();
+        jace::destroyVm();
+        }
+    } catch ( VirtualMachineShutdownError& ) {
+        cout << "The JVM was terminated in SKClient::shutdown. " << endl;
         throw;
-	} catch ( JNIException& jniException ) {
-		cout << "An unexpected JNI error has occurred in SKClient::shutdown: " << jniException.what() << endl;
+    } catch ( JNIException& jniException ) {
+        cout << "An unexpected JNI error has occurred in SKClient::shutdown: " << jniException.what() << endl;
         throw;
-	} catch ( Throwable& t ) {
+    } catch ( Throwable& t ) {
         cout << "A Throwable caugth in SKClient::shutdown: "  << endl;
         Log::logErrorWarning(t);
-		t.printStackTrace();
+        t.printStackTrace();
         throw;
-	} catch (std::exception& ex) {
-		cout << "An unexpected std::exception has occurred in SKClient::shutdown: " << ex.what() << endl;
+    } catch (std::exception& ex) {
+        cout << "An unexpected std::exception has occurred in SKClient::shutdown: " << ex.what() << endl;
         throw;
-	} catch( ... ) {
-		cout << "An unexpected error has occurred in SKClient::shutdown " <<  endl;
+    } catch( ... ) {
+        cout << "An unexpected error has occurred in SKClient::shutdown " <<  endl;
         throw;
-	}
+    }
 }
 
 void SKClient::setLogLevel(LoggingLevel level) {
     Level * pLevel = getJavaLogLevel(level);
-	Log::setLevel(*pLevel);
+    Log::setLevel(*pLevel);
     delete pLevel;
 }
 
@@ -529,18 +529,18 @@ void SKClient::setLogFile(const char * fileName) {
 }
 
 bool SKClient::attach(bool daemon) {
-	boost::recursive_mutex::scoped_lock lock(sClientLock);
-	if (pClient) {
-		jace::attach(0,0,daemon);
-		return true;
-	}
-	return false;
+    boost::recursive_mutex::scoped_lock lock(sClientLock);
+    if (pClient) {
+        jace::attach(0,0,daemon);
+        return true;
+    }
+    return false;
 }
 
 void SKClient::detach() {
-	boost::recursive_mutex::scoped_lock lock(sClientLock);
-	if (pClient) {
-		jace::detach();
+    boost::recursive_mutex::scoped_lock lock(sClientLock);
+    if (pClient) {
+        jace::detach();
     }
 }
 
@@ -560,7 +560,7 @@ SKSession * SKClient::openSession(SKGridConfiguration * pGridConf) {
 SKSession * SKClient::openSession(SKGridConfiguration * pGridConf, const char * preferredServer) {
     jgc::SKGridConfiguration * pGConf = (jgc::SKGridConfiguration *)pGridConf->getPImpl();
     ClientDHTConfigurationProvider cdcp =  java_cast<ClientDHTConfigurationProvider>(*pGConf);
-	SessionOptions sessOpt = java_new<SessionOptions>(cdcp, java_new<String>((char *)preferredServer) );
+    SessionOptions sessOpt = java_new<SessionOptions>(cdcp, java_new<String>((char *)preferredServer) );
     DHTSession * pSession = new DHTSession(java_cast<DHTSession>(pImpl->openSession( sessOpt )));
     return new SKSession (pSession);
 }

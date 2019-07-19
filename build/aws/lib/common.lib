@@ -1,6 +1,6 @@
 
 function f_aws_getBuild_RunOutputFilename {
-	echo $(f_getRunOutputFilename_Helper "$1")
+    echo $(f_getRunOutputFilename_Helper "$1")
 }
 
 function f_aws_fillInMakeJobs {
@@ -24,50 +24,66 @@ function f_aws_fail {
 } 
 
 function f_aws_downloadTar {
-	typeset tar=$1
-	typeset url=$2
-	
+    f_aws_downloadHelper "$1" "$2" "$TAR_TYPE"
+}
+
+function f_aws_downloadZip {
+    f_aws_downloadHelper "$1" "$2" "$ZIP_TYPE"
+}
+
+function f_aws_downloadHelper {
+    typeset name=$1
+    typeset url=$2
+    typeset type=$3
+    
     typeset wgetOption;
     typeset tarOption;
-    if [[ $QUIET_OUTPUT == "true" ]]; then
+    if [[ $SK_QUIET_OUTPUT == "true" ]]; then
         wgetOption="-nv"
     else
         tarOption="-v"
     fi
     
-	cd $LIB_ROOT
-	wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
+    cd $LIB_ROOT
+    
+    wget $wgetOption --progress=bar:force:noscroll $url # see the manpage for 'nv' or '--progress=type', https://stackoverflow.com/questions/4686464/how-to-show-wget-progress-bar-only
     f_aws_checkExitCode "wget: $url"
-	tar $tarOption -xf $tar # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $tar'
-	f_aws_checkExitCode "tar: $tar"
-    rm $tar
-    f_aws_checkExitCode "rm: $tar"
+    
+    if [[ $type == $TAR_TYPE ]]; then
+        tar $tarOption -xf $name # -f is for file and needs its filename param to be immediately after, so can't do '-xfv $name'
+        f_aws_checkExitCode "tar: $name"
+    elif [[ $type == $ZIP_TYPE ]]; then
+        unzip $name
+    fi
+    
+    rm $name
+    f_aws_checkExitCode "rm: $name"
 }
 
 function f_aws_downloadJar {
-	typeset url=$1
-	
-	curl -O $url
+    typeset url=$1
+    
+    curl -O $url
     f_aws_checkExitCode "curl: $url"
 }
 
 function f_aws_replaceLine {
-	typeset oldLine=$1
-	typeset newLine=$2
-	typeset filename=$3
-	typeset admin=$4
-	
-	$admin sed -i "/${oldLine}/c${newLine}" $filename
+    typeset oldLine=$1
+    typeset newLine=$2
+    typeset filename=$3
+    typeset admin=$4
+    
+    $admin sed -i "/${oldLine}/c${newLine}" $filename
 }
 
 function f_aws_generatePrivateKey {
     echo "generating private key"
-	cd ~/.ssh
-	typeset publicKeyFilename="id_rsa.pub"
-	if [[ ! -f $publicKeyFilename ]]; then
-		ssh-keygen -f id_rsa -N '' # flags -f,-N are to bypass prompt
-		cat $publicKeyFilename >> authorized_keys
-	fi
+    cd ~/.ssh
+    typeset publicKeyFilename="id_rsa.pub"
+    if [[ ! -f $publicKeyFilename ]]; then
+        ssh-keygen -f id_rsa -N '' # flags -f,-N are to bypass prompt
+        cat $publicKeyFilename >> authorized_keys
+    fi
 }
 
 # sudo yum install ant - is installing 1.8 and we need 1.9
@@ -80,6 +96,17 @@ function f_aws_install_ant {
     f_aws_downloadTar "$ant_tar" "http://archive.apache.org/dist/ant/binaries/$ant_tar"
     
     f_fillInBuildConfigVariable "ANT_9_HOME" "$LIB_ROOT/$ant_version"
+}
+
+# taken from https://gradle.org/install/
+function f_aws_install_gradle {
+    echo "installing gradle"
+    cd $LIB_ROOT
+    typeset gradle_version="gradle-5.4.1"
+    typeset gradle_zip=$gradle_version-bin.zip
+    f_aws_downloadZip "$gradle_zip" "https://services.gradle.org/distributions/$gradle_zip"
+
+    f_fillInBuildConfigVariable "GRADLE_HOME" "$LIB_ROOT/$gradle_version"
 }
 
 function f_aws_install_zk {
@@ -190,6 +217,7 @@ function f_aws_checkBuildConfig_fillInConfigs_andRunEverything {
     f_aws_symlink_skjar_for_skc
 
     export IS_OSS_BUILD="true"
+    export SK_SKIP_MULTI_MACHINE_TESTS="true"
     $AWS_DIR/$ZK_START_SCRIPT_NAME
     $BUILD_DIR/$BUILD_SCRIPT_NAME
     $AWS_DIR/$ZK_STOP_SCRIPT_NAME
@@ -254,7 +282,7 @@ function f_aws_compile_sample_app {
     
     cd $LIB_ROOT/$SPARK_VERSION
     typeset mvnOption;
-    if [[ $QUIET_OUTPUT == "true" ]]; then
+    if [[ $SK_QUIET_OUTPUT == "true" ]]; then
         mvnOption="-q"
     fi
     mvn $mvnOption package
@@ -316,6 +344,9 @@ JACE_CORE_JAR=$JACE_CORE-1.2.22.jar
 ZK_VERSION="zookeeper-3.4.13"
 SPARK_VERSION="spark-2.4.0-bin-hadoop2.7"
     
+ZIP_TYPE="ZIP"
+TAR_TYPE="TAR"
+
 NONLAUNCH_HOST_LIST_FILENAME="multi_nonlaunch_machines_list.txt"
 # SSH_OPTIONS="-v -x -o StrictHostKeyChecking=no"
 SSH_OPTIONS="-x -o StrictHostKeyChecking=no"

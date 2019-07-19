@@ -26,7 +26,7 @@ public class ProcReader {
     
     public enum FilterType {INCLUSIVE, EXCLUSIVE};
     
-    private static final String	swapFreeToken = "SwapFree:";
+    private static final String    swapFreeToken = "SwapFree:";
     
     /**
      * Calculation of TotalFreeMem :
@@ -45,7 +45,7 @@ public class ProcReader {
         }
     };
     
-    private static final String	rawRAMToken = "MemFree:";
+    private static final String    rawRAMToken = "MemFree:";
     
     public ProcReader() {
         reader = new StructReader<ProcessStat>(ProcessStat.class);
@@ -199,7 +199,7 @@ public class ProcReader {
     }
     
     public long freeSwapBytes() throws IOException {
-    	return parseMem(swapFreeToken);
+        return parseMem(swapFreeToken);
     }
     
     public ProcessStat readStat(int pid) {

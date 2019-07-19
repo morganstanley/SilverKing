@@ -6,14 +6,14 @@ package com.ms.silverking.time;
 public final class ConstantAbsMillisTimeSource implements AbsMillisTimeSource {
     private final long  absMillisTime;
     
-	public ConstantAbsMillisTimeSource(long absMillisTime) {
-	    this.absMillisTime = absMillisTime;
-	}
+    public ConstantAbsMillisTimeSource(long absMillisTime) {
+        this.absMillisTime = absMillisTime;
+    }
 
-	@Override
-	public long absTimeMillis() {
-		return absMillisTime;
-	}
+    @Override
+    public long absTimeMillis() {
+        return absMillisTime;
+    }
 
     @Override
     public int relMillisRemaining(long absDeadlineMillis) {
@@ -22,20 +22,20 @@ public final class ConstantAbsMillisTimeSource implements AbsMillisTimeSource {
     
     @Override
     public int hashCode() {
-    	return Long.hashCode(absMillisTime);
+        return Long.hashCode(absMillisTime);
     }
     
     @Override
     public boolean equals(Object o) {
-    	if (this == o) {
-    		return true;
-    	}
-    		
-    	if (this.getClass() != o.getClass()) {
-    		return false;
-    	}
-    	
-    	ConstantAbsMillisTimeSource other = (ConstantAbsMillisTimeSource)o;
-    	return absMillisTime == other.absMillisTime;
+        if (this == o) {
+            return true;
+        }
+            
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
+        
+        ConstantAbsMillisTimeSource other = (ConstantAbsMillisTimeSource)o;
+        return absMillisTime == other.absMillisTime;
     }
 }

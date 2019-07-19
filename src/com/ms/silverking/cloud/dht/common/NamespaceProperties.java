@@ -17,7 +17,7 @@ public class NamespaceProperties {
     private final long              creationTime;
     
     private static final NamespaceProperties    templateProperties = new NamespaceProperties();
-    private static final Set<String>			excludedFields = ImmutableSet.of("creationTime");
+    private static final Set<String>            excludedFields = ImmutableSet.of("creationTime");
 
     static {
         ObjectDefParser2.addParserWithExclusions(templateProperties, excludedFields);
@@ -35,7 +35,7 @@ public class NamespaceProperties {
     }
     
     public NamespaceProperties(NamespaceOptions options, String parent, long minVersion) {
-    	this(options, parent, minVersion, 0);
+        this(options, parent, minVersion, 0);
     }
     
     public NamespaceProperties(NamespaceOptions options) {
@@ -63,11 +63,11 @@ public class NamespaceProperties {
     }
     
     public NamespaceProperties creationTime(long creationTime) {
-    	return new NamespaceProperties(options, parent, minVersion, creationTime);
+        return new NamespaceProperties(options, parent, minVersion, creationTime);
     }
     
     public NamespaceProperties options(NamespaceOptions options) {
-    	return new NamespaceProperties(options, parent, minVersion, creationTime);
+        return new NamespaceProperties(options, parent, minVersion, creationTime);
     }
     
     @Override

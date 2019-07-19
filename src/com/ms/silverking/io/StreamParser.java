@@ -20,13 +20,13 @@ import java.util.zip.GZIPInputStream;
 
 
 public class StreamParser {
-	public enum TrimMode {noTrim, trim};
-	public enum CloseMode {noClose, close};
-	
+    public enum TrimMode {noTrim, trim};
+    public enum CloseMode {noClose, close};
+    
     private static final char   setDelimiterChar = ',';
     private static final String setDelimiter = ""+ setDelimiterChar;
-	private static final String mapChar = "=";
-	
+    private static final String mapChar = "=";
+    
     public static List<String> parseFileLines(File file, String regex) throws IOException {
         return parseLines(new FileInputStream(file), regex);
     }
@@ -43,96 +43,96 @@ public class StreamParser {
         return parseLines(new FileInputStream(file), trimMode);
     }
     
-	public static List<String> parseFileLines(String fileName) throws IOException {
-		return parseLines( new FileInputStream(fileName) );
-	}
+    public static List<String> parseFileLines(String fileName) throws IOException {
+        return parseLines( new FileInputStream(fileName) );
+    }
 
-	public static List<String> parseFileLines(String fileName, TrimMode trimMode) throws IOException {
-		return parseLines(new FileInputStream(fileName), trimMode);
-	}	
-	
-	public static List<String> parseLines(File file) throws IOException {
-		return parseLines(new FileInputStream(file), TrimMode.trim);
-	}
+    public static List<String> parseFileLines(String fileName, TrimMode trimMode) throws IOException {
+        return parseLines(new FileInputStream(fileName), trimMode);
+    }    
+    
+    public static List<String> parseLines(File file) throws IOException {
+        return parseLines(new FileInputStream(file), TrimMode.trim);
+    }
 
-	public static List<String> parseLines(File file, TrimMode trimMode) throws IOException {
-		return parseLines(new FileInputStream(file), trimMode, CloseMode.close, null);
-	}
-	
-	public static List<String> parseLines(InputStream inStream) throws IOException {
-		return parseLines(inStream, TrimMode.trim, CloseMode.close, null);
-	}
-	
+    public static List<String> parseLines(File file, TrimMode trimMode) throws IOException {
+        return parseLines(new FileInputStream(file), trimMode, CloseMode.close, null);
+    }
+    
+    public static List<String> parseLines(InputStream inStream) throws IOException {
+        return parseLines(inStream, TrimMode.trim, CloseMode.close, null);
+    }
+    
     public static List<String> parseLines(InputStream inStream, String regex) throws IOException {
         return parseLines(inStream, TrimMode.trim, CloseMode.close, regex);
     }
     
-	public static List<String> parseLines(InputStream inStream, CloseMode closeMode) throws IOException {
-		return parseLines(inStream, TrimMode.trim, closeMode, null);
-	}
-	
-	public static List<String> parseLines(InputStream inStream, TrimMode trimMode) throws IOException {
-		return parseLines(inStream, trimMode, CloseMode.close, null);
-	}
-	
-	public static List<String> parseLines(InputStream inStream, TrimMode trimMode, CloseMode closeMode, 
-	                                    String regex) throws IOException {
-		BufferedReader		reader;
-		ArrayList<String>	lines;
-		String				line;
-		
-		reader = new BufferedReader( new InputStreamReader(inStream) );
-		try {
-			lines = new ArrayList<String>();
-			do {
-				line = reader.readLine();
-				if (line != null) {
-				    if (regex == null || line.matches(regex)) {
-    					if (trimMode == TrimMode.trim) {
-    						lines.add( line.trim() );
-    					} else {
-    						lines.add(line);
-    					}
-				    }
-				}
-			} while (line != null);
-		} finally {
-			if (closeMode == CloseMode.close) {
-				reader.close();
-			}
-		}
-		return lines;
-	}
-	
-	public static String parseLine(File file) throws IOException {
-		return parseLine(file, TrimMode.trim, CloseMode.close);
-	}
-	
-	public static String parseLine(File file, TrimMode trimMode, CloseMode closeMode) throws IOException {
-		return parseLine(new FileInputStream(file), trimMode, closeMode);
-	}
-	
-	public static String parseLine(InputStream inStream) throws IOException {
-		return parseLine(inStream, TrimMode.trim, CloseMode.close);
-	}
-	
-	public static String parseLine(InputStream inStream, TrimMode trimMode, CloseMode closeMode) throws IOException {
-		BufferedReader	reader;
-		
-		reader = new BufferedReader( new InputStreamReader(inStream) );
-		try {
-    		if (trimMode == TrimMode.trim) {
-    			return reader.readLine().trim();
-    		} else {
-    			return reader.readLine();
-    		}
-		} finally {
-		    if (closeMode == CloseMode.close) {
-		        reader.close();
-		    }
-		}
-	}	
-	
+    public static List<String> parseLines(InputStream inStream, CloseMode closeMode) throws IOException {
+        return parseLines(inStream, TrimMode.trim, closeMode, null);
+    }
+    
+    public static List<String> parseLines(InputStream inStream, TrimMode trimMode) throws IOException {
+        return parseLines(inStream, trimMode, CloseMode.close, null);
+    }
+    
+    public static List<String> parseLines(InputStream inStream, TrimMode trimMode, CloseMode closeMode, 
+                                        String regex) throws IOException {
+        BufferedReader        reader;
+        ArrayList<String>    lines;
+        String                line;
+        
+        reader = new BufferedReader( new InputStreamReader(inStream) );
+        try {
+            lines = new ArrayList<String>();
+            do {
+                line = reader.readLine();
+                if (line != null) {
+                    if (regex == null || line.matches(regex)) {
+                        if (trimMode == TrimMode.trim) {
+                            lines.add( line.trim() );
+                        } else {
+                            lines.add(line);
+                        }
+                    }
+                }
+            } while (line != null);
+        } finally {
+            if (closeMode == CloseMode.close) {
+                reader.close();
+            }
+        }
+        return lines;
+    }
+    
+    public static String parseLine(File file) throws IOException {
+        return parseLine(file, TrimMode.trim, CloseMode.close);
+    }
+    
+    public static String parseLine(File file, TrimMode trimMode, CloseMode closeMode) throws IOException {
+        return parseLine(new FileInputStream(file), trimMode, closeMode);
+    }
+    
+    public static String parseLine(InputStream inStream) throws IOException {
+        return parseLine(inStream, TrimMode.trim, CloseMode.close);
+    }
+    
+    public static String parseLine(InputStream inStream, TrimMode trimMode, CloseMode closeMode) throws IOException {
+        BufferedReader    reader;
+        
+        reader = new BufferedReader( new InputStreamReader(inStream) );
+        try {
+            if (trimMode == TrimMode.trim) {
+                return reader.readLine().trim();
+            } else {
+                return reader.readLine();
+            }
+        } finally {
+            if (closeMode == CloseMode.close) {
+                reader.close();
+            }
+        }
+    }    
+    
     public static Map<String,String> parseMap(InputStream inStream) throws IOException {
         return parseMap(inStream, TrimMode.trim, CloseMode.close);
     }

@@ -19,9 +19,9 @@ using std::string;
 class SKNamespacePerspectiveOptions
 {
 public:
-	
+    
 /* what do SK return : jclass / Class / Java class name/ something else ?
-	Class<K> getKeyClass();
+    Class<K> getKeyClass();
     Class<V> getValueClass();
 */
 
@@ -31,7 +31,7 @@ public:
     SKAPI SKGetOptions * getDefaultGetOptions();
     SKAPI SKWaitOptions * getDefaultWaitOptions();
     SKAPI SKVersionProvider * getDefaultVersionProvider();
-	
+    
     SKAPI SKNamespacePerspectiveOptions * keyDigestType(SKKeyDigestType::SKKeyDigestType keyDigestType);
     SKAPI SKNamespacePerspectiveOptions * defaultPutOptions(SKPutOptions * defaultPutOptions);
     SKAPI SKNamespacePerspectiveOptions * defaultInvalidationOptions(SKInvalidationOptions * defaultInvalidationOptions);
@@ -43,15 +43,15 @@ public:
     SKAPI string toString();
 
     SKAPI ~SKNamespacePerspectiveOptions();
-	SKAPI SKNamespacePerspectiveOptions(/* KeyClass k, ValueClass v, */ SKKeyDigestType::SKKeyDigestType keyDigestType, 
-										SKPutOptions * defaultPutOptions, 
+    SKAPI SKNamespacePerspectiveOptions(/* KeyClass k, ValueClass v, */ SKKeyDigestType::SKKeyDigestType keyDigestType, 
+                                        SKPutOptions * defaultPutOptions, 
                                         SKInvalidationOptions * defaultInvalidationOptions,
                                         SKGetOptions * defaultGetOptions, 
-										SKWaitOptions * defaultWaitOptions, SKVersionProvider * defaultVersionProvider );
-	SKNamespacePerspectiveOptions(void * pOpt);
-	void * getPImpl();
+                                        SKWaitOptions * defaultWaitOptions, SKVersionProvider * defaultVersionProvider );
+    SKNamespacePerspectiveOptions(void * pOpt);
+    void * getPImpl();
 private:
-	void * pImpl;
+    void * pImpl;
 };
 
 #endif // SKNAMESPACEPERSPECTIVEOPTIONS_H

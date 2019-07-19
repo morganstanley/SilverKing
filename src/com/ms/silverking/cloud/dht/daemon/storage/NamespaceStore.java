@@ -2458,6 +2458,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private void addRecentFileSegment(int segmentNumber, FileSegment fileSegment) {
         FileSegment    existingFileSegment;
         
+        // FIXME - think about this and the other occurrence of this existingFileSegmentCheck
         existingFileSegment = recentFileSegments.putIfAbsent(segmentNumber, fileSegment);
         if (existingFileSegment == null) {
             fileSegment.addReferences(2); // 1 for the map, 1 for the returned reference

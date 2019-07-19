@@ -5,6 +5,6 @@ using jace::proxy::java::lang::String;
 using jace::proxy::com::ms::silverking::cloud::dht::client::SyncRequestException;
 
 SKSyncRequestException::SKSyncRequestException(SyncRequestException * pSre, const char * fileName, int lineNum) 
-	: SKClientException(pSre, fileName, lineNum) { 	/*pImpl = pSre;*/ }
+    : SKClientException(pSre, fileName, lineNum) {     /*pImpl = pSre;*/ }
 
 SKSyncRequestException::~SKSyncRequestException()  throw () { }

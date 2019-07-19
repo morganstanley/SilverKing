@@ -27,9 +27,9 @@ public class CollectionUtil {
     
     public static <K> String toString(Collection<K> c, String startBrace, String endBrace, 
                                       char separator, String emptyDef) {
-    	if (c.isEmpty())
-    		return emptyDef;
-    	
+        if (c.isEmpty())
+            return emptyDef;
+        
         StringBuilder sb = new StringBuilder();
         sb.append(startBrace);
         
@@ -102,21 +102,21 @@ public class CollectionUtil {
     }
     
     public static Set<String> parseSet(String def, String pattern) {
-    	if (def != null) {
-	    	def = def.trim();
-	    	if (def.startsWith(defaultStartBrace)) {
-	    		def = def.substring(defaultStartBrace.length());
-	        	if (def.endsWith(defaultEndBrace)) {
-	        		def = def.substring(0, def.length() - defaultEndBrace.length());
-	        	}
-	    	}
-	    	return ImmutableSet.copyOf(def.split(pattern));
-    	} else {
-    		return ImmutableSet.of();
-    	}
+        if (def != null) {
+            def = def.trim();
+            if (def.startsWith(defaultStartBrace)) {
+                def = def.substring(defaultStartBrace.length());
+                if (def.endsWith(defaultEndBrace)) {
+                    def = def.substring(0, def.length() - defaultEndBrace.length());
+                }
+            }
+            return ImmutableSet.copyOf(def.split(pattern));
+        } else {
+            return ImmutableSet.of();
+        }
     }
     
     public static <K extends Enum<K>> EnumSet<K> arrayToEnumSet(K[] a) {
-    	return EnumSet.copyOf(ImmutableSet.copyOf(a));
+        return EnumSet.copyOf(ImmutableSet.copyOf(a));
     }
 }

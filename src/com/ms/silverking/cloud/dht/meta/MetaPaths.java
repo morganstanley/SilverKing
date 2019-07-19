@@ -31,7 +31,7 @@ public class MetaPaths extends MetaPathsBase {
     private static final String exclusionsNodeName = "exclusions";
     private static final String commandsNodeName = "commands";
     private static final String ringStateNodeName = "ringState";
-    private static final String	ringHealthNodeName = "ringHealth";
+    private static final String    ringHealthNodeName = "ringHealth";
     private static final String daemonStateNodeName = "daemon";
     private static final String skfsConfigNodeName = "skfsConfig";
         

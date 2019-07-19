@@ -17,28 +17,28 @@ import com.ms.silverking.text.ObjectDefParser2;
 import static com.ms.silverking.cloud.dht.management.SKAdmin.javaSystemPropertyFlag;
 
 public class SKAdminOptions {
-    public static String	exclusionsTarget = "exclusions";
-    public static String	activeDaemonsTarget = "activeDaemons";
+    public static String    exclusionsTarget = "exclusions";
+    public static String    activeDaemonsTarget = "activeDaemons";
 
-    public static final int	skfsTimeoutNotSet = -1;
+    public static final int    skfsTimeoutNotSet = -1;
 
     public SKAdminOptions() {
     }
 
     @Option(name="-g", usage="GridConfig", required=false)
-    public String	gridConfig;
+    public String    gridConfig;
 
     @Option(name="-G", usage="GridConfigBase", required=false)
-    public String	gridConfigBase;
+    public String    gridConfigBase;
 
     @Option(name="-c", usage="Command(s)", required=true)
-    public String	commands;
+    public String    commands;
 
     @Option(name="-C", usage="Compression", required=false)
-    public Compression	compression = Compression.LZ4;
+    public Compression    compression = Compression.LZ4;
 
     @Option(name="-t", usage="target(s)", required=false)
-    public String	targets;
+    public String    targets;
 
     public boolean isReservedTarget(String s) {
         return s.equalsIgnoreCase(exclusionsTarget) || s.equalsIgnoreCase(activeDaemonsTarget);
@@ -53,19 +53,19 @@ public class SKAdminOptions {
     }
 
     @Option(name="-e", usage="includeExcludedHosts", required=false)
-    public boolean	includeExcludedHosts;
+    public boolean    includeExcludedHosts;
 
     @Option(name="-L", usage="CoreLimit", required=false)
-    public String	coreLimit;
+    public String    coreLimit;
 
     @Option(name="-l", usage="LogLevel", required=false)
-    public String	logLevel = Level.WARNING.toString();
+    public String    logLevel = Level.WARNING.toString();
 
     @Option(name="-cp", usage="ClassPath", required=false)
-    public String	classPath;
+    public String    classPath;
 
     @Option(name="-jb", usage="JavaBin", required=false)
-    public String	javaBinary;
+    public String    javaBinary;
 
     @Option(name="-ao", usage="AssertionOption", required=false)
     public String assertionOption = "-da";
@@ -86,19 +86,19 @@ public class SKAdminOptions {
     public int inactiveNodeTimeoutSeconds = DHTNodeOptions.defaultInactiveNodeTimeoutSeconds;
 
     @Option(name="-forceUnsafe", usage="forceInclusionOfUnsafeExcludedServers", required=false)
-    public boolean	forceInclusionOfUnsafeExcludedServers = false;
+    public boolean    forceInclusionOfUnsafeExcludedServers = false;
 
     @Option(name="-excludeInstanceExclusions", usage="excludeInstanceExclusions", required=false)
-    public boolean	excludeInstanceExclusions = false;
+    public boolean    excludeInstanceExclusions = false;
 
     @Option(name="-ma", usage="MaxAttempts", required=false)
     public int maxAttempts = 2;
 
     @Option(name="-D", usage="displayOnly", required=false)
-    public boolean	displayOnly;
+    public boolean    displayOnly;
 
     @Option(name="-fsdc", usage="forceSKFSDirectoryCreation", required=false)
-    public boolean	forceSKFSDirectoryCreation;
+    public boolean    forceSKFSDirectoryCreation;
 
     @Option(name="-r", usage="disableReap", required=false)
     public boolean disableReap = false;
@@ -110,7 +110,7 @@ public class SKAdminOptions {
     public String reapPolicy = ObjectDefParser2.toClassAndDefString(new ReapOnIdlePolicy());
 
     @Option(name="-ringHealth", usage="ringHealth", required=false)
-    public RingHealth	ringHealth;
+    public RingHealth    ringHealth;
 
     public ReapPolicy getReapPolicy() {
         if (disableReap) {
@@ -138,48 +138,48 @@ public class SKAdminOptions {
     public String authImplSkStrDef = null;
 
     @Option(name="-destructive", usage="destructive", required=false)
-    public boolean	destructive = false;
+    public boolean    destructive = false;
 
     @Option(name="-opTimeoutController", usage="opTimeoutController", required=false)
     public String opTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=5,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
 
-	@Option(name="-dirNSPutTimeoutController", usage="dirNSPutTimeoutController", required=false)
-	public String dirNSPutTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=12,constantTime_ms=60000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
-	
-	@Option(name="-fileBlockNSValueRetentionPolicy", usage="fileBlockNSValueRetentionPolicy", required=false)
-	public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=0,timeSpanSeconds=300}";
-	
-	@Option(name="-defaultClassVars", usage="defaultClassVars", required=false)
-	public String defaultClassVars;
-	
-	@Option(name="-explicitClassVarDef", usage="explicitClassVarDef", required=false)
-	public String explicitClassVarDef;
-	
-	@Option(name="-ps", usage="PreferredServer", required=false)
-	public String preferredServer;	
-	
-	@Option(name="-skfsEntryTimeoutSecs", usage="skfsEntryTimeoutSecs", required=false)
-	public int	skfsEntryTimeoutSecs = skfsTimeoutNotSet;	
-	
-	@Option(name="-skfsAttrTimeoutSecs", usage="skfsAttrTimeoutSecs", required=false)
-	public int	skfsAttrTimeoutSecs = skfsTimeoutNotSet;	
-	
-	@Option(name="-skfsNegativeTimeoutSecs", usage="skfsNegativeTimeoutSecs", required=false)
-	public int	skfsNegativeTimeoutSecs = skfsTimeoutNotSet;
-	
-	@Option(name="-checkSKFSOptions", usage="checkSKFSOptions", required=false)
-	public String checkSKFSOptions;
-	
-	@Option(name="-pinToNICLocalCPUs", usage="pinToNICLocalCPUs", required=false)
-	public String pinToNICLocalCPUs;
+    @Option(name="-dirNSPutTimeoutController", usage="dirNSPutTimeoutController", required=false)
+    public String dirNSPutTimeoutController = "<OpSizeBasedTimeoutController>{maxAttempts=12,constantTime_ms=60000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
+    
+    @Option(name="-fileBlockNSValueRetentionPolicy", usage="fileBlockNSValueRetentionPolicy", required=false)
+    public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=0,timeSpanSeconds=300}";
+    
+    @Option(name="-defaultClassVars", usage="defaultClassVars", required=false)
+    public String defaultClassVars;
+    
+    @Option(name="-explicitClassVarDef", usage="explicitClassVarDef", required=false)
+    public String explicitClassVarDef;
+    
+    @Option(name="-ps", usage="PreferredServer", required=false)
+    public String preferredServer;    
+    
+    @Option(name="-skfsEntryTimeoutSecs", usage="skfsEntryTimeoutSecs", required=false)
+    public int    skfsEntryTimeoutSecs = skfsTimeoutNotSet;    
+    
+    @Option(name="-skfsAttrTimeoutSecs", usage="skfsAttrTimeoutSecs", required=false)
+    public int    skfsAttrTimeoutSecs = skfsTimeoutNotSet;    
+    
+    @Option(name="-skfsNegativeTimeoutSecs", usage="skfsNegativeTimeoutSecs", required=false)
+    public int    skfsNegativeTimeoutSecs = skfsTimeoutNotSet;
+    
+    @Option(name="-checkSKFSOptions", usage="checkSKFSOptions", required=false)
+    public String checkSKFSOptions;
+    
+    @Option(name="-pinToNICLocalCPUs", usage="pinToNICLocalCPUs", required=false)
+    public String pinToNICLocalCPUs;
 
     @Option(name="-uwc", usage="unsafeWarningCountdownSecs", required=false)
     public int unsafeWarningCountdownSecs = 10;
 
-	@Option(name="-sfoc", usage="sleepForeverOnCompletion", required=false)
-	boolean sleepForeverOnCompletion = false;
+    @Option(name="-sfoc", usage="sleepForeverOnCompletion", required=false)
+    boolean sleepForeverOnCompletion = false;
 
-	@Option(name = "-useAclWithImpl", usage = "specify ZooKeeperACLImpl in SKObjectStringDef", required = false)
+    @Option(name = "-useAclWithImpl", usage = "specify ZooKeeperACLImpl in SKObjectStringDef", required = false)
     public String aclImplSkStrDef;
 
     @Option(name = "-startNodeWithExtraJVMOptions", usage = "enable user to append its customized JVM options when starting a DHTNode")
@@ -202,11 +202,11 @@ public class SKAdminOptions {
     }
     
     private void checkStartNodeExtraJVMOptions() {
-    	if (startNodeExtraJVMOptions.isEmpty()) {
-    		return;
-    	}
-    				
-    	String[] options = startNodeExtraJVMOptions.trim().split("\\s+");
+        if (startNodeExtraJVMOptions.isEmpty()) {
+            return;
+        }
+                    
+        String[] options = startNodeExtraJVMOptions.trim().split("\\s+");
         for (String op : options) {
             // let it crash to prevent SKAdmin command to be populated
             if (!op.startsWith(javaSystemPropertyFlag)) {

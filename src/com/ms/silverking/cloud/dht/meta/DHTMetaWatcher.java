@@ -97,9 +97,9 @@ public class DHTMetaWatcher implements VersionListener, RingChangeListener {
                     Log.warning("DHTMetaWatcher.newDHTConfiguration: "+ dhtConfig);
                 }
                 if (dhtConfig != null) {
-                	this.notifyAll();
+                    this.notifyAll();
                 } else {
-                	Log.warning("Ignoring null dhtConfig");
+                    Log.warning("Ignoring null dhtConfig");
                 }
             }
             //readRing(dhtConfig.getRingName(), dhtConfig.getZKID());
@@ -149,7 +149,7 @@ public class DHTMetaWatcher implements VersionListener, RingChangeListener {
         //com.ms.silverking.cloud.meta.MetaClient             cloudMC;
         NamedRingConfiguration namedRingConfig;
         RingConfiguration   ringConfig;
-        InstantiatedRingTree	ringTree;
+        InstantiatedRingTree    ringTree;
         long                ringConfigVersion;
         long                configInstanceVersion;
         DHTMetaUpdate       dhtMetaUpdate;
@@ -185,13 +185,13 @@ public class DHTMetaWatcher implements VersionListener, RingChangeListener {
         }
         
         if (DHTConstants.isDaemon || Log.levelMet(Level.INFO)) {
-        	Log.warning("Waiting until valid "+ ringMC.getMetaPaths().getConfigInstancePath(ringConfigVersion) 
+            Log.warning("Waiting until valid "+ ringMC.getMetaPaths().getConfigInstancePath(ringConfigVersion) 
                 +" "+ configInstanceVersion);
         }
         SingleRingZK.waitUntilValid(ringMC, ringMC.getMetaPaths().getConfigInstancePath(ringConfigVersion), 
                 configInstanceVersion);
         if (DHTConstants.isDaemon || Log.levelMet(Level.INFO)) {
-        	Log.warning("Valid");
+            Log.warning("Valid");
         }
         
         ringTree = null;

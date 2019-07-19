@@ -19,13 +19,13 @@
 // types
 
 typedef struct OpenDirWriter {
-	QueueProcessor	*(qp[ODW_DHT_QUEUE_PROCESSORS]);
-	SRFSDHT			*sd;
-	SKSession		*pSession;
-    SKAsyncNSPerspective	*ansp;
-	// retry logic is currently deprecated in favor of periodic reconciliation
-	//QueueProcessor	*retryQP;
-	//DirDataReader	*ddr;
+    QueueProcessor    *(qp[ODW_DHT_QUEUE_PROCESSORS]);
+    SRFSDHT            *sd;
+    SKSession        *pSession;
+    SKAsyncNSPerspective    *ansp;
+    // retry logic is currently deprecated in favor of periodic reconciliation
+    //QueueProcessor    *retryQP;
+    //DirDataReader    *ddr;
     uint64_t        minWriteIntervalMillis;
 } OpenDirWriter;
 

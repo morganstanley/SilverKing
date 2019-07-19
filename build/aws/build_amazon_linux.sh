@@ -2,15 +2,15 @@
 
 source `dirname $0`/../lib/run_scripts_from_any_path.snippet
 
+# I think this source should really be in aws/lib/common.lib..
 cd ..
 source lib/common.lib
-source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
 cd -
 
 source lib/common.lib
 
 function f_amazon_linux_yumInstall {
-	sudo yum -y install $1
+    sudo yum -y install $1
     f_aws_checkExitCode "yum install: $1"
 }
 
@@ -69,7 +69,7 @@ function f_amazon_linux_fillin_build_skfs {
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
     f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib64"
 
-    # f_amazon_linux_yumInstall "valgrind"	#(not sure this is necessary)
+    # f_amazon_linux_yumInstall "valgrind"    #(not sure this is necessary)
     f_amazon_linux_yumInstall "valgrind-devel" #(/usr/include/valgrind/valgrind.h)
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
@@ -95,6 +95,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "amazon-linux")
     
     echo "BUILD"
     f_aws_install_ant
+    f_aws_install_gradle
     f_amazon_linux_install_java
     f_aws_install_zk
 

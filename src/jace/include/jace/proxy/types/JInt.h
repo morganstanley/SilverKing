@@ -23,64 +23,64 @@ class JByte;
 class JInt: public JValue
 {
 public:
-	/**
-	 * Creates a new instance with the given value.
-	 */
-	JACE_API JInt(jvalue value);
+    /**
+     * Creates a new instance with the given value.
+     */
+    JACE_API JInt(jvalue value);
 
-	/**
-	 * Creates a new instance with the given value.
-	 */
-	JACE_API JInt(const jint _int);
+    /**
+     * Creates a new instance with the given value.
+     */
+    JACE_API JInt(const jint _int);
 
-	/**
-	 * Creates a new instance with the given value.
-	 */
-	JACE_API JInt(const ::jace::proxy::types::JByte& _byte);
+    /**
+     * Creates a new instance with the given value.
+     */
+    JACE_API JInt(const ::jace::proxy::types::JByte& _byte);
 
-	/**
-	 * Destroys the existing java object.
-	 */
-	JACE_API virtual ~JInt();
+    /**
+     * Destroys the existing java object.
+     */
+    JACE_API virtual ~JInt();
 
-	/**
-	 * Returns the value of this instance.
-	 */
-	JACE_API operator jint() const;
+    /**
+     * Returns the value of this instance.
+     */
+    JACE_API operator jint() const;
 
-	/**
-	 * Compares this JInt to another.
-	 */
-	JACE_API bool operator==(const JInt& _int) const;
+    /**
+     * Compares this JInt to another.
+     */
+    JACE_API bool operator==(const JInt& _int) const;
 
-	/**
-	 * Compares this JInt to another.
-	 */
-	JACE_API bool operator!=(const JInt& _int) const;
+    /**
+     * Compares this JInt to another.
+     */
+    JACE_API bool operator!=(const JInt& _int) const;
 
-	/**
-	 * Compares this JInt to a jint.
-	 */
-	JACE_API bool operator==(jint val) const;
+    /**
+     * Compares this JInt to a jint.
+     */
+    JACE_API bool operator==(jint val) const;
 
-	/**
-	 * Compares this JInt to a jint.
-	 */
-	JACE_API bool operator!=(jint val) const;
+    /**
+     * Compares this JInt to a jint.
+     */
+    JACE_API bool operator!=(jint val) const;
 
-	/**
-	 * Returns the JClass for this class.
-	 */
-	JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
+    /**
+     * Returns the JClass for this class.
+     */
+    JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
 
-	/**
-	 * Retrieves the JavaClass for this JObject.
-	 *
-	 * @throw JNIException if an error occurs while trying to retrieve the class.
-	 */
-	JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
+    /**
+     * Retrieves the JavaClass for this JObject.
+     *
+     * @throw JNIException if an error occurs while trying to retrieve the class.
+     */
+    JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
 
-	JACE_API friend std::ostream& operator<<(std::ostream& stream, const JInt& val);
+    JACE_API friend std::ostream& operator<<(std::ostream& stream, const JInt& val);
 };
 
 

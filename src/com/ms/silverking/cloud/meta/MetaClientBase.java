@@ -25,12 +25,12 @@ public class MetaClientBase<T extends MetaPathsBase> extends MetaClientCore {
     }
     
     public void ensureMetaPathsExist() throws KeeperException {
-    	try {
-    		getZooKeeper().createAllNodes(metaPaths.getPathList());
-    	} catch (RuntimeException re) {
-    		Log.warningf("Failed to create meta paths %s", metaPaths.getPathList());
-    		throw re;
-    	}
+        try {
+            getZooKeeper().createAllNodes(metaPaths.getPathList());
+        } catch (RuntimeException re) {
+            Log.warningf("Failed to create meta paths %s", metaPaths.getPathList());
+            throw re;
+        }
     }
     
     public void ensurePathExists(String path, boolean createIfMissing) throws KeeperException {

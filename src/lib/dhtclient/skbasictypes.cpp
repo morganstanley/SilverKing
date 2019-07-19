@@ -33,14 +33,14 @@ SKVal* sk_create_val()
 
 void sk_clear_val(SKVal* pVal_)
 {
-	if (pVal_) {
-		if (pVal_->m_pVal != NULL && pVal_->m_pVal != SK_NULL_VALUE) {
-			skMemFree(&(pVal_->m_pVal), __FILE__, __LINE__);
-		}
-		pVal_->m_pVal = 0;
-		pVal_->m_rc = SKOperationState::SUCCEEDED;
-		pVal_->m_len = 0;
-	}
+    if (pVal_) {
+        if (pVal_->m_pVal != NULL && pVal_->m_pVal != SK_NULL_VALUE) {
+            skMemFree(&(pVal_->m_pVal), __FILE__, __LINE__);
+        }
+        pVal_->m_pVal = 0;
+        pVal_->m_rc = SKOperationState::SUCCEEDED;
+        pVal_->m_len = 0;
+    }
 }
 
 void sk_destroy_val(SKVal** pVal_)
@@ -48,10 +48,10 @@ void sk_destroy_val(SKVal** pVal_)
   if (!pVal_) return;
 
   if (*pVal_) {
-	if ((*pVal_)->m_pVal && (*pVal_)->m_pVal != SK_NULL_VALUE) {
-	  skMemFree(&((*pVal_)->m_pVal), __FILE__, __LINE__);
-	  (*pVal_)->m_pVal = 0;
-	}
+    if ((*pVal_)->m_pVal && (*pVal_)->m_pVal != SK_NULL_VALUE) {
+      skMemFree(&((*pVal_)->m_pVal), __FILE__, __LINE__);
+      (*pVal_)->m_pVal = 0;
+    }
     skMemFree((void**)pVal_, __FILE__, __LINE__);
   }
 
@@ -64,9 +64,9 @@ void sk_move_val(SKVal *pSrc_, SKVal *pDst_)
   {
     if (pDst_)
     {
-	  if (pDst_->m_pVal) {
-		skMemFree(&(pDst_->m_pVal), __FILE__, __LINE__);
-	  }
+      if (pDst_->m_pVal) {
+        skMemFree(&(pDst_->m_pVal), __FILE__, __LINE__);
+      }
       pDst_->m_rc = pSrc_->m_rc;
       pDst_->m_len = pSrc_->m_len;
       pDst_->m_pVal = pSrc_->m_pVal;
@@ -174,27 +174,27 @@ void sk_destroy_value_meta(SKValMetaData** pValMeta_)
 void skFatalError(const char *msg, const char *file, int line) {
     printf("FATAL ERROR: %s\t%s line:%d\n", msg, file, line);
     fflush(0);
-	exit(-1);
+    exit(-1);
 }
 
 void *skMemAlloc(size_t nmemb, size_t size, const char *file, int line) {
-	void * ptr = NULL;
+    void * ptr = NULL;
      //if(rand() > RAND_MAX/1000 ){  // this is to test the OOM behavior 
         ptr = calloc(nmemb, size);
     //}
-	if (ptr == NULL) {
-		skFatalError("out of memory", file, line);
-	}
-	return ptr;
+    if (ptr == NULL) {
+        skFatalError("out of memory", file, line);
+    }
+    return ptr;
 }
 void *skMemDup(const void *source, int size, const char *file, int line) {
-	void * dest = skMemAlloc(size, 1, file, line);
+    void * dest = skMemAlloc(size, 1, file, line);
     memcpy(dest, source, size);
-	return dest;
+    return dest;
 }
 
 char *skStrDup(const char *source, const char *file, int line) {
-	return (char *)skMemDup(source, strlen(source) + 1, file, line);
+    return (char *)skMemDup(source, strlen(source) + 1, file, line);
 }
 
 
@@ -204,14 +204,14 @@ void skMemFree(void **ptr, const char *file, int line) {
     //    ptr = NULL;
     //}
 
-	if (ptr == NULL) {
-		skFatalError("skMemFree called with NULL ptr", file, line);
-	}
-	if (*ptr == NULL) {
-		skFatalError("skMemFree called with NULL *ptr", file, line);
-	}
-	free(*ptr);
-	*ptr = NULL;
+    if (ptr == NULL) {
+        skFatalError("skMemFree called with NULL ptr", file, line);
+    }
+    if (*ptr == NULL) {
+        skFatalError("skMemFree called with NULL *ptr", file, line);
+    }
+    free(*ptr);
+    *ptr = NULL;
 }
 
 void print_stacktrace(const char* source, FILE *out, const unsigned int max_frames )
@@ -254,75 +254,75 @@ void print_stacktrace(const char* source, FILE *out, const unsigned int max_fram
     // walk over the returned symbols. except first two (this function and handler)
     for (int i = 2; i < addrlen; i++)
     {
-		char *func_name = 0, *addr_offset = 0, *addr_end = 0;
+        char *func_name = 0, *addr_offset = 0, *addr_end = 0;
 
-		// parse out _mangled_ function and hexaddroffset from  "./module(function+hexaddroffset) [hexaddr]"
-		for (char *p = symbollist[i]; *p; ++p)
-		{
-			if (*p == '(')
-			func_name = p;
-			else if (*p == '+')
-			addr_offset = p;
-			else if (*p == ')' && addr_offset) {
-			addr_end = p;
-			break;
-			}
-		}
+        // parse out _mangled_ function and hexaddroffset from  "./module(function+hexaddroffset) [hexaddr]"
+        for (char *p = symbollist[i]; *p; ++p)
+        {
+            if (*p == '(')
+            func_name = p;
+            else if (*p == '+')
+            addr_offset = p;
+            else if (*p == ')' && addr_offset) {
+            addr_end = p;
+            break;
+            }
+        }
 
-		if (func_name && addr_offset && addr_end && func_name < addr_offset)  //sanity check
-		{
-			*func_name++ = '\0';
-			*addr_offset++ = '\0';
-			*addr_end = '\0';
+        if (func_name && addr_offset && addr_end && func_name < addr_offset)  //sanity check
+        {
+            *func_name++ = '\0';
+            *addr_offset++ = '\0';
+            *addr_end = '\0';
 
-			// demangle name with __cxa_demangle(), demangled name in funcname
-			int errCode;
-			char* retStr = abi::__cxa_demangle(func_name, funcname, &funcnamelen, &errCode);
-			if (errCode) {
-				// demangling failed. print fn as C name
-				fprintf(out, "   pid:%d %s : %s()+%s\n",
-					pid, symbollist[i], func_name, addr_offset);
-			}
-			else {
-				funcname = retStr; // possibly reallocated
-				fprintf(out, "   pid:%d %s : %s+%s\n",
-					pid, symbollist[i], funcname, addr_offset);
-			}
-		}
-		else
-		{
-			// we could not parse out fn and addr from symbollist[i] , print it as is
-			fprintf(out, "   pid:%d %s: non-parsed frame\n", pid, symbollist[i]);
-		}
+            // demangle name with __cxa_demangle(), demangled name in funcname
+            int errCode;
+            char* retStr = abi::__cxa_demangle(func_name, funcname, &funcnamelen, &errCode);
+            if (errCode) {
+                // demangling failed. print fn as C name
+                fprintf(out, "   pid:%d %s : %s()+%s\n",
+                    pid, symbollist[i], func_name, addr_offset);
+            }
+            else {
+                funcname = retStr; // possibly reallocated
+                fprintf(out, "   pid:%d %s : %s+%s\n",
+                    pid, symbollist[i], funcname, addr_offset);
+            }
+        }
+        else
+        {
+            // we could not parse out fn and addr from symbollist[i] , print it as is
+            fprintf(out, "   pid:%d %s: non-parsed frame\n", pid, symbollist[i]);
+        }
     }
 
-	//these must be freed by caller
+    //these must be freed by caller
     free(funcname);
     free(symbollist); 
 
     fprintf(out, "stack trace END pid:%d\n", pid);
 #else
-	void **stack = (void**)malloc(max_frames*sizeof(void*));
-	HANDLE process = GetCurrentProcess();
-	SymInitialize(process, NULL, TRUE);
-	WORD numberOfFrames = CaptureStackBackTrace(0, max_frames, stack, NULL);
-	SYMBOL_INFO *symbol = (SYMBOL_INFO *)malloc(sizeof(SYMBOL_INFO));
-	symbol->MaxNameLen = 1024;
-	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-	IMAGEHLP_LINE *line = (IMAGEHLP_LINE *)malloc(sizeof(IMAGEHLP_LINE));
-	line->SizeOfStruct = sizeof(IMAGEHLP_LINE);
+    void **stack = (void**)malloc(max_frames*sizeof(void*));
+    HANDLE process = GetCurrentProcess();
+    SymInitialize(process, NULL, TRUE);
+    WORD numberOfFrames = CaptureStackBackTrace(0, max_frames, stack, NULL);
+    SYMBOL_INFO *symbol = (SYMBOL_INFO *)malloc(sizeof(SYMBOL_INFO));
+    symbol->MaxNameLen = 1024;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+    IMAGEHLP_LINE *line = (IMAGEHLP_LINE *)malloc(sizeof(IMAGEHLP_LINE));
+    line->SizeOfStruct = sizeof(IMAGEHLP_LINE);
     fprintf(out, "stack trace (%s) for PID:%d:\n",  source, (int)_getpid() );
-	printf("Caught exception ");
-	for (int i = 0; i < numberOfFrames; i++)
-	{
-		SymFromAddr(process, (DWORD64)(stack[i]), NULL, symbol);
-		DWORD dwDisplacement;
-		SymGetLineFromAddr(process, (DWORD)(stack[i]), &dwDisplacement, line);
-		fprintf(out, "at %s in %s, address 0x%0X\n", symbol->Name, line->FileName, symbol->Address);
-	}
-	free(line);
-	free(symbol);
-	free(stack);
+    printf("Caught exception ");
+    for (int i = 0; i < numberOfFrames; i++)
+    {
+        SymFromAddr(process, (DWORD64)(stack[i]), NULL, symbol);
+        DWORD dwDisplacement;
+        SymGetLineFromAddr(process, (DWORD)(stack[i]), &dwDisplacement, line);
+        fprintf(out, "at %s in %s, address 0x%0X\n", symbol->Name, line->FileName, symbol->Address);
+    }
+    free(line);
+    free(symbol);
+    free(stack);
 #endif
 }
 

@@ -17,20 +17,20 @@ public class ConstantVersionProvider implements VersionProvider {
     
     @Override
     public int hashCode() {
-    	return Long.hashCode(version);
+        return Long.hashCode(version);
     }
     
     @Override
     public boolean equals(Object o) {
-    	if (this == o) {
-    		return true;
-    	}
-    		
-    	if (this.getClass() != o.getClass()) {
-    		return false;
-    	}
-    	
-    	ConstantVersionProvider other = (ConstantVersionProvider)o;
-    	return this.version == other.version;
+        if (this == o) {
+            return true;
+        }
+            
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
+        
+        ConstantVersionProvider other = (ConstantVersionProvider)o;
+        return this.version == other.version;
     }
 }

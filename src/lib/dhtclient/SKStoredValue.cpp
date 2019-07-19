@@ -34,15 +34,15 @@ typedef JArray< jace::proxy::types::JByte > ByteArray;
 
 
 SKStoredValue::SKStoredValue(StoredValue * pSvImpl) : SKMetaData() {
-	pImpl = pSvImpl ;
+    pImpl = pSvImpl ;
 }
 
 SKStoredValue::~SKStoredValue() {
-	if(pImpl) {
-		StoredValue* pVc = dynamic_cast<StoredValue*>(pImpl);
-		delete pVc;
-		pImpl = NULL;
-	}
+    if(pImpl) {
+        StoredValue* pVc = dynamic_cast<StoredValue*>(pImpl);
+        delete pVc;
+        pImpl = NULL;
+    }
 };
 
 SKMetaData * SKStoredValue::getMetaData() const {
@@ -79,12 +79,12 @@ SKMetaData * SKStoredValue::getMetaData() const {
 }
 
 SKVal * SKStoredValue::getValue() const {
-	try {
-		Object obj = dynamic_cast<StoredValue*>(pImpl)->getValue();
-		if(obj.isNull()) return NULL;
-		ByteArray byteArr = java_cast<ByteArray>(obj);
-		if(byteArr.isNull())  return NULL;
-		return ::convertToDhtVal(&byteArr);
+    try {
+        Object obj = dynamic_cast<StoredValue*>(pImpl)->getValue();
+        if(obj.isNull()) return NULL;
+        ByteArray byteArr = java_cast<ByteArray>(obj);
+        if(byteArr.isNull())  return NULL;
+        return ::convertToDhtVal(&byteArr);
     } catch(Throwable& t){
         t.printStackTrace();
         throw SKClientException( &t, __FILE__, __LINE__ );
@@ -92,8 +92,8 @@ SKVal * SKStoredValue::getValue() const {
 }
 
 SKStoredValue * SKStoredValue::next() const {
-	StoredValue * psv = new StoredValue(java_cast<StoredValue>(dynamic_cast<StoredValue*>(pImpl)->next()));
-	return new SKStoredValue(psv);
+    StoredValue * psv = new StoredValue(java_cast<StoredValue>(dynamic_cast<StoredValue*>(pImpl)->next()));
+    return new SKStoredValue(psv);
 }
 
 

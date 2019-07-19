@@ -12,13 +12,13 @@ public class SKAdminShellOptions {
     
     @Option(name="-c", usage="commands")
     String  commands;
-	
+    
     @Option(name="-f", usage="commandFile")
     File    commandFile;    
     
-	@Option(name="-s", usage="server")
-	String	server = "localhost";
-	
-	@Option(name="-p", usage="port")
-	int	port = RingMasterControlImpl.defaultRegistryPort;
+    @Option(name="-s", usage="server")
+    String    server = "localhost";
+    
+    @Option(name="-p", usage="port")
+    int    port = RingMasterControlImpl.defaultRegistryPort;
 }

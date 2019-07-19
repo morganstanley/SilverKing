@@ -13,26 +13,26 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::ClientDHTConfigurati
 
 
 SKClientDHTConfigurationProvider::SKClientDHTConfigurationProvider(void * pClientDHTConfigurationProvider) { //FIXME: ?
-	pImpl = pClientDHTConfigurationProvider;
+    pImpl = pClientDHTConfigurationProvider;
 }
 
 SKClientDHTConfigurationProvider::~SKClientDHTConfigurationProvider() {
-	if(pImpl) {
-		ClientDHTConfigurationProvider* pClientDHTConfigurationProvider = (ClientDHTConfigurationProvider*) pImpl;
-		delete pClientDHTConfigurationProvider;
-		pImpl = NULL;
-	}
+    if(pImpl) {
+        ClientDHTConfigurationProvider* pClientDHTConfigurationProvider = (ClientDHTConfigurationProvider*) pImpl;
+        delete pClientDHTConfigurationProvider;
+        pImpl = NULL;
+    }
 };
 
 void * SKClientDHTConfigurationProvider::getPImpl(){
-	return pImpl;
+    return pImpl;
 }
 
 SKClientDHTConfiguration * SKClientDHTConfigurationProvider::getClientDHTConfiguration(){
-	ClientDHTConfigurationProvider* pClientDHTConfigurationProvider = (ClientDHTConfigurationProvider*) pImpl;
-	ClientDHTConfiguration * pCdc = new ClientDHTConfiguration(
-		java_cast<ClientDHTConfiguration>(pClientDHTConfigurationProvider->getClientDHTConfiguration()) );
+    ClientDHTConfigurationProvider* pClientDHTConfigurationProvider = (ClientDHTConfigurationProvider*) pImpl;
+    ClientDHTConfiguration * pCdc = new ClientDHTConfiguration(
+        java_cast<ClientDHTConfiguration>(pClientDHTConfigurationProvider->getClientDHTConfiguration()) );
 
-	return new SKClientDHTConfiguration(pCdc);
+    return new SKClientDHTConfiguration(pCdc);
 }
 

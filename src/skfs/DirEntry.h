@@ -22,10 +22,10 @@
 ////////////
 // defines
 
-#define DE_MAGIC	0xadab
-#define DE_HEADER_BYTES	((uint64_t)(&((DirEntry *)0)->data))
+#define DE_MAGIC    0xadab
+#define DE_HEADER_BYTES    ((uint64_t)(&((DirEntry *)0)->data))
 #define DE_MAX_NAME_LENGTH ((uint16_t)0xffffu)
-#define DE_F_DELETED	0x1
+#define DE_F_DELETED    0x1
 
 
 //////////
@@ -35,11 +35,11 @@
  * Single directory entry in a DirData structure.
  */
 typedef struct DirEntry {
-	uint16_t	magic;
-	uint16_t	dataSize;
-	FileStatus	status;
-	uint64_t	version;
-	char		data[]; // must be last in structure for DE_HEADER_BYTES calculation
+    uint16_t    magic;
+    uint16_t    dataSize;
+    FileStatus    status;
+    uint64_t    version;
+    char        data[]; // must be last in structure for DE_HEADER_BYTES calculation
 } DirEntry;
 
 

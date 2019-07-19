@@ -17,65 +17,65 @@ import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
  * Options for a DHTSession.
  */
 public final class SessionOptions {
-	public static final String	EMBEDDED_PASSIVE_NODE = "__EMBEDDED_PASSIVE_NODE__";
-	public static final String	EMBEDDED_KVS = "__EMBEDDED_KVS__";
-	
+    public static final String    EMBEDDED_PASSIVE_NODE = "__EMBEDDED_PASSIVE_NODE__";
+    public static final String    EMBEDDED_KVS = "__EMBEDDED_KVS__";
+    
     private final ClientDHTConfiguration    dhtConfig;
     private final String    preferredServer;
-    private final SessionEstablishmentTimeoutController	timeoutController;
+    private final SessionEstablishmentTimeoutController    timeoutController;
     
-	private static final String defaultTimeoutControllerProperty = 
-			SessionEstablishmentTimeoutController.class.getName() + ".DefaultSETimeoutController";
-	private static final SessionEstablishmentTimeoutController	defaultDefaultTimeoutController = 
-			new SimpleSessionEstablishmentTimeoutController(14, 2 * 60 * 1000, 8 * 60 * 1000);
-	
-	private static SessionEstablishmentTimeoutController	defaultTimeoutController;
-	private static final boolean	debugDefaultTimeoutController = false;
-	
-	private static final Map<String,String>	dummyGCMap;
-	
-	static {
-		dummyGCMap = new HashMap<>();
-		dummyGCMap.put(ClientDHTConfiguration.nameVar, "dummyname");
-		dummyGCMap.put(ClientDHTConfiguration.portVar, "80");
-		dummyGCMap.put(ClientDHTConfiguration.zkLocVar, "localhost:0");
-	}
-	
+    private static final String defaultTimeoutControllerProperty = 
+            SessionEstablishmentTimeoutController.class.getName() + ".DefaultSETimeoutController";
+    private static final SessionEstablishmentTimeoutController    defaultDefaultTimeoutController = 
+            new SimpleSessionEstablishmentTimeoutController(14, 2 * 60 * 1000, 8 * 60 * 1000);
+    
+    private static SessionEstablishmentTimeoutController    defaultTimeoutController;
+    private static final boolean    debugDefaultTimeoutController = false;
+    
+    private static final Map<String,String>    dummyGCMap;
+    
+    static {
+        dummyGCMap = new HashMap<>();
+        dummyGCMap.put(ClientDHTConfiguration.nameVar, "dummyname");
+        dummyGCMap.put(ClientDHTConfiguration.portVar, "80");
+        dummyGCMap.put(ClientDHTConfiguration.zkLocVar, "localhost:0");
+    }
+    
     private static final SessionOptions template = new SessionOptions(new SKGridConfiguration("dummygc", dummyGCMap), "localhost", defaultDefaultTimeoutController);
 
-	static {
-		ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
-	}
-	
-	static {
-		String	def;
-		
-		def = PropertiesHelper.systemHelper.getString(defaultTimeoutControllerProperty, UndefinedAction.ZeroOnUndefined);
-		if (debugDefaultTimeoutController) {
-			System.out.printf("defaultTimeoutControllerProperty %s\n", defaultTimeoutControllerProperty);
-			System.out.printf("def %s\n", def);
-		}
-		if (def != null) {
-			//defaultTimeoutController = SimpleConnectionEstablishmentTimeoutController.parse(def);
-			defaultTimeoutController = ObjectDefParser2.parse(SessionEstablishmentTimeoutController.class, def);
-		} else {
-			defaultTimeoutController = defaultDefaultTimeoutController;
-		}
-		if (debugDefaultTimeoutController) {
-			System.out.printf("defaultTimeoutController %s\n", defaultTimeoutController);
-		}
-	}
-	
-	public static boolean isReservedServerName(String serverName) {
-		return serverName != null && (serverName.equals(EMBEDDED_KVS) || serverName.equals(EMBEDDED_PASSIVE_NODE));
-	}
-	
+    static {
+        ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
+    }
+    
+    static {
+        String    def;
+        
+        def = PropertiesHelper.systemHelper.getString(defaultTimeoutControllerProperty, UndefinedAction.ZeroOnUndefined);
+        if (debugDefaultTimeoutController) {
+            System.out.printf("defaultTimeoutControllerProperty %s\n", defaultTimeoutControllerProperty);
+            System.out.printf("def %s\n", def);
+        }
+        if (def != null) {
+            //defaultTimeoutController = SimpleConnectionEstablishmentTimeoutController.parse(def);
+            defaultTimeoutController = ObjectDefParser2.parse(SessionEstablishmentTimeoutController.class, def);
+        } else {
+            defaultTimeoutController = defaultDefaultTimeoutController;
+        }
+        if (debugDefaultTimeoutController) {
+            System.out.printf("defaultTimeoutController %s\n", defaultTimeoutController);
+        }
+    }
+    
+    public static boolean isReservedServerName(String serverName) {
+        return serverName != null && (serverName.equals(EMBEDDED_KVS) || serverName.equals(EMBEDDED_PASSIVE_NODE));
+    }
+    
     public void setDefaultTimeoutController(SessionEstablishmentTimeoutController newDefaultTimeoutController) {
-    	defaultTimeoutController = newDefaultTimeoutController;
+        defaultTimeoutController = newDefaultTimeoutController;
     }
     
     public static SessionEstablishmentTimeoutController getDefaultTimeoutController() {
-    	return defaultTimeoutController;
+        return defaultTimeoutController;
     }
     
     /**
@@ -85,18 +85,18 @@ public final class SessionOptions {
      * @param timeoutController TODO
      */
     public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider, String preferredServer, 
-    					  SessionEstablishmentTimeoutController timeoutController) {
-    	if (dhtConfigProvider == null) {
-    		this.preferredServer = preferredServer;
-    		this.dhtConfig = null;
-    	} else {
-    		this.dhtConfig = dhtConfigProvider.getClientDHTConfiguration();
-	        if (dhtConfig.getName().equals(SessionOptions.EMBEDDED_KVS)) {
-	        	this.preferredServer = SessionOptions.EMBEDDED_KVS;
-	        } else {
-	            this.preferredServer = preferredServer;
-	        }
-    	}
+                          SessionEstablishmentTimeoutController timeoutController) {
+        if (dhtConfigProvider == null) {
+            this.preferredServer = preferredServer;
+            this.dhtConfig = null;
+        } else {
+            this.dhtConfig = dhtConfigProvider.getClientDHTConfiguration();
+            if (dhtConfig.getName().equals(SessionOptions.EMBEDDED_KVS)) {
+                this.preferredServer = SessionOptions.EMBEDDED_KVS;
+            } else {
+                this.preferredServer = preferredServer;
+            }
+        }
         this.timeoutController = timeoutController;
     }
     
@@ -123,7 +123,7 @@ public final class SessionOptions {
      * @return a modified SessionOptions object
      */
     public SessionOptions dhtConfig(ClientDHTConfiguration dhtConfig) {
-    	return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+        return new SessionOptions(dhtConfig, preferredServer, timeoutController);
     }
     
     /**
@@ -132,7 +132,7 @@ public final class SessionOptions {
      * @return a modified SessionOptions object
      */
     public SessionOptions preferredServer(String preferredServer) {
-    	return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+        return new SessionOptions(dhtConfig, preferredServer, timeoutController);
     }
     
     /**
@@ -141,7 +141,7 @@ public final class SessionOptions {
      * @return a modified SessionOptions object
      */
     public SessionOptions timeoutController(SessionEstablishmentTimeoutController timeoutController) {
-    	return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+        return new SessionOptions(dhtConfig, preferredServer, timeoutController);
     }    
     
     /**
@@ -165,7 +165,7 @@ public final class SessionOptions {
      * @return the timeoutController
      */
     public SessionEstablishmentTimeoutController getTimeoutController() {
-    	return timeoutController;
+        return timeoutController;
     }
 
     @Override
@@ -179,14 +179,14 @@ public final class SessionOptions {
         
         o = (SessionOptions)obj;
         return this.dhtConfig.equals(o.dhtConfig) && this.preferredServer.equals(o.preferredServer)
-        		&& this.timeoutController.equals(o.timeoutController);
+                && this.timeoutController.equals(o.timeoutController);
     }
 
-	@Override
-	public String toString() {
-	    return ObjectDefParser2.objectToString(this);
-	}
-	
+    @Override
+    public String toString() {
+        return ObjectDefParser2.objectToString(this);
+    }
+    
     public static SessionOptions parse(String def) {
         return ObjectDefParser2.parse(SessionOptions.class, def);
     }

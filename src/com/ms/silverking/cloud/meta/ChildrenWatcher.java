@@ -61,11 +61,11 @@ public class ChildrenWatcher extends WatcherBase {
     }
 
     private void checkChildStates() {
-    	try {
-			doCheck();
-		} catch (KeeperException ke) {
-			throw new RuntimeException(ke);
-		}
+        try {
+            doCheck();
+        } catch (KeeperException ke) {
+            throw new RuntimeException(ke);
+        }
     }
     
     /**
@@ -91,27 +91,27 @@ public class ChildrenWatcher extends WatcherBase {
     }
 
     public void connected(WatchedEvent event) {
-    	Log.fine("connected");
+        Log.fine("connected");
         checkChildStates();
     }
     
     public void nodeCreated(WatchedEvent event) {
-    	Log.fine("nodeCreated");
+        Log.fine("nodeCreated");
         checkChildStates();
     }
     
     public void nodeDeleted(WatchedEvent event) {
-    	Log.warning("nodeDeleted ", event.getPath());
+        Log.warning("nodeDeleted ", event.getPath());
         checkChildStates();
     }
     
     public void nodeDataChanged(WatchedEvent event) {
-    	Log.fine("nodeDataChanged ");
-    	checkChildStates();
+        Log.fine("nodeDataChanged ");
+        checkChildStates();
     }
     
     public void nodeChildrenChanged(WatchedEvent event) {
-    	Log.fine("nodeChildrenChanged");
+        Log.fine("nodeChildrenChanged");
         checkChildStates();
     }        
 }

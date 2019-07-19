@@ -39,10 +39,10 @@ import com.ms.silverking.time.Stopwatch;
 public class BulkThroughput {
     private final PrintStream       out;
     private final PrintStream       err;
-    private final DHTClient			dhtClient;
+    private final DHTClient            dhtClient;
     private final byte[][]          values;
-    private TestRunner[]			testRunners;
-    private final String			nsName;
+    private TestRunner[]            testRunners;
+    private final String            nsName;
     private final NamespaceOptions  nsOptions;
     private final AsynchronousNamespacePerspective<String,byte[]> _asyncNSP;
     private final SynchronousNamespacePerspective<String,byte[]>  _syncNSP;
@@ -52,13 +52,13 @@ public class BulkThroughput {
     private static final String keyPrefix = "key.";
     private static final AtomicInteger  totalMissing = new AtomicInteger();
     
-    private static final AtomicInteger	nextThreadID = new AtomicInteger();
+    private static final AtomicInteger    nextThreadID = new AtomicInteger();
     
     public BulkThroughput(SKGridConfiguration gridConfig, PrintStream out, PrintStream err, 
                           BulkThroughputOptions options) throws ClientException, IOException {
         NamespaceOptions    _nsOptions;
         
-    	this.gridConfig = gridConfig;
+        this.gridConfig = gridConfig;
         nsName = nsBase + options.id;
         this.out = out;
         this.err = err;
@@ -66,8 +66,8 @@ public class BulkThroughput {
         dhtClient = new DHTClient();
         values = createValues(options.batchSize, options.valueSize);
         
-        DHTSession	session;
-        Namespace	ns;
+        DHTSession    session;
+        Namespace    ns;
         
         try {
             //session = dhtClient.openSession(gridConfig);
@@ -97,9 +97,9 @@ public class BulkThroughput {
                 ns = session.createNamespace(nsName, nsOptions);
             }
 //            System.out.println(nsName +"\n"+ ns.getOptions() + "\n");
-		} catch (Exception e) {
-			throw new RuntimeException (e);
-		}
+        } catch (Exception e) {
+            throw new RuntimeException (e);
+        }
 
         _syncNSP = ns.openSyncPerspective(String.class, byte[].class);
         _asyncNSP = ns.openAsyncPerspective(String.class, byte[].class);
@@ -113,8 +113,8 @@ public class BulkThroughput {
         private final BulkThroughputTest    test;
         private final TestParameters        p;
         private final int                   externalReps;
-        private final Thread				_thread;
-        private final int					id;
+        private final Thread                _thread;
+        private final int                    id;
         private AsynchronousNamespacePerspective<String,byte[]> asyncNSP;
         private SynchronousNamespacePerspective<String,byte[]>  syncNSP;
 
@@ -124,26 +124,26 @@ public class BulkThroughput {
             this.p = p;
             this.externalReps = externalReps;
             _thread = new Thread(this);
-        	id = nextThreadID.getAndIncrement();
-        	testRunners[id] = this;
-        	
+            id = nextThreadID.getAndIncrement();
+            testRunners[id] = this;
+            
             if (options.dedicatedNamespaces) {
                 Namespace   ns;
-                DHTSession	session;
+                DHTSession    session;
                 
                 try {
                     session = dhtClient.openSession(gridConfig);
                     System.out.printf("Opened session: %s\n", session);
-    				//ns = session.createNamespace(nsName, nsOptions);
+                    //ns = session.createNamespace(nsName, nsOptions);
                     ns = session.getNamespace(nsName);
-    			} catch (Exception e) {
-    				throw new RuntimeException (e);
-    			}
-	            syncNSP = ns.openSyncPerspective(String.class, byte[].class);
-	            asyncNSP = ns.openAsyncPerspective(String.class, byte[].class);
+                } catch (Exception e) {
+                    throw new RuntimeException (e);
+                }
+                syncNSP = ns.openSyncPerspective(String.class, byte[].class);
+                asyncNSP = ns.openAsyncPerspective(String.class, byte[].class);
             } else {
-            	syncNSP = _syncNSP;
-            	asyncNSP = _asyncNSP;
+                syncNSP = _syncNSP;
+                asyncNSP = _asyncNSP;
             }
         }
         
@@ -163,30 +163,30 @@ public class BulkThroughput {
         }
         
         public void waitForCompletion() {
-        	try {
-        		_thread.join();
-        	} catch (InterruptedException ie) {
-        	}
+            try {
+                _thread.join();
+            } catch (InterruptedException ie) {
+            }
         }
     }
     
     public void runParallelTests(BulkThroughputOptions options) throws PutException, RetrievalException {
-    	Stopwatch	sw;
-    	double		iops;
-    	
-    	testRunners = new TestRunner[options.parallelThreads];
+        Stopwatch    sw;
+        double        iops;
+        
+        testRunners = new TestRunner[options.parallelThreads];
         for (int i = 0; i < options.parallelThreads; i++) {
             runParallelTest(options.test, 
                    new TestParameters(options.numKeys, options.batchSize, 0, options.numKeys, options.reps), 
                    options.externalReps);
         }
-    	sw = new SimpleStopwatch();
-    	out.printf("\n *** Starting ***\n");
+        sw = new SimpleStopwatch();
+        out.printf("\n *** Starting ***\n");
         for (int i = 0; i < options.parallelThreads; i++) {
-        	testRunners[i].start();
+            testRunners[i].start();
         }
         for (int i = 0; i < options.parallelThreads; i++) {
-        	testRunners[i].waitForCompletion();
+            testRunners[i].waitForCompletion();
         }
         sw.stop();
         
@@ -206,10 +206,10 @@ public class BulkThroughput {
     }
     
     public void runTest(BulkThroughputTest test, TestParameters p, int externalReps, int threadID,
-    		SynchronousNamespacePerspective<String,byte[]> syncNSP, AsynchronousNamespacePerspective<String,byte[]> asyncNSP) throws PutException, RetrievalException {
+            SynchronousNamespacePerspective<String,byte[]> syncNSP, AsynchronousNamespacePerspective<String,byte[]> asyncNSP) throws PutException, RetrievalException {
         List<Double>    throughputList;
         List<Double>    allBatchTimes;
-        String			context;
+        String            context;
 
         context = keyPrefix + threadID +".";
         
@@ -229,7 +229,7 @@ public class BulkThroughput {
             double      _Mbps;
             int         valueSize;
             List<Double>    batchTimes;
-            double		iops;
+            double        iops;
             
             switch (test) {
             case Write: valueSize = values[0].length; break;
@@ -311,11 +311,11 @@ public class BulkThroughput {
         k = p.minKey;
         lastDisplay = p.minKey;
         int i = 0;
-		int batchMultiple = p.maxKey / p.batchSize / 10;
+        int batchMultiple = p.maxKey / p.batchSize / 10;
         while (k <= p.maxKey - p.batchSize) {
-    		if (i++ % batchMultiple == 0)
-    			System.out.println("batch: " + i);
-        	
+            if (i++ % batchMultiple == 0)
+                System.out.println("batch: " + i);
+            
             int batchSize;
             
             batchSize = Math.min(p.batchSize, p.maxKey - k + 1);
@@ -473,7 +473,7 @@ public class BulkThroughput {
             CmdLineParser           parser;
             
             //for (int i = 0; i < args.length; i++) {
-            //	System.out.printf("%d\t%s\n", i, args[i]);
+            //    System.out.printf("%d\t%s\n", i, args[i]);
             //}
             
             options = new BulkThroughputOptions();            

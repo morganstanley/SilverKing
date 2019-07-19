@@ -52,11 +52,11 @@ bool JDouble::operator!=(jdouble val) const
 static boost::mutex javaClassMutex;
 const JClass& JDouble::staticGetJavaJniClass() throw (JNIException)
 {
-	static boost::shared_ptr<JClassImpl> result;
-	boost::mutex::scoped_lock lock(javaClassMutex);
-	if (result == 0)
-		result = boost::shared_ptr<JClassImpl>(new JClassImpl("double", "D"));
-	return *result;
+    static boost::shared_ptr<JClassImpl> result;
+    boost::mutex::scoped_lock lock(javaClassMutex);
+    if (result == 0)
+        result = boost::shared_ptr<JClassImpl>(new JClassImpl("double", "D"));
+    return *result;
 }
 
 const JClass& JDouble::getJavaJniClass() const throw (JNIException)

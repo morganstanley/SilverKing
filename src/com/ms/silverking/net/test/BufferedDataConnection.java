@@ -19,25 +19,25 @@ import com.ms.silverking.net.async.SelectorController;
 public class BufferedDataConnection extends QueueingConnection<OutgoingBufferedData,NewIncomingBufferedData> {
     private final BufferedDataReceiver  receiver;
     
-	public BufferedDataConnection(SocketChannel channel, SelectorController<BufferedDataConnection> selectorController,
-			ConnectionListener connectionListener, BufferedDataReceiver receiver) {
-		super(channel, selectorController, connectionListener, true);
-		this.receiver = receiver;
-	}
-	
+    public BufferedDataConnection(SocketChannel channel, SelectorController<BufferedDataConnection> selectorController,
+            ConnectionListener connectionListener, BufferedDataReceiver receiver) {
+        super(channel, selectorController, connectionListener, true);
+        this.receiver = receiver;
+    }
+    
     @Override
     protected NewIncomingBufferedData createIncomingData(boolean debug) {
         return new NewIncomingBufferedData(debug);
     }
-		
-	@Override
-	protected OutgoingBufferedData wrapForSend(Object data, UUIDBase sendUUID, 
-											AsyncSendListener asyncSendListener,
-											long deadline) throws IOException {
-		return new OutgoingBufferedData((ByteBuffer[])data, sendUUID, asyncSendListener, deadline);
-	}
-	
+        
+    @Override
+    protected OutgoingBufferedData wrapForSend(Object data, UUIDBase sendUUID, 
+                                            AsyncSendListener asyncSendListener,
+                                            long deadline) throws IOException {
+        return new OutgoingBufferedData((ByteBuffer[])data, sendUUID, asyncSendListener, deadline);
+    }
+    
     protected void readComplete(NewIncomingBufferedData incomingData) throws IOException {
         receiver.receive(incomingData.getBuffers(), this);
-    }	
+    }    
 }

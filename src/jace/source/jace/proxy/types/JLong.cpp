@@ -60,11 +60,11 @@ bool JLong::operator!=(jlong val) const
 static boost::mutex javaClassMutex;
 const JClass& JLong::staticGetJavaJniClass() throw (JNIException)
 {
-	static boost::shared_ptr<JClassImpl> result;
-	boost::mutex::scoped_lock lock(javaClassMutex);
-	if (result == 0)
-		result = boost::shared_ptr<JClassImpl>(new JClassImpl("long", "J"));
-	return *result;
+    static boost::shared_ptr<JClassImpl> result;
+    boost::mutex::scoped_lock lock(javaClassMutex);
+    if (result == 0)
+        result = boost::shared_ptr<JClassImpl>(new JClassImpl("long", "J"));
+    return *result;
 }
 
 const JClass& JLong::getJavaJniClass() const throw (JNIException)

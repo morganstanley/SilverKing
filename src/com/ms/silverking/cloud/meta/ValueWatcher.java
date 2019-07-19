@@ -60,34 +60,34 @@ public class ValueWatcher extends WatcherBase {
     }
     
     private void checkValue() {
-    	try {
-			doCheck();
-		} catch (KeeperException ke) {
-			throw new RuntimeException(ke);
-		}
+        try {
+            doCheck();
+        } catch (KeeperException ke) {
+            throw new RuntimeException(ke);
+        }
     }
     
     public void nodeDataChanged(WatchedEvent event) {
-    	Log.fine("nodeDataChanged");
-    	checkValue();
+        Log.fine("nodeDataChanged");
+        checkValue();
     }    
 
     public void connected(WatchedEvent event) {
-    	Log.fine("connected");
-    	checkValue();
+        Log.fine("connected");
+        checkValue();
     }
     
     public void nodeCreated(WatchedEvent event) {
-    	Log.fine("nodeCreated");
-    	checkValue();
+        Log.fine("nodeCreated");
+        checkValue();
     }
     
     public void nodeDeleted(WatchedEvent event) {
-    	Log.warning("Unexpected nodeDeleted ", event.getPath());
+        Log.warning("Unexpected nodeDeleted ", event.getPath());
     }
     
     public void nodeChildrenChanged(WatchedEvent event) {
-    	Log.fine("nodeChildrenChanged");
-    	//checkValue();
+        Log.fine("nodeChildrenChanged");
+        //checkValue();
     }            
 }

@@ -19,20 +19,20 @@ public class AbsNanosVersionProvider implements VersionProvider {
     
     @Override
     public int hashCode() {
-    	return absNanosTimeSource.hashCode();
+        return absNanosTimeSource.hashCode();
     }
     
     @Override
     public boolean equals(Object o) {
-    	if (this == o) {
-    		return true;
-    	}
-    	
-    	if (this.getClass() != o.getClass()) {
-    		return false;
-    	}
-    	
-    	AbsNanosVersionProvider other = (AbsNanosVersionProvider)o;
-    	return this.absNanosTimeSource.equals(other.absNanosTimeSource);
+        if (this == o) {
+            return true;
+        }
+        
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
+        
+        AbsNanosVersionProvider other = (AbsNanosVersionProvider)o;
+        return this.absNanosTimeSource.equals(other.absNanosTimeSource);
     }
 }

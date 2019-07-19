@@ -92,16 +92,16 @@ public class DevTest {
             getOptions = OptionsHelper.newGetOptions(RetrievalType.VALUE_AND_META_DATA,
                     session.getDefaultNamespaceOptions().getDefaultGetOptions().getVersionConstraint());
             for (int i = 0; i < reps; i++) {
-            	Set<String>	keys;
+                Set<String>    keys;
                 Map<String, ? extends StoredValue<String>> values;
                 
                 keys = createSet(i, numKeys);                
                 asyncRetrieval = asyncNSP.get(keys, getOptions);
                 asyncRetrieval.waitForCompletion();
                 if (displayValues) {
-                	System.out.printf("keys: %s\n", CollectionUtil.toString(keys));
+                    System.out.printf("keys: %s\n", CollectionUtil.toString(keys));
                     values = asyncRetrieval.getStoredValues();
-                	System.out.printf("values: %s\n", CollectionUtil.toString(values.entrySet()));                    
+                    System.out.printf("values: %s\n", CollectionUtil.toString(values.entrySet()));                    
                     for (Entry<String, ? extends StoredValue<String>> entry : values.entrySet()) {
                         System.out.println(entry.getKey() +" -> "+ entry.getValue().getValue() +"\t"+ entry.getValue().getMetaData().toString(true));
                     }

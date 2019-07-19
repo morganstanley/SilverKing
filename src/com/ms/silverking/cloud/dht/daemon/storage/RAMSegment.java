@@ -52,20 +52,20 @@ class RAMSegment extends WritableSegmentBase {
         
         raFile = new RandomAccessFile(fileForSegment(nsDir, segmentNumber), "rw");
         try {        
-	        raFile.write(dataBuf.array());
-	        
-	        ht = ((IntArrayCuckoo)keyToOffset).getAsBytes();
-	        htBufSize = ht.length;
-	        mapSize = NumConversion.BYTES_PER_INT + htBufSize + offsetStoreSize;
-	        htBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, mapSize).order(ByteOrder.nativeOrder());
-	        htBuf.putInt(htBufSize);
-	        //System.out.printf("\tpersist htBufSize: %d\tmapSize: %d\n", htBufSize, mapSize);
-	        htBuf.put(ht);
-	        htBuf.position(NumConversion.BYTES_PER_INT + htBufSize);
-	        ((RAMOffsetListStore)offsetListStore).persist(htBuf);
-	        //((sun.nio.ch.DirectBuffer)htBuf).cleaner().clean();
+            raFile.write(dataBuf.array());
+            
+            ht = ((IntArrayCuckoo)keyToOffset).getAsBytes();
+            htBufSize = ht.length;
+            mapSize = NumConversion.BYTES_PER_INT + htBufSize + offsetStoreSize;
+            htBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, mapSize).order(ByteOrder.nativeOrder());
+            htBuf.putInt(htBufSize);
+            //System.out.printf("\tpersist htBufSize: %d\tmapSize: %d\n", htBufSize, mapSize);
+            htBuf.put(ht);
+            htBuf.position(NumConversion.BYTES_PER_INT + htBufSize);
+            ((RAMOffsetListStore)offsetListStore).persist(htBuf);
+            //((sun.nio.ch.DirectBuffer)htBuf).cleaner().clean();
         } finally {
-        	raFile.close();
+            raFile.close();
         }
         close();
     }
@@ -73,7 +73,7 @@ class RAMSegment extends WritableSegmentBase {
     public void close() {
     }
     
-	public SegmentCompactionResult compact() {
-		throw new RuntimeException("Compaction not supported for RAMSegment");
-	}    
+    public SegmentCompactionResult compact() {
+        throw new RuntimeException("Compaction not supported for RAMSegment");
+    }    
 }

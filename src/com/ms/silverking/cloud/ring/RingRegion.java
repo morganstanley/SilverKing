@@ -13,44 +13,44 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumUtil;
 
 public class RingRegion {
-	private final long	start;
-	private final long	end;
-	
-	public static final RingRegion	allRingspace = new RingRegion(LongRingspace.start, LongRingspace.end);
-	
-	// used for ordering RingRegions
-	public static final Comparator<RingRegion>	sizeComparator = new RingRegionSizeComparator();	
-	public static final Comparator<RingRegion>	positionComparator = new RingRegionPositionComparator();	
-	public static final Comparator<RingRegion>	sizePositionComparator = new RingRegionSizePositionComparator();
-	
-	public RingRegion(long start, long end) {
-	    LongRingspace.ensureInRingspace(start);
+    private final long    start;
+    private final long    end;
+    
+    public static final RingRegion    allRingspace = new RingRegion(LongRingspace.start, LongRingspace.end);
+    
+    // used for ordering RingRegions
+    public static final Comparator<RingRegion>    sizeComparator = new RingRegionSizeComparator();    
+    public static final Comparator<RingRegion>    positionComparator = new RingRegionPositionComparator();    
+    public static final Comparator<RingRegion>    sizePositionComparator = new RingRegionSizePositionComparator();
+    
+    public RingRegion(long start, long end) {
+        LongRingspace.ensureInRingspace(start);
         LongRingspace.ensureInRingspace(end);
         if (getSize(start, end) == LongRingspace.size) {
-        	// normalize any region that consumes the entire ringspace
-        	start = LongRingspace.start;
-        	end = LongRingspace.end;
+            // normalize any region that consumes the entire ringspace
+            start = LongRingspace.start;
+            end = LongRingspace.end;
         }
-		this.start = start;
-		this.end = end;
-	}
-	
-	public long getStart() {
-		return start;
-	}
-	
-	public long getEnd() {
-		return end;
-	}
-	
-	private static long getSize(long start, long end) {
-	    return LongRingspace.clockwiseDistance(start, end) + 1;
-	}
-	
-	public long getSize() {
-		return getSize(start, end);
-	}
-	
+        this.start = start;
+        this.end = end;
+    }
+    
+    public long getStart() {
+        return start;
+    }
+    
+    public long getEnd() {
+        return end;
+    }
+    
+    private static long getSize(long start, long end) {
+        return LongRingspace.clockwiseDistance(start, end) + 1;
+    }
+    
+    public long getSize() {
+        return getSize(start, end);
+    }
+    
     public boolean before(long p0, long p1) {
         long    d0;
         long    d1;
@@ -69,48 +69,48 @@ public class RingRegion {
         return d0 > d1;
     }
     
-	public BigDecimal getSizeBD() {
-	    return new BigDecimal(getSize(), LongRingspace.mathContext);
-	}
-	
-	public double getRingspaceFraction() {
-	    return getSizeBD().divide(LongRingspace.bdSize, LongRingspace.mathContext).doubleValue();
-	}
-	
-	public static void ensureIdentical(RingRegion r0, RingRegion r1) {
-	    if (!r0.equals(r1)) {
-	        System.err.println(r0);
+    public BigDecimal getSizeBD() {
+        return new BigDecimal(getSize(), LongRingspace.mathContext);
+    }
+    
+    public double getRingspaceFraction() {
+        return getSizeBD().divide(LongRingspace.bdSize, LongRingspace.mathContext).doubleValue();
+    }
+    
+    public static void ensureIdentical(RingRegion r0, RingRegion r1) {
+        if (!r0.equals(r1)) {
+            System.err.println(r0);
             System.err.println(r1);
-	        throw new RuntimeException("Regions not identical");
-	    }
-	}
-	
-	@Override
-	public boolean equals(Object other) {
-		RingRegion	oRegion;
-		
-		oRegion = (RingRegion)other;
-		return this.start == oRegion.start && this.end == oRegion.end;
-	}
-	
-	@Override
-	public int hashCode() {
-		return (int)start ^ (int)end;
-	}
-	
-	public static RingRegion parseZKString(String s) {
-	    try {
-    	    int    index;
-    	    
-    	    index = s.indexOf(':');	    
-    	    return new RingRegion(Long.parseLong(s.substring(0, index)), 
-    	            Long.parseLong(s.substring(index + 1)));
-	    } catch (RuntimeException re) {
-	        System.err.println(s);
-	        throw re;
-	    }
-	}
-	
+            throw new RuntimeException("Regions not identical");
+        }
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+        RingRegion    oRegion;
+        
+        oRegion = (RingRegion)other;
+        return this.start == oRegion.start && this.end == oRegion.end;
+    }
+    
+    @Override
+    public int hashCode() {
+        return (int)start ^ (int)end;
+    }
+    
+    public static RingRegion parseZKString(String s) {
+        try {
+            int    index;
+            
+            index = s.indexOf(':');        
+            return new RingRegion(Long.parseLong(s.substring(0, index)), 
+                    Long.parseLong(s.substring(index + 1)));
+        } catch (RuntimeException re) {
+            System.err.println(s);
+            throw re;
+        }
+    }
+    
     public String toZKString() {
         StringBuilder   sb;
         
@@ -121,43 +121,43 @@ public class RingRegion {
         return sb.toString();
     }
     
-	@Override
-	public String toString() {
-		return "["+ toZKString() +":"+ getSize() +"]";
-	}
-	
-	public boolean isContiguousWith(RingRegion oRegion) {
-		return LongRingspace.nextPoint(end) == oRegion.start
-			|| LongRingspace.nextPoint(oRegion.end) == start;
-	}
-	
-	public static void display(Collection<RingRegion> regions) {
-		long	totalSize;
-		
-		totalSize = 0;
-		for (RingRegion r : regions) {
-			System.out.println(r);
-			totalSize += r.getSize();
-		}
-		System.out.println(totalSize +"\t"+ allRingspace.getSize());
-	}
-	
-	public RingRegion partitionStart(long subRegionSize) {
-		long	subRegionEnd;
-		
-		assert subRegionSize > 0 && subRegionSize < getSize(); 
-		subRegionEnd = LongRingspace.add(start, subRegionSize - 1);
-		return new RingRegion(start, subRegionEnd);
-	}
-	
-	public RingRegion partitionEnd(long subRegionSize) {
-		long	subRegionStart;
-	
-		assert subRegionSize > 0 && subRegionSize < getSize(); 
-		subRegionStart = LongRingspace.subtract(end, subRegionSize - 1);
-		return new RingRegion(subRegionStart, end);
-	}
-	
+    @Override
+    public String toString() {
+        return "["+ toZKString() +":"+ getSize() +"]";
+    }
+    
+    public boolean isContiguousWith(RingRegion oRegion) {
+        return LongRingspace.nextPoint(end) == oRegion.start
+            || LongRingspace.nextPoint(oRegion.end) == start;
+    }
+    
+    public static void display(Collection<RingRegion> regions) {
+        long    totalSize;
+        
+        totalSize = 0;
+        for (RingRegion r : regions) {
+            System.out.println(r);
+            totalSize += r.getSize();
+        }
+        System.out.println(totalSize +"\t"+ allRingspace.getSize());
+    }
+    
+    public RingRegion partitionStart(long subRegionSize) {
+        long    subRegionEnd;
+        
+        assert subRegionSize > 0 && subRegionSize < getSize(); 
+        subRegionEnd = LongRingspace.add(start, subRegionSize - 1);
+        return new RingRegion(start, subRegionEnd);
+    }
+    
+    public RingRegion partitionEnd(long subRegionSize) {
+        long    subRegionStart;
+    
+        assert subRegionSize > 0 && subRegionSize < getSize(); 
+        subRegionStart = LongRingspace.subtract(end, subRegionSize - 1);
+        return new RingRegion(subRegionStart, end);
+    }
+    
     public RingRegion[] split(long firstRegionSize) {
         if (firstRegionSize < 0) {
             throw new RuntimeException("firstRegionSize < 0");
@@ -181,44 +181,44 @@ public class RingRegion {
         }
     }
     
-	// only for testing currently
-	private List<RingRegion> divide(int numRegions) {
-		ArrayList<RingRegion>	subRegions;
-		long					subRegionSize;
-		long					subRegionStart;
-		
-		assert numRegions >= 0;
-		subRegionSize = getSize() / numRegions;
-		subRegions = new ArrayList<RingRegion>();
-		subRegionStart = start;
-		for (int i = 0; i < numRegions; i++) {
-			long	subRegionEnd;
-			
-			if (i < numRegions - 1) {
-				subRegionEnd = subRegionStart + (subRegionSize - 1);
-			} else {
-				subRegionEnd = end;
-			}
-			//System.out.println(i +" "+ subRegionStart +" "+ subRegionEnd +" "+ subRegionSize);
-			subRegions.add(new RingRegion(subRegionStart, subRegionEnd));
-			subRegionStart += subRegionSize;
-		}
-		return subRegions;
-	}
-	
-	public List<Long> dividedRegionSizes(List<Double> weights) {
-	    List<Long>         regionSizes;
-	    List<RingRegion>   regions;
-	    
-	    regions = divide(weights);
-	    regionSizes = new ArrayList<>(regions.size());
-	    for (int i = 0; i < regions.size(); i++) {
-	        regionSizes.add(regions.get(i).getSize());
-	    }
-	    return regionSizes;
-	}
-	
-	/*
+    // only for testing currently
+    private List<RingRegion> divide(int numRegions) {
+        ArrayList<RingRegion>    subRegions;
+        long                    subRegionSize;
+        long                    subRegionStart;
+        
+        assert numRegions >= 0;
+        subRegionSize = getSize() / numRegions;
+        subRegions = new ArrayList<RingRegion>();
+        subRegionStart = start;
+        for (int i = 0; i < numRegions; i++) {
+            long    subRegionEnd;
+            
+            if (i < numRegions - 1) {
+                subRegionEnd = subRegionStart + (subRegionSize - 1);
+            } else {
+                subRegionEnd = end;
+            }
+            //System.out.println(i +" "+ subRegionStart +" "+ subRegionEnd +" "+ subRegionSize);
+            subRegions.add(new RingRegion(subRegionStart, subRegionEnd));
+            subRegionStart += subRegionSize;
+        }
+        return subRegions;
+    }
+    
+    public List<Long> dividedRegionSizes(List<Double> weights) {
+        List<Long>         regionSizes;
+        List<RingRegion>   regions;
+        
+        regions = divide(weights);
+        regionSizes = new ArrayList<>(regions.size());
+        for (int i = 0; i < regions.size(); i++) {
+            regionSizes.add(regions.get(i).getSize());
+        }
+        return regionSizes;
+    }
+    
+    /*
     public List<RingRegion> divide(List<Double> weights) {
         List<RingRegion>   subRegions;
         long               subRegionStart;
@@ -248,7 +248,7 @@ public class RingRegion {
         return subRegions;
     }
     */
-	
+    
     public List<RingRegion> divide(List<Double> weights) {
         List<RingRegion>   subRegions;
         long               subRegionStart;
@@ -278,166 +278,166 @@ public class RingRegion {
         }
         return subRegions;
     }
-	
-	
-	public RingRegion merge(RingRegion oRegion) {
-		if (!isContiguousWith(oRegion)) {
-			throw new RuntimeException("Not adjacent: "+ this +" "+ oRegion);
-		} else {
-			if (LongRingspace.nextPoint(end) == oRegion.start) {
-				return new RingRegion(start, oRegion.end);
-			} else {
-				return new RingRegion(oRegion.start, end);
-			}
-		}
-	}
-	
-	public static List<RingRegion> mergeAdjacent(List<RingRegion> sourceRegions) {
-		List<RingRegion>	mergedRegions;
-		List<RingRegion>	regions;
-		RingRegion			curRegion;
-		int					index;
-		
-		regions = new ArrayList<RingRegion>(sourceRegions.size());
-		regions.addAll(sourceRegions);
-		Collections.sort(regions, RingRegion.positionComparator);
-		mergedRegions = new ArrayList<RingRegion>(sourceRegions.size());
-		curRegion = regions.get(0);
-		index = 1;
-		while (index < regions.size()) {
-			RingRegion	nextRegion;
-			
-			nextRegion = regions.get(index);
-			if (curRegion.isContiguousWith(nextRegion)) {
-				curRegion = curRegion.merge(nextRegion);
-			} else {
-				mergedRegions.add(curRegion);
-				curRegion = nextRegion;
-			}
-			index++;
-		}
-		mergedRegions.add(curRegion);
-		return mergedRegions;
-	}
-	
-	public static long getTotalSize(Collection<RingRegion> regions) {
-		long	total;
-		
-		total = 0;
-		for (RingRegion region : regions) {
-			total += region.getSize();
-		}
-		return total;
-	}
-	
-	public static BigDecimal getTotalFractionBD(Collection<RingRegion> regions) {
-		return LongRingspace.longToFraction(getTotalSize(regions));
-	}
-	
-	public static double getTotalFraction(Collection<RingRegion> regions) {
-		return getTotalFractionBD(regions).doubleValue();
-	}
-	
-	public boolean contains(long point) {
-		if (end >= start) {
-			return point >= start && point <= end;
-		} else {
-			return point <= end || point >= start;
-		}
-	}
-	
-	public boolean overlaps(RingRegion oRegion) {
-		return contains(oRegion.start) || contains(oRegion.end) 
-				|| oRegion.contains(start) || oRegion.contains(end);
-	}
-	
+    
+    
+    public RingRegion merge(RingRegion oRegion) {
+        if (!isContiguousWith(oRegion)) {
+            throw new RuntimeException("Not adjacent: "+ this +" "+ oRegion);
+        } else {
+            if (LongRingspace.nextPoint(end) == oRegion.start) {
+                return new RingRegion(start, oRegion.end);
+            } else {
+                return new RingRegion(oRegion.start, end);
+            }
+        }
+    }
+    
+    public static List<RingRegion> mergeAdjacent(List<RingRegion> sourceRegions) {
+        List<RingRegion>    mergedRegions;
+        List<RingRegion>    regions;
+        RingRegion            curRegion;
+        int                    index;
+        
+        regions = new ArrayList<RingRegion>(sourceRegions.size());
+        regions.addAll(sourceRegions);
+        Collections.sort(regions, RingRegion.positionComparator);
+        mergedRegions = new ArrayList<RingRegion>(sourceRegions.size());
+        curRegion = regions.get(0);
+        index = 1;
+        while (index < regions.size()) {
+            RingRegion    nextRegion;
+            
+            nextRegion = regions.get(index);
+            if (curRegion.isContiguousWith(nextRegion)) {
+                curRegion = curRegion.merge(nextRegion);
+            } else {
+                mergedRegions.add(curRegion);
+                curRegion = nextRegion;
+            }
+            index++;
+        }
+        mergedRegions.add(curRegion);
+        return mergedRegions;
+    }
+    
+    public static long getTotalSize(Collection<RingRegion> regions) {
+        long    total;
+        
+        total = 0;
+        for (RingRegion region : regions) {
+            total += region.getSize();
+        }
+        return total;
+    }
+    
+    public static BigDecimal getTotalFractionBD(Collection<RingRegion> regions) {
+        return LongRingspace.longToFraction(getTotalSize(regions));
+    }
+    
+    public static double getTotalFraction(Collection<RingRegion> regions) {
+        return getTotalFractionBD(regions).doubleValue();
+    }
+    
+    public boolean contains(long point) {
+        if (end >= start) {
+            return point >= start && point <= end;
+        } else {
+            return point <= end || point >= start;
+        }
+    }
+    
+    public boolean overlaps(RingRegion oRegion) {
+        return contains(oRegion.start) || contains(oRegion.end) 
+                || oRegion.contains(start) || oRegion.contains(end);
+    }
+    
     public RingRegion shiftTo(long newStart) {
         return new RingRegion(newStart, LongRingspace.prevPoint(LongRingspace.add(newStart, getSize())));
     }
-	
+    
     public RingRegion trimOverlappingWith(RingRegion region) {
         return region.trimOverlappingIn(this);
     }
-	
-	/**
-	 * Trim portions of trimRegion that overlap with this region.
-	 * @param trimRegion region to trim
-	 * @return trimmed trimRegion, null if it is completely overlapped
-	 */
-	public RingRegion trimOverlappingIn(RingRegion trimRegion) {
-		// for clarity, first handle completely overlapping
-		// and completely non-overlapping cases
-		if (contains(trimRegion.start) && contains(trimRegion.end)) {
-			// trimRegion is completely contained within this region
-			return null;
-		} else if (trimRegion.contains(start) && trimRegion.contains(end)) {
-			// this region is completely contained within trimRegion
-			// we need to split the trim region up
-			// but for our current use, we don't expect this case
-			throw new RuntimeException("Unexpected trim case");
-		} else if (!trimRegion.contains(start) && !trimRegion.contains(end)) {
-			// completely non-overlapping
-			return trimRegion;
-		} else {
-			// now handle partial overlaps
-			if (contains(trimRegion.start)) {
-				return new RingRegion(LongRingspace.nextPoint(end), trimRegion.end);
-			} else {
-				if (contains(trimRegion.end)) {
-					return new RingRegion(trimRegion.start, LongRingspace.prevPoint(start));
-				} else {
-					throw new RuntimeException("panic");
-				}
-			}
-		}
-	}
-	
-	public static RingRegion trimOverlappingIn(Collection<RingRegion> regions, RingRegion trimRegion) {
-		for (RingRegion region : regions) {
-			trimRegion = region.trimOverlappingIn(trimRegion);
-			if (trimRegion == null) {
-				return null;
-			}
-		}
-		return trimRegion;
-	}
-	
-	private static void runTrimTests() {
-		RingRegion	region;
-		
-		System.out.println("\nTrimming");
-		region = new RingRegion(100, 200);
-		
-		trimTest(region, 300, 400);
-		trimTest(region, 100, 200);
-		trimTest(region, 50, 150);
-		trimTest(region, 150, 250);
-		trimTest(region, 125, 175);
-		trimTest(region, 400, 0);
-		trimTest(region, 150, 0);
-		trimTest(region, 400, 150);
-		
-		trimTest(-3074457345618258603L, -3074457345618258603L, 
-		 -3074457345618258602L, -2767011611056432744L);
-		trimTest(-3074457345618258603L, -3074457345618258603L, 
-				-4611686018427387903L, -3996794549303736184L);
-		
-		
-	}
-	
-	private static void trimTest(long s1, long e1, long s2, long e2) {
-		trimTest(new RingRegion(s1, e1), new RingRegion(s2, e2));
-	}
-		
-	private static void trimTest(RingRegion	region, long s2, long e2) {
-		trimTest(region, new RingRegion(s2, e2));
-	}
-	
-	private static void trimTest(RingRegion	region, RingRegion trimRegion) {
-		System.out.println(region +"\t"+ trimRegion +"\t"+ region.trimOverlappingIn(trimRegion));
-	}
-	
-	public static IntersectionType intersectionType(RingRegion a, RingRegion b) {
+    
+    /**
+     * Trim portions of trimRegion that overlap with this region.
+     * @param trimRegion region to trim
+     * @return trimmed trimRegion, null if it is completely overlapped
+     */
+    public RingRegion trimOverlappingIn(RingRegion trimRegion) {
+        // for clarity, first handle completely overlapping
+        // and completely non-overlapping cases
+        if (contains(trimRegion.start) && contains(trimRegion.end)) {
+            // trimRegion is completely contained within this region
+            return null;
+        } else if (trimRegion.contains(start) && trimRegion.contains(end)) {
+            // this region is completely contained within trimRegion
+            // we need to split the trim region up
+            // but for our current use, we don't expect this case
+            throw new RuntimeException("Unexpected trim case");
+        } else if (!trimRegion.contains(start) && !trimRegion.contains(end)) {
+            // completely non-overlapping
+            return trimRegion;
+        } else {
+            // now handle partial overlaps
+            if (contains(trimRegion.start)) {
+                return new RingRegion(LongRingspace.nextPoint(end), trimRegion.end);
+            } else {
+                if (contains(trimRegion.end)) {
+                    return new RingRegion(trimRegion.start, LongRingspace.prevPoint(start));
+                } else {
+                    throw new RuntimeException("panic");
+                }
+            }
+        }
+    }
+    
+    public static RingRegion trimOverlappingIn(Collection<RingRegion> regions, RingRegion trimRegion) {
+        for (RingRegion region : regions) {
+            trimRegion = region.trimOverlappingIn(trimRegion);
+            if (trimRegion == null) {
+                return null;
+            }
+        }
+        return trimRegion;
+    }
+    
+    private static void runTrimTests() {
+        RingRegion    region;
+        
+        System.out.println("\nTrimming");
+        region = new RingRegion(100, 200);
+        
+        trimTest(region, 300, 400);
+        trimTest(region, 100, 200);
+        trimTest(region, 50, 150);
+        trimTest(region, 150, 250);
+        trimTest(region, 125, 175);
+        trimTest(region, 400, 0);
+        trimTest(region, 150, 0);
+        trimTest(region, 400, 150);
+        
+        trimTest(-3074457345618258603L, -3074457345618258603L, 
+         -3074457345618258602L, -2767011611056432744L);
+        trimTest(-3074457345618258603L, -3074457345618258603L, 
+                -4611686018427387903L, -3996794549303736184L);
+        
+        
+    }
+    
+    private static void trimTest(long s1, long e1, long s2, long e2) {
+        trimTest(new RingRegion(s1, e1), new RingRegion(s2, e2));
+    }
+        
+    private static void trimTest(RingRegion    region, long s2, long e2) {
+        trimTest(region, new RingRegion(s2, e2));
+    }
+    
+    private static void trimTest(RingRegion    region, RingRegion trimRegion) {
+        System.out.println(region +"\t"+ trimRegion +"\t"+ region.trimOverlappingIn(trimRegion));
+    }
+    
+    public static IntersectionType intersectionType(RingRegion a, RingRegion b) {
         if (a.contains(b.start)) {
             if (a.contains(b.end)) {
                 if (a.start == b.start && b.end == a.end){
@@ -445,25 +445,25 @@ public class RingRegion {
                     // bbbbbb
                     return IntersectionType.isomorphic;
                 } else {
-                	if (LongRingspace.clockwiseDistance(a.getStart(), b.getStart()) <= LongRingspace.clockwiseDistance(a.getStart(), b.getEnd())) {
+                    if (LongRingspace.clockwiseDistance(a.getStart(), b.getStart()) <= LongRingspace.clockwiseDistance(a.getStart(), b.getEnd())) {
                         // aaaaaaaa  aaaaaa  aaaaaa 
                         //   bbbb    bbbb      bbbb
                         return IntersectionType.aSubsumesB;
-                	} else {
-                		if (a.getSize() == LongRingspace.size && b.getSize() == LongRingspace.size) {
-                			// We currently prevent this by normalizing all entire ringspace RingRegions
-                			// This is included for completeness
-                			return IntersectionType.nonIdenticalAllRingspace;
-                		} else {
-                			if (a.getSize() == LongRingspace.size) {
+                    } else {
+                        if (a.getSize() == LongRingspace.size && b.getSize() == LongRingspace.size) {
+                            // We currently prevent this by normalizing all entire ringspace RingRegions
+                            // This is included for completeness
+                            return IntersectionType.nonIdenticalAllRingspace;
+                        } else {
+                            if (a.getSize() == LongRingspace.size) {
                                 return IntersectionType.aSubsumesB;
-                			} else if (b.getSize() == LongRingspace.size) {
+                            } else if (b.getSize() == LongRingspace.size) {
                                 return IntersectionType.bSubsumesA;
-                			} else {
-	                			return IntersectionType.wrappedPartial;
-                			}
-                		}
-                	}
+                            } else {
+                                return IntersectionType.wrappedPartial;
+                            }
+                        }
+                    }
                 }
             } else {
                 if (b.contains(a.start)) {
@@ -491,8 +491,8 @@ public class RingRegion {
             //         bbbbbb
             return IntersectionType.disjoint;
         }
-	}
-	
+    }
+    
     /**
      * Trim portions of trimRegion that overlap with this region. This routine should
      * be favored over case-specific logic.
@@ -565,9 +565,9 @@ public class RingRegion {
             overlapping = ImmutableList.of();
             break;
         case wrappedPartial:
-        	//       aaaa  aaaa     aaaaaa
-        	//         bbbbbb     bbbb  bbbb
-        	
+            //       aaaa  aaaa     aaaaaa
+            //         bbbbbb     bbbb  bbbb
+            
             aNonOverlapping = ImmutableList.of(new RingRegion(LongRingspace.nextPoint(b.end), LongRingspace.prevPoint(b.start)));
             bNonOverlapping = ImmutableList.of(new RingRegion(LongRingspace.nextPoint(a.end), LongRingspace.prevPoint(a.start)));
             builder = ImmutableList.builder();
@@ -586,12 +586,12 @@ public class RingRegion {
     }
     
     private static void testIntersection2(RingRegion r1, String n1,
-			RingRegion r2, String n2) {
-		System.out.printf("%s %s\n", n1, n2);
-		testIntersection(r1, r2);
-		System.out.printf("%s %s\n", n2, n1);
-		testIntersection(r2, r1);
-	}
+            RingRegion r2, String n2) {
+        System.out.printf("%s %s\n", n1, n2);
+        testIntersection(r1, r2);
+        System.out.printf("%s %s\n", n2, n1);
+        testIntersection(r2, r1);
+    }
     
     public static void testIntersection() {
         testIntersection(new RingRegion(-100, 100), new RingRegion(0, 200));
@@ -613,10 +613,10 @@ public class RingRegion {
         testIntersection(new RingRegion(50, 100), new RingRegion(0, 100));
         
         System.out.println();
-        RingRegion	large0 = new RingRegion(LongRingspace.start + 100, LongRingspace.end - 100);        
-        RingRegion	large_m1 = new RingRegion(LongRingspace.end - 200, LongRingspace.end - 300);
-        RingRegion	large_p1 = new RingRegion(LongRingspace.start + 300, LongRingspace.start + 100);
-        RingRegion	small0 = new RingRegion(LongRingspace.end - 200, LongRingspace.start + 200);
+        RingRegion    large0 = new RingRegion(LongRingspace.start + 100, LongRingspace.end - 100);        
+        RingRegion    large_m1 = new RingRegion(LongRingspace.end - 200, LongRingspace.end - 300);
+        RingRegion    large_p1 = new RingRegion(LongRingspace.start + 300, LongRingspace.start + 100);
+        RingRegion    small0 = new RingRegion(LongRingspace.end - 200, LongRingspace.start + 200);
         
         System.out.printf("large0\t%s\n", large0);
         System.out.printf("large_m1\t%s\n", large_m1);
@@ -637,7 +637,7 @@ public class RingRegion {
     
     /////////////////////////////
     
-	public RingRegion union(RingRegion oRegion) {
+    public RingRegion union(RingRegion oRegion) {
         return union(this, oRegion);
     }
     
@@ -719,11 +719,11 @@ public class RingRegion {
         }
     }
     
-	public static Collection<RingRegion> union(
-			List<RingRegion>[] regionsA, List<RingRegion> regionsB) {
-		return RingRegion.union(
+    public static Collection<RingRegion> union(
+            List<RingRegion>[] regionsA, List<RingRegion> regionsB) {
+        return RingRegion.union(
                 RingRegion.union(regionsA), regionsB);
-	}
+    }
     
     /////////////////////////////
     
@@ -773,22 +773,22 @@ public class RingRegion {
         return sb.toString();
     }
     
-	// for unit testing
-	public static void main(String[] args) {
-		try {
-		    /*
-			List<RingRegion>	r;
-			
-			r = allRingspace.divide(3);
-			display(r);
-			System.out.println("\nMerged");
-			r = mergeAdjacent(r);
-			display(r);
-			runTrimTests();
-			*/
-		    testIntersection();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+    // for unit testing
+    public static void main(String[] args) {
+        try {
+            /*
+            List<RingRegion>    r;
+            
+            r = allRingspace.divide(3);
+            display(r);
+            System.out.println("\nMerged");
+            r = mergeAdjacent(r);
+            display(r);
+            runTrimTests();
+            */
+            testIntersection();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

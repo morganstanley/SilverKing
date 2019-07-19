@@ -11,48 +11,48 @@ import java.util.concurrent.atomic.AtomicInteger;
  * This class is intended for the case where such as exception will either not occur, or be fatal.
  */
 public class ConcurrentLinkedDequeWithSize<E> {
-	private final ConcurrentLinkedDeque<E>	dq;
-	private final AtomicInteger				size;
-	
-	public ConcurrentLinkedDequeWithSize() {
-		dq = new ConcurrentLinkedDeque();
-		size = new AtomicInteger();
-	}
-	
+    private final ConcurrentLinkedDeque<E>    dq;
+    private final AtomicInteger                size;
+    
+    public ConcurrentLinkedDequeWithSize() {
+        dq = new ConcurrentLinkedDeque();
+        size = new AtomicInteger();
+    }
+    
     public E poll() { 
-    	E	e;
-    	
-    	e = dq.poll();
-    	if (e != null) {
-        	size.decrementAndGet();
-    	}
-    	return e;
+        E    e;
+        
+        e = dq.poll();
+        if (e != null) {
+            size.decrementAndGet();
+        }
+        return e;
     }
     
     public E remove() {
-    	size.decrementAndGet();
-    	return dq.remove(); 
+        size.decrementAndGet();
+        return dq.remove(); 
     }
     
     public E peek() {
-    	return dq.peek();
+        return dq.peek();
     }
     
     public void push(E e) {
-    	size.incrementAndGet();
-    	dq.push(e); 
+        size.incrementAndGet();
+        dq.push(e); 
     }
     
     public boolean isEmpty() {
-    	return dq.isEmpty();
-    }
-	
-    public boolean add(E e) {
-    	size.incrementAndGet();
-    	return dq.add(e);
+        return dq.isEmpty();
     }
     
-	public int size() {
-		return size.get();
-	}
+    public boolean add(E e) {
+        size.incrementAndGet();
+        return dq.add(e);
+    }
+    
+    public int size() {
+        return size.get();
+    }
 }

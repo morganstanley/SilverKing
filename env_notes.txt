@@ -52,8 +52,8 @@ export skGlobalCodebase=$eclipse_classes:$jars_path/*:$aws_libs   # this WILL NO
 # if we set skDevJavaHome, we should set SK_JAVA_HOME as well to == skDevJavaHome, so that bin/ AND also the java code (SKAdmin.java, etc..), will both use the same java version 
 # if we don't set SK_JAVA_HOME, SKAdmin.java will set a default for us, which is actually the java used to launch the scripts (skDevJavaHome), so it really doesn't matter that we set SK_JAVA_HOME
 export skDevJavaHome=/fixme/path/to/oraclejdk/1.8.0_162
-export  SK_JAVA_HOME=$skDevJavaHome						# optional. sk/skfs used. SK_JAVA_HOME is used by SKAdmin and ParallelSsh'ing, but if you don't set one, the java code will set one for us			
-#export  SK_JACE_HOME=/fixme/path/to/jace/base	# required. skfs used.    only necessary for skfs (starting/stopping), sk doesn't need this set. automatically getting set and picked up in bin/lib/sk.config
+export  SK_JAVA_HOME=$skDevJavaHome                        # optional. sk/skfs used. SK_JAVA_HOME is used by SKAdmin and ParallelSsh'ing, but if you don't set one, the java code will set one for us            
+#export  SK_JACE_HOME=/fixme/path/to/jace/base    # required. skfs used.    only necessary for skfs (starting/stopping), sk doesn't need this set. automatically getting set and picked up in bin/lib/sk.config
 #export   skDevExecv2=/fixme/path/to/bin/execv2
 export GC_DEFAULT_BASE=/fixme/path/to/env/folder/if/there/is/one
 

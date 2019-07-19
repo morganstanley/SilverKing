@@ -147,27 +147,27 @@ public class MetaUtil {
     }
     
     public MetaUtil(String dhtName, String zkString, long dhtVersion, File target) throws KeeperException,  IOException {
-    	this(dhtName, new ZooKeeperConfig(zkString), dhtVersion, target);
+        this(dhtName, new ZooKeeperConfig(zkString), dhtVersion, target);
     }
     
     public MetaUtil(String name, ZooKeeperConfig zkConfig, long dhtVersion) throws KeeperException, IOException {
-    	this(name, zkConfig, dhtVersion, null);
+        this(name, zkConfig, dhtVersion, null);
     }
     
-	public DHTConfiguration getDHTConfiguration() {
-    	return dhtConfig;
+    public DHTConfiguration getDHTConfiguration() {
+        return dhtConfig;
     }
-	
-	public MetaClient getDHTMC() {
-		return mc;
-	}
+    
+    public MetaClient getDHTMC() {
+        return mc;
+    }
     
     public RingConfiguration getRingConfiguration() {
-    	return ringConfig;
+        return ringConfig;
     }
     
     public com.ms.silverking.cloud.toporing.meta.MetaClient getRingMC() {
-    	return ringMC;
+        return ringMC;
     }
     
     private long getLatestVersion(String path) throws KeeperException {
@@ -268,7 +268,7 @@ public class MetaUtil {
     }
     
     private void displayHostGroupToClassVarsMap() {
-    	Map<String,String> hostGroupToClassVars = getHostGroupToClassVarsMap();
+        Map<String,String> hostGroupToClassVars = getHostGroupToClassVarsMap();
         for (String hostGroup : hostGroupToClassVars.keySet()) {
             displayForFiltering(hostGroup + "=" + hostGroupToClassVars.get(hostGroup));
         }
@@ -290,9 +290,9 @@ public class MetaUtil {
             clearLinks();
             break;
         case GetHostGroupToClassVarsMap:
-        	displayHostGroupToClassVarsMap();
+            displayHostGroupToClassVarsMap();
             break;
-        	
+            
         default: throw new RuntimeException("panic");
         }
     }
@@ -337,7 +337,7 @@ public class MetaUtil {
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-	            System.exit(-1);
+                System.exit(-1);
             }
             
             mu = new MetaUtil(options.dhtName, options.zkEnsemble, options.dhtVersion, 

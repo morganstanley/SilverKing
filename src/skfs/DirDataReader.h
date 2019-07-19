@@ -25,8 +25,8 @@
 ////////////
 // defines
 
-#define DDR_NO_AUTO_CREATE	0
-#define DDR_AUTO_CREATE	1
+#define DDR_NO_AUTO_CREATE    0
+#define DDR_AUTO_CREATE    1
 #define DDR_MM_CLIENT_SIDE 0
 #define DDR_MM_SERVER_SIDE 1
 
@@ -35,14 +35,14 @@
 // types
 
 typedef struct DirDataReader {
-	OpenDirCache	*openDirCache;
-	QueueProcessor	*dirDataQueueProcessor;
-	SRFSDHT			*sd;
-	SKSession		*(pSession[DDR_DHT_THREADS]);
+    OpenDirCache    *openDirCache;
+    QueueProcessor    *dirDataQueueProcessor;
+    SRFSDHT            *sd;
+    SKSession        *(pSession[DDR_DHT_THREADS]);
     SKAsyncNSPerspective *(ansp[DDR_DHT_THREADS]);
-	ResponseTimeStats	*rtsDirData;
-    SKGetOptions	*metaDataGetOptions;
-    SKGetOptions	*valueAndMetaDataGetOptions;    
+    ResponseTimeStats    *rtsDirData;
+    SKGetOptions    *metaDataGetOptions;
+    SKGetOptions    *valueAndMetaDataGetOptions;    
     int             mergeMode;
 } DirDataReader;
 
@@ -57,6 +57,6 @@ int ddr_get_OpenDir(DirDataReader *ddr, char *path, OpenDir **od, int createIfNo
 DirData *ddr_get_DirData(DirDataReader *ddr, char *path);
 void ddr_check_for_update(DirDataReader *ddr, OpenDir *od);
 void ddr_check_for_reconciliation(DirDataReader *ddr, char *path);
-void ddr_update_OpenDir(DirDataReader *ddr, OpenDir	*od);
+void ddr_update_OpenDir(DirDataReader *ddr, OpenDir    *od);
 
 #endif

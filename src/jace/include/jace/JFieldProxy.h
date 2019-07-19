@@ -45,107 +45,107 @@ BEGIN_NAMESPACE(jace)
 template <class FieldType> class JFieldProxy: public FieldType
 {
 public:
-	/**
-	 * Creates a new JFieldProxy that belongs to the given object,
-	 * and represents the given value.
-	 *
-	 * This constructor should always be specialized away by subclasses.
-	 */
-	JFieldProxy(jfieldID _fieldID, jvalue value, jobject _parent):
-		FieldType(value), fieldID(_fieldID)
-	{
-		JNIEnv* env = attach();
+    /**
+     * Creates a new JFieldProxy that belongs to the given object,
+     * and represents the given value.
+     *
+     * This constructor should always be specialized away by subclasses.
+     */
+    JFieldProxy(jfieldID _fieldID, jvalue value, jobject _parent):
+        FieldType(value), fieldID(_fieldID)
+    {
+        JNIEnv* env = attach();
 
-		if (_parent)
-			parent = newGlobalRef(env, _parent);
-		else
-			parent = _parent;
+        if (_parent)
+            parent = newGlobalRef(env, _parent);
+        else
+            parent = _parent;
 
-		parentClass = 0;
-	}
-
-
-	/**
-	 * Creates a new JFieldProxy that belongs to the given class,
-	 * and represents the given value. (The field is a static one).
-	 *
-	 * This constructor should always be specialized away by subclasses.
-	 */
-	JFieldProxy(jfieldID _fieldID, jvalue value, jclass _parentClass):
-		FieldType(value), fieldID(_fieldID)
-	{
-		parent = 0;
-		JNIEnv* env = attach();
-		parentClass = newGlobalRef(env, _parentClass);
-	}
+        parentClass = 0;
+    }
 
 
-	/**
-	 * Creates a new JFieldProxy that belongs to the given object,
-	 * and represents the given value.
-	 *
-	 * This copy constructor should always be specialized away by subclasses.
-	 */
-	JFieldProxy(const JFieldProxy& object):
-		FieldType(object.getJavaJniValue())
-	{
-		JNIEnv* env = attach();
-		if (object.parent)
-			parent = newGlobalRef(env, object.parent);
-		else
-			parent = 0;
-
-		if (object.parentClass)
-			parentClass = static_cast<jclass>(newGlobalRef(env, object.parentClass));
-		else
-			parentClass = 0;
-	}
+    /**
+     * Creates a new JFieldProxy that belongs to the given class,
+     * and represents the given value. (The field is a static one).
+     *
+     * This constructor should always be specialized away by subclasses.
+     */
+    JFieldProxy(jfieldID _fieldID, jvalue value, jclass _parentClass):
+        FieldType(value), fieldID(_fieldID)
+    {
+        parent = 0;
+        JNIEnv* env = attach();
+        parentClass = newGlobalRef(env, _parentClass);
+    }
 
 
-	virtual ~JFieldProxy() throw()
-	{
-		if (parent)
-		{
-			try
-			{
-				JNIEnv* env = attach();
-				deleteGlobalRef(env, parent);
-			}
-			catch (std::exception&)
-			{
-			}
-		}
+    /**
+     * Creates a new JFieldProxy that belongs to the given object,
+     * and represents the given value.
+     *
+     * This copy constructor should always be specialized away by subclasses.
+     */
+    JFieldProxy(const JFieldProxy& object):
+        FieldType(object.getJavaJniValue())
+    {
+        JNIEnv* env = attach();
+        if (object.parent)
+            parent = newGlobalRef(env, object.parent);
+        else
+            parent = 0;
 
-		if (parentClass)
-		{
-			try
-			{
-				JNIEnv* env = attach();
-				deleteGlobalRef(env, parentClass);
-			}
-			catch (std::exception&)
-			{
-			}
-		}
-	}
+        if (object.parentClass)
+            parentClass = static_cast<jclass>(newGlobalRef(env, object.parentClass));
+        else
+            parentClass = 0;
+    }
 
-	/**
-	 * If someone assigns to this proxy, they're really assigning
-	 * to the field.
-	 */
-	FieldType& operator=(const FieldType& field)
-	{
-		if (parent)
-			setJavaJniObject(JFieldProxyHelper::assign(field, parent, fieldID));
-		else
-			setJavaJniObject(JFieldProxyHelper::assign(field, parentClass, fieldID));
-		return *this;
-	}
+
+    virtual ~JFieldProxy() throw()
+    {
+        if (parent)
+        {
+            try
+            {
+                JNIEnv* env = attach();
+                deleteGlobalRef(env, parent);
+            }
+            catch (std::exception&)
+            {
+            }
+        }
+
+        if (parentClass)
+        {
+            try
+            {
+                JNIEnv* env = attach();
+                deleteGlobalRef(env, parentClass);
+            }
+            catch (std::exception&)
+            {
+            }
+        }
+    }
+
+    /**
+     * If someone assigns to this proxy, they're really assigning
+     * to the field.
+     */
+    FieldType& operator=(const FieldType& field)
+    {
+        if (parent)
+            setJavaJniObject(JFieldProxyHelper::assign(field, parent, fieldID));
+        else
+            setJavaJniObject(JFieldProxyHelper::assign(field, parentClass, fieldID));
+        return *this;
+    }
 
 private:
-	jobject parent;
-	jclass parentClass;
-	jfieldID fieldID;
+    jobject parent;
+    jclass parentClass;
+    jfieldID fieldID;
 };
 
 END_NAMESPACE(jace)

@@ -20,9 +20,9 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.PropertiesHelper;
 
 public class ParallelSSHBase {
-	private String	sshCmd;
-	private Map<String,String>	sshCmdMap;
-	private HostGroupTable hostGroups;
+    private String    sshCmd;
+    private Map<String,String>    sshCmdMap;
+    private HostGroupTable hostGroups;
     private Set<String> successful;
     private Set<String> failed;
     private Set<String> completed;
@@ -30,78 +30,78 @@ public class ParallelSSHBase {
     public static final int errorCode = 127;
     public static final int exceptionErrorCode = 127;
     
-    public static String	timeoutVar = "TIMEOUT";
-    public static String	hostnameVar = "HOSTNAME";
+    public static String    timeoutVar = "TIMEOUT";
+    public static String    hostnameVar = "HOSTNAME";
     
-    private static final String	sshEnvVar = "SK_PSSH_SSH";
-    private static final String	defaultSSHCmdRH5 = "ssh -x -o StrictHostKeyChecking=no "+ hostnameVar;
-    private static final String	defaultSSHCmd = "timeout "+ timeoutVar +" ssh -x -o StrictHostKeyChecking=no "+ hostnameVar;
-    private static final String	globalSSHCmd;
-    private static final String	sshMapEnvVar = "SK_PSSH_SSH_MAP";
-    private static final Map<String,String>	globalSSHCmdMap;
-    private static final char	mapDelimiter = '\t';
+    private static final String    sshEnvVar = "SK_PSSH_SSH";
+    private static final String    defaultSSHCmdRH5 = "ssh -x -o StrictHostKeyChecking=no "+ hostnameVar;
+    private static final String    defaultSSHCmd = "timeout "+ timeoutVar +" ssh -x -o StrictHostKeyChecking=no "+ hostnameVar;
+    private static final String    globalSSHCmd;
+    private static final String    sshMapEnvVar = "SK_PSSH_SSH_MAP";
+    private static final Map<String,String>    globalSSHCmdMap;
+    private static final char    mapDelimiter = '\t';
     
-    private static final boolean	globalSSHCmdIsDefault;
-    private final boolean	sshCmdIsDefault;
+    private static final boolean    globalSSHCmdIsDefault;
+    private final boolean    sshCmdIsDefault;
     
     static {
-    	String	mapFile;
-    	
-    	if (RedHat.getRedHatVersion() >= 6.0) {
-    		globalSSHCmd = PropertiesHelper.envHelper.getString(sshEnvVar, defaultSSHCmd);
-    		globalSSHCmdIsDefault = globalSSHCmd.equals(defaultSSHCmd);
-    	} else {
-    		globalSSHCmd = PropertiesHelper.envHelper.getString(sshEnvVar, defaultSSHCmdRH5);
-    		globalSSHCmdIsDefault = globalSSHCmd.equals(defaultSSHCmdRH5);
-    	}
-    	mapFile = PropertiesHelper.envHelper.getString(sshMapEnvVar, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
-    	if (mapFile != null && mapFile.trim().length() != 0) {
-    		Log.warningf("mapFile %s", mapFile);
-    		try {
-				globalSSHCmdMap = MapUtil.parseStringMap(new FileInputStream(mapFile), mapDelimiter, MapUtil.NoDelimiterAction.Ignore);
-			} catch (IOException ioe) {
-				throw new RuntimeException(ioe);
-			}
-    	} else {
-    		Log.warningf("mapFile null or empty");
-    		globalSSHCmdMap = ImmutableMap.of();
-    	}
+        String    mapFile;
+        
+        if (RedHat.getRedHatVersion() >= 6.0) {
+            globalSSHCmd = PropertiesHelper.envHelper.getString(sshEnvVar, defaultSSHCmd);
+            globalSSHCmdIsDefault = globalSSHCmd.equals(defaultSSHCmd);
+        } else {
+            globalSSHCmd = PropertiesHelper.envHelper.getString(sshEnvVar, defaultSSHCmdRH5);
+            globalSSHCmdIsDefault = globalSSHCmd.equals(defaultSSHCmdRH5);
+        }
+        mapFile = PropertiesHelper.envHelper.getString(sshMapEnvVar, PropertiesHelper.UndefinedAction.ZeroOnUndefined);
+        if (mapFile != null && mapFile.trim().length() != 0) {
+            Log.warningf("mapFile %s", mapFile);
+            try {
+                globalSSHCmdMap = MapUtil.parseStringMap(new FileInputStream(mapFile), mapDelimiter, MapUtil.NoDelimiterAction.Ignore);
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+        } else {
+            Log.warningf("mapFile null or empty");
+            globalSSHCmdMap = ImmutableMap.of();
+        }
     }
     
     public ParallelSSHBase(String sshCmd, Map<String,String> sshCmdMap, HostGroupTable hostGroups) {
-    	this.sshCmd = sshCmd == null ? globalSSHCmd : sshCmd;
-    	if (sshCmd == null) {
-    		this.sshCmd = globalSSHCmd;
-    		sshCmdIsDefault = globalSSHCmdIsDefault;
-    	} else {
-    		this.sshCmd = sshCmd;
-    		sshCmdIsDefault = false;
-    	}
-    	this.sshCmdMap = sshCmdMap;
-    	this.hostGroups = hostGroups;
+        this.sshCmd = sshCmd == null ? globalSSHCmd : sshCmd;
+        if (sshCmd == null) {
+            this.sshCmd = globalSSHCmd;
+            sshCmdIsDefault = globalSSHCmdIsDefault;
+        } else {
+            this.sshCmd = sshCmd;
+            sshCmdIsDefault = false;
+        }
+        this.sshCmdMap = sshCmdMap;
+        this.hostGroups = hostGroups;
         successful = new ConcurrentSkipListSet<String>();
         failed = new ConcurrentSkipListSet<String>();
         completed = new ConcurrentSkipListSet<String>();
     }
     
     public ParallelSSHBase(HostGroupTable hostGroups) {
-    	this(globalSSHCmd, globalSSHCmdMap, hostGroups);
+        this(globalSSHCmd, globalSSHCmdMap, hostGroups);
     }
     
     public String getSSHCmd() {
-    	return sshCmd;
+        return sshCmd;
     }
     
     public boolean sshCmdIsDefault() {
-    	return sshCmdIsDefault;
+        return sshCmdIsDefault;
     }
     
     public Map<String,String> getSSHCmdMap() {
-    	return sshCmdMap;
+        return sshCmdMap;
     }
     
     public HostGroupTable getHostGroups() {
-    	return hostGroups;
+        return hostGroups;
     }
     
     private String arrayToString(String[] cmd, char quoteChar) {
@@ -123,37 +123,37 @@ public class ParallelSSHBase {
     }
     
     private String[] sshCmd(String hostname, String[] cmd, int timeoutSeconds, boolean quotedBash) {
-        List<String>	_sshCmd;
-        String			resolvedSSHCmd;
-        String			hostSSHCmd;
+        List<String>    _sshCmd;
+        String            resolvedSSHCmd;
+        String            hostSSHCmd;
         
         hostSSHCmd = sshCmdMap.get(hostname);        
         if (hostSSHCmd == null) {
-        	if (hostGroups != null) {
-        		Log.warningf("sshhg non-null");
-	        	for (String hostGroup : hostGroups.getHostGroups(hostname)) {
-		            String	hostGroupSSHCmd;
-		        	
-	        		Log.warningf("sshhg hg %s", hostGroup);
-		            hostGroupSSHCmd = sshCmdMap.get(hostGroup);
-		            if (hostGroupSSHCmd != null) {
-		        		Log.warningf("sshhg hg cmd %s", hostGroupSSHCmd);
-			        	hostSSHCmd = hostGroupSSHCmd;
-			        	break;
-		            }
-	        	}
-	        	if (hostSSHCmd == null) {
-	        		hostSSHCmd = sshCmd;
-	        	}
-        	} else {
-        		Log.warningf("sshhg null");
-	        	hostSSHCmd = sshCmd;
-        	}
+            if (hostGroups != null) {
+                Log.warningf("sshhg non-null");
+                for (String hostGroup : hostGroups.getHostGroups(hostname)) {
+                    String    hostGroupSSHCmd;
+                    
+                    Log.warningf("sshhg hg %s", hostGroup);
+                    hostGroupSSHCmd = sshCmdMap.get(hostGroup);
+                    if (hostGroupSSHCmd != null) {
+                        Log.warningf("sshhg hg cmd %s", hostGroupSSHCmd);
+                        hostSSHCmd = hostGroupSSHCmd;
+                        break;
+                    }
+                }
+                if (hostSSHCmd == null) {
+                    hostSSHCmd = sshCmd;
+                }
+            } else {
+                Log.warningf("sshhg null");
+                hostSSHCmd = sshCmd;
+            }
         }
         resolvedSSHCmd = hostSSHCmd.replaceAll(timeoutVar, Integer.toString(timeoutSeconds)).replaceAll(hostnameVar, hostname);
         _sshCmd = new ArrayList<>();
         for (String s : resolvedSSHCmd.split("\\s+")) {
-        	_sshCmd.add(s);
+            _sshCmd.add(s);
         }
         if (!quotedBash) {
             _sshCmd.add("/bin/bash");
@@ -161,15 +161,15 @@ public class ParallelSSHBase {
             _sshCmd.add(arrayToString(cmd, '\''));
             _sshCmd.add("< /dev/null");
         } else {
-        	_sshCmd.add("/bin/bash -c "+ arrayToString(cmd, '\''));
-        	_sshCmd.add("< /dev/null");
+            _sshCmd.add("/bin/bash -c "+ arrayToString(cmd, '\''));
+            _sshCmd.add("< /dev/null");
         }
         
         return _sshCmd.toArray(new String[0]);
     }
     
     public int doSSH(HostAndCommand hostAndCommand, int timeoutSeconds, boolean quotedBash) {
-    	return doSSH(hostAndCommand.getHost(), hostAndCommand.getCommand(), timeoutSeconds, quotedBash);
+        return doSSH(hostAndCommand.getHost(), hostAndCommand.getCommand(), timeoutSeconds, quotedBash);
     }
     
     public int doSSH(String host, String[] cmd, int timeoutSeconds) {
@@ -248,7 +248,7 @@ public class ParallelSSHBase {
     }
     
     public static void main(String[] args) {
-    	System.out.println(System.getProperty("os.name"));
-    	System.out.println(System.getProperty("os.arch"));
+        System.out.println(System.getProperty("os.name"));
+        System.out.println(System.getProperty("os.arch"));
     }
 }

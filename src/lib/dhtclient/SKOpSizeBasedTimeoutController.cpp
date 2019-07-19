@@ -17,110 +17,110 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::OpTimeoutController;
 
 SKOpSizeBasedTimeoutController * SKOpSizeBasedTimeoutController::parse(const char * def)
 {
-	OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
-			OpSizeBasedTimeoutController::parse(java_new<String>((char *)def))));
-	return new SKOpSizeBasedTimeoutController(pOpSizeBasedTimeoutController);
+    OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
+            OpSizeBasedTimeoutController::parse(java_new<String>((char *)def))));
+    return new SKOpSizeBasedTimeoutController(pOpSizeBasedTimeoutController);
 }
 
 SKOpSizeBasedTimeoutController::~SKOpSizeBasedTimeoutController()
 {
-	if(pImpl){
-		delete pImpl;
-		pImpl = NULL;
-	}
+    if(pImpl){
+        delete pImpl;
+        pImpl = NULL;
+    }
 }
 
 SKOpSizeBasedTimeoutController::SKOpSizeBasedTimeoutController()
 {
-	pImpl = new OpSizeBasedTimeoutController(java_new<OpSizeBasedTimeoutController>()); 
+    pImpl = new OpSizeBasedTimeoutController(java_new<OpSizeBasedTimeoutController>()); 
 }
 
 SKOpSizeBasedTimeoutController::SKOpSizeBasedTimeoutController(int maxAttempts, int constantTimeMillis, int itemTimeMillis, int maxRelTimeoutMillis)
 {
-	pImpl = new OpSizeBasedTimeoutController(java_new<OpSizeBasedTimeoutController>(
-					maxAttempts, constantTimeMillis, 
-					itemTimeMillis, maxRelTimeoutMillis, maxRelTimeoutMillis /* simply copy the maxRelTimeout for the new exclusion change retry interval */ 
-				)); 
+    pImpl = new OpSizeBasedTimeoutController(java_new<OpSizeBasedTimeoutController>(
+                    maxAttempts, constantTimeMillis, 
+                    itemTimeMillis, maxRelTimeoutMillis, maxRelTimeoutMillis /* simply copy the maxRelTimeout for the new exclusion change retry interval */ 
+                )); 
 }
 
 SKOpSizeBasedTimeoutController::SKOpSizeBasedTimeoutController(OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController)
 {
-	pImpl = pOpSizeBasedTimeoutController;
+    pImpl = pOpSizeBasedTimeoutController;
 }
 
 OpTimeoutController * SKOpSizeBasedTimeoutController::getPImpl()
 {
-	return static_cast<OpTimeoutController*>(pImpl);
+    return static_cast<OpTimeoutController*>(pImpl);
 }
 
 int SKOpSizeBasedTimeoutController::getMaxAttempts(SKAsyncOperation * op)
 {
-	AsyncOperation* pAsyncOp = (AsyncOperation*) op->getPImpl();
-	int maxAttempts = pImpl->getMaxAttempts(*pAsyncOp);
-	return maxAttempts;
+    AsyncOperation* pAsyncOp = (AsyncOperation*) op->getPImpl();
+    int maxAttempts = pImpl->getMaxAttempts(*pAsyncOp);
+    return maxAttempts;
 }
 
 int SKOpSizeBasedTimeoutController::getRelativeTimeoutMillisForAttempt(SKAsyncOperation * op, int attemptIndex)
 {
-	AsyncOperation* pAsyncOp = (AsyncOperation*) op->getPImpl();
-	int relativeTimeoutMillis = pImpl->getRelativeTimeoutMillisForAttempt(*pAsyncOp, attemptIndex);
-	return relativeTimeoutMillis;
+    AsyncOperation* pAsyncOp = (AsyncOperation*) op->getPImpl();
+    int relativeTimeoutMillis = pImpl->getRelativeTimeoutMillisForAttempt(*pAsyncOp, attemptIndex);
+    return relativeTimeoutMillis;
 }
 
 int SKOpSizeBasedTimeoutController::getMaxRelativeTimeoutMillis(SKAsyncOperation *op)
 {
-	AsyncOperation* pAsyncOp = (AsyncOperation*) op->getPImpl();
-	int maxRelativeTimeoutMillis = pImpl->getMaxRelativeTimeoutMillis(*pAsyncOp);
-	return maxRelativeTimeoutMillis;
+    AsyncOperation* pAsyncOp = (AsyncOperation*) op->getPImpl();
+    int maxRelativeTimeoutMillis = pImpl->getMaxRelativeTimeoutMillis(*pAsyncOp);
+    return maxRelativeTimeoutMillis;
 }
 
 SKOpSizeBasedTimeoutController * SKOpSizeBasedTimeoutController::constantTimeMillis(int constantTimeMillis)
 {
-	OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
-		new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
-			pImpl->constantTimeMillis(constantTimeMillis)
-		));
-	delete pImpl;
+    OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
+        new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
+            pImpl->constantTimeMillis(constantTimeMillis)
+        ));
+    delete pImpl;
     pImpl = pOpSizeBasedTimeoutController;
-	return this;
+    return this;
 }
 
 SKOpSizeBasedTimeoutController * SKOpSizeBasedTimeoutController::itemTimeMillis(int itemTimeMillis)
 {
-	OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
-		new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
-			pImpl->itemTimeMillis(itemTimeMillis)
-		));
-	delete pImpl;
+    OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
+        new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
+            pImpl->itemTimeMillis(itemTimeMillis)
+        ));
+    delete pImpl;
     pImpl = pOpSizeBasedTimeoutController;
-	return this;
+    return this;
 }
 
 SKOpSizeBasedTimeoutController * SKOpSizeBasedTimeoutController::maxRelTimeoutMillis(int maxRelTimeoutMillis)
 {
-	OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
-		new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
-			pImpl->maxRelTimeoutMillis(maxRelTimeoutMillis)
-		));
-	delete pImpl;
+    OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
+        new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
+            pImpl->maxRelTimeoutMillis(maxRelTimeoutMillis)
+        ));
+    delete pImpl;
     pImpl = pOpSizeBasedTimeoutController;
-	return this;
+    return this;
 }
 
 SKOpSizeBasedTimeoutController * SKOpSizeBasedTimeoutController::maxAttempts(int maxAttempts)
 {
-	OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
-		new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
-			pImpl->maxAttempts(maxAttempts)
-		));
-	delete pImpl;
+    OpSizeBasedTimeoutController * pOpSizeBasedTimeoutController = 
+        new OpSizeBasedTimeoutController(java_cast<OpSizeBasedTimeoutController>(
+            pImpl->maxAttempts(maxAttempts)
+        ));
+    delete pImpl;
     pImpl = pOpSizeBasedTimeoutController;
-	return this;
+    return this;
 }
 
 
 string SKOpSizeBasedTimeoutController::toString()
 {
-	return (string) (pImpl->toString());
+    return (string) (pImpl->toString());
 }
 

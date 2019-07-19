@@ -13,7 +13,7 @@ public class ProtoOpResponseMessageGroup extends ProtoMessageGroup {
     
     // room for response code
     private static final int    responseBufferSize = 1;
-    private static final int	resultIndex = 0;
+    private static final int    resultIndex = 0;
     
     public ProtoOpResponseMessageGroup(UUIDBase uuid, long context, OpResult result, byte[] originator, int deadlineRelativeMillis) {
         super(MessageType.OP_RESPONSE, uuid, context, originator, deadlineRelativeMillis, ForwardingMode.FORWARD);

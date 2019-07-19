@@ -21,8 +21,8 @@
  * the directory. These OpenDir instances are currently never reclaimed.
  */
 typedef struct OpenDirCache {
-	int	numSubCaches;
-	Cache	**subCaches;
+    int    numSubCaches;
+    Cache    **subCaches;
 } OpenDirCache;
 
 

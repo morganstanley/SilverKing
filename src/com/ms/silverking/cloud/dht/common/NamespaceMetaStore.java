@@ -22,7 +22,7 @@ public class NamespaceMetaStore {
     private final NamespaceOptionsClient    nsOptionsClient;
     private final ConcurrentMap<Long, NamespaceProperties>  nsPropertiesMap;
     
-    private static final long	nsOptionsFetchTimeoutMillis = SessionOptions.getDefaultTimeoutController().getMaxRelativeTimeoutMillis(null);	
+    private static final long    nsOptionsFetchTimeoutMillis = SessionOptions.getDefaultTimeoutController().getMaxRelativeTimeoutMillis(null);    
     
     public enum NamespaceOptionsRetrievalMode {FetchRemotely, LocalCheckOnly};
     

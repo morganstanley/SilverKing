@@ -12,7 +12,7 @@
 ////////////
 // defines
 
-#define PG_MAX_SIZE	1024
+#define PG_MAX_SIZE    1024
 #define PG_DELIMITER ':'
 
 
@@ -22,10 +22,10 @@
 struct PathGroupEntry;
 
 typedef struct PathGroup {
-	char			*name;
-	int				compareDirectoriesOnly;
-	int				size;
-	PathGroupEntry	*(entries[PG_MAX_SIZE]);
+    char            *name;
+    int                compareDirectoriesOnly;
+    int                size;
+    PathGroupEntry    *(entries[PG_MAX_SIZE]);
 } PathGroup;
 
 

@@ -13,103 +13,103 @@ import org.junit.Test;
 
 public class SystemTimeSourceTest {
 
-	private static final long absNanosTimeCopy = 0;
-	private static final long absNanosTimeDiff = 1;
-	
-	private static final SystemTimeSource systemSourceCopy =  SystemTimeSource.createWithMillisOrigin(absNanosTimeCopy);
-	private static final SystemTimeSource systemSourceDiff =  SystemTimeSource.createWithMillisOrigin(absNanosTimeDiff);
+    private static final long absNanosTimeCopy = 0;
+    private static final long absNanosTimeDiff = 1;
+    
+    private static final SystemTimeSource systemSourceCopy =  SystemTimeSource.createWithMillisOrigin(absNanosTimeCopy);
+    private static final SystemTimeSource systemSourceDiff =  SystemTimeSource.createWithMillisOrigin(absNanosTimeDiff);
 
-	
-	// FIXME:bph: ALL OF THIS IS COMMENTED OUT because the getters use variables that are dynamic, so too hard to test...
-	
-	
-//	@Test
-//	public void testAbsTimeMillis() {
-//		Object[][] testCases = {
-//			{absMillisTime,     systemSource},
-//			{absMillisTimeCopy, systemSourceCopy},
-//			{absMillisTimeDiff, systemSourceDiff},
-//		};
-//		
-//		test_AbsTimeMillis(testCases);
-//	}
-	
-//	@Test
-//	public void testRelMillisRemaining() {
-//		Object[][] testCases = {
-//			{ 1L, systemSource,      1L},
-//			{-1L, systemSourceCopy, -1L},
-//			{ 0L, systemSourceDiff,  1L},
-//		};
-//		
-//		test_RelMillisRemaining(testCases);
-//	}
-	
-	
-//	@Test
-//	public void testRelTimeNanos() {
-//		Object[][] testCases = {
-//			{absMillisTime,     systemSource},
-//			{absMillisTimeCopy, systemSourceCopy},
-//			{absMillisTimeDiff, systemSourceDiff},
-//		};
-//		
-//		test_AbsTimeMillis(testCases);
-//	}
-	
+    
+    // FIXME:bph: ALL OF THIS IS COMMENTED OUT because the getters use variables that are dynamic, so too hard to test...
+    
+    
+//    @Test
+//    public void testAbsTimeMillis() {
+//        Object[][] testCases = {
+//            {absMillisTime,     systemSource},
+//            {absMillisTimeCopy, systemSourceCopy},
+//            {absMillisTimeDiff, systemSourceDiff},
+//        };
+//        
+//        test_AbsTimeMillis(testCases);
+//    }
+    
+//    @Test
+//    public void testRelMillisRemaining() {
+//        Object[][] testCases = {
+//            { 1L, systemSource,      1L},
+//            {-1L, systemSourceCopy, -1L},
+//            { 0L, systemSourceDiff,  1L},
+//        };
+//        
+//        test_RelMillisRemaining(testCases);
+//    }
+    
+    
+//    @Test
+//    public void testRelTimeNanos() {
+//        Object[][] testCases = {
+//            {absMillisTime,     systemSource},
+//            {absMillisTimeCopy, systemSourceCopy},
+//            {absMillisTimeDiff, systemSourceDiff},
+//        };
+//        
+//        test_AbsTimeMillis(testCases);
+//    }
+    
 
-//	@Test
-//	public void testAbsTimeNanos() {
-//		Object[][] testCases = {
-//			{absNanosTime,     systemSource},
-////			{absNanosTimeCopy, systemSourceCopy},
-////			{absNanosTimeDiff, systemSourceDiff},
-//		};
-//		
-//		test_AbsTimeNanos(testCases);
-//	}
-	
-//	@Test
-//	public void testRelNanosRemaining() {
-//		Object[][] testCases = {
-//			{ 1L, systemSource,      1L},
-//			{-1L, systemSourceCopy, -1L},
-//			{ 0L, systemSourceDiff,  1L},
-//		};
-//		
-//		test_RelMillisRemaining(testCases);
-//	}
-	
-//	@Test
-//	public void testGetNanosOriginTime() {
-//		Object[][] testCases = {
-//			{absNanosTime,     systemSource},
-//			{absNanosTimeCopy, systemSourceCopy},
-//			{absNanosTimeDiff, systemSourceDiff},
-//		};
-//		
-//		test_GetNanosOriginTime(testCases);
-//	}
-	
-	@Test
-	public void testHashCode() {
-		checkHashCodeEquals(   systemSource, systemSource);
-		checkHashCodeNotEquals(systemSource, systemSourceCopy);
-		checkHashCodeNotEquals(systemSource, systemSourceDiff);
-	}
-	
-	@Test
-	public void testEqualsObject() {
-		SystemTimeSource[][] testCases = {
-			{systemSource,     systemSource,     systemSourceDiff},
-			{systemSourceDiff, systemSourceDiff, systemSource},
-		};
-		test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
-		
-		test_NotEquals(new Object[][]{
-			{systemSource, TestUtil.constantSource},
-			{systemSource, TestUtil.timerSource},
-			{systemSource, systemSourceCopy},
-		});
-	}
+//    @Test
+//    public void testAbsTimeNanos() {
+//        Object[][] testCases = {
+//            {absNanosTime,     systemSource},
+////            {absNanosTimeCopy, systemSourceCopy},
+////            {absNanosTimeDiff, systemSourceDiff},
+//        };
+//        
+//        test_AbsTimeNanos(testCases);
+//    }
+    
+//    @Test
+//    public void testRelNanosRemaining() {
+//        Object[][] testCases = {
+//            { 1L, systemSource,      1L},
+//            {-1L, systemSourceCopy, -1L},
+//            { 0L, systemSourceDiff,  1L},
+//        };
+//        
+//        test_RelMillisRemaining(testCases);
+//    }
+    
+//    @Test
+//    public void testGetNanosOriginTime() {
+//        Object[][] testCases = {
+//            {absNanosTime,     systemSource},
+//            {absNanosTimeCopy, systemSourceCopy},
+//            {absNanosTimeDiff, systemSourceDiff},
+//        };
+//        
+//        test_GetNanosOriginTime(testCases);
+//    }
+    
+    @Test
+    public void testHashCode() {
+        checkHashCodeEquals(   systemSource, systemSource);
+        checkHashCodeNotEquals(systemSource, systemSourceCopy);
+        checkHashCodeNotEquals(systemSource, systemSourceDiff);
+    }
+    
+    @Test
+    public void testEqualsObject() {
+        SystemTimeSource[][] testCases = {
+            {systemSource,     systemSource,     systemSourceDiff},
+            {systemSourceDiff, systemSourceDiff, systemSource},
+        };
+        test_FirstEqualsSecond_FirstNotEqualsThird(testCases);
+        
+        test_NotEquals(new Object[][]{
+            {systemSource, TestUtil.constantSource},
+            {systemSource, TestUtil.timerSource},
+            {systemSource, systemSourceCopy},
+        });
+    }
 }

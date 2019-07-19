@@ -5,11 +5,11 @@
 #include "gtest/gtest.h"
 
 class AsyncMultiPutAsyncMultiGetMetaTest : public ::testing::Test {
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
-		
-	public:
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
+        
+    public:
 
 };
 

@@ -800,7 +800,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
                     rawRetrievalResult.getCCSS(), rawRetrievalResult.getChecksum(), 
                     rawRetrievalResult.getCreator().getBytes(), rawRetrievalResult.getCreationTimeRaw(),
                     PutOptions.noVersionRequired, PutOptions.noLock);
-            nsStore.put(ImmutableList.of(valueAndParameters), emptyUserData, this);
+                    nsStore.put(ImmutableList.of(valueAndParameters), emptyUserData, this);
             
             // FUTURE - preserve user data
         } catch (CorruptValueException cve) {

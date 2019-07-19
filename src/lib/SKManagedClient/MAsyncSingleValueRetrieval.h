@@ -10,37 +10,37 @@ using namespace System::Collections::Generic;
 
 namespace SKManagedClient {
 
-	ref class SKAsyncSingleValueRetrieval_M 
-	{
-	public:
-		void * pRetrieval;
-	};
+    ref class SKAsyncSingleValueRetrieval_M 
+    {
+    public:
+        void * pRetrieval;
+    };
 
-	public ref class MAsyncSingleValueRetrieval : public MAsyncValueRetrieval/*, public MAsyncSingleRetrieval*/
-	{
-	public:
+    public ref class MAsyncSingleValueRetrieval : public MAsyncValueRetrieval/*, public MAsyncSingleRetrieval*/
+    {
+    public:
 
-		virtual ~MAsyncSingleValueRetrieval(void);
-		!MAsyncSingleValueRetrieval(void);
+        virtual ~MAsyncSingleValueRetrieval(void);
+        !MAsyncSingleValueRetrieval(void);
 
-		/**
-		* Returns the raw value if it is present. 
-		* @return the raw value if it is present
-		* @throws RetrievalException
-		*/
-		virtual String ^ getValue();    // throws RetrievalException;	
+        /**
+        * Returns the raw value if it is present. 
+        * @return the raw value if it is present
+        * @throws RetrievalException
+        */
+        virtual String ^ getValue();    // throws RetrievalException;    
 
-		//MAsyncSingleRetrieval
-		virtual MStoredValue ^ getStoredValue();
+        //MAsyncSingleRetrieval
+        virtual MStoredValue ^ getStoredValue();
 
-	internal:
-		explicit MAsyncSingleValueRetrieval(SKAsyncOperation_M ^ retrieval);
-		virtual SKAsyncOperation_M ^ getPImpl()  override;
+    internal:
+        explicit MAsyncSingleValueRetrieval(SKAsyncOperation_M ^ retrieval);
+        virtual SKAsyncOperation_M ^ getPImpl()  override;
 
-	private:
-		void * pImpl;
+    private:
+        void * pImpl;
 
-	};
+    };
 
 
 }

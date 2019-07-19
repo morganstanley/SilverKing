@@ -36,7 +36,7 @@ class StoreConfiguration {
     // production
     
     static {
-    	fileSegmentCacheCapacity = PropertiesHelper.systemHelper.getInt(DHTConstants.fileSegmentCacheCapacityProperty, DHTConstants.defaultFileSegmentCacheCapacity);
+        fileSegmentCacheCapacity = PropertiesHelper.systemHelper.getInt(DHTConstants.fileSegmentCacheCapacityProperty, DHTConstants.defaultFileSegmentCacheCapacity);
     }
     
     public static final int fileSegmentCacheCapacity;

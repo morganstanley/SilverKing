@@ -28,11 +28,11 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     }
     
     public MetaClient(ClientDHTConfiguration clientDHTConfig) throws IOException, KeeperException {
-    	this(clientDHTConfig.getName(), clientDHTConfig.getZKConfig());
+        this(clientDHTConfig.getName(), clientDHTConfig.getZKConfig());
     }
 
     public MetaClient(SKGridConfiguration skGridConfig) throws IOException, KeeperException {
-    	this(skGridConfig.getClientDHTConfiguration());
+        this(skGridConfig.getClientDHTConfiguration());
     }
     
     public String getDHTName() {

@@ -7,5 +7,5 @@ public interface RelNanosTimeSource {
     /**
      * @return a relative time in nanoseconds
      */
-	public long relTimeNanos();
+    public long relTimeNanos();
 }

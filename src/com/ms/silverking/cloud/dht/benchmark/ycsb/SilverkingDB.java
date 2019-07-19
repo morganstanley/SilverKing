@@ -81,7 +81,7 @@ public class SilverkingDB extends DB {
     
     public void init() throws DBException {
         try {
-        	ThreadUtil.sleep(2000);
+            ThreadUtil.sleep(2000);
             if (session == null) {
                 throw new RuntimeException("null session");
             }
@@ -156,16 +156,16 @@ public class SilverkingDB extends DB {
             //System.out.println("Done waiting for: "+ key);
             return 0;
         } catch (PutException pe) {
-        	if (pe.getFailureCause(key) == FailureCause.INVALID_VERSION) {
-        		// Storage is moot, as a more recent version has overridden this version
-        		// Could consider running this test with revision support, but that would be significantly
-        		// different than most other stores as they generally are mutable with only one version supported.
-        		return 2;
-        	} else {
-        		pe.printStackTrace();
-	            System.out.println("Key failed: "+ key +" "+ pe +" "+ pe.getFailureCause(key));
-	            return 1;
-        	}
+            if (pe.getFailureCause(key) == FailureCause.INVALID_VERSION) {
+                // Storage is moot, as a more recent version has overridden this version
+                // Could consider running this test with revision support, but that would be significantly
+                // different than most other stores as they generally are mutable with only one version supported.
+                return 2;
+            } else {
+                pe.printStackTrace();
+                System.out.println("Key failed: "+ key +" "+ pe +" "+ pe.getFailureCause(key));
+                return 1;
+            }
         }
     }
     
@@ -219,8 +219,8 @@ public class SilverkingDB extends DB {
                 return 1;
             }
         } catch (RetrievalException re) {
-        	System.out.println(re);
-        	re.printStackTrace();
+            System.out.println(re);
+            re.printStackTrace();
             return 1;
         }
         /**/

@@ -26,17 +26,17 @@ public class FileSegment extends WritableSegmentBase {
     
     private final int   noReferences = Integer.MIN_VALUE;
     
-    static final boolean	mapEverything;
+    static final boolean    mapEverything;
     
     enum SyncMode {NoSync, Sync};
     
     enum SegmentPrereadMode {NoPreread, Preread};
     
-    private static final int	vmPageSize = 4096;
+    private static final int    vmPageSize = 4096;
     
     static {
-    	mapEverything = StoreConfiguration.fileSegmentCacheCapacity == DHTConstants.noCapacityLimit;
-    	Log.warning("FileSegment.mapEverything: "+ mapEverything);
+        mapEverything = StoreConfiguration.fileSegmentCacheCapacity == DHTConstants.noCapacityLimit;
+        Log.warning("FileSegment.mapEverything: "+ mapEverything);
     }
     
     private static String syncModeToFileOpenMode(SyncMode syncMode) {
@@ -77,15 +77,15 @@ public class FileSegment extends WritableSegmentBase {
     }
     
     private static void forcePreread(ByteBuffer buf, int bufSize) {
-    	int	b;
-    	
-    	b = 0;
-    	for (int i = 0; i < bufSize; i += vmPageSize) {
-    		b = b ^ buf.get(i);
-    	}
-	    if (System.currentTimeMillis() == 0) {
-	    	System.out.println(b); // ensure get() above is not a nop
-	    }
+        int    b;
+        
+        b = 0;
+        for (int i = 0; i < bufSize; i += vmPageSize) {
+            b = b ^ buf.get(i);
+        }
+        if (System.currentTimeMillis() == 0) {
+            System.out.println(b); // ensure get() above is not a nop
+        }
     }
     
     private static FileSegment open(File nsDir, int segmentNumber, MapMode dataMapMode, int dataSegmentSize, 
@@ -114,8 +114,8 @@ public class FileSegment extends WritableSegmentBase {
         }
         raFile = new RandomAccessFile(fileForSegment(nsDir, segmentNumber), fileOpenMode);
         if (false) {
-        	// This would allow us to force each segment onto the heap
-        	// FUTURE: consider whether we want to keep this option
+            // This would allow us to force each segment onto the heap
+            // FUTURE: consider whether we want to keep this option
             byte[]      _bufArray;
             
             _bufArray = new byte[dataSegmentSize];
@@ -123,9 +123,9 @@ public class FileSegment extends WritableSegmentBase {
             raFile.read(_bufArray);
             dataBuf = ByteBuffer.wrap(_bufArray);
         } else {
-        	int	b;
-        	
-        	b = 0;
+            int    b;
+            
+            b = 0;
             dataBuf = raFile.getChannel().map(dataMapMode, 0, dataSegmentSize);
             if (segmentPrereadMode == SegmentPrereadMode.Preread) {
                 forcePreread(dataBuf, dataSegmentSize);
@@ -139,7 +139,7 @@ public class FileSegment extends WritableSegmentBase {
             raFile.read(_htBufArray);
             rawHTBuf = ByteBuffer.wrap(_htBufArray);
         } else {
-	        rawHTBuf = raFile.getChannel().map(MapMode.READ_ONLY, dataSegmentSize, raFile.length() - dataSegmentSize);
+            rawHTBuf = raFile.getChannel().map(MapMode.READ_ONLY, dataSegmentSize, raFile.length() - dataSegmentSize);
             if (segmentPrereadMode == SegmentPrereadMode.Preread) {
                 forcePreread(rawHTBuf, (int)(raFile.length() - dataSegmentSize));
             }
@@ -236,7 +236,7 @@ public class FileSegment extends WritableSegmentBase {
     
     public void persist() throws IOException {
         ByteBuffer  htBuf;
-        byte[]		ht;
+        byte[]        ht;
         int         offsetStoreSize;
         int         htBufSize;
         long        mapSize;
@@ -292,34 +292,34 @@ public class FileSegment extends WritableSegmentBase {
     
     public boolean addReferences(int numReferences) {
         assert numReferences > 0;
-    	if (!mapEverything) {
-	        synchronized (this) {
-	            if (references != noReferences) {
-	                references += numReferences;
-	                return true;
-	            } else {
-	                return false;
-	            }
-	        }
-    	} else {
-    		return true;
-    	}
+        if (!mapEverything) {
+            synchronized (this) {
+                if (references != noReferences) {
+                    references += numReferences;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return true;
+        }
     }
     
     public void removeReference() {
-    	if (!mapEverything) {
-	        synchronized (this) {
-	            if (references <= 0) {
-	                Log.warning("Invalid removeReference: "+ this +" "+ references);
-	                return;
-	            }
-	            --references;
-	            if (references == 0) {
-	                references = noReferences;
-	                close();
-	            }
-	        }
-    	}
+        if (!mapEverything) {
+            synchronized (this) {
+                if (references <= 0) {
+                    Log.warning("Invalid removeReference: "+ this +" "+ references);
+                    return;
+                }
+                --references;
+                if (references == 0) {
+                    references = noReferences;
+                    close();
+                }
+            }
+        }
     }
     
     @Override

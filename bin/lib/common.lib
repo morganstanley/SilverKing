@@ -1,64 +1,64 @@
 #!/bin/bash
 
 function f_sourceSkConfigAndConfigureClasspath {
-	typeset classpathType=$1
+    typeset classpathType=$1
     
     f_exitIfUndefined "bin_dir" $bin_dir
-	cd $bin_dir
-	source lib/sk.config
-	
-	if [[ -z $skGlobalCodebase ]]; then  
-		classpath=$(f_getClasspath "../lib" "$bin_dir" "$classpathType")
-	else    
-		echo "Using skGlobalCodebase"		
-		
-		f_exitIfUndefined "skGlobalCodebase" $skGlobalCodebase
-		f_exitIfUndefined "skDevJavaHome"    $skDevJavaHome
-		
-		classpath=$skGlobalCodebase
-		skJavaHome=$skDevJavaHome
-	fi
-	
-	f_exitIfUndefined "skJavaHome" $skJavaHome
-	
-	if [[ -z $SK_QUIET_LAUNCH ]]; then
-		echo "cp=$classpath"
-		echo "skJavaHome=$skJavaHome"
-		echo
-	fi
+    cd $bin_dir
+    source lib/sk.config
+    
+    if [[ -z $skGlobalCodebase ]]; then  
+        classpath=$(f_getClasspath "../lib" "$bin_dir" "$classpathType")
+    else    
+        echo "Using skGlobalCodebase"        
+        
+        f_exitIfUndefined "skGlobalCodebase" $skGlobalCodebase
+        f_exitIfUndefined "skDevJavaHome"    $skDevJavaHome
+        
+        classpath=$skGlobalCodebase
+        skJavaHome=$skDevJavaHome
+    fi
+    
+    f_exitIfUndefined "skJavaHome" $skJavaHome
+    
+    if [[ -z $SK_QUIET_LAUNCH ]]; then
+        echo "cp=$classpath"
+        echo "skJavaHome=$skJavaHome"
+        echo
+    fi
 }
 
 function f_getClasspath {
-	typeset libDir=$1
-	typeset binDir=$2
+    typeset libDir=$1
+    typeset binDir=$2
     typeset classpathType=$3
-	
-	f_exitIfUndefined "bin_dir" $binDir
-	
-	cd $libDir
-	typeset cpBase=`pwd`
-	typeset cp=""
-	typeset count=1;
+    
+    f_exitIfUndefined "bin_dir" $binDir
+    
+    cd $libDir
+    typeset cpBase=`pwd`
+    typeset cp=""
+    typeset count=1;
     typeset jars=`ls $cpBase/*.jar`
     if [[ $classpathType == "cloud" ]]; then
         jars=`find -L $cpBase -name "*.jar"`    # -L is needed b/c if we run from merged-repo, the aws jars are symlinked
     fi
-	for jar in $jars; do    
-		if [[ $count -ne 1 ]] ; then
-			cp+=":"
-		fi
-		cp+=$jar
-		((count++))
-	done
-	
-	cd $binDir
-	echo $cp
+    for jar in $jars; do    
+        if [[ $count -ne 1 ]] ; then
+            cp+=":"
+        fi
+        cp+=$jar
+        ((count++))
+    done
+    
+    cd $binDir
+    echo $cp
 }
 
 function f_exitIfUndefined {
-	if [[ -z $2 ]]; then
-		echo "Undefined: $1"
-		exit -1
+    if [[ -z $2 ]]; then
+        echo "Undefined: $1"
+        exit -1
     fi
 }
 
@@ -84,89 +84,89 @@ function f_logStat {
 }
 
 function f_rmFile {
-	rm $1 2> /dev/null
+    rm $1 2> /dev/null
 }
 
 # this method is overloaded
 function f_tm_getHosts {
-	typeset        cellOrFile=$1
-	typeset appNameOrEndpoint=$2
-	
-	echo "$(f_tm_getHostsAndPorts "$cellOrFile" "$appNameOrEndpoint")" | cut -d ':' -f 1
+    typeset        cellOrFile=$1
+    typeset appNameOrEndpoint=$2
+    
+    echo "$(f_tm_getHostsAndPorts "$cellOrFile" "$appNameOrEndpoint")" | cut -d ':' -f 1
 }
 
 # this method is overloaded
 function f_tm_getPorts {
-	typeset        cellOrFile=$1
-	typeset appNameOrEndpoint=$2
-	
-	echo "$(f_tm_getHostsAndPorts "$cellOrFile" "$appNameOrEndpoint")" | cut -d ':' -f 2
+    typeset        cellOrFile=$1
+    typeset appNameOrEndpoint=$2
+    
+    echo "$(f_tm_getHostsAndPorts "$cellOrFile" "$appNameOrEndpoint")" | cut -d ':' -f 2
 }
 
 # this method is overloaded
 function f_tm_getHostsAndPorts {
-	typeset        cellOrFile=$1
-	typeset appNameOrEndpoint=$2
-	
-	typeset hostsAndPorts=;
-	if [[ ${#cellOrFile} -le 3 && ! $cellOrFile =~ "*.*" ]]; then	# assume it's rr, oy, oz, dd3, etc..
-		hostsAndPorts=$(f_tm_discovery_Helper "$cellOrFile" "$appNameOrEndpoint" "ssh")
-	else
-		hostsAndPorts=`cat $cellOrFile | grep $appNameOrEndpoint` 
-	fi
-	
-	echo "$hostsAndPorts" | cut -d ' ' -f 2
+    typeset        cellOrFile=$1
+    typeset appNameOrEndpoint=$2
+    
+    typeset hostsAndPorts=;
+    if [[ ${#cellOrFile} -le 3 && ! $cellOrFile =~ "*.*" ]]; then    # assume it's rr, oy, oz, dd3, etc..
+        hostsAndPorts=$(f_tm_discovery_Helper "$cellOrFile" "$appNameOrEndpoint" "ssh")
+    else
+        hostsAndPorts=`cat $cellOrFile | grep $appNameOrEndpoint` 
+    fi
+    
+    echo "$hostsAndPorts" | cut -d ' ' -f 2
 }
 
 function f_tm_getInstanceIds {
-	typeset    cell=$1
-	typeset appName=$2
-	
-	echo "$(f_tm_discovery_Helper "$cell" "$appName" "ssh")" | cut -d ':' -f 1
+    typeset    cell=$1
+    typeset appName=$2
+    
+    echo "$(f_tm_discovery_Helper "$cell" "$appName" "ssh")" | cut -d ':' -f 1
 }
 
 function f_tm_discovery_Helper {
-	typeset         cell=$1
-	typeset      appName=$2
-	typeset endpointName=$3
-	
-	treadmill discovery --cell $cell $appName $endpointName
+    typeset         cell=$1
+    typeset      appName=$2
+    typeset endpointName=$3
+    
+    treadmill discovery --cell $cell $appName $endpointName
 }
 
 # quotes around $1 is important!
 function f_countHelper {
-	if [[ `echo "$1" | wc -w` == 0 ]] ; then
-		echo "0"
-	else
-		echo "`echo -e \"$1\" | wc -l`"
-	fi 
+    if [[ `echo "$1" | wc -w` == 0 ]] ; then
+        echo "0"
+    else
+        echo "`echo -e \"$1\" | wc -l`"
+    fi 
 }
 
 function f_exit {
-	typeset exitCode=$1
-	
-	f_printExitCode "$exitCode"
-	exit $exitCode
+    typeset exitCode=$1
+    
+    f_printExitCode "$exitCode"
+    exit $exitCode
 }
 
 function f_printExitCode {
-	typeset exitCode=$1
-	
-	typeset basename=`basename $0`
-	echo "$basename exitCode=$exitCode"
+    typeset exitCode=$1
+    
+    typeset basename=`basename $0`
+    echo "$basename exitCode=$exitCode"
 }
 
 function f_printSection {
-	((SECTION_COUNT++))
-	echo
-	f_printHeaderHelper "${SECTION_COUNT}." "$1"
+    ((SECTION_COUNT++))
+    echo
+    f_printHeaderHelper "${SECTION_COUNT}." "$1"
 }
 
 function f_printHeaderHelper {
-	echo "##### $1 $2 #####"
+    echo "##### $1 $2 #####"
 }
 
 function f_printSubSection {
-	echo
-	echo "  ---> $1 "
+    echo
+    echo "  ---> $1 "
 }

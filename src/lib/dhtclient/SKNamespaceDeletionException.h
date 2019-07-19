@@ -12,16 +12,16 @@
 #include "SKClientException.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class NamespaceDeletionException;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class NamespaceDeletionException;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::NamespaceDeletionException NamespaceDeletionException;
 
 class SKNamespaceDeletionException : public SKClientException
 {
 public:
-	SKNamespaceDeletionException(NamespaceDeletionException * pNle, const char * fileName, int lineNum);
-	SKAPI ~SKNamespaceDeletionException() throw ();	
+    SKNamespaceDeletionException(NamespaceDeletionException * pNle, const char * fileName, int lineNum);
+    SKAPI ~SKNamespaceDeletionException() throw ();    
 };
 
 

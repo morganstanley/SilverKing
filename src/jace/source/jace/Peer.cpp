@@ -12,7 +12,7 @@ Peer::Peer(jobject obj)
   weakRef = env->NewWeakGlobalRef(obj);
 
   if (!weakRef)
-	{
+    {
     string msg = "Unable to allocate a new weak reference for a Peer.";
     throw JNIException(msg);
   }
@@ -24,7 +24,7 @@ Peer::Peer(const Peer& other)
   weakRef = env->NewWeakGlobalRef(other.weakRef);
 
   if (!weakRef)
-	{
+    {
     string msg = "Unable to allocate a new weak reference for a Peer.";
     throw JNIException(msg);
   }
@@ -32,19 +32,19 @@ Peer::Peer(const Peer& other)
 
 Peer& Peer::operator=(const Peer& other)
 {
-	if (this == &other)
-		return *this;
+    if (this == &other)
+        return *this;
   JNIEnv* env = attach();
 
-	jweak newReference = env->NewWeakGlobalRef(other.weakRef);
+    jweak newReference = env->NewWeakGlobalRef(other.weakRef);
   if (!newReference)
-	{
+    {
     string msg = "Unable to allocate a new weak reference for a Peer.";
     throw JNIException(msg);
   }
-	deleteGlobalRef(env, weakRef);
-	weakRef = newReference;
-	return *this;
+    deleteGlobalRef(env, weakRef);
+    weakRef = newReference;
+    return *this;
 }
 
 Peer::~Peer()
@@ -67,7 +67,7 @@ jobject Peer::getGlobalRef()
   jobject ref = env->NewGlobalRef(weakRef);
 
   if (!ref)
-	{
+    {
     throw JNIException("Unable to allocate a new global reference from a weak reference.\n"
       "It is likely that the weak reference is no longer valid.");
   }

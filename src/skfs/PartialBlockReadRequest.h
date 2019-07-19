@@ -16,10 +16,10 @@
 // types
 
 typedef struct PartialBlockReadRequest {
-	FileBlockID	*fbid;
-	void		*dest;
-	size_t		readOffset;
-	size_t		readSize;
+    FileBlockID    *fbid;
+    void        *dest;
+    size_t        readOffset;
+    size_t        readSize;
     uint64_t    minModificationTimeMicros;
 } PartialBlockReadRequest;
 

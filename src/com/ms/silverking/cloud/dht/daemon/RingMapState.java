@@ -69,9 +69,9 @@ public class RingMapState implements NCGListener, PeerStateListener {
     private final StoragePolicyGroup    storagePolicyGroup;
     private final RingConfiguration     ringConfig;
     private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
-    //private final Lock		exclusionSetLock;
-    //private final Condition	exclusionSetCV;
-    //private boolean	exclusionSetInitialized;
+    //private final Lock        exclusionSetLock;
+    //private final Condition    exclusionSetCV;
+    //private boolean    exclusionSetInitialized;
     
     /*
      * secondarySets are used to specify subsets of secondary nodes within 
@@ -152,56 +152,56 @@ public class RingMapState implements NCGListener, PeerStateListener {
         cp = new ConvergencePoint(dhtConfigVersion, ringIDAndVersionPair, rawRingTree.getRingCreationTime());
         
         if (!convergenceAlreadyComplete) {
-	        try {
-	            peerStateWatcher = new PeerStateWatcher(getResolvedReplicaMap().allReplicas(),
-	                                                dhtMetaUpdate.getMetaClient(), dhtMetaUpdate.getDHTConfig(), 
-	                                                ringIDAndVersionPair.getRingVersionPair(), this);
-	        } catch (KeeperException ke) {
-	            throw new RuntimeException("handle"); // FIXME - handle as fatal for this particular update
-	        }
+            try {
+                peerStateWatcher = new PeerStateWatcher(getResolvedReplicaMap().allReplicas(),
+                                                    dhtMetaUpdate.getMetaClient(), dhtMetaUpdate.getDHTConfig(), 
+                                                    ringIDAndVersionPair.getRingVersionPair(), this);
+            } catch (KeeperException ke) {
+                throw new RuntimeException("handle"); // FIXME - handle as fatal for this particular update
+            }
         } else {
-        	peerStateWatcher = null;
+            peerStateWatcher = null;
         }
         
         writeTargets = TransitionReplicaSources.OLD;
         readTargets = TransitionReplicaSources.OLD;
         
         try {
-			readInitialExclusions(ringMC.createCloudMC());
-		} catch (KeeperException | IOException e) {
-			Log.logErrorWarning(e);
-			throw new RuntimeException(e);
-		}
-    	//waitForExclusionSet();
+            readInitialExclusions(ringMC.createCloudMC());
+        } catch (KeeperException | IOException e) {
+            Log.logErrorWarning(e);
+            throw new RuntimeException(e);
+        }
+        //waitForExclusionSet();
         if (!convergenceAlreadyComplete) {
-        	transitionToState(RingState.INITIAL);
+            transitionToState(RingState.INITIAL);
         } else {
-        	transitionToState(RingState.CLOSED);
+            transitionToState(RingState.CLOSED);
         }
     }
     
     /*
     private void waitForExclusionSet() {
-    	Log.warningf("waitForExclusionSet: %s", ringIDAndVersionPair);
-    	exclusionSetLock.lock();
-    	try {
-    		while (!exclusionSetInitialized) {
-    			try {
-					exclusionSetCV.await();
-				} catch (InterruptedException e) {
-				}
-    		}
-    	} finally {
-        	exclusionSetLock.unlock();
-    	}
-    	Log.warningf("out waitForExclusionSet: %s", ringIDAndVersionPair);
+        Log.warningf("waitForExclusionSet: %s", ringIDAndVersionPair);
+        exclusionSetLock.lock();
+        try {
+            while (!exclusionSetInitialized) {
+                try {
+                    exclusionSetCV.await();
+                } catch (InterruptedException e) {
+                }
+            }
+        } finally {
+            exclusionSetLock.unlock();
+        }
+        Log.warningf("out waitForExclusionSet: %s", ringIDAndVersionPair);
     }
     */
     
     private void readInitialExclusions(MetaClient mc) throws KeeperException {
-    	ExclusionZK		exclusionZK;
-        ExclusionSet	instanceExclusionSet;
-        ExclusionSet	exclusionSet;
+        ExclusionZK        exclusionZK;
+        ExclusionSet    instanceExclusionSet;
+        ExclusionSet    exclusionSet;
         RingTree            newRingTree;
         ResolvedReplicaMap  newResolvedReplicaMap;
         
@@ -210,49 +210,49 @@ public class RingMapState implements NCGListener, PeerStateListener {
         try {
             exclusionSet = exclusionZK.readLatestFromZK();
         } catch (Exception e) {
-        	Log.logErrorWarning(e);
-        	Log.warning("No ExclusionSet found. Using empty set.");
-        	exclusionSet = ExclusionSet.emptyExclusionSet(0);
+            Log.logErrorWarning(e);
+            Log.warning("No ExclusionSet found. Using empty set.");
+            exclusionSet = ExclusionSet.emptyExclusionSet(0);
         }
         curExclusionSet = exclusionSet;
         Log.warning("curExclusionSet initialized:\n", curExclusionSet);
         
         try {
-        	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readLatestFromZK());
+            instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readLatestFromZK());
         } catch (Exception e) {
-        	Log.logErrorWarning(e);
-        	Log.warning("No instance ExclusionSet found. Using empty set.");
-        	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+            Log.logErrorWarning(e);
+            Log.warning("No instance ExclusionSet found. Using empty set.");
+            instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
         }
         curInstanceExclusionSet = instanceExclusionSet;
         Log.warning("curInstanceExclusionSet initialized:\n", curInstanceExclusionSet);
         
 
         try {
-	        newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, ExclusionSet.union(curExclusionSet, curInstanceExclusionSet));
-	    } catch (Exception e) {
-	        Log.logErrorWarning(e);
-	        throw new RuntimeException(e);
-	    }
-	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());            
-	    ringTreeMinusExclusions = newRingTree;
-	    resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-	    System.out.println("\tResolved Map");
-	    resolvedReplicaMapMinusExclusions.display();
+            newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, ExclusionSet.union(curExclusionSet, curInstanceExclusionSet));
+        } catch (Exception e) {
+            Log.logErrorWarning(e);
+            throw new RuntimeException(e);
+        }
+        newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());            
+        ringTreeMinusExclusions = newRingTree;
+        resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
+        System.out.println("\tResolved Map");
+        resolvedReplicaMapMinusExclusions.display();
         
         
         Log.warning("RingMapState done reading initial exclusions");
     }
     
     public void discard() {
-    	synchronized (this) {
-    		if (exclusionWatcher != null) {
-    			exclusionWatcher.stop();
-    		}
-	    	if (peerStateWatcher != null) {
-	    		peerStateWatcher.stop();
-	    	}
-    	}
+        synchronized (this) {
+            if (exclusionWatcher != null) {
+                exclusionWatcher.stop();
+            }
+            if (peerStateWatcher != null) {
+                peerStateWatcher.stop();
+            }
+        }
     }
     
     private void notifyReadyForConvergence() {
@@ -264,13 +264,13 @@ public class RingMapState implements NCGListener, PeerStateListener {
     
     public void abandonConvergence() {
         synchronized (this) {
-        	Log.warningf("RingMapState.abandonConvergence() %s", ringIDAndVersionPair);
-        	peerStateWatcher.stop();
-        	if (!ringState.isFinal()) {
+            Log.warningf("RingMapState.abandonConvergence() %s", ringIDAndVersionPair);
+            peerStateWatcher.stop();
+            if (!ringState.isFinal()) {
                 Log.warning("Notifying abandoned ", ringIDAndVersionPair);
-        		transitionToState(RingState.ABANDONED);
-            	this.notifyAll();
-        	}
+                transitionToState(RingState.ABANDONED);
+                this.notifyAll();
+            }
         }
     }
     
@@ -285,9 +285,9 @@ public class RingMapState implements NCGListener, PeerStateListener {
                 }
             }
             if (ringState != RingState.ABANDONED) {
-            	Log.warning("Received notification: ready for convergence ", ringIDAndVersionPair);
+                Log.warning("Received notification: ready for convergence ", ringIDAndVersionPair);
             } else {
-            	Log.warning("Received notification: ABANDONED ", ringIDAndVersionPair);
+                Log.warning("Received notification: ABANDONED ", ringIDAndVersionPair);
             }
         }
     }
@@ -406,7 +406,7 @@ public class RingMapState implements NCGListener, PeerStateListener {
     }
     
     ExclusionSet getCurrentExclusionSet() {
-    	return ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+        return ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
     }
     
     @Override
@@ -485,62 +485,62 @@ public class RingMapState implements NCGListener, PeerStateListener {
          */    
         @Override
         public void newVersion(String basePath, long version) {
-        	try {
-	            RingTree            newRingTree;
-	            ResolvedReplicaMap  newResolvedReplicaMap;
-	            
-	            // FIXME - think about whether we want to use this
-	            // or just wait for a changed ring
-	            
-	            // Current is die only logic, allow for other
-	            
-	            // ExclusionSet has changed
-	        	Log.warningf("ExclusionSet change detected: %s", ringIDAndVersionPair);
-	            // Read new exclusion set
-	            try {
-	            	if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath()) ) {
-	                    ExclusionSet	exclusionSet;
-	                    
-	                    exclusionSet = exclusionZK.readFromZK(version, null);
-	                    curExclusionSet = ExclusionSet.union(exclusionSet, curExclusionSet);
-	                    Log.warning("ExclusionSet change detected/merged with old:\n", exclusionSet);
-	            	} else {
-	                    ExclusionSet	instanceExclusionSet;
-	                    
-	                    try {
-	                    	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(version, null));
-	                    } catch (Exception e) {
-	                    	Log.warning("No instance ExclusionSet found");
-	                    	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
-	                    }
-	                    curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
-	                    Log.warning("Instance ExclusionSet change detected/merged with old:\n", instanceExclusionSet);
-	            	}
-	
-	                // Compute the new ringTree
-	                newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, ExclusionSet.union(curExclusionSet, curInstanceExclusionSet));
-	            } catch (Exception e) {
-	                Log.logErrorWarning(e);
-	                throw new RuntimeException(e);
-	            }
-	
-	            newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());            
-	            ringTreeMinusExclusions = newRingTree;
-	            resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-	            System.out.println("\tResolved Map");
-	            resolvedReplicaMapMinusExclusions.display();
-        	} finally {
-            	Log.warningf("Signaling exclusionSetInitialized: %s", ringIDAndVersionPair);
-            	/*
-            	exclusionSetLock.lock();
-            	try {
-            		exclusionSetInitialized = true;
-					exclusionSetCV.signalAll();
-            	} finally {
-                	exclusionSetLock.unlock();
-            	}
-            	*/
-        	}
+            try {
+                RingTree            newRingTree;
+                ResolvedReplicaMap  newResolvedReplicaMap;
+                
+                // FIXME - think about whether we want to use this
+                // or just wait for a changed ring
+                
+                // Current is die only logic, allow for other
+                
+                // ExclusionSet has changed
+                Log.warningf("ExclusionSet change detected: %s", ringIDAndVersionPair);
+                // Read new exclusion set
+                try {
+                    if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath()) ) {
+                        ExclusionSet    exclusionSet;
+                        
+                        exclusionSet = exclusionZK.readFromZK(version, null);
+                        curExclusionSet = ExclusionSet.union(exclusionSet, curExclusionSet);
+                        Log.warning("ExclusionSet change detected/merged with old:\n", exclusionSet);
+                    } else {
+                        ExclusionSet    instanceExclusionSet;
+                        
+                        try {
+                            instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(version, null));
+                        } catch (Exception e) {
+                            Log.warning("No instance ExclusionSet found");
+                            instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+                        }
+                        curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
+                        Log.warning("Instance ExclusionSet change detected/merged with old:\n", instanceExclusionSet);
+                    }
+    
+                    // Compute the new ringTree
+                    newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, ExclusionSet.union(curExclusionSet, curInstanceExclusionSet));
+                } catch (Exception e) {
+                    Log.logErrorWarning(e);
+                    throw new RuntimeException(e);
+                }
+    
+                newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());            
+                ringTreeMinusExclusions = newRingTree;
+                resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
+                System.out.println("\tResolved Map");
+                resolvedReplicaMapMinusExclusions.display();
+            } finally {
+                Log.warningf("Signaling exclusionSetInitialized: %s", ringIDAndVersionPair);
+                /*
+                exclusionSetLock.lock();
+                try {
+                    exclusionSetInitialized = true;
+                    exclusionSetCV.signalAll();
+                } finally {
+                    exclusionSetLock.unlock();
+                }
+                */
+            }
         }
     }
     

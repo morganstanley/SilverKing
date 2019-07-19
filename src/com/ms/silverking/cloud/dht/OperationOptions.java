@@ -9,7 +9,7 @@ import com.ms.silverking.text.ObjectDefParser2;
 
 public class OperationOptions {
     private final OpTimeoutController   opTimeoutController;
-    private final Set<SecondaryTarget>	secondaryTargets;
+    private final Set<SecondaryTarget>    secondaryTargets;
     
     static {
         ObjectDefParser2.addParserWithExclusions(OperationOptions.class, null, 
@@ -26,35 +26,35 @@ public class OperationOptions {
         return opTimeoutController;
     }
     
-    public Set<SecondaryTarget>	getSecondaryTargets() {
-    	return secondaryTargets;
+    public Set<SecondaryTarget>    getSecondaryTargets() {
+        return secondaryTargets;
     }
     
     @Override
     public int hashCode() {
-    	int	hashCode;
-    	
-    	hashCode = opTimeoutController.hashCode();
-    	if (secondaryTargets != null) {
-    		hashCode = hashCode ^ secondaryTargets.hashCode();
-    	}   	
-    	return hashCode;
+        int    hashCode;
+        
+        hashCode = opTimeoutController.hashCode();
+        if (secondaryTargets != null) {
+            hashCode = hashCode ^ secondaryTargets.hashCode();
+        }       
+        return hashCode;
     }
     
     @Override
     public boolean equals(Object other) {
-    	OperationOptions	oOptions;
-    	
-    	oOptions = (OperationOptions)other;
-    	if (!opTimeoutController.equals(oOptions.opTimeoutController)) {
-    		return false;
-    	} else {
+        OperationOptions    oOptions;
+        
+        oOptions = (OperationOptions)other;
+        if (!opTimeoutController.equals(oOptions.opTimeoutController)) {
+            return false;
+        } else {
             if (this.secondaryTargets != null) {
                 if (oOptions.secondaryTargets != null) {
                     if (!this.secondaryTargets.equals(oOptions.secondaryTargets)) {
                         return false;
                     } else {
-                    	return true;
+                        return true;
                     }
                 } else {
                     return false;
@@ -63,9 +63,9 @@ public class OperationOptions {
                 if (oOptions.secondaryTargets != null) {
                     return false;
                 } else {
-                	return true;
+                    return true;
                 }
             }
-    	}
+        }
     }
 }

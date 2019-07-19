@@ -29,72 +29,72 @@ BEGIN_NAMESPACE(jace)
 template <class ElementType> class ElementProxy: public virtual ::jace::proxy::JObject, public ElementType
 {
 public:
-	/**
-	 * Creates a new ElementProxy that belongs to the given array.
-	 *
-	 * This constructor shouldn't be called anymore, as it should be specialized
-	 * by every proxy type. Every ElementProxy instance should allocate
-	 * a new global ref to its parent array.
-	 */
-	ElementProxy(jarray array, jvalue element, int _index):
-		ElementType(element), parent(array), index(_index)
-	{
-		// #error "ElementProxy was not properly specialized."
+    /**
+     * Creates a new ElementProxy that belongs to the given array.
+     *
+     * This constructor shouldn't be called anymore, as it should be specialized
+     * by every proxy type. Every ElementProxy instance should allocate
+     * a new global ref to its parent array.
+     */
+    ElementProxy(jarray array, jvalue element, int _index):
+        ElementType(element), parent(array), index(_index)
+    {
+        // #error "ElementProxy was not properly specialized."
 
-		std::cout << "ElementProxy was not properly specialized for " <<
-						 ElementType::staticGetJavaJniClass().getName() << std::endl;
-	}
-
-
-	/**
-	 * Copy constructor. This constructor should also never be called. It should be specialized away.
-	 */
-	ElementProxy(const ElementProxy& proxy):
-		ElementType(0), parent(proxy.parent), index(proxy.index)
-	{
-		std::cout << "ElementProxy was not properly specialized for " <<
-						 ElementType::staticGetJavaJniClass().getName() << std::endl;
-	}
+        std::cout << "ElementProxy was not properly specialized for " <<
+                         ElementType::staticGetJavaJniClass().getName() << std::endl;
+    }
 
 
-	/**
-	 * If someone assigns to this array element, they're really assigning
-	 * to an array, so we need to call SetObjectArrayElement.
-	 */
-	ElementType& operator=(const ElementType& element)
-	{
-		::jace::ElementProxyHelper::assign(element, index, parent);
-		return *this;
-	}
+    /**
+     * Copy constructor. This constructor should also never be called. It should be specialized away.
+     */
+    ElementProxy(const ElementProxy& proxy):
+        ElementType(0), parent(proxy.parent), index(proxy.index)
+    {
+        std::cout << "ElementProxy was not properly specialized for " <<
+                         ElementType::staticGetJavaJniClass().getName() << std::endl;
+    }
 
 
-	/**
-	 * If someone assigns to this array element, they're really assigning
-	 * to an array, so we need to call SetObjectArrayElement.
-	 */
-	const ElementType& operator=(const ElementType& element) const
-	{
-		::jace::ElementProxyHelper::assign(element, index, parent);
-		return *this;
-	}
+    /**
+     * If someone assigns to this array element, they're really assigning
+     * to an array, so we need to call SetObjectArrayElement.
+     */
+    ElementType& operator=(const ElementType& element)
+    {
+        ::jace::ElementProxyHelper::assign(element, index, parent);
+        return *this;
+    }
 
 
-	~ElementProxy() throw()
-	{
-		try
-		{
-			JNIEnv* env = attach();
-			deleteGlobalRef(env, parent);
-		}
-		catch (VirtualMachineShutdownError&)
-		{
-				// We tried to attach when the JVM has already been destroyed
-		}
-	}
+    /**
+     * If someone assigns to this array element, they're really assigning
+     * to an array, so we need to call SetObjectArrayElement.
+     */
+    const ElementType& operator=(const ElementType& element) const
+    {
+        ::jace::ElementProxyHelper::assign(element, index, parent);
+        return *this;
+    }
+
+
+    ~ElementProxy() throw()
+    {
+        try
+        {
+            JNIEnv* env = attach();
+            deleteGlobalRef(env, parent);
+        }
+        catch (VirtualMachineShutdownError&)
+        {
+                // We tried to attach when the JVM has already been destroyed
+        }
+    }
 
 private:
-	jarray parent;
-	int index;
+    jarray parent;
+    int index;
 };
 
 END_NAMESPACE(jace)

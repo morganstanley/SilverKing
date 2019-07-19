@@ -69,14 +69,14 @@ abstract class ActiveProxyOperation<K extends DHTKey,R extends KeyedResult> impl
         this.optionsByteBuffer = message.getBuffers()[KeyValueMessageFormat.optionBufferIndex];
         this.absDeadlineMillis = absDeadlineMillis;
         if (debug) {
-        	Log.warning("Deadline: ", new java.util.Date(absDeadlineMillis));
+            Log.warning("Deadline: ", new java.util.Date(absDeadlineMillis));
         }
         this.estimatedKeys = message.estimatedKeys();
         this.sendResultsDuringStart = sendResultsDuringStart;
     }
     
     protected static ForwardingMode getForwardingMode(MessageGroup message) {
-    	return StorageModule.isDynamicNamespace(message.getContext()) ? ForwardingMode.DO_NOT_FORWARD : message.getForwardingMode();
+        return StorageModule.isDynamicNamespace(message.getContext()) ? ForwardingMode.DO_NOT_FORWARD : message.getForwardingMode();
     }
     
     public int getNumEntries() {
@@ -145,8 +145,8 @@ abstract class ActiveProxyOperation<K extends DHTKey,R extends KeyedResult> impl
                                                         messageTypeToOwnerQueryOpType(update.getMessageType()));
             primaryReplicas = listPair.getPrimaryOwners();
             if (primaryReplicas.size() == 0) {
-            	Log.warning(String.format("No primary replicas found for %s", KeyUtil.keyToString(entry)));
-            	throw new RuntimeException("No primary replica found for "+ KeyUtil.keyToString(entry));
+                Log.warning(String.format("No primary replicas found for %s", KeyUtil.keyToString(entry)));
+                throw new RuntimeException("No primary replica found for "+ KeyUtil.keyToString(entry));
             }
             secondaryReplicas = listPair.getSecondaryOwners();
             if (debug) {
@@ -263,6 +263,6 @@ abstract class ActiveProxyOperation<K extends DHTKey,R extends KeyedResult> impl
     }
     
     public Set<IPAndPort> checkForReplicaTimeouts(long curTimeMillis) {
-    	return ImmutableSet.of();
+        return ImmutableSet.of();
     }
 }

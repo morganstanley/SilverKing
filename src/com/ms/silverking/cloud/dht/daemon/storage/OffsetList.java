@@ -19,10 +19,10 @@ interface OffsetList extends Iterable<Integer> {
     Iterator<Integer> iterator();
     Iterable<Long> versionIterable();
     Iterator<Long> versionIterator();
-    Iterable<Pair<Long,Long>>	versionAndStorageTimeIterable();
-    Iterator<Pair<Long,Long>>	versionAndStorageTimeIterator();
-    Iterable<Triple<Integer,Long,Long>>	offsetVersionAndStorageTimeIterable();
-    Iterator<Triple<Integer,Long,Long>>	offsetVersionAndStorageTimeIterator();
+    Iterable<Pair<Long,Long>>    versionAndStorageTimeIterable();
+    Iterator<Pair<Long,Long>>    versionAndStorageTimeIterator();
+    Iterable<Triple<Integer,Long,Long>>    offsetVersionAndStorageTimeIterable();
+    Iterator<Triple<Integer,Long,Long>>    offsetVersionAndStorageTimeIterator();
     MultiVersionChecksum getMultiVersionChecksum();
-	int size();
+    int size();
 }

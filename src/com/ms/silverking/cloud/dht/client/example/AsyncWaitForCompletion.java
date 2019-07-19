@@ -10,7 +10,7 @@ import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
 public class AsyncWaitForCompletion {        
     
-	public static String runExample(SKGridConfiguration gridConfig) {
+    public static String runExample(SKGridConfiguration gridConfig) {
         try {
             AsynchronousNamespacePerspective<String, String>    asyncNSP;
             AsyncSingleValueRetrieval<String,String>    asyncWaitFor;
@@ -29,6 +29,6 @@ public class AsyncWaitForCompletion {
     }
     
     public static void main(String[] args) throws IOException {
-    	System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
+        System.out.println( runExample( SKGridConfiguration.parseFile(args[0]) ) );
     }
 }

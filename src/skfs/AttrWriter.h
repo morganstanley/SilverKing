@@ -19,10 +19,10 @@
 // types
 
 typedef struct AttrWriter {
-	QueueProcessor	*qp;
-	SRFSDHT			*sd;
-	SKSession		*pSession;
-    SKAsyncNSPerspective	*ansp;
+    QueueProcessor    *qp;
+    SRFSDHT            *sd;
+    SKSession        *pSession;
+    SKAsyncNSPerspective    *ansp;
 } AttrWriter;
 
 

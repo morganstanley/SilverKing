@@ -23,11 +23,11 @@
 // types
 
 typedef struct FileBlockWriteRequest {
-	FileBlockWriter	*fileBlockWriter;
-	FileBlockID		*fbid;
-	size_t			dataLength;
-	void			*data;
-	ActiveOpRef		*aor;
+    FileBlockWriter    *fileBlockWriter;
+    FileBlockID        *fbid;
+    size_t            dataLength;
+    void            *data;
+    ActiveOpRef        *aor;
 } FileBlockWriteRequest;
 
 
@@ -35,7 +35,7 @@ typedef struct FileBlockWriteRequest {
 // prototypes
 
 FileBlockWriteRequest *fbwr_new(FileBlockWriter *fileBlockWriter, FileBlockID *fbid,
-								 size_t dataLength, void *data, ActiveOpRef *aor);
+                                 size_t dataLength, void *data, ActiveOpRef *aor);
 void fbwr_delete(FileBlockWriteRequest **fbwr);
 
 #endif

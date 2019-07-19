@@ -21,10 +21,10 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     private final long  ipAndPort;
     private InetSocketAddress inetSocketAddress;
     
-    private static final String	defaultMultipleAddrDelimiter = ",";
+    private static final String    defaultMultipleAddrDelimiter = ",";
     
-    public static final int	SIZE_BYTES = IPAddrUtil.IPV4_BYTES + NumConversion.BYTES_PER_SHORT;
-    public static final IPAndPort	emptyIPAndPort = new IPAndPort(0, 0); 
+    public static final int    SIZE_BYTES = IPAddrUtil.IPV4_BYTES + NumConversion.BYTES_PER_SHORT;
+    public static final IPAndPort    emptyIPAndPort = new IPAndPort(0, 0); 
     
     public static final List<IPAndPort> emptyList = ImmutableList.of();
     
@@ -79,11 +79,11 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     }
     
     public static IPAndPort fromLong(long l) {
-    	return new IPAndPort(l);
+        return new IPAndPort(l);
     }
     
     public long toLong() {
-    	return ipAndPort;
+        return ipAndPort;
     }
     
     public byte[] toByteArray() {
@@ -95,13 +95,13 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
         return ipAndPort;
     }
     
-	public static IPAndPort fromByteBuffer(ByteBuffer buf, int offset) {
-		byte[]	b;
-		
-		b = new byte[SIZE_BYTES];
-		BufferUtil.get(buf, offset, b);
-		return fromByteArray(b);
-	}
+    public static IPAndPort fromByteBuffer(ByteBuffer buf, int offset) {
+        byte[]    b;
+        
+        b = new byte[SIZE_BYTES];
+        BufferUtil.get(buf, offset, b);
+        return fromByteArray(b);
+    }
 
     public byte[] getIP() {
         return IPAddrUtil.intToAddr(getIPAsInt());
@@ -112,10 +112,10 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     }
     
     public int getSubnetAsInt(int bits) {
-    	int	ip;
-    	
-    	ip = getIPAsInt();
-    	return ip & ~((int)(1L << (IPAddrUtil.IPV4_BYTES * 8 - bits)) - 1);
+        int    ip;
+        
+        ip = getIPAsInt();
+        return ip & ~((int)(1L << (IPAddrUtil.IPV4_BYTES * 8 - bits)) - 1);
     }
     
     public String getIPAsString() {
@@ -127,7 +127,7 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     }
     
     public IPAndPort port(int port) {
-    	return new IPAndPort(getIP(), port);
+        return new IPAndPort(getIP(), port);
     }
     
     public void computeInetAddress() throws UnknownHostException {
@@ -209,7 +209,7 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     }
     
     public static IPAndPort[] array(String... defs) {
-        IPAndPort[]	a;
+        IPAndPort[]    a;
         
         a = new IPAndPort[defs.length];
         for (int i = 0; i < defs.length; i++) {
@@ -219,7 +219,7 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     }
     
     public static Set<IPAndPort> set(Set<String> defs) {
-        ImmutableSet.Builder<IPAndPort>	sb;
+        ImmutableSet.Builder<IPAndPort>    sb;
         
         sb = ImmutableSet.builder();
         for (String def : defs) {
@@ -229,7 +229,7 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     }
     
     public static Set<IPAndPort> set(Set<String> servers, int port) {
-        ImmutableSet.Builder<IPAndPort>	sb;
+        ImmutableSet.Builder<IPAndPort>    sb;
         
         sb = ImmutableSet.builder();
         for (String server : servers) {
@@ -239,58 +239,58 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     }
     
     public static Set<String> copyServerIPsAsMutableSet(Set<IPAndPort> servers) {
-    	Set<String>	_servers;
-    	
-    	_servers = new HashSet<>(servers.size());
-    	for (IPAndPort server : servers) {
-    		_servers.add(server.getIPAsString());
-    	}
-    	return _servers;
+        Set<String>    _servers;
+        
+        _servers = new HashSet<>(servers.size());
+        for (IPAndPort server : servers) {
+            _servers.add(server.getIPAsString());
+        }
+        return _servers;
     }
     
     public static Set<IPAndPort> copyIPAndPortsAsMutableSet(Set<String> servers, int port) {
-    	Set<IPAndPort>	_servers;
-    	
-    	_servers = new HashSet<>(servers.size());
-    	for (String server : servers) {
-    		_servers.add(new IPAndPort(server, port));
-    	}
-    	return _servers;
+        Set<IPAndPort>    _servers;
+        
+        _servers = new HashSet<>(servers.size());
+        for (String server : servers) {
+            _servers.add(new IPAndPort(server, port));
+        }
+        return _servers;
     }
     
     public static void main(String[] args) {
         System.out.println(new IPAndPort("1.2.3.4:9999"));
     }
 
-	public static AddrAndPort[] parseToArray(String s) {
-		return parseToArray(s, defaultMultipleAddrDelimiter);
-	}
-	
-	public static AddrAndPort[] parseToArray(String s, String delimiter) {
-		String[]		toks;
-		AddrAndPort[]	a;
-		
-		toks = s.split(delimiter);
-		a = new AddrAndPort[toks.length];
-		for (int i = 0; i < a.length; i++) {
-			a[i] = new IPAndPort(toks[i]);
-		}
-		return a;
-	}
-	
-	public static AddrAndPort[] parseToArray(String s, int port) {
-		return parseToArray(s, port, defaultMultipleAddrDelimiter);
-	}
-	
-	public static AddrAndPort[] parseToArray(String s, int port, String delimiter) {
-		String[]		toks;
-		AddrAndPort[]	a;
-		
-		toks = s.split(delimiter);
-		a = new AddrAndPort[toks.length];
-		for (int i = 0; i < a.length; i++) {
-			a[i] = new IPAndPort(toks[i], port);
-		}
-		return a;
-	}
+    public static AddrAndPort[] parseToArray(String s) {
+        return parseToArray(s, defaultMultipleAddrDelimiter);
+    }
+    
+    public static AddrAndPort[] parseToArray(String s, String delimiter) {
+        String[]        toks;
+        AddrAndPort[]    a;
+        
+        toks = s.split(delimiter);
+        a = new AddrAndPort[toks.length];
+        for (int i = 0; i < a.length; i++) {
+            a[i] = new IPAndPort(toks[i]);
+        }
+        return a;
+    }
+    
+    public static AddrAndPort[] parseToArray(String s, int port) {
+        return parseToArray(s, port, defaultMultipleAddrDelimiter);
+    }
+    
+    public static AddrAndPort[] parseToArray(String s, int port, String delimiter) {
+        String[]        toks;
+        AddrAndPort[]    a;
+        
+        toks = s.split(delimiter);
+        a = new AddrAndPort[toks.length];
+        for (int i = 0; i < a.length; i++) {
+            a[i] = new IPAndPort(toks[i], port);
+        }
+        return a;
+    }
 }

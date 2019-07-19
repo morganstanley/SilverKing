@@ -9,14 +9,14 @@ import com.ms.silverking.log.Log;
 public class DHTRingCurTargetWatcher implements ValueListener {
     private final String            dhtName;
     private final DHTConfiguration  dhtConfig;
-    private final MetaClient		mc;
+    private final MetaClient        mc;
     private final ValueWatcher      curRingWatcher;
     private ValueWatcher      targetRingWatcher;
     private final DHTRingCurTargetListener  listener;
     
     private static final int    initialIntervalMillis = 10 * 1000;
     private static final int    checkIntervalMillis = 1 * 60 * 1000;
-    private static final boolean	debug = true;
+    private static final boolean    debug = true;
     
     public DHTRingCurTargetWatcher(MetaClient mc, String dhtName, DHTConfiguration dhtConfig, 
                                    DHTRingCurTargetListener listener) {
@@ -35,27 +35,27 @@ public class DHTRingCurTargetWatcher implements ValueListener {
 
     @Override
     public void newValue(String basePath, byte[] value, Stat stat) {
-    	if (debug) {
-    		Log.warning("DHTRingCurTargetWatcher.newValue: ", basePath);
-    	}
-    	if (value.length < DHTRingCurTargetZK.minValueLength) {
-    		Log.warning("Value length too small. ", basePath +" "+ value.length);
-    	} else {
-	        if (basePath.equals(MetaPaths.getInstanceCurRingAndVersionPairPath(dhtName))) {
-	        	if (debug) {
-	        		Log.warning("DHTRingCurTargetWatcher.newCurRingAndVersion: ", basePath);
-	        	}
-	            listener.newCurRingAndVersion(DHTRingCurTargetZK.bytesToNameAndVersion(value));
-	        } else if (basePath.equals(MetaPaths.getInstanceTargetRingAndVersionPairPath(dhtName))) {
-	        	if (debug) {
-	        		Log.warning("DHTRingCurTargetWatcher.newTargetRingAndVersion: ", basePath);
-	        	}
-	            listener.newTargetRingAndVersion(DHTRingCurTargetZK.bytesToNameAndVersion(value));
-	        } else {
-	            Log.warning("Unexpected value update in DHTRingCurTargetWatcher: ", basePath);
-	        	Log.warning(MetaPaths.getInstanceCurRingAndVersionPairPath(dhtName));
-	        	Log.warning(MetaPaths.getInstanceTargetRingAndVersionPairPath(dhtName));
-	        }
-    	}
+        if (debug) {
+            Log.warning("DHTRingCurTargetWatcher.newValue: ", basePath);
+        }
+        if (value.length < DHTRingCurTargetZK.minValueLength) {
+            Log.warning("Value length too small. ", basePath +" "+ value.length);
+        } else {
+            if (basePath.equals(MetaPaths.getInstanceCurRingAndVersionPairPath(dhtName))) {
+                if (debug) {
+                    Log.warning("DHTRingCurTargetWatcher.newCurRingAndVersion: ", basePath);
+                }
+                listener.newCurRingAndVersion(DHTRingCurTargetZK.bytesToNameAndVersion(value));
+            } else if (basePath.equals(MetaPaths.getInstanceTargetRingAndVersionPairPath(dhtName))) {
+                if (debug) {
+                    Log.warning("DHTRingCurTargetWatcher.newTargetRingAndVersion: ", basePath);
+                }
+                listener.newTargetRingAndVersion(DHTRingCurTargetZK.bytesToNameAndVersion(value));
+            } else {
+                Log.warning("Unexpected value update in DHTRingCurTargetWatcher: ", basePath);
+                Log.warning(MetaPaths.getInstanceCurRingAndVersionPairPath(dhtName));
+                Log.warning(MetaPaths.getInstanceTargetRingAndVersionPairPath(dhtName));
+            }
+        }
     }
 }

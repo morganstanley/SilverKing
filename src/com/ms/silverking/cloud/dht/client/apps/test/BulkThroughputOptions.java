@@ -9,24 +9,24 @@ import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 
 class BulkThroughputOptions {
-	BulkThroughputOptions() {
-	}
-	
-	@Option(name="-g", usage="GridConfig", required=true)
-	String	gridConfig;
-	
-	@Option(name="-s", usage="server")
-	String	server;
-	
-	@Option(name="-S", usage="storageType")
-	StorageType    storageType = StorageType.FILE;
-	
-	@Option(name="-t", usage="test", required=true)
-	BulkThroughputTest test;
-	
-	@Option(name="-i", usage="id", required=true)
-	String	id;
-	
+    BulkThroughputOptions() {
+    }
+    
+    @Option(name="-g", usage="GridConfig", required=true)
+    String    gridConfig;
+    
+    @Option(name="-s", usage="server")
+    String    server;
+    
+    @Option(name="-S", usage="storageType")
+    StorageType    storageType = StorageType.FILE;
+    
+    @Option(name="-t", usage="test", required=true)
+    BulkThroughputTest test;
+    
+    @Option(name="-i", usage="id", required=true)
+    String    id;
+    
     @Option(name="-I", usage="displayInterval", required=false)
     int  displayInterval = 100000;
     
@@ -41,22 +41,22 @@ class BulkThroughputOptions {
     
     @Option(name="-w", usage="clientWorkUnit")
     int clientWorkUnit = 10;
-	
-	@Option(name="-r", usage="reps")
-	int	reps = 1;
-	
+    
+    @Option(name="-r", usage="reps")
+    int    reps = 1;
+    
     @Option(name="-x", usage="externalReps")
     int externalReps = 1;
     
-	@Option(name="-c", usage="consistencyProtocol")
-	ConsistencyProtocol    consistencyProtocol;
-	
+    @Option(name="-c", usage="consistencyProtocol")
+    ConsistencyProtocol    consistencyProtocol;
+    
     @Option(name="-C", usage="checksumType")
     ChecksumType    checksumType = ChecksumType.NONE;
-	
+    
     @Option(name="-V", usage="verbose")
     boolean verbose = false;
-	
+    
     @Option(name="-D", usage="debug")
     boolean debug = false;
     
@@ -79,8 +79,8 @@ class BulkThroughputOptions {
     //@Option(name="-o", usage="namespaceOptions")
     //String  nsOptions;
     
-	@Override
-	public String toString() {
-		return String.format("valueSize %d batchSize %d", valueSize, batchSize);
-	}
+    @Override
+    public String toString() {
+        return String.format("valueSize %d batchSize %d", valueSize, batchSize);
+    }
 }

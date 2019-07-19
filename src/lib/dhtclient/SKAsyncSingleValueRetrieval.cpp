@@ -21,29 +21,29 @@ using jace::proxy::java::lang::Throwable;
 #include "jenumutil.h"
 
 SKAsyncSingleValueRetrieval::SKAsyncSingleValueRetrieval(AsyncSingleValueRetrieval * pAsyncSingleValueRetrieval) { //FIXME
-	pImpl = pAsyncSingleValueRetrieval ;
+    pImpl = pAsyncSingleValueRetrieval ;
 }
 
 SKAsyncSingleValueRetrieval::~SKAsyncSingleValueRetrieval() {
-	if(pImpl) {
-		//AsyncSingleValueRetrieval* pAsyncSingleValueRetrieval = (AsyncSingleValueRetrieval*)pImpl;
-		delete pImpl;
-		pImpl = NULL;
-	}
+    if(pImpl) {
+        //AsyncSingleValueRetrieval* pAsyncSingleValueRetrieval = (AsyncSingleValueRetrieval*)pImpl;
+        delete pImpl;
+        pImpl = NULL;
+    }
 };
 
 void * SKAsyncSingleValueRetrieval::getPImpl(){
-	return pImpl;
+    return pImpl;
 }
 
 SKStoredValue *  SKAsyncSingleValueRetrieval::getStoredValue(){
     StoredValue * value = NULL;
     try {
-	    value =  new StoredValue(java_cast<StoredValue>(
-		    dynamic_cast<AsyncSingleValueRetrieval*>(pImpl)->getStoredValue( )  //FIXME: dynamic_cast
-	    ));
-	}  catch( Throwable &t ) {
-		throw SKClientException( &t, __FILE__, __LINE__ );
+        value =  new StoredValue(java_cast<StoredValue>(
+            dynamic_cast<AsyncSingleValueRetrieval*>(pImpl)->getStoredValue( )  //FIXME: dynamic_cast
+        ));
+    }  catch( Throwable &t ) {
+        throw SKClientException( &t, __FILE__, __LINE__ );
     }
     return new SKStoredValue(value);
 }
@@ -52,18 +52,18 @@ SKVal *  SKAsyncSingleValueRetrieval::getValue(){
     SKVal * pDhtVal = NULL; 
     try {
         AsyncSingleValueRetrieval * pAsvr = dynamic_cast<AsyncSingleValueRetrieval*>(pImpl);
-	    ByteArray obj = java_cast<ByteArray>(pAsvr->getValue( ));
-	    if( !obj.isNull() ) {
-		    size_t valLength = obj.length();
+        ByteArray obj = java_cast<ByteArray>(pAsvr->getValue( ));
+        if( !obj.isNull() ) {
+            size_t valLength = obj.length();
             if(valLength > 0) {
                 pDhtVal = ::convertToDhtVal(&obj);
             }
             else {
                 pDhtVal = sk_create_val();
             }
-	    }
-	}  catch( Throwable &t ) {
-		throw SKClientException( &t, __FILE__, __LINE__ );
+        }
+    }  catch( Throwable &t ) {
+        throw SKClientException( &t, __FILE__, __LINE__ );
     }
     return pDhtVal;
 }

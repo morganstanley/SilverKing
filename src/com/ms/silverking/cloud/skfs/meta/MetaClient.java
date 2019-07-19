@@ -23,7 +23,7 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     }
     
     public MetaClient(SKGridConfiguration skGridConfig) throws IOException, KeeperException {
-    	this(skGridConfig.getSKFSConfigName(), skGridConfig.getClientDHTConfiguration().getZKConfig());
+        this(skGridConfig.getSKFSConfigName(), skGridConfig.getClientDHTConfiguration().getZKConfig());
     }
     
     public String getSKFSConfigName() {

@@ -27,7 +27,7 @@ SKManagedClient.h
     This file contains a class declaration.
 
 AssemblyInfo.cpp
-	Contains custom attributes for modifying assembly metadata.
+    Contains custom attributes for modifying assembly metadata.
 
 /////////////////////////////////////////////////////////////////////////////
 Other notes:

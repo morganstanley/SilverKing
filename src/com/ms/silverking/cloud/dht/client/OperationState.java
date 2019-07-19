@@ -6,5 +6,5 @@ package com.ms.silverking.cloud.dht.client;
  * bulk operation may have FAILED but have individual parts that SUCCEEDED.
  */
 public enum OperationState {
-	INCOMPLETE, SUCCEEDED, FAILED
+    INCOMPLETE, SUCCEEDED, FAILED
 }

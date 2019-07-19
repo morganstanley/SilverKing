@@ -72,10 +72,10 @@ public class DataSegmentWalker implements Iterator<DataSegmentWalkEntry>, Iterab
             long    version;
             long    creationTime;
             //double  keyEntropy;
-            byte	storageState;
-            ValueCreator	creator;
-            ByteBuffer	entry;
-            int	nextEntryPostKeyPosition;
+            byte    storageState;
+            ValueCreator    creator;
+            ByteBuffer    entry;
+            int    nextEntryPostKeyPosition;
             
             if (debug) {
                 System.out.println("position: "+ position);
@@ -149,32 +149,32 @@ public class DataSegmentWalker implements Iterator<DataSegmentWalkEntry>, Iterab
             nextEntryPostKeyPosition = position + storedLength + DHTKey.BYTES_PER_KEY; 
             // Check to see if it's possible that there is another entry
             if (nextEntryPostKeyPosition + MetaDataUtil.getMinimumEntrySize() < dataSegment.limit()) {
-            	int	nextEntryStoredLength;
-            	
-            	// Check to see if the potential next entry actually fits in this segment
-            	nextEntryStoredLength = MetaDataUtil.getStoredLength(dataSegment, nextEntryPostKeyPosition);
-            	if (debug) {
-            		System.out.printf("nextEntryPostKeyPosition %d nextEntryStoredLength %d dataSegment.limit() %d\n",
-            				nextEntryPostKeyPosition, nextEntryStoredLength, dataSegment.limit());
-            	}
-            	if (nextEntryPostKeyPosition + nextEntryStoredLength < dataSegment.limit()) {            	            	
-	                nextMSL = dataSegment.getLong(nextEntryPostKeyPosition);
-	                nextLSL = dataSegment.getLong(nextEntryPostKeyPosition + NumConversion.BYTES_PER_LONG);
-	                hasNext = !(nextMSL == 0 && nextLSL == 0);
-	                if (debug) {
-	                	System.out.printf("a: hastNext %s\n", hasNext);
-	                }
-            	} else {
-            		hasNext = false;
-	                if (debug) {
-	                	System.out.printf("b: hastNext %s\n", hasNext);
-	                }
-            	}
+                int    nextEntryStoredLength;
+                
+                // Check to see if the potential next entry actually fits in this segment
+                nextEntryStoredLength = MetaDataUtil.getStoredLength(dataSegment, nextEntryPostKeyPosition);
+                if (debug) {
+                    System.out.printf("nextEntryPostKeyPosition %d nextEntryStoredLength %d dataSegment.limit() %d\n",
+                            nextEntryPostKeyPosition, nextEntryStoredLength, dataSegment.limit());
+                }
+                if (nextEntryPostKeyPosition + nextEntryStoredLength < dataSegment.limit()) {                                
+                    nextMSL = dataSegment.getLong(nextEntryPostKeyPosition);
+                    nextLSL = dataSegment.getLong(nextEntryPostKeyPosition + NumConversion.BYTES_PER_LONG);
+                    hasNext = !(nextMSL == 0 && nextLSL == 0);
+                    if (debug) {
+                        System.out.printf("a: hastNext %s\n", hasNext);
+                    }
+                } else {
+                    hasNext = false;
+                    if (debug) {
+                        System.out.printf("b: hastNext %s\n", hasNext);
+                    }
+                }
             } else {
-            	// No room for valid next entry
+                // No room for valid next entry
                 hasNext = false; 
                 if (debug) {
-                	System.out.printf("c: hastNext %s\n", hasNext);
+                    System.out.printf("c: hastNext %s\n", hasNext);
                 }
             }
             

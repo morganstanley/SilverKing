@@ -13,10 +13,10 @@ import com.ms.silverking.cloud.dht.client.OperationState;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
 public class HelloCallbackDHT implements AsyncOperationListener {    
-	private Semaphore	s;
-	
-	public String runExample(SKGridConfiguration gridConfig) {
-		try {
+    private Semaphore    s;
+    
+    public String runExample(SKGridConfiguration gridConfig) {
+        try {
             AsynchronousNamespacePerspective<String, String>    asyncNSP;
             AsyncPut<String>    asyncPut;
             AsyncSingleValueRetrieval<String,String>    asyncGet;
@@ -35,21 +35,21 @@ public class HelloCallbackDHT implements AsyncOperationListener {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-	}
-	
-	@Override
-	public void asyncOperationUpdated(AsyncOperation asyncOperation) {
-		if (asyncOperation.getState() == OperationState.FAILED) {
-			System.out.printf("Operation failed: %s\n", asyncOperation);
-		} else if (asyncOperation.getState() == OperationState.INCOMPLETE) {
-			System.out.printf("Operation incomplete: %s\n", asyncOperation);
-		} else {
-			s.release();
-		}
-		System.out.printf("%s\n", Thread.currentThread().getName());
-	}
-	
+    }
+    
+    @Override
+    public void asyncOperationUpdated(AsyncOperation asyncOperation) {
+        if (asyncOperation.getState() == OperationState.FAILED) {
+            System.out.printf("Operation failed: %s\n", asyncOperation);
+        } else if (asyncOperation.getState() == OperationState.INCOMPLETE) {
+            System.out.printf("Operation incomplete: %s\n", asyncOperation);
+        } else {
+            s.release();
+        }
+        System.out.printf("%s\n", Thread.currentThread().getName());
+    }
+    
     public static void main(String[] args) throws IOException {
-    	System.out.println( new HelloCallbackDHT().runExample( SKGridConfiguration.parseFile(args[0]) ) );
+        System.out.println( new HelloCallbackDHT().runExample( SKGridConfiguration.parseFile(args[0]) ) );
     }
 }

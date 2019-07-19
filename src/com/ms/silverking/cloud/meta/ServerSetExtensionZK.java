@@ -59,14 +59,14 @@ public class ServerSetExtensionZK<M extends MetaPaths> extends MetaToolModuleBas
         return null;
     }
 
-	public ServerSet readLatestFromZK() throws KeeperException {
-		return readLatestFromZK(null);
-	}
-	
-	public ServerSet readLatestFromZK(MetaToolOptions options) throws KeeperException {
+    public ServerSet readLatestFromZK() throws KeeperException {
+        return readLatestFromZK(null);
+    }
+    
+    public ServerSet readLatestFromZK(MetaToolOptions options) throws KeeperException {
         long            version;
 
         version = zk.getLatestVersion(base);
         return readFromZK(version, options);
-	}
+    }
 }

@@ -21,82 +21,82 @@ import com.ms.silverking.testing.annotations.SkLarge;
 @SkLarge
 public class SingleVersionUnrestrictedRevisionsTest {
 
-	private static SynchronousNamespacePerspective<String, String> syncNsp;
+    private static SynchronousNamespacePerspective<String, String> syncNsp;
 
-	private static final String namespaceName = SingleVersionUnrestrictedRevisionsTest.class.getSimpleName();
+    private static final String namespaceName = SingleVersionUnrestrictedRevisionsTest.class.getSimpleName();
 
-	@BeforeClass
-	public static void setUpBeforeClass() throws ClientException, IOException {
-		DHTSession session = createSession();
+    @BeforeClass
+    public static void setUpBeforeClass() throws ClientException, IOException {
+        DHTSession session = createSession();
         Namespace ns       = createNamespace(session, namespaceName, SINGLE_VERSION, UNRESTRICTED_REVISIONS); 
         syncNsp            = ns.openSyncPerspective(String.class, String.class);
-	}
-	
-	@Test
-	public void test_Put() throws PutException, RetrievalException {
+    }
+    
+    @Test
+    public void test_Put() throws PutException, RetrievalException {
         _put(     k1, v1);
         _checkGet(k1, v1);
-	}
+    }
 
-	// FIXME:bph: operation is succeeding, so expected exception doesn't happen (user shouldn't be allowed to pass any version when in SINGLE_VERSION mode, it's all taken care for him behind the scenes)
-//	@Test(expected = PutException.class)
-	public void test_Put_WithVersion() throws PutException {
+    // FIXME:bph: operation is succeeding, so expected exception doesn't happen (user shouldn't be allowed to pass any version when in SINGLE_VERSION mode, it's all taken care for him behind the scenes)
+//    @Test(expected = PutException.class)
+    public void test_Put_WithVersion() throws PutException {
         _putVersion(k2, v1, version1);
-	}
+    }
 
-	@Test
-	public void test_PutKeyTwice_SameValue() throws PutException, RetrievalException {
+    @Test
+    public void test_PutKeyTwice_SameValue() throws PutException, RetrievalException {
         _put(             k3, v1);
         _put(             k3, v1);
         _checkGet(        k3, v1);
         _checkGetLeast(   k3, v1);
         _checkGetGreatest(k3, v1);
-	}
+    }
 
-	// FIXME:bph: failing on second put
-//	@Test
-	public void test_PutKeyTwice_DiffValue() throws PutException, RetrievalException {
+    // FIXME:bph: failing on second put
+//    @Test
+    public void test_PutKeyTwice_DiffValue() throws PutException, RetrievalException {
         _put(             k4, v1);
         _put(             k4, v2);
         _checkGet(        k4, v2);
         _checkGetLeast(   k4, v1);
         _checkGetGreatest(k4, v2);
-	}
+    }
 
-	// FIXME:bph: operation is succeeding, so expected exception doesn't happen (user shouldn't be allowed to pass any version when in SINGLE_VERSION mode, it's all taken care for him behind the scenes)
-//	@Test(expected = PutException.class)
-	public void test_PutKeyTwice_SameValue_WithVersion() throws PutException {
-		_put(       k5, v1);
+    // FIXME:bph: operation is succeeding, so expected exception doesn't happen (user shouldn't be allowed to pass any version when in SINGLE_VERSION mode, it's all taken care for him behind the scenes)
+//    @Test(expected = PutException.class)
+    public void test_PutKeyTwice_SameValue_WithVersion() throws PutException {
+        _put(       k5, v1);
         _putVersion(k5, v1, version1);
-	}
+    }
 
-	@Test(expected = PutException.class)
-	public void test_PutKeyTwice_DiffValue_WithVersion() throws PutException {
-		_put(       k6, v1);
+    @Test(expected = PutException.class)
+    public void test_PutKeyTwice_DiffValue_WithVersion() throws PutException {
+        _put(       k6, v1);
         _putVersion(k6, v2, version1);
-	}
-	
-	private void _put(String k, String v) throws PutException {
-		put(syncNsp, k, v);
-	}
-	
-	private void _putVersion(String k, String v, int version) throws PutException {
-		put(syncNsp, k, v, version);
-	}
-	
-	private void _checkGet(String k, String expectedValue) throws RetrievalException {
+    }
+    
+    private void _put(String k, String v) throws PutException {
+        put(syncNsp, k, v);
+    }
+    
+    private void _putVersion(String k, String v, int version) throws PutException {
+        put(syncNsp, k, v, version);
+    }
+    
+    private void _checkGet(String k, String expectedValue) throws RetrievalException {
         checkGet(syncNsp, k, expectedValue);
-	}
-	
-	private void _checkGetLeast(String k, String expectedValue) throws RetrievalException {
+    }
+    
+    private void _checkGetLeast(String k, String expectedValue) throws RetrievalException {
         checkGetLeast(syncNsp, k, expectedValue);
-	}
-	
-	private void _checkGetGreatest(String k, String expectedValue) throws RetrievalException {
+    }
+    
+    private void _checkGetGreatest(String k, String expectedValue) throws RetrievalException {
         checkGetGreatest(syncNsp, k, expectedValue);
-	}
-	
-	public static void main(String[] args) {
-		Util.runTests(SingleVersionUnrestrictedRevisionsTest.class);
-	}
+    }
+    
+    public static void main(String[] args) {
+        Util.runTests(SingleVersionUnrestrictedRevisionsTest.class);
+    }
 }

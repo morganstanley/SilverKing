@@ -29,11 +29,11 @@ class StaticVmLoader: public ::jace::VmLoader
 {
 public:
   StaticVmLoader(jint jniVersion):
-		VmLoader(jniVersion)
-	{}
+        VmLoader(jniVersion)
+    {}
 
   virtual jint getCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs) const
-	{
+    {
     // Prevent static linking if the user intends on dynamically loading
     #ifndef JACE_WANT_DYNAMIC_LOAD
       return JNI_GetCreatedJavaVMs(vmBuf, bufLen, nVMs);
@@ -43,7 +43,7 @@ public:
   }
 
   virtual jint createJavaVM(JavaVM **pvm, void **env, void *args) const
-	{
+    {
     // Prevent static linking if the user intends on dynamically loading
     #ifndef JACE_WANT_DYNAMIC_LOAD
       return JNI_CreateJavaVM(pvm, env, args);

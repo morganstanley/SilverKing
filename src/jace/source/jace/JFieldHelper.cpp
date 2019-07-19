@@ -72,18 +72,18 @@ jfieldID JFieldHelper::getFieldID(const JClass& parentClass, bool isStatic)
     mFieldID = env->GetFieldID(parentClass.getClass(), mName.c_str(), signature.c_str());
 
   if (mFieldID == 0)
-	{
+    {
     string msg = "JFieldHelper::getFieldID\n" \
                  "Unable to find field <" + mName + "> with signature <" + signature + ">";
-		try
-		{
-			catchAndThrow();
-		}
-		catch (JNIException& e)
-		{
-			msg.append("\ncaused by:\n");
-			msg.append(e.what());
-		}
+        try
+        {
+            catchAndThrow();
+        }
+        catch (JNIException& e)
+        {
+            msg.append("\ncaused by:\n");
+            msg.append(e.what());
+        }
     throw JNIException(msg);
   }
 

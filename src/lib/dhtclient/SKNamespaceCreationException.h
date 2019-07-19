@@ -12,16 +12,16 @@
 #include "SKClientException.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class NamespaceCreationException;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class NamespaceCreationException;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::NamespaceCreationException NamespaceCreationException;
 
 class SKNamespaceCreationException : public SKClientException
 {
 public:
-	SKNamespaceCreationException(NamespaceCreationException * pNce, const char * fileName, int lineNum);
-	SKAPI ~SKNamespaceCreationException() throw ();	
+    SKNamespaceCreationException(NamespaceCreationException * pNce, const char * fileName, int lineNum);
+    SKAPI ~SKNamespaceCreationException() throw ();    
 };
 
 

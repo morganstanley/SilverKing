@@ -18,8 +18,8 @@
 // types
 
 typedef struct AttrCache {
-	int	numSubCaches;
-	Cache	**attrCaches;
+    int    numSubCaches;
+    Cache    **attrCaches;
 } AttrCache;
 
 

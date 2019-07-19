@@ -79,10 +79,10 @@ public class SilverKingClient {
     private Map<String,ValueMapDisplay> valueMapDisplays;
     private ValueFormat valueFormat;
     private Map<String,ValueFormat>     valueFormats;
-    private EncrypterDecrypter	encrypterDecrypter;
-	
-	private static final int   clientWorkUnit = 10;
-	
+    private EncrypterDecrypter    encrypterDecrypter;
+    
+    private static final int   clientWorkUnit = 10;
+    
     private static final String    multiLinePrompt = "> ";
     private static final String    prompt = "skc> ";
     private static final String    terminator = ";";
@@ -91,23 +91,23 @@ public class SilverKingClient {
     private static final String    defaultValueMapDisplay = "basic";
     private static final String    defaultValueFormat = "raw";
     
-    private static final int	defaultSessionAttempts = 10;
+    private static final int    defaultSessionAttempts = 10;
     
-	public SilverKingClient(SessionOptions sessionOptions,
-	        InputStream in, PrintStream out, PrintStream err) throws IOException, ClientException {
+    public SilverKingClient(SessionOptions sessionOptions,
+            InputStream in, PrintStream out, PrintStream err) throws IOException, ClientException {
         this.in = new BufferedReader(new InputStreamReader(in));
         this.out = out;
         this.err = err;
-		dhtClient = new DHTClient();        
+        dhtClient = new DHTClient();        
         session = dhtClient.openSession(sessionOptions);
         if (session == null) {
             throw new RuntimeException("null session");
         }
-		reps = 1;
-		sw = new SimpleStopwatch();
-		
-		valueMapDisplays = new HashMap<>();
-		addValueMapDisplay(new BasicValueMapDisplay());
+        reps = 1;
+        sw = new SimpleStopwatch();
+        
+        valueMapDisplays = new HashMap<>();
+        addValueMapDisplay(new BasicValueMapDisplay());
         addValueMapDisplay(new TabDelimitedValueMapDisplay());
         addValueMapDisplay(new CSVValueMapDisplay());
         valueMapDisplay = valueMapDisplays.get(defaultValueMapDisplay);
@@ -120,12 +120,12 @@ public class SilverKingClient {
         addValueFormat(new ChecksumValueFormat());
         addValueFormat(new ChecksumAndLengthValueFormat());
         valueFormat = valueFormats.get(defaultValueFormat);
-	}
-	
-	private void addValueMapDisplay(ValueMapDisplay vmd) {
-	    valueMapDisplays.put(vmd.getName(), vmd);
-	}
-	
+    }
+    
+    private void addValueMapDisplay(ValueMapDisplay vmd) {
+        valueMapDisplays.put(vmd.getName(), vmd);
+    }
+    
     private void addValueFormat(ValueFormat valueFormat) {
         valueFormats.put(valueFormat.getName(), valueFormat);
     }
@@ -183,11 +183,11 @@ public class SilverKingClient {
     }
     
     private List<String> sortedList(Set<String> s) {
-    	List<String>	sorted;
-    	
-    	sorted = new ArrayList<>(s);
-    	Collections.sort(sorted);
-    	return sorted;
+        List<String>    sorted;
+        
+        sorted = new ArrayList<>(s);
+        Collections.sort(sorted);
+        return sorted;
     }
     
     private void displayMetaDataMap(Set<String> keys, Map<String, ? extends StoredValue<byte[]>> storedValues) {
@@ -196,9 +196,9 @@ public class SilverKingClient {
 
             storedValue = storedValues.get(key);
             if (verbose) {
-            	if (storedValue.getValue() != null) {
-            		out.printf("[Value returned with MetaData. Length %d]", storedValue.getValue().length);
-            	}
+                if (storedValue.getValue() != null) {
+                    out.printf("[Value returned with MetaData. Length %d]", storedValue.getValue().length);
+                }
             }
             out.printf("\n%s\n%s\n", key, storedValue != null ? MetaDataTextUtil.toMetaDataString(storedValue.getMetaData(), true) : noSuchValue);
         }
@@ -213,11 +213,11 @@ public class SilverKingClient {
         }
     }
     
-	private void displayValueMap(Set<String> keys, Map<String, ? extends StoredValue<byte[]>> storedValues) {
-	    valueMapDisplay.displayValueMap(keys, storedValues);
+    private void displayValueMap(Set<String> keys, Map<String, ? extends StoredValue<byte[]>> storedValues) {
+        valueMapDisplay.displayValueMap(keys, storedValues);
     }
-	
-	private Set<String> retrievalKeySet(String[] args) {
+    
+    private Set<String> retrievalKeySet(String[] args) {
         ImmutableSet.Builder<String>    builder;
         
         builder = ImmutableSet.builder();
@@ -225,7 +225,7 @@ public class SilverKingClient {
             builder.add(translateKey(args[i]));
         }
         return builder.build();
-	}
+    }
 
     private Map<String, ? extends StoredValue<byte[]>> retrieve(String[] args, RetrievalType retrievalType, 
                                         WaitMode waitMode) throws OperationException, IOException {
@@ -271,63 +271,63 @@ public class SilverKingClient {
     
     private void doRetrieveAllValuesForKey(String[] args) throws OperationException, IOException {
         sw.reset();
-    	for (String key : args) {
-	        Map<String, ? extends StoredValue<byte[]>>  storedValues;
-	        
-	        storedValues = retrieveAllValuesForKey(key);
+        for (String key : args) {
+            Map<String, ? extends StoredValue<byte[]>>  storedValues;
+            
+            storedValues = retrieveAllValuesForKey(key);
             displayMetaDataMap(storedValues.keySet(), storedValues);
-    	}
-        sw.stop();    	
+        }
+        sw.stop();        
     }
     
     private Map<String, ? extends StoredValue<byte[]>> retrieveAllValuesForKey(String key) throws RetrievalException {
-    	RetrievalOptions retrievalOptions;
-    	Map<String, StoredValue<byte[]>>	keyValues;
-    	
-    	keyValues = new HashMap<>();
-    	retrievalOptions = syncNSP.getOptions().getDefaultGetOptions().retrievalType(RetrievalType.META_DATA)
-    			.nonExistenceResponse(NonExistenceResponse.NULL_VALUE).versionConstraint(VersionConstraint.greatest)
-    			.returnInvalidations(true);
+        RetrievalOptions retrievalOptions;
+        Map<String, StoredValue<byte[]>>    keyValues;
+        
+        keyValues = new HashMap<>();
+        retrievalOptions = syncNSP.getOptions().getDefaultGetOptions().retrievalType(RetrievalType.META_DATA)
+                .nonExistenceResponse(NonExistenceResponse.NULL_VALUE).versionConstraint(VersionConstraint.greatest)
+                .returnInvalidations(true);
         try {
-        	do {
-            	StoredValue<byte[]>	storedValue;
-            	
-            	//System.out.printf("%s\t%s\n", key, retrievalOptions);
-            	
-				storedValue = syncNSP.retrieve(key, retrievalOptions);
-				if (storedValue != null) {
-		        	String	keyAndVersion;
-		        	
-		        	keyAndVersion = String.format("%s %d %d %s", key, storedValue.getVersion(), storedValue.getCreationTime().inNanos(), storedValue.getCreationTime().toDateString());
-		        	keyValues.put(keyAndVersion, storedValue);
-		        	//System.out.printf("%d\t%d\n", storedValue.getMetaData().getVersion(), storedValue.getMetaData().getCreationTime().inNanos());
-		        	//retrievalOptions = retrievalOptions.versionConstraint(retrievalOptions.getVersionConstraint().maxCreationTime(storedValue.getCreationTime().inNanos() - 1));
-		        	retrievalOptions = retrievalOptions.versionConstraint(retrievalOptions.getVersionConstraint().maxBelowOrEqual(storedValue.getVersion() - 1));
-		        	//ThreadUtil.sleep(1000);
-				} else {
-					break;
-				}
-        	} while (true);
-		} catch (RetrievalException re) {
+            do {
+                StoredValue<byte[]>    storedValue;
+                
+                //System.out.printf("%s\t%s\n", key, retrievalOptions);
+                
+                storedValue = syncNSP.retrieve(key, retrievalOptions);
+                if (storedValue != null) {
+                    String    keyAndVersion;
+                    
+                    keyAndVersion = String.format("%s %d %d %s", key, storedValue.getVersion(), storedValue.getCreationTime().inNanos(), storedValue.getCreationTime().toDateString());
+                    keyValues.put(keyAndVersion, storedValue);
+                    //System.out.printf("%d\t%d\n", storedValue.getMetaData().getVersion(), storedValue.getMetaData().getCreationTime().inNanos());
+                    //retrievalOptions = retrievalOptions.versionConstraint(retrievalOptions.getVersionConstraint().maxCreationTime(storedValue.getCreationTime().inNanos() - 1));
+                    retrievalOptions = retrievalOptions.versionConstraint(retrievalOptions.getVersionConstraint().maxBelowOrEqual(storedValue.getVersion() - 1));
+                    //ThreadUtil.sleep(1000);
+                } else {
+                    break;
+                }
+            } while (true);
+        } catch (RetrievalException re) {
             displayRetrievalExceptionDetails(re);
             throw re;
-		}
+        }
         return keyValues;
     }
     
     private void doCopy(String[] args) throws OperationException, IOException {
-    	String	src;
-    	String	dest;
-    	byte[]	value;
-    	
-    	if (args.length != 2) {
-    		throw new RuntimeException("Bad args");
-    	}
-    	src = args[0];
-    	dest = args[1];
-    	out.printf("Copying %s => %s\n", src, dest);
-    	value = syncNSP.get(src);
-    	syncNSP.put(dest, value);
+        String    src;
+        String    dest;
+        byte[]    value;
+        
+        if (args.length != 2) {
+            throw new RuntimeException("Bad args");
+        }
+        src = args[0];
+        dest = args[1];
+        out.printf("Copying %s => %s\n", src, dest);
+        value = syncNSP.get(src);
+        syncNSP.put(dest, value);
     }
     
     private void doPutRandom(String[] args) throws OperationException, IOException {
@@ -355,7 +355,7 @@ public class SilverKingClient {
     private void doPut(String[] args) throws OperationException, IOException {
         Map<String,byte[]>  map;
         ImmutableMap.Builder<String,byte[]>    builder;
-        PutOptions	putOptions;
+        PutOptions    putOptions;
         
         if (args[0].startsWith("{")) {
             if (!args[0].endsWith("}")) {
@@ -374,7 +374,7 @@ public class SilverKingClient {
                 args = newArgs;
             }
         } else {
-        	putOptions = syncNSP.getNamespace().getOptions().getDefaultPutOptions();
+            putOptions = syncNSP.getNamespace().getOptions().getDefaultPutOptions();
         }
         
         builder = ImmutableMap.builder();
@@ -457,7 +457,7 @@ public class SilverKingClient {
         }
         opMessage("Creating snapshot");
         sw.reset();
-    	// snapshots deprecated for now
+        // snapshots deprecated for now
         /*
         try {
             for (int i = 0; i < reps; i++) {
@@ -490,7 +490,7 @@ public class SilverKingClient {
         syncNSP.getNamespace().linkTo(parent);
         sw.stop();
     }
-	
+    
     private void doCreateNamespace(String[] args) throws OperationException, IOException {
         String              name;
         NamespaceOptions    nsOptions;
@@ -503,7 +503,7 @@ public class SilverKingClient {
         }
         opMessage("Creating namespace");
         if (verbose) {
-        	System.out.printf("NamespaceOptions: %s\n", nsOptions);
+            System.out.printf("NamespaceOptions: %s\n", nsOptions);
         }
         sw.reset();
         session.createNamespace(name, nsOptions);
@@ -622,25 +622,25 @@ public class SilverKingClient {
                 err.println("SetEncryption <encrypterDecrypterName> <keyFileName>");
             } else {
                 String  encrypterDecrypterName;
-                EncrypterDecrypter	_encrypterDecrypter;
-                File				keyFile;
+                EncrypterDecrypter    _encrypterDecrypter;
+                File                keyFile;
                 
                 encrypterDecrypterName = args[0];
                 keyFile = new File(args[1]);
                 if (!keyFile.exists()) {
-                	err.printf("Key file doesn't exist: %s\n", keyFile.getName());
+                    err.printf("Key file doesn't exist: %s\n", keyFile.getName());
                 }
                 if (encrypterDecrypterName.equalsIgnoreCase(AESEncrypterDecrypter.name)) {
-                	_encrypterDecrypter = new AESEncrypterDecrypter(keyFile);
+                    _encrypterDecrypter = new AESEncrypterDecrypter(keyFile);
                 } else if (encrypterDecrypterName.equalsIgnoreCase(XOREncrypterDecrypter.name)) {
-                	_encrypterDecrypter = new XOREncrypterDecrypter(keyFile);
+                    _encrypterDecrypter = new XOREncrypterDecrypter(keyFile);
                 } else {
-                	_encrypterDecrypter = null;
+                    _encrypterDecrypter = null;
                 }
                 if (_encrypterDecrypter == null) {
                     err.printf("Unknown EncrypterDecrypter %s\n", encrypterDecrypterName);
                 } else {
-                	encrypterDecrypter = _encrypterDecrypter;;
+                    encrypterDecrypter = _encrypterDecrypter;;
                     if (verbose) {
                         out.printf("EncrypterDecrypter now %s\n", encrypterDecrypter.getName());
                     }
@@ -648,7 +648,7 @@ public class SilverKingClient {
                 }
             }
         }
-	}
+    }
     
     private void toggleVerbose() {
         verbose = !verbose;
@@ -679,7 +679,7 @@ public class SilverKingClient {
         boolean running;
         String  cmd;
      
-    	reader = new ConsoleReader();
+        reader = new ConsoleReader();
         running = true;
         cmd = "";
         while (running) {
@@ -727,11 +727,11 @@ public class SilverKingClient {
         }
     }
     
-	private void doCommand(String cmd) throws OperationException, IOException {
-	    String[]   tokens;
-	    
-	    tokens = cmd.split("\\s+");
-	    doCommand(tokens);
+    private void doCommand(String cmd) throws OperationException, IOException {
+        String[]   tokens;
+        
+        tokens = cmd.split("\\s+");
+        doCommand(tokens);
     }
 
     private void doCommand(String[] tokens) throws OperationException, IOException {
@@ -811,7 +811,7 @@ public class SilverKingClient {
         }
     }
     
-	private static String[] wrapOneArg(String arg) {
+    private static String[] wrapOneArg(String arg) {
         String[]    s;
         
         s = new String[1];
@@ -827,7 +827,7 @@ public class SilverKingClient {
         out.printf("Setting namespace to \"%s\"\n", namespace);
         _syncNSP = syncNSP;
         try {
-        	Namespace	ns;
+            Namespace    ns;
             NamespacePerspectiveOptions<String,byte[]> nspOptions;
             
             ns = session.getNamespace(namespace);
@@ -862,148 +862,148 @@ public class SilverKingClient {
     }
     
     /**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-    	try {
-    		SilverKingClient		skc;
-    		SilverKingClientOptions	options;
-    		CmdLineParser	        parser;
-    		ClientDHTConfigurationProvider	configProvider;
-    		SessionOptions	sessionOptions;
-    		
-    		args = repairArgs(args);
-    		
+     * @param args
+     */
+    public static void main(String[] args) {
+        try {
+            SilverKingClient        skc;
+            SilverKingClientOptions    options;
+            CmdLineParser            parser;
+            ClientDHTConfigurationProvider    configProvider;
+            SessionOptions    sessionOptions;
+            
+            args = repairArgs(args);
+            
             LWTPoolProvider.createDefaultWorkPools(DefaultWorkPoolParameters.defaultParameters().workUnit(clientWorkUnit));
             LWTThreadUtil.setLWTThread();
-    		options = new SilverKingClientOptions();
-    		parser = new CmdLineParser(options);
-    		try {
-    			parser.parseArgument(args);
-    		} catch (CmdLineException cle) {
-    			System.err.println(cle.getMessage());
-    			parser.printUsage(System.err);
-    			System.exit(-1);
-    		}
-    		
-    		if (options.gridConfig == null) {
-    			options.gridConfig = GridConfiguration.getDefaultGC();
-    		}
-    		
-    		if (options.gridConfig == null && options.clientDHTConfiguration == null && !SessionOptions.isReservedServerName(options.server)) {
-    			System.err.println("Neither gridConfig nor clientDHTConfiguration provided, but server name is not reserved");
-    			parser.printUsage(System.err);
-    			System.exit(-1);
-    		}
-    		Log.setLevel(options.logLevel);
-    		Log.fine(options);
-    		//if (options.verbose) {
-    		//    Log.setLevelAll();
-    		//}
-    		
-    		//if (options.sessionOptions != null) {
-	    	//	sessionOptions = new SessionOptions(null, null); // Force class initialization
-    		//	sessionOptions = ((SessionOptions)ObjectDefParser2.parse(SessionOptions.class, options.sessionOptions));
-    		//} else {
-	    		if (options.gridConfig != null) {
-	        		if (options.gridConfigBase != null) {
-	        			configProvider = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
-	        		} else {
-	        			configProvider = SKGridConfiguration.parseFile(options.gridConfig);
-	        		}
-	    		} else if (options.clientDHTConfiguration != null) {
-	    			configProvider = ClientDHTConfiguration.parse(options.clientDHTConfiguration);
-	    		} else {
-	    			configProvider = null;
-	    		}
-	    		sessionOptions = new SessionOptions(configProvider, options.server);
-	    		if (options.sessionTimeoutSeconds != 0) {
-	    			SessionEstablishmentTimeoutController	timeoutController; 
-	    			int	maxTimeoutMillis;
-	    			
-	    			maxTimeoutMillis = options.sessionTimeoutSeconds * 1000;
-	    			timeoutController = 
-	    					new SimpleSessionEstablishmentTimeoutController(defaultSessionAttempts, maxTimeoutMillis / defaultSessionAttempts, maxTimeoutMillis);
-	    			sessionOptions = sessionOptions.timeoutController(timeoutController);
-	    		}
-    		//}
-    		
-    		skc = new SilverKingClient(sessionOptions, System.in, System.out, System.err);
+            options = new SilverKingClientOptions();
+            parser = new CmdLineParser(options);
+            try {
+                parser.parseArgument(args);
+            } catch (CmdLineException cle) {
+                System.err.println(cle.getMessage());
+                parser.printUsage(System.err);
+                System.exit(-1);
+            }
+            
+            if (options.gridConfig == null) {
+                options.gridConfig = GridConfiguration.getDefaultGC();
+            }
+            
+            if (options.gridConfig == null && options.clientDHTConfiguration == null && !SessionOptions.isReservedServerName(options.server)) {
+                System.err.println("Neither gridConfig nor clientDHTConfiguration provided, but server name is not reserved");
+                parser.printUsage(System.err);
+                System.exit(-1);
+            }
+            Log.setLevel(options.logLevel);
+            Log.fine(options);
+            //if (options.verbose) {
+            //    Log.setLevelAll();
+            //}
+            
+            //if (options.sessionOptions != null) {
+            //    sessionOptions = new SessionOptions(null, null); // Force class initialization
+            //    sessionOptions = ((SessionOptions)ObjectDefParser2.parse(SessionOptions.class, options.sessionOptions));
+            //} else {
+                if (options.gridConfig != null) {
+                    if (options.gridConfigBase != null) {
+                        configProvider = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
+                    } else {
+                        configProvider = SKGridConfiguration.parseFile(options.gridConfig);
+                    }
+                } else if (options.clientDHTConfiguration != null) {
+                    configProvider = ClientDHTConfiguration.parse(options.clientDHTConfiguration);
+                } else {
+                    configProvider = null;
+                }
+                sessionOptions = new SessionOptions(configProvider, options.server);
+                if (options.sessionTimeoutSeconds != 0) {
+                    SessionEstablishmentTimeoutController    timeoutController; 
+                    int    maxTimeoutMillis;
+                    
+                    maxTimeoutMillis = options.sessionTimeoutSeconds * 1000;
+                    timeoutController = 
+                            new SimpleSessionEstablishmentTimeoutController(defaultSessionAttempts, maxTimeoutMillis / defaultSessionAttempts, maxTimeoutMillis);
+                    sessionOptions = sessionOptions.timeoutController(timeoutController);
+                }
+            //}
+            
+            skc = new SilverKingClient(sessionOptions, System.in, System.out, System.err);
             //System.out.println(options.namespace +":"+ options.key);
-    		if (options.namespace != null) {
-    		    skc.doSetNamespace(wrapOneArg(options.namespace));
-    		}
-    		if (options.commands == null && options.commandFile == null) {
-    		    skc.shellLoop();
-    		} else {
+            if (options.namespace != null) {
+                skc.doSetNamespace(wrapOneArg(options.namespace));
+            }
+            if (options.commands == null && options.commandFile == null) {
+                skc.shellLoop();
+            } else {
                 if (options.commandFile != null) {
                     skc.runCommands(options.commandFile);
                 }
                 if (options.commands != null) {
                     skc.runCommands(options.commands);
                 }
-    		}
-    		System.exit(0);
-    	} catch (Exception e) {
-    		e.printStackTrace();
-			System.exit(-1);
-    	}
+            }
+            System.exit(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
     }
-	
-	private static String[] repairArgs(String[] args) {
-		List<String>	newArgs;
-		String			commandArg;
-		boolean			inCommand;
-		
-		newArgs = new ArrayList<>();
-		inCommand = false;
-		commandArg = null;
-		for (String arg : args) {
-			arg = arg.trim();
-			if (!inCommand) {
-				newArgs.add(arg);
-				if (arg.equals("-c")) {
-					inCommand = true;
-					commandArg = "";
-				}
-			} else {
-				if (arg.startsWith("-") && arg.length() > 1 && !Character.isDigit(arg.charAt(1))) {
-					newArgs.add(commandArg);
-					newArgs.add(arg);
-					inCommand = false;
-				} else {
-					commandArg += " "+ arg;
-				}
-			}
-		}
-		if (inCommand) {
-			newArgs.add(commandArg.trim());
-		}
-		return newArgs.toArray(new String[0]);
-	}
+    
+    private static String[] repairArgs(String[] args) {
+        List<String>    newArgs;
+        String            commandArg;
+        boolean            inCommand;
+        
+        newArgs = new ArrayList<>();
+        inCommand = false;
+        commandArg = null;
+        for (String arg : args) {
+            arg = arg.trim();
+            if (!inCommand) {
+                newArgs.add(arg);
+                if (arg.equals("-c")) {
+                    inCommand = true;
+                    commandArg = "";
+                }
+            } else {
+                if (arg.startsWith("-") && arg.length() > 1 && !Character.isDigit(arg.charAt(1))) {
+                    newArgs.add(commandArg);
+                    newArgs.add(arg);
+                    inCommand = false;
+                } else {
+                    commandArg += " "+ arg;
+                }
+            }
+        }
+        if (inCommand) {
+            newArgs.add(commandArg.trim());
+        }
+        return newArgs.toArray(new String[0]);
+    }
 
-	private interface ValueMapDisplay {
-	    public String getName();
-	    public void displayValueMap(Set<String> keys, Map<String, ? extends StoredValue<byte[]>> storedValues);
-	}
-	
-	private class BasicValueMapDisplay implements ValueMapDisplay {
-	    @Override
-	    public String getName() {
-	        return "basic";
-	    }
-	    
-	    @Override
-	    public void displayValueMap(Set<String> keys, Map<String, ? extends StoredValue<byte[]>> storedValues) {
+    private interface ValueMapDisplay {
+        public String getName();
+        public void displayValueMap(Set<String> keys, Map<String, ? extends StoredValue<byte[]>> storedValues);
+    }
+    
+    private class BasicValueMapDisplay implements ValueMapDisplay {
+        @Override
+        public String getName() {
+            return "basic";
+        }
+        
+        @Override
+        public void displayValueMap(Set<String> keys, Map<String, ? extends StoredValue<byte[]>> storedValues) {
             for (String key : sortedList(keys)) {
-	            StoredValue<byte[]>    storedValue;
-	            
+                StoredValue<byte[]>    storedValue;
+                
                 storedValue = storedValues.get(key);
                 out.printf("%10s => %s\n", key, storedValue != null ? valueFormat.valueToString(storedValue) : noSuchValue);
-	        }
-	    }
-	}
-	
+            }
+        }
+    }
+    
     private class TabDelimitedValueMapDisplay implements ValueMapDisplay {
         @Override
         public String getName() {

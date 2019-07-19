@@ -155,9 +155,9 @@ hashtable_insert(struct hashtable *h, void *k, void *v)
     e = (struct entry *)malloc(sizeof(struct entry));
     if (NULL == e) { --(h->entrycount); return 0; } /*oom*/
     e->h = hash(h,k);
-	//printf("hash %lu\n", e->h);
+    //printf("hash %lu\n", e->h);
     index = indexFor(h->tablelength,e->h);
-	//printf("index %lu\n", index); fflush(0);
+    //printf("index %lu\n", index); fflush(0);
     e->k = k;
     e->v = v;
     e->next = h->table[index];
@@ -172,9 +172,9 @@ hashtable_search(struct hashtable *h, void *k)
     struct entry *e;
     unsigned int hashvalue, index;
     hashvalue = hash(h,k);
-	//printf("hashsearch hash %lu\n", hashvalue);
+    //printf("hashsearch hash %lu\n", hashvalue);
     index = indexFor(h->tablelength,hashvalue);
-	//printf("index %lu\n", index); fflush(0);
+    //printf("index %lu\n", index); fflush(0);
     e = h->table[index];
     while (NULL != e)
     {
@@ -183,9 +183,9 @@ hashtable_search(struct hashtable *h, void *k)
         //printf("\t\t%s %s\n", k, e->k); fflush(stdout);
         //printf("\t\t%x %x %d\n", hashvalue, e->h, h->eqfn(k, e->k)); fflush(stdout);
         if ((hashvalue == e->h) && !(h->eqfn(k, e->k))) {
-			//printf("HT: found\n"); fflush(stdout);
-			return e->v;
-		}
+            //printf("HT: found\n"); fflush(stdout);
+            return e->v;
+        }
         e = e->next;
     }
     //printf("HT: not found\n"); fflush(stdout);

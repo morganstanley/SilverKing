@@ -64,7 +64,7 @@ public class ValueUtil {
     }
     
     public static boolean isInvalidated(byte[] storedValue, int storedOffset) {
-    	return MetaDataUtil.isInvalidated(storedValue, storedOffset);
+        return MetaDataUtil.isInvalidated(storedValue, storedOffset);
     }
     
     public static void verifyChecksum(byte[] storedValue, int storedOffset, byte[] value, int valueOffset,
@@ -84,8 +84,8 @@ public class ValueUtil {
             if (!checksum.isEmpty(actualChecksum)) {
                 expectedChecksum = checksum.checksum(value, valueOffset, valueLength);
                 if (debugChecksum) {
-                	System.out.println("valueOffset: "+ valueOffset);
-                	System.out.println("valueLength: "+ valueLength);
+                    System.out.println("valueOffset: "+ valueOffset);
+                    System.out.println("valueLength: "+ valueLength);
                     System.out.println("value: " + StringUtil.byteArrayToHexString(value, valueOffset, valueLength)
                             + "\t" + valueLength);
                     System.out.println("value: " + new String(value, valueOffset, valueLength));

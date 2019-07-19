@@ -1,5 +1,128 @@
 #!/bin/bash
 
+function f_checkFolderAndDatacenter {
+    typeset             scriptName=$1
+    typeset             folderDate=$2
+    typeset datacenterAbbreviation=$3
+
+    if [[ -z $folderDate || -z $datacenterAbbreviation ]]; then
+        echo "Usage: <folderDate> <dd|in> [/var/tmp | /tmp (default) | whatever base you want]"
+        echo -e "\tex: $scriptName '12.16' 'dd'"
+        echo -e "\tex: $scriptName '12.16' 'dd' '/var/tmp'"
+        exit
+    fi
+}
+
+function f_startTimer {
+    f_getSeconds
+}
+
+function f_getSeconds {
+    echo `date +%s`
+}
+
+function f_printElapsed {
+    typeset elapsedSeconds=$(f_getElapsed "$1")
+    f_printElapsedHelper "$elapsedSeconds"
+}
+
+function f_getElapsed {
+    typeset startTime=$1
+    typeset endTime=$(f_getSeconds)
+    typeset elapsed=$((endTime-startTime))
+    echo $elapsed
+}
+
+function f_printElapsedHelper {
+    typeset elapsedSeconds=$1
+    typeset time=`date -u -d @${elapsedSeconds} +"%T"`
+    echo 
+    echo "Run took: $time ($elapsedSeconds s)" 
+}
+
+function f_createRunDir  {
+    echo "Making `basename $1`"
+    mkdir -p $1
+}
+
+function f_createReportDir  {
+    mkdir -p $1
+}
+
+function f_getLineCount {
+    wc -l $1 | cut -d ' ' -f 1
+}
+
+function f_getHostsNotExcluded {
+    typeset                gcDefaultBase=$1
+    typeset                       runDir=$2
+    typeset              reportOutputDir=$3
+    typeset                       gcName=$4
+    typeset                    hostsFile=$5
+    typeset           passiveHostsGroups=$6
+    typeset    hardwareExcludedHostsFile=$7
+    typeset healtReportExcludedHostsFile=$8
+    typeset                      outFile=$9
+    typeset              activeHostsFile=${10}
+ 
+    echo "Getting hosts that aren't excluded... "
+    
+    if [[ -z $activeHostsFile ]]; then
+        typeset activeHostsOutput=`export GC_DEFAULT_BASE=$gcDefaultBase; ../RingInfo.sh $gcName`
+        typeset activeHostsFileSorted="$runDir/active_hosts_sorted.txt"
+        echo "$activeHostsOutput" | grep -P "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" | cut -d ':' -f 1 | sort -n > $activeHostsFileSorted
+    else
+        activeHostsFileSorted=$activeHostsFile
+    fi
+    
+    typeset passiveHostsFileSorted="$runDir/passive_hosts_sorted.txt"
+    grep -P "$passiveHostsGroups" $hostsFile | awk '{print $1}' | sort -n > $passiveHostsFileSorted
+ 
+    typeset allHostsFile="$reportOutputDir/all_hosts.txt"    # don't want this in runDir b/c we don't want it to get diff'ed since it's not sorted
+    cat $activeHostsFileSorted  >> $allHostsFile
+    cat $passiveHostsFileSorted >> $allHostsFile
+    typeset allHostsFileSorted="$runDir/all_hosts_sorted.txt"
+    sort -n $allHostsFile > $allHostsFileSorted
+    
+    
+    typeset softwareExcludesOutput=`../SKAdmin.sh -G $gcDefaultBase -g $gcName -c "GetInstanceExclusions"`
+    typeset softwareExcludedHostsFileSorted="$runDir/software_excludes_sorted.txt"
+    echo "$softwareExcludesOutput" | grep -P "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$" | sort -n > $softwareExcludedHostsFileSorted
+    
+    typeset hardwareExcludedHostsFileSorted="$runDir/hardware_excludes_sorted.txt"
+    sort -n $hardwareExcludedHostsFile > $hardwareExcludedHostsFileSorted
+    
+    typeset healtReportExcludedHostsFileSorted="$runDir/health_report_excludes_sorted.txt"
+    sort -n $healtReportExcludedHostsFile > $healtReportExcludedHostsFileSorted
+    
+    typeset allExcludedHostsFile="$reportOutputDir/all_excluded_hosts.txt"  # don't want this in runDir b/c we don't want it to get diff'ed since it's not sorted
+    cat $softwareExcludedHostsFileSorted    >> $allExcludedHostsFile
+    cat $hardwareExcludedHostsFileSorted    >> $allExcludedHostsFile
+    cat $healtReportExcludedHostsFileSorted >> $allExcludedHostsFile
+    typeset allExcludedHostsFileSorted="$runDir/all_excluded_hosts_sorted.txt"
+    sort -n $allExcludedHostsFile > $allExcludedHostsFileSorted
+    
+    typeset   hostsCount=$(f_getLineCount "$allHostsFileSorted")
+    typeset  activeCount=$(f_getLineCount "$activeHostsFileSorted")
+    typeset passiveCount=$(f_getLineCount "$passiveHostsFileSorted")
+    echo -e "\tall hosts: $hostsCount"
+    echo -e "\t\tactive:  $activeCount"
+    echo -e "\t\tpassive: $passiveCount"
+    
+    typeset excludesCount=$(f_getLineCount "$allExcludedHostsFileSorted")
+    typeset softwareCount=$(f_getLineCount "$softwareExcludedHostsFileSorted")
+    typeset hardwareCount=$(f_getLineCount "$hardwareExcludedHostsFileSorted")
+    typeset   healthCount=$(f_getLineCount "$healtReportExcludedHostsFileSorted")
+    echo -e "\texcludes: $excludesCount"
+    echo -e "\t\tsoftware: $softwareCount"
+    echo -e "\t\thardware: $hardwareCount"
+    echo -e "\t\thealth:   $healthCount"
+    
+    comm -23 $allHostsFileSorted $allExcludedHostsFileSorted > $outFile
+    
+    echo -e "\t`wc -l $outFile`"
+}
+
 function f_getNumberOfLines {
     typeset file=$1
     
@@ -77,22 +200,36 @@ function f_sendTextHelper {
 }
 
 function f_sendMessageHelper {
-	typeset          to=$1
-	typeset        from=$2
-	typeset     subject=$3
-	typeset        body=$4
-	typeset attachments=$5
+    typeset          to=$1
+    typeset        from=$2
+    typeset     subject=$3
+    typeset        body=$4
+    typeset attachments=$5
     typeset   emailType=$6
     typeset        mutt=$7
-	
+    
     echo -n "Sending $emailType..."
     
-	typeset attachmentsList;
-	if [[ -n $attachments ]]; then
-		attachmentsList="-a $attachments"
-	fi
-	
-	echo -e "$body" | $mutt -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
+    typeset attachmentsList;
+    if [[ -n $attachments ]]; then
+        attachmentsList="-a $attachments"
+    fi
+    
+    echo -e "$body" | $mutt -e "set copy=no" -e "my_hdr From:$from" $to -s "$subject" $attachmentsList  
     
     echo "done"
+}
+
+function f_sendNetcoolAlert {
+    typeset         name=$1
+    typeset abbreviation=$2
+    typeset       runDir=$3
+    
+    if [[ `cat $runDir/run.result` == "FATAL" ]]; then 
+        if [[ -e netcoolAlerter.pl ]]; then
+            echo -n "Sending netcool alert..."
+            netcoolAlerter.pl "$abbreviation" "`cat $runDir/email.subject | sed "s#^$name ##g" `" 5
+            echo "done"
+        fi
+    fi
 }

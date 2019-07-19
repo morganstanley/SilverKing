@@ -15,11 +15,11 @@
 // types
 
 typedef struct ResponseTimeStats {
-	double	rtAverageMillis;
-	double	rtDevMillis;
-	double	alpha;
-	double	oneMinusAlpha;
-	pthread_rwlock_t	rwLock;
+    double    rtAverageMillis;
+    double    rtDevMillis;
+    double    alpha;
+    double    oneMinusAlpha;
+    pthread_rwlock_t    rwLock;
 } ResponseTimeStats;
 
 

@@ -57,8 +57,8 @@ public class MultiDHTExample {
         
         Worker(SKGridConfiguration gridConfig, String preferredServer, int iterations, String workID) 
                                                     throws ClientException, IOException {
-        	DHTSession	session;
-        	
+            DHTSession    session;
+            
             this.iterations = iterations;
             this.workID = workID;
             session = new DHTClient().openSession(new SessionOptions(gridConfig, preferredServer));

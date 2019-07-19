@@ -142,7 +142,7 @@
 
 #define ODT_NAME "OpenDirTable"
 
-#define SKFS_FUSE_OPTION_STRING_LENGTH	128
+#define SKFS_FUSE_OPTION_STRING_LENGTH    128
 #define _SKFS_RENAME_RETRY_DELAY_MS    5
 #define _SKFS_RENAME_MAX_ATTEMPTS   20
 #define _SKFS_TIMEOUT_NEVER 0x0fffffff
@@ -212,8 +212,8 @@ static struct argp_option options[] = {
        {LO_CHECKSUM,             SO_CHECKSUM,            LO_CHECKSUM,                 0,  "Checksum", 0 },
        {LO_TRANSIENT_CACHE_SIZE_KB,  SO_TRANSIENT_CACHE_SIZE_KB, LO_TRANSIENT_CACHE_SIZE_KB,      0,  "transientCacheSizeKB", 0 },
        {LO_CACHE_CONCURRENCY,   SO_CACHE_CONCURRENCY, LO_CACHE_CONCURRENCY,           0,  "cacheConcurrency", 0 },
-	   {LO_LOG_LEVEL,           SO_LOG_LEVEL,            LO_LOG_LEVEL,                0, "logLevel", 0},
-	   {LO_JVM_OPTIONS,         SO_JVM_OPTIONS,          LO_JVM_OPTIONS,              0, "comma-separated jvmOptions", 0},
+       {LO_LOG_LEVEL,           SO_LOG_LEVEL,            LO_LOG_LEVEL,                0, "logLevel", 0},
+       {LO_JVM_OPTIONS,         SO_JVM_OPTIONS,          LO_JVM_OPTIONS,              0, "comma-separated jvmOptions", 0},
        {LO_BIGWRITES,           SO_BIGWRITES,            LO_BIGWRITES,           OPTION_ARG_OPTIONAL,  "enable big_writes", 0 },
        {LO_ENTRY_TIMEOUT_SECS, SO_ENTRY_TIMEOUT_SECS,    LO_ENTRY_TIMEOUT_SECS,  0,  "entry timeout seconds", 0 },
        {LO_ATTR_TIMEOUT_SECS, SO_ATTR_TIMEOUT_SECS,    LO_ATTR_TIMEOUT_SECS,  0,  "attr timeout seconds", 0 },
@@ -241,46 +241,46 @@ static struct fuse_args fuseArgs = FUSE_ARGS_INIT(0, NULL);
 
 static PartialBlockReader *pbr;
 static FileBlockReader *fbr;
-static AttrReader	*ar;
-//static DirReader	*dr;
-static OpenDirTable	*odt;
-static FileIDToPathMap	*f2p;
-static WritableFileTable	*wft;
-static AttrWriter	*aw;
-static AttrWriter	*awSKFS;
-static FileBlockWriter	*fbwCompress;
-static FileBlockWriter	*fbwRaw;
-static FileBlockWriter	*fbwSKFS;
+static AttrReader    *ar;
+//static DirReader    *dr;
+static OpenDirTable    *odt;
+static FileIDToPathMap    *f2p;
+static WritableFileTable    *wft;
+static AttrWriter    *aw;
+static AttrWriter    *awSKFS;
+static FileBlockWriter    *fbwCompress;
+static FileBlockWriter    *fbwRaw;
+static FileBlockWriter    *fbwSKFS;
 static SKHealthMonitor  *skHealthMonitor;
-static SRFSDHT	*sd;
-static ResponseTimeStats	*rtsAR_DHT;
-static ResponseTimeStats	*rtsAR_NFS;
-static ResponseTimeStats	*rtsFBR_DHT;
-static ResponseTimeStats	*rtsFBR_NFS;
-static ResponseTimeStats	*rtsODT;
-static PathGroup volatile	*fsNativeOnlyPaths;
-static char			*fsNativeOnlyFile;
+static SRFSDHT    *sd;
+static ResponseTimeStats    *rtsAR_DHT;
+static ResponseTimeStats    *rtsAR_NFS;
+static ResponseTimeStats    *rtsFBR_DHT;
+static ResponseTimeStats    *rtsFBR_NFS;
+static ResponseTimeStats    *rtsODT;
+static PathGroup volatile    *fsNativeOnlyPaths;
+static char            *fsNativeOnlyFile;
 static BlockReader  *br;
 
-static int			statsIntervalSeconds = 20;
-static int			statsDetailIntervalSeconds = 300;
-static pthread_t	statsThread;
-static pthread_t	nativeFileWatcherThread;
+static int            statsIntervalSeconds = 20;
+static int            statsDetailIntervalSeconds = 300;
+static pthread_t    statsThread;
+static pthread_t    nativeFileWatcherThread;
 
-static char	logFileName[SRFS_MAX_PATH_LENGTH];
-static char	logFileNameDht[SRFS_MAX_PATH_LENGTH];
+static char    logFileName[SRFS_MAX_PATH_LENGTH];
+static char    logFileNameDht[SRFS_MAX_PATH_LENGTH];
 static FILE * dhtCliLog = NULL; 
 
-static char	fuseEntryOption[SKFS_FUSE_OPTION_STRING_LENGTH];
-static char	fuseAttrOption[SKFS_FUSE_OPTION_STRING_LENGTH];
-static char	fuseACAttrOption[SKFS_FUSE_OPTION_STRING_LENGTH];
-static char	fuseNegativeOption[SKFS_FUSE_OPTION_STRING_LENGTH];
+static char    fuseEntryOption[SKFS_FUSE_OPTION_STRING_LENGTH];
+static char    fuseAttrOption[SKFS_FUSE_OPTION_STRING_LENGTH];
+static char    fuseACAttrOption[SKFS_FUSE_OPTION_STRING_LENGTH];
+static char    fuseNegativeOption[SKFS_FUSE_OPTION_STRING_LENGTH];
 
-SKSessionOptions	*sessOption;
+SKSessionOptions    *sessOption;
 
 static int  destroyCalled;
-static pthread_spinlock_t	destroyLockInstance;
-static pthread_spinlock_t	*destroyLock = &destroyLockInstance;
+static pthread_spinlock_t    destroyLockInstance;
+static pthread_spinlock_t    *destroyLock = &destroyLockInstance;
 
 static SKSession    *pUtilSession;
 static SKSyncNSPerspective *systemNSP;
@@ -329,7 +329,7 @@ static int parseBoolean(char *arg) {
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
         /* Get the input argument from argp_parse, which we
            know is a pointer to our CmdArgs structure. */
-		int cacheConcur = 0;
+        int cacheConcur = 0;
         CmdArgs *arguments = (struct CmdArgs *)state->input;
         switch (key) {
                 case SO_HOST:
@@ -372,45 +372,45 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                         arguments->taskOutputPaths = arg;
                         break;
                 case SO_COMPRESSION:
-						if (!strcmp(arg, "NONE")) { 
-							arguments->compression = SKCompression::NONE;
-						} else if (!strcmp(arg, "ZIP")) { 
-							arguments->compression = SKCompression::ZIP;
-						} else if (!strcmp(arg, "BZIP2")) { 
-							arguments->compression = SKCompression::BZIP2;
-						} else if (!strcmp(arg, "SNAPPY")) { 
-							arguments->compression = SKCompression::SNAPPY;
+                        if (!strcmp(arg, "NONE")) { 
+                            arguments->compression = SKCompression::NONE;
+                        } else if (!strcmp(arg, "ZIP")) { 
+                            arguments->compression = SKCompression::ZIP;
+                        } else if (!strcmp(arg, "BZIP2")) { 
+                            arguments->compression = SKCompression::BZIP2;
+                        } else if (!strcmp(arg, "SNAPPY")) { 
+                            arguments->compression = SKCompression::SNAPPY;
                         } else if (!strcmp(arg, "LZ4")) { 
                             arguments->compression = SKCompression::LZ4;
-						} else {
-							arguments->compression = SKCompression::NONE;
-						}
+                        } else {
+                            arguments->compression = SKCompression::NONE;
+                        }
                         break;
                 case SO_CHECKSUM:
                     {
-						if (!strcmp(arg, "NONE")) { 
+                        if (!strcmp(arg, "NONE")) { 
                             arguments->checksum = SKChecksumType::NONE;
-						} else if (!strcmp(arg, "MD5")) { 
-							arguments->checksum = SKChecksumType::MD5;
-						} else if (!strcmp(arg, "SHA_1")) { 
-							arguments->checksum = SKChecksumType::SHA_1;
-						} else if (!strcmp(arg, "MURMUR3_32")) { 
-							arguments->checksum = SKChecksumType::MURMUR3_32;
-						} else if (!strcmp(arg, "MURMUR3_128")) { 
-							arguments->checksum = SKChecksumType::MURMUR3_128;
-						} else {
-							arguments->checksum = SKChecksumType::NONE;
-						}
+                        } else if (!strcmp(arg, "MD5")) { 
+                            arguments->checksum = SKChecksumType::MD5;
+                        } else if (!strcmp(arg, "SHA_1")) { 
+                            arguments->checksum = SKChecksumType::SHA_1;
+                        } else if (!strcmp(arg, "MURMUR3_32")) { 
+                            arguments->checksum = SKChecksumType::MURMUR3_32;
+                        } else if (!strcmp(arg, "MURMUR3_128")) { 
+                            arguments->checksum = SKChecksumType::MURMUR3_128;
+                        } else {
+                            arguments->checksum = SKChecksumType::NONE;
+                        }
                         break;
                     }
-				case SO_TRANSIENT_CACHE_SIZE_KB:
-						arguments->transientCacheSizeKB = atoi(arg);
-						break;
-				case SO_CACHE_CONCURRENCY:
-						cacheConcur = atoi(arg);
-						if(cacheConcur > 0) arguments->cacheConcurrency = cacheConcur ;
-						if(arguments->cacheConcurrency == 0) arguments->cacheConcurrency = 1;
-						break;
+                case SO_TRANSIENT_CACHE_SIZE_KB:
+                        arguments->transientCacheSizeKB = atoi(arg);
+                        break;
+                case SO_CACHE_CONCURRENCY:
+                        cacheConcur = atoi(arg);
+                        if(cacheConcur > 0) arguments->cacheConcurrency = cacheConcur ;
+                        if(arguments->cacheConcurrency == 0) arguments->cacheConcurrency = 1;
+                        break;
                 case SO_VERBOSE:
                         arguments->verbose = parseBoolean(arg);
                         break;
@@ -420,7 +420,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                         //argp_usage (state);
                         //}
                         //arguments->args[state->arg_num] = arg;
-			srfsLog(LOG_WARNING, "would add %d %s", state->arg_num, state->argv[state->arg_num]); fflush(stdout);
+            srfsLog(LOG_WARNING, "would add %d %s", state->arg_num, state->argv[state->arg_num]); fflush(stdout);
                         break;
                 case ARGP_KEY_END:
                         //if (state->arg_num < 2) {
@@ -429,70 +429,70 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                         //}
                         break;
                 case SO_MOUNT:
-						srfsLog(LOG_WARNING, "mount: %s", arg);
+                        srfsLog(LOG_WARNING, "mount: %s", arg);
                         add_fuse_option(arg);
                         arguments->mountPath = arg;
                         break;
-				case SO_LOG_LEVEL:
-						arguments->logLevel = arg;
-						break;
-				case SO_JVM_OPTIONS:
-						arguments->jvmOptions = arg;
-						break;
+                case SO_LOG_LEVEL:
+                        arguments->logLevel = arg;
+                        break;
+                case SO_JVM_OPTIONS:
+                        arguments->jvmOptions = arg;
+                        break;
                 case SO_BIGWRITES:
                         arguments->enableBigWrites = parseBoolean(arg);
-						break;
-				case SO_ENTRY_TIMEOUT_SECS:
-						arguments->entryTimeoutSecs = parseTimeout(arg);
-						break;
-				case SO_ATTR_TIMEOUT_SECS:
-						arguments->attrTimeoutSecs = parseTimeout(arg);
-						break;
-				case SO_NEGATIVE_TIMEOUT_SECS:
-						arguments->negativeTimeoutSecs = parseTimeout(arg);
-						break;
-				case SO_DHT_OP_MIN_TIMEOUT_MS:
-						arguments->dhtOpMinTimeoutMS = sd_parse_timeout(arg, SRFS_DHT_OP_MIN_TIMEOUT_MS);
-						break;
-				case SO_DHT_OP_MAX_TIMEOUT_MS:
-						arguments->dhtOpMaxTimeoutMS = sd_parse_timeout(arg, SRFS_DHT_OP_MAX_TIMEOUT_MS);
-						break;
-				case SO_NATIVE_FILE_MODE:
-						arguments->nativeFileMode = parseNativeFileMode(arg);
-						break;
-				case SO_REMOTE_ADDRESS_FILE:
-						arguments->brRemoteAddressFile = arg;
-						break;
-				case SO_BLOCK_READER_PORT:
-						arguments->brPort = atoi(arg);
-						break;
-				case SO_RECONCILIATION_SLEEP:
-						arguments->reconciliationSleep = arg;
-						break;
-				case SO_ODW_MIN_WRITE_INTERVAL_MILLIS:
-						arguments->odwMinWriteIntervalMillis = atoi(arg);
-						break;
-				case SO_SYNC_DIR_UPDATES:
-						arguments->syncDirUpdates = parseBoolean(arg);
-						break;
+                        break;
+                case SO_ENTRY_TIMEOUT_SECS:
+                        arguments->entryTimeoutSecs = parseTimeout(arg);
+                        break;
+                case SO_ATTR_TIMEOUT_SECS:
+                        arguments->attrTimeoutSecs = parseTimeout(arg);
+                        break;
+                case SO_NEGATIVE_TIMEOUT_SECS:
+                        arguments->negativeTimeoutSecs = parseTimeout(arg);
+                        break;
+                case SO_DHT_OP_MIN_TIMEOUT_MS:
+                        arguments->dhtOpMinTimeoutMS = sd_parse_timeout(arg, SRFS_DHT_OP_MIN_TIMEOUT_MS);
+                        break;
+                case SO_DHT_OP_MAX_TIMEOUT_MS:
+                        arguments->dhtOpMaxTimeoutMS = sd_parse_timeout(arg, SRFS_DHT_OP_MAX_TIMEOUT_MS);
+                        break;
+                case SO_NATIVE_FILE_MODE:
+                        arguments->nativeFileMode = parseNativeFileMode(arg);
+                        break;
+                case SO_REMOTE_ADDRESS_FILE:
+                        arguments->brRemoteAddressFile = arg;
+                        break;
+                case SO_BLOCK_READER_PORT:
+                        arguments->brPort = atoi(arg);
+                        break;
+                case SO_RECONCILIATION_SLEEP:
+                        arguments->reconciliationSleep = arg;
+                        break;
+                case SO_ODW_MIN_WRITE_INTERVAL_MILLIS:
+                        arguments->odwMinWriteIntervalMillis = atoi(arg);
+                        break;
+                case SO_SYNC_DIR_UPDATES:
+                        arguments->syncDirUpdates = parseBoolean(arg);
+                        break;
                 default:
-			//printf("Adding %d %s\n", state->arg_num, state->argv[state->arg_num]); fflush(stdout);
-			//fuse_opt_add_arg(&fuseArgs, state->argv[state->arg_num]);
+            //printf("Adding %d %s\n", state->arg_num, state->argv[state->arg_num]); fflush(stdout);
+            //fuse_opt_add_arg(&fuseArgs, state->argv[state->arg_num]);
                         return ARGP_ERR_UNKNOWN;
-			break;
+            break;
         }
         return 0;
 }
 
 static void checkArguments(CmdArgs *arguments) {
     if (arguments->zkLoc == NULL) {
-		fatalError(LO_ZK_LOC " not set", __FILE__, __LINE__);
+        fatalError(LO_ZK_LOC " not set", __FILE__, __LINE__);
     }
     if (arguments->gcname == NULL) {
-		fatalError(LO_GC_NAME " not set", __FILE__, __LINE__);
+        fatalError(LO_GC_NAME " not set", __FILE__, __LINE__);
     }
     if (arguments->host == NULL) {
-		fatalError(LO_HOST " not set", __FILE__, __LINE__);
+        fatalError(LO_HOST " not set", __FILE__, __LINE__);
     }
 }
 
@@ -503,13 +503,13 @@ void initDefaults(CmdArgs *arguments) {
     arguments->zkLoc = NULL;
     arguments->nfsMapping = NULL;
     arguments->permanentSuffixes = NULL;
-	arguments->noErrorCachePaths = NULL;
-	arguments->compression = SKCompression::NONE;
-	arguments->checksum = SKChecksumType::NONE;
-	arguments->transientCacheSizeKB = 0;
-	arguments->cacheConcurrency = sysconf(_SC_NPROCESSORS_ONLN);
+    arguments->noErrorCachePaths = NULL;
+    arguments->compression = SKCompression::NONE;
+    arguments->checksum = SKChecksumType::NONE;
+    arguments->transientCacheSizeKB = 0;
+    arguments->cacheConcurrency = sysconf(_SC_NPROCESSORS_ONLN);
     arguments->jvmOptions = NULL;
-	arguments->enableBigWrites = TRUE;
+    arguments->enableBigWrites = TRUE;
     arguments->entryTimeoutSecs = -1;
     arguments->attrTimeoutSecs = -1;
     arguments->negativeTimeoutSecs = -1;
@@ -536,68 +536,68 @@ static void displayArguments(CmdArgs *arguments) {
     printf("transientCacheSizeKB %d\n", arguments->transientCacheSizeKB);
     printf("cacheConcurrency %d\n", arguments->cacheConcurrency);
     printf("jvmOptions %s\n", arguments->jvmOptions);
-	printf("enableBigWrites %d\n", arguments->enableBigWrites);
-	printf("entryTimeoutSecs %d\n", arguments->entryTimeoutSecs);
-	printf("attrTimeoutSecs %d\n", arguments->attrTimeoutSecs);
-	printf("negativeTimeoutSecs %d\n", arguments->negativeTimeoutSecs);
-	printf("dhtOpMinTimeoutMS %ld\n", arguments->dhtOpMinTimeoutMS);
-	printf("dhtOpMaxTimeoutMS %ld\n", arguments->dhtOpMaxTimeoutMS);
-	printf("nativeFileMode %s\n", nativeFileModes[arguments->nativeFileMode]);
-	printf("brRemoteAddressFile %s\n", arguments->brRemoteAddressFile);
-	printf("brPort %d\n", arguments->brPort);
-	printf("reconciliationSleep %s\n", arguments->reconciliationSleep);
-	printf("odwMinWriteIntervalMillis %ld\n", arguments->odwMinWriteIntervalMillis);
-	printf("syncDirUpdates %d\n", arguments->syncDirUpdates);
+    printf("enableBigWrites %d\n", arguments->enableBigWrites);
+    printf("entryTimeoutSecs %d\n", arguments->entryTimeoutSecs);
+    printf("attrTimeoutSecs %d\n", arguments->attrTimeoutSecs);
+    printf("negativeTimeoutSecs %d\n", arguments->negativeTimeoutSecs);
+    printf("dhtOpMinTimeoutMS %ld\n", arguments->dhtOpMinTimeoutMS);
+    printf("dhtOpMaxTimeoutMS %ld\n", arguments->dhtOpMaxTimeoutMS);
+    printf("nativeFileMode %s\n", nativeFileModes[arguments->nativeFileMode]);
+    printf("brRemoteAddressFile %s\n", arguments->brRemoteAddressFile);
+    printf("brPort %d\n", arguments->brPort);
+    printf("reconciliationSleep %s\n", arguments->reconciliationSleep);
+    printf("odwMinWriteIntervalMillis %ld\n", arguments->odwMinWriteIntervalMillis);
+    printf("syncDirUpdates %d\n", arguments->syncDirUpdates);
 }
 
 // FUSE interface
 
 static int skfs_getattr(const char *path, struct stat *stbuf
 #if FUSE_MAJOR_VERSION >= 3
-	, struct fuse_file_info *fi
+    , struct fuse_file_info *fi
 #endif
 ) {
     // FIXME - below is temp LOG_FINE until we can reduce log mutex contention
-	srfsLogAsync(/*LOG_OPS*/LOG_FINE, "_ga %x %s", get_caller_pid(), path);
-	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
-		char nativePath[SRFS_MAX_PATH_LENGTH];
+    srfsLogAsync(/*LOG_OPS*/LOG_FINE, "_ga %x %s", get_caller_pid(), path);
+    if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
+        char nativePath[SRFS_MAX_PATH_LENGTH];
 
-		srfsLogAsync(LOG_OPS, "native lstat");
-		ar_translate_path(ar, nativePath, path);
-		srfsLog(LOG_FINE, "%s -> %s", path, nativePath);
-		return lstat(nativePath, stbuf);
-	} else {
-		int	result;
+        srfsLogAsync(LOG_OPS, "native lstat");
+        ar_translate_path(ar, nativePath, path);
+        srfsLog(LOG_FINE, "%s -> %s", path, nativePath);
+        return lstat(nativePath, stbuf);
+    } else {
+        int    result;
 
         result = ENOENT;
-		if (is_writable_path(path)) {
+        if (is_writable_path(path)) {
             WritableFileReference    *wf_ref;
             
-			odt_record_get_attr(odt, (char *)path);
+            odt_record_get_attr(odt, (char *)path);
             
-			wf_ref = wft_get(wft, path);
-			srfsLog(LOG_FINE, "wf_ref %llx", wf_ref);
-			if (wf_ref != NULL) {
-                WritableFile	    *wf;
-			
+            wf_ref = wft_get(wft, path);
+            srfsLog(LOG_FINE, "wf_ref %llx", wf_ref);
+            if (wf_ref != NULL) {
+                WritableFile        *wf;
+            
                 wf = wfr_get_wf(wf_ref);
                 srfsLog(LOG_FINE, "wf %llx", wf);
-				memcpy(stbuf, &wf->fa.stat, sizeof(struct stat));
-				result = 0;
+                memcpy(stbuf, &wf->fa.stat, sizeof(struct stat));
+                result = 0;
                 wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
-			} else {
-				srfsLog(LOG_FINE, "fa couldn't find writable file in wft %s", path);
+            } else {
+                srfsLog(LOG_FINE, "fa couldn't find writable file in wft %s", path);
                 // We will look in the kv store for this case
-			}
-		}
+            }
+        }
         if (result != 0) {
             result = ar_get_attr_stat(ar, (char *)path, stbuf);
             srfsLog(LOG_FINE, "result %d %s %d", result, __FILE__, __LINE__);
         }
-		srfsLog(LOG_FINE, "stbuf->st_mode %o stbuf->st_nlink %d result %d", stbuf->st_mode, stbuf->st_nlink, result);
+        srfsLog(LOG_FINE, "stbuf->st_mode %o stbuf->st_nlink %d result %d", stbuf->st_mode, stbuf->st_nlink, result);
         //stat_display(stbuf, stderr);
-		return -result;
-	}
+        return -result;
+    }
 }
 
 static int ensure_not_writable(char *path1, char *path2) {
@@ -642,8 +642,8 @@ static int modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t 
 
 static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t *uid, gid_t *gid, 
                             const struct timespec *last_access_tp, const struct timespec *last_modification_tp, const struct timespec *last_change_tp) {
-	if (!is_writable_path(path)) {
-		return -EIO;
+    if (!is_writable_path(path)) {
+        return -EIO;
     } else {    
         WritableFileReference    *wf_ref;
         
@@ -668,8 +668,8 @@ static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t
             wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
             return rc;
         } else {
-            FileAttr	fa;
-            int			result;
+            FileAttr    fa;
+            int            result;
         
             memset(&fa, 0, sizeof(FileAttr));
             result = ar_get_attr(ar, (char *)path, &fa);
@@ -713,10 +713,10 @@ static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t
 
 static int skfs_chmod(const char *path, mode_t mode
 #if FUSE_MAJOR_VERSION >= 3
-	, struct fuse_file_info *fi 
+    , struct fuse_file_info *fi 
 #endif
 ) {
-	srfsLogAsync(LOG_OPS, "_cm %s %x", path, mode);
+    srfsLogAsync(LOG_OPS, "_cm %s %x", path, mode);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to chmod %s", path);
         return -EROFS;
@@ -726,10 +726,10 @@ static int skfs_chmod(const char *path, mode_t mode
 
 static int skfs_chown(const char *path, uid_t uid, gid_t gid
 #if FUSE_MAJOR_VERSION >= 3
-	, struct fuse_file_info *fi 
+    , struct fuse_file_info *fi 
 #endif
 ) {
-	srfsLogAsync(LOG_OPS, "_co %s %d %d", path, uid, gid);
+    srfsLogAsync(LOG_OPS, "_co %s %d %d", path, uid, gid);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to chown %s", path);
         return -EROFS;
@@ -739,7 +739,7 @@ static int skfs_chown(const char *path, uid_t uid, gid_t gid
 
 static int skfs_truncate(const char *path, off_t size
 #if FUSE_MAJOR_VERSION >= 3
-	, struct fuse_file_info *fi 
+    , struct fuse_file_info *fi 
 #endif
 ) {
     WritableFile            *wf;
@@ -747,16 +747,16 @@ static int skfs_truncate(const char *path, off_t size
     int openedForTruncation;
     int rc;
     
-	srfsLogAsync(LOG_OPS, "_t %s %lu", path, size);
+    srfsLogAsync(LOG_OPS, "_t %s %lu", path, size);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to truncate %s", path);
         return -EROFS;
     }
     wf_ref = wft_get(wft, path);
-	if (wf_ref != NULL) { // file is currently open; we're good
+    if (wf_ref != NULL) { // file is currently open; we're good
         openedForTruncation = FALSE;
     } else {              // file is not open; open it
-        FileAttr	fa;
+        FileAttr    fa;
         int         statResult;
         
         openedForTruncation = TRUE;
@@ -787,7 +787,7 @@ static int skfs_truncate(const char *path, off_t size
         // as we just opened it above
         wf_tableRef = wft_remove(wft, path);
         frc = -wf_flush(wf, aw, fbwSKFS, ar->attrCache);
-		rc = -wf_close(wf, aw, fbwSKFS, ar->attrCache);
+        rc = -wf_close(wf, aw, fbwSKFS, ar->attrCache);
         if (rc == 0 && frc != 0) {
             rc = frc;
         }
@@ -800,12 +800,12 @@ static int skfs_truncate(const char *path, off_t size
 
 static int skfs_utimens(const char *path, const struct timespec ts[2]
 #if FUSE_MAJOR_VERSION >= 3
-	, struct fuse_file_info *fi 
+    , struct fuse_file_info *fi 
 #endif
 ) {
     struct timespec last_change_tp;
     
-	srfsLogAsync(LOG_OPS, "_ut %s", path);
+    srfsLogAsync(LOG_OPS, "_ut %s", path);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to utimens %s", path);
         return -EROFS;
@@ -818,112 +818,112 @@ static int skfs_utimens(const char *path, const struct timespec ts[2]
 }
 
 static int skfs_access(const char *path, int mask) {
-	int	result;
-	struct stat stbuf;
+    int    result;
+    struct stat stbuf;
 
-	srfsLogAsync(LOG_OPS, "_a %s", path);
-	memset(&stbuf, 0, sizeof(struct stat));
-	result = ar_get_attr_stat(ar, (char *)path, &stbuf);
+    srfsLogAsync(LOG_OPS, "_a %s", path);
+    memset(&stbuf, 0, sizeof(struct stat));
+    result = ar_get_attr_stat(ar, (char *)path, &stbuf);
     if (result == 0 && mask != F_OK) {
         // for now we ignore the mask and just return success
         // if we could stat it
         // FUTURE - handle mask values
     }
-	return -result;
+    return -result;
 }
 
 static int skfs_readlink(const char *path, char *buf, size_t size) {
-	char	linkPath[SRFS_MAX_PATH_LENGTH];
-	int		numRead;
-	int		fallbackToNFS;
-	int		returnSize;
+    char    linkPath[SRFS_MAX_PATH_LENGTH];
+    int        numRead;
+    int        fallbackToNFS;
+    int        returnSize;
 
-	srfsLogAsync(LOG_OPS, "_rl %s %d", path, size);
+    srfsLogAsync(LOG_OPS, "_rl %s %d", path, size);
 
-	fallbackToNFS = FALSE;
-	srfsLog(LOG_FINE, "skfs_readlink %s %u", path, size);
-	memset(linkPath, 0, SRFS_MAX_PATH_LENGTH);
-	
-	if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
-		srfsLogAsync(LOG_OPS, "native readlink");
-		fallbackToNFS = TRUE;
-	} else {
-		if (!ar_is_no_link_cache_path(ar, (char *)path)) {
-			numRead = pbr_read(pbr, path, linkPath, SRFS_MAX_PATH_LENGTH, 0, NULL);
+    fallbackToNFS = FALSE;
+    srfsLog(LOG_FINE, "skfs_readlink %s %u", path, size);
+    memset(linkPath, 0, SRFS_MAX_PATH_LENGTH);
+    
+    if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
+        srfsLogAsync(LOG_OPS, "native readlink");
+        fallbackToNFS = TRUE;
+    } else {
+        if (!ar_is_no_link_cache_path(ar, (char *)path)) {
+            numRead = pbr_read(pbr, path, linkPath, SRFS_MAX_PATH_LENGTH, 0, NULL);
 
-			if (numRead > 0 && numRead < SRFS_MAX_PATH_LENGTH) {
-				char	appendBuf[SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1];
-				char	resultBuf[SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1];
-				char	*fullLinkPath;
-				int		pathSimplifyResult;
+            if (numRead > 0 && numRead < SRFS_MAX_PATH_LENGTH) {
+                char    appendBuf[SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1];
+                char    resultBuf[SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1];
+                char    *fullLinkPath;
+                int        pathSimplifyResult;
 
-				memset(appendBuf, 0, SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1);
-				memset(resultBuf, 0, SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1);
-				srfsLog(LOG_FINE, "link %s. linkPath %s", path, linkPath);
-				if (linkPath[0] == '/') {
-					srfsLog(LOG_FINE, "absolute symlink");
-					fullLinkPath = linkPath;
-				} else {
-					char	pathBase[SRFS_MAX_PATH_LENGTH];
-					char	*lastSlash;
-					
-					strcpy(pathBase, path);
-					lastSlash = strrchr(pathBase, '/');
-					if (lastSlash != NULL) {
-						*lastSlash = '\0';
-					}
-					srfsLog(LOG_FINE, "relative symlink");
-					sprintf(appendBuf, "%s/%s/%s", args->mountPath, pathBase, linkPath);
-					fullLinkPath = appendBuf;
-				}
-				srfsLog(LOG_FINE, "fullLinkPath %s", fullLinkPath);
-				pathSimplifyResult = path_simplify(fullLinkPath, resultBuf, SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1);
-				srfsLog(LOG_FINE, "pathSimplifyResult %d", pathSimplifyResult);
-				if (pathSimplifyResult == FALSE) {
-					fallbackToNFS = TRUE;
-				} else {
-					srfsLog(LOG_FINE, "simplified path %s", resultBuf);
-					returnSize = strlen(resultBuf) + 1;
-					if ((size_t)returnSize >= size) {
-						returnSize = size - 1;
-					}
-					memcpy(buf, resultBuf, returnSize);
-					buf[returnSize] = '\0';
-					returnSize = 0;
-				}
-			} else {
-				srfsLog(LOG_WARNING, "error reading link %s. falling back to nfs", path);
-				fallbackToNFS = TRUE;
-			}
-		} else {
-			fallbackToNFS = TRUE;
-			srfsLog(LOG_WARNING, "no link cache path %s", path);
-		}
-	}
+                memset(appendBuf, 0, SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1);
+                memset(resultBuf, 0, SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1);
+                srfsLog(LOG_FINE, "link %s. linkPath %s", path, linkPath);
+                if (linkPath[0] == '/') {
+                    srfsLog(LOG_FINE, "absolute symlink");
+                    fullLinkPath = linkPath;
+                } else {
+                    char    pathBase[SRFS_MAX_PATH_LENGTH];
+                    char    *lastSlash;
+                    
+                    strcpy(pathBase, path);
+                    lastSlash = strrchr(pathBase, '/');
+                    if (lastSlash != NULL) {
+                        *lastSlash = '\0';
+                    }
+                    srfsLog(LOG_FINE, "relative symlink");
+                    sprintf(appendBuf, "%s/%s/%s", args->mountPath, pathBase, linkPath);
+                    fullLinkPath = appendBuf;
+                }
+                srfsLog(LOG_FINE, "fullLinkPath %s", fullLinkPath);
+                pathSimplifyResult = path_simplify(fullLinkPath, resultBuf, SRFS_MAX_PATH_LENGTH + SRFS_MAX_PATH_LENGTH + 1);
+                srfsLog(LOG_FINE, "pathSimplifyResult %d", pathSimplifyResult);
+                if (pathSimplifyResult == FALSE) {
+                    fallbackToNFS = TRUE;
+                } else {
+                    srfsLog(LOG_FINE, "simplified path %s", resultBuf);
+                    returnSize = strlen(resultBuf) + 1;
+                    if ((size_t)returnSize >= size) {
+                        returnSize = size - 1;
+                    }
+                    memcpy(buf, resultBuf, returnSize);
+                    buf[returnSize] = '\0';
+                    returnSize = 0;
+                }
+            } else {
+                srfsLog(LOG_WARNING, "error reading link %s. falling back to nfs", path);
+                fallbackToNFS = TRUE;
+            }
+        } else {
+            fallbackToNFS = TRUE;
+            srfsLog(LOG_WARNING, "no link cache path %s", path);
+        }
+    }
 
-	if (fallbackToNFS) {
-		char nfsPath[SRFS_MAX_PATH_LENGTH];
-		//char readLinkPath[SRFS_MAX_PATH_LENGTH];
+    if (fallbackToNFS) {
+        char nfsPath[SRFS_MAX_PATH_LENGTH];
+        //char readLinkPath[SRFS_MAX_PATH_LENGTH];
 
-		memset(nfsPath, 0, SRFS_MAX_PATH_LENGTH);
-		ar_translate_path(ar, nfsPath, path);
-		srfsLog(LOG_WARNING, "skfs_readlink fallback nfsPath %s %u", nfsPath);
-		returnSize = readlink(nfsPath, buf, size - 1);
-		buf[returnSize] = '\0';
+        memset(nfsPath, 0, SRFS_MAX_PATH_LENGTH);
+        ar_translate_path(ar, nfsPath, path);
+        srfsLog(LOG_WARNING, "skfs_readlink fallback nfsPath %s %u", nfsPath);
+        returnSize = readlink(nfsPath, buf, size - 1);
+        buf[returnSize] = '\0';
 
-		//res = readlink(nfsPath, readLinkPath, size - 1);
-		if (returnSize == -1) {
-			return -errno;
-		}
-		//readLinkPath[res] = '\0';
+        //res = readlink(nfsPath, readLinkPath, size - 1);
+        if (returnSize == -1) {
+            return -errno;
+        }
+        //readLinkPath[res] = '\0';
 
-		//translateReversePath(buf, readLinkPath);
-	} else {
-		srfsLog(LOG_FINE, "skfs_readlink no fallback");
-	}
-	//return returnSize;
-	srfsLog(LOG_FINE, "skfs_readlink complete %s", path);
-	return 0;
+        //translateReversePath(buf, readLinkPath);
+    } else {
+        srfsLog(LOG_FINE, "skfs_readlink no fallback");
+    }
+    //return returnSize;
+    srfsLog(LOG_FINE, "skfs_readlink complete %s", path);
+    return 0;
 }
 
 
@@ -935,21 +935,21 @@ static int nfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     (void) fi;
     char nfsPath[SRFS_MAX_PATH_LENGTH];
 
-	ar_translate_path(ar, nfsPath, path);
-	srfsLog(LOG_FINE, "opendir %s\t%s", nfsPath, path);
+    ar_translate_path(ar, nfsPath, path);
+    srfsLog(LOG_FINE, "opendir %s\t%s", nfsPath, path);
     dp = opendir(nfsPath);
-	if (dp == NULL) {
+    if (dp == NULL) {
         return -errno;
-	}
+    }
 
     while ((de = readdir(dp)) != NULL) {
         struct stat st;
         memset(&st, 0, sizeof(st));
         st.st_ino = de->d_ino;
         st.st_mode = de->d_type << 12;
-		if (filler(buf, de->d_name, &st, 0 FILLER_TAIL)) {
+        if (filler(buf, de->d_name, &st, 0 FILLER_TAIL)) {
             break;
-		}
+        }
     }
 
     closedir(dp);
@@ -959,51 +959,51 @@ static int nfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 static int skfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                        off_t offset, struct fuse_file_info *fi
 #if FUSE_MAJOR_VERSION >= 3
-	, enum fuse_readdir_flags flags
+    , enum fuse_readdir_flags flags
 #endif
 ) {
-	srfsLogAsync(LOG_OPS, "_rd %s %ld", path, offset);
-	if (!is_writable_path(path) && !is_base_path(path)) {
-		if (path[1] != '\0') {
-			return nfs_readdir(path, buf, filler, offset, fi);
-		} else {
-			return -ENOENT;
-		}
-	} else {
-		return odt_readdir(odt, path, buf, filler, offset, fi);
-	}
+    srfsLogAsync(LOG_OPS, "_rd %s %ld", path, offset);
+    if (!is_writable_path(path) && !is_base_path(path)) {
+        if (path[1] != '\0') {
+            return nfs_readdir(path, buf, filler, offset, fi);
+        } else {
+            return -ENOENT;
+        }
+    } else {
+        return odt_readdir(odt, path, buf, filler, offset, fi);
+    }
 }
 
 static int skfs_opendir(const char* path, struct fuse_file_info* fi) {
-	srfsLogAsync(LOG_OPS, "_od %s", path);
-	if (!is_writable_path(path) && !is_base_path(path)) {
-		return 0;
-	} else {
-		return odt_opendir(odt, path, fi);
-	}
+    srfsLogAsync(LOG_OPS, "_od %s", path);
+    if (!is_writable_path(path) && !is_base_path(path)) {
+        return 0;
+    } else {
+        return odt_opendir(odt, path, fi);
+    }
 }
 
 static int skfs_releasedir(const char* path, struct fuse_file_info *fi) {
-	srfsLogAsync(LOG_OPS, "_red %s", path);
-	return odt_releasedir(odt, path, fi);
+    srfsLogAsync(LOG_OPS, "_red %s", path);
+    return odt_releasedir(odt, path, fi);
 }
 
 static int skfs_mkdir(const char *path, mode_t mode) {
-	srfsLogAsync(LOG_OPS, "_mkd %s", path);
+    srfsLogAsync(LOG_OPS, "_mkd %s", path);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to mkdir %s", path);
         return -EROFS;
     }
-	return odt_mkdir(odt, (char *)path, mode);
+    return odt_mkdir(odt, (char *)path, mode);
 }
 
 static int skfs_rmdir(const char *path) {
-	srfsLogAsync(LOG_OPS, "_rmd %s", path);
+    srfsLogAsync(LOG_OPS, "_rmd %s", path);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to rmdir %s", path);
         return -EROFS;
     }
-	return odt_rmdir(odt, (char *)path);
+    return odt_rmdir(odt, (char *)path);
 }
 
 // FUTURE - Need to check/enforce atomicity of operations,
@@ -1013,20 +1013,20 @@ static int skfs_rmdir(const char *path) {
 
 static int skfs_rename(const char *oldpath, const char *newpath
 #if FUSE_MAJOR_VERSION >= 3
-	, unsigned int flags = 0 
+    , unsigned int flags = 0 
 #endif
 ) {
-	srfsLogAsync(LOG_OPS, "_rn %s %s", oldpath, newpath);
+    srfsLogAsync(LOG_OPS, "_rn %s %s", oldpath, newpath);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to rename %s", oldpath);
         return -EROFS;
     }
-	if (!is_writable_path(oldpath) || !is_writable_path(newpath)) {
-		return -EIO;
+    if (!is_writable_path(oldpath) || !is_writable_path(newpath)) {
+        return -EIO;
     } else {    
         struct timespec tp;
-        FileAttr	fa;
-        int			result;
+        FileAttr    fa;
+        int            result;
         time_t  curEpochTimeSeconds;
         long    curTimeNanos;
 
@@ -1222,7 +1222,7 @@ static int skfs_rename_file(char *oldPath, char *newPath, time_t curEpochTimeSec
         }
     } else {
         SKOperationState::SKOperationState  writeResult;
-        FileAttr	fa;
+        FileAttr    fa;
 
         memset(&fa, 0, sizeof(FileAttr));
         result = ar_get_attr(ar, (char *)oldPath, &fa);
@@ -1257,29 +1257,29 @@ static int skfs_rename_file(char *oldPath, char *newPath, time_t curEpochTimeSec
 
 
 static int skfs_associate_new_file(const char *path, struct fuse_file_info *fi, WritableFileReference *wf_ref) {
-	if (wf_ref == NULL) {
+    if (wf_ref == NULL) {
         srfsLog(LOG_FINE, "skfs_associate_new_file %s NULL ref", path);
         return -ENOENT;
-	} else {
+    } else {
         SKFSOpenFile    *sof;
         
         sof = (SKFSOpenFile*)fi->fh;
         if (sof->type != OFT_WritableFile_Write) {
             fatalError("Unexpected sof->type != OFT_WritableFile_Write", __FILE__, __LINE__);
         }
-		sof->wf_ref = wf_ref;
+        sof->wf_ref = wf_ref;
         if (srfsLogLevelMet(LOG_FINE)) {
             srfsLog(LOG_FINE, "skfs_associate_new_file %s %llx %llx", path, wf_ref, wfr_get_wf(wf_ref));
         }
-		return 0;
-	}
+        return 0;
+    }
 }
 
 static int skfs_open(const char *path, struct fuse_file_info *fi) {
     SKFSOpenFile    *sof;
     
     // Below line is LOG_INFO as we don't want to log this for r/o files
-	srfsLogAsync(LOG_INFO, "_O %s %x %s%s%s", path, fi->flags,
+    srfsLogAsync(LOG_INFO, "_O %s %x %s%s%s", path, fi->flags,
         ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY ? "R" : ""),
         ((fi->flags & OPEN_MODE_FLAG_MASK) == O_WRONLY ? "W" : ""),
         ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDWR ? "RW" : ""),
@@ -1291,7 +1291,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
     sof = sof_new();
     fi->fh = (uint64_t)sof;
     
-	if (!is_writable_path(path)) {        
+    if (!is_writable_path(path)) {        
         int nativeRelay;
         
         nativeRelay = FALSE;
@@ -1347,7 +1347,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
         return 0;
     } else {
         if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY) {
-            FileAttr	*fa;
+            FileAttr    *fa;
             int         statResult;
             
             sof->type = OFT_WritableFile_Read;
@@ -1376,7 +1376,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
             }
         } else if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_WRONLY
                     || (fi->flags & OPEN_MODE_FLAG_MASK) == O_RDWR) {
-            int	result;
+            int    result;
             WritableFileReference    *existing_wf_ref;
             OpenDir *parentDir;
             uint64_t    parentDirUpdateTimeMillis;
@@ -1406,7 +1406,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                     // O_TRUNC specified; use a new wf since we don't care about the old data blocks
 
                     if (((fi->flags & O_CREAT) != 0) && ((fi->flags & O_EXCL) != 0)) {
-                        FileAttr	fa;
+                        FileAttr    fa;
                         int statResult;
 
                         // Check if file exists...
@@ -1428,7 +1428,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                         return -EIO;
                     }
                 } else {
-                    FileAttr	fa;
+                    FileAttr    fa;
                     int statResult;
                     int attempt;
                     int complete;
@@ -1536,27 +1536,27 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
 static int skfs_mknod(const char *path, mode_t mode, dev_t rdev) {
     WritableFileReference    *wf_ref;
     uint64_t    parentDirUpdateTimeMillis;
-	
+    
     parentDirUpdateTimeMillis = 0; // ignore parent update time for mknod; open will set this correctly
     srfsLogAsync(LOG_OPS, "_mn %s %x %x", path, mode, rdev);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to mknod %s", path);
         return -EROFS;
     }
-	wf_ref = wft_create_new_file(wft, path, mode);
-	if (wf_ref != NULL) {
+    wf_ref = wft_create_new_file(wft, path, mode);
+    if (wf_ref != NULL) {
         OpenDir *parentDir;
         
         parentDir = NULL;
-		if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
-			srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
-		}
+        if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
+            srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
+        }
         wf_set_parent_dir(wfr_get_wf(wf_ref), parentDir, parentDirUpdateTimeMillis);
         wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
-		return 0;
-	} else {
-		return -EEXIST;
-	}
+        return 0;
+    } else {
+        return -EEXIST;
+    }
 }
 
 static int _skfs_unlink(const char *path, int deleteBlocks) {
@@ -1570,7 +1570,7 @@ static int _skfs_unlink(const char *path, int deleteBlocks) {
 }
 
 static int skfs_unlink(const char *path) {
-	srfsLogAsync(LOG_OPS, "_ul %s", path);
+    srfsLogAsync(LOG_OPS, "_ul %s", path);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to unlink %s", path);
         return -EROFS;
@@ -1588,47 +1588,47 @@ static int skfs_unlink(const char *path) {
 static void md5ErrorDebug(const char *path, SKVal *pRVal) {
     char fileName[SRFS_MAX_PATH_LENGTH];
     char modPath[SRFS_MAX_PATH_LENGTH];
-    int	fd;
-    int	i;
-    int	modPathLength;
+    int    fd;
+    int    i;
+    int    modPathLength;
 
     strcpy(modPath, path);
     modPathLength = strlen(modPath);
     for (i = 0; i < modPathLength; i++) {
-		if (modPath[i] == '/') {
-			modPath[i] = '_';
-		}
+        if (modPath[i] == '/') {
+            modPath[i] = '_';
+        }
     }
     sprintf(fileName, "/tmp/%s.%d.%d", modPath, pRVal->m_len, clock());
     fd = open(fileName, O_CREAT | O_WRONLY);
     if (fd == -1) {
-		printf("Unable to create md5 debug file\n");
+        printf("Unable to create md5 debug file\n");
     } else {
-		int totalWritten;
+        int totalWritten;
 
-		totalWritten = 0;
-		while (totalWritten < pRVal->m_len) {
-			int written;
+        totalWritten = 0;
+        while (totalWritten < pRVal->m_len) {
+            int written;
 
-			written = write(fd, &((char *)pRVal->m_pVal)[totalWritten], pRVal->m_len - totalWritten);	
-			if (written == -1) {
-				printf("Error writing md5 debug file\n");
-				close(fd);
-				return;
-			}
-			totalWritten += written;
-		}
-		close(fd);
+            written = write(fd, &((char *)pRVal->m_pVal)[totalWritten], pRVal->m_len - totalWritten);    
+            if (written == -1) {
+                printf("Error writing md5 debug file\n");
+                close(fd);
+                return;
+            }
+            totalWritten += written;
+        }
+        close(fd);
     }
 }
 */
 
 static int skfs_read(const char *path, char *dest, size_t readSize, off_t readOffset,
                     struct fuse_file_info *fi) {
-	int	totalRead;
+    int    totalRead;
     SKFSOpenFile    *sof;
-	
-	srfsLogAsync(LOG_OPS, "_r %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
+    
+    srfsLogAsync(LOG_OPS, "_r %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
     sof = (SKFSOpenFile*)fi->fh;
     if (!sof_is_valid(sof)) {
         srfsLog(LOG_WARNING, "invalid sof %llx", sof);
@@ -1669,12 +1669,12 @@ static int skfs_read(const char *path, char *dest, size_t readSize, off_t readOf
 #if FUSE_VERSION >= 29
 static int skfs_read_buf(const char *path, struct fuse_bufvec **bufp,
                          size_t readSize, off_t readOffset, struct fuse_file_info *fi) {
-    size_t	size;
-    char	*buf;
-    int	rVal;
-    size_t	totalRead;
+    size_t    size;
+    char    *buf;
+    int    rVal;
+    size_t    totalRead;
 #if 0
-	srfsLogAsync(LOG_OPS, "_R %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
+    srfsLogAsync(LOG_OPS, "_R %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
     {
         struct fuse_bufvec *src;
         char    *dest;
@@ -1694,7 +1694,7 @@ static int skfs_read_buf(const char *path, struct fuse_bufvec **bufp,
     char    *dest;
     int     result;
     
-	srfsLogAsync(LOG_OPS, "_R %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
+    srfsLogAsync(LOG_OPS, "_R %x %s %d %ld", get_caller_pid(), path, readSize, readOffset);
     // This is a proof-of-concept implementation
     // A real implementation will probably want to allow
     // native files to be passed back via fd/offset
@@ -1725,18 +1725,18 @@ int skfs_write(const char *path, const char *src, size_t writeSize, off_t writeO
     WritableFile *wf;
     size_t  totalBytesWritten;
     
-	srfsLogAsync(LOG_OPS, "_w %x %s %d %ld", get_caller_pid(), path, writeSize, writeOffset);
+    srfsLogAsync(LOG_OPS, "_w %x %s %d %ld", get_caller_pid(), path, writeSize, writeOffset);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to write %s", path);
         return -EROFS;
     }
-	wf = wf_fuse_fi_fh_to_wf(fi);
-	if (wf == NULL) {
-		srfsLog(LOG_ERROR, "skfs_write. No valid fi->fh found for %s", path);			
-		return -EIO;
-	} else {
-		return wf_write(wf, src, writeSize, writeOffset, fbwSKFS, pbr, fbr->fileBlockCache);
-	}
+    wf = wf_fuse_fi_fh_to_wf(fi);
+    if (wf == NULL) {
+        srfsLog(LOG_ERROR, "skfs_write. No valid fi->fh found for %s", path);            
+        return -EIO;
+    } else {
+        return wf_write(wf, src, writeSize, writeOffset, fbwSKFS, pbr, fbr->fileBlockCache);
+    }
 }
 
 int skfs_release(const char *path, struct fuse_file_info *fi) {
@@ -1773,13 +1773,13 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
         sof_delete(&sof);
     }
     
-	if (wf_ref == NULL) {
-		srfsLog(LOG_FINE, "skfs_release. Ignoring. No valid wf_ref found for %s", path);
-		return 0;
-	} else {
+    if (wf_ref == NULL) {
+        srfsLog(LOG_FINE, "skfs_release. Ignoring. No valid wf_ref found for %s", path);
+        return 0;
+    } else {
         WritableFile    *wf;
         
-		srfsLogAsync(LOG_OPS, "_re %s %lx", path, fi);	
+        srfsLogAsync(LOG_OPS, "_re %s %lx", path, fi);    
         wfr_sanity_check(wf_ref);
         wf = wfr_get_wf(wf_ref);
         if (wf->pendingRename != NULL) {
@@ -1796,25 +1796,25 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
         } else {
             return wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
         }        
-	}
+    }
 }
 
 int skfs_flush(const char *path, struct fuse_file_info *fi) {
     WritableFile *wf;
-	
-	wf = wf_fuse_fi_fh_to_wf(fi);
-	if (wf == NULL) {
-		srfsLog(LOG_FINE, "skfs_release. Ignoring. No valid fi->fh found for %s", path);			
-		return 0;
-	} else {
-		srfsLogAsync(LOG_OPS, "_f %s", path);
-		return -wf_flush(wf, aw, fbwSKFS, ar->attrCache);
-	}
+    
+    wf = wf_fuse_fi_fh_to_wf(fi);
+    if (wf == NULL) {
+        srfsLog(LOG_FINE, "skfs_release. Ignoring. No valid fi->fh found for %s", path);            
+        return 0;
+    } else {
+        srfsLogAsync(LOG_OPS, "_f %s", path);
+        return -wf_flush(wf, aw, fbwSKFS, ar->attrCache);
+    }
     return 0;
 }
 
 static void init_util_sk() {
-    SKNamespace	*systemNS;
+    SKNamespace    *systemNS;
     SKNamespacePerspectiveOptions *nspOptions;
     
     pUtilSession = sd_new_session(sd);
@@ -1847,7 +1847,7 @@ static int skfs_statfs(const char *path, struct statvfs *s) {
     uint64_t    totalBytes;
     uint64_t    freeBytes;
 
-	srfsLogAsync(LOG_OPS, "_s %s", path);
+    srfsLogAsync(LOG_OPS, "_s %s", path);
     
     totalBytes = _get_sk_system_uint64("totalDiskBytes");
     freeBytes = _get_sk_system_uint64("freeDiskBytes");
@@ -1874,18 +1874,18 @@ static int skfs_statfs(const char *path, struct statvfs *s) {
 }
 
 static int skfs_symlink(const char* to, const char* from) {
-	srfsLogAsync(LOG_OPS, "_sl %s %s", to, from);
+    srfsLogAsync(LOG_OPS, "_sl %s %s", to, from);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to symlink %s", to);
         return -EROFS;
     }
-	if (!is_writable_path(from)) {
-		return -EIO;
-	} else {
-		if (odt_add_entry_to_parent_dir(odt, (char *)from)) {
-			srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", from);
-			return -EIO;
-		} else {
+    if (!is_writable_path(from)) {
+        return -EIO;
+    } else {
+        if (odt_add_entry_to_parent_dir(odt, (char *)from)) {
+            srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", from);
+            return -EIO;
+        } else {
             WritableFileReference *wf_ref;
             
             wf_ref = wft_create_new_file(wft, from, S_IFLNK | 0666);
@@ -1908,12 +1908,12 @@ static int skfs_symlink(const char* to, const char* from) {
                 }
             }
             /*
-			wf = wf_new(from, S_IFLNK | 0666, aw);
-			writeResult = wf_write(wf, to, strlen(to) + 1, 0, fbwSKFS, pbr, fbr->fileBlockCache);
-			if (writeResult > 0) {
-				int	flushResult;
-				int	closeResult;
-				
+            wf = wf_new(from, S_IFLNK | 0666, aw);
+            writeResult = wf_write(wf, to, strlen(to) + 1, 0, fbwSKFS, pbr, fbr->fileBlockCache);
+            if (writeResult > 0) {
+                int    flushResult;
+                int    closeResult;
+                
                 flushResult = wf_flush(wf, aw, fbwSKFS, ar->attrCache);
                 if (flushResult != 0) {
                     return -flushResult;
@@ -1921,13 +1921,13 @@ static int skfs_symlink(const char* to, const char* from) {
                     closeResult = wf_close(wf, aw, fbwSKFS, ar->attrCache); // close also deletes wf
                     return -closeResult;
                 }
-			} else {
-				wf_delete(&wf);
-				return writeResult;
-			}
+            } else {
+                wf_delete(&wf);
+                return writeResult;
+            }
             */
-		}
-	}
+        }
+    }
 }
 
 #ifdef HAVE_SETXATTR
@@ -1951,92 +1951,92 @@ static int skfs_listxattr(const char *path, char *list, size_t size) {
 #endif /* HAVE_SETXATTR */
 
 static void read_fs_native_only_paths() {
-	if (fsNativeOnlyFile != NULL) {
-		char    *pgDef;	
+    if (fsNativeOnlyFile != NULL) {
+        char    *pgDef;    
         size_t  length;
-		
-		srfsLog(LOG_WARNING, "Reading fsNativeOnlyFile %s", fsNativeOnlyFile);
+        
+        srfsLog(LOG_WARNING, "Reading fsNativeOnlyFile %s", fsNativeOnlyFile);
         length = 0;
-		pgDef = file_read(fsNativeOnlyFile, &length);
-		if (pgDef != NULL) {
-			PathGroup	*newPG;
-			
-			newPG = (PathGroup *)pg_new("fsNativeOnlyPaths");
+        pgDef = file_read(fsNativeOnlyFile, &length);
+        if (pgDef != NULL) {
+            PathGroup    *newPG;
+            
+            newPG = (PathGroup *)pg_new("fsNativeOnlyPaths");
             trim_in_place(pgDef, length);
-			pg_parse_paths(newPG, pgDef);
-			fsNativeOnlyPaths = newPG;
-			// NOTE - we intentionally leak the old pg as the size of
-			// the lost memory is not worth the reference counting
-			mem_free((void **)&pgDef, __FILE__, __LINE__);
-			srfsLog(LOG_WARNING, "Done reading fsNativeOnlyFile %s", fsNativeOnlyFile);
-		} else {
-			srfsLog(LOG_ERROR, "Unable to read fsNativeOnlyFile %s", fsNativeOnlyFile);
-		}		
-	}
+            pg_parse_paths(newPG, pgDef);
+            fsNativeOnlyPaths = newPG;
+            // NOTE - we intentionally leak the old pg as the size of
+            // the lost memory is not worth the reference counting
+            mem_free((void **)&pgDef, __FILE__, __LINE__);
+            srfsLog(LOG_WARNING, "Done reading fsNativeOnlyFile %s", fsNativeOnlyFile);
+        } else {
+            srfsLog(LOG_ERROR, "Unable to read fsNativeOnlyFile %s", fsNativeOnlyFile);
+        }        
+    }
 }
 
 static void signal_handler(int signal) {
-	srfsLog(LOG_WARNING, "Received signal %d", signal);
-	//read_fs_native_only_paths();
+    srfsLog(LOG_WARNING, "Received signal %d", signal);
+    //read_fs_native_only_paths();
 }
 
 
 static void segv_handler(int, siginfo_t*, void*) {
     srfsLog(LOG_ERROR, "segv_handler");
-	print_stacktrace("segv_handler");
+    print_stacktrace("segv_handler");
     exit(1);
 }
 
 static void abrt_handler(int, siginfo_t*, void*) {
     srfsLog(LOG_ERROR, "abrt_handler");
-	print_stacktrace("abrt_handler");
+    print_stacktrace("abrt_handler");
     exit(1);
 }
 
 static void term_handler() {
     srfsLog(LOG_ERROR, "terminate_handler");
-	print_stacktrace("terminate_handler");
+    print_stacktrace("terminate_handler");
 }
 
 static void unexpct_handler() {
     srfsLog(LOG_ERROR, "Uncaught exception");
-	print_stacktrace("unexpected_handler");
+    print_stacktrace("unexpected_handler");
     //skfs_destroy(NULL);
     //exit(1);
 }
 
 static int install_handler() {
-	struct sigaction sigact;
-	sigact.sa_flags = SA_SIGINFO | SA_ONSTACK;
+    struct sigaction sigact;
+    sigact.sa_flags = SA_SIGINFO | SA_ONSTACK;
 /*
-	sigact.sa_sigaction = segv_handler;
-	if (sigaction(SIGSEGV, &sigact, (struct sigaction *)NULL) != 0) {
-		fprintf(stderr, "error setting signal handler for %d (%s)\n",
-		SIGSEGV, strsignal(SIGSEGV));
-	}
+    sigact.sa_sigaction = segv_handler;
+    if (sigaction(SIGSEGV, &sigact, (struct sigaction *)NULL) != 0) {
+        fprintf(stderr, "error setting signal handler for %d (%s)\n",
+        SIGSEGV, strsignal(SIGSEGV));
+    }
 
     std::set_terminate(term_handler);
 */
 /*
-	sigact.sa_sigaction = abrt_handler;
-	if (sigaction(SIGABRT, &sigact, (struct sigaction *)NULL) != 0) {
-		fprintf(stderr, "error setting signal handler for %d (%s)\n",
-		SIGABRT, strsignal(SIGABRT));
-	}
+    sigact.sa_sigaction = abrt_handler;
+    if (sigaction(SIGABRT, &sigact, (struct sigaction *)NULL) != 0) {
+        fprintf(stderr, "error setting signal handler for %d (%s)\n",
+        SIGABRT, strsignal(SIGABRT));
+    }
 */
     std::set_unexpected(unexpct_handler);
-	return 0;
+    return 0;
 }
 
 static void *skfs_init(struct fuse_conn_info *conn
 #if FUSE_MAJOR_VERSION >= 3
-	, struct fuse_config *cfg
+    , struct fuse_config *cfg
 #endif
 ) {
-	pthread_spin_init(destroyLock, 0);
-	srfsLogInitAsync(); // Important - this must be initialized here and not in main() due to fuse process configuration
-	srfsLogAsync(LOG_OPS, "LOG_OPS async check");
-	srfsLog(LOG_WARNING, "skfs_init()");
+    pthread_spin_init(destroyLock, 0);
+    srfsLogInitAsync(); // Important - this must be initialized here and not in main() due to fuse process configuration
+    srfsLogAsync(LOG_OPS, "LOG_OPS async check");
+    srfsLog(LOG_WARNING, "skfs_init()");
     
 #if FUSE_MAJOR_VERSION >= 3
     conn->want = FUSE_CAP_WRITEBACK_CACHE;
@@ -2056,28 +2056,28 @@ static void *skfs_init(struct fuse_conn_info *conn
 #endif
     
     install_handler();
-	initDHT();
-	fid_module_init();
-	initReaders();
+    initDHT();
+    fid_module_init();
+    initReaders();
     init_util_sk();
-	initDirs();
-	wft = wft_new("WritableFileTable", aw, ar->attrCache, ar, fbwSKFS);
-	initPaths();
-	pthread_create(&statsThread, NULL, stats_thread, NULL);
-	if(fsNativeOnlyFile) {
-		//if nativeOnlyFile name is supplied, then create this thread 
-		pthread_create(&nativeFileWatcherThread, NULL, nativefile_watcher_thread, NULL);
-	}
-	read_fs_native_only_paths();
-	srfsRedirectStdio();
-	srfsLog(LOG_WARNING, "skfs_init() complete");
-	return NULL;
+    initDirs();
+    wft = wft_new("WritableFileTable", aw, ar->attrCache, ar, fbwSKFS);
+    initPaths();
+    pthread_create(&statsThread, NULL, stats_thread, NULL);
+    if(fsNativeOnlyFile) {
+        //if nativeOnlyFile name is supplied, then create this thread 
+        pthread_create(&nativeFileWatcherThread, NULL, nativefile_watcher_thread, NULL);
+    }
+    read_fs_native_only_paths();
+    srfsRedirectStdio();
+    srfsLog(LOG_WARNING, "skfs_init() complete");
+    return NULL;
 }
 
 static void skfs_destroy(void* private_data) {
     int doDestroy;
     
-	exitSignalReceived = TRUE;
+    exitSignalReceived = TRUE;
     
     pthread_spin_lock(destroyLock);
     if (!destroyCalled) {
@@ -2110,77 +2110,77 @@ static void skfs_destroy(void* private_data) {
 }
 
 static struct fuse_operations skfs_oper = {
-	/* getattr */ NULL,
-	/* readlink */ NULL,
+    /* getattr */ NULL,
+    /* readlink */ NULL,
 #if FUSE_MAJOR_VERSION < 3
-	/* getdir */ NULL,
+    /* getdir */ NULL,
 #endif
-	/* mknod */ NULL,
-	/* mkdir */ NULL,
-	/* unlink */ NULL,
-	/* rmdir */ NULL,
-	/* symlink */ NULL,
-	/* rename */ NULL,
-	/* link */ NULL,
-	/* chmod */ NULL,
-	/* chown */ NULL,
-	/* truncate */ NULL,
+    /* mknod */ NULL,
+    /* mkdir */ NULL,
+    /* unlink */ NULL,
+    /* rmdir */ NULL,
+    /* symlink */ NULL,
+    /* rename */ NULL,
+    /* link */ NULL,
+    /* chmod */ NULL,
+    /* chown */ NULL,
+    /* truncate */ NULL,
 #if FUSE_MAJOR_VERSION < 3
-	/* utime */ NULL,
+    /* utime */ NULL,
 #endif
-	/* open */ NULL, //skfs_open,
-	/* read */ NULL, //skfs_read,
-	/* write */ NULL,
-	/* statfs */ NULL,
-	/* flush */ NULL,
-	/* release */ NULL,
-	/* fsync */ NULL,
-	/* setxattr */ NULL,
-	/* getxattr */ NULL,
-	/* listxattr */ NULL,
-	/* removexattr */ NULL,
-	/* opendir */ NULL,
-	/* readdir */ NULL,
-	/* releaseddir */ NULL,
-	/* fsyncdir */ NULL,
-	/* init */ NULL,    //skfs_init,
-	/* destroy */ NULL, //skfs_destroy,
-	/* access */ NULL,
-	/* create */ NULL,
+    /* open */ NULL, //skfs_open,
+    /* read */ NULL, //skfs_read,
+    /* write */ NULL,
+    /* statfs */ NULL,
+    /* flush */ NULL,
+    /* release */ NULL,
+    /* fsync */ NULL,
+    /* setxattr */ NULL,
+    /* getxattr */ NULL,
+    /* listxattr */ NULL,
+    /* removexattr */ NULL,
+    /* opendir */ NULL,
+    /* readdir */ NULL,
+    /* releaseddir */ NULL,
+    /* fsyncdir */ NULL,
+    /* init */ NULL,    //skfs_init,
+    /* destroy */ NULL, //skfs_destroy,
+    /* access */ NULL,
+    /* create */ NULL,
 #if FUSE_MAJOR_VERSION < 3
-	/* ftruncate */ NULL,
-	/* fgetattr */ NULL,
+    /* ftruncate */ NULL,
+    /* fgetattr */ NULL,
 #endif
-	/* lock */ NULL,
-	/* utimens */ NULL,
-	/* bmap */ NULL
+    /* lock */ NULL,
+    /* utimens */ NULL,
+    /* bmap */ NULL
 #if FUSE_MAJOR_VERSION >= 3
-	, /*ioctl*/ NULL
-	, /*poll*/ NULL
-	, /*write_buf*/ NULL
-	, /*read_buf*/ NULL
-	, /*flock*/ NULL
-	, /*fallocate*/ NULL
-#endif	
+    , /*ioctl*/ NULL
+    , /*poll*/ NULL
+    , /*write_buf*/ NULL
+    , /*read_buf*/ NULL
+    , /*flock*/ NULL
+    , /*fallocate*/ NULL
+#endif    
 };
 
 static void *stats_thread(void *) {
-	int	detailPeriod;
-	int	detailPhase;
-	
-	detailPeriod = statsDetailIntervalSeconds / statsIntervalSeconds;
-	detailPhase = 0;
-	while (!exitSignalReceived) {
-		int	detailFlag;
-		
-		detailFlag = detailPhase == 0;
-		sleep(statsIntervalSeconds);
-		srfsLog(LOG_WARNING, "\n\t** stats **");
-		ar_display_stats(ar, detailFlag);
-		fbr_display_stats(fbr, detailFlag);
-		detailPhase = (detailPhase + 1) % detailPeriod;
-	}
-	return NULL;
+    int    detailPeriod;
+    int    detailPhase;
+    
+    detailPeriod = statsDetailIntervalSeconds / statsIntervalSeconds;
+    detailPhase = 0;
+    while (!exitSignalReceived) {
+        int    detailFlag;
+        
+        detailFlag = detailPhase == 0;
+        sleep(statsIntervalSeconds);
+        srfsLog(LOG_WARNING, "\n\t** stats **");
+        ar_display_stats(ar, detailFlag);
+        fbr_display_stats(fbr, detailFlag);
+        detailPhase = (detailPhase + 1) % detailPeriod;
+    }
+    return NULL;
 }
 
 
@@ -2197,74 +2197,74 @@ static void * nativefile_watcher_thread(void * unused) {
   char buffer[INOTIFY_BUF_LEN];
 
   while ( !exitSignalReceived ){
-	  int fd = -1;
-	  int wd = -1;
-	  // if cannot open file, then sleep and re-try.
-	  FILE* fh = NULL;
-	  while( (fh = fopen(fsNativeOnlyFile, "r")) == NULL  ) {
-		srfsLog(LOG_WARNING, "cannot find or open native only file %s, sleeping \n", fsNativeOnlyFile );
-		sleep( 20 );
-	  }
-	  fclose(fh); fh = NULL; //close handle opened above
+      int fd = -1;
+      int wd = -1;
+      // if cannot open file, then sleep and re-try.
+      FILE* fh = NULL;
+      while( (fh = fopen(fsNativeOnlyFile, "r")) == NULL  ) {
+        srfsLog(LOG_WARNING, "cannot find or open native only file %s, sleeping \n", fsNativeOnlyFile );
+        sleep( 20 );
+      }
+      fclose(fh); fh = NULL; //close handle opened above
 
-	  read_fs_native_only_paths();
+      read_fs_native_only_paths();
 
-	  fd = inotify_init();
+      fd = inotify_init();
 
-	  if ( fd < 0 ) {
-		perror( "inotify_init" );
-	  }
+      if ( fd < 0 ) {
+        perror( "inotify_init" );
+      }
   
-	  srfsLog(LOG_INFO, "inotify_add_watch %d \n", fd );
+      srfsLog(LOG_INFO, "inotify_add_watch %d \n", fd );
 
-	  wd = inotify_add_watch( fd, fsNativeOnlyFile, IN_MODIFY | IN_CREATE | IN_MOVE_SELF | IN_DELETE_SELF );
-	  if ( wd < 0 ) {
-		perror( "inotify_add_watch" );
-	  }
+      wd = inotify_add_watch( fd, fsNativeOnlyFile, IN_MODIFY | IN_CREATE | IN_MOVE_SELF | IN_DELETE_SELF );
+      if ( wd < 0 ) {
+        perror( "inotify_add_watch" );
+      }
 
-	  bool oldFileIsValid = 1;  //indicates validity/obsoletion of the watched file 
-	  while  ( oldFileIsValid ) {  // READ loop
-		i = 0;
-		//srfsLog(LOG_FINE, "calling read %d %d \n", wd, fd  );
-		length = read( fd, buffer, INOTIFY_BUF_LEN );  
+      bool oldFileIsValid = 1;  //indicates validity/obsoletion of the watched file 
+      while  ( oldFileIsValid ) {  // READ loop
+        i = 0;
+        //srfsLog(LOG_FINE, "calling read %d %d \n", wd, fd  );
+        length = read( fd, buffer, INOTIFY_BUF_LEN );  
 
-		if ( length < 0 ) {
-		  perror( "read" );
-		}
+        if ( length < 0 ) {
+          perror( "read" );
+        }
   
-		//srfsLog(LOG_FINE, "processing read ... %d\n", length );
-		while ( i < length ) {  // EVENT loop
-		  struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
-		  srfsLog(LOG_FINE, "event  %d : %d : %s\n", event->len, event->mask, event->name );
-		  //if ( event->len ) {
-			if ( event->mask & IN_CREATE ) {
-				srfsLog(LOG_INFO, "The file %s was created.\n", event->name );
-				read_fs_native_only_paths();
-			}
-			else if ( event->mask & IN_DELETE_SELF ) {
-				srfsLog(LOG_INFO, "The file %s was deleted.\n", event->name );
-				oldFileIsValid = 0;
-				//break;  //file's gone 
-			}
-			else if (  event->mask & IN_MOVE_SELF ) {
-				srfsLog(LOG_INFO, "The file %s was moved.\n", event->name );
-				oldFileIsValid = 0;
-				//break;
-			}
-			else if ( event->mask & IN_MODIFY ) {
-				srfsLog(LOG_INFO, "IN_MODIFY.\n", event->name );
-				read_fs_native_only_paths();
-			}
-		  //}
-		  i += EVENT_SIZE + event->len;
-		}  // end of EVENT loop
+        //srfsLog(LOG_FINE, "processing read ... %d\n", length );
+        while ( i < length ) {  // EVENT loop
+          struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
+          srfsLog(LOG_FINE, "event  %d : %d : %s\n", event->len, event->mask, event->name );
+          //if ( event->len ) {
+            if ( event->mask & IN_CREATE ) {
+                srfsLog(LOG_INFO, "The file %s was created.\n", event->name );
+                read_fs_native_only_paths();
+            }
+            else if ( event->mask & IN_DELETE_SELF ) {
+                srfsLog(LOG_INFO, "The file %s was deleted.\n", event->name );
+                oldFileIsValid = 0;
+                //break;  //file's gone 
+            }
+            else if (  event->mask & IN_MOVE_SELF ) {
+                srfsLog(LOG_INFO, "The file %s was moved.\n", event->name );
+                oldFileIsValid = 0;
+                //break;
+            }
+            else if ( event->mask & IN_MODIFY ) {
+                srfsLog(LOG_INFO, "IN_MODIFY.\n", event->name );
+                read_fs_native_only_paths();
+            }
+          //}
+          i += EVENT_SIZE + event->len;
+        }  // end of EVENT loop
 
-	  } // end of READ loop
+      } // end of READ loop
 
-	  if(wd >= 0)
-		( void ) inotify_rm_watch( fd, wd );
-	  if(fd >= 0)
-		( void ) close( fd );
+      if(wd >= 0)
+        ( void ) inotify_rm_watch( fd, wd );
+      if(fd >= 0)
+        ( void ) close( fd );
 
   }  // end of main loop
   return NULL;
@@ -2279,26 +2279,26 @@ void initFuse() {
     skfs_oper.readlink = skfs_readlink;
     skfs_oper.readdir = skfs_readdir;
     skfs_oper.flush = skfs_flush;
-	skfs_oper.init = skfs_init;
+    skfs_oper.init = skfs_init;
     skfs_oper.access = skfs_access;
-	skfs_oper.destroy = skfs_destroy;
-	
+    skfs_oper.destroy = skfs_destroy;
+    
     skfs_oper.open = skfs_open;
     skfs_oper.release = skfs_release;
     skfs_oper.mknod = skfs_mknod;
     skfs_oper.write = skfs_write;
-	skfs_oper.chmod = skfs_chmod;
-	skfs_oper.chown = skfs_chown;
-	skfs_oper.truncate = skfs_truncate;
-	skfs_oper.utimens = skfs_utimens;
-	skfs_oper.releasedir = skfs_releasedir;
+    skfs_oper.chmod = skfs_chmod;
+    skfs_oper.chown = skfs_chown;
+    skfs_oper.truncate = skfs_truncate;
+    skfs_oper.utimens = skfs_utimens;
+    skfs_oper.releasedir = skfs_releasedir;
     skfs_oper.opendir = skfs_opendir;
     skfs_oper.symlink = skfs_symlink;
-	
-	skfs_oper.mkdir = skfs_mkdir;
+    
+    skfs_oper.mkdir = skfs_mkdir;
 
-	skfs_oper.rmdir = skfs_rmdir;
-	skfs_oper.unlink = skfs_unlink;	
+    skfs_oper.rmdir = skfs_rmdir;
+    skfs_oper.unlink = skfs_unlink;    
     
     skfs_oper.rename = skfs_rename;
     
@@ -2318,7 +2318,7 @@ void initDHT() {
         } else if (!strcmp(args->logLevel, "OPS")) {
             lvl = LVL_WARNING;
         //} else {
-        //	lvl = LVL_INFO;
+        //    lvl = LVL_INFO;
         }
 
         pClient = SKClient::getClient(lvl, args->jvmOptions);
@@ -2356,50 +2356,50 @@ void initDHT() {
 }
 
 void destroyDHT() {
-	delete pGlobalSession; pGlobalSession = NULL;
-	delete pClient; pClient = NULL;
+    delete pGlobalSession; pGlobalSession = NULL;
+    delete pClient; pClient = NULL;
     delete sessOption; sessOption = NULL;
-	srfsLog(LOG_WARNING, "SKClient shutdown");
-	SKClient::shutdown();
+    srfsLog(LOG_WARNING, "SKClient shutdown");
+    SKClient::shutdown();
 }
 
 // FUTURE: probably remove task output support
 PathGroup *initTaskOutputPaths(int* taskOutputPort ) {
-	PathGroup	*taskOutputPaths;
+    PathGroup    *taskOutputPaths;
 
-	srfsLog(LOG_WARNING, "initTaskOutputPaths %s", (char *)args->taskOutputPaths);
-	taskOutputPaths = pg_new("taskOutputPaths");
-	pg_parse_paths(taskOutputPaths, (char *)args->taskOutputPaths);
-	if (pg_size(taskOutputPaths) == 1) {
-		char	*delimiter;
-		char	*gcName;
-		char	*path;
+    srfsLog(LOG_WARNING, "initTaskOutputPaths %s", (char *)args->taskOutputPaths);
+    taskOutputPaths = pg_new("taskOutputPaths");
+    pg_parse_paths(taskOutputPaths, (char *)args->taskOutputPaths);
+    if (pg_size(taskOutputPaths) == 1) {
+        char    *delimiter;
+        char    *gcName;
+        char    *path;
 
-		path = pg_get_member(taskOutputPaths, 0);
-		delimiter = strchr(pg_get_member(taskOutputPaths, 0), '#');
-		if (delimiter != NULL) {
-			*delimiter = '\0';
-			gcName = delimiter + 1;
-			srfsLog(LOG_WARNING, "Setting grid configuration %s", gcName);
-			//*taskOutputPort = dht_set_grid_configuration(gcName, NULL, args->host);
-			ar_store_dir_attribs(ar, path);
-		}
-	} else if (pg_size(taskOutputPaths) > 1) {
-		srfsLog(LOG_WARNING, "Too many taskOutputPaths for first-cut implementation\n");
-	}
-	return taskOutputPaths;
+        path = pg_get_member(taskOutputPaths, 0);
+        delimiter = strchr(pg_get_member(taskOutputPaths, 0), '#');
+        if (delimiter != NULL) {
+            *delimiter = '\0';
+            gcName = delimiter + 1;
+            srfsLog(LOG_WARNING, "Setting grid configuration %s", gcName);
+            //*taskOutputPort = dht_set_grid_configuration(gcName, NULL, args->host);
+            ar_store_dir_attribs(ar, path);
+        }
+    } else if (pg_size(taskOutputPaths) > 1) {
+        srfsLog(LOG_WARNING, "Too many taskOutputPaths for first-cut implementation\n");
+    }
+    return taskOutputPaths;
 }
 
 void initPaths() {
-	ar_parse_native_aliases(ar, (char *)args->nfsMapping);
-	ar_parse_no_error_cache_paths(ar, (char *)args->noErrorCachePaths);
-	ar_parse_no_link_cache_paths(ar, (char *)args->noLinkCachePaths);
-	fsNativeOnlyFile = (char *)args->fsNativeOnlyFile;
-	ar_parse_snapshot_only_paths(ar, (char *)args->snapshotOnlyPaths);
-	fbr_parse_compressed_paths(fbr, (char *)args->compressedPaths);
-	fbr_parse_no_fbw_paths(fbr, (char *)args->noFBWPaths);
-	fbr_parse_permanent_suffixes(fbr, (char *)args->permanentSuffixes);
-	//Namespaces for SKFS must be created by external scripts ; 
+    ar_parse_native_aliases(ar, (char *)args->nfsMapping);
+    ar_parse_no_error_cache_paths(ar, (char *)args->noErrorCachePaths);
+    ar_parse_no_link_cache_paths(ar, (char *)args->noLinkCachePaths);
+    fsNativeOnlyFile = (char *)args->fsNativeOnlyFile;
+    ar_parse_snapshot_only_paths(ar, (char *)args->snapshotOnlyPaths);
+    fbr_parse_compressed_paths(fbr, (char *)args->compressedPaths);
+    fbr_parse_no_fbw_paths(fbr, (char *)args->noFBWPaths);
+    fbr_parse_permanent_suffixes(fbr, (char *)args->permanentSuffixes);
+    //Namespaces for SKFS must be created by external scripts ; 
     ar_create_alias_dirs(ar, odt);
 }
 
@@ -2409,45 +2409,45 @@ void destroyPaths() {
 FileBlockCache *createFileBlockCache(int numSubCaches, int transientCacheSize, FileIDToPathMap *f2p) {
     int evictionBatch;
     
-	if (transientCacheSize == 0) {
-		transientCacheSize = FBR_TRANSIENT_CACHE_SIZE;
-	}
+    if (transientCacheSize == 0) {
+        transientCacheSize = FBR_TRANSIENT_CACHE_SIZE;
+    }
     evictionBatch = int_max(int_min(FBR_TRANSIENT_CACHE_EVICTION_BATCH, transientCacheSize / numSubCaches), 1);
     
-	return fbc_new(_FBC_NAME, transientCacheSize, evictionBatch, f2p, numSubCaches);
+    return fbc_new(_FBC_NAME, transientCacheSize, evictionBatch, f2p, numSubCaches);
 }
 
 void initReaders() {
-	uint64_t	transientCacheSizeBlocks;
+    uint64_t    transientCacheSizeBlocks;
     FileBlockCache  *fbc;
 
-	sd = sd_new((char *)args->host, (char *)args->gcname, NULL, args->compression, 
-				args->dhtOpMinTimeoutMS, args->dhtOpMaxTimeoutMS, 
-				SRFS_DHT_OP_DEV_WEIGHT, SRFS_DHT_OP_DHT_WEIGHT);
+    sd = sd_new((char *)args->host, (char *)args->gcname, NULL, args->compression, 
+                args->dhtOpMinTimeoutMS, args->dhtOpMaxTimeoutMS, 
+                SRFS_DHT_OP_DEV_WEIGHT, SRFS_DHT_OP_DHT_WEIGHT);
 
-	f2p = f2p_new();
-	aw = aw_new(sd);
-	awSKFS = aw_new(sd);    
+    f2p = f2p_new();
+    aw = aw_new(sd);
+    awSKFS = aw_new(sd);    
     
-	transientCacheSizeBlocks = (uint64_t)args->transientCacheSizeKB * (uint64_t)1024 / (uint64_t)SRFS_BLOCK_SIZE;
+    transientCacheSizeBlocks = (uint64_t)args->transientCacheSizeKB * (uint64_t)1024 / (uint64_t)SRFS_BLOCK_SIZE;
     fbc = createFileBlockCache(args->cacheConcurrency, transientCacheSizeBlocks, f2p);
-	fbwCompress = fbw_new(sd, TRUE, fbc, args->fbwReliableQueue);
-	fbwRaw = fbw_new(sd, FALSE, fbc, args->fbwReliableQueue);
-	fbwSKFS = fbw_new(sd, TRUE, fbc, args->fbwReliableQueue);
-	rtsAR_DHT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
-	rtsAR_NFS = rts_new(SRFS_RTS_NFS_ALPHA, SRFS_RTS_NFS_OP_TIME_INITIALIZER);
-	rtsFBR_DHT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
-	rtsFBR_NFS = rts_new(SRFS_RTS_NFS_ALPHA, SRFS_RTS_NFS_OP_TIME_INITIALIZER);
-	rtsODT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
-	ar = ar_new(f2p, sd, aw, rtsAR_DHT, rtsAR_NFS, args->cacheConcurrency, args->attrTimeoutSecs * 1000);
-	ar_store_dir_attribs(ar, SKFS_BASE, 0555);
-	ar_store_dir_attribs(ar, SKFS_WRITE_BASE, 0777);
-	int taskOutputPort = -1;
-	//PathGroup * pg = initTaskOutputPaths(&taskOutputPort);
-	//srfsLog(LOG_WARNING, "taskOutputPort %d", taskOutputPort);
-	ar_set_g2tor(ar, NULL);
-	fbr = fbr_new(f2p, fbwCompress, fbwRaw, sd, rtsFBR_DHT, rtsFBR_NFS, fbc);
-	pbr = pbr_new(ar, fbr, NULL);
+    fbwCompress = fbw_new(sd, TRUE, fbc, args->fbwReliableQueue);
+    fbwRaw = fbw_new(sd, FALSE, fbc, args->fbwReliableQueue);
+    fbwSKFS = fbw_new(sd, TRUE, fbc, args->fbwReliableQueue);
+    rtsAR_DHT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
+    rtsAR_NFS = rts_new(SRFS_RTS_NFS_ALPHA, SRFS_RTS_NFS_OP_TIME_INITIALIZER);
+    rtsFBR_DHT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
+    rtsFBR_NFS = rts_new(SRFS_RTS_NFS_ALPHA, SRFS_RTS_NFS_OP_TIME_INITIALIZER);
+    rtsODT = rts_new(SRFS_RTS_DHT_ALPHA, SRFS_RTS_DHT_OP_TIME_INITIALIZER);
+    ar = ar_new(f2p, sd, aw, rtsAR_DHT, rtsAR_NFS, args->cacheConcurrency, args->attrTimeoutSecs * 1000);
+    ar_store_dir_attribs(ar, SKFS_BASE, 0555);
+    ar_store_dir_attribs(ar, SKFS_WRITE_BASE, 0777);
+    int taskOutputPort = -1;
+    //PathGroup * pg = initTaskOutputPaths(&taskOutputPort);
+    //srfsLog(LOG_WARNING, "taskOutputPort %d", taskOutputPort);
+    ar_set_g2tor(ar, NULL);
+    fbr = fbr_new(f2p, fbwCompress, fbwRaw, sd, rtsFBR_DHT, rtsFBR_NFS, fbc);
+    pbr = pbr_new(ar, fbr, NULL);
 
     if (args->nativeFileMode == nf_readRelay_distributedPreread) {
         int _port;
@@ -2510,17 +2510,17 @@ int getMergeMode() {
 
 // Initialization writable directory structure
 void initDirs() {
-	rcst_init();
-	odt = odt_new(ODT_NAME, sd, aw, ar, rtsODT, args->reconciliationSleep, args->odwMinWriteIntervalMillis, getMergeMode());
-	if (odt_mkdir_base(odt)) {
-		fatalError("odt_mkdir_base skfs failed", __FILE__, __LINE__);
-	}
-	if (odt_opendir(odt, SKFS_BASE, NULL) != 0) {
-		fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
-	}
-	if (odt_opendir(odt, SKFS_WRITE_BASE, NULL) != 0) {
-		fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
-	}    
+    rcst_init();
+    odt = odt_new(ODT_NAME, sd, aw, ar, rtsODT, args->reconciliationSleep, args->odwMinWriteIntervalMillis, getMergeMode());
+    if (odt_mkdir_base(odt)) {
+        fatalError("odt_mkdir_base skfs failed", __FILE__, __LINE__);
+    }
+    if (odt_opendir(odt, SKFS_BASE, NULL) != 0) {
+        fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
+    }
+    if (odt_opendir(odt, SKFS_WRITE_BASE, NULL) != 0) {
+        fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
+    }    
     if (odt_add_entry(odt, SKFS_BASE, SKFS_WRITE_BASE_NO_SLASH)) {
         srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", SKFS_WRITE_BASE_NO_SLASH);
         fatalError("Couldn't create dir", __FILE__, __LINE__);
@@ -2529,27 +2529,27 @@ void initDirs() {
 }
 
 void destroyReaders(){
-	//nft_delete(&nft);
-	pbr_delete(&pbr);
-	fbr_delete(&fbr);
-	ar_delete(&ar);
-	odt_delete(&odt);
-	rts_delete(&rtsFBR_NFS);
-	rts_delete(&rtsFBR_DHT);
-	rts_delete(&rtsAR_NFS);
-	rts_delete(&rtsAR_DHT);
-	fbw_delete(&fbwRaw);
-	fbw_delete(&fbwCompress);
-	fbw_delete(&fbwSKFS);
-	aw_delete(&aw);
-	aw_delete(&awSKFS);
-	f2p_delete(&f2p);
-	sd_delete(&sd);
+    //nft_delete(&nft);
+    pbr_delete(&pbr);
+    fbr_delete(&fbr);
+    ar_delete(&ar);
+    odt_delete(&odt);
+    rts_delete(&rtsFBR_NFS);
+    rts_delete(&rtsFBR_DHT);
+    rts_delete(&rtsAR_NFS);
+    rts_delete(&rtsAR_DHT);
+    fbw_delete(&fbwRaw);
+    fbw_delete(&fbwCompress);
+    fbw_delete(&fbwSKFS);
+    aw_delete(&aw);
+    aw_delete(&awSKFS);
+    f2p_delete(&f2p);
+    sd_delete(&sd);
 }
 
 static void initLogging() {
-    char	logPath[SRFS_MAX_PATH_LENGTH];
-    char	*lastSlash;
+    char    logPath[SRFS_MAX_PATH_LENGTH];
+    char    *lastSlash;
     
     strcpy(logPath, args->mountPath);
     lastSlash = strrchr(logPath, '/');
@@ -2557,34 +2557,34 @@ static void initLogging() {
         *lastSlash = '\0';
     }
     
-	sprintf(logFileName, "%s/logs/fuse.log.%d", logPath, getpid());
-	srfsLogSetFile(logFileName);
-	srfsLog(LOG_WARNING, "skfs block size %d", SRFS_BLOCK_SIZE);
-	if (args->logLevel != NULL) {
-		if (!strcmp(args->logLevel, "FINE")) {
-			setSRFSLogLevel(LOG_FINE);
-		} else if (!strcmp(args->logLevel, "OPS")) {
-			setSRFSLogLevel(LOG_OPS);
-		} else if (!strcmp(args->logLevel, "INFO")) {
-			setSRFSLogLevel(LOG_INFO);
-		} else {
-			setSRFSLogLevel(LOG_WARNING);
-		}
-	} else {
-		setSRFSLogLevel(LOG_WARNING);
-	}
-	srfsLog(LOG_FINE, "LOG_FINE check");
-	srfsLog(LOG_OPS, "LOG_OPS check");
-	srfsLog(LOG_WARNING, "LOG_WARNING check");
+    sprintf(logFileName, "%s/logs/fuse.log.%d", logPath, getpid());
+    srfsLogSetFile(logFileName);
+    srfsLog(LOG_WARNING, "skfs block size %d", SRFS_BLOCK_SIZE);
+    if (args->logLevel != NULL) {
+        if (!strcmp(args->logLevel, "FINE")) {
+            setSRFSLogLevel(LOG_FINE);
+        } else if (!strcmp(args->logLevel, "OPS")) {
+            setSRFSLogLevel(LOG_OPS);
+        } else if (!strcmp(args->logLevel, "INFO")) {
+            setSRFSLogLevel(LOG_INFO);
+        } else {
+            setSRFSLogLevel(LOG_WARNING);
+        }
+    } else {
+        setSRFSLogLevel(LOG_WARNING);
+    }
+    srfsLog(LOG_FINE, "LOG_FINE check");
+    srfsLog(LOG_OPS, "LOG_OPS check");
+    srfsLog(LOG_WARNING, "LOG_WARNING check");
 }
 
 static bool envToBool(const char *envVarName, bool defaultVal) {
-	char    *pEnd = NULL;
-	bool    envBool;
-	const char  *pEnvStr;
+    char    *pEnd = NULL;
+    bool    envBool;
+    const char  *pEnvStr;
 
     pEnvStr = getenv(envVarName);
-	if (pEnvStr) {
+    if (pEnvStr) {
         if (!strcmp(pEnvStr, "false")) {
             envBool = false;
         } else if (!strcmp(pEnvStr, "False")) {
@@ -2615,41 +2615,41 @@ static bool envToBool(const char *envVarName, bool defaultVal) {
     } else {
         envBool = defaultVal;
     }
-	srfsLog(LOG_WARNING, "%s %s", envVarName, envBool ? "true" : "false");
-	return envBool;
+    srfsLog(LOG_WARNING, "%s %s", envVarName, envBool ? "true" : "false");
+    return envBool;
 }
 
 static long envToLong(const char *envVarName, long defaultVal) {
-	char    *pEnd = NULL;
-	long    envLong;
-	const char  *pEnvStr;
+    char    *pEnd = NULL;
+    long    envLong;
+    const char  *pEnvStr;
 
     pEnvStr = getenv(envVarName);
-	if (pEnvStr) {
-		envLong = strtol(pEnvStr, &pEnd, 10);
+    if (pEnvStr) {
+        envLong = strtol(pEnvStr, &pEnd, 10);
         if (envLong < 0 || envLong == LONG_MAX ) {
             envLong = defaultVal;
         }
     } else {
         envLong = defaultVal;
     }
-	srfsLog(LOG_WARNING, "%s %d", envVarName, envLong);
-	return envLong;
+    srfsLog(LOG_WARNING, "%s %d", envVarName, envLong);
+    return envLong;
 }
 
 bool addEnvToFuseArg(const char * envVarName, const char * fuseOpt, const char *defaultFuseOpt) {
-	char * pEnd = NULL;
-	long envLong = 0;
-	const char * pEnvStr = getenv(envVarName);
-	if(pEnvStr)
-		envLong = strtol(pEnvStr, &pEnd, 10);
-	std::string entryStr = ( !pEnvStr || envLong < 1 || envLong == LONG_MAX ) ?
-		defaultFuseOpt : std::string(fuseOpt) + std::string(pEnvStr, pEnd - pEnvStr);
-	fuse_opt_add_arg(&fuseArgs, entryStr.c_str());
-	
-	srfsLog( LOG_WARNING, envVarName );
-	srfsLog( LOG_WARNING, entryStr.c_str() );
-	return TRUE;
+    char * pEnd = NULL;
+    long envLong = 0;
+    const char * pEnvStr = getenv(envVarName);
+    if(pEnvStr)
+        envLong = strtol(pEnvStr, &pEnd, 10);
+    std::string entryStr = ( !pEnvStr || envLong < 1 || envLong == LONG_MAX ) ?
+        defaultFuseOpt : std::string(fuseOpt) + std::string(pEnvStr, pEnd - pEnvStr);
+    fuse_opt_add_arg(&fuseArgs, entryStr.c_str());
+    
+    srfsLog( LOG_WARNING, envVarName );
+    srfsLog( LOG_WARNING, entryStr.c_str() );
+    return TRUE;
 }
 
 void parseArgs(int argc, char *argv[], CmdArgs *arguments) {
@@ -2685,77 +2685,77 @@ int main(int argc, char *argv[]) {
     umask(022);
     pClient = NULL; pGlobalSession = NULL;
 
-	initFuse();
+    initFuse();
 
     fuse_opt_add_arg(&fuseArgs, argv[0]);
     initDefaults(&_args);
     //argp_parse(&argp, argc, argv, 0, 0, &_args);
-	parseArgs(argc, argv, &_args);
+    parseArgs(argc, argv, &_args);
     displayArguments(&_args);
     //checkArguments(&_args);
 
-	initLogging();
+    initLogging();
 
-	if (RUNNING_ON_VALGRIND) {
-		fprintf(stderr,
-			"**** WARNING : Valgrind has been detected. If this fails to run in Valgrind\n"
-			"**** then lookup procedures for valgrind-and-fuse-file-systems \n"
-			"**** Sleeping for 5 seconds \n");
-		sleep(5);
-		fprintf(stderr, "\n");
-	}
-	if (args->verbose || RUNNING_ON_VALGRIND) {  //if either on Valgrind or Debug env var was specified
-		add_fuse_option("-d");
-	    srfsLog(LOG_WARNING, "Verbose on");
-	} else {
-	    srfsLog(LOG_WARNING, "Verbose off");
-	}
+    if (RUNNING_ON_VALGRIND) {
+        fprintf(stderr,
+            "**** WARNING : Valgrind has been detected. If this fails to run in Valgrind\n"
+            "**** then lookup procedures for valgrind-and-fuse-file-systems \n"
+            "**** Sleeping for 5 seconds \n");
+        sleep(5);
+        fprintf(stderr, "\n");
+    }
+    if (args->verbose || RUNNING_ON_VALGRIND) {  //if either on Valgrind or Debug env var was specified
+        add_fuse_option("-d");
+        srfsLog(LOG_WARNING, "Verbose on");
+    } else {
+        srfsLog(LOG_WARNING, "Verbose off");
+    }
 
-	if (!access(FUSE_CONF_FILE, R_OK)) {
-	    srfsLog(LOG_WARNING, "Found %s", FUSE_CONF_FILE);
-	    add_fuse_option("-oallow_other");
-	} else {
-	    srfsLog(LOG_WARNING, "No %s", FUSE_CONF_FILE);
-	}
-	add_fuse_option("-odefault_permissions");
-	
-	if (args->enableBigWrites) {
+    if (!access(FUSE_CONF_FILE, R_OK)) {
+        srfsLog(LOG_WARNING, "Found %s", FUSE_CONF_FILE);
+        add_fuse_option("-oallow_other");
+    } else {
+        srfsLog(LOG_WARNING, "No %s", FUSE_CONF_FILE);
+    }
+    add_fuse_option("-odefault_permissions");
+    
+    if (args->enableBigWrites) {
 #if FUSE_MAJOR_VERSION < 3
         srfsLog(LOG_WARNING, "Enabling big writes");
-		add_fuse_option("-obig_writes");
+        add_fuse_option("-obig_writes");
 #endif        
-	}
+    }
     
     //add_fuse_option("-odirect_io"); // for debugging only    
 #if FUSE_MAJOR_VERSION < 3
-	add_fuse_option("-ononempty");
+    add_fuse_option("-ononempty");
     add_fuse_option("-ouse_ino");
 #endif
     add_fuse_option("-oauto_cache");
     
-	sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
-	sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs);
-	sprintf(fuseACAttrOption, "-oac_attr_timeout=%d", args->attrTimeoutSecs);
-	sprintf(fuseNegativeOption, "-onegative_timeout=%d", args->negativeTimeoutSecs);
-	
-	addEnvToFuseArg("SKFS_ENTRY_TIMEOUT", "-oentry_timeout=", fuseEntryOption);
-	addEnvToFuseArg("SKFS_ATTR_TIMEOUT", "-oattr_timeout=", fuseAttrOption);
-	addEnvToFuseArg("SKFS_AC_ATTR_TIMEOUT", "-oac_attr_timeout=", fuseACAttrOption);
-	addEnvToFuseArg("SKFS_NEGATIVE_TIMEOUT", "-onegative_timeout=", fuseNegativeOption);
+    sprintf(fuseEntryOption, "-oentry_timeout=%d", args->entryTimeoutSecs);
+    sprintf(fuseAttrOption, "-oattr_timeout=%d", args->attrTimeoutSecs);
+    sprintf(fuseACAttrOption, "-oac_attr_timeout=%d", args->attrTimeoutSecs);
+    sprintf(fuseNegativeOption, "-onegative_timeout=%d", args->negativeTimeoutSecs);
+    
+    addEnvToFuseArg("SKFS_ENTRY_TIMEOUT", "-oentry_timeout=", fuseEntryOption);
+    addEnvToFuseArg("SKFS_ATTR_TIMEOUT", "-oattr_timeout=", fuseAttrOption);
+    addEnvToFuseArg("SKFS_AC_ATTR_TIMEOUT", "-oac_attr_timeout=", fuseACAttrOption);
+    addEnvToFuseArg("SKFS_NEGATIVE_TIMEOUT", "-onegative_timeout=", fuseNegativeOption);
 #if FUSE_MAJOR_VERSION < 3
-	addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=5242880");
-	addEnvToFuseArg("SKFS_MAX_WRITE", "-omax_write=", "-omax_write=262144");
+    addEnvToFuseArg("SKFS_MAX_READAHEAD", "-omax_readahead=", "-omax_readahead=5242880");
+    addEnvToFuseArg("SKFS_MAX_WRITE", "-omax_write=", "-omax_write=262144");
 #endif
 #if FUSE_MAJOR_VERSION >= 3
-	addEnvToFuseArg("SKFS_MAX_READ", "-omax_read=", "-omax_read=131072");
+    addEnvToFuseArg("SKFS_MAX_READ", "-omax_read=", "-omax_read=131072");
 #endif
     direct_io_enabled = envToBool("SKFS_WRITE_DIRECT_IO", false);
     
-	//fuse_opt_add_arg(&fuseArgs, "-osubtype=SKFS");
-	srfsLog(LOG_WARNING, "Calling fuse_main");
-	int retCode = fuse_main(fuseArgs.argc, fuseArgs.argv, &skfs_oper, NULL);
-	fprintf(stderr, "fuse_main() returned %d\n", retCode);
-	//fuseArgs are not freed
-	return retCode;
+    //fuse_opt_add_arg(&fuseArgs, "-osubtype=SKFS");
+    srfsLog(LOG_WARNING, "Calling fuse_main");
+    int retCode = fuse_main(fuseArgs.argc, fuseArgs.argv, &skfs_oper, NULL);
+    fprintf(stderr, "fuse_main() returned %d\n", retCode);
+    //fuseArgs are not freed
+    return retCode;
 }
 #endif  //UNIT_TESTS

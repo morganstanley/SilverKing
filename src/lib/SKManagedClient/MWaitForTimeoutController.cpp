@@ -14,58 +14,58 @@ namespace SKManagedClient {
 
 MWaitForTimeoutController::~MWaitForTimeoutController()
 {
-	this->!MWaitForTimeoutController();
+    this->!MWaitForTimeoutController();
 }
 
 MWaitForTimeoutController::!MWaitForTimeoutController()
 {
-	if(pImpl)
-	{
-		delete (SKWaitForTimeoutController*)pImpl ;
-		pImpl = NULL;
-	}
+    if(pImpl)
+    {
+        delete (SKWaitForTimeoutController*)pImpl ;
+        pImpl = NULL;
+    }
 }
 
 MWaitForTimeoutController::MWaitForTimeoutController() {
-	SKWaitForTimeoutController * pOpCtrl = new SKWaitForTimeoutController();
-	pImpl = pOpCtrl;
+    SKWaitForTimeoutController * pOpCtrl = new SKWaitForTimeoutController();
+    pImpl = pOpCtrl;
 }
 MWaitForTimeoutController::MWaitForTimeoutController(int internalRetryIntervalSeconds) {
-	SKWaitForTimeoutController * pOpCtrl = new SKWaitForTimeoutController(internalRetryIntervalSeconds);
-	pImpl = pOpCtrl;
+    SKWaitForTimeoutController * pOpCtrl = new SKWaitForTimeoutController(internalRetryIntervalSeconds);
+    pImpl = pOpCtrl;
 }
 
 //internal methods
 MWaitForTimeoutController::MWaitForTimeoutController(SKOpTimeoutController_M ^ opController) {
-	pImpl = opController->pOpTimeoutController; //(SKWaitForTimeoutController *)
+    pImpl = opController->pOpTimeoutController; //(SKWaitForTimeoutController *)
 }
 
 SKOpTimeoutController_M ^ MWaitForTimeoutController::getPImpl(){
-	SKOpTimeoutController_M ^ opc = gcnew SKOpTimeoutController_M;
-	opc->pOpTimeoutController = pImpl;
-	return opc;
+    SKOpTimeoutController_M ^ opc = gcnew SKOpTimeoutController_M;
+    opc->pOpTimeoutController = pImpl;
+    return opc;
 }
 
 // public methods
 int MWaitForTimeoutController::getMaxAttempts(MAsyncOperation ^ op){
-	SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
-	return ((SKWaitForTimeoutController*)pImpl)->getMaxAttempts(pOp);
+    SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
+    return ((SKWaitForTimeoutController*)pImpl)->getMaxAttempts(pOp);
 }
 
 int MWaitForTimeoutController::getRelativeTimeoutMillisForAttempt(MAsyncOperation ^ op, int attemptIndex){
-	SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
-	return ((SKWaitForTimeoutController*)pImpl)->getRelativeTimeoutMillisForAttempt(pOp, attemptIndex);
+    SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
+    return ((SKWaitForTimeoutController*)pImpl)->getRelativeTimeoutMillisForAttempt(pOp, attemptIndex);
 }
 
 int MWaitForTimeoutController::getMaxRelativeTimeoutMillis(MAsyncOperation ^ op){
-	SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
-	return ((SKWaitForTimeoutController*)pImpl)->getMaxRelativeTimeoutMillis(pOp);
+    SKAsyncOperation * pOp = (SKAsyncOperation *) (op->getPImpl()->pAsyncOperation);
+    return ((SKWaitForTimeoutController*)pImpl)->getMaxRelativeTimeoutMillis(pOp);
 }
 
 String ^ MWaitForTimeoutController::toString(){
-	std::string stdstr =  ((SKWaitForTimeoutController*)pImpl)->toString();
-	String ^ str = gcnew String( stdstr.c_str(), 0, stdstr.size() );
-	return str;
+    std::string stdstr =  ((SKWaitForTimeoutController*)pImpl)->toString();
+    String ^ str = gcnew String( stdstr.c_str(), 0, stdstr.size() );
+    return str;
 }
 
 }

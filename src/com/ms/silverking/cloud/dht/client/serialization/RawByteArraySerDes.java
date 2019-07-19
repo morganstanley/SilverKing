@@ -49,8 +49,8 @@ public final class RawByteArraySerDes implements BufferSerDes<byte[]> {
         return Arrays.copyOfRange(buffer.array(), buffer.position(), buffer.position() + buffer.remaining());
     }
 
-	@Override
-	public byte[] emptyObject() {
-		return DHTConstants.emptyByteArray;
-	}
+    @Override
+    public byte[] emptyObject() {
+        return DHTConstants.emptyByteArray;
+    }
 }

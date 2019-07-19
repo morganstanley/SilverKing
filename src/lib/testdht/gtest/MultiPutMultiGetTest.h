@@ -6,11 +6,11 @@
 #include "gtest/gtest.h"
 
 class MultiPutMultiGetTest : public ::testing::Test {
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 
-	public:
+    public:
 
 };
 

@@ -10,7 +10,7 @@ using jace::proxy::java::lang::String;
 using jace::proxy::com::ms::silverking::cloud::dht::client::NamespaceRecoverException;
 
 SKNamespaceRecoverException::SKNamespaceRecoverException(NamespaceRecoverException * pNle, const char * fileName, int lineNum) 
-	: SKClientException(pNle, fileName, lineNum) { 	/*pImpl = pNce;*/ }
+    : SKClientException(pNle, fileName, lineNum) {     /*pImpl = pNce;*/ }
 
 SKNamespaceRecoverException::~SKNamespaceRecoverException()  throw () { }
 

@@ -25,9 +25,9 @@ DEIndexEntry *deie_set(DEIndexEntry *indexEntry, DirData *dd, DirEntry *de) {
     void    *base;
     
     base = (void *)dd->data;
-	*indexEntry = (uint32_t)ptr_to_offset(base, (void *)de);
+    *indexEntry = (uint32_t)ptr_to_offset(base, (void *)de);
     srfsLog(LOG_FINE, "deie_set %llx %d %llx", indexEntry, *indexEntry, (indexEntry + 1));
-	return indexEntry + 1;
+    return indexEntry + 1;
 }
 
 
@@ -38,20 +38,20 @@ DEIndexEntry *deie_set(DEIndexEntry *indexEntry, DirData *dd, DirEntry *de) {
  * Initialize the DirEntryIndex header.
  */
 void dei_init(DirEntryIndex *dei, uint32_t numEntries) {
-	dei->magic = DEI_MAGIC;
-	dei->numEntries = numEntries;
+    dei->magic = DEI_MAGIC;
+    dei->numEntries = numEntries;
 }
 
 int dei_sanity_check(DirEntryIndex *dei, int fatalErrorOnFailure) {
-	if (dei->magic != DEI_MAGIC) {
-		if (fatalErrorOnFailure) {
-			srfsLog(LOG_ERROR, "dei->magic != DEI_MAGIC  dei %llx dei->magic %x != %x", dei, dei->magic, DEI_MAGIC);
-			fatalError("dei->magic != DEI_MAGIC", __FILE__, __LINE__);
-		}
-		return FALSE;
-	} else {
-		return TRUE;
-	}
+    if (dei->magic != DEI_MAGIC) {
+        if (fatalErrorOnFailure) {
+            srfsLog(LOG_ERROR, "dei->magic != DEI_MAGIC  dei %llx dei->magic %x != %x", dei, dei->magic, DEI_MAGIC);
+            fatalError("dei->magic != DEI_MAGIC", __FILE__, __LINE__);
+        }
+        return FALSE;
+    } else {
+        return TRUE;
+    }
 }
 
 /**
@@ -60,21 +60,21 @@ int dei_sanity_check(DirEntryIndex *dei, int fatalErrorOnFailure) {
  * index. dei_reindex should be called after this function.
  */
 void dei_create_unsorted_index(DirEntryIndex *dei, DirEntry *de, DirEntry *limit) {
-	uint32_t	i;
-	uint32_t	numEntries;
-	DirEntry	*base;
-	
-	base = de;
-	i = 0;
-	while (de != NULL) {
-		dei->entries[i] = (uint32_t)((uint64_t)de - (uint64_t)base);
-		i++;
-		de = de_next(de, limit, TRUE);
-	}
-	numEntries = i;
-	if (numEntries != dei->numEntries) {
-		fatalError("numEntries != dei->numEntries", __FILE__, __LINE__);
-	}
+    uint32_t    i;
+    uint32_t    numEntries;
+    DirEntry    *base;
+    
+    base = de;
+    i = 0;
+    while (de != NULL) {
+        dei->entries[i] = (uint32_t)((uint64_t)de - (uint64_t)base);
+        i++;
+        de = de_next(de, limit, TRUE);
+    }
+    numEntries = i;
+    if (numEntries != dei->numEntries) {
+        fatalError("numEntries != dei->numEntries", __FILE__, __LINE__);
+    }
 }
 
 __thread void *thread_context;
@@ -85,22 +85,22 @@ __thread void *thread_context;
  * the entries.
  */
 static int dei_comp_old(const void *o1, const void *o2) {
-	DEIndexEntry	*e1;
-	DEIndexEntry	*e2;
-	DirData	*dd;
-	DirEntry	*de1;
-	DirEntry	*de2;
+    DEIndexEntry    *e1;
+    DEIndexEntry    *e2;
+    DirData    *dd;
+    DirEntry    *de1;
+    DirEntry    *de2;
     void *context;
     
     context = thread_context;
-	e1 = (DEIndexEntry *)o1;
-	e2 = (DEIndexEntry *)o2;
-	dd = (DirData *)context;
-	de1 = (DirEntry *)offset_to_ptr(dd->data, *e1);
-	de2 = (DirEntry *)offset_to_ptr(dd->data, *e2);
-	de_sanity_check(de1);
-	de_sanity_check(de2);
-	return strncmp(de_get_name(de1), de_get_name(de2), SRFS_MAX_PATH_LENGTH);
+    e1 = (DEIndexEntry *)o1;
+    e2 = (DEIndexEntry *)o2;
+    dd = (DirData *)context;
+    de1 = (DirEntry *)offset_to_ptr(dd->data, *e1);
+    de2 = (DirEntry *)offset_to_ptr(dd->data, *e2);
+    de_sanity_check(de1);
+    de_sanity_check(de2);
+    return strncmp(de_get_name(de1), de_get_name(de2), SRFS_MAX_PATH_LENGTH);
 }
 
 /**
@@ -109,20 +109,20 @@ static int dei_comp_old(const void *o1, const void *o2) {
  * the entries.
  */
 static int dei_comp(const void *o1, const void *o2, void *context) {
-	DEIndexEntry	*e1;
-	DEIndexEntry	*e2;
-	DirData	*dd;
-	DirEntry	*de1;
-	DirEntry	*de2;
-	
-	e1 = (DEIndexEntry *)o1;
-	e2 = (DEIndexEntry *)o2;
-	dd = (DirData *)context;
-	de1 = (DirEntry *)offset_to_ptr(dd->data, *e1);
-	de2 = (DirEntry *)offset_to_ptr(dd->data, *e2);
-	de_sanity_check(de1);
-	de_sanity_check(de2);
-	return strncmp(de_get_name(de1), de_get_name(de2), SRFS_MAX_PATH_LENGTH);
+    DEIndexEntry    *e1;
+    DEIndexEntry    *e2;
+    DirData    *dd;
+    DirEntry    *de1;
+    DirEntry    *de2;
+    
+    e1 = (DEIndexEntry *)o1;
+    e2 = (DEIndexEntry *)o2;
+    dd = (DirData *)context;
+    de1 = (DirEntry *)offset_to_ptr(dd->data, *e1);
+    de2 = (DirEntry *)offset_to_ptr(dd->data, *e2);
+    de_sanity_check(de1);
+    de_sanity_check(de2);
+    return strncmp(de_get_name(de1), de_get_name(de2), SRFS_MAX_PATH_LENGTH);
 }
 
 /**
@@ -133,10 +133,10 @@ void dei_reindex(DirEntryIndex *dei, DirData *dd) {
     dei_sanity_check(dei);
     dd_sanity_check(dd);
 #ifdef USE_QSORT_R
-	qsort_r(dei->entries, dei->numEntries, sizeof(DEIndexEntry), dei_comp, dd);
+    qsort_r(dei->entries, dei->numEntries, sizeof(DEIndexEntry), dei_comp, dd);
 #else
     thread_context = dd;
-	qsort(dei->entries, dei->numEntries, sizeof(DEIndexEntry), dei_comp_old);
+    qsort(dei->entries, dei->numEntries, sizeof(DEIndexEntry), dei_comp_old);
 #endif
 }
 
@@ -153,13 +153,13 @@ void dei_add_numEntries_and_reindex(DirEntryIndex *dei, DirData *dd, uint32_t nu
  * in the given DirData.
  */
 DirEntry *dei_get_dir_entry(DirEntryIndex *dei, DirData *dd, uint32_t index) {
-	DirEntry	*de;
-	
+    DirEntry    *de;
+    
     dei_sanity_check(dei);
     dd_sanity_check(dd);
-	de = (DirEntry *)offset_to_ptr(dd->data, dei->entries[index]);
-	de_sanity_check(de);
-	return de;
+    de = (DirEntry *)offset_to_ptr(dd->data, dei->entries[index]);
+    de_sanity_check(de);
+    return de;
 }
 
 uint32_t dei_locate(DirEntryIndex *dei, DirData *dd, const char *name) {
@@ -182,7 +182,7 @@ uint32_t dei_locate(DirEntryIndex *dei, DirData *dd, const char *name) {
         
         range = upper - lower;
         if (range < 2) {
-            DirEntry	*de;
+            DirEntry    *de;
             
             srfsLog(LOG_FINE, "range < 2");
             if (range == 0) {

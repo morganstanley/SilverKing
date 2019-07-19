@@ -28,8 +28,8 @@ public class RingConfigWatcher implements VersionListener {
     private final List<RingChangeListener>  listeners;
     private final boolean           enableLogging;
     
-    private static final int	zkReadAttempts = 300;
-    private static final int	zkReadRetryIntervalMillis = 2 * 1000;
+    private static final int    zkReadAttempts = 300;
+    private static final int    zkReadRetryIntervalMillis = 2 * 1000;
     
     public RingConfigWatcher(ZooKeeperConfig zkConfig, String ringName, long intervalMillis, boolean enableLogging,
                              RingChangeListener initialListener) 
@@ -69,21 +69,21 @@ public class RingConfigWatcher implements VersionListener {
          *   2 - A new configuration instance has been stored
          */
         if (basePath.equals(MetaPaths.getRingConfigPath(ringName))) {
-        	// We have a new ring configuration 
+            // We have a new ring configuration 
             if (enableLogging) {
                 Log.warning("New config path for ring: "+ ringName);
             }
             startConfigurationWatch(version);
         } else {
-    		Pair<Long,Long>	versionPair;
-    		long			ringConfigVersion;
-    		long			creationTime;
-    		int				attemptIndex;
-    		boolean			ringIsValid;
-    		
-        	// We have a new configuration instance 
-    		ringConfigVersion = getRingConfigVersionFromPath(basePath);
-    		versionPair = new Pair<>(ringConfigVersion, version);
+            Pair<Long,Long>    versionPair;
+            long            ringConfigVersion;
+            long            creationTime;
+            int                attemptIndex;
+            boolean            ringIsValid;
+            
+            // We have a new configuration instance 
+            ringConfigVersion = getRingConfigVersionFromPath(basePath);
+            versionPair = new Pair<>(ringConfigVersion, version);
             if (enableLogging) {
                 Log.warning("New ring instance: "+ ringName +" "+ versionPair);
             }
@@ -91,40 +91,40 @@ public class RingConfigWatcher implements VersionListener {
             ringIsValid = false;
             attemptIndex = 0;
             do {
-            	try {
-            		MetaClient		_mc;
-            		
+                try {
+                    MetaClient        _mc;
+                    
                     _mc = MetaClient.createMetaClient(ringName, ringConfigVersion, mc.getZooKeeper().getZKConfig());
-            		ringIsValid = SingleRingZK.treeIsValid(_mc, versionPair);
-				} catch (KeeperException | IOException e) {
-					Log.logErrorWarning(e);
-				}
-        		if (!ringIsValid) {
-					ThreadUtil.sleep(zkReadRetryIntervalMillis);
-        		}
-            	++attemptIndex;
+                    ringIsValid = SingleRingZK.treeIsValid(_mc, versionPair);
+                } catch (KeeperException | IOException e) {
+                    Log.logErrorWarning(e);
+                }
+                if (!ringIsValid) {
+                    ThreadUtil.sleep(zkReadRetryIntervalMillis);
+                }
+                ++attemptIndex;
             } while (!ringIsValid && attemptIndex < zkReadAttempts);
             if (!ringIsValid) {
-            	Log.warning("Validity verification timed out: "+ ringName +" "+ versionPair);
-            	return;
+                Log.warning("Validity verification timed out: "+ ringName +" "+ versionPair);
+                return;
             }
             
             creationTime = Long.MIN_VALUE;
             attemptIndex = 0;
             do {
-            	try {
-					creationTime = mc.getZooKeeper().getCreationTime(ZooKeeperExtended.padVersionPath(basePath, version));
-				} catch (KeeperException e) {
-					Log.logErrorWarning(e);
-				}
-            	if (creationTime < 0) {
-            		ThreadUtil.sleep(zkReadRetryIntervalMillis);
-            	}
-            	++attemptIndex;
+                try {
+                    creationTime = mc.getZooKeeper().getCreationTime(ZooKeeperExtended.padVersionPath(basePath, version));
+                } catch (KeeperException e) {
+                    Log.logErrorWarning(e);
+                }
+                if (creationTime < 0) {
+                    ThreadUtil.sleep(zkReadRetryIntervalMillis);
+                }
+                ++attemptIndex;
             } while (creationTime < 0 && attemptIndex < zkReadAttempts);
             if (creationTime < 0) {
-            	Log.warning("Ignoring ring due to zk exceptions: "+ ringName +" "+ versionPair);
-            	return;
+                Log.warning("Ignoring ring due to zk exceptions: "+ ringName +" "+ versionPair);
+                return;
             }
             
             informRingListeners(basePath, versionPair, creationTime);
@@ -132,21 +132,21 @@ public class RingConfigWatcher implements VersionListener {
     }
     
     private long getRingConfigVersionFromPath(String path) {
-    	int	configIndex;
-    	int	instanceIndex;
-    	
-    	configIndex = path.indexOf("config");
-    	if (configIndex < 0) {
-    		throw new RuntimeException("No config in: "+ path);
-    	}
-    	instanceIndex = path.indexOf("instance", configIndex);
-    	if (instanceIndex < 0) {
-    		throw new RuntimeException("No instance in: "+ path);
-    	}
-    	return Long.parseLong(path.substring(configIndex + "config".length() + 1, instanceIndex - 1));
-	}
+        int    configIndex;
+        int    instanceIndex;
+        
+        configIndex = path.indexOf("config");
+        if (configIndex < 0) {
+            throw new RuntimeException("No config in: "+ path);
+        }
+        instanceIndex = path.indexOf("instance", configIndex);
+        if (instanceIndex < 0) {
+            throw new RuntimeException("No instance in: "+ path);
+        }
+        return Long.parseLong(path.substring(configIndex + "config".length() + 1, instanceIndex - 1));
+    }
 
-	private void informRingListeners(String basePath, Pair<Long,Long> version, long creationTime) {
+    private void informRingListeners(String basePath, Pair<Long,Long> version, long creationTime) {
         for (RingChangeListener listener : listeners) {
             listener.ringChanged(ringName, basePath, version, creationTime);
         }

@@ -6,13 +6,13 @@
 #include "gtest/gtest.h"
 
 class PutGetMetaTest : public ::testing::Test {
-	public:
-		 PutGetMetaTest();
-		~PutGetMetaTest();
+    public:
+         PutGetMetaTest();
+        ~PutGetMetaTest();
 
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 
 };
 

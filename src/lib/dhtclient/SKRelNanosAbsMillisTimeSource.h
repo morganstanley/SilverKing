@@ -5,8 +5,8 @@
 #include "SKAbsMillisTimeSource.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace time {
-		class RelNanosAbsMillisTimeSource;
+    namespace silverking {namespace time {
+        class RelNanosAbsMillisTimeSource;
 } } } } } }
 typedef jace::proxy::com::ms::silverking::time::RelNanosAbsMillisTimeSource RelNanosAbsMillisTimeSource;
  
@@ -16,7 +16,7 @@ class SKRelNanosAbsMillisTimeSource : public SKAbsMillisTimeSource /*, public SK
 public:
     SKRelNanosAbsMillisTimeSource(RelNanosAbsMillisTimeSource * pRelNanosAbsMillisTimeSource);
     SKAPI virtual ~SKRelNanosAbsMillisTimeSource();
-	SKAPI virtual int64_t relTimeNanos();
+    SKAPI virtual int64_t relTimeNanos();
 
 protected:
     SKRelNanosAbsMillisTimeSource();

@@ -19,19 +19,19 @@ BEGIN_NAMESPACE_3(jace, proxy, types)
 class JVoid : public JValue
 {
 public:
-	/**
-	 * Returns the JClass for the Void type.
-	 *
-	 * @throw JNIException if an error occurs while trying to retrieve the class.
-	 */
-	JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
+    /**
+     * Returns the JClass for the Void type.
+     *
+     * @throw JNIException if an error occurs while trying to retrieve the class.
+     */
+    JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
 
-	/**
-	 * Returns the JClass for the Void type.
-	 *
-	 * @throw JNIException if an error occurs while trying to retrieve the class.
-	 */
-	JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
+    /**
+     * Returns the JClass for the Void type.
+     *
+     * @throw JNIException if an error occurs while trying to retrieve the class.
+     */
+    JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
 };
 
 END_NAMESPACE_3(jace, proxy, types)

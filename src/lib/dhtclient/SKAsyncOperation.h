@@ -11,8 +11,8 @@
 #include "skconstants.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class AsyncOperation;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class AsyncOperation;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::AsyncOperation AsyncOperation;
 
@@ -20,15 +20,15 @@ typedef jace::proxy::com::ms::silverking::cloud::dht::client::AsyncOperation Asy
 class SKAsyncOperation 
 {
 public:
-	SKAPI SKOperationState::SKOperationState getState();
-	SKAPI SKFailureCause::SKFailureCause getFailureCause();
-	SKAPI virtual void waitForCompletion();
-	SKAPI virtual bool waitForCompletion(long timeout, SKTimeUnit unit);
-	SKAPI void close();
-	SKAPI virtual ~SKAsyncOperation();
-	
+    SKAPI SKOperationState::SKOperationState getState();
+    SKAPI SKFailureCause::SKFailureCause getFailureCause();
+    SKAPI virtual void waitForCompletion();
+    SKAPI virtual bool waitForCompletion(long timeout, SKTimeUnit unit);
+    SKAPI void close();
+    SKAPI virtual ~SKAsyncOperation();
+    
     SKAsyncOperation(AsyncOperation * pAsyncOperation);
-	virtual void * getPImpl();
+    virtual void * getPImpl();
 protected:
     AsyncOperation * pImpl;
 

@@ -7,7 +7,7 @@ public class LongInterval {
     private final long  l2;
     
     public LongInterval(long l1, long l2) {
-		Preconditions.checkArgument(l2 >= l1);
+        Preconditions.checkArgument(l2 >= l1);
         this.l1 = l1;
         this.l2 = l2;
     }
@@ -39,6 +39,6 @@ public class LongInterval {
     
     @Override
     public String toString() {
-    	return "["+ l1 +","+ l2 +"]";
+        return "["+ l1 +","+ l2 +"]";
     }
 }

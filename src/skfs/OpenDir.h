@@ -28,28 +28,28 @@
 // be replaced with a more efficient implementation.
 
 typedef struct OpenDir {
-	char	path[SRFS_MAX_PATH_LENGTH];
-	DirData	*dd;
-	DirData	*su_dd;
-	int		queuedForWrite;
-	volatile int	numPendingUpdates;
-	OpenDirUpdate	*pendingUpdates;
-	pthread_mutex_t	mutexInstance;
-	pthread_mutex_t	*mutex;
-	pthread_cond_t	cvInstance;
-	pthread_cond_t	*cv;
-	uint64_t	lastUpdateMillis;
-	uint64_t	ddVersion;
-	uint64_t	lastMergedVersion;
-	uint64_t	lastGetAttr;
-	uint64_t	lastPrefetch;
+    char    path[SRFS_MAX_PATH_LENGTH];
+    DirData    *dd;
+    DirData    *su_dd;
+    int        queuedForWrite;
+    volatile int    numPendingUpdates;
+    OpenDirUpdate    *pendingUpdates;
+    pthread_mutex_t    mutexInstance;
+    pthread_mutex_t    *mutex;
+    pthread_cond_t    cvInstance;
+    pthread_cond_t    *cv;
+    uint64_t    lastUpdateMillis;
+    uint64_t    ddVersion;
+    uint64_t    lastMergedVersion;
+    uint64_t    lastGetAttr;
+    uint64_t    lastPrefetch;
     uint64_t    lastWriteMillis;
     uint64_t    lastMutationMillis;
     uint64_t    lastReconciliationTriggerMillis;
     uint64_t    lastReconciliationCompleteMillis;
     pthread_spinlock_t  timeSpinlockInstance;
     pthread_spinlock_t  *timeSpinlock;
-	int		needsReconciliation;
+    int        needsReconciliation;
 } OpenDir;
 
 

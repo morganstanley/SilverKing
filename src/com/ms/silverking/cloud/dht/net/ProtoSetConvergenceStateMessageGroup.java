@@ -19,10 +19,10 @@ public class ProtoSetConvergenceStateMessageGroup extends ProtoMessageGroup {
     private static final int    curCPOffset = uuidLSLOffset + NumConversion.BYTES_PER_LONG;
     private static final int    targetCPOffset = curCPOffset + ConvergencePoint.serializedSizeBytes;
     private static final int    ringStateOffset = targetCPOffset + ConvergencePoint.serializedSizeBytes;
-    private static final int	dataBufferSizeBytes = ringStateOffset + 1;
+    private static final int    dataBufferSizeBytes = ringStateOffset + 1;
     
     public ProtoSetConvergenceStateMessageGroup(UUIDBase uuid, byte[] originator, int deadlineRelativeMillis,
-    		ConvergencePoint curCP, ConvergencePoint targetCP, RingState ringState) {
+            ConvergencePoint curCP, ConvergencePoint targetCP, RingState ringState) {
         super(MessageType.SET_CONVERGENCE_STATE, uuid, 0, originator, deadlineRelativeMillis, ForwardingMode.DO_NOT_FORWARD);
         
         ByteBuffer      buffer;
@@ -67,14 +67,14 @@ public class ProtoSetConvergenceStateMessageGroup extends ProtoMessageGroup {
     }
     
     public static ConvergencePoint getCurCP(MessageGroup mg) {
-    	return ConvergencePoint.readFromBuffer(mg.getBuffers()[dataBufferIndex], curCPOffset);
+        return ConvergencePoint.readFromBuffer(mg.getBuffers()[dataBufferIndex], curCPOffset);
     }
     
     public static ConvergencePoint getTargetCP(MessageGroup mg) {
-    	return ConvergencePoint.readFromBuffer(mg.getBuffers()[dataBufferIndex], targetCPOffset);
+        return ConvergencePoint.readFromBuffer(mg.getBuffers()[dataBufferIndex], targetCPOffset);
     }
     
     public static RingState getRingState(MessageGroup mg) {
-    	return RingState.values()[mg.getBuffers()[dataBufferIndex].get(ringStateOffset)];
+        return RingState.values()[mg.getBuffers()[dataBufferIndex].get(ringStateOffset)];
     }    
 }

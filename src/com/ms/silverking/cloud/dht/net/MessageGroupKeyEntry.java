@@ -65,8 +65,8 @@ public class MessageGroupKeyEntry implements DHTKey, Comparable<DHTKey> {
         return Long.toHexString(msl) +":"+ Long.toHexString(lsl);
     }
 
-	@Override
-	public int compareTo(DHTKey o) {
-		return DHTKeyComparator.dhtKeyComparator.compare(this, o);
-	}
+    @Override
+    public int compareTo(DHTKey o) {
+        return DHTKeyComparator.dhtKeyComparator.compare(this, o);
+    }
 }

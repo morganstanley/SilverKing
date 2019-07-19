@@ -71,17 +71,17 @@ public class DHTConfigurationWatcher implements VersionListener {
     private void newDHTConfiguration() {
         try {
             synchronized (this) {
-            	DHTConfiguration	_dhtConfig;
-            	
+                DHTConfiguration    _dhtConfig;
+                
                 _dhtConfig = mc.getDHTConfiguration();
                 dhtConfig = _dhtConfig;
                 if (enableLogging) {
                     Log.warning("DHTConfigurationWatcher.newDHTConfiguration: "+ dhtConfig);
                 }
                 if (dhtConfig != null) {
-                	this.notifyAll();
+                    this.notifyAll();
                 } else {
-                	Log.warning("Ignoring null dhtConfig");
+                    Log.warning("Ignoring null dhtConfig");
                 }
                 notifyListeners(_dhtConfig);
             }

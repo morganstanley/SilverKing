@@ -21,14 +21,14 @@
 // types
 
 typedef struct OpenDirTable {
-	const char		*name;
-	OpenDirCache	*odc;
-	DirDataReader	*ddr;
-	OpenDirWriter	*odw;
-	AttrWriter		*aw;
-	AttrReader		*ar;
-	uint64_t		lastGetAttr;
-	pthread_t		reconciliationThread;
+    const char        *name;
+    OpenDirCache    *odc;
+    DirDataReader    *ddr;
+    OpenDirWriter    *odw;
+    AttrWriter        *aw;
+    AttrReader        *ar;
+    uint64_t        lastGetAttr;
+    pthread_t        reconciliationThread;
     uint64_t        minReconciliationSleepMillis;
     uint64_t        maxReconciliationSleepMillis;
     uint64_t        _lastVersion;

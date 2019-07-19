@@ -20,8 +20,8 @@
 ////////////
 // defines
 
-#define CACHE_UNLIMITED_SIZE	0
-#define CACHE_NO_TIMEOUT	0
+#define CACHE_UNLIMITED_SIZE    0
+#define CACHE_NO_TIMEOUT    0
 #define CACHE_NO_MODIFICATION_TIME 0xffffffffffffffffL
 
 //////////
@@ -34,27 +34,27 @@ extern char *crrNames[];
 extern char *crr_strings[];
 
 typedef struct CacheStats {
-	uint64_t	writes;
-	uint64_t	readResults[CRR_CODE_TRAILER];
-	uint64_t	specReadResults[CRR_CODE_TRAILER];
-	uint64_t	evictions;
-	uint64_t	failed_evictions;
-	uint64_t	removals;
+    uint64_t    writes;
+    uint64_t    readResults[CRR_CODE_TRAILER];
+    uint64_t    specReadResults[CRR_CODE_TRAILER];
+    uint64_t    evictions;
+    uint64_t    failed_evictions;
+    uint64_t    removals;
 } CacheStats;
 
 typedef struct Cache {
-    const char	*name;
-    int			size;
-    int			evictionBatchSize;
-    hashtable	*ht;
-	CacheStats	stats;
-	pthread_rwlock_t	rwLock;
-	pthread_spinlock_t	statLock;
+    const char    *name;
+    int            size;
+    int            evictionBatchSize;
+    hashtable    *ht;
+    CacheStats    stats;
+    pthread_rwlock_t    rwLock;
+    pthread_spinlock_t    statLock;
 } Cache;
 
 typedef struct CacheKeyList {
-	int		size;
-	char	**keys;
+    int        size;
+    char    **keys;
 } CacheKeyList;
 
 
@@ -67,8 +67,8 @@ void cache_delete(Cache **cache);
 //void cache_read_lock(Cache *cache);
 //void cache_unlock(Cache *cache);
 CacheReadResult cache_read(Cache *cache, void *key, size_t keySize, unsigned char *buf, 
-						   size_t sourceOffset, size_t size, ActiveOpRef **activeOpRef, int *cacheNumRead, 
-						   ActiveOp *(*createOp)(void *, void *, uint64_t), void *createOpContext,
+                           size_t sourceOffset, size_t size, ActiveOpRef **activeOpRef, int *cacheNumRead, 
+                           ActiveOp *(*createOp)(void *, void *, uint64_t), void *createOpContext,
                            uint64_t minModificationTime = 0,
                            uint64_t newOpTimeoutMillis = CACHE_NO_TIMEOUT);
 CacheStoreResult cache_store_dht_value(Cache *cache, void *key, int keySize, SKVal *pRVal, 

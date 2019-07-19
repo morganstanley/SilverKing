@@ -16,17 +16,17 @@
 
 
 typedef struct QueueProcessor {
-	ArrayBlockingQueue	*abq;
-	int			numThreads;
-	int			isBatchProcessor;
-	int			batchLimit;
-	pthread_t	*threads;
-	pthread_mutex_t	mutexInstance;
-	pthread_mutex_t	*mutex;
-	int			nextThreadIndex;
-	int	running;
-	void (*processElement)(void *, int);
-	void (*processBatch)(void **, int, int);
+    ArrayBlockingQueue    *abq;
+    int            numThreads;
+    int            isBatchProcessor;
+    int            batchLimit;
+    pthread_t    *threads;
+    pthread_mutex_t    mutexInstance;
+    pthread_mutex_t    *mutex;
+    int            nextThreadIndex;
+    int    running;
+    void (*processElement)(void *, int);
+    void (*processBatch)(void **, int, int);
 } QueueProcessor;
 
 

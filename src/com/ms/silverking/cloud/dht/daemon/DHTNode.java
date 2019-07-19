@@ -40,7 +40,7 @@ public class DHTNode {
     private final StorageModule  storage;
     private final MemoryManager  memoryManager;
     private final DaemonStateZK  daemonStateZK;
-    private final NodeInfoZK	 nodeInfoZK;
+    private final NodeInfoZK     nodeInfoZK;
     private boolean       running = true;
      
     // FUTURE - make port non-static
@@ -66,7 +66,7 @@ public class DHTNode {
     private static final AbsMillisTimeSource    absMillisTimeSource;
     
     static {
-    	DHTConstants.isDaemon = true;
+        DHTConstants.isDaemon = true;
         AsyncGlobals.setVerbose(true);
         absMillisTimeSource = SystemTimeUtil.timerDrivenTimeSource;
         daemonStateTimer = new SafeTimer();
@@ -78,31 +78,31 @@ public class DHTNode {
         ConvergenceController2.setAbsMillisTimeSource(absMillisTimeSource);
     }
     
-	public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy) {
-	    try {
-	        IPAndPort  daemonIPAndPort;
-	        //DHTRingCurTargetWatcher	dhtRingCurTargetWatcher;
-	        MetaClient	mc;
-	        DHTConfiguration	dhtConfig;
-	        ExclusionSetAddressStatusProvider	exclusionSetAddressStatusProvider;
-	        
+    public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy) {
+        try {
+            IPAndPort  daemonIPAndPort;
+            //DHTRingCurTargetWatcher    dhtRingCurTargetWatcher;
+            MetaClient    mc;
+            DHTConfiguration    dhtConfig;
+            ExclusionSetAddressStatusProvider    exclusionSetAddressStatusProvider;
+            
             Log.warning("LogLevel: ", Log.getLevel());
-	        this.dhtName = dhtName;
-	        mc = new MetaClient(dhtName, zkConfig);
-	        dhtConfig = mc.getDHTConfiguration();
+            this.dhtName = dhtName;
+            mc = new MetaClient(dhtName, zkConfig);
+            dhtConfig = mc.getDHTConfiguration();
             Log.warning("DHTConfiguration: ", dhtConfig);
             serverPort = dhtConfig.getPort();
             daemonIPAndPort = MessageGroupBase.createLocalIPAndPort(serverPort);
-	        exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName);
+            exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName);
             ringMaster = new NodeRingMaster2(dhtName, zkConfig, daemonIPAndPort);
-	        ringMaster.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
+            ringMaster.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
             //dmw.addListener(ringMaster);
             Log.warning("Using port: "+ serverPort);
             Log.warning("ReapPolicy: ", reapPolicy);
             daemonStateZK = new DaemonStateZK(mc, daemonIPAndPort, daemonStateTimer);
             daemonStateZK.setState(DaemonState.INITIAL_MAP_WAIT);
-	        ringMaster.initializeMap(dhtConfig);
-	        
+            ringMaster.initializeMap(dhtConfig);
+            
             if (!daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT, 
                     inactiveNodeTimeoutSeconds)) {
                 daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT, 
@@ -110,13 +110,13 @@ public class DHTNode {
             }
             daemonStateZK.setState(DaemonState.RECOVERY);
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY, 
-            		recoveryInactiveNodeTimeoutSeconds);
+                    recoveryInactiveNodeTimeoutSeconds);
             nodeInfoZK = new NodeInfoZK(mc, daemonIPAndPort, daemonStateTimer);       
             storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy);
-	        msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort, 
-	                                      mc);
-	        msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
-	        memoryManager = new MemoryManager();
+            msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort, 
+                                          mc);
+            msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
+            memoryManager = new MemoryManager();
             storage.addMemoryObservers(memoryManager.getJVMMonitor());
             daemonStateZK.setState(DaemonState.QUORUM_WAIT);
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT, 
@@ -129,51 +129,51 @@ public class DHTNode {
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.COMMUNICATION_ENABLED, 
                     inactiveNodeTimeoutSeconds);
             daemonStateZK.setState(DaemonState.PRIMING);
-	        msgModule.start();
-	        cleanVM();
+            msgModule.start();
+            cleanVM();
             daemonStateZK.setState(DaemonState.INITIAL_REAP);
             storage.startupReap();
             daemonStateZK.setState(DaemonState.RUNNING);
-	    } catch (Exception e) {
-	        throw new RuntimeException(e);
-	    }
-	}
-	
-    private void cleanVM() {
-    	JVMUtil.finalization.forceFinalization(0);
-	}
-
-	public void run() {
-        while (running) {
-        	synchronized (this) {
-	            try {
-	                this.wait();
-	            } catch (InterruptedException ie) {
-	            }
-        	}
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
     
-	public void test() {
-	    Log.warning("DHTNode.test() starting");
-	    Log.warning(msgModule);
-	    ThreadUtil.sleepSeconds(1.0 * 60.0 * 60.0);
-        Log.warning("DHTNode.test() complete");
-	}
+    private void cleanVM() {
+        JVMUtil.finalization.forceFinalization(0);
+    }
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-	    try {
-	        DHTNode            dhtNode;
-	        String             dhtName;
-	        ZooKeeperConfig    zkConfig;
-	        DHTNodeOptions     options;
+    public void run() {
+        while (running) {
+            synchronized (this) {
+                try {
+                    this.wait();
+                } catch (InterruptedException ie) {
+                }
+            }
+        }
+    }
+    
+    public void test() {
+        Log.warning("DHTNode.test() starting");
+        Log.warning(msgModule);
+        ThreadUtil.sleepSeconds(1.0 * 60.0 * 60.0);
+        Log.warning("DHTNode.test() complete");
+    }
+
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {
+        try {
+            DHTNode            dhtNode;
+            String             dhtName;
+            ZooKeeperConfig    zkConfig;
+            DHTNodeOptions     options;
             CmdLineParser       parser;
 
-	        LWTPoolProvider.createDefaultWorkPools();
-	        
+            LWTPoolProvider.createDefaultWorkPools();
+            
             options = new DHTNodeOptions();
             parser = new CmdLineParser(options);
             try {
@@ -187,21 +187,21 @@ public class DHTNode {
                 dhtNode.run();
                 Log.warning("DHTNode run() returned cleanly");
             } catch (CmdLineException cle) {
-            	Log.logErrorWarning(cle);
+                Log.logErrorWarning(cle);
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
                 return;
             } catch (Exception e) {
-            	Log.logErrorWarning(e);
+                Log.logErrorWarning(e);
                 e.printStackTrace();
             } catch (Throwable t) {
-            	Log.logErrorWarning(t);
+                Log.logErrorWarning(t);
                 t.printStackTrace();
             } finally {
                 Log.warning("DHTNode leaving main()");
             }
-	    } catch (Exception e) {
-	        Log.logErrorWarning(e);
-	    }
-	}
+        } catch (Exception e) {
+            Log.logErrorWarning(e);
+        }
+    }
 }

@@ -13,8 +13,8 @@
 class SKStoredValue;
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class AsyncSingleValueRetrieval;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class AsyncSingleValueRetrieval;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::AsyncSingleValueRetrieval AsyncSingleValueRetrieval;
 
@@ -22,12 +22,12 @@ typedef jace::proxy::com::ms::silverking::cloud::dht::client::AsyncSingleValueRe
 class SKAsyncSingleValueRetrieval : public SKAsyncValueRetrieval
 {
 public:
-	SKAPI SKStoredValue *  getStoredValue();
-	SKAPI SKVal *  getValue();
-	SKAPI virtual ~SKAsyncSingleValueRetrieval();
+    SKAPI SKStoredValue *  getStoredValue();
+    SKAPI SKVal *  getValue();
+    SKAPI virtual ~SKAsyncSingleValueRetrieval();
 
-	SKAsyncSingleValueRetrieval(AsyncSingleValueRetrieval * pAsyncSingleValueRetrieval);
-	void * getPImpl();
+    SKAsyncSingleValueRetrieval(AsyncSingleValueRetrieval * pAsyncSingleValueRetrieval);
+    void * getPImpl();
  
 private:
  

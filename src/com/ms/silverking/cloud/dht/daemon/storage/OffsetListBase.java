@@ -80,10 +80,10 @@ abstract class OffsetListBase implements OffsetList {
     //}
     
     protected int entryBaseOffset(int index) {
-    	if (index < 0) {
-    		Log.warningf("index %d", index);
-    		throw new RuntimeException("index < 0");
-    	}
+        if (index < 0) {
+            Log.warningf("index %d", index);
+            throw new RuntimeException("index < 0");
+        }
         return index * entrySizeInts;
     }
     
@@ -160,23 +160,23 @@ abstract class OffsetListBase implements OffsetList {
             if (vc.matches(curVersion)) {
                 if (vc.getMode() == VersionConstraint.Mode.LEAST) {
                     if (curVersion <= bestMatchVersion) { 
-                    	if (validityVerifier == null || validityVerifier.isValid(getOffset(i) + DHTKey.BYTES_PER_KEY)) {
-	                        bestMatchIndex = i;
-	                        bestMatchVersion = curVersion;
-	                        if (debug) {
-	                            Log.warning("found new least: ", i +" "+ curVersion +" "+ bestMatchVersion);
-	                        }
-                    	}
+                        if (validityVerifier == null || validityVerifier.isValid(getOffset(i) + DHTKey.BYTES_PER_KEY)) {
+                            bestMatchIndex = i;
+                            bestMatchVersion = curVersion;
+                            if (debug) {
+                                Log.warning("found new least: ", i +" "+ curVersion +" "+ bestMatchVersion);
+                            }
+                        }
                     }
                 } else {
                     if (curVersion >= bestMatchVersion) {                    
-                    	if (validityVerifier == null || validityVerifier.isValid(getOffset(i) + DHTKey.BYTES_PER_KEY)) {
-	                        bestMatchIndex = i;
-	                        bestMatchVersion = curVersion;
-	                        if (debug) {
-	                            Log.warning("found new greatest: ", i +" "+ curVersion +" "+ bestMatchVersion);
-	                        }
-                    	}
+                        if (validityVerifier == null || validityVerifier.isValid(getOffset(i) + DHTKey.BYTES_PER_KEY)) {
+                            bestMatchIndex = i;
+                            bestMatchVersion = curVersion;
+                            if (debug) {
+                                Log.warning("found new greatest: ", i +" "+ curVersion +" "+ bestMatchVersion);
+                            }
+                        }
                     }
                 }
             }
@@ -194,42 +194,42 @@ abstract class OffsetListBase implements OffsetList {
         }
     }
     
-	@Override
+    @Override
     public int getFirstOffset() {
         return getOffset(0);
     }
     
     @Override
     public int getLastOffset() {
-    	int	lastIndex;
-    	
-    	lastIndex = lastIndex();
-    	if (lastIndex >= 0) {
-    		return getOffset(lastIndex);
-    	} else {
-    		return -1;
-    	}
+        int    lastIndex;
+        
+        lastIndex = lastIndex();
+        if (lastIndex >= 0) {
+            return getOffset(lastIndex);
+        } else {
+            return -1;
+        }
     }
     
     @Override
     public long getLatestVersion() {
-    	int	lastIndex;
-    	
-    	lastIndex = lastIndex();
-    	if (lastIndex >= 0) {
-    		return getVersion(lastIndex);
-    	} else {
-    		return -1;
-    	}
+        int    lastIndex;
+        
+        lastIndex = lastIndex();
+        if (lastIndex >= 0) {
+            return getVersion(lastIndex);
+        } else {
+            return -1;
+        }
     }
     
     protected void checkIndex(int index) {
-		if (index < 0) {
-			throw new IndexOutOfBoundsException(index +" < 0");
-		}
-		if (index >= size()) {
-			throw new IndexOutOfBoundsException(index +" index >= "+ size());
-		}        
+        if (index < 0) {
+            throw new IndexOutOfBoundsException(index +" < 0");
+        }
+        if (index >= size()) {
+            throw new IndexOutOfBoundsException(index +" index >= "+ size());
+        }        
     }    
     
     private int lastIndex() {
@@ -287,7 +287,7 @@ abstract class OffsetListBase implements OffsetList {
     
     @Override
     public Iterable<Long> versionIterable() {
-    	return new VersionIterator();
+        return new VersionIterator();
     }
     
     @Override
@@ -308,15 +308,15 @@ abstract class OffsetListBase implements OffsetList {
             }
         }
 
-		@Override
-		public Iterator<Long> iterator() {
-			return this;
-		}
+        @Override
+        public Iterator<Long> iterator() {
+            return this;
+        }
     }
 
     @Override
     public Iterable<Pair<Long,Long>> versionAndStorageTimeIterable() {
-    	return new VersionAndStorageTimeIterator();
+        return new VersionAndStorageTimeIterator();
     }
     
     @Override
@@ -331,25 +331,25 @@ abstract class OffsetListBase implements OffsetList {
         @Override
         public Pair<Long,Long> next() {
             if (hasNext()) {
-            	Pair<Long,Long>	p;
-            	
-            	p = new Pair<>(getVersion(index), getStorageTime(index));
-            	index++;
+                Pair<Long,Long>    p;
+                
+                p = new Pair<>(getVersion(index), getStorageTime(index));
+                index++;
                 return p;
             } else {
                 return null;
             }
         }
 
-		@Override
-		public Iterator<Pair<Long, Long>> iterator() {
-			return this;
-		}
+        @Override
+        public Iterator<Pair<Long, Long>> iterator() {
+            return this;
+        }
     }    
 
     @Override
-    public Iterable<Triple<Integer,Long,Long>>	offsetVersionAndStorageTimeIterable() {
-    	return new OffsetVersionAndStorageTimeIterator();
+    public Iterable<Triple<Integer,Long,Long>>    offsetVersionAndStorageTimeIterable() {
+        return new OffsetVersionAndStorageTimeIterator();
     }
     
     @Override
@@ -358,37 +358,37 @@ abstract class OffsetListBase implements OffsetList {
     }
     
     private class OffsetVersionAndStorageTimeIterator extends OffsetListIteratorBase<Triple<Integer,Long,Long>> implements Iterable<Triple<Integer, Long, Long>> {
-    	OffsetVersionAndStorageTimeIterator() {
+        OffsetVersionAndStorageTimeIterator() {
         }
 
         @Override
         public Triple<Integer,Long,Long> next() {
             if (hasNext()) {
-            	Triple<Integer,Long,Long>	t;
-            	
-            	t = new Triple<>(getOffset(index), getVersion(index), supportsStorageTime ? getStorageTime(index) : 0);
-            	index++;
+                Triple<Integer,Long,Long>    t;
+                
+                t = new Triple<>(getOffset(index), getVersion(index), supportsStorageTime ? getStorageTime(index) : 0);
+                index++;
                 return t;
             } else {
                 return null;
             }
         }
 
-		@Override
-		public Iterator<Triple<Integer, Long, Long>> iterator() {
-			return this;
-		}
+        @Override
+        public Iterator<Triple<Integer, Long, Long>> iterator() {
+            return this;
+        }
     }    
     
     @Override
     public MultiVersionChecksum getMultiVersionChecksum() {
-    	MultiVersionChecksum	mvc;
-    	
-    	mvc = new MultiVersionChecksum();
-    	for (int i = 0; i < size(); i++) {
-    		mvc.addVersionAndStorageTime(getVersion(i), supportsStorageTime ? getStorageTime(i) : 0);
-    	}
-    	return mvc;
+        MultiVersionChecksum    mvc;
+        
+        mvc = new MultiVersionChecksum();
+        for (int i = 0; i < size(); i++) {
+            mvc.addVersionAndStorageTime(getVersion(i), supportsStorageTime ? getStorageTime(i) : 0);
+        }
+        return mvc;
     }
     
     public static int entrySizeBytes(boolean supportsStorageTime) {

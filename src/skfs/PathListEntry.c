@@ -11,10 +11,10 @@
 // implementation
 
 PathListEntry *ple_prepend(PathListEntry *existingEntry, char *path) {
-	PathListEntry	*newEntry;
+    PathListEntry    *newEntry;
 
-	newEntry = (PathListEntry *)mem_alloc(1, sizeof(PathListEntry));
-	newEntry->path = path;
-	newEntry->next = existingEntry;
-	return newEntry;
+    newEntry = (PathListEntry *)mem_alloc(1, sizeof(PathListEntry));
+    newEntry->path = path;
+    newEntry->next = existingEntry;
+    return newEntry;
 }

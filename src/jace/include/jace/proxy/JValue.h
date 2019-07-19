@@ -39,7 +39,7 @@ BEGIN_NAMESPACE_2(jace, proxy)
  *     static boost::shared_ptr<JClassImpl> result;
  *     boost::mutex::scoped_lock lock(javaClassMutex);
  *     if (result == 0)
- * 	     result = boost::shared_ptr<JClassImpl>(new JClassImpl("java/lang/Object"));
+ *          result = boost::shared_ptr<JClassImpl>(new JClassImpl("java/lang/Object"));
  *     return *result;
  *   }
  *
@@ -54,56 +54,56 @@ BEGIN_NAMESPACE_2(jace, proxy)
 class JValue
 {
 public:
-	/**
-	 * Constructs a new JValue.
-	 */
-	JACE_API JValue();
+    /**
+     * Constructs a new JValue.
+     */
+    JACE_API JValue();
 
-	/**
-	 * Destroys the existing JValue.
-	 */
-	JACE_API virtual ~JValue();
+    /**
+     * Destroys the existing JValue.
+     */
+    JACE_API virtual ~JValue();
 
-	/**
-	 * Returns the underlying JNI jvalue for this JValue.
-	 */
-	JACE_API operator jvalue();
+    /**
+     * Returns the underlying JNI jvalue for this JValue.
+     */
+    JACE_API operator jvalue();
 
-	/**
-	 * Returns the underlying JNI jvalue for this JValue.
-	 *
-	 * Callers of this method should be careful not to call modifying
-	 * methods on the returned jvalue.
-	 */
-	JACE_API operator jvalue() const;
+    /**
+     * Returns the underlying JNI jvalue for this JValue.
+     *
+     * Callers of this method should be careful not to call modifying
+     * methods on the returned jvalue.
+     */
+    JACE_API operator jvalue() const;
 
-	/**
-	 * Retrieves the JClass for this JValue.
-	 *
-	 * @throw JNIException if an error occurs while trying to retrieve the class.
-	 */
-	JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException) = 0;
+    /**
+     * Retrieves the JClass for this JValue.
+     *
+     * @throw JNIException if an error occurs while trying to retrieve the class.
+     */
+    JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException) = 0;
 
 protected:
-	/**
-	 * Sets the jvalue for this JValue.
-	 *
-	 * This method should only be called once during the lifetime
-	 * of this JValue, during the construction of a JValue.
-	 *
-	 * @param value The jvalue which represents this JValue.
-	 *
-	 * @throws JNIException if the jobject has already been set,
-	 *   or if the JVM runs out of memory while trying to create
-	 *   a new global reference.
-	 */
-	JACE_API virtual void setJavaJniValue(jvalue value) throw (::jace::JNIException);
+    /**
+     * Sets the jvalue for this JValue.
+     *
+     * This method should only be called once during the lifetime
+     * of this JValue, during the construction of a JValue.
+     *
+     * @param value The jvalue which represents this JValue.
+     *
+     * @throws JNIException if the jobject has already been set,
+     *   or if the JVM runs out of memory while trying to create
+     *   a new global reference.
+     */
+    JACE_API virtual void setJavaJniValue(jvalue value) throw (::jace::JNIException);
 
 private:
-	/**
-	 * The underlying JNI value.
-	 */
-	jvalue mValue;
+    /**
+     * The underlying JNI value.
+     */
+    jvalue mValue;
 };
 
 

@@ -67,7 +67,7 @@ static void *br_run(void *_br);
 BlockReader *br_new(int port, PartialBlockReader *pbr, AttrReader *ar) {
     BlockReader *br;
 
-	br = (BlockReader *)mem_alloc(1, sizeof(BlockReader));
+    br = (BlockReader *)mem_alloc(1, sizeof(BlockReader));
     br->port = port;
     br->pbr = pbr;
     br->ar = ar;
@@ -99,7 +99,7 @@ BlockReader *br_new(int port, PartialBlockReader *pbr, AttrReader *ar) {
     
     br->numRemoteAddresses = 0;
     br->remoteAddresses = NULL;
-	pthread_spin_init(&br->addrLock, 0);
+    pthread_spin_init(&br->addrLock, 0);
   
     return br;
 }
@@ -367,9 +367,9 @@ size_t br_message_length_for_path(char *path) {
 }
 
 static void *br_run(void *_br) {
-	BlockReader	*br;
-	int		curThreadIndex;
-	
-	br = (BlockReader *)_br;
+    BlockReader    *br;
+    int        curThreadIndex;
+    
+    br = (BlockReader *)_br;
     br_server_loop(br);
 }

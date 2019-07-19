@@ -38,9 +38,9 @@ public class LinkCreationWatcher implements NodeCreationListener {
             }
             if (debug) {
                 if (child == parent) {
-                	Log.warningf("Ignoring circular link %s %x %x", path, child, parent);
+                    Log.warningf("Ignoring circular link %s %x %x", path, child, parent);
                 } else {
-                	Log.warningf("Calling link created: %s %x %x", path, child, parent);
+                    Log.warningf("Calling link created: %s %x %x", path, child, parent);
                 }
             }
             listener.linkCreated(child, parent);

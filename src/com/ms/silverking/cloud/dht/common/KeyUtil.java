@@ -113,18 +113,18 @@ public class KeyUtil {
     }
     
     public static DHTKey keyStringToKey(String def) {
-    	String[]	s;
-    	
-    	s = def.split(":");
-    	return new SimpleKey(Long.parseUnsignedLong(s[0], 16), Long.parseUnsignedLong(s[1], 16));
+        String[]    s;
+        
+        s = def.split(":");
+        return new SimpleKey(Long.parseUnsignedLong(s[0], 16), Long.parseUnsignedLong(s[1], 16));
     }
     
     public static boolean equal(DHTKey k1, DHTKey k2) {
-    	return k1.getMSL() == k2.getMSL() && k1.getLSL() == k2.getLSL();
+        return k1.getMSL() == k2.getMSL() && k1.getLSL() == k2.getLSL();
     }
     
     public static int compare(DHTKey k1, DHTKey k2) {
-    	return DHTKeyComparator.dhtKeyComparator.compare(k1, k2);
+        return DHTKeyComparator.dhtKeyComparator.compare(k1, k2);
     }    
     
     /**
@@ -137,7 +137,7 @@ public class KeyUtil {
             System.out.printf("%s\n", StringUtil.byteArrayToHexString(maxValue.toByteArray()));
             test();
             */
-        	/*
+            /*
             double  min;
             
             min = Double.MAX_VALUE;
@@ -151,12 +151,12 @@ public class KeyUtil {
             }
             System.out.println(min);
             */
-        	DHTKey	k1;
-        	DHTKey	k2;
-        	
-        	k1 = SimpleKey.randomKey();
-        	k2 = keyStringToKey(keyToString(k1));
-        	System.out.printf("%s\t%s\n", k1, k2);
+            DHTKey    k1;
+            DHTKey    k2;
+            
+            k1 = SimpleKey.randomKey();
+            k2 = keyStringToKey(keyToString(k1));
+            System.out.printf("%s\t%s\n", k1, k2);
         } catch (Exception e) {
             e.printStackTrace();
         }

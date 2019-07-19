@@ -15,7 +15,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
     private final DHTKey    key;
     private final long      versionChecksum; // may need to expand this for multi-version
     // note that we don't care about the segment number for equality; we simply carry this information for efficiency in retrieval
-    private final long		segmentNumber; // we only need 32 bits of this, but use the full long for now as that is expected by serialization
+    private final long        segmentNumber; // we only need 32 bits of this, but use the full long for now as that is expected by serialization
     
     public KeyAndVersionChecksum(DHTKey key, long versionChecksum, long segmentNumber) {
         this.key = new SimpleKey(key);
@@ -32,7 +32,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
     }
     
     public long getSegmentNumber() {
-    	return segmentNumber;
+        return segmentNumber;
     }
     
     @Override 
@@ -144,7 +144,7 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
     }
     
     private static boolean isValidKVCIndex(long[] kvcArray, int index) {
-		return index < kvcArray.length && (index % serializedSizeLongs) == 0;
+        return index < kvcArray.length && (index % serializedSizeLongs) == 0;
     }
     
     public static KeyAndVersionChecksum kvcAt(long[] kvcArray, int index) {
@@ -159,30 +159,30 @@ public class KeyAndVersionChecksum implements Comparable<KeyAndVersionChecksum> 
      * the commented out methods are a start of an implementation of a faster pruning algorithm
      * 
     private static int getKVCIndexForCoordinate(long[] kvcArray, long p) {
-    	int	size;
-    	
-    	size = entriesInArray(kvcArray);
-    	for (int i = 0; i < size; i++) {
-    		KeyAndVersionChecksum	kvc;
-    		long	kvcP;
-    		
-    		kvc = kvcAt(kvcArray, i);
-    		kvcP = KeyUtil.keyToCoordinate(kvc.getKey());
-    	}
+        int    size;
+        
+        size = entriesInArray(kvcArray);
+        for (int i = 0; i < size; i++) {
+            KeyAndVersionChecksum    kvc;
+            long    kvcP;
+            
+            kvc = kvcAt(kvcArray, i);
+            kvcP = KeyUtil.keyToCoordinate(kvc.getKey());
+        }
     }
     
     public static long[] getKVCArrayForRegion(long[] kvcArray, RingRegion region) {
-    	int	i0;
-    	int	i1;
-    	int	newArraySize;
-    	long[]	newArray;
-    	
-    	i0 = 0;
-    	i1 = 0;
-    	newArraySize = i1 - i0 + 1;
-    	newArray = new long[newArraySize];
-    	System.arraycopy(kvcArray, i0 * serializedSizeLongs, newArray, 0, newArraySize * serializedSizeLongs);
-    	return newArray;
+        int    i0;
+        int    i1;
+        int    newArraySize;
+        long[]    newArray;
+        
+        i0 = 0;
+        i1 = 0;
+        newArraySize = i1 - i0 + 1;
+        newArray = new long[newArraySize];
+        System.arraycopy(kvcArray, i0 * serializedSizeLongs, newArray, 0, newArraySize * serializedSizeLongs);
+        return newArray;
     }
     */
 }

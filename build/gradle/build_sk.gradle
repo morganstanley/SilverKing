@@ -1,0 +1,76 @@
+plugins {
+    id 'java-library'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'http://kompics.sics.se/maven/repository/'  // for ycsb
+    }
+}
+
+apply from: 'dependencies.gradle'
+
+mainClassName = 'com.ms.silverking.compression.Main'
+
+def buildOutput        = '../silverking-build'
+def buildCompileOutput = buildOutput+'/classes'
+
+sourceSets {
+    main {
+        java {
+            srcDir '../../src'
+            outputDir = file(buildCompileOutput+'/src')
+        }
+    }
+    test {
+        java {
+            srcDir '../../test'
+            outputDir = file(buildCompileOutput+'/test')
+        }
+    }
+}
+
+configurations.all {
+    transitive = false
+}
+
+def libFolder = '../../lib'
+task downloadLibs {
+    copy {
+        from configurations.compileCore
+        into libFolder
+    }
+    copy {
+        from configurations.awslib
+        into libFolder+'/aws-java-sdk-1.11.333/lib' 
+    }
+    copy {
+        from configurations.thirdparty
+        into libFolder+'/aws-java-sdk-1.11.333/thirdparty/lib'
+    }
+}
+
+task copyTestTxt(type: Copy) { 
+    from("$rootDir/../test") { 
+        include "com/ms/silverking/fs/**/*.txt" 
+        include "com/ms/silverking/cloud/gridconfig/**/*.txt" 
+    }
+    into buildCompileOutput+"/test" 
+} 
+
+testClasses.dependsOn copyTestTxt
+
+task createJar(type: Jar) {
+    manifest {
+        attributes(
+            "Main-Class": mainClassName
+        )
+    }
+    archiveName = 'silverking.jar'
+    destinationDir = file(buildOutput+"/jar")
+    with jar
+}
+
+createJar.dependsOn downloadLibs

@@ -139,17 +139,17 @@ public class ActiveClientOperationTable {
     }
     
     private void checkOpForTimeouts(long curTimeMillis, AsyncOperationImpl op, OpSender opSender, boolean exclusionSetHasChanged) {
-    	boolean	attemptHasTimedOut;
-    	
-    	attemptHasTimedOut = op.attemptHasTimedOut(curTimeMillis);
+        boolean    attemptHasTimedOut;
+        
+        attemptHasTimedOut = op.attemptHasTimedOut(curTimeMillis);
         if (attemptHasTimedOut || (exclusionSetHasChanged && op.retryOnExclusionChange(curTimeMillis))) {
             if (op.getState() == OperationState.INCOMPLETE) {
                 if (debugTimeouts) {
-                	if (attemptHasTimedOut) {
-                		Log.warning("Attempt timed out: ", op);
-                	} else {
-                		Log.warning("Retry due to exclusion set change: ", op);
-                	}
+                    if (attemptHasTimedOut) {
+                        Log.warning("Attempt timed out: ", op);
+                    } else {
+                        Log.warning("Retry due to exclusion set change: ", op);
+                    }
                 }
                 if (!op.opHasTimedOut(curTimeMillis)) {
                     if (debugTimeouts) {
@@ -158,14 +158,14 @@ public class ActiveClientOperationTable {
                         Log.info("Resending: ", op);
                     }
                     if (attemptHasTimedOut) {
-                    	// only bump up attempts if the attempt has timed out
-                    	// not if the exclusion set has changed
-                    	op.newAttempt(curTimeMillis);
+                        // only bump up attempts if the attempt has timed out
+                        // not if the exclusion set has changed
+                        op.newAttempt(curTimeMillis);
                     }
                     opSender.addWork(op);
                 } else {
                     if (debugTimeouts) {
-                    	Log.warning("Op timed out: ", op);
+                        Log.warning("Op timed out: ", op);
                     }
                     Log.info("TIMEOUT: ", op);
                     op.setResult(OpResult.TIMEOUT);

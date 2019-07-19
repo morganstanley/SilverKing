@@ -38,73 +38,73 @@ using jace::proxy::com::ms::silverking::cloud::dht::WaitOptions;
 
 
 RevisionMode* convertRevisionMode (SKRevisionMode revisionMode) {
-	switch(revisionMode)
-	{
-		case NO_REVISIONS : 
-			return new RevisionMode (RevisionMode::valueOf("NO_REVISIONS"));
-		case UNRESTRICTED_REVISIONS: 
-			return new RevisionMode (RevisionMode::valueOf("UNRESTRICTED_REVISIONS"));
-		default: 
-			throw std::exception(); //FIXME:
-	}
+    switch(revisionMode)
+    {
+        case NO_REVISIONS : 
+            return new RevisionMode (RevisionMode::valueOf("NO_REVISIONS"));
+        case UNRESTRICTED_REVISIONS: 
+            return new RevisionMode (RevisionMode::valueOf("UNRESTRICTED_REVISIONS"));
+        default: 
+            throw std::exception(); //FIXME:
+    }
 }
 
 /* ctors / dtors */
 SKNamespaceOptions::SKNamespaceOptions(SKStorageType::SKStorageType storageType, 
-						SKConsistency consistencyProtocol, 
-						SKVersionMode versionMode, 
-						SKRevisionMode revisionMode, 
-						SKPutOptions * defaultPutOptions,
-						SKInvalidationOptions * defaultInvalidationOptions,
-						SKGetOptions * defaultGetOptions, 
-						SKWaitOptions * defaultWaitOptions,
-						int secondarySyncIntervalSeconds, 
-						int segmentSize, 
+                        SKConsistency consistencyProtocol, 
+                        SKVersionMode versionMode, 
+                        SKRevisionMode revisionMode, 
+                        SKPutOptions * defaultPutOptions,
+                        SKInvalidationOptions * defaultInvalidationOptions,
+                        SKGetOptions * defaultGetOptions, 
+                        SKWaitOptions * defaultWaitOptions,
+                        int secondarySyncIntervalSeconds, 
+                        int segmentSize, 
                         int maxValueSize, 
-						bool allowLinks )
+                        bool allowLinks )
 {
-	StorageType * pSt = ::getStorageType( storageType );
-	RevisionMode * pRm = convertRevisionMode( revisionMode );
-	ConsistencyProtocol * pCp = ::getConsistencyProtocol( consistencyProtocol );
-	NamespaceVersionMode * pNvm = ::getVersionMode(versionMode);
-	PutOptions * pPo = (PutOptions *) defaultPutOptions->getPImpl();  //FIXME: friend
-	InvalidationOptions * pIo = (InvalidationOptions *) defaultInvalidationOptions->getPImpl();
-	GetOptions * pGo = (GetOptions *) defaultGetOptions->getPImpl(); 
-	WaitOptions * pWo = (WaitOptions *) defaultWaitOptions->getPImpl();
-	//pImpl = new NamespaceOptions(java_new<NamespaceOptions>(*pSt, *pCp, *pNvm, *pRm, *pPo,     
+    StorageType * pSt = ::getStorageType( storageType );
+    RevisionMode * pRm = convertRevisionMode( revisionMode );
+    ConsistencyProtocol * pCp = ::getConsistencyProtocol( consistencyProtocol );
+    NamespaceVersionMode * pNvm = ::getVersionMode(versionMode);
+    PutOptions * pPo = (PutOptions *) defaultPutOptions->getPImpl();  //FIXME: friend
+    InvalidationOptions * pIo = (InvalidationOptions *) defaultInvalidationOptions->getPImpl();
+    GetOptions * pGo = (GetOptions *) defaultGetOptions->getPImpl(); 
+    WaitOptions * pWo = (WaitOptions *) defaultWaitOptions->getPImpl();
+    //pImpl = new NamespaceOptions(java_new<NamespaceOptions>(*pSt, *pCp, *pNvm, *pRm, *pPo,     
     //    *pIo, *pGo, *pWo, secondarySyncIntervalSeconds, segmentSize, allowLinks)); 
     pImpl = NamespaceOptions::Factory::create(*pSt, *pCp, *pNvm, *pRm, *pPo,     
         *pIo, *pGo, *pWo, secondarySyncIntervalSeconds, segmentSize, maxValueSize, allowLinks);
       
-	delete pSt;
-	delete pCp;
-	delete pRm;
-	delete pNvm;
+    delete pSt;
+    delete pCp;
+    delete pRm;
+    delete pNvm;
 }
 
 SKNamespaceOptions::SKNamespaceOptions(void * pNamespaceOptions)
-	: pImpl(pNamespaceOptions) {}; 
-	
+    : pImpl(pNamespaceOptions) {}; 
+    
 SKNamespaceOptions::~SKNamespaceOptions()
 {
-	if(pImpl!=NULL) {
-		NamespaceOptions * pNSOpts = (NamespaceOptions*)pImpl;
-		delete pNSOpts; 
-		pImpl = NULL;
-	}
+    if(pImpl!=NULL) {
+        NamespaceOptions * pNSOpts = (NamespaceOptions*)pImpl;
+        delete pNSOpts; 
+        pImpl = NULL;
+    }
 }
 
 void * SKNamespaceOptions::getPImpl(){
-	return pImpl;
+    return pImpl;
 }
 
 ///////
 
 SKNamespaceOptions *  SKNamespaceOptions::storageType(SKStorageType::SKStorageType storageType) {
     StorageType * pSt = ::getStorageType(storageType);
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->storageType(*pSt)
-	)); 
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->storageType(*pSt)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     delete pSt;
@@ -113,9 +113,9 @@ SKNamespaceOptions *  SKNamespaceOptions::storageType(SKStorageType::SKStorageTy
 
 SKNamespaceOptions *  SKNamespaceOptions::consistencyProtocol(SKConsistency consistencyProtocol) {
     ConsistencyProtocol * pCp = ::getConsistencyProtocol(consistencyProtocol);
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->consistencyProtocol(*pCp)
-	)); 
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->consistencyProtocol(*pCp)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     delete pCp;
@@ -123,10 +123,10 @@ SKNamespaceOptions *  SKNamespaceOptions::consistencyProtocol(SKConsistency cons
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::versionMode(SKVersionMode versionMode) {
-	NamespaceVersionMode * pNvm = ::getVersionMode(versionMode);
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->versionMode(*pNvm)
-	)); 
+    NamespaceVersionMode * pNvm = ::getVersionMode(versionMode);
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->versionMode(*pNvm)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     delete pNvm;
@@ -135,9 +135,9 @@ SKNamespaceOptions *  SKNamespaceOptions::versionMode(SKVersionMode versionMode)
 
 SKNamespaceOptions * SKNamespaceOptions::revisionMode(SKRevisionMode revisionMode){
     RevisionMode * pRm = convertRevisionMode(revisionMode);
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->revisionMode(*pRm)
-	)); 
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->revisionMode(*pRm)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     delete pRm;
@@ -145,67 +145,67 @@ SKNamespaceOptions * SKNamespaceOptions::revisionMode(SKRevisionMode revisionMod
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::defaultPutOptions(SKPutOptions * defaultPutOptions) {
-	PutOptions * pPo = (PutOptions *) defaultPutOptions->getPImpl();  //FIXME: friend
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->defaultPutOptions(*pPo)
-	)); 
+    PutOptions * pPo = (PutOptions *) defaultPutOptions->getPImpl();  //FIXME: friend
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->defaultPutOptions(*pPo)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     return this;
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::defaultInvalidationOptions(SKInvalidationOptions * defaultInvalidationOptions) {
-	InvalidationOptions * pIo = (InvalidationOptions *) defaultInvalidationOptions->getPImpl();  //FIXME: friend
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->defaultInvalidationOptions(*pIo)
-	)); 
+    InvalidationOptions * pIo = (InvalidationOptions *) defaultInvalidationOptions->getPImpl();  //FIXME: friend
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->defaultInvalidationOptions(*pIo)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     return this;
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::defaultGetOptions(SKGetOptions * defaultGetOptions) {
-	GetOptions * pGo = (GetOptions *) defaultGetOptions->getPImpl();  //FIXME: friend
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->defaultGetOptions(*pGo)
-	)); 
+    GetOptions * pGo = (GetOptions *) defaultGetOptions->getPImpl();  //FIXME: friend
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->defaultGetOptions(*pGo)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     return this;
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::defaultWaitOptions(SKWaitOptions * defaultWaitOptions) {
-	WaitOptions * pWo = (WaitOptions *) defaultWaitOptions->getPImpl();  //FIXME: friend
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->defaultWaitOptions(*pWo)
-	)); 
+    WaitOptions * pWo = (WaitOptions *) defaultWaitOptions->getPImpl();  //FIXME: friend
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->defaultWaitOptions(*pWo)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     return this;
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::secondarySyncIntervalSeconds(int secondarySyncIntervalSeconds) {
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->secondarySyncIntervalSeconds(secondarySyncIntervalSeconds)
-	)); 
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->secondarySyncIntervalSeconds(secondarySyncIntervalSeconds)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     return this;
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::segmentSize(int segmentSize) {
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->segmentSize(segmentSize)
-	)); 
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->segmentSize(segmentSize)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     return this;
 }
 
 SKNamespaceOptions *  SKNamespaceOptions::allowLinks(bool allowLinks) {
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->allowLinks(allowLinks)
-	)); 
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->allowLinks(allowLinks)
+    )); 
     delete ((NamespaceOptions*)pImpl);
     pImpl = pNsoImp;
     return this;
@@ -214,47 +214,47 @@ SKNamespaceOptions *  SKNamespaceOptions::allowLinks(bool allowLinks) {
 ////////
 
 SKStorageType::SKStorageType SKNamespaceOptions::getStorageType(){
-	int  storageType = (int)((NamespaceOptions*)pImpl)->getStorageType().ordinal() ; 
-	return static_cast<SKStorageType::SKStorageType> (storageType);
+    int  storageType = (int)((NamespaceOptions*)pImpl)->getStorageType().ordinal() ; 
+    return static_cast<SKStorageType::SKStorageType> (storageType);
 }
 
 SKConsistency SKNamespaceOptions::getConsistencyProtocol(){
-	int  consistency = (int)((NamespaceOptions*)pImpl)->getConsistencyProtocol().ordinal() ; 
-	return static_cast<SKConsistency> (consistency);
+    int  consistency = (int)((NamespaceOptions*)pImpl)->getConsistencyProtocol().ordinal() ; 
+    return static_cast<SKConsistency> (consistency);
 }
 
 SKVersionMode SKNamespaceOptions::getVersionMode(){
-	int versionMode = (int)((NamespaceOptions*)pImpl)->getVersionMode().ordinal() ; 
-	return static_cast<SKVersionMode> (versionMode);
+    int versionMode = (int)((NamespaceOptions*)pImpl)->getVersionMode().ordinal() ; 
+    return static_cast<SKVersionMode> (versionMode);
 }
 
 SKRevisionMode SKNamespaceOptions::getRevisionMode(){
-	int revisionMode = (int)((NamespaceOptions*)pImpl)->getRevisionMode().ordinal() ; 
-	return static_cast<SKRevisionMode> (revisionMode);
+    int revisionMode = (int)((NamespaceOptions*)pImpl)->getRevisionMode().ordinal() ; 
+    return static_cast<SKRevisionMode> (revisionMode);
 }
 
 SKPutOptions * SKNamespaceOptions::getDefaultPutOptions(){
-	PutOptions * pPutOptions = new PutOptions( java_cast<PutOptions>(
-					((NamespaceOptions*)pImpl)->getDefaultPutOptions())); 
-	return new SKPutOptions(pPutOptions);
+    PutOptions * pPutOptions = new PutOptions( java_cast<PutOptions>(
+                    ((NamespaceOptions*)pImpl)->getDefaultPutOptions())); 
+    return new SKPutOptions(pPutOptions);
 }
 
 SKInvalidationOptions * SKNamespaceOptions::getDefaultInvalidationOptions(){
-	InvalidationOptions * pInvalidationOptions = new InvalidationOptions( java_cast<InvalidationOptions>(
-					((NamespaceOptions*)pImpl)->getDefaultInvalidationOptions())); 
-	return new SKInvalidationOptions(pInvalidationOptions);
+    InvalidationOptions * pInvalidationOptions = new InvalidationOptions( java_cast<InvalidationOptions>(
+                    ((NamespaceOptions*)pImpl)->getDefaultInvalidationOptions())); 
+    return new SKInvalidationOptions(pInvalidationOptions);
 }
 
 SKGetOptions * SKNamespaceOptions::getDefaultGetOptions() {
-	GetOptions * pGetOptions  = new GetOptions ( java_cast<GetOptions >(
-					((NamespaceOptions*)pImpl)->getDefaultGetOptions())); 
-	return new SKGetOptions(pGetOptions);
+    GetOptions * pGetOptions  = new GetOptions ( java_cast<GetOptions >(
+                    ((NamespaceOptions*)pImpl)->getDefaultGetOptions())); 
+    return new SKGetOptions(pGetOptions);
 }
 
 SKWaitOptions * SKNamespaceOptions::getDefaultWaitOptions() {
-	WaitOptions * pWaitOptions  = new WaitOptions ( java_cast<WaitOptions >(
-					((NamespaceOptions*)pImpl)->getDefaultWaitOptions())); 
-	return new SKWaitOptions(pWaitOptions);
+    WaitOptions * pWaitOptions  = new WaitOptions ( java_cast<WaitOptions >(
+                    ((NamespaceOptions*)pImpl)->getDefaultWaitOptions())); 
+    return new SKWaitOptions(pWaitOptions);
 }
 
 int SKNamespaceOptions::getSecondarySyncIntervalSeconds()
@@ -269,44 +269,44 @@ int SKNamespaceOptions::getSegmentSize() {
 }
 
 bool  SKNamespaceOptions::getAllowLinks() {
-	bool allowLinks =  (bool)((NamespaceOptions*)pImpl)->getAllowLinks() ; 
+    bool allowLinks =  (bool)((NamespaceOptions*)pImpl)->getAllowLinks() ; 
     return allowLinks;
 }
 
 ////////
 
 char * SKNamespaceOptions::toString() const {
-	string representation = (string)((NamespaceOptions*)pImpl)->toString(); 
-	return skStrDup(representation.c_str(),__FILE__, __LINE__);
-	
+    string representation = (string)((NamespaceOptions*)pImpl)->toString(); 
+    return skStrDup(representation.c_str(),__FILE__, __LINE__);
+    
 }
 
 bool SKNamespaceOptions::equals(SKNamespaceOptions * pOther) const {
-	NamespaceOptions* pNSO = (NamespaceOptions*)(pOther->pImpl);
-	return (bool)((NamespaceOptions*)pImpl)->equals(*pNSO) ; 
+    NamespaceOptions* pNSO = (NamespaceOptions*)(pOther->pImpl);
+    return (bool)((NamespaceOptions*)pImpl)->equals(*pNSO) ; 
 }
 
 /* static */
 SKNamespaceOptions * SKNamespaceOptions::parse(const char * def){
-	NamespaceOptions * pNSOpts = new NamespaceOptions(java_cast<NamespaceOptions>(
-			NamespaceOptions::parse(java_new<String>((char *)def))));
-	return new SKNamespaceOptions(pNSOpts);
+    NamespaceOptions * pNSOpts = new NamespaceOptions(java_cast<NamespaceOptions>(
+            NamespaceOptions::parse(java_new<String>((char *)def))));
+    return new SKNamespaceOptions(pNSOpts);
 }
 
 ////////
 
 bool SKNamespaceOptions::isWriteOnce() const
 {
-	bool writeOnce =  (bool)((NamespaceOptions*)pImpl)->isWriteOnce() ; 
+    bool writeOnce =  (bool)((NamespaceOptions*)pImpl)->isWriteOnce() ; 
     return writeOnce;
 
 }
 
 SKNamespaceOptions * SKNamespaceOptions::asWriteOnce() const
 {
-	NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
-		((NamespaceOptions*)pImpl)->asWriteOnce()
-	)); 
-	return new SKNamespaceOptions(pNsoImp);
+    NamespaceOptions * pNsoImp = new NamespaceOptions(java_cast<NamespaceOptions>(
+        ((NamespaceOptions*)pImpl)->asWriteOnce()
+    )); 
+    return new SKNamespaceOptions(pNsoImp);
 }
 

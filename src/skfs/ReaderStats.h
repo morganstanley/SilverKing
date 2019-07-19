@@ -14,11 +14,11 @@
 // types
 
 typedef struct ReaderStats {
-	uint64_t	cache;
-	uint64_t	opWait;
-	uint64_t	dht;
-	uint64_t	nfs;
-	pthread_spinlock_t	lock;
+    uint64_t    cache;
+    uint64_t    opWait;
+    uint64_t    dht;
+    uint64_t    nfs;
+    pthread_spinlock_t    lock;
 } ReaderStats;
 
 

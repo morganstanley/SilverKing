@@ -44,7 +44,7 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     }
     
     boolean isInvalidated(int offset) {
-    	return MetaDataUtil.isInvalidated(dataBuf, offset + DHTKey.BYTES_PER_KEY);
+        return MetaDataUtil.isInvalidated(dataBuf, offset + DHTKey.BYTES_PER_KEY);
     }
     
     long getVersion(int offset) {
@@ -71,20 +71,20 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
             
             // negative offsets are an index to the list in the offsetListStore
             try {
-            	offsetList = offsetListStore.getOffsetList(-offset);
+                offsetList = offsetListStore.getOffsetList(-offset);
             } catch (InvalidOffsetListIndexException ie) {
-            	throw ie;
+                throw ie;
             } catch (RuntimeException re) {
-            	Log.warningf("offset %d", offset);
-            	throw re;
+                Log.warningf("offset %d", offset);
+                throw re;
             }
             // keys for all entries must be identical, so simply pick the first
             // offset to use for checking
             try {
-            	offset = offsetList.getFirstOffset();
+                offset = offsetList.getFirstOffset();
             } catch (RuntimeException re) {
-            	Log.warningf("offset %d", offset);
-            	throw re;
+                Log.warningf("offset %d", offset);
+                throw re;
             }
             //Log.warning("entryMatches translated offset: ", offset);
         }
@@ -103,18 +103,18 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
             Log.warning("entryMatches: ", offset);
         }
         try {
-        	offset = checkOffset(offset);
-	        // perform a complete check to see if the full key matches
-	        entryMSL = dataBuf.getLong(offset);
-	        entryLSL = dataBuf.getLong(offset + NumConversion.BYTES_PER_LONG);
-	        if (debugExternalStore) {
-	            System.out.printf("%x:%x\t%x:%x\n", msl, lsl, entryMSL, entryLSL);
-	        }
-	        return msl == entryMSL && lsl == entryLSL;
+            offset = checkOffset(offset);
+            // perform a complete check to see if the full key matches
+            entryMSL = dataBuf.getLong(offset);
+            entryLSL = dataBuf.getLong(offset + NumConversion.BYTES_PER_LONG);
+            if (debugExternalStore) {
+                System.out.printf("%x:%x\t%x:%x\n", msl, lsl, entryMSL, entryLSL);
+            }
+            return msl == entryMSL && lsl == entryLSL;
         } catch (InvalidOffsetListIndexException ie) {
-        	Log.warningAsyncf("InvalidOffsetListIndexException segment %d checkOffset %d key %x:%x", getSegmentNumber(), offset, msl, lsl);
-        	// indicates that we're not looking at a valid entry
-        	return false;
+            Log.warningAsyncf("InvalidOffsetListIndexException segment %d checkOffset %d key %x:%x", getSegmentNumber(), offset, msl, lsl);
+            // indicates that we're not looking at a valid entry
+            return false;
         }
     }
     
@@ -183,19 +183,19 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     */
     
     public ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options) {
-    	try {
-	        int offset;
-	        
-	        offset = getRawOffset(key);
-	        if (debugRetrieve) {
-	        	Log.warningf("AbstractSegment.retrieve %s %s %d", key, options, offset);
-	        }
-	        return retrieve(key, options, offset);
-    	} catch (RuntimeException re) { // FIXME - TEMP DEBUG
-    		Log.warningf("segment %d %s %s", getSegmentNumber(), key, options);
-    		re.printStackTrace();
-    		throw re;
-    	}
+        try {
+            int offset;
+            
+            offset = getRawOffset(key);
+            if (debugRetrieve) {
+                Log.warningf("AbstractSegment.retrieve %s %s %d", key, options, offset);
+            }
+            return retrieve(key, options, offset);
+        } catch (RuntimeException re) { // FIXME - TEMP DEBUG
+            Log.warningf("segment %d %s %s", getSegmentNumber(), key, options);
+            re.printStackTrace();
+            throw re;
+        }
     }
     
     /**
@@ -220,7 +220,7 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     }
     
     @SuppressWarnings("unused")
-	private ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options, int offset) {
+    private ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options, int offset) {
         // FUTURE - think about getResolvedOffset and doubleCheckVersion
         // Currently can't use getResolvedOffset due to the doubleCheckVersion
         // code. Need to determine if that code is required.
@@ -241,7 +241,7 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
             
             if (offset < 0) {
                 OffsetList  offsetList;
-                ValidityVerifier	validityVerifier;
+                ValidityVerifier    validityVerifier;
                 
                 doubleCheckVersion = false;
                 //System.out.printf("offset %d -offset %d\n", offset, -offset);
@@ -254,9 +254,9 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
                     offsetList.displayForDebug();
                 }
                 if (options.getVerifyStorageState()) {
-                	validityVerifier = new ValidityVerifier(dataBuf, options.getCPSSToVerify());
+                    validityVerifier = new ValidityVerifier(dataBuf, options.getCPSSToVerify());
                 } else {
-                	validityVerifier = null;
+                    validityVerifier = null;
                 }
                 offset = offsetList.getOffset(options.getVersionConstraint(), validityVerifier);
                 if (offset < 0) {
@@ -315,24 +315,24 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
                     
                     vc = options.getVersionConstraint();
                     
-                	if (debugRetrieve && returnBuffer != null) {
-                		boolean	a;
-                		boolean	b;
-                		boolean	c;
-                		boolean	d;
-                		
-                		a = !vc.equals(VersionConstraint.greatest);
-                		b = !vc.matches(MetaDataUtil.getVersion(returnBuffer, 0));
-                		c = vc.getMaxCreationTime() < Long.MAX_VALUE;
-                		d = vc.getMaxCreationTime() < MetaDataUtil.getCreationTime(returnBuffer, 0);
-                		Log.warningf("doubleCheckVersion 1: %s %s", a && b, c && d);
-                		Log.warningf("doubleCheckVersion 2: %s %s %s %s", a, b, c, d);
-                		Log.warningf("MetaDataUtil.getCreationTime(returnBuffer, 0): %d", MetaDataUtil.getCreationTime(returnBuffer, 0));
-                		if (c && d) {
-                			Log.warningf("%d %d", vc.getMaxCreationTime(), MetaDataUtil.getCreationTime(returnBuffer, 0));
-                			Log.warningf("%s %s", new Date(vc.getMaxCreationTime()), new Date(MetaDataUtil.getCreationTime(returnBuffer, 0)));
-                		}
-                	}                    
+                    if (debugRetrieve && returnBuffer != null) {
+                        boolean    a;
+                        boolean    b;
+                        boolean    c;
+                        boolean    d;
+                        
+                        a = !vc.equals(VersionConstraint.greatest);
+                        b = !vc.matches(MetaDataUtil.getVersion(returnBuffer, 0));
+                        c = vc.getMaxCreationTime() < Long.MAX_VALUE;
+                        d = vc.getMaxCreationTime() < MetaDataUtil.getCreationTime(returnBuffer, 0);
+                        Log.warningf("doubleCheckVersion 1: %s %s", a && b, c && d);
+                        Log.warningf("doubleCheckVersion 2: %s %s %s %s", a, b, c, d);
+                        Log.warningf("MetaDataUtil.getCreationTime(returnBuffer, 0): %d", MetaDataUtil.getCreationTime(returnBuffer, 0));
+                        if (c && d) {
+                            Log.warningf("%d %d", vc.getMaxCreationTime(), MetaDataUtil.getCreationTime(returnBuffer, 0));
+                            Log.warningf("%s %s", new Date(vc.getMaxCreationTime()), new Date(MetaDataUtil.getCreationTime(returnBuffer, 0)));
+                        }
+                    }                    
                     
                     // we include some extra checks below to avoid touching the returnBuffer unnecessarily 
                     if ((!vc.equals(VersionConstraint.greatest) && !vc.matches(MetaDataUtil.getVersion(returnBuffer, 0)))
@@ -342,9 +342,9 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
                     }
                 }
                 if (debugRetrieve) {
-                	if (returnBuffer != null) {
-                		System.out.println("MetaDataUtil.getCompressedLength: "+ MetaDataUtil.getCompressedLength(returnBuffer, 0));
-                	}
+                    if (returnBuffer != null) {
+                        System.out.println("MetaDataUtil.getCompressedLength: "+ MetaDataUtil.getCompressedLength(returnBuffer, 0));
+                    }
                     Log.warning("returnBuffer: "+ returnBuffer);
                 }
                 return returnBuffer;
@@ -399,18 +399,18 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     }
     
     void checksum_(DHTKey key, byte[] checksum) {
-    	int	offset;
-    	
+        int    offset;
+        
         offset = getRawOffset(key);
         if (offset >= 0) {
-        	
+            
         } else {
-        	OffsetList	offsetList;
-        	
-        	offsetList = offsetListStore.getOffsetList(-offset);
-        	for (int _offset : offsetList) {
-        		
-        	}
+            OffsetList    offsetList;
+            
+            offsetList = offsetListStore.getOffsetList(-offset);
+            for (int _offset : offsetList) {
+                
+            }
         }
     }
 }

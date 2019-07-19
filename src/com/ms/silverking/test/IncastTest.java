@@ -30,17 +30,17 @@ import com.ms.silverking.time.Stopwatch;
 
 // CONSIDER USING BULK THROUGHPUT ANALYSIS INSTEAD OF THIS CLASS
 
-public class IncastTest {		
-	private final SynchronousNamespacePerspective<Integer, byte[]>	syncNSP;
-	private final String	ns;
-	
-	private static final String	nsBase = "Incast_";
-	
-	private enum Mode	{Write, Read};
-	
-	private static final boolean   verbose = false;
+public class IncastTest {        
+    private final SynchronousNamespacePerspective<Integer, byte[]>    syncNSP;
+    private final String    ns;
+    
+    private static final String    nsBase = "Incast_";
+    
+    private enum Mode    {Write, Read};
+    
+    private static final boolean   verbose = false;
 
-	/*
+    /*
     private static ClientDHTConfiguration getDHTConfiguration(String gridConfigName) {
         try {
             GridConfiguration       gridConfig;
@@ -54,12 +54,12 @@ public class IncastTest {
         }
     }
     */
-	
-	public IncastTest(String gridConfig, String host, String id) throws ClientException, IOException {
-	    DHTSession session;
-	    
-		ns = nsBase + id; 
-		Log.warning("Namespace: "+ ns);
+    
+    public IncastTest(String gridConfig, String host, String id) throws ClientException, IOException {
+        DHTSession session;
+        
+        ns = nsBase + id; 
+        Log.warning("Namespace: "+ ns);
         session = new DHTClient().openSession(new SessionOptions(SKGridConfiguration.parseFile(gridConfig), host));
         
         session.getDefaultNamespaceOptions()
@@ -71,153 +71,153 @@ public class IncastTest {
                         .compression(Compression.NONE)
                         .checksumType(ChecksumType.NONE));
         
-		syncNSP = session.openSyncNamespacePerspective(ns, Integer.class, byte[].class);
+        syncNSP = session.openSyncNamespacePerspective(ns, Integer.class, byte[].class);
         //syncNSP = new DHTClient().openSession(new SessionOptions(getDHTConfiguration(gridConfig), host))
         //        .openSyncNamespacePerspective(ns, nspOptions);
-	}
-	
-	public long write(int numKeys, int batchSize, int valueSize) throws PutException {
-		int		keysBatched;
-		long	totalBytes;
-		int		keyIndex;
-		
-		Log.warning("Write test");
-		Log.warning("numKeys:\t" + numKeys +"\tbatchSize:\t"+ batchSize +"\tvalueSize:\t"+ valueSize);
-		keysBatched = 0;
-		totalBytes = 0;
-		keyIndex = 0;
-		while (keysBatched < numKeys) {
-			Map<Integer, byte[]>	batch;
-			int	thisBatchSize;
+    }
+    
+    public long write(int numKeys, int batchSize, int valueSize) throws PutException {
+        int        keysBatched;
+        long    totalBytes;
+        int        keyIndex;
+        
+        Log.warning("Write test");
+        Log.warning("numKeys:\t" + numKeys +"\tbatchSize:\t"+ batchSize +"\tvalueSize:\t"+ valueSize);
+        keysBatched = 0;
+        totalBytes = 0;
+        keyIndex = 0;
+        while (keysBatched < numKeys) {
+            Map<Integer, byte[]>    batch;
+            int    thisBatchSize;
 
-			thisBatchSize = Math.min(batchSize, numKeys - keysBatched);
-			batch = new HashMap<>(thisBatchSize);
-			for (int i = 0; i < thisBatchSize; i++) {
-				Integer	key;
-				byte[]	value;
-				byte[]	keyBytes;
-				
-				key = new Integer(keyIndex++);
-				keyBytes = NumConversion.intToBytes(key.intValue());
-				value = new byte[valueSize];
-				System.arraycopy(keyBytes, 0, value, 0, keyBytes.length);
-				batch.put(key, value);
-				totalBytes += value.length;
-			}
-			keysBatched += thisBatchSize;
+            thisBatchSize = Math.min(batchSize, numKeys - keysBatched);
+            batch = new HashMap<>(thisBatchSize);
+            for (int i = 0; i < thisBatchSize; i++) {
+                Integer    key;
+                byte[]    value;
+                byte[]    keyBytes;
+                
+                key = new Integer(keyIndex++);
+                keyBytes = NumConversion.intToBytes(key.intValue());
+                value = new byte[valueSize];
+                System.arraycopy(keyBytes, 0, value, 0, keyBytes.length);
+                batch.put(key, value);
+                totalBytes += value.length;
+            }
+            keysBatched += thisBatchSize;
 
-			if (verbose) {
-			    Log.warning("Writing batch:\t"+ thisBatchSize +"\t"+ keysBatched);
-			}
-			syncNSP.put(batch);
+            if (verbose) {
+                Log.warning("Writing batch:\t"+ thisBatchSize +"\t"+ keysBatched);
+            }
+            syncNSP.put(batch);
             if (verbose) {
                 Log.warning("Done:         \t"+ thisBatchSize +"\t"+ keysBatched +"\t"+ totalBytes);
             }
-		}
-		return totalBytes;
-	}
-	
-	public long read(int numKeys, int batchSize) throws RetrievalException {
-		int		keysBatched;
-		long	totalBytes;
-		int		keyIndex;
-		
-		Log.warning("Read test");
-		Log.warning("numKeys:\t" + numKeys +"\tbatchSize:\t"+ batchSize);
-		totalBytes = 0;
-		keysBatched = 0;
-		keyIndex = 0;
-		while (keysBatched < numKeys) {
-			Set<Integer>         batchKeys;
-			Map<Integer, byte[]> batch;
-			int					 thisBatchSize;
+        }
+        return totalBytes;
+    }
+    
+    public long read(int numKeys, int batchSize) throws RetrievalException {
+        int        keysBatched;
+        long    totalBytes;
+        int        keyIndex;
+        
+        Log.warning("Read test");
+        Log.warning("numKeys:\t" + numKeys +"\tbatchSize:\t"+ batchSize);
+        totalBytes = 0;
+        keysBatched = 0;
+        keyIndex = 0;
+        while (keysBatched < numKeys) {
+            Set<Integer>         batchKeys;
+            Map<Integer, byte[]> batch;
+            int                     thisBatchSize;
 
-			thisBatchSize = Math.min(batchSize, numKeys - keysBatched);
-			batchKeys = new HashSet<>(thisBatchSize);
-			for (int i = 0; i < thisBatchSize; i++) {
-				batchKeys.add(new Integer(keyIndex++));
-			}
-			keysBatched += thisBatchSize;
-			
-			if (verbose) {
-			    Log.warning("Reading batch:\t"+ thisBatchSize +"\t"+ keysBatched);
-			}
-			batch = syncNSP.get(batchKeys);
-			if (batch.size() != batchKeys.size()) {
-				Log.warning("batch.size() != batchKeys.size()");
-			}
-			for (byte[] value : batch.values()) {
-				if (value != null) {
-					totalBytes += value.length;
-				} else {
-					Log.warning("Null value!");
-				}
-			}
+            thisBatchSize = Math.min(batchSize, numKeys - keysBatched);
+            batchKeys = new HashSet<>(thisBatchSize);
+            for (int i = 0; i < thisBatchSize; i++) {
+                batchKeys.add(new Integer(keyIndex++));
+            }
+            keysBatched += thisBatchSize;
+            
+            if (verbose) {
+                Log.warning("Reading batch:\t"+ thisBatchSize +"\t"+ keysBatched);
+            }
+            batch = syncNSP.get(batchKeys);
+            if (batch.size() != batchKeys.size()) {
+                Log.warning("batch.size() != batchKeys.size()");
+            }
+            for (byte[] value : batch.values()) {
+                if (value != null) {
+                    totalBytes += value.length;
+                } else {
+                    Log.warning("Null value!");
+                }
+            }
             if (verbose) {
                 Log.warning("Done:         \t"+ thisBatchSize +"\t"+ keysBatched +"\t"+ totalBytes);
             }
-		}
-		return totalBytes;
-	}
-	
-	
-	public static void main(String[] args) {
-    	try {
-    		IncastTest	incastTest;
-    		String	gridConfig;
-    		String	host;
-    		String	id;
-    		Mode	mode;
-    		int		numKeys;
-    		int		valueSize;
-    		int		batchSize;
-    		Stopwatch	sw;
-    		long		totalBytes;
-    		double		Bps;
-    		double		bps;
-    		double		Mbps;
-    		double		MBps;
-    		
-    		if (args.length < 6 || args.length > 7) {
-    		    System.out.println("You should probably be using BulkThroughputAnalysis in place of this");
-    			System.out.println("args: <gridConfig> <host> <id> Write <numKeys> <batchSize>");
-    			System.out.println("args: <gridConfig> <host> <id> Read <numKeys> <batchSize> <valueSize>");
-    			return;
-    		}
-    		gridConfig = args[0];
-    		host = args[1];
-    		id = args[2];
-    		mode = Mode.valueOf(args[3]);
-    		numKeys = Integer.parseInt(args[4]);
-    		batchSize = Integer.parseInt(args[5]);
+        }
+        return totalBytes;
+    }
+    
+    
+    public static void main(String[] args) {
+        try {
+            IncastTest    incastTest;
+            String    gridConfig;
+            String    host;
+            String    id;
+            Mode    mode;
+            int        numKeys;
+            int        valueSize;
+            int        batchSize;
+            Stopwatch    sw;
+            long        totalBytes;
+            double        Bps;
+            double        bps;
+            double        Mbps;
+            double        MBps;
+            
+            if (args.length < 6 || args.length > 7) {
+                System.out.println("You should probably be using BulkThroughputAnalysis in place of this");
+                System.out.println("args: <gridConfig> <host> <id> Write <numKeys> <batchSize>");
+                System.out.println("args: <gridConfig> <host> <id> Read <numKeys> <batchSize> <valueSize>");
+                return;
+            }
+            gridConfig = args[0];
+            host = args[1];
+            id = args[2];
+            mode = Mode.valueOf(args[3]);
+            numKeys = Integer.parseInt(args[4]);
+            batchSize = Integer.parseInt(args[5]);
             LWTPoolProvider.createDefaultWorkPools(DefaultWorkPoolParameters.defaultParameters());
-			incastTest = new IncastTest(gridConfig, host, id);
-			sw = new SimpleStopwatch();
-    		switch (mode) {
-    		case Write: 
-    			valueSize = Integer.parseInt(args[6]);
-    			totalBytes = incastTest.write(numKeys, batchSize, valueSize);
-    			break;
-    		case Read: 
-    			totalBytes = incastTest.read(numKeys, batchSize);
-    			break;
-    		default: throw new RuntimeException("panic");
-    		}
-    		sw.stop();
-    		
-    		Bps = (double)totalBytes / sw.getElapsedSeconds();
-    		bps = Bps * 8.0;
-    		Mbps = bps / 1e6;
-    		MBps = Bps / 1e6;
-    		
-    		Log.warning("Elapsed:\t"+ sw.getElapsedSeconds());
-    		Log.warning("totalBytes:\t"+ totalBytes);
-    		Log.warning("bps:\t"+ bps);
-    		Log.warning("Bps:\t"+ Bps);
-    		Log.warning("Mbps:\t"+ Mbps);
-    		Log.warning("MBps:\t"+ MBps);
-    	} catch (Exception e) {
-    		e.printStackTrace();
-    	}
+            incastTest = new IncastTest(gridConfig, host, id);
+            sw = new SimpleStopwatch();
+            switch (mode) {
+            case Write: 
+                valueSize = Integer.parseInt(args[6]);
+                totalBytes = incastTest.write(numKeys, batchSize, valueSize);
+                break;
+            case Read: 
+                totalBytes = incastTest.read(numKeys, batchSize);
+                break;
+            default: throw new RuntimeException("panic");
+            }
+            sw.stop();
+            
+            Bps = (double)totalBytes / sw.getElapsedSeconds();
+            bps = Bps * 8.0;
+            Mbps = bps / 1e6;
+            MBps = Bps / 1e6;
+            
+            Log.warning("Elapsed:\t"+ sw.getElapsedSeconds());
+            Log.warning("totalBytes:\t"+ totalBytes);
+            Log.warning("bps:\t"+ bps);
+            Log.warning("Bps:\t"+ Bps);
+            Log.warning("Mbps:\t"+ Mbps);
+            Log.warning("MBps:\t"+ MBps);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

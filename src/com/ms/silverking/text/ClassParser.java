@@ -30,8 +30,8 @@ class ClassParser<T> {
     private final String    nameValueDelimiter;
     private final Set<String>   optionalFields;
     private final Set<String>   exclusionFields;
-    private final Class[]	constructorFieldClasses;
-    private final String[]	constructorFieldNames;
+    private final Class[]    constructorFieldClasses;
+    private final String[]    constructorFieldNames;
     
     private static final boolean    debug = false;
     
@@ -53,10 +53,10 @@ class ClassParser<T> {
         Field[] _fields;
 
         if ((constructorFieldClasses == null) != (constructorFieldNames == null)) {
-        	throw new RuntimeException("(constructorFieldClasses == null) != (constructorFieldNames == null)");
+            throw new RuntimeException("(constructorFieldClasses == null) != (constructorFieldNames == null)");
         }
         if (constructorFieldClasses != null && (constructorFieldClasses.length != constructorFieldNames.length)) {
-        	throw new RuntimeException("constructorFieldClasses.length != constructorFieldNames.length");
+            throw new RuntimeException("constructorFieldClasses.length != constructorFieldNames.length");
         }
         this.constructorFieldClasses = constructorFieldClasses;
         this.constructorFieldNames = constructorFieldNames;
@@ -107,16 +107,16 @@ class ClassParser<T> {
             if (Modifier.isAbstract(_class.getModifiers())) {
                 constructor = null;
             } else {
-            	if (constructorFieldClasses == null) {
-            		constructorFieldClasses = CPUtils.getFieldClasses(fields);
-            	}
+                if (constructorFieldClasses == null) {
+                    constructorFieldClasses = CPUtils.getFieldClasses(fields);
+                }
                 constructor = CPUtils.getConstructor(_class, constructorFieldClasses);
             }
         } catch (NoSuchMethodException nsme) {
             if (_fields != null) {
-            	Log.warning("************************************");
-            	Log.warning("***    Can't find constructor    ***");
-            	Log.warning("************************************");
+                Log.warning("************************************");
+                Log.warning("***    Can't find constructor    ***");
+                Log.warning("************************************");
                 Log.warning(ArrayUtil.toString(CPUtils.getFieldClasses(_fields)));
             }
             throw new ObjectDefParseException("Can't find constructor to initialize all fields for "
@@ -133,7 +133,7 @@ class ClassParser<T> {
             String fieldDefDelimiter, String nameValueDelimiter,
             Set<String> optionalFields,
             Set<String> exclusionFields) {
-    	this(_class, template, fieldsRequirement, nonFatalExceptionResponse, fieldDefDelimiter, nameValueDelimiter, optionalFields, exclusionFields, null, null);
+        this(_class, template, fieldsRequirement, nonFatalExceptionResponse, fieldDefDelimiter, nameValueDelimiter, optionalFields, exclusionFields, null, null);
     }    
     
     ClassParser(T template,
@@ -158,7 +158,7 @@ class ClassParser<T> {
     
     private Object[] createConstructorArgsFromParams(Map<String,String> defMap) {
         Object[]    args;
-        Parameter[]	cParams;
+        Parameter[]    cParams;
         
         cParams = constructor.getParameters();
         if (debug) {
@@ -400,15 +400,15 @@ class ClassParser<T> {
             }
         }
         try {
-        	Object[]	constructorArgs;
-        	T			newInstance;
-        	
-        	try {
-        		constructorArgs = createConstructorArgs(defMap);
-        	} catch (ObjectDefParseException odpe) {
-        		constructorArgs = createConstructorArgsFromParams(defMap);
-        	}
-        	newInstance = constructor.newInstance(constructorArgs);
+            Object[]    constructorArgs;
+            T            newInstance;
+            
+            try {
+                constructorArgs = createConstructorArgs(defMap);
+            } catch (ObjectDefParseException odpe) {
+                constructorArgs = createConstructorArgsFromParams(defMap);
+            }
+            newInstance = constructor.newInstance(constructorArgs);
             if (debug) {
                 System.out.printf(">>>%s\n", defMap.get("version"));
                 System.out.printf("newInstance of %s: %s\n", _class.getName(), newInstance.toString());
@@ -420,16 +420,16 @@ class ClassParser<T> {
     }
     
     private String stripExtraDelimiters(String def) {
-    	while (def.length() > 0) {
-    		def = def.trim();
-    		if (def.charAt(0) == recursiveDefDelimiterStart && def.charAt(def.length() - 1) == recursiveDefDelimiterEnd) {
-    			def = def.substring(1, def.length() - 1);
-    		} else {
-    			return def;
-    		}
-    	}
-		return def;
-	}    
+        while (def.length() > 0) {
+            def = def.trim();
+            if (def.charAt(0) == recursiveDefDelimiterStart && def.charAt(def.length() - 1) == recursiveDefDelimiterEnd) {
+                def = def.substring(1, def.length() - 1);
+            } else {
+                return def;
+            }
+        }
+        return def;
+    }    
     
     private String[] splitNameAndValue(String fieldDef) {
         int i;
@@ -524,27 +524,27 @@ class ClassParser<T> {
                     
                     recursive = true;
                     try {
-                    	Object	fObj;
-                    	
+                        Object    fObj;
+                        
                         field.setAccessible(true);
                         fObj = field.get(obj);
                         if (fObj != null) {
-                        	actualFieldType = fObj.getClass();
+                            actualFieldType = fObj.getClass();
                         } else {
-                        	actualFieldType = null;
+                            actualFieldType = null;
                         }
                     } catch (IllegalArgumentException | IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
                     if (actualFieldType != null) {
-	                    if (obj.getClass().getPackage() == _class.getPackage()) {
-	                        ns = actualFieldType.getSimpleName();
-	                    } else {
-	                        ns = actualFieldType.getName();
-	                    }
-	                    typeNameString = typeNameDelimiterStart + ns + typeNameDelimiterEnd;
+                        if (obj.getClass().getPackage() == _class.getPackage()) {
+                            ns = actualFieldType.getSimpleName();
+                        } else {
+                            ns = actualFieldType.getName();
+                        }
+                        typeNameString = typeNameDelimiterStart + ns + typeNameDelimiterEnd;
                     } else {
-                    	typeNameString = null;
+                        typeNameString = null;
                     }
                 } else {
                     recursive = ObjectDefParser2.isKnownType(field.getType());

@@ -114,7 +114,7 @@ public class ChecksumTreeServer {
                                                     LongInterval versions) {
         CTGAndLock      ctgAndLock;
         ChecksumTreeKey key;
-    	ChecksumNode	checksumTree;
+        ChecksumNode    checksumTree;
         
         key = new ChecksumTreeKey(cp.getDHTConfigVersion(), cp.getRingIDAndVersionPair(), versions);
         /*
@@ -160,8 +160,8 @@ public class ChecksumTreeServer {
             checksumTree = ctg.getTreeRoot(region.getStart());
             return RegionTreePruner.prune(checksumTree, region);
         } catch (RuntimeException re) {
-        	System.err.printf("RuntimeException in getRegionChecksumTree_Local(). cp %s region %s version %s\n", cp, region, versions);
-        	throw re;
+            System.err.printf("RuntimeException in getRegionChecksumTree_Local(). cp %s region %s version %s\n", cp, region, versions);
+            throw re;
         } finally {
             ctgAndLock.unlock();
         }
@@ -188,11 +188,11 @@ public class ChecksumTreeServer {
         regions = ringMaster.getRegions(ringIDAndVersion);
         if (regions != null) {
             if (debug) {
-            	System.out.println();
-            	for (RingRegion region : regions) {
-            		System.out.printf("%s\n", region);
-            	}
-            	System.out.println();
+                System.out.println();
+                for (RingRegion region : regions) {
+                    System.out.printf("%s\n", region);
+                }
+                System.out.println();
             }
             return computeChecksumTreeGroup(regions, minVersion, maxVersion, false);
         } else {

@@ -19,55 +19,55 @@ BEGIN_NAMESPACE_3(jace, proxy, types)
 class JShort : public JValue
 {
 public:
-	/**
-	 * Creates a new instance with the given value.
-	 */
-	JACE_API JShort(jvalue value);
+    /**
+     * Creates a new instance with the given value.
+     */
+    JACE_API JShort(jvalue value);
 
-	/**
-	 * Creates a new instance with the given value.
-	 */
-	JACE_API JShort(jshort value);
+    /**
+     * Creates a new instance with the given value.
+     */
+    JACE_API JShort(jshort value);
 
-	/**
-	 * Destroys the existing java object.
-	 */
-	JACE_API virtual ~JShort();
+    /**
+     * Destroys the existing java object.
+     */
+    JACE_API virtual ~JShort();
 
-	/**
-	 * Returns the value of this instance.
-	 */
-	JACE_API operator jshort() const;
+    /**
+     * Returns the value of this instance.
+     */
+    JACE_API operator jshort() const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator==(const JShort& value) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator==(const JShort& value) const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator!=(const JShort& value) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator!=(const JShort& value) const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator==(jshort value) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator==(jshort value) const;
 
-	/**
-	 * Compares this instance to another.
-	 */
-	JACE_API bool operator!=(jshort value) const;
+    /**
+     * Compares this instance to another.
+     */
+    JACE_API bool operator!=(jshort value) const;
 
-	/**
-	 * Returns the JClass for this class.
-	 */
-	JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
+    /**
+     * Returns the JClass for this class.
+     */
+    JACE_API static const ::jace::JClass& staticGetJavaJniClass() throw (::jace::JNIException);
 
-	/**
-	 * Returns the JClass for this instance.
-	 */
-	JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
+    /**
+     * Returns the JClass for this instance.
+     */
+    JACE_API virtual const ::jace::JClass& getJavaJniClass() const throw (::jace::JNIException);
 };
 
 

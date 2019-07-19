@@ -2,22 +2,22 @@
 
 source `dirname $0`/../lib/run_scripts_from_any_path.snippet
 
+# I think this source should really be in aws/lib/common.lib..
 cd ..
 source lib/common.lib
-source lib/build_sk_client.lib	# for copying kill_process_and_children.pl
 cd -
 
 source lib/common.lib
 
 function f_ubuntu_aptgetInstall {
     typeset aptGetOption;
-    if [[ $QUIET_OUTPUT == "true" ]]; then
+    if [[ $SK_QUIET_OUTPUT == "true" ]]; then
         aptGetOption="-qq"
     else
         aptGetOption="-y"
     fi
     
-	sudo apt-get $aptGetOption install $1
+    sudo apt-get $aptGetOption install $1
     f_aws_checkExitCode "apt-get install: $1"
 }
 
@@ -58,7 +58,7 @@ function f_ubuntu_install_fuse {
     
     f_ubuntu_aptgetInstall "python3"
     f_ubuntu_aptgetInstall "python3-pip"
-    if [[ $BUILD_TYPE == "travisci" ]]; then
+    if [[ $BUILD_TYPE == $TRAVIS_CI ]]; then
         sudo pip3 install --upgrade setuptools
         sudo pip3 install --upgrade wheel
     fi
@@ -108,7 +108,7 @@ function f_ubuntu_fillin_build_skfs {
     f_overrideBuildConfigVariable "ZLIB_INC" "/usr/include"
     f_overrideBuildConfigVariable "ZLIB_LIB" "/usr/lib/x86_64-linux-gnu"
 
-    f_ubuntu_aptgetInstall "valgrind"	#(/usr/include/valgrind/valgrind.h)
+    f_ubuntu_aptgetInstall "valgrind"    #(/usr/include/valgrind/valgrind.h)
     f_fillInBuildConfigVariable "VALGRIND_INC" "/usr/include"
 }
 
@@ -119,8 +119,10 @@ function f_ubuntu_download_maven {
     f_aws_checkExitCode "mvn"
 }
 
-TRUSTY="trusty"
-BUILD_TYPE=$1
+   TRUSTY="trusty"
+TRAVIS_CI="travisci"
+
+typeset BUILD_TYPE=$1
 f_checkAndSetBuildTimestamp
 
 typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
@@ -137,6 +139,7 @@ typeset output_filename=$(f_aws_getBuild_RunOutputFilename "ubuntu")
 
     echo "BUILD"
     f_aws_install_ant
+    f_aws_install_gradle
     f_ubuntu_install_java
     f_aws_install_zk
 

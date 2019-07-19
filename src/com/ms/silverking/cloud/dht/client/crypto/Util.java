@@ -11,8 +11,8 @@ import static com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter.keyFi
 
 public class Util {
 
-	public static byte[] getBytesFromKeyFile() throws IOException {
-		return FileUtil.readFileAsBytes(new File(PropertiesHelper.systemHelper.getString(keyFilePropertyName, UndefinedAction.ExceptionOnUndefined)));
-	}
-	
+    public static byte[] getBytesFromKeyFile() throws IOException {
+        return FileUtil.readFileAsBytes(new File(PropertiesHelper.systemHelper.getString(keyFilePropertyName, UndefinedAction.ExceptionOnUndefined)));
+    }
+    
 }

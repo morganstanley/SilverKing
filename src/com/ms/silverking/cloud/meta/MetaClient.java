@@ -12,8 +12,8 @@ import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
 
 public class MetaClient extends MetaClientBase<MetaPaths> implements Watcher {
-	private final CloudConfiguration	cloudConfig;
-	
+    private final CloudConfiguration    cloudConfig;
+    
     public MetaClient(CloudConfiguration cloudConfig, ZooKeeperConfig zkConfig, Watcher watcher) throws IOException, KeeperException {
         super(new MetaPaths(cloudConfig), zkConfig, watcher);
         this.cloudConfig = cloudConfig;
@@ -24,7 +24,7 @@ public class MetaClient extends MetaClientBase<MetaPaths> implements Watcher {
     }
     
     public CloudConfiguration getCloudConfiguration() {
-    	return cloudConfig;
+        return cloudConfig;
     }
     
     public void test() throws Exception {

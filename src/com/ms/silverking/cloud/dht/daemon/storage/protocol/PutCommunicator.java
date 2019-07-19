@@ -27,7 +27,7 @@ public class PutCommunicator extends OpCommunicator<MessageGroupKeyEntry,PutResu
     }
     
     public PutOperationContainer getPutOperationContainer() {
-    	return putOperationContainer;
+        return putOperationContainer;
     }
     
     public void sendResult(DHTKey key, OpResult result) {

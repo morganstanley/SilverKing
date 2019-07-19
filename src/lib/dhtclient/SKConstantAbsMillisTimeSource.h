@@ -5,8 +5,8 @@
 #include "SKAbsMillisTimeSource.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace time { 
-		class ConstantAbsMillisTimeSource;
+    namespace silverking {namespace time { 
+        class ConstantAbsMillisTimeSource;
 } } } } } }
 typedef jace::proxy::com::ms::silverking::time::ConstantAbsMillisTimeSource ConstantAbsMillisTimeSource;
 

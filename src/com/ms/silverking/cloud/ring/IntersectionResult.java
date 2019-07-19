@@ -24,11 +24,11 @@ public class IntersectionResult {
         this.overlapping = overlapping;
     }
     
-	public IntersectionResult(IntersectionType intersectionType,
-			List<RingRegion> aNonOverlapping, List<RingRegion> bNonOverlapping,
-			RingRegion overlapping) {
-		this(intersectionType, aNonOverlapping, bNonOverlapping, ImmutableList.of(overlapping));
-	}
+    public IntersectionResult(IntersectionType intersectionType,
+            List<RingRegion> aNonOverlapping, List<RingRegion> bNonOverlapping,
+            RingRegion overlapping) {
+        this(intersectionType, aNonOverlapping, bNonOverlapping, ImmutableList.of(overlapping));
+    }
     
     public IntersectionType getIntersectionType() {
         return intersectionType;
@@ -46,11 +46,11 @@ public class IntersectionResult {
         return overlapping;
     }
     
-	private long totalRegionSize() {
-		return RingRegion.getTotalSize(aNonOverlapping)
-				+ RingRegion.getTotalSize(bNonOverlapping)
-				+ RingRegion.getTotalSize(overlapping);
-	}
+    private long totalRegionSize() {
+        return RingRegion.getTotalSize(aNonOverlapping)
+                + RingRegion.getTotalSize(bNonOverlapping)
+                + RingRegion.getTotalSize(overlapping);
+    }
     
     @Override
     public String toString() {

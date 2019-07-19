@@ -16,9 +16,9 @@ using std::string;
 #include "SKStoredValue.h"
 
 namespace jace { namespace proxy { namespace java { namespace util { 
-	    class Set;
-	    class Map;
-		class Iterator;
+        class Set;
+        class Map;
+        class Iterator;
 } } } };
 typedef jace::proxy::java::util::Set Set;
 typedef jace::proxy::java::util::Map Map;
@@ -41,32 +41,32 @@ private:
 //********** Vector *************//
 template<typename T>
 void SKVector<T>::push_back(const T & v){
-	return implVec.push_back(v);
+    return implVec.push_back(v);
 }
 
 template<typename T>
 T const & SKVector<T>::at(unsigned int i) const {
-	return implVec.at(i);
+    return implVec.at(i);
 }
 
 template<typename T>
 unsigned int SKVector<T>::size ( void ) const {
-	return implVec.size();
+    return implVec.size();
 }
 
 template<typename T>
 bool SKVector<T>::empty ( void ) const {
-	return implVec.empty();
+    return implVec.empty();
 }
 
 template<typename T>
 void SKVector<T>::clear ( void ) {
-	return implVec.clear();
+    return implVec.clear();
 }
 
 template<typename T>
 void SKVector<T>::pop_back( void ){
-	return implVec.pop_back();
+    return implVec.pop_back();
 }
 
 
@@ -83,7 +83,7 @@ using SKMap = std::unordered_map<K,V>;
 //using SKMap = std::unordered_map<K,V,Hash,KeyEqual,Allocator>;
 #else
 */
-	#define SKMap boost::unordered_map
+    #define SKMap boost::unordered_map
 /*
 #endif  //_MSC_VER
 */
@@ -102,15 +102,15 @@ class JSKMap  : private Allowed<T>
 {
 public:
 
-	class iterator {
-	public:
-		SKAPI ~iterator();
-		SKAPI std::pair<std::string, T >* nextVal();
-		SKAPI bool hasNext();
-		iterator(Iterator * pIter);
-	private:
-		Iterator * pIterImpl;
-	};
+    class iterator {
+    public:
+        SKAPI ~iterator();
+        SKAPI std::pair<std::string, T >* nextVal();
+        SKAPI bool hasNext();
+        iterator(Iterator * pIter);
+    private:
+        Iterator * pIterImpl;
+    };
 
   SKAPI bool empty() const;
   SKAPI unsigned int size () const;
@@ -121,13 +121,13 @@ public:
 private:
   Set * pEntrySet;
 };
-typedef JSKMap<SKVal*>	      JStrValMap;
+typedef JSKMap<SKVal*>          JStrValMap;
 typedef JSKMap<SKStoredValue*> JStrSVMap;
 
-typedef SKVector<std::string> 			  StrVector;
+typedef SKVector<std::string>               StrVector;
 typedef SKVector<const std::string*>      KeyVector;
-typedef SKMap<std::string, std::string>	  StrStrMap;
-typedef SKMap<std::string, SKVal*>	      StrValMap;
+typedef SKMap<std::string, std::string>      StrStrMap;
+typedef SKMap<std::string, SKVal*>          StrValMap;
 typedef SKMap<std::string, SKStoredValue*> StrSVMap;
 typedef SKMap<string,SKOperationState::SKOperationState>   OpStateMap;
 typedef SKMap<string,SKFailureCause::SKFailureCause>     FailureCauseMap;

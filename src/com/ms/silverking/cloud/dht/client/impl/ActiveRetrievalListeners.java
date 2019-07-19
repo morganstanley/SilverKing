@@ -49,11 +49,11 @@ class ActiveRetrievalListeners {
     
     ActiveRetrievalListeners() {
         if (enableMultipleOpsPerMessage) {
-        	if (Libraries.useCustomGuava) {
-        		this.activeRetrievalListeners = new ConcurrentReferenceHashMap<>();
-        	} else {
-        		this.activeRetrievalListeners = Collections.synchronizedMap(new WeakHashMap<UUIDBase,ConcurrentMap<DHTKey,List<WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>>>>());
-        	}
+            if (Libraries.useCustomGuava) {
+                this.activeRetrievalListeners = new ConcurrentReferenceHashMap<>();
+            } else {
+                this.activeRetrievalListeners = Collections.synchronizedMap(new WeakHashMap<UUIDBase,ConcurrentMap<DHTKey,List<WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>>>>());
+            }
             this.activeOpListeners = null;
         } else {
             this.activeRetrievalListeners = null;
@@ -101,8 +101,8 @@ class ActiveRetrievalListeners {
             
             prev = activeOpListeners.put(opUUID, listener);
             if (prev != null && prev != listener) {
-            	Log.warning(prev);
-            	Log.warning(listener);
+                Log.warning(prev);
+                Log.warning(listener);
                 throw new RuntimeException("Attempted to add multiple ops in a message, "
                         +"but enableMultipleOpsPerMessage is false");
             }

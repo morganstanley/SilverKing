@@ -27,27 +27,27 @@ class ServerSet implements VersionedDefinition {
     }
     
     private static Set<String> createCleanCopy(Set<String> servers) {
-    	ImmutableSet.Builder<String>	_servers;
-    	
-    	_servers = ImmutableSet.builder();
-    	for (String server : servers) {
-    		String	cleanDef;
-    		
-    		cleanDef = cleanServerDef(server);
-    		if (cleanDef.length() > 0) {
-    			_servers.add(server);
-    		}
-    	}
-    	return _servers.build();
+        ImmutableSet.Builder<String>    _servers;
+        
+        _servers = ImmutableSet.builder();
+        for (String server : servers) {
+            String    cleanDef;
+            
+            cleanDef = cleanServerDef(server);
+            if (cleanDef.length() > 0) {
+                _servers.add(server);
+            }
+        }
+        return _servers.build();
     }
     
     private static String cleanServerDef(String server) {
-    	return server.toLowerCase().trim();
+        return server.toLowerCase().trim();
     }
     
-	public int size() {
-		return servers.size();
-	}
+    public int size() {
+        return servers.size();
+    }
 
     public Set<String> getServers() {
         return servers;
@@ -105,16 +105,16 @@ class ServerSet implements VersionedDefinition {
     }
     
     private static List<String> filterExtraText(List<String> defs) {
-    	List<String>	filtered;
-    	
-    	filtered = new ArrayList<>(defs.size());
-    	for (String def : defs) {
-    		String[]	d;
-    		
-    		d = def.split("\\s+");
-    		filtered.add(d[0]);
-    	}
-    	return filtered;
+        List<String>    filtered;
+        
+        filtered = new ArrayList<>(defs.size());
+        for (String def : defs) {
+            String[]    d;
+            
+            d = def.split("\\s+");
+            filtered.add(d[0]);
+        }
+        return filtered;
     }
     
     @Override

@@ -26,14 +26,14 @@ import com.ms.silverking.time.AbsMillisTimeSource;
 
 class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V> {
     protected final ClientNamespace   clientNamespace;
-	protected volatile NamespacePerspectiveOptionsImpl<K,V> nspoImpl;
-	
-	BaseNamespacePerspectiveImpl(ClientNamespace clientNamespace, String name,
-	        NamespacePerspectiveOptionsImpl<K,V> nspoImpl) {
-	    this.clientNamespace = clientNamespace;
-	    if (nspoImpl.getDefaultPutOptions() == null) {
-	        nspoImpl = nspoImpl.defaultPutOptions(clientNamespace.getOptions().getDefaultPutOptions());
-	    }
+    protected volatile NamespacePerspectiveOptionsImpl<K,V> nspoImpl;
+    
+    BaseNamespacePerspectiveImpl(ClientNamespace clientNamespace, String name,
+            NamespacePerspectiveOptionsImpl<K,V> nspoImpl) {
+        this.clientNamespace = clientNamespace;
+        if (nspoImpl.getDefaultPutOptions() == null) {
+            nspoImpl = nspoImpl.defaultPutOptions(clientNamespace.getOptions().getDefaultPutOptions());
+        }
         if (nspoImpl.getDefaultGetOptions() == null) {
             nspoImpl = nspoImpl.defaultGetOptions(clientNamespace.getOptions().getDefaultGetOptions());
         }
@@ -41,13 +41,13 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
             nspoImpl = nspoImpl.defaultWaitOptions(clientNamespace.getOptions().getDefaultWaitOptions());
         }
         this.nspoImpl = nspoImpl;
-	}
-	
-	@Override
-	public String getName() {
-	    return clientNamespace.getName();
-	}
-	
+    }
+    
+    @Override
+    public String getName() {
+        return clientNamespace.getName();
+    }
+    
     @Override
     public Namespace getNamespace() {
         return clientNamespace;
@@ -80,21 +80,21 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
     public void setDefaultVersion(long version) {
         setOptions(nspoImpl.getNSPOptions().defaultVersionProvider(new ConstantVersionProvider(version)));
     }
-	
-	public AbsMillisTimeSource getAbsMillisTimeSource() {
-	    return clientNamespace.getAbsMillisTimeSource();
-	}
-	
+    
+    public AbsMillisTimeSource getAbsMillisTimeSource() {
+        return clientNamespace.getAbsMillisTimeSource();
+    }
+    
     @Override
     public void close() {
     }
-	
-	// reads
-	
-	public AsyncRetrieval<K, V> baseRetrieve(Set<? extends K> keys,
-                                			RetrievalOptions retrievalOptions,
-                                			AsynchronousNamespacePerspectiveImpl<K,V> asynchronousNSPerspectiveImpl, 
-                                			OpLWTMode opLWTMode) throws RetrievalException {
+    
+    // reads
+    
+    public AsyncRetrieval<K, V> baseRetrieve(Set<? extends K> keys,
+                                            RetrievalOptions retrievalOptions,
+                                            AsynchronousNamespacePerspectiveImpl<K,V> asynchronousNSPerspectiveImpl, 
+                                            OpLWTMode opLWTMode) throws RetrievalException {
         AsyncRetrievalOperationImpl<K,V> opImpl;
         
         opImpl = new AsyncRetrievalOperationImpl(new RetrievalOperation<>(clientNamespace, keys, retrievalOptions), 
@@ -103,17 +103,17 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
                                             clientNamespace.getOriginator());
         clientNamespace.startOperation(opImpl, opLWTMode);
         return opImpl;
-	}
+    }
 
-	public AsyncRetrieval<K, V> baseRetrieve(Set<? extends K> keys,
-			RetrievalOptions retrievalOptions, OpLWTMode opLWTMode) throws RetrievalException {
-		return baseRetrieve(keys, retrievalOptions, null, opLWTMode);
-	}
-	
-	// writes
+    public AsyncRetrieval<K, V> baseRetrieve(Set<? extends K> keys,
+            RetrievalOptions retrievalOptions, OpLWTMode opLWTMode) throws RetrievalException {
+        return baseRetrieve(keys, retrievalOptions, null, opLWTMode);
+    }
+    
+    // writes
 
-	public AsyncPut<K> basePut(Map<? extends K, ? extends V> values, PutOptions putOptions, 
-			AsynchronousNamespacePerspectiveImpl<K,V> asynchronousNSPerspectiveImpl, OpLWTMode opLWTMode) {
+    public AsyncPut<K> basePut(Map<? extends K, ? extends V> values, PutOptions putOptions, 
+            AsynchronousNamespacePerspectiveImpl<K,V> asynchronousNSPerspectiveImpl, OpLWTMode opLWTMode) {
         AsyncPutOperationImpl<K,V> opImpl;
 
         /*
@@ -139,25 +139,25 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
                                             nspoImpl.getNSPOptions().getDefaultVersionProvider()); 
         clientNamespace.startOperation(opImpl, opLWTMode);
         return opImpl;
-	}
+    }
 
-	public AsyncPut<K> basePut(Map<? extends K, ? extends V> values, PutOptions putOptions, OpLWTMode opLWTMode)
-			throws PutException {
-		return basePut(values, putOptions, null, opLWTMode);
-	}
-	
-	public AsyncInvalidation<K> baseInvalidation(Set<? extends K> keys, InvalidationOptions invalidationOptions,
-			BufferDestSerializer<V>	valueSerializer, OpLWTMode oplwtmode) {
-		ImmutableMap.Builder<K, V>	values;
-		
-		values = ImmutableMap.builder();
-		for (K k : keys) {
-			values.put(k, valueSerializer.emptyObject());
-		}		
-		return (AsyncInvalidation<K>)basePut(values.build(), invalidationOptions, null, oplwtmode);
-	}
-	
-	// snapshots	
+    public AsyncPut<K> basePut(Map<? extends K, ? extends V> values, PutOptions putOptions, OpLWTMode opLWTMode)
+            throws PutException {
+        return basePut(values, putOptions, null, opLWTMode);
+    }
+    
+    public AsyncInvalidation<K> baseInvalidation(Set<? extends K> keys, InvalidationOptions invalidationOptions,
+            BufferDestSerializer<V>    valueSerializer, OpLWTMode oplwtmode) {
+        ImmutableMap.Builder<K, V>    values;
+        
+        values = ImmutableMap.builder();
+        for (K k : keys) {
+            values.put(k, valueSerializer.emptyObject());
+        }        
+        return (AsyncInvalidation<K>)basePut(values.build(), invalidationOptions, null, oplwtmode);
+    }
+    
+    // snapshots    
     
     protected AsyncSnapshot baseSnapshot(long version, AsynchronousNamespacePerspectiveImpl<K,V> asynchronousNSPerspectiveImpl) {
         SnapshotOperation           snapshotOperation;
@@ -186,10 +186,10 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
         return asyncSyncRequestOperationImpl;
     }
     
-	// misc.
+    // misc.
 
-	@Override
-	public String toString() {
-		return clientNamespace.toString() + ":" + nspoImpl;
-	}
+    @Override
+    public String toString() {
+        return clientNamespace.toString() + ":" + nspoImpl;
+    }
 }

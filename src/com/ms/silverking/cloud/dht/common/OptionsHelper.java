@@ -85,7 +85,6 @@ public class OptionsHelper {
     }
     */
     
-
     /**
      * Construct RetrievalOptions with null values returned for non-existent
      * keys and checksumVerification on
@@ -121,14 +120,15 @@ public class OptionsHelper {
             RetrievalType retrievalType, WaitMode waitMode,
             VersionConstraint versionConstraint,
             boolean updateSecondariesOnMiss,
-            Set<SecondaryTarget> secondaryTargets) {
+            Set<SecondaryTarget> secondaryTargets,
+            byte[] userOptions) {
         return new RetrievalOptions(
                 waitMode == WaitMode.GET ? DHTConstants.standardTimeoutController
                         : DHTConstants.standardWaitForTimeoutController,
                 secondaryTargets, retrievalType, waitMode,
                 versionConstraint, NonExistenceResponse.defaultResponse, true,
                 false, ForwardingMode.FORWARD,
-                updateSecondariesOnMiss);
+                updateSecondariesOnMiss, userOptions);
     }
 
     /**

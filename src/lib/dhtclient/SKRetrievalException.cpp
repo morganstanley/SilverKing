@@ -36,83 +36,83 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::impl::RetrievalExcep
 SKRetrievalException::SKRetrievalException(RetrievalException * pe, const char * fileName, int lineNum)
  : SKClientException(pe, fileName, lineNum)
 {
-	msg = (std::string) pe->getDetailedFailureMessage();
-	partialResults = new Map(java_cast<Map>(pe->partialResults()));
-	operationStates = new Map(java_cast<Map>(pe->operationState()));
-	failureCauses = new Map(java_cast<Map>(pe->failureCause()));
-	failedKeys = new Set(java_cast<Set>(pe->failedKeys()));
+    msg = (std::string) pe->getDetailedFailureMessage();
+    partialResults = new Map(java_cast<Map>(pe->partialResults()));
+    operationStates = new Map(java_cast<Map>(pe->operationState()));
+    failureCauses = new Map(java_cast<Map>(pe->failureCause()));
+    failedKeys = new Set(java_cast<Set>(pe->failedKeys()));
 
-	std::ostringstream str ;
-	str << msg << mStack << " in " << mFileName << " : " << mLineNum <<"\n" ;
-	mAll = str.str();
+    std::ostringstream str ;
+    str << msg << mStack << " in " << mFileName << " : " << mLineNum <<"\n" ;
+    mAll = str.str();
 }
 
 SKRetrievalException::~SKRetrievalException(void) throw ()
 {
-	delete partialResults;
-	delete operationStates;
-	delete failureCauses;
-	delete failedKeys;
+    delete partialResults;
+    delete operationStates;
+    delete failureCauses;
+    delete failedKeys;
 }
 
 SKStoredValue * SKRetrievalException::getStoredValue(string const & key) const {
-	String jkey = String(key);
-	if(partialResults->get( jkey ).isNull() ){
-		if(!failedKeys->isNull() && !failedKeys->contains(jkey)) {
-	        Log::warning( string("Key : ") + key + " --> StoredValue : Null" );
-		}
-	}
-	StoredValue * obj = new StoredValue(java_cast<StoredValue>(partialResults->get( jkey )));
+    String jkey = String(key);
+    if(partialResults->get( jkey ).isNull() ){
+        if(!failedKeys->isNull() && !failedKeys->contains(jkey)) {
+            Log::warning( string("Key : ") + key + " --> StoredValue : Null" );
+        }
+    }
+    StoredValue * obj = new StoredValue(java_cast<StoredValue>(partialResults->get( jkey )));
 
-	if( obj->isNull() ) {
-		Log::fine( string("Key : ") + key + " --> StoredValue : NULL" );
-		delete obj;
-	}
-	SKStoredValue * psv = new SKStoredValue( obj ) ;
-	return psv;
+    if( obj->isNull() ) {
+        Log::fine( string("Key : ") + key + " --> StoredValue : NULL" );
+        delete obj;
+    }
+    SKStoredValue * psv = new SKStoredValue( obj ) ;
+    return psv;
 }
 
 //-------------------------------------------------------------------------
 
 
 SKOperationState::SKOperationState SKRetrievalException::getOperationState(string key) const {
-	String jkey = java_new<String>((char *)key.c_str());
-	if( ! operationStates->get( jkey ).isNull() ) {
-		int os = (java_cast<OperationState>(operationStates->get( jkey ))).ordinal();
-		return (SKOperationState::SKOperationState) os;
-	}
-	else {
-		Log::warning( string("Key : ") + key + " --> OperationState : Null" );
-		//throw std::exception();
-		return SKOperationState::FAILED;
-	}
+    String jkey = java_new<String>((char *)key.c_str());
+    if( ! operationStates->get( jkey ).isNull() ) {
+        int os = (java_cast<OperationState>(operationStates->get( jkey ))).ordinal();
+        return (SKOperationState::SKOperationState) os;
+    }
+    else {
+        Log::warning( string("Key : ") + key + " --> OperationState : Null" );
+        //throw std::exception();
+        return SKOperationState::FAILED;
+    }
 
 }
 
 SKFailureCause::SKFailureCause SKRetrievalException::getFailureCause(string key) const {
-	String jkey = java_new<String>((char *)key.c_str());
-	if( ! failureCauses->get( jkey ).isNull() ) {
-		int fc = (java_cast<FailureCause>(failureCauses->get( jkey ))).ordinal();
-		return (SKFailureCause::SKFailureCause) fc;
-	}
-	else {
-		Log::warning( string("Key : ") + key + " --> FailureCause : Null" );
-		//throw std::exception();
-		return SKFailureCause::ERROR;
-	}
+    String jkey = java_new<String>((char *)key.c_str());
+    if( ! failureCauses->get( jkey ).isNull() ) {
+        int fc = (java_cast<FailureCause>(failureCauses->get( jkey ))).ordinal();
+        return (SKFailureCause::SKFailureCause) fc;
+    }
+    else {
+        Log::warning( string("Key : ") + key + " --> FailureCause : Null" );
+        //throw std::exception();
+        return SKFailureCause::ERROR;
+    }
 }
 
 SKVector<string> * SKRetrievalException::getFailedKeys() const {
     SKVector<string> * pFailedKeys = new SKVector<string>();
-	for (Iterator it(failedKeys->iterator()); it.hasNext();) {
+    for (Iterator it(failedKeys->iterator()); it.hasNext();) {
         String akey = java_cast<String>(it.next());
-		pFailedKeys->push_back( (string)(akey) );
+        pFailedKeys->push_back( (string)(akey) );
     }
     return pFailedKeys;
 }
 
 string SKRetrievalException::getDetailedFailureMessage() const {
     return msg;
-	//string failureMsg =  (string)(((RetrievalException*)pImpl)->getDetailedFailureMessage());
-	//return failureMsg;
+    //string failureMsg =  (string)(((RetrievalException*)pImpl)->getDetailedFailureMessage());
+    //return failureMsg;
 }

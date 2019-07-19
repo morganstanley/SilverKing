@@ -14,12 +14,12 @@ BEGIN_NAMESPACE(jace)
 class VirtualMachineRunningError: public ::jace::JNIException
 {
 public:
-	/**
-	 * Creates a new VirtualMachineRunningError with the given message.
-	 */
-	VirtualMachineRunningError(const std::string& value) throw ():
-			JNIException(value)
-	{}
+    /**
+     * Creates a new VirtualMachineRunningError with the given message.
+     */
+    VirtualMachineRunningError(const std::string& value) throw ():
+            JNIException(value)
+    {}
 };
 
 END_NAMESPACE(jace)

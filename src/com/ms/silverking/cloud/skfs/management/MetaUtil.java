@@ -37,59 +37,59 @@ public class MetaUtil {
     }
     
     private void getFromZK(long skfsVersion, File target) throws KeeperException, IOException {
-    	
-    	String conf = mc.getSKFSConfig();
+        
+        String conf = mc.getSKFSConfig();
         if (debug) {
-        	System.err.printf("%s\t%d\n", MetaPaths.getConfigPath(skfsConfigName), skfsVersion);
-        	System.err.printf("%s\n", conf);
+            System.err.printf("%s\t%d\n", MetaPaths.getConfigPath(skfsConfigName), skfsVersion);
+            System.err.printf("%s\n", conf);
         }
-    	
-    	
+        
+        
         //FIXME: use of getLatestVersion (not getVersionPriorTo_floored) as it is independent of SK versioning
         if(MetaUtilOptions.dhtVersionUnspecified == skfsVersion) {
-        	skfsVersion = getLatestVersion(MetaPaths.getConfigPath(skfsConfigName));
+            skfsVersion = getLatestVersion(MetaPaths.getConfigPath(skfsConfigName));
         }
         if (debug) {
-        	System.err.printf("%s\t%d\n", MetaPaths.getConfigPath(skfsConfigName), skfsVersion);
+            System.err.printf("%s\t%d\n", MetaPaths.getConfigPath(skfsConfigName), skfsVersion);
         }
         SKFSConfigurationZK skfsConfigZk = new SKFSConfigurationZK(mc);
         SKFSConfiguration skfsConfig= skfsConfigZk.readFromZK(skfsVersion, null);
         if (debug) {
-        	System.err.printf("SKFSConfiguration\t%s\n", skfsConfig.getConfig());
+            System.err.printf("SKFSConfiguration\t%s\n", skfsConfig.getConfig());
         }
         skfsConfigZk.writeToFile(target, skfsConfig);
     }
     
     private void LoadFromFile(long skfsVersion, File target) throws KeeperException, IOException {
         //FIXME: do I need below to handle dhtVersionUnspecified or is it automatic?
-    	/*
+        /*
         if(MetaUtilOptions.dhtVersionUnspecified == skfsVersion) {
-        	skfsVersion = getLatestVersion(MetaPaths.getConfigPath(skfsConfigName));
-        	skfsVersion++;
+            skfsVersion = getLatestVersion(MetaPaths.getConfigPath(skfsConfigName));
+            skfsVersion++;
         }
         */
         if (debug) {
-        	System.err.printf("%s\t%d\n", MetaPaths.getConfigPath(skfsConfigName), skfsVersion);
+            System.err.printf("%s\t%d\n", MetaPaths.getConfigPath(skfsConfigName), skfsVersion);
         }
         SKFSConfigurationZK skfsConfigZk = new SKFSConfigurationZK(mc);
         SKFSConfiguration skfsConfig= skfsConfigZk.readFromFile(target, skfsVersion);
         if (debug) {
-        	System.err.printf("SKFSConfiguration\t%s\n", skfsConfig.getConfig());
+            System.err.printf("SKFSConfiguration\t%s\n", skfsConfig.getConfig());
         }
         skfsConfigZk.writeToZK(skfsConfig, null);
     }
     
     
     public void run(MetaUtilOptions options) throws KeeperException, IOException {
-    	File target = options.targetFile == null ? null : new File(options.targetFile);
+        File target = options.targetFile == null ? null : new File(options.targetFile);
         switch (options.command) {
         case GetFromZK:
-        	getFromZK(options.skfsVersion, target);
+            getFromZK(options.skfsVersion, target);
             break;
         case LoadFromFile:
-        	LoadFromFile(options.skfsVersion, target);
+            LoadFromFile(options.skfsVersion, target);
             break;
-        	
+            
         default: throw new RuntimeException("panic");
         }
     }
@@ -111,22 +111,22 @@ public class MetaUtil {
             } catch (CmdLineException cle) {
                 System.err.println(cle.getMessage());
                 parser.printUsage(System.err);
-    			System.exit(-1);
+                System.exit(-1);
             }
             
             if (options.gridConfigName == null) {
-            	if (options.skfsConfigName == null) {
-            		System.err.println("One of -d or -g must be specified");
-            	} else {
-            		options.gridConfigName = options.skfsConfigName;
-            	}
+                if (options.skfsConfigName == null) {
+                    System.err.println("One of -d or -g must be specified");
+                } else {
+                    options.gridConfigName = options.skfsConfigName;
+                }
             }
             
             mu = new MetaUtil(options.gridConfigName, options.zkEnsemble) ;
             mu.run(options);
         } catch (Exception e){
             e.printStackTrace();
-			System.exit(-1);
+            System.exit(-1);
         }
     }
     

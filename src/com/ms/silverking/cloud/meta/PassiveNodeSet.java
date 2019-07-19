@@ -15,9 +15,9 @@ import com.google.common.collect.ImmutableSet;
  * FUTURE - this class is deprecated; remove
  */
 public class PassiveNodeSet extends ServerSetExtension {
-	private static final Set<String>	emptyStringSet = ImmutableSet.of();
-	private static final PassiveNodeSet	_emptySet = new PassiveNodeSet(emptyStringSet, VersionedDefinition.NO_VERSION);
-	
+    private static final Set<String>    emptyStringSet = ImmutableSet.of();
+    private static final PassiveNodeSet    _emptySet = new PassiveNodeSet(emptyStringSet, VersionedDefinition.NO_VERSION);
+    
     public PassiveNodeSet(ServerSet serverSet) {
         super(serverSet);
     }
@@ -38,7 +38,7 @@ public class PassiveNodeSet extends ServerSetExtension {
         return new PassiveNodeSet(ServerSet.parse(new ByteArrayInputStream(def.getBytes()), VersionedDefinition.NO_VERSION));
     }
 
-	public static PassiveNodeSet emptySet() {
-		return _emptySet;
-	}
+    public static PassiveNodeSet emptySet() {
+        return _emptySet;
+    }
 }

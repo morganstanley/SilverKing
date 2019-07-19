@@ -19,11 +19,11 @@ typedef struct WritableFile WritableFile;
 #endif
 
 typedef struct WritableFileReference {
-	WritableFile	*wf;
-	int			    ref;
-	int			    deleted;
-	char		    *file;
-	int			    line;
+    WritableFile    *wf;
+    int                ref;
+    int                deleted;
+    char            *file;
+    int                line;
 } WritableFileReference;
 
 WritableFileReference *wfr_new(WritableFile *wf, char *file, int line);

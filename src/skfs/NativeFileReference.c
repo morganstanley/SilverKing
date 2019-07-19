@@ -13,20 +13,20 @@
 
 
 NativeFileReference *nfr_new(NativeFile *nf, char *file, int line) {
-	NativeFileReference *nfr;
-	int	ref;
+    NativeFileReference *nfr;
+    int    ref;
 
-	ref = nf_create_ref(nf);
-	if (ref < 0) {
-		fatalError("bogus ref", __FILE__, __LINE__);
-	}
-	nfr = (NativeFileReference *)mem_alloc(1, sizeof(NativeFileReference));
-	nfr->nf = nf;
-	nfr->ref = ref;
-	nfr->file = file;
-	nfr->line = line;
-	srfsLog(LOG_FINE, "nfr_new: nfr %llx nf %llx\t%s %d", nfr, nfr->nf, nfr->file, nfr->line);
-	return nfr;
+    ref = nf_create_ref(nf);
+    if (ref < 0) {
+        fatalError("bogus ref", __FILE__, __LINE__);
+    }
+    nfr = (NativeFileReference *)mem_alloc(1, sizeof(NativeFileReference));
+    nfr->nf = nf;
+    nfr->ref = ref;
+    nfr->file = file;
+    nfr->line = line;
+    srfsLog(LOG_FINE, "nfr_new: nfr %llx nf %llx\t%s %d", nfr, nfr->nf, nfr->file, nfr->line);
+    return nfr;
 }
 
 int nfr_delete(NativeFileReference **nfr, int tableLocked) {
@@ -36,21 +36,21 @@ int nfr_delete(NativeFileReference **nfr, int tableLocked) {
     nf = (*nfr)->nf;
     nf_sanity_check(nf);
     rc = 0;
-	srfsLog(LOG_FINE, "in nfr_delete %llx", nfr);
-	if (nfr != NULL && *nfr != NULL) {
-		srfsLog(LOG_FINE, "in2 nfr_delete %llx", *nfr);
-		if ((*nfr)->deleted) {
-			srfsLog(LOG_ERROR, "multiple deletions %llx", *nfr);
-			fatalError("multiple deletions", __FILE__, __LINE__);
-		}
-		(*nfr)->deleted = TRUE;
-		rc = nf_delete_ref((*nfr)->nf, (*nfr)->ref, tableLocked);
-		srfsLog(LOG_FINE, "out2 nfr_delete %llx", *nfr);
-		mem_free((void **)nfr);
-	} else {
-		fatalError("bad ptr in nfr_delete");
-	}
-	srfsLog(LOG_FINE, "out nfr_delete %llx", nfr);
+    srfsLog(LOG_FINE, "in nfr_delete %llx", nfr);
+    if (nfr != NULL && *nfr != NULL) {
+        srfsLog(LOG_FINE, "in2 nfr_delete %llx", *nfr);
+        if ((*nfr)->deleted) {
+            srfsLog(LOG_ERROR, "multiple deletions %llx", *nfr);
+            fatalError("multiple deletions", __FILE__, __LINE__);
+        }
+        (*nfr)->deleted = TRUE;
+        rc = nf_delete_ref((*nfr)->nf, (*nfr)->ref, tableLocked);
+        srfsLog(LOG_FINE, "out2 nfr_delete %llx", *nfr);
+        mem_free((void **)nfr);
+    } else {
+        fatalError("bad ptr in nfr_delete");
+    }
+    srfsLog(LOG_FINE, "out nfr_delete %llx", nfr);
     return rc;
 }
 

@@ -50,13 +50,13 @@ abstract class AsyncKeyedOperationImpl<K> extends AsyncNamespaceOperationImpl im
         //dhtKeyToKey = new HashMap<>(size);
         //keyToDHTKey = new HashMap<>(size);
         if (size != 1) {
-	        keyDHTKeyBiMap = HashBiMap.create(size);
-	        keyToDHTKey = keyDHTKeyBiMap;
-	        dhtKeyToKey = keyDHTKeyBiMap.inverse();
+            keyDHTKeyBiMap = HashBiMap.create(size);
+            keyToDHTKey = keyDHTKeyBiMap;
+            dhtKeyToKey = keyDHTKeyBiMap.inverse();
         } else {
-	        keyDHTKeyBiMap = null;
-	        keyToDHTKey = new SingleKeyToDHTKeyMap<>();
-	        dhtKeyToKey = new SingleDHTKeyToKeyMap<>();
+            keyDHTKeyBiMap = null;
+            keyToDHTKey = new SingleKeyToDHTKeyMap<>();
+            dhtKeyToKey = new SingleDHTKeyToKeyMap<>();
         }
         dhtKeys = createKeys(keyCreator);
         failureCausesRef = new AtomicReference<>();

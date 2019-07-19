@@ -32,8 +32,8 @@ public class MetaClient extends MetaClientBase<MetaPaths> implements Watcher {
     }
     
     public static MetaClient createMetaClient(String ringName, long ringVersion, ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-        MetaClient	_mc;
-        NamedRingConfiguration	ringConfig;
+        MetaClient    _mc;
+        NamedRingConfiguration    ringConfig;
         
         _mc = new MetaClient(new NamedRingConfiguration(ringName, RingConfiguration.emptyTemplate), zkConfig);
         ringConfig = new NamedRingConfiguration(ringName, new RingConfigurationZK(_mc).readFromZK(ringVersion, null));

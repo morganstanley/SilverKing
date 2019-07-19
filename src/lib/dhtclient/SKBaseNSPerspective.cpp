@@ -27,44 +27,44 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::VersionProvider;
 SKBaseNSPerspective::~SKBaseNSPerspective(){};
 
 string SKBaseNSPerspective::getName(){
-	BaseNamespacePerspective * pBnsp = (BaseNamespacePerspective*)getPImpl();
-	string name = (string)pBnsp->getName();
-	return name;
+    BaseNamespacePerspective * pBnsp = (BaseNamespacePerspective*)getPImpl();
+    string name = (string)pBnsp->getName();
+    return name;
 }
 SKNamespace * SKBaseNSPerspective::getNamespace(){
-	BaseNamespacePerspective * pBnsp = (BaseNamespacePerspective*)getPImpl();
-	SKNamespace * ns = new SKNamespace(new Namespace(pBnsp->getNamespace()));
-	return ns;
-	
+    BaseNamespacePerspective * pBnsp = (BaseNamespacePerspective*)getPImpl();
+    SKNamespace * ns = new SKNamespace(new Namespace(pBnsp->getNamespace()));
+    return ns;
+    
 }
 SKNamespacePerspectiveOptions * SKBaseNSPerspective::getOptions(){
-	BaseNamespacePerspective * pBnsp = (BaseNamespacePerspective*)getPImpl();
-	SKNamespacePerspectiveOptions * nspo = 
-		new SKNamespacePerspectiveOptions(new NamespacePerspectiveOptions(
-				java_cast<NamespacePerspectiveOptions>(pBnsp->getOptions())));
-	return nspo;
+    BaseNamespacePerspective * pBnsp = (BaseNamespacePerspective*)getPImpl();
+    SKNamespacePerspectiveOptions * nspo = 
+        new SKNamespacePerspectiveOptions(new NamespacePerspectiveOptions(
+                java_cast<NamespacePerspectiveOptions>(pBnsp->getOptions())));
+    return nspo;
 }
 
 void SKBaseNSPerspective::setOptions(SKNamespacePerspectiveOptions * nspOptions) {
-	NamespacePerspectiveOptions* pNspo = (NamespacePerspectiveOptions*)(nspOptions->getPImpl());
-	((BaseNamespacePerspective*)this->getPImpl())->setOptions(*pNspo);
+    NamespacePerspectiveOptions* pNspo = (NamespacePerspectiveOptions*)(nspOptions->getPImpl());
+    ((BaseNamespacePerspective*)this->getPImpl())->setOptions(*pNspo);
 }
 
 void SKBaseNSPerspective::setDefaultRetrievalVersionConstraint(SKVersionConstraint * vc) {
-	VersionConstraint* pVc = (VersionConstraint*)(vc->getPImpl());
-	((BaseNamespacePerspective*)this->getPImpl())->setDefaultRetrievalVersionConstraint(*pVc);
+    VersionConstraint* pVc = (VersionConstraint*)(vc->getPImpl());
+    ((BaseNamespacePerspective*)this->getPImpl())->setDefaultRetrievalVersionConstraint(*pVc);
 }
 
 void SKBaseNSPerspective::setDefaultVersionProvider(SKVersionProvider * versionProvider) {
-	VersionProvider* pVp = (VersionProvider*)(versionProvider->getPImpl());
-	((BaseNamespacePerspective*)this->getPImpl())->setDefaultVersionProvider(*pVp);
+    VersionProvider* pVp = (VersionProvider*)(versionProvider->getPImpl());
+    ((BaseNamespacePerspective*)this->getPImpl())->setDefaultVersionProvider(*pVp);
 }
 
 void SKBaseNSPerspective::setDefaultVersion(int64_t version) {
-	((BaseNamespacePerspective*)this->getPImpl())->setDefaultVersion( JLong(version));
+    ((BaseNamespacePerspective*)this->getPImpl())->setDefaultVersion( JLong(version));
 }
 
 void SKBaseNSPerspective::close() {
-	((BaseNamespacePerspective*)this->getPImpl())->close();
+    ((BaseNamespacePerspective*)this->getPImpl())->close();
 }
 

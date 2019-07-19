@@ -85,9 +85,9 @@ public final class NamespacePerspectiveOptions<K,V> {
         this.defaultWaitOptions = defaultWaitOptions;
         this.defaultVersionProvider = defaultVersionProvider;
         if (encrypterDecrypter != null) {
-        	this.encrypterDecrypter = encrypterDecrypter;
+            this.encrypterDecrypter = encrypterDecrypter;
         } else {
-        	this.encrypterDecrypter = DHTConstants.defaultEncrypterDecrypter;
+            this.encrypterDecrypter = DHTConstants.defaultEncrypterDecrypter;
         }
     }
     
@@ -109,7 +109,7 @@ public final class NamespacePerspectiveOptions<K,V> {
             GetOptions defaultGetOptions,
             WaitOptions defaultWaitOptions, 
             VersionProvider defaultVersionProvider) {
-    	this(keyClass, valueClass, keyDigestType, defaultPutOptions, defaultInvalidationOptions, defaultGetOptions, defaultWaitOptions, defaultVersionProvider, null);
+        this(keyClass, valueClass, keyDigestType, defaultPutOptions, defaultInvalidationOptions, defaultGetOptions, defaultWaitOptions, defaultVersionProvider, null);
     }    
     
     /**
@@ -158,9 +158,9 @@ public final class NamespacePerspectiveOptions<K,V> {
         return defaultVersionProvider;
     }
     
-	public EncrypterDecrypter getEncrypterDecrypter() {
-		return encrypterDecrypter;
-	}    
+    public EncrypterDecrypter getEncrypterDecrypter() {
+        return encrypterDecrypter;
+    }    
     
     /**
      * Create a copy of this instance with a new keyClass
@@ -204,9 +204,9 @@ public final class NamespacePerspectiveOptions<K,V> {
      * @return the modified copy of the instance
      */
     public NamespacePerspectiveOptions<K,V> defaultPutOptions(PutOptions defaultPutOptions) {
-    	if (defaultPutOptions instanceof InvalidationOptions) {
-    		throw new IllegalArgumentException("InvalidationOptions not allowed for defaultPutOptions");
-    	}
+        if (defaultPutOptions instanceof InvalidationOptions) {
+            throw new IllegalArgumentException("InvalidationOptions not allowed for defaultPutOptions");
+        }
         return new NamespacePerspectiveOptions<>(keyClass, valueClass, 
                                     keyDigestType, defaultPutOptions, defaultInvalidationOptions,
                                     defaultGetOptions, defaultWaitOptions, 
@@ -284,61 +284,61 @@ public final class NamespacePerspectiveOptions<K,V> {
     
     @Override
     public int hashCode() {
-    	int hashCode;
-    	
-    	hashCode = keyClass.hashCode()
-    			^ valueClass.hashCode()
-    			^ keyDigestType.hashCode()
-    			^ defaultPutOptions.hashCode()
-    			^ defaultInvalidationOptions.hashCode()
-    			^ defaultGetOptions.hashCode()
-    			^ defaultWaitOptions.hashCode()
-    			^ defaultVersionProvider.hashCode();
-    	
-		if (encrypterDecrypter != null) {
-			hashCode ^= encrypterDecrypter.hashCode();
-		}
-		
-    	return hashCode;
+        int hashCode;
+        
+        hashCode = keyClass.hashCode()
+                ^ valueClass.hashCode()
+                ^ keyDigestType.hashCode()
+                ^ defaultPutOptions.hashCode()
+                ^ defaultInvalidationOptions.hashCode()
+                ^ defaultGetOptions.hashCode()
+                ^ defaultWaitOptions.hashCode()
+                ^ defaultVersionProvider.hashCode();
+        
+        if (encrypterDecrypter != null) {
+            hashCode ^= encrypterDecrypter.hashCode();
+        }
+        
+        return hashCode;
     }
     
     @Override
     public boolean equals(Object o) {
-    	if (this == o) {
-    		return true;
-    	}
-    		
-		if (this.getClass() != o.getClass()) {
-			return false;
-		}
+        if (this == o) {
+            return true;
+        }
+            
+        if (this.getClass() != o.getClass()) {
+            return false;
+        }
 
-		NamespacePerspectiveOptions other;
-		other = (NamespacePerspectiveOptions)o;
-		
-		boolean encrypterDecrypterEquals;
-		if (encrypterDecrypter == null) { 
-			if (other.encrypterDecrypter == null) {
-				encrypterDecrypterEquals = true;
-			} else {
-				return false;
-			}
-		} else { 
-    		if (other.encrypterDecrypter == null) { 
-    			return false;
-    		} else { 
-    			encrypterDecrypterEquals = encrypterDecrypter.equals(other.encrypterDecrypter);
-    		}
-		}
-		
-		return keyClass.equals(other.keyClass)
-				&& valueClass.equals(other.valueClass)
-				&& keyDigestType == other.keyDigestType
-				&& defaultPutOptions.equals(other.defaultPutOptions)
-				&& defaultInvalidationOptions.equals(other.defaultInvalidationOptions)
-				&& defaultGetOptions.equals(other.defaultGetOptions)
-				&& defaultWaitOptions.equals(other.defaultWaitOptions)
-				&& defaultVersionProvider.equals(other.defaultVersionProvider)
-				&& encrypterDecrypterEquals;
+        NamespacePerspectiveOptions other;
+        other = (NamespacePerspectiveOptions)o;
+        
+        boolean encrypterDecrypterEquals;
+        if (encrypterDecrypter == null) { 
+            if (other.encrypterDecrypter == null) {
+                encrypterDecrypterEquals = true;
+            } else {
+                return false;
+            }
+        } else { 
+            if (other.encrypterDecrypter == null) { 
+                return false;
+            } else { 
+                encrypterDecrypterEquals = encrypterDecrypter.equals(other.encrypterDecrypter);
+            }
+        }
+        
+        return keyClass.equals(other.keyClass)
+                && valueClass.equals(other.valueClass)
+                && keyDigestType == other.keyDigestType
+                && defaultPutOptions.equals(other.defaultPutOptions)
+                && defaultInvalidationOptions.equals(other.defaultInvalidationOptions)
+                && defaultGetOptions.equals(other.defaultGetOptions)
+                && defaultWaitOptions.equals(other.defaultWaitOptions)
+                && defaultVersionProvider.equals(other.defaultVersionProvider)
+                && encrypterDecrypterEquals;
     }    
     
     @Override

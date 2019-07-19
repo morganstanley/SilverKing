@@ -16,7 +16,7 @@ import com.ms.silverking.cloud.topology.Node;
 class ProtoRegion {
     private final RingRegion    region;
     private final PrimarySecondaryListPair  owners;
-	private final int	minPrimaryUnderFailure;
+    private final int    minPrimaryUnderFailure;
     
     ProtoRegion(RingRegion region, int minPrimaryUnderFailure) {
         this.region = region;
@@ -68,7 +68,7 @@ class ProtoRegion {
     }
     
     int getMinPrimaryUnderFailure() {
-    	return minPrimaryUnderFailure;
+        return minPrimaryUnderFailure;
     }
     
     int totalOwners() {
@@ -148,7 +148,7 @@ class ProtoRegion {
                 _r01 = rr0;
             }
             return new ProtoRegion(_r01, PrimarySecondaryListPair.merge(r0.getOwners(), r1.getOwners()), 
-            						Math.max(r0.getMinPrimaryUnderFailure(), r1.getMinPrimaryUnderFailure()));
+                                    Math.max(r0.getMinPrimaryUnderFailure(), r1.getMinPrimaryUnderFailure()));
         } else {
             throw new RuntimeException("Invalid regions for merge");
         }

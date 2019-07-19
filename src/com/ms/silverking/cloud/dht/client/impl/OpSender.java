@@ -25,13 +25,13 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
     private static final boolean    trackCallStats = false;
     private static final boolean    debug = false;
     
-	public static final String	opGroupingEnabledProperty = OpSender.class.getPackage().getName() + ".OpGroupingEnabled";
-    public static final boolean	defaultOpGroupingEnabled = true;
+    public static final String    opGroupingEnabledProperty = OpSender.class.getPackage().getName() + ".OpGroupingEnabled";
+    public static final boolean    defaultOpGroupingEnabled = true;
     static final boolean    opGroupingEnabled;
-	
-	static {
-		opGroupingEnabled = PropertiesHelper.systemHelper.getBoolean(opGroupingEnabledProperty, defaultOpGroupingEnabled);
-	}    
+    
+    static {
+        opGroupingEnabled = PropertiesHelper.systemHelper.getBoolean(opGroupingEnabledProperty, defaultOpGroupingEnabled);
+    }    
     
     private static final int idleThreadsThreshold = Integer.MAX_VALUE; // Don't queue work when possible
     //private static final int idleThreadsThreshold = LWTConstants.defaultIdleThreadThreshold; // Queue most work

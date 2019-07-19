@@ -19,7 +19,7 @@ public class ProducerConsumer {
     private enum Mode {Producer, Consumer};
 
     public ProducerConsumer(SKGridConfiguration gridConfig, int displayUnit) throws ClientException, IOException {
-    	this(gridConfig, "", displayUnit);
+        this(gridConfig, "", displayUnit);
     }
     
     ProducerConsumer(SKGridConfiguration gridConfig, String nsSuffix, int displayUnit) throws ClientException, IOException {
@@ -38,7 +38,7 @@ public class ProducerConsumer {
     
     public void producer(int startKey, int endKey) throws PutException {
         for (int i = startKey; i <= endKey; i++) {
-        	if (i % displayUnit == 0) {
+            if (i % displayUnit == 0) {
                 System.out.printf("Writing %d\t", i);
             }
             syncNSP.put(i, i);

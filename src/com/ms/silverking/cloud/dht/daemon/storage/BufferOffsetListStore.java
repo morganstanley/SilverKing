@@ -44,48 +44,48 @@ public class BufferOffsetListStore implements OffsetListStore {
 
     @Override
     public OffsetList getOffsetList(int index) {
-    	try {
-	        ByteBuffer  listBuf;
-	        int         listOffset;
-	        int         listNumEntries;
-	        int         listSizeBytes;
-	        boolean     supportsStorageTime;
-	        
-	        //ensureBufInitialized(); // lazy, chance of multiple calls
-	        if (index < 0) {
-	            throw new RuntimeException("panic: "+ index);
-	        }
-	        if (debug) {
-	            System.out.println("getOffsetList index: "+ index);
-	        }
-	        supportsStorageTime = nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS;
-	        // in the line below, the -1 to translate to an internal index
-	        // and the +1 of the length offset cancel out
-	        listOffset = buf.getInt(index * NumConversion.BYTES_PER_INT);
-	        if (listOffset < 0 || listOffset >= buf.limit()) {
-	        	throw new InvalidOffsetListIndexException(index);
-	        }
-	        if (debug) {
-	            System.out.printf("%d\t%x\n", listOffset, listOffset);
-	            System.out.println(buf);
-	        }
-	        listBuf = ((ByteBuffer)buf.duplicate().position(listOffset)).slice().order(ByteOrder.nativeOrder());
-	        listNumEntries = buf.getInt(listOffset + OffsetListBase.listSizeOffset);
-	        listSizeBytes = listNumEntries * OffsetListBase.entrySizeBytes(supportsStorageTime) + OffsetListBase.persistedHeaderSizeBytes;
-	        if (debug) {
-	            System.out.printf("index %d\tlistNumEntries %d\tlistSizeBytes %d\n", index, listNumEntries, listSizeBytes);
-	        }
-	        listBuf.limit(listSizeBytes);
-	        return new BufferOffsetList(listBuf, supportsStorageTime);
-    	} catch (RuntimeException re) { // FUTURE - consider removing debug
-	        int         listOffset;
-	        
-	        listOffset = buf.getInt(index * NumConversion.BYTES_PER_INT);
+        try {
+            ByteBuffer  listBuf;
+            int         listOffset;
+            int         listNumEntries;
+            int         listSizeBytes;
+            boolean     supportsStorageTime;
+            
+            //ensureBufInitialized(); // lazy, chance of multiple calls
+            if (index < 0) {
+                throw new RuntimeException("panic: "+ index);
+            }
+            if (debug) {
+                System.out.println("getOffsetList index: "+ index);
+            }
+            supportsStorageTime = nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS;
+            // in the line below, the -1 to translate to an internal index
+            // and the +1 of the length offset cancel out
+            listOffset = buf.getInt(index * NumConversion.BYTES_PER_INT);
+            if (listOffset < 0 || listOffset >= buf.limit()) {
+                throw new InvalidOffsetListIndexException(index);
+            }
+            if (debug) {
+                System.out.printf("%d\t%x\n", listOffset, listOffset);
+                System.out.println(buf);
+            }
+            listBuf = ((ByteBuffer)buf.duplicate().position(listOffset)).slice().order(ByteOrder.nativeOrder());
+            listNumEntries = buf.getInt(listOffset + OffsetListBase.listSizeOffset);
+            listSizeBytes = listNumEntries * OffsetListBase.entrySizeBytes(supportsStorageTime) + OffsetListBase.persistedHeaderSizeBytes;
+            if (debug) {
+                System.out.printf("index %d\tlistNumEntries %d\tlistSizeBytes %d\n", index, listNumEntries, listSizeBytes);
+            }
+            listBuf.limit(listSizeBytes);
+            return new BufferOffsetList(listBuf, supportsStorageTime);
+        } catch (RuntimeException re) { // FUTURE - consider removing debug
+            int         listOffset;
+            
+            listOffset = buf.getInt(index * NumConversion.BYTES_PER_INT);
             Log.warningf("getOffsetList index: %d", index);
             Log.warningf("%d\t%x\n", listOffset, listOffset);
             Log.warningf("%s", buf.duplicate());
-    		re.printStackTrace();
-    		throw re;
-    	}
+            re.printStackTrace();
+            throw re;
+        }
     }
 }

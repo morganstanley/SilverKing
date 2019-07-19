@@ -11,13 +11,13 @@ public:
 
     virtual SKClientDHTConfiguration * getClientDHTConfiguration();
 
-	//impl
+    //impl
     virtual ~SKClientDHTConfigurationProvider();
     SKClientDHTConfigurationProvider(void * pClientDHTConfigurationProvider = NULL);
-	void * getPImpl();  //FIXME
-	
+    void * getPImpl();  //FIXME
+    
 protected:
-	void * pImpl;
+    void * pImpl;
 };
 
 #endif // SKCLIENTDHTCONFIGURATIONPROVIDER_H

@@ -4,20 +4,20 @@ using namespace System;
 
 namespace SKManagedClient {
 
-	ref class MClientDHTConfiguration;
+    ref class MClientDHTConfiguration;
 
-	ref class SKClientDHTConfigurationProvider_M 
-	{
-	public:
-		void * pProvider; //(SKClientDHTConfigurationProvider*)//
-	};
+    ref class SKClientDHTConfigurationProvider_M 
+    {
+    public:
+        void * pProvider; //(SKClientDHTConfigurationProvider*)//
+    };
 
-	public ref class MClientDHTConfigurationProvider abstract
-	{
-	public:
-	    virtual MClientDHTConfiguration ^ getClientDHTConfiguration() =0;
+    public ref class MClientDHTConfigurationProvider abstract
+    {
+    public:
+        virtual MClientDHTConfiguration ^ getClientDHTConfiguration() =0;
 
-	//internal:
-	//	virtual SKClientDHTConfigurationProvider_M ^ getPImpl() =0;
-	};
+    //internal:
+    //    virtual SKClientDHTConfigurationProvider_M ^ getPImpl() =0;
+    };
 }

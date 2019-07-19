@@ -76,7 +76,7 @@ public class ProtoChecksumTreeMessageGroup extends ProtoMessageGroup {
     
     private static Pair<Long,Long> getRingVersionPair(MessageGroup mg) {
         return new Pair<>(mg.getBuffers()[dataBufferIndex].getLong(ringConfigVersionOffset),
-        				  mg.getBuffers()[dataBufferIndex].getLong(configInstanceVersionOffset));
+                          mg.getBuffers()[dataBufferIndex].getLong(configInstanceVersionOffset));
     }
     
     private static RingIDAndVersionPair getRingIDAndVersion(MessageGroup mg) {
@@ -236,7 +236,7 @@ public class ProtoChecksumTreeMessageGroup extends ProtoMessageGroup {
     private static KeyAndVersionChecksum deserializeKeyAndVersionChecksum(ByteBuffer buffer) {
         DHTKey  key;
         long    versionChecksum;
-        long	segmentNumber;
+        long    segmentNumber;
         
         key = deserializeKey(buffer);
         versionChecksum = buffer.getLong();

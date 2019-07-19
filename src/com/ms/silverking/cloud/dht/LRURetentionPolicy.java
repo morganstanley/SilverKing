@@ -3,7 +3,7 @@ package com.ms.silverking.cloud.dht;
 import java.util.List;
 import java.util.Map;
 
-import com.google.caliper.internal.guava.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUKeyedInfo;
@@ -18,80 +18,80 @@ import com.ms.silverking.text.ObjectDefParser2;
  * Simple LRU value retention policy. LRU is per key. 
  */
 public class LRURetentionPolicy extends CapacityBasedRetentionPolicy<LRURetentionState> {
-	private final int	maxVersions;
-	
-	static final LRURetentionPolicy	template = new LRURetentionPolicy(0, 1);
+    private final int    maxVersions;
+    
+    static final LRURetentionPolicy    template = new LRURetentionPolicy(0, 1);
 
-	static {
+    static {
         ObjectDefParser2.addParser(template);
     }
-	
-	@OmitGeneration
-	public LRURetentionPolicy() {
-		this(0, 0);
-	}
-	
-	@OmitGeneration
-	public LRURetentionPolicy(long capacityBytes, int maxVersions) {
-		super(capacityBytes);
-		this.maxVersions = maxVersions;
-	}
-	
-	@Override
-	public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated, LRURetentionState lruRetentionState, long curTimeNanos, long storedLength) {
-		return lruRetentionState.retains(key);
-	}
+    
+    @OmitGeneration
+    public LRURetentionPolicy() {
+        this(0, 0);
+    }
+    
+    @OmitGeneration
+    public LRURetentionPolicy(long capacityBytes, int maxVersions) {
+        super(capacityBytes);
+        this.maxVersions = maxVersions;
+    }
+    
+    @Override
+    public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated, LRURetentionState lruRetentionState, long curTimeNanos, long storedLength) {
+        return lruRetentionState.retains(key);
+    }
 
-	@Override
-	public LRURetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
-		LRUTrigger	lruTrigger;
-		
-		//System.out.printf("createInitialState\n");
-		if (putTrigger == null) {
-			Log.warning("LRURetentionPolicy has no put trigger");
-		}
-		if (retrieveTrigger == null) {
-			Log.warning("LRURetentionPolicy has no retrieve trigger");
-		}
-		lruTrigger = (LRUTrigger)retrieveTrigger;
-		return new LRURetentionState(createRetentionMap(lruTrigger.getLRUList()));
-	}
-	
-	/**
-	 * Returns map of key=>number of versions to retain
-	 * @param lruList
-	 * @return
-	 */
+    @Override
+    public LRURetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
+        LRUTrigger    lruTrigger;
+        
+        //System.out.printf("createInitialState\n");
+        if (putTrigger == null) {
+            Log.warning("LRURetentionPolicy has no put trigger");
+        }
+        if (retrieveTrigger == null) {
+            Log.warning("LRURetentionPolicy has no retrieve trigger");
+        }
+        lruTrigger = (LRUTrigger)retrieveTrigger;
+        return new LRURetentionState(createRetentionMap(lruTrigger.getLRUList()));
+    }
+    
+    /**
+     * Returns map of key=>number of versions to retain
+     * @param lruList
+     * @return
+     */
     private Map<DHTKey,MutableInteger> createRetentionMap(List<LRUKeyedInfo> lruList) {
-    	long		bytesRetained;
-    	ImmutableMap.Builder<DHTKey,MutableInteger>	retentionMap;
-    	
-		//System.out.printf("createRetentionMap %d\n", lruList.size());
-    	retentionMap = ImmutableMap.builder();
-    	bytesRetained = 0;
-    	// List is sorted in ascending access time order
-    	// Walk the list backwards to retain the most recently accessed first
-    	for (int i = lruList.size() - 1; i >= 0; i--) {
-    		LRUKeyedInfo lruKeyedInfo;
-    		
-			//System.out.printf("%d\t%d\n", i, bytesRetained);
-    		lruKeyedInfo = lruList.get(i);
-    		if (bytesRetained < capacityBytes) {
-    			bytesRetained += lruKeyedInfo.getSize();
-    			retentionMap.put(lruKeyedInfo.getKey(), new MutableInteger(maxVersions));
-    		} else {
-    			retentionMap.put(lruKeyedInfo.getKey(), new MutableInteger(0));
-    		}
-    	}
-    	return retentionMap.build();
-	}
+        long        bytesRetained;
+        ImmutableMap.Builder<DHTKey,MutableInteger>    retentionMap;
+        
+        //System.out.printf("createRetentionMap %d\n", lruList.size());
+        retentionMap = ImmutableMap.builder();
+        bytesRetained = 0;
+        // List is sorted in ascending access time order
+        // Walk the list backwards to retain the most recently accessed first
+        for (int i = lruList.size() - 1; i >= 0; i--) {
+            LRUKeyedInfo lruKeyedInfo;
+            
+            //System.out.printf("%d\t%d\n", i, bytesRetained);
+            lruKeyedInfo = lruList.get(i);
+            if (bytesRetained < capacityBytes) {
+                bytesRetained += lruKeyedInfo.getSize();
+                retentionMap.put(lruKeyedInfo.getKey(), new MutableInteger(maxVersions));
+            } else {
+                retentionMap.put(lruKeyedInfo.getKey(), new MutableInteger(0));
+            }
+        }
+        return retentionMap.build();
+    }
 
-	@Override
+    @Override
     public String toString() {
         return ObjectDefParser2.objectToString(this);
     }
     
     public static LRURetentionPolicy parse(String def) {
         return ObjectDefParser2.parse(LRURetentionPolicy.class, def);
-    }	
+    }    
 }

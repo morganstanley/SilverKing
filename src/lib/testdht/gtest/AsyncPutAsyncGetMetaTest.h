@@ -6,13 +6,13 @@
 #include "gtest/gtest.h"
 
 class AsyncPutAsyncGetMetaTest : public ::testing::Test {
-	public:
-		 AsyncPutAsyncGetMetaTest();
-		~AsyncPutAsyncGetMetaTest();
+    public:
+         AsyncPutAsyncGetMetaTest();
+        ~AsyncPutAsyncGetMetaTest();
 
-	protected:
-		virtual void setUp() {}
-		virtual void tearDown() {}
+    protected:
+        virtual void setUp() {}
+        virtual void tearDown() {}
 
 };
 

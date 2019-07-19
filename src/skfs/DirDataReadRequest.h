@@ -19,9 +19,9 @@
 typedef enum {DDRR_Initial, DDRR_Update} DDRR_Type;
 
 typedef struct DirDataReadRequest {
-	DirDataReader	*dirDataReader;
-	char *path;
-	DDRR_Type	type;
+    DirDataReader    *dirDataReader;
+    char *path;
+    DDRR_Type    type;
 } DirDataReadRequest;
 
 

@@ -58,9 +58,9 @@ public class SegmentationUtil {
         return buf.getInt(buf.position() + uncompressedLengthOffset);
     }
     
-	static int getFragmentationThreshold(ByteBuffer buf) {
+    static int getFragmentationThreshold(ByteBuffer buf) {
         return buf.getInt(buf.position() + fragmentationThresholdOffset);
-	}
+    }
     
     static byte[] getValueCreatorBytes(ByteBuffer buf) {
         byte[]  creatorBytes;
@@ -85,7 +85,7 @@ public class SegmentationUtil {
     }
     
     static ByteBuffer createSegmentMetaDataBuffer(byte[] creatorBytes, int storedLength, int uncompressedLength, 
-    											  int fragmentationThreshold,
+                                                  int fragmentationThreshold,
                                                   ChecksumType checksumType, byte[] checksum) {
         ByteBuffer  segmentMetaDataBuffer;
         //Checksum    checksum;

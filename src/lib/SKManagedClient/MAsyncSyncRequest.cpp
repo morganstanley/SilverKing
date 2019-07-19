@@ -6,28 +6,28 @@ namespace SKManagedClient {
 
 MAsyncSyncRequest::~MAsyncSyncRequest(void)
 {
-	this->!MAsyncSyncRequest();
+    this->!MAsyncSyncRequest();
 }
 
 MAsyncSyncRequest::!MAsyncSyncRequest(void)
 {
-	if(pImpl)
-	{
-		delete (SKAsyncSyncRequest*)pImpl ; 
-		pImpl = NULL;
-	}
+    if(pImpl)
+    {
+        delete (SKAsyncSyncRequest*)pImpl ; 
+        pImpl = NULL;
+    }
 }
 
 MAsyncSyncRequest::MAsyncSyncRequest(SKAsyncOperation_M ^ asyncSyncRequest)
 {
-	pImpl = asyncSyncRequest->pAsyncOperation;
+    pImpl = asyncSyncRequest->pAsyncOperation;
 }
 
 SKAsyncOperation_M ^ MAsyncSyncRequest::getPImpl()
 {
-	SKAsyncOperation_M ^ asyncSyncRequest = gcnew SKAsyncOperation_M;
-	asyncSyncRequest->pAsyncOperation = pImpl;
-	return asyncSyncRequest;
+    SKAsyncOperation_M ^ asyncSyncRequest = gcnew SKAsyncOperation_M;
+    asyncSyncRequest->pAsyncOperation = pImpl;
+    return asyncSyncRequest;
 }
 
 

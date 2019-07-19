@@ -27,7 +27,7 @@ public class DHTMetaReader {
     private final MetaPaths   mp;
     private final ZooKeeperConfig   zkConfig;
     private final boolean   enableLogging;
-    private DHTConfiguration	dhtConfig;
+    private DHTConfiguration    dhtConfig;
 
     public DHTMetaReader(ZooKeeperConfig zkConfig, String dhtName, 
                          boolean enableLogging) throws IOException, KeeperException {
@@ -43,30 +43,30 @@ public class DHTMetaReader {
     }
     
     public MetaClient getMetaClient() {
-    	return mc;
+        return mc;
     }
     
     public void setDHTConfig(DHTConfiguration dhtConfig) {
-    	this.dhtConfig = dhtConfig;
+        this.dhtConfig = dhtConfig;
     }
     
     public DHTConfiguration getDHTConfig() {
-    	return dhtConfig;
+        return dhtConfig;
     }
     
-	public DHTMetaUpdate readRing(String curRing, Pair<Long, Long> ringVersionPair) throws KeeperException, IOException {
-		return readRing(curRing, ringVersionPair.getV1(), ringVersionPair.getV2());
-	}    
+    public DHTMetaUpdate readRing(String curRing, Pair<Long, Long> ringVersionPair) throws KeeperException, IOException {
+        return readRing(curRing, ringVersionPair.getV1(), ringVersionPair.getV2());
+    }    
     
     public DHTMetaUpdate readRing(Triple<String,Long,Long> ringAndVersionPair) throws KeeperException, IOException {
-    	return readRing(ringAndVersionPair.getV1(), ringAndVersionPair.getV2(), ringAndVersionPair.getV3());
+        return readRing(ringAndVersionPair.getV1(), ringAndVersionPair.getV2(), ringAndVersionPair.getV3());
     }
     
     public DHTMetaUpdate readRing(String ringName, long ringConfigVersion, long configInstanceVersion) throws KeeperException, IOException {
         com.ms.silverking.cloud.toporing.meta.MetaClient    ringMC;
         NamedRingConfiguration namedRingConfig;
         RingConfiguration   ringConfig;
-        InstantiatedRingTree	ringTree;
+        InstantiatedRingTree    ringTree;
 //        long                ringConfigVersion;
 //        long                configInstanceVersion;
         int                 readAttemptIndex;
@@ -77,17 +77,17 @@ public class DHTMetaReader {
         zk = mc.getZooKeeper();
         
         if (EmbeddedSK.embedded()) {
-        	namedRingConfig = EmbeddedSK.getEmbeddedNamedRingConfiguration(ringName);
+            namedRingConfig = EmbeddedSK.getEmbeddedNamedRingConfiguration(ringName);
         } else {
             // unresolved
             namedRingConfig = new NamedRingConfiguration(ringName, RingConfiguration.emptyTemplate);        
             ringMC = new com.ms.silverking.cloud.toporing.meta.MetaClient(namedRingConfig, zkConfig);
 //            ringConfigVersion = zk.getVersionPriorTo(ringMC.getMetaPaths().getConfigPath(), zkidLimit);
             try {
-            	ringConfig = new RingConfigurationZK(ringMC).readFromZK(ringConfigVersion, null);
+                ringConfig = new RingConfigurationZK(ringMC).readFromZK(ringConfigVersion, null);
             } catch (Exception e) {
-            	Log.warning("Ignoring: ", e);
-            	ringConfig = new RingConfiguration(new CloudConfiguration(null, null, null), null, null, null, null, null);
+                Log.warning("Ignoring: ", e);
+                ringConfig = new RingConfiguration(new CloudConfiguration(null, null, null), null, null, null, null, null);
             }
 
             // resolved
@@ -104,7 +104,7 @@ public class DHTMetaReader {
             Log.warning("configInstanceVersion:: "+ configInstanceVersion);
         }
         if (configInstanceVersion < 0) {
-        	throw new RuntimeException("Invalid configInstanceVersion: "+ configInstanceVersion);
+            throw new RuntimeException("Invalid configInstanceVersion: "+ configInstanceVersion);
         }
 //        if (configInstanceVersion == -1) {
 //            configInstanceVersion = 0;

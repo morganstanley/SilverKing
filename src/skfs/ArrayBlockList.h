@@ -13,19 +13,19 @@
 // types
 
 typedef struct ArrayBlock {
-	size_t	curBlockSize;
-	void	**entries;
-	size_t	numEntries;
+    size_t    curBlockSize;
+    void    **entries;
+    size_t    numEntries;
 } ArrayBlock;
 
 typedef struct ArrayBlockList {
-	int 	freeEntriesOnDelete;
-	size_t	initialBlockSize;
-	size_t	maxBlockSize;
-	size_t	blockIncrement;
-	ArrayBlock	**blocks;
-	size_t	numBlocks;
-	size_t	size;
+    int     freeEntriesOnDelete;
+    size_t    initialBlockSize;
+    size_t    maxBlockSize;
+    size_t    blockIncrement;
+    ArrayBlock    **blocks;
+    size_t    numBlocks;
+    size_t    size;
 } ArrayBlockList;
 
 

@@ -18,150 +18,150 @@ import java.math.BigDecimal;
  *
  */
 public abstract class StopwatchBase implements Stopwatch {
-	private long	startTimeNanos;
-	private long	stopTimeNanos;
-	
-	protected StopwatchBase(long startTimeNanos) {
-		this.startTimeNanos = startTimeNanos;
-	}
-	
-	protected abstract long relTimeNanos();
-	
-	protected void ensureState(State requiredState) {
-		if (getState() != requiredState) {
-			throw new RuntimeException("Stopwatch state not: "+ requiredState);
-		}
-	}
-	
-	// control 
-	
-	@Override
-	public void start() {
-	    // (See sanity checking note above)
-		stopTimeNanos = 0; 
-		startTimeNanos = relTimeNanos();
-	}
-	
-	@Override
-	public void stop() {
+    private long    startTimeNanos;
+    private long    stopTimeNanos;
+    
+    protected StopwatchBase(long startTimeNanos) {
+        this.startTimeNanos = startTimeNanos;
+    }
+    
+    protected abstract long relTimeNanos();
+    
+    protected void ensureState(State requiredState) {
+        if (getState() != requiredState) {
+            throw new RuntimeException("Stopwatch state not: "+ requiredState);
+        }
+    }
+    
+    // control 
+    
+    @Override
+    public void start() {
         // (See sanity checking note above)
-		stopTimeNanos = relTimeNanos();
-	}
-	
-	@Override
-	public void reset() {
-		stopTimeNanos = 0; 
-		startTimeNanos = relTimeNanos();
-	}
-
-	// elapsed 
-		
-	@Override
-	public long getElapsedNanos() {
+        stopTimeNanos = 0; 
+        startTimeNanos = relTimeNanos();
+    }
+    
+    @Override
+    public void stop() {
         // (See sanity checking note above)
-		return stopTimeNanos - startTimeNanos;
-	}
-		
-	@Override
-	public long getElapsedMillisLong() {
-		return nanos2millisLong( getElapsedNanos() );
-	}
-	
-	@Override
-	public int getElapsedMillis() {
-		long	elapsedMillis;
-		
-		elapsedMillis = getElapsedMillisLong();
-		checkTooManyMillis(elapsedMillis);
+        stopTimeNanos = relTimeNanos();
+    }
+    
+    @Override
+    public void reset() {
+        stopTimeNanos = 0; 
+        startTimeNanos = relTimeNanos();
+    }
 
-		return (int)elapsedMillis;
-	}
-		
-	@Override
-	public double getElapsedSeconds() {
-		return nanos2seconds( getElapsedNanos() );
-	}
-	
-	@Override
-	public BigDecimal getElapsedSecondsBD() {
-		return nanos2secondsBD( getElapsedNanos() );
-	}
-	
-	// split
-	
-	@Override
-	public long getSplitNanos() {
-		long	curTimeNanos;
-		
+    // elapsed 
+        
+    @Override
+    public long getElapsedNanos() {
         // (See sanity checking note above)
-		curTimeNanos = relTimeNanos();
-		if (isStopped()) {
-			curTimeNanos = stopTimeNanos;
-		}
-		return curTimeNanos - startTimeNanos;
-	}
-	
-	@Override
-	public long getSplitMillisLong() {
-		return nanos2millisLong( getSplitNanos() );
-	}
-	
-	@Override
-	public int getSplitMillis() {
-		long	splitMillis;
-		
-		splitMillis = getSplitMillisLong(); 
-		checkTooManyMillis(splitMillis);
+        return stopTimeNanos - startTimeNanos;
+    }
+        
+    @Override
+    public long getElapsedMillisLong() {
+        return nanos2millisLong( getElapsedNanos() );
+    }
+    
+    @Override
+    public int getElapsedMillis() {
+        long    elapsedMillis;
+        
+        elapsedMillis = getElapsedMillisLong();
+        checkTooManyMillis(elapsedMillis);
 
-		return (int)splitMillis;
-	}
-	
-	@Override
-	public double getSplitSeconds() {
-		return nanos2seconds( getSplitNanos() );
-	}
-	
-	@Override
-	public BigDecimal getSplitSecondsBD() {
-		return nanos2secondsBD( getSplitNanos() );
-	}
-	
-	// misc.
-	
-	@Override
-	public String getName() {
-		return "";
-	}
-	
-	@Override 
-	public State getState() {
-		if (isRunning()) {
-			return State.running;
-		} else {
-			return State.stopped;
-		}
-	}
+        return (int)elapsedMillis;
+    }
+        
+    @Override
+    public double getElapsedSeconds() {
+        return nanos2seconds( getElapsedNanos() );
+    }
+    
+    @Override
+    public BigDecimal getElapsedSecondsBD() {
+        return nanos2secondsBD( getElapsedNanos() );
+    }
+    
+    // split
+    
+    @Override
+    public long getSplitNanos() {
+        long    curTimeNanos;
+        
+        // (See sanity checking note above)
+        curTimeNanos = relTimeNanos();
+        if (isStopped()) {
+            curTimeNanos = stopTimeNanos;
+        }
+        return curTimeNanos - startTimeNanos;
+    }
+    
+    @Override
+    public long getSplitMillisLong() {
+        return nanos2millisLong( getSplitNanos() );
+    }
+    
+    @Override
+    public int getSplitMillis() {
+        long    splitMillis;
+        
+        splitMillis = getSplitMillisLong(); 
+        checkTooManyMillis(splitMillis);
 
-	@Override
-	public boolean isRunning() {
-		return stopTimeNanos == 0;
-	}
-	
-	@Override
-	public boolean isStopped() {
-		return !isRunning();
-	}
-		
-	public String toStringElapsed() {
-		return getName() +":"+ getState() +":"+ getElapsedSeconds();
-	}
+        return (int)splitMillis;
+    }
+    
+    @Override
+    public double getSplitSeconds() {
+        return nanos2seconds( getSplitNanos() );
+    }
+    
+    @Override
+    public BigDecimal getSplitSecondsBD() {
+        return nanos2secondsBD( getSplitNanos() );
+    }
+    
+    // misc.
+    
+    @Override
+    public String getName() {
+        return "";
+    }
+    
+    @Override 
+    public State getState() {
+        if (isRunning()) {
+            return State.running;
+        } else {
+            return State.stopped;
+        }
+    }
 
-	public String toStringSplit() {
-		return getName() +":"+ getState() +":"+ getSplitSeconds();
-	}
-	
-	@Override
-	public String toString() {
-		return toStringSplit();
-	}
+    @Override
+    public boolean isRunning() {
+        return stopTimeNanos == 0;
+    }
+    
+    @Override
+    public boolean isStopped() {
+        return !isRunning();
+    }
+        
+    public String toStringElapsed() {
+        return getName() +":"+ getState() +":"+ getElapsedSeconds();
+    }
+
+    public String toStringSplit() {
+        return getName() +":"+ getState() +":"+ getSplitSeconds();
+    }
+    
+    @Override
+    public String toString() {
+        return toStringSplit();
+    }
 }

@@ -21,8 +21,8 @@ import com.ms.silverking.io.IOUtil;
  * Base functionality for both cloud-level, and dht instance specific ExclusionSets
  */
 public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolModuleBase<ExclusionSet,M> {
-	private final String	exclusionsPath;
-	
+    private final String    exclusionsPath;
+    
     private static final char   delimiterChar = '\n';
     private static final String delimiterString = "" + delimiterChar;
     
@@ -32,7 +32,7 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     }
     
     public String getExclusionsPath() {
-    	return exclusionsPath;
+        return exclusionsPath;
     }
     
     public String getLatestZKPath() throws KeeperException {
@@ -42,9 +42,9 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
         _zk = mc.getZooKeeper();
         version = _zk.getLatestVersion(exclusionsPath);
         if (version < 0) {
-        	return null;
+            return null;
         } else {
-        	return getVBase(version);
+            return getVBase(version);
         }
     }
     
@@ -58,12 +58,12 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
         String          vBase;
         //List<String>    nodes;
         String[]        nodes;
-        Stat			stat;
+        Stat            stat;
         ZooKeeperExtended   _zk;
         
         _zk = mc.getZooKeeper();
         if (version == VersionedDefinition.NO_VERSION) {
-        	version = _zk.getLatestVersion(base);
+            version = _zk.getLatestVersion(base);
         }
         vBase = getVBase(version);
         //nodes = zk.getChildren(vBase);
@@ -88,17 +88,17 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     public ExclusionSet readLatestFromZK(MetaToolOptions options) throws KeeperException {
         String          vBase;
         long            version;
-        Stat			stat;
+        Stat            stat;
         ZooKeeperExtended   _zk;
         
         _zk = mc.getZooKeeper();
         version = _zk.getLatestVersion(exclusionsPath);
         if (version >= 0) {
-	        vBase = getVBase(version);
-	        stat = new Stat();
-	        return new ExclusionSet(readNodesAsSet(vBase, stat), version, stat.getMzxid());
+            vBase = getVBase(version);
+            stat = new Stat();
+            return new ExclusionSet(readNodesAsSet(vBase, stat), version, stat.getMzxid());
         } else {
-        	return ExclusionSet.emptyExclusionSet(0);
+            return ExclusionSet.emptyExclusionSet(0);
         }
     }
     
@@ -131,17 +131,17 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
     }
     
     public long getVersionMzxid(long version) throws KeeperException {
-    	Stat	stat;
+        Stat    stat;
         ZooKeeperExtended   _zk;
         
         _zk = mc.getZooKeeper();
-    	stat = new Stat();
-        _zk.getString(getVBase(version), null, stat);    	
-    	return stat.getMzxid();
+        stat = new Stat();
+        _zk.getString(getVBase(version), null, stat);        
+        return stat.getMzxid();
     }
     
     public Map<String,Long> getStartOfCurrentExclusion(Set<String> servers) throws KeeperException {
-    	Map<String,Long>	esStarts;
+        Map<String,Long>    esStarts;
         long    latestExclusionSetVersion;
         Map<String,Set<String>> exclusionSets;
         ZooKeeperExtended   _zk;
@@ -151,34 +151,34 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends MetaToolM
         exclusionSets = new HashMap<>();
         latestExclusionSetVersion = _zk.getLatestVersion(exclusionsPath);
         for (String server : servers) {
-        	esStarts.put(server, getStartOfCurrentExclusion(server, latestExclusionSetVersion, exclusionSets));
+            esStarts.put(server, getStartOfCurrentExclusion(server, latestExclusionSetVersion, exclusionSets));
         }
         return esStarts;
     }
     
     private long getStartOfCurrentExclusion(String server, long latestExclusionSetVersion, Map<String,Set<String>> exclusionSets) throws KeeperException {
-    	long	earliestServerVersion;	
-        Stat	stat;
-    	long	version;
+        long    earliestServerVersion;    
+        Stat    stat;
+        long    version;
 
         earliestServerVersion = -1;
         version = latestExclusionSetVersion;
         while (version >= 0) {
-        	String		vBase;
-        	Set<String>	nodes;
-        	
-        	vBase = getVBase(version);
+            String        vBase;
+            Set<String>    nodes;
+            
+            vBase = getVBase(version);
             stat = new Stat();
             nodes = exclusionSets.get(vBase);
             if (nodes == null) {
-            	nodes = readNodesAsSet(vBase, stat);
-            	exclusionSets.put(vBase, nodes);
+                nodes = readNodesAsSet(vBase, stat);
+                exclusionSets.put(vBase, nodes);
             }
             if (!nodes.contains(server)) {
-            	break;
+                break;
             }
             earliestServerVersion = version;
-        	--version;
+            --version;
         }
         return earliestServerVersion;
     }

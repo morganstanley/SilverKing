@@ -1,10 +1,12 @@
 package com.ms.silverking.test;
 
-import com.google.caliper.Runner;
-import com.google.caliper.SimpleBenchmark;
+import com.google.caliper.Benchmark;
+import com.google.caliper.runner.CaliperMain;
 import com.ms.silverking.thread.ThreadUtil;
 
-public class CaliperTest extends SimpleBenchmark {
+public class CaliperTest {
+    
+    @Benchmark
     public void timeSleep(int reps) {
         for (int i = 0; i < reps; i++) {
             ThreadUtil.sleep(1);
@@ -15,6 +17,6 @@ public class CaliperTest extends SimpleBenchmark {
      * @param args
      */
     public static void main(String[] args) {
-        Runner.main(CaliperTest.class, args);
+        CaliperMain.main(CaliperTest.class, args);
     }
 }

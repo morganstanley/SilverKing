@@ -14,10 +14,10 @@ public interface StoredValueBase<V> {
      * Get the MetaData for this stored value if it exists
      * @return the MetaData for this stored value if it exists. null if no meta data was retrieved.
      */
-	public MetaData getMetaData();
+    public MetaData getMetaData();
     /**
      * Get the value for this stored value if it exists
      * @return the value for this stored value if it exists. null if no value was retrieved.
      */
-	public V getValue();
+    public V getValue();
 }

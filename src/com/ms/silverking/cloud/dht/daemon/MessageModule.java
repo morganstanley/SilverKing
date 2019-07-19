@@ -89,7 +89,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private final List<IPAndPort> systemNamespaceReplicaList;
     private final Set<IPAndPort>  systemNamespaceReplicas;
     private final PeerHealthMonitor peerHealthMonitor;
-    //private final Timer	pingTimer;
+    //private final Timer    pingTimer;
     //private final GlobalCommandServer globalCommandServer;
     
     // Note - removal of operations is done only in bulk
@@ -107,7 +107,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private static final int        shortTimeWarning = 1000;
     
     private static final int    replicaRetryBufferMS = 30;
-    private static final int	incomingConnectionBacklog = 4096;
+    private static final int    incomingConnectionBacklog = 4096;
     
     // FUTURE - add an option to set the number of selector controllers, or the
     // manner in which this number is selected
@@ -131,12 +131,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private final AtomicLong    _notFound = new AtomicLong();
     private static final boolean    debugCompletion = false;
     
-    //private static final String	pingTimerName = "PingTimer";
-    //private static final long	minPingPeriodMillis = 1 * 1000;
-    //private static final long	targetPingsPerSecond = 2;
-    private static final long	interPingDelayMillis = 100;
+    //private static final String    pingTimerName = "PingTimer";
+    //private static final long    minPingPeriodMillis = 1 * 1000;
+    //private static final long    targetPingsPerSecond = 2;
+    private static final long    interPingDelayMillis = 100;
     
-    public static final String	nodePingerThreadName = "NodePinger";
+    public static final String    nodePingerThreadName = "NodePinger";
     
     public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, 
                          AbsMillisTimeSource absMillisTimeSource,
@@ -208,42 +208,42 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void startPinger() {
-    	/*
-    	int		numReplicas;
-    	long	pingPeriodMillis;
-    	
-    	// FUTURE - this could change
-    	numReplicas = ringMaster.getAllReplicaServers().size();
-    	pingPeriodMillis = numReplicas * 1000 / targetPingsPerSecond;
-    	pingPeriodMillis = Math.max(pingPeriodMillis, minPingPeriodMillis);
+        /*
+        int        numReplicas;
+        long    pingPeriodMillis;
+        
+        // FUTURE - this could change
+        numReplicas = ringMaster.getAllReplicaServers().size();
+        pingPeriodMillis = numReplicas * 1000 / targetPingsPerSecond;
+        pingPeriodMillis = Math.max(pingPeriodMillis, minPingPeriodMillis);
         pingTimer.scheduleAtFixedRate(new Pinger(), pingPeriodMillis, pingPeriodMillis);
         */
-    	Log.warning("Starting Pinger");
-    	new SafeThread(new Pinger(), nodePingerThreadName, true).start();
+        Log.warning("Starting Pinger");
+        new SafeThread(new Pinger(), nodePingerThreadName, true).start();
     }
     
     public void setAddressStatusProvider(AddressStatusProvider addressStatusProvider) {
-    	mgBase.setAddressStatusProvider(addressStatusProvider);
+        mgBase.setAddressStatusProvider(addressStatusProvider);
     }
     
     @Override
     public void receive(MessageGroup message, MessageGroupConnection connection) {
         int maxDirectCallDepth;
-        NamespaceProperties	nsProperties;
+        NamespaceProperties    nsProperties;
         
         nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.LocalCheckOnly);
         if (nsProperties == null) {
             // If we're using a SelectorThread to do this work, we can't allow this thread to block since we
-        	// don't have any properties
+            // don't have any properties
             maxDirectCallDepth = 0;
         } else {
-        	if (message.getForwardingMode() == ForwardingMode.DO_NOT_FORWARD && nsProperties.getOptions().getNamespaceServerSideCode() != null) {
-        		// For non-forwarded messages, disallow all potential server side code usage of SelectorThreads
-        		// We don't want communication to be dependent on server side code operation
+            if (message.getForwardingMode() == ForwardingMode.DO_NOT_FORWARD && nsProperties.getOptions().getNamespaceServerSideCode() != null) {
+                // For non-forwarded messages, disallow all potential server side code usage of SelectorThreads
+                // We don't want communication to be dependent on server side code operation
                 maxDirectCallDepth = 0;
-        	} else {
-        		maxDirectCallDepth = Integer.MAX_VALUE;
-        	}
+            } else {
+                maxDirectCallDepth = Integer.MAX_VALUE;
+            }
         }
         worker.addWork(new MessageAndConnection(message, createProxyForConnection(connection, message.getDeadlineAbsMillis(absMillisTimeSource), message.getPeer())), maxDirectCallDepth, Integer.MAX_VALUE);
     }
@@ -265,12 +265,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                     //message.displayForDebug(true);
                 }
             }
-        	if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
+            if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
                 if (debugReceivedMessages) {
-                	Log.warning("Setting message to peer: ", message.getMessageType());
+                    Log.warning("Setting message to peer: ", message.getMessageType());
                 }
-        		message.setPeer(true);
-        	}
+                message.setPeer(true);
+            }
             switch (message.getMessageType()) {
             case PUT:
                 handlePut(message, connection);
@@ -315,10 +315,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 handleNamespaceResponse(message, getConnectionForRemote(connection));
                 break;
             case SET_CONVERGENCE_STATE:
-            	handleSetConvergenceState(message, getConnectionForRemote(connection));
-            	break;
+                handleSetConvergenceState(message, getConnectionForRemote(connection));
+                break;
             case REAP:
-            	handleReap(message, getConnectionForRemote(connection));
+                handleReap(message, getConnectionForRemote(connection));
                 /*
             case GLOBAL_COMMAND_NEW:
                 handleGlobalCommandNew(message, getConnectionForRemote(connection));
@@ -334,20 +334,20 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                  throw new RuntimeException("type not handled: "+ message.getMessageType());
             }
         } catch (RuntimeException re) {
-			Throwable	t;
-			
-			Log.warning("************************************** "+ Thread.currentThread().getName());
-			t = re;
-			while (t != null) {
-				Log.logErrorWarning(t);
-				t = t.getCause();
-				Log.warning("......................................");
-			}
+            Throwable    t;
+            
+            Log.warning("************************************** "+ Thread.currentThread().getName());
+            t = re;
+            while (t != null) {
+                Log.logErrorWarning(t);
+                t = t.getCause();
+                Log.warning("......................................");
+            }
             Log.logErrorWarning(re, "MessageModule error processing connection: "+ connection.getConnectionID());
         }
     }
     
-	private StorageProtocol getStorageProtocol(NamespaceOptions nsOptions) {
+    private StorageProtocol getStorageProtocol(NamespaceOptions nsOptions) {
         return consistencyModeToStorageProtocol[nsOptions.getConsistencyProtocol().ordinal()];
     }
     
@@ -363,16 +363,16 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         if (connection == null || connection.getRemoteIPAndPort().equals(myIPAndPort)) {
             return new MessageGroupConnectionProxyLocal(worker);
         } else {
-        	if (!peer) {
-        		return new MessageGroupConnectionProxyRemote(connection);
-        	} else {
-	        	try {
-	        		return new MessageGroupConnectionProxyRemote(mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
-	        	} catch (ConnectException ce) {
-	        		Log.logErrorWarning(ce, "Reverting to incoming connection for outgoing messages for "+ connection);
-	                return new MessageGroupConnectionProxyRemote(connection);
-	        	}
-        	}
+            if (!peer) {
+                return new MessageGroupConnectionProxyRemote(connection);
+            } else {
+                try {
+                    return new MessageGroupConnectionProxyRemote(mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
+                } catch (ConnectException ce) {
+                    Log.logErrorWarning(ce, "Reverting to incoming connection for outgoing messages for "+ connection);
+                    return new MessageGroupConnectionProxyRemote(connection);
+                }
+            }
         }
     }
     
@@ -518,7 +518,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     protected void sendPutResults(MessageGroup message, long version, 
                                MessageGroupConnectionProxy connection, List<PutResult> results, byte storageState, 
                                int deadlineRelativeMillis) {
-    	sendPutResults(message.getUUID(), message.getContext(), version, connection, results, storageState, deadlineRelativeMillis);
+        sendPutResults(message.getUUID(), message.getContext(), version, connection, results, storageState, deadlineRelativeMillis);
     }
     
     protected void sendPutResults(UUIDBase uuid, long context, long version, 
@@ -703,7 +703,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         ConvergencePoint    targetCP;
         ConvergencePoint    sourceCP;
         RingRegion          region;
-        boolean				localFlag;
+        boolean                localFlag;
         
         if (Log.levelMet(Level.FINE)) {
             Log.warning("handleChecksumTreeRequest");
@@ -716,13 +716,13 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         //storage.getChecksumTreeForRemote(message.getContext(), message.getUUID(), 
         //                        targetCP, sourceCP, connection, message.getOriginator(), region);
         if (!localFlag) {
-        	storage.asyncInvocationNonBlocking("getChecksumTreeForRemote", message.getContext(), message.getUUID(), 
+            storage.asyncInvocationNonBlocking("getChecksumTreeForRemote", message.getContext(), message.getUUID(), 
                 targetCP, sourceCP, connection, message.getOriginator(), region);
         } else {
-        	IPAndPort	replica;
-        	
-        	replica = ProtoChecksumTreeRequestMessageGroup.getReplica(message);
-        	storage.asyncInvocationBlocking("getChecksumTreeForLocal", message.getContext(), message.getUUID(), 
+            IPAndPort    replica;
+            
+            replica = ProtoChecksumTreeRequestMessageGroup.getReplica(message);
+            storage.asyncInvocationBlocking("getChecksumTreeForLocal", message.getContext(), message.getUUID(), 
                     targetCP, sourceCP, connection, message.getOriginator(), region, replica, message.getDeadlineRelativeMillis());
         }
     }
@@ -748,12 +748,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void handleSetConvergenceState(MessageGroup message, MessageGroupConnection connectionForRemote) {
-    	storage.handleSetConvergenceState(message, connectionForRemote);
-	}
+        storage.handleSetConvergenceState(message, connectionForRemote);
+    }
     
-	private void handleReap(MessageGroup message, MessageGroupConnection connectionForRemote) {
-		storage.handleReap(message, connectionForRemote);
-	}
+    private void handleReap(MessageGroup message, MessageGroupConnection connectionForRemote) {
+        storage.handleReap(message, connectionForRemote);
+    }
     
     ////////////////////////////
     
@@ -782,32 +782,32 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void handlePing(MessageGroup message, MessageGroupConnectionProxy connection) {
-    	if (Log.levelMet(Level.FINE)) {
-    		Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
-    	}
+        if (Log.levelMet(Level.FINE)) {
+            Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
+        }
         if (connection instanceof MessageGroupConnectionProxyRemote) {
-        	MessageGroupConnectionProxyRemote	c;
-        	ProtoPingAckMessageGroup	ack;
-        	
-        	ack = new ProtoPingAckMessageGroup(mgBase.getMyID(), message.getUUID());
-        	c = (MessageGroupConnectionProxyRemote)connection;
-        	try {
-				c.sendAsynchronous(ack.toMessageGroup(), Long.MAX_VALUE);
-			} catch (IOException ioe) {
-				Log.logErrorWarning(ioe);
-			}
+            MessageGroupConnectionProxyRemote    c;
+            ProtoPingAckMessageGroup    ack;
+            
+            ack = new ProtoPingAckMessageGroup(mgBase.getMyID(), message.getUUID());
+            c = (MessageGroupConnectionProxyRemote)connection;
+            try {
+                c.sendAsynchronous(ack.toMessageGroup(), Long.MAX_VALUE);
+            } catch (IOException ioe) {
+                Log.logErrorWarning(ioe);
+            }
         }
     }
     
     private void handlePingAck(MessageGroup message, MessageGroupConnectionProxy connection) {
-    	if (Log.levelMet(Level.FINE)) {
-    		Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
-    	}
+        if (Log.levelMet(Level.FINE)) {
+            Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
+        }
         if (connection instanceof MessageGroupConnectionProxyRemote) {
-        	MessageGroupConnectionProxyRemote	c;
-        	
-        	c = (MessageGroupConnectionProxyRemote)connection;
-        	peerHealthMonitor.removeSuspect(c.getConnection().getRemoteIPAndPort());
+            MessageGroupConnectionProxyRemote    c;
+            
+            c = (MessageGroupConnectionProxyRemote)connection;
+            peerHealthMonitor.removeSuspect(c.getConnection().getRemoteIPAndPort());
         }
     }
     
@@ -862,8 +862,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         }
     }
     
-    private static final int	workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
-    private static final int	workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+    private static final int    workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+    private static final int    workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
     
     static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
     
@@ -939,9 +939,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         
         private void cleanupMap(ConcurrentMap<UUIDBase,? extends ActiveProxyOperation<?, ?>> map,
                                 long absTimeMillis) {
-        	boolean	newTimeouts;
-        	
-        	newTimeouts = false;
+            boolean    newTimeouts;
+            
+            newTimeouts = false;
             for (Map.Entry<UUIDBase,? extends ActiveProxyOperation<?, ?>> entry : map.entrySet()) {
                 if (entry.getValue().hasTimedOut(absTimeMillis) || entry.getValue().getOpResult().isComplete()) { // FIXME - think about failures
                     if (debugCleanup) {
@@ -949,8 +949,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                     }
                     map.remove(entry.getKey());
                 } else {
-                	Set<IPAndPort>	timedOutReplicas;
-                	
+                    Set<IPAndPort>    timedOutReplicas;
+                    
                     // We don't retry replicas that are near timing out. This is simply
                     // to avoid littering logs with sendTimedOut messages. I.e. we could
                     // actually do a retry right up until the timeout, but doing so 
@@ -958,15 +958,15 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                     // timed out sends since they can indicate deeper trouble.
                     // Send timeouts due to sending near the deadline is really not 
                     // something that we want to see logged. 
-                	timedOutReplicas = entry.getValue().checkForReplicaTimeouts(absTimeMillis - replicaRetryBufferMS);
-                	for (IPAndPort timedOutReplica : timedOutReplicas) {
-                		peerHealthMonitor.addSuspect(timedOutReplica, PeerHealthIssue.ReplicaTimeout);
-                		newTimeouts = true;
-                	}
+                    timedOutReplicas = entry.getValue().checkForReplicaTimeouts(absTimeMillis - replicaRetryBufferMS);
+                    for (IPAndPort timedOutReplica : timedOutReplicas) {
+                        peerHealthMonitor.addSuspect(timedOutReplica, PeerHealthIssue.ReplicaTimeout);
+                        newTimeouts = true;
+                    }
                 }
             }
             if (newTimeouts) {
-            	//ringMaster.updateCurMapState(); deprecated method
+                //ringMaster.updateCurMapState(); deprecated method
             }
         }
     }
@@ -977,24 +977,24 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         
         @Override
         public void run() {
-        	Log.warning("Pinger running");
-        	while (true) {
-	        	try {
-	        		pingReplicas();
-	        		peerHealthMonitor.refreshZK();
-	        	} catch (Exception e) {
-	        		e.printStackTrace();
-	        	}
-        	}
+            Log.warning("Pinger running");
+            while (true) {
+                try {
+                    pingReplicas();
+                    peerHealthMonitor.refreshZK();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
-		private void pingReplicas() {
-        	Log.fine("Pinging replicas");
-			for (IPAndPort replica : ringMaster.getAllCurrentAndTargetNonExcludedNonLocalReplicaServers()) {
-				mgBase.send(new ProtoPingMessageGroup(mgBase.getMyID()).toMessageGroup(), replica);
-				ThreadUtil.sleep(interPingDelayMillis);
-			}
-		}
+        private void pingReplicas() {
+            Log.fine("Pinging replicas");
+            for (IPAndPort replica : ringMaster.getAllCurrentAndTargetNonExcludedNonLocalReplicaServers()) {
+                mgBase.send(new ProtoPingMessageGroup(mgBase.getMyID()).toMessageGroup(), replica);
+                ThreadUtil.sleep(interPingDelayMillis);
+            }
+        }
     }    
     
     class StatsWorker extends TimerTask {

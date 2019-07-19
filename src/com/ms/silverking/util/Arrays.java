@@ -63,7 +63,7 @@ public class Arrays {
     }
     
     public static <T> boolean contains(T[] a1, T v) {
-    	return indexOf(a1, v) >= 0;
+        return indexOf(a1, v) >= 0;
     }
     
     public static void shuffleIntArray(int[] a){
@@ -118,35 +118,35 @@ public class Arrays {
     }    
     
     public static <T> Iterator<T> iterator(T[] a) {
-    	return new ArrayIterator(a);
+        return new ArrayIterator(a);
     }
     
     private static class ArrayIterator<T> implements Iterator<T> {
-    	private T[]	a;
-    	private int	i;
-    	
-    	ArrayIterator(T[] a) {
-    		this.a = a;
-    	}
-    	
-		@Override
-		public boolean hasNext() {
-			return i < a.length;
-		}
+        private T[]    a;
+        private int    i;
+        
+        ArrayIterator(T[] a) {
+            this.a = a;
+        }
+        
+        @Override
+        public boolean hasNext() {
+            return i < a.length;
+        }
 
-		@Override
-		public T next() {
-			if (hasNext()) {
-				T	e;
-				
-				e = a[i];
-				i++;
-				return e;
-			} else {
-				throw new NoSuchElementException();
-			}
-		}
-    	
+        @Override
+        public T next() {
+            if (hasNext()) {
+                T    e;
+                
+                e = a[i];
+                i++;
+                return e;
+            } else {
+                throw new NoSuchElementException();
+            }
+        }
+        
     }
 }
 

@@ -283,8 +283,8 @@ function f_logFatalBreakdown {
 }
 
 function f_sendEmail {
-	typeset   to=$1
-	typeset from=$2
+    typeset   to=$1
+    typeset from=$2
     
     touch $REPORT_FILE
     

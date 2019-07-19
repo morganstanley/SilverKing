@@ -13,8 +13,8 @@
 #include "SKAsyncOperation.h"
 
 namespace jace { namespace proxy { namespace com { namespace ms { 
-	namespace silverking {namespace cloud { namespace dht { namespace client {
-		class AsyncSyncRequest;
+    namespace silverking {namespace cloud { namespace dht { namespace client {
+        class AsyncSyncRequest;
 } } } } } } } }
 typedef jace::proxy::com::ms::silverking::cloud::dht::client::AsyncSyncRequest AsyncSyncRequest;
 
@@ -22,9 +22,9 @@ typedef jace::proxy::com::ms::silverking::cloud::dht::client::AsyncSyncRequest A
 class SKAsyncSyncRequest : public SKAsyncOperation
 {
 public:
-	SKAPI virtual ~SKAsyncSyncRequest();
+    SKAPI virtual ~SKAsyncSyncRequest();
 
-   	SKAsyncSyncRequest(AsyncSyncRequest * pAsyncSyncRequest);
+       SKAsyncSyncRequest(AsyncSyncRequest * pAsyncSyncRequest);
     void * getPImpl();
 protected:
     SKAsyncSyncRequest();

@@ -9,18 +9,18 @@ import com.ms.silverking.net.HostAndPort;
 
 public class ZooKeeperConfig {
     private final AddrAndPort[] ensemble;
-    private final String		chroot;
+    private final String        chroot;
     
     @OmitGeneration
     public ZooKeeperConfig(AddrAndPort[] ensemble, String chroot) {
-    	Preconditions.checkNotNull(ensemble, "ensemble null");
+        Preconditions.checkNotNull(ensemble, "ensemble null");
         this.ensemble = ensemble;
         this.chroot = (chroot == null ? "" : chroot);
     }
     
     @OmitGeneration
     public ZooKeeperConfig(Pair<AddrAndPort[],String> ensemble_chroot) {
-    	this(ensemble_chroot.getV1(), ensemble_chroot.getV2());
+        this(ensemble_chroot.getV1(), ensemble_chroot.getV2());
     }
     
     @OmitGeneration
@@ -33,21 +33,21 @@ public class ZooKeeperConfig {
     }
     
     private static Pair<AddrAndPort[],String> parseDef(String def) {
-    	AddrAndPort[]	ensemble;
-    	String			ensembleDef;
-    	int				chrootIndex;
-    	String			chroot;
-    	
-    	chrootIndex = def.indexOf('/');
-    	if (chrootIndex < 0) {
-    		ensembleDef = def;
-    		chroot = null;
-    	} else {
-    		ensembleDef = def.substring(0, chrootIndex);
-    		chroot = def.substring(chrootIndex);
-    	}
-		ensemble = HostAndPort.parseMultiple(ensembleDef);
-		return new Pair<>(ensemble, chroot);
+        AddrAndPort[]    ensemble;
+        String            ensembleDef;
+        int                chrootIndex;
+        String            chroot;
+        
+        chrootIndex = def.indexOf('/');
+        if (chrootIndex < 0) {
+            ensembleDef = def;
+            chroot = null;
+        } else {
+            ensembleDef = def.substring(0, chrootIndex);
+            chroot = def.substring(chrootIndex);
+        }
+        ensemble = HostAndPort.parseMultiple(ensembleDef);
+        return new Pair<>(ensemble, chroot);
     }
     
     public AddrAndPort[] getEnsemble() {
@@ -55,38 +55,38 @@ public class ZooKeeperConfig {
     }
     
     public String getChroot() {
-    	return chroot;
+        return chroot;
     }
     
     @Override
     public String toString() {
-    	return getConnectString();
+        return getConnectString();
     }
 
     public String getConnectString() {
-    	return AddrAndPortUtil.toString(ensemble) + chroot;
+        return AddrAndPortUtil.toString(ensemble) + chroot;
     }
     
     @Override
     public int hashCode() {
-    	return AddrAndPortUtil.hashCode(ensemble) ^ chroot.hashCode();
+        return AddrAndPortUtil.hashCode(ensemble) ^ chroot.hashCode();
     }
     
     @Override
-	public boolean equals(Object other) {
-    	ZooKeeperConfig	otherZKC;
-		
-		otherZKC = (ZooKeeperConfig)other;
-		if (ensemble.length != otherZKC.ensemble.length) {
-			return false;
-		} else {
-			// Note that this implementation is currently order-sensitive
-			for (int i = 0; i < ensemble.length; i++) {
-				if (!ensemble[i].equals(otherZKC.ensemble[i])) {
-					return false;
-				}
-			}
-			return chroot.equals(otherZKC.chroot);
-		}
-	}
+    public boolean equals(Object other) {
+        ZooKeeperConfig    otherZKC;
+        
+        otherZKC = (ZooKeeperConfig)other;
+        if (ensemble.length != otherZKC.ensemble.length) {
+            return false;
+        } else {
+            // Note that this implementation is currently order-sensitive
+            for (int i = 0; i < ensemble.length; i++) {
+                if (!ensemble[i].equals(otherZKC.ensemble[i])) {
+                    return false;
+                }
+            }
+            return chroot.equals(otherZKC.chroot);
+        }
+    }
 }

@@ -23,7 +23,7 @@ public class NamedRingConfiguration {
     }
     
     public NamedRingConfiguration ringName(String ringName) {
-    	return new NamedRingConfiguration(ringName, ringConfig);
+        return new NamedRingConfiguration(ringName, ringConfig);
     }
     
     public String getRingName() {

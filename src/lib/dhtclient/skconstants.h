@@ -20,14 +20,14 @@ extern "C" {
 const char* const SK_NULL_VALUE   = "NULL";
 
 typedef enum SKRetrievalType_t {
-	VALUE = 0, 
-	META_DATA = 1, 
-	VALUE_AND_META_DATA = 2, 
-	EXISTENCE = 3
+    VALUE = 0, 
+    META_DATA = 1, 
+    VALUE_AND_META_DATA = 2, 
+    EXISTENCE = 3
 } SKRetrievalType;
 
 typedef enum SKWaitMode_t {
-	GET, WAIT_FOR
+    GET, WAIT_FOR
 } SKWaitMode;
 
 typedef enum SKTimeUnit_t {
@@ -60,7 +60,7 @@ namespace SKOperationState {
 
 namespace SKFailureCause {
  typedef enum SKFailureCause {
-	ERROR, TIMEOUT, MUTATION, MULTIPLE, INVALID_VERSION, 
+    ERROR, TIMEOUT, MUTATION, MULTIPLE, INVALID_VERSION, 
     SIMULTANEOUS_PUT, NO_SUCH_VALUE, NO_SUCH_NAMESPACE, CORRUPT
  } SKFailureCause ;
 }
@@ -74,12 +74,12 @@ namespace SKOpResult {
 
 namespace SKStorageType {
  typedef enum SKStorageType_t {
-	RAM, FILE
+    RAM, FILE
  } SKStorageType;
 }
 
 typedef enum LoggingLevel_t {
-	LVL_ALL, LVL_LOG, LVL_FINE, LVL_INFO, LVL_WARNING, LVL_ERROR, LVL_OFF
+    LVL_ALL, LVL_LOG, LVL_FINE, LVL_INFO, LVL_WARNING, LVL_ERROR, LVL_OFF
 } LoggingLevel;
 
 //com.ms.silverking.cloud.dht.ConsistencyProtocol
@@ -117,8 +117,8 @@ typedef enum SKVersionConstraintMode_t {
 } SKVersionConstraintMode;
 
 typedef enum SKRevisionMode_t {
-	NO_REVISIONS,            /** No revisions allowed */
-	UNRESTRICTED_REVISIONS   /** Unrestricted revisions allowed */
+    NO_REVISIONS,            /** No revisions allowed */
+    UNRESTRICTED_REVISIONS   /** Unrestricted revisions allowed */
 } SKRevisionMode;
 
 typedef enum SKForwardingMode_t {

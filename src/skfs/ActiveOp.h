@@ -28,19 +28,19 @@ typedef enum {AOR_Invalid = 0, AOR_Created, AOR_Destroyed} AORefStatus;
 typedef enum {AOResult_Incomplete = 0, AOResult_Timeout, AOResult_Error, AOResult_Success} AOResult;
 
 typedef struct ActiveOp {
-	void			*target;
+    void            *target;
     void            *rVal;
     size_t          rValLength;
     AOResult        result;
-	int				stage;
-	AORefStatus		refStatus[AO_MAX_REFS];
-	int				nextRef;
-	int				toDelete;
-	void (*delete_function)(void **);
-	pthread_mutex_t	mutexInstance;
-	pthread_mutex_t	*mutex;
-	pthread_cond_t	cvInstance;
-	pthread_cond_t	*cv;
+    int                stage;
+    AORefStatus        refStatus[AO_MAX_REFS];
+    int                nextRef;
+    int                toDelete;
+    void (*delete_function)(void **);
+    pthread_mutex_t    mutexInstance;
+    pthread_mutex_t    *mutex;
+    pthread_cond_t    cvInstance;
+    pthread_cond_t    *cv;
 } ActiveOp;
 
 

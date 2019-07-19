@@ -32,7 +32,7 @@ function f_status {
     fi
     
     typeset skfsResult=$FAIL_TEXT
-	if [[ $skfsErrorCode -eq 0 ]]; then
+    if [[ $skfsErrorCode -eq 0 ]]; then
         skfsResult=$PASS_TEXT
     fi
     

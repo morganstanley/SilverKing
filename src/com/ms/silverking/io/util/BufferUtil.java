@@ -102,22 +102,22 @@ public class BufferUtil {
     }
     
     public static byte[] arrayCopy(ByteBuffer src) {
-    	return arrayCopy(src, src.remaining());
+        return arrayCopy(src, src.remaining());
     }
     
     public static ByteBuffer convertToArrayBacked(ByteBuffer buf) {
-    	if (buf.hasArray()) {
-    		throw new RuntimeException("Already array backed");
-    	} else {
-    		return ByteBuffer.wrap(arrayCopy(buf, buf.position(), buf.limit() - buf.position()));
-    	}
+        if (buf.hasArray()) {
+            throw new RuntimeException("Already array backed");
+        } else {
+            return ByteBuffer.wrap(arrayCopy(buf, buf.position(), buf.limit() - buf.position()));
+        }
     }
     
     public static ByteBuffer ensureArrayBacked(ByteBuffer buf) {
-    	if (buf.hasArray()) {
-    		return buf;
-    	} else {
-    		return convertToArrayBacked(buf);
-    	}
+        if (buf.hasArray()) {
+            return buf;
+        } else {
+            return convertToArrayBacked(buf);
+        }
     }
 }

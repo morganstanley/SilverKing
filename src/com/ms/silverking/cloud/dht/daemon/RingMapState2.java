@@ -51,12 +51,12 @@ public class RingMapState2 {
     private final IPAndPort       nodeID;
     private final long            dhtConfigVersion;
     private final RingIDAndVersionPair  ringIDAndVersionPair;
-    private final Triple<String,Long,Long>	ringNameAndVersionPair;
+    private final Triple<String,Long,Long>    ringNameAndVersionPair;
     private final InstantiatedRingTree        rawRingTree;
     private RingTree              ringTreeMinusExclusions;
     private ResolvedReplicaMap    resolvedReplicaMapMinusExclusions;
     private final ExclusionWatcher  exclusionWatcher;
-    private final HealthWatcher		healthWatcher;
+    private final HealthWatcher        healthWatcher;
     private final ConvergencePoint  cp;
     private volatile ExclusionSet   curInstanceExclusionSet;
     private volatile ExclusionSet   curExclusionSet;
@@ -66,7 +66,7 @@ public class RingMapState2 {
     private TransitionReplicaSources  readTargets;
     private final RingConfiguration     ringConfig;
     private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
-    private ExclusionSetAddressStatusProvider	exclusionSetAddressStatusProvider;
+    private ExclusionSetAddressStatusProvider    exclusionSetAddressStatusProvider;
     
     /*
      * secondarySets are used to specify subsets of secondary nodes within 
@@ -94,18 +94,18 @@ public class RingMapState2 {
     private static final boolean    verboseStateTransition = true;
     static final boolean    debug = true;
     
-    private static final boolean	ignoreReaddition = false;	// Previously, we ignored all re-addition. 
-    															// Leave capability to go back to that, but turn off.
+    private static final boolean    ignoreReaddition = false;    // Previously, we ignored all re-addition. 
+                                                                // Leave capability to go back to that, but turn off.
     
-    private static volatile boolean	localNodeIsExcluded;
+    private static volatile boolean    localNodeIsExcluded;
     
     private static void setLocalNodeIsExcluded(boolean _localNodeIsExcluded) {
-    	localNodeIsExcluded = _localNodeIsExcluded;
-    	Log.warningAsyncf("localNodeIsExcluded %s", localNodeIsExcluded);
+        localNodeIsExcluded = _localNodeIsExcluded;
+        Log.warningAsyncf("localNodeIsExcluded %s", localNodeIsExcluded);
     }
     
     public static boolean localNodeIsExcluded() {
-    	return localNodeIsExcluded;
+        return localNodeIsExcluded;
     }    
     
     RingMapState2(IPAndPort nodeID, DHTMetaUpdate dhtMetaUpdate, RingID ringID, 
@@ -131,11 +131,11 @@ public class RingMapState2 {
         readTargets = TransitionReplicaSources.OLD;
         
         try {
-			readInitialExclusions(ringMC.createCloudMC());
-		} catch (KeeperException | IOException e) {
-			Log.logErrorWarning(e);
-			throw new RuntimeException(e);
-		}
+            readInitialExclusions(ringMC.createCloudMC());
+        } catch (KeeperException | IOException e) {
+            Log.logErrorWarning(e);
+            throw new RuntimeException(e);
+        }
         
         try {
             exclusionWatcher = new ExclusionWatcher(storagePolicyGroup, ringConfig, ringMC.createCloudMC());
@@ -143,16 +143,16 @@ public class RingMapState2 {
             throw new RuntimeException("Exception creating ExclusionWatcher", e);
         }        
         try {
-        	healthWatcher = new HealthWatcher(dhtMC);
-	    } catch (Exception e) {
-	        throw new RuntimeException("Exception creating ExclusionWatcher", e);
-	    }        
+            healthWatcher = new HealthWatcher(dhtMC);
+        } catch (Exception e) {
+            throw new RuntimeException("Exception creating ExclusionWatcher", e);
+        }        
     }
     
     private void readInitialExclusions(MetaClient mc) throws KeeperException {
-    	ExclusionZK		exclusionZK;
-        ExclusionSet	instanceExclusionSet;
-        ExclusionSet	exclusionSet;
+        ExclusionZK        exclusionZK;
+        ExclusionSet    instanceExclusionSet;
+        ExclusionSet    exclusionSet;
         RingTree            newRingTree;
         ResolvedReplicaMap  newResolvedReplicaMap;
         
@@ -161,71 +161,71 @@ public class RingMapState2 {
         try {
             exclusionSet = exclusionZK.readLatestFromZK();
         } catch (Exception e) {
-        	Log.logErrorWarning(e);
-        	Log.warning("No ExclusionSet found. Using empty set.");
-        	exclusionSet = ExclusionSet.emptyExclusionSet(0);
+            Log.logErrorWarning(e);
+            Log.warning("No ExclusionSet found. Using empty set.");
+            exclusionSet = ExclusionSet.emptyExclusionSet(0);
         }
         curExclusionSet = exclusionSet;
         Log.warning("curExclusionSet initialized:\n", curExclusionSet);
         
         try {
-        	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readLatestFromZK());
+            instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readLatestFromZK());
         } catch (Exception e) {
-        	Log.logErrorWarning(e);
-        	Log.warning("No instance ExclusionSet found. Using empty set.");
-        	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+            Log.logErrorWarning(e);
+            Log.warning("No instance ExclusionSet found. Using empty set.");
+            instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
         }
         curInstanceExclusionSet = instanceExclusionSet;
         Log.warning("curInstanceExclusionSet initialized:\n", curInstanceExclusionSet);
         
         curUnionExclusionSet = ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
-    	Log.warningf("curUnionExclusionSet initialized: %s", curUnionExclusionSet);
+        Log.warningf("curUnionExclusionSet initialized: %s", curUnionExclusionSet);
         
         try {
-	        newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, curUnionExclusionSet);
-	    } catch (Exception e) {
-	        Log.logErrorWarning(e);
-	        throw new RuntimeException(e);
-	    }
-	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SubnetAwareReplicaPrioritizer(nodeID));
-	    ringTreeMinusExclusions = newRingTree;
-	    resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-	    if (Log.levelMet(Level.INFO)) {
-		    System.out.println("\tResolved Map");
-		    resolvedReplicaMapMinusExclusions.display();
-	    }
+            newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, curUnionExclusionSet);
+        } catch (Exception e) {
+            Log.logErrorWarning(e);
+            throw new RuntimeException(e);
+        }
+        newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SubnetAwareReplicaPrioritizer(nodeID));
+        ringTreeMinusExclusions = newRingTree;
+        resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
+        if (Log.levelMet(Level.INFO)) {
+            System.out.println("\tResolved Map");
+            resolvedReplicaMapMinusExclusions.display();
+        }
         
         Log.warning("RingMapState done reading initial exclusions");
     }
     
     public void discard() {
-    	synchronized (this) {
-    		if (exclusionWatcher != null) {
-    			exclusionWatcher.stop();
-    		}
-    	}
+        synchronized (this) {
+            if (exclusionWatcher != null) {
+                exclusionWatcher.stop();
+            }
+        }
     }
     
     public void abandonConvergence() {
         synchronized (this) {
-        	Log.warningf("RingMapState.abandonConvergence() %s", ringIDAndVersionPair);
-        	if (!ringState.isFinal()) {
+            Log.warningf("RingMapState.abandonConvergence() %s", ringIDAndVersionPair);
+            if (!ringState.isFinal()) {
                 Log.warning("Notifying abandoned ", ringIDAndVersionPair);
-        		transitionToState(RingState.ABANDONED);
-            	this.notifyAll();
-        	}
+                transitionToState(RingState.ABANDONED);
+                this.notifyAll();
+            }
         }
     }
     
-	public OpResult setState(RingState state) {
-		try {
-			transitionToState(state);
-			return OpResult.SUCCEEDED;
-		} catch (InvalidTransitionException ite) {
-			Log.logErrorWarning(ite);
-			return OpResult.ERROR;
-		}
-	}    
+    public OpResult setState(RingState state) {
+        try {
+            transitionToState(state);
+            return OpResult.SUCCEEDED;
+        } catch (InvalidTransitionException ite) {
+            Log.logErrorWarning(ite);
+            return OpResult.ERROR;
+        }
+    }    
     
     private void transitionToState(RingState newRingState) {
         if (verboseStateTransition) {
@@ -323,45 +323,45 @@ public class RingMapState2 {
     }
     
     ExclusionSet getCurrentExclusionSet() {
-    	return ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+        return ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
     }
     
     RingHealth getRingHealth() {
-    	return healthWatcher.getRingHealth();
+        return healthWatcher.getRingHealth();
     }
     
     class HealthWatcher implements ValueListener {
-    	private final ValueWatcher	valueWatcher;
-    	private RingHealth	ringHealth;
-    	
-    	HealthWatcher(com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) throws KeeperException {
-    		RingHealthZK	ringHealthZK;
-    		
-    		ringHealthZK = new RingHealthZK(dhtMC, ringNameAndVersionPair);
-    		valueWatcher = new ValueWatcher(dhtMC, ringHealthZK.getRingInstanceHealthPath(), this, ringHealthCheckIntervalMillis);
-    	}
-    	
+        private final ValueWatcher    valueWatcher;
+        private RingHealth    ringHealth;
+        
+        HealthWatcher(com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) throws KeeperException {
+            RingHealthZK    ringHealthZK;
+            
+            ringHealthZK = new RingHealthZK(dhtMC, ringNameAndVersionPair);
+            valueWatcher = new ValueWatcher(dhtMC, ringHealthZK.getRingInstanceHealthPath(), this, ringHealthCheckIntervalMillis);
+        }
+        
         public void stop() { // FIXME - ensure that this is used
             valueWatcher.stop();
         }
         
-    	RingHealth getRingHealth() {
-			Log.warningf("Getting ring health %s", ringHealth);
-    		return ringHealth;
-    	}
-    	
-		@Override
-		public void newValue(String basePath, byte[] value, Stat stat) {
-			RingHealth	_ringHealth;
-			
-			_ringHealth = RingHealth.valueOf(new String(value));
-			if (_ringHealth != null) {
-				if (ringHealth != _ringHealth) {
-					Log.warningf("New ring health %s", ringHealth);
-				}
-				ringHealth = _ringHealth;
-			}
-		}
+        RingHealth getRingHealth() {
+            Log.warningf("Getting ring health %s", ringHealth);
+            return ringHealth;
+        }
+        
+        @Override
+        public void newValue(String basePath, byte[] value, Stat stat) {
+            RingHealth    _ringHealth;
+            
+            _ringHealth = RingHealth.valueOf(new String(value));
+            if (_ringHealth != null) {
+                if (ringHealth != _ringHealth) {
+                    Log.warningf("New ring health %s", ringHealth);
+                }
+                ringHealth = _ringHealth;
+            }
+        }
     }
     
     class ExclusionWatcher implements VersionListener {
@@ -400,84 +400,84 @@ public class RingMapState2 {
          */    
         @Override
         public void newVersion(String basePath, long version) {
-        	try {
-	            RingTree            newRingTree;
-	            ResolvedReplicaMap  newResolvedReplicaMap;
-	            
-	            // FIXME - think about whether we want to use this
-	            // or just wait for a changed ring
-	            
-	            // Current is die only logic, allow for other
-	            
-	            // ExclusionSet has changed
-	        	Log.warningf("ExclusionSet change detected: %s", ringIDAndVersionPair);
-	            // Read new exclusion set
-	            try {
-	            	if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath()) ) {
-	                    ExclusionSet	exclusionSet;
-	                    
-	                    // This is a server exclusion set change
-	                    exclusionSet = exclusionZK.readFromZK(version, null);
-	                    if (ignoreReaddition) {
-	                    	curExclusionSet = ExclusionSet.union(exclusionSet, curExclusionSet);
-	                    } else {
-	                    	curExclusionSet = exclusionSet;
-	                    }
-	                    Log.warning("ExclusionSet change detected/merged with old:\n", exclusionSet);
-	            	} else {
-	                    ExclusionSet	instanceExclusionSet;
-	                    
-	                    // This is an instance exclusion set change
-	                    try {
-	                    	instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(version, null));
-	                    } catch (Exception e) {
-	                    	Log.warning("No instance ExclusionSet found");
-	                    	instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
-	                    }
-	                    if (ignoreReaddition) {
-	                    	curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
-	                    } else {
-	                    	curInstanceExclusionSet = instanceExclusionSet;
-	                    }
-	                    Log.warning("Instance ExclusionSet change detected/merged with old:\n", instanceExclusionSet);
-	            	}
-	            	
-	            	curUnionExclusionSet = ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
-	            	// Small race here between the value of curUnionExclusionSet and setLocalNodeIsExcluded()
-	            	// and in StorageModule.liveReap() between the state of the same two. We live with this
-	            	// for now as the impact should be rare and limited.
-	            	setLocalNodeIsExcluded(curUnionExclusionSet.contains(nodeID.getIPAsString()));
-	            	if (exclusionSetAddressStatusProvider != null) {
-	            		exclusionSetAddressStatusProvider.setExclusionSet(curUnionExclusionSet);
-	            	}
-	            	Log.warningf("curUnionExclusionSet updated: %s", curUnionExclusionSet);
-	
-	                // Compute the new ringTree
-	                newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, curUnionExclusionSet);
-	            } catch (Exception e) {
-	                Log.logErrorWarning(e);
-	                throw new RuntimeException(e);
-	            }
-	
-	    	    newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SubnetAwareReplicaPrioritizer(nodeID));
-	            ringTreeMinusExclusions = newRingTree;
-	            resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-	    	    if (Log.levelMet(Level.INFO)) {
-		            System.out.println("\tResolved Map");
-		            resolvedReplicaMapMinusExclusions.display();
-	    	    }
-        	} finally {
-            	Log.warningf("Signaling exclusionSetInitialized: %s", ringIDAndVersionPair);
-            	/*
-            	exclusionSetLock.lock();
-            	try {
-            		exclusionSetInitialized = true;
-					exclusionSetCV.signalAll();
-            	} finally {
-                	exclusionSetLock.unlock();
-            	}
-            	*/
-        	}
+            try {
+                RingTree            newRingTree;
+                ResolvedReplicaMap  newResolvedReplicaMap;
+                
+                // FIXME - think about whether we want to use this
+                // or just wait for a changed ring
+                
+                // Current is die only logic, allow for other
+                
+                // ExclusionSet has changed
+                Log.warningf("ExclusionSet change detected: %s", ringIDAndVersionPair);
+                // Read new exclusion set
+                try {
+                    if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath()) ) {
+                        ExclusionSet    exclusionSet;
+                        
+                        // This is a server exclusion set change
+                        exclusionSet = exclusionZK.readFromZK(version, null);
+                        if (ignoreReaddition) {
+                            curExclusionSet = ExclusionSet.union(exclusionSet, curExclusionSet);
+                        } else {
+                            curExclusionSet = exclusionSet;
+                        }
+                        Log.warning("ExclusionSet change detected/merged with old:\n", exclusionSet);
+                    } else {
+                        ExclusionSet    instanceExclusionSet;
+                        
+                        // This is an instance exclusion set change
+                        try {
+                            instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(version, null));
+                        } catch (Exception e) {
+                            Log.warning("No instance ExclusionSet found");
+                            instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+                        }
+                        if (ignoreReaddition) {
+                            curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
+                        } else {
+                            curInstanceExclusionSet = instanceExclusionSet;
+                        }
+                        Log.warning("Instance ExclusionSet change detected/merged with old:\n", instanceExclusionSet);
+                    }
+                    
+                    curUnionExclusionSet = ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+                    // Small race here between the value of curUnionExclusionSet and setLocalNodeIsExcluded()
+                    // and in StorageModule.liveReap() between the state of the same two. We live with this
+                    // for now as the impact should be rare and limited.
+                    setLocalNodeIsExcluded(curUnionExclusionSet.contains(nodeID.getIPAsString()));
+                    if (exclusionSetAddressStatusProvider != null) {
+                        exclusionSetAddressStatusProvider.setExclusionSet(curUnionExclusionSet);
+                    }
+                    Log.warningf("curUnionExclusionSet updated: %s", curUnionExclusionSet);
+    
+                    // Compute the new ringTree
+                    newRingTree = RingTreeBuilder.removeExcludedNodes(rawRingTree, curUnionExclusionSet);
+                } catch (Exception e) {
+                    Log.logErrorWarning(e);
+                    throw new RuntimeException(e);
+                }
+    
+                newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), new SubnetAwareReplicaPrioritizer(nodeID));
+                ringTreeMinusExclusions = newRingTree;
+                resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
+                if (Log.levelMet(Level.INFO)) {
+                    System.out.println("\tResolved Map");
+                    resolvedReplicaMapMinusExclusions.display();
+                }
+            } finally {
+                Log.warningf("Signaling exclusionSetInitialized: %s", ringIDAndVersionPair);
+                /*
+                exclusionSetLock.lock();
+                try {
+                    exclusionSetInitialized = true;
+                    exclusionSetCV.signalAll();
+                } finally {
+                    exclusionSetLock.unlock();
+                }
+                */
+            }
         }
     }
     
@@ -552,7 +552,7 @@ public class RingMapState2 {
         return nodeListToIPAndPortSet(node.getAllDescendants(NodeClass.server));
     }
 
-	public void setExclusionSetAddressStatusProvider(ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider) {
-		this.exclusionSetAddressStatusProvider = exclusionSetAddressStatusProvider;
-	}
+    public void setExclusionSetAddressStatusProvider(ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider) {
+        this.exclusionSetAddressStatusProvider = exclusionSetAddressStatusProvider;
+    }
 }

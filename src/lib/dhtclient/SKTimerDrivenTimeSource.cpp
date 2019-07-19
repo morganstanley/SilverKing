@@ -9,15 +9,15 @@ using jace::proxy::com::ms::silverking::time::TimerDrivenTimeSource;
 
 
 SKTimerDrivenTimeSource::SKTimerDrivenTimeSource() 
-	: SKRelNanosAbsMillisTimeSource() 
+    : SKRelNanosAbsMillisTimeSource() 
 {
-	pImpl = new TimerDrivenTimeSource(java_new<TimerDrivenTimeSource>());
+    pImpl = new TimerDrivenTimeSource(java_new<TimerDrivenTimeSource>());
 }
 
 SKTimerDrivenTimeSource::SKTimerDrivenTimeSource(int64_t periodMillis) 
-	: SKRelNanosAbsMillisTimeSource() 
+    : SKRelNanosAbsMillisTimeSource() 
 {
-	pImpl = new TimerDrivenTimeSource(java_new<TimerDrivenTimeSource>(periodMillis));
+    pImpl = new TimerDrivenTimeSource(java_new<TimerDrivenTimeSource>(periodMillis));
 }
 
 //SKTimerDrivenTimeSource::SKTimerDrivenTimeSource(Timer timer);
@@ -25,25 +25,25 @@ SKTimerDrivenTimeSource::SKTimerDrivenTimeSource(int64_t periodMillis)
 
 
 SKTimerDrivenTimeSource::SKTimerDrivenTimeSource(TimerDrivenTimeSource * pTimerDrivenTimeSource) //FIXME: ?
-	: SKRelNanosAbsMillisTimeSource()
+    : SKRelNanosAbsMillisTimeSource()
 { 
-	if(pTimerDrivenTimeSource)
-		pImpl = pTimerDrivenTimeSource;
+    if(pTimerDrivenTimeSource)
+        pImpl = pTimerDrivenTimeSource;
 }
 
 SKTimerDrivenTimeSource::~SKTimerDrivenTimeSource() {
-	if(pImpl) {
-		TimerDrivenTimeSource* pTs = dynamic_cast<TimerDrivenTimeSource*>(pImpl);
-		delete pTs;
-		pImpl = NULL;
-	}
+    if(pImpl) {
+        TimerDrivenTimeSource* pTs = dynamic_cast<TimerDrivenTimeSource*>(pImpl);
+        delete pTs;
+        pImpl = NULL;
+    }
 };
 
 void SKTimerDrivenTimeSource::run(){
-	(dynamic_cast<TimerDrivenTimeSource*>(pImpl))->run();
+    (dynamic_cast<TimerDrivenTimeSource*>(pImpl))->run();
 }
 
 void SKTimerDrivenTimeSource::stop(){
-	(dynamic_cast<TimerDrivenTimeSource*>(pImpl))->stop();
+    (dynamic_cast<TimerDrivenTimeSource*>(pImpl))->stop();
 }
 

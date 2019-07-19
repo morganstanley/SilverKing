@@ -10,13 +10,13 @@ import com.ms.silverking.testing.annotations.SkLarge;
 @SkLarge
 public class AsyncInvalidationExampleTest {
 
-	@Test
-	public void testInvalidation() throws IOException {
-		TestUtil.checkValueIs(null, AsyncInvalidationExample.runExample( Util.getTestGridConfig() ));
-	}
-	
-	public static void main(String[] args) {
-		Util.runTests(AsyncInvalidationExampleTest.class);
-	}
+    @Test
+    public void testInvalidation() throws IOException {
+        TestUtil.checkValueIs(null, AsyncInvalidationExample.runExample( Util.getTestGridConfig() ));
+    }
+    
+    public static void main(String[] args) {
+        Util.runTests(AsyncInvalidationExampleTest.class);
+    }
 
 }

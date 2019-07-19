@@ -10,7 +10,7 @@ package com.ms.silverking.thread.lwt;
  */
 public interface LWTPool {
     public LWTPoolLoadStats getLoad();
-	public String getName();
-	public void dumpStatsOnShutdown();
-	public void debug();
+    public String getName();
+    public void dumpStatsOnShutdown();
+    public void debug();
 }

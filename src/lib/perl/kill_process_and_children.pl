@@ -7,8 +7,8 @@ use Sys::Hostname;
 
 if ($#ARGV == -1)
 {
-	print "Usage: kill_process_and_children <process name>\n";
-	exit 1;
+    print "Usage: kill_process_and_children <process name>\n";
+    exit 1;
 }
 
 my (@columns);
@@ -31,61 +31,61 @@ close(PS);
 # First pass to grab the parents.
 for (@ps)
 {
-	next if (/gvim/ or /$$/ or !/\s$filename\s/ or /$myScriptName\s/ or /$workerScript/ or /$starterScript/ or /$skfsLauncherScript/ );
-	
-	@columns = split / +/;
+    next if (/gvim/ or /$$/ or !/\s$filename\s/ or /$myScriptName\s/ or /$workerScript/ or /$starterScript/ or /$skfsLauncherScript/ );
+    
+    @columns = split / +/;
 
-	$user = $columns[0];
-	$pid = $columns[1];
-	$ppid = $columns[2];
-	$command = $columns[3];
+    $user = $columns[0];
+    $pid = $columns[1];
+    $ppid = $columns[2];
+    $command = $columns[3];
 
-	kill_process($pid, \%processes);
+    kill_process($pid, \%processes);
 }
 
 recursive_kill(%processes);
 
 sub recursive_kill
 {
-	my (%parentList) = @_;
-	my %newParentList;
+    my (%parentList) = @_;
+    my %newParentList;
 
-	if (keys %parentList == 0 )
-	{
-		return;
-	}
-	
-	for (@ps)
-	{
-		@columns = split / +/;
-	
-		$pid = $columns[1];
-		$ppid = $columns[2];
-	
-		if (defined $parentList{$ppid})
-		{
-			kill_process($pid, \%newParentList);
-		}
-	}
+    if (keys %parentList == 0 )
+    {
+        return;
+    }
+    
+    for (@ps)
+    {
+        @columns = split / +/;
+    
+        $pid = $columns[1];
+        $ppid = $columns[2];
+    
+        if (defined $parentList{$ppid})
+        {
+            kill_process($pid, \%newParentList);
+        }
+    }
 
-	recursive_kill(%newParentList);
+    recursive_kill(%newParentList);
 }
 
 sub kill_process
 {
-	my $pid = shift;
-	my $processes = shift;
-	
-	print "Killing process $pid on $hostname ... \n";
+    my $pid = shift;
+    my $processes = shift;
+    
+    print "Killing process $pid on $hostname ... \n";
 
-	if (-e "/proc/$pid")
-	{
-		system("kill -9 $pid");
-		print "done!\n";
-		$processes->{$pid} = 1;
-	}
-	else
-	{
-		print "process already dead.\n";
-	}
+    if (-e "/proc/$pid")
+    {
+        system("kill -9 $pid");
+        print "done!\n";
+        $processes->{$pid} = 1;
+    }
+    else
+    {
+        print "process already dead.\n";
+    }
 }

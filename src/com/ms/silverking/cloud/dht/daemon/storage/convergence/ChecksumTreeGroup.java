@@ -26,9 +26,9 @@ public class ChecksumTreeGroup {
     }
     
     public void displayRegions() {
-    	for (RegionTreeBuilder rtb : regionTreeBuilders.values()) {
-    		System.out.printf("%s\n", rtb.getRegion());
-    	}
+        for (RegionTreeBuilder rtb : regionTreeBuilders.values()) {
+            System.out.printf("%s\n", rtb.getRegion());
+        }
     }
     
     public long getCreationTimeMillis() {
@@ -49,14 +49,14 @@ public class ChecksumTreeGroup {
     
     public ChecksumNode getTreeRoot(long regionStart) {
         RegionTreeBuilder   rtb;
-        Map.Entry<Long, RegionTreeBuilder>	floorEntry;
+        Map.Entry<Long, RegionTreeBuilder>    floorEntry;
         
         floorEntry = regionTreeBuilders.floorEntry(regionStart);
         rtb = floorEntry != null ? floorEntry.getValue() : null;
         if (rtb != null) {
             return rtb.getRoot();
         } else {
-        	/*
+            /*
             StringBuilder   sb;
             
             sb = new StringBuilder();
@@ -65,7 +65,7 @@ public class ChecksumTreeGroup {
             }
             System.out.println(sb);
             */
-        	System.err.printf("creationTimeMillis %d minVersion %d maxVersion %d\n", creationTimeMillis, minVersion, maxVersion);
+            System.err.printf("creationTimeMillis %d minVersion %d maxVersion %d\n", creationTimeMillis, minVersion, maxVersion);
             throw new RuntimeException("Can't find RegionTreeBuilder for: "+ regionStart);
         }
     }
