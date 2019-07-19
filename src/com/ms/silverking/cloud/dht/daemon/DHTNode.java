@@ -153,9 +153,6 @@ public class DHTNode {
         messageModuleTimer.purge();
 
         ringMaster.stop();
-
-        //mc.closeZkExtendeed();
-        //ringMaster.stopMetaReaderZk();
         running = false;
     }
 

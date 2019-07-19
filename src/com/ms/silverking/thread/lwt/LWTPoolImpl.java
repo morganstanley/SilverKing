@@ -396,8 +396,8 @@ class LWTPoolImpl implements LWTPool {
                 thread.lwtStop();
             }
             try {
-                NoopWork  noopWork = new NoopWork(new NoopWorker());
-                for(int i=0; i< workUnit*(activeThreads.size() + idleThreads.size()); i++)
+                NoopWork noopWork = new NoopWork(new NoopWorker());
+                for (int i=0; i< workUnit*(activeThreads.size() + idleThreads.size()); i++)
                 {
                     commonQueue.put(noopWork);
                 }

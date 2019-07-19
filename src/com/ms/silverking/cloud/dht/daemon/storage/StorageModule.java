@@ -200,10 +200,8 @@ public class StorageModule implements LinkCreationListener {
     }
 
     public void stop() {
-        if (cleanerTask != null)
-            cleanerTask.cancel();
-        if (reapTask != null)
-            reapTask.cancel();
+        cleanerTask.cancel();
+        reapTask.cancel();
 
         methodCallNonBlockingWorker.stopLWTPool();
         methodCallBlockingWorker.stopLWTPool();

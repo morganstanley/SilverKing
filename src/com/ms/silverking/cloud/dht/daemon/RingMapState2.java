@@ -203,7 +203,7 @@ public class RingMapState2 {
             if (exclusionWatcher != null) {
                 exclusionWatcher.stop();
             }
-            if (healthWatcher != null){
+            if (healthWatcher != null) {
                 healthWatcher.stop();
             }
         }

@@ -228,7 +228,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final SegmentPrereadMode    readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     private static final SegmentPrereadMode    updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     
-    private static final boolean    enablePendingPuts;
+    public static final boolean    enablePendingPuts;
     
     private static final int    minFinalizationIntervalMillis;
     private static final long    maxUnfinalizedDeletedBytes;
@@ -240,7 +240,7 @@ public class NamespaceStore implements SSNamespaceStore {
         Log.warningf("nsPrereadGB: %s", nsPrereadGB);
         minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
         Log.warningf("minFinalizationIntervalMillis %d", minFinalizationIntervalMillis);
-        enablePendingPuts = false;//PropertiesHelper.systemHelper.getBoolean(DHTConstants.enablePendingPutsProperty, DHTConstants.defaultEnablePendingPuts);
+        enablePendingPuts = PropertiesHelper.systemHelper.getBoolean(DHTConstants.enablePendingPutsProperty, DHTConstants.defaultEnablePendingPuts);
         Log.warningf("enablePendingPuts: %s", enablePendingPuts);
         maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getLong(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
         Log.warningf("maxUnfinalizedDeletedBytes %d", maxUnfinalizedDeletedBytes);

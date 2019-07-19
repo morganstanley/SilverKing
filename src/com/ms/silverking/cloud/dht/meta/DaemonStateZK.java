@@ -412,7 +412,8 @@ public class DaemonStateZK implements Watcher {
     }
 
     public void stopStateChecker() {
-        if(stateCheckerTask != null)
+        if(stateCheckerTask != null) {
             stateCheckerTask.cancel();
+        }
     }
 }

@@ -194,7 +194,7 @@ public class MetaClientCore implements Watcher {
     }
 
     public static void clearZkMap() {
-        for (ZooKeeperExtended zk : zkMap.values()){
+        for (ZooKeeperExtended zk : zkMap.values()) {
             zk.close();
         }
         zkMap.clear();

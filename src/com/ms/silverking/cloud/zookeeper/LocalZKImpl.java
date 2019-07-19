@@ -114,7 +114,7 @@ public class LocalZKImpl {
         }
     }
 
-    public static void shutdown(){
+    public static void shutdown() {
         mainZkServer.shutdownZk();
         mainZkServer = null;
     }

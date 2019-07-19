@@ -699,14 +699,16 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener {
         }
     }
 
-    public void stop(){
-        if(curMapState !=  null)
+    public void stop() {
+        if(curMapState !=  null) {
             curMapState.discard();
-        if(targetMapState != null)
+        }
+        if(targetMapState != null) {
             targetMapState.discard();
+        }
     }
 
-    public void stopMetaReaderZk(){
+    public void stopMetaReaderZk() {
         dhtMetaReader.getMetaClient().closeZkExtendeed();
     }
 }

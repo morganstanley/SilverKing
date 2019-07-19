@@ -757,8 +757,9 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
 
     public static void stopProcessRunner() {
         ProcessRunner pr = processRunner.getAndSet(null);
-            if (pr != null)
-                pr.shutdown();
+        if (pr != null) {
+            pr.shutdown();
+        }
     }
 
     public static void startProcessRunner() {

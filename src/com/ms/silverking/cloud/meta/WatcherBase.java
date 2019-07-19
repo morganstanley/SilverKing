@@ -173,8 +173,9 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
 
     public static void stopProcessRunner() {
         ProcessRunner pr = processRunner.getAndSet(null);
-        if (pr != null)
+        if (pr != null) {
             pr.shutdown();
+        }
     }
 
     public static void startProcessRunner() {
