@@ -210,12 +210,14 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     public void start() {
         establishConnections();
         startPinger();
+
     }
 
     public void stop() {
         cleanerTask.cancel();
-        if (pingerThread != null)
+        if (pingerThread != null) {
             pingerThread.stop();
+        }
         mgBase.shutdown();
         worker.stopLWTPool();
     }
@@ -1009,6 +1011,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 ThreadUtil.sleep(interPingDelayMillis);
             }
         }
+
         private void stop() {
             running = false;
         }

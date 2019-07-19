@@ -17,10 +17,10 @@ public class DHTNodeConfiguration {
     private static final String    dataBasePathProperty = DHTNodeConfiguration.class.getPackage().getName() + ".DataBasePath";
     // The below default path should not be used in a properly functioning system as the management
     // infrastructure should be setting the property on launch.
-    public String    dataBasePath; // The actual path in use at this node DHTConstants dataBasePath provides a list of possible paths
+    private String dataBasePath; // The actual path in use at this node DHTConstants dataBasePath provides a list of possible paths
     private enum InvalidPathAction {Warn, ThrowException};
 
-    public DHTNodeConfiguration(){
+    public DHTNodeConfiguration() {
         String    def;
 
         def = PropertiesHelper.systemHelper.getString(dataBasePathProperty, UndefinedAction.ZeroOnUndefined);
@@ -45,7 +45,6 @@ public class DHTNodeConfiguration {
     public DHTNodeConfiguration(String dataBasePath){
         setDataBasePath(dataBasePath);
     }
-
 
     public void setDataBasePath(String __dataBasePath) {
         setDataBasePath(__dataBasePath, InvalidPathAction.ThrowException);

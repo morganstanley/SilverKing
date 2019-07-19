@@ -20,6 +20,8 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.util.PropertiesHelper;
+import org.apache.commons.io.FileUtils;
+import org.apache.zookeeper.KeeperException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -30,7 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 
-public abstract class DHTNodeTestUtil{
+public abstract class DHTNodeTestUtil {
 
     private static File zkDir;
     private static int zkPort;
@@ -54,16 +56,21 @@ public abstract class DHTNodeTestUtil{
 
     @AfterClass
     public static void stop() {
+        Log.warning("Stopping all global DHTNode processes");
         ZooKeeperExtended.stopProcessRunner();
         WatcherBase.stopProcessRunner();
         MetaClientCore.clearZkMap();
         LWTPoolProvider.stopDefaultWorkPools();
         LocalZKImpl.shutdown();
         System.clearProperty(DHTConstants.enablePendingPutsProperty);
+        try {
+            FileUtils.deleteDirectory(tempDir.toFile());
+        } catch(IOException e) {
+            Log.logErrorWarning(e);
+        }
     }
 
-    public TestDHTNode getDhtNode(String dhtName, int dhtPort, String ringName, int replication) {
-        try {
+    public TestDHTNode getDhtNode(String dhtName, int dhtPort, String ringName, int replication) throws KeeperException, IOException {
             File skDir = new File(tempDir.toFile(), "silverking");
             skDir.mkdirs();
             DHTNodeConfiguration nodeConfig = new DHTNodeConfiguration(skDir.getAbsolutePath() + "/data");
@@ -99,9 +106,7 @@ public abstract class DHTNodeTestUtil{
             Log.info("DHTNode started");
             dhtNode.setClientDHTConfiguration(clientDHTConfig);
             return dhtNode;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+
     }
 
     public TestDHTNode getDhtNode(String dhtName, DHTNodeConfiguration nodeConfiguration, ClientDHTConfiguration clientDHTConfig) {

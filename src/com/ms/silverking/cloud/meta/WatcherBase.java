@@ -142,6 +142,7 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
     
     static class ProcessRunner implements Runnable {
         private boolean running;
+
         ProcessRunner() {
             running = true;
             for (int i = 0; i < processRunnerThreads; i++) {

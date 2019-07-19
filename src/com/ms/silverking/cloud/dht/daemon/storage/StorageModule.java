@@ -134,7 +134,7 @@ public class StorageModule implements LinkCreationListener {
         this.reapPolicy = reapPolicy;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
-        baseDir = new File(nodeInfoZK.getDHTNodeConfiguration().dataBasePath, dhtName);
+        baseDir = new File(nodeInfoZK.getDHTNodeConfiguration().getDataBasePath(), dhtName);
 //        baseDir = new File(DHTNodeConfiguration.dataBasePath);    // replace above with this to get rid of double directory name in path
         clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
         nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
@@ -205,8 +205,9 @@ public class StorageModule implements LinkCreationListener {
 
         methodCallNonBlockingWorker.stopLWTPool();
         methodCallBlockingWorker.stopLWTPool();
-        if (nsMetaStore != null)
+        if (nsMetaStore != null) {
             nsMetaStore.stop();
+        }
         namespaces.clear();
         zk.close();
 

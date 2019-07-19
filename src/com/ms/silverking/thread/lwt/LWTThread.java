@@ -142,8 +142,7 @@ class LWTThread extends Thread implements LWTCompatibleThread {
                         Log.logErrorWarning(e);
                         ThreadUtil.pauseAfterException();                
                     }
-                }
-                if (!active) {
+                } else {
                     idleLock.lock();
                     try {
                         idleCV.await();
@@ -249,8 +248,7 @@ class LWTThread extends Thread implements LWTCompatibleThread {
                     // this clearing operation.
                     // We could do this one-by-one if needed, but this is
                     // unlikely due to the fact that tasks should be very quick.
-                }
-                if (!active) {
+                } else {
                     idleLock.lock();
                     try {
                         idleCV.await();

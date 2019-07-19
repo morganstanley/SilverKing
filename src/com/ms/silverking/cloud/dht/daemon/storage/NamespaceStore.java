@@ -1154,8 +1154,8 @@ public class NamespaceStore implements SSNamespaceStore {
             return OpResult.INVALID_VERSION;
         } else {
             if (versionCheckResult == VersionCheckResult.Equal || (versionCheckResult != VersionCheckResult.Valid_New_Key
-                    && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION)) {
-                VersionConstraint vc = (versionCheckResult == VersionCheckResult.Equal  || nsOptions.getRevisionMode() != RevisionMode.NO_REVISIONS)
+                    && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION && nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS)) {
+                VersionConstraint vc = versionCheckResult == VersionCheckResult.Equal
                         ? VersionConstraint.exactMatch(storageParams.getVersion())
                         : VersionConstraint.maxBelowOrEqual(storageParams.getVersion());
                 storageResult = checkForDuplicateStore(key, value, storageParams, userData, vc);
@@ -3342,7 +3342,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final BlockingQueue<PendingPut>    pendingPuts = new ArrayBlockingQueue<>(numPendingPutWorkers * maxWorkBatchSize);
 
     static {
-        if(enablePendingPuts) {
+        if (enablePendingPuts) {
             Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
             for (int i = 0; i < numPendingPutWorkers; i++) {
                 new PendingPutWorker(i, pendingPuts);

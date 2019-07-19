@@ -42,9 +42,8 @@ public class SafeTimer extends Timer {
     public void schedule(TimerTask task, long delay) {
         if (task instanceof SafeTimerTask) {
             schedule((SafeTimerTask) task, delay);
-        }
-        else {
-            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
+        } else {
+            throw new IllegalArgumentException("Only SafeTimerTasks can be scheduled from SafeTimer");
         }
     }
 
@@ -67,9 +66,8 @@ public class SafeTimer extends Timer {
     public void schedule(TimerTask task, Date time) {
         if (task instanceof SafeTimerTask) {
             schedule((SafeTimerTask) task, time);
-        }
-        else {
-            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
+        } else {
+            throw new IllegalArgumentException("Only SafeTimerTasks can be scheduled from SafeTimer");
         }
     }
 
@@ -112,9 +110,8 @@ public class SafeTimer extends Timer {
     public void schedule(TimerTask task, long delay, long period) {
         if (task instanceof SafeTimerTask) {
             schedule((SafeTimerTask) task, delay, period);
-        }
-        else {
-            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
+        } else {
+            throw new IllegalArgumentException("Only SafeTimerTasks can be scheduled from SafeTimer");
         }
     }
 
@@ -158,9 +155,8 @@ public class SafeTimer extends Timer {
     public void schedule(TimerTask task, Date firstTime, long period) {
         if (task instanceof SafeTimerTask) {
             schedule((SafeTimerTask) task, firstTime, period);
-        }
-        else {
-            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
+        } else {
+            throw new IllegalArgumentException("Only SafeTimerTasks can be scheduled from SafeTimer");
         }
     }
 
@@ -204,9 +200,8 @@ public class SafeTimer extends Timer {
     public void scheduleAtFixedRate(TimerTask task, long delay, long period) {
         if (task instanceof SafeTimerTask) {
             scheduleAtFixedRate((SafeTimerTask) task, delay, period);
-        }
-        else {
-            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
+        } else {
+            throw new IllegalArgumentException("Only SafeTimerTasks can be scheduled from SafeTimer");
         }
     }
 
@@ -252,9 +247,8 @@ public class SafeTimer extends Timer {
     public void scheduleAtFixedRate(TimerTask task, Date firstTime, long period) {
         if (task instanceof SafeTimerTask) {
             scheduleAtFixedRate((SafeTimerTask) task, firstTime, period);
-        }
-        else {
-            throw new UnsupportedOperationException("Only SafeTimerTasks can be scheduled from SafeTimer");
+        } else {
+            throw new IllegalArgumentException("Only SafeTimerTasks can be scheduled from SafeTimer");
         }
     }
 }

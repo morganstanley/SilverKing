@@ -131,7 +131,7 @@ public class NodeInfoZK implements Watcher {
             Quadruple<Long,Long,Long,Integer>    dfInfo;
             
             try {
-                dfInfo = DF.df(dhtNodeConfiguration.dataBasePath, dfTimeoutSeconds);
+                dfInfo = DF.df(dhtNodeConfiguration.getDataBasePath(), dfTimeoutSeconds);
                 return new NodeInfo(dfInfo.getV1(), dfInfo.getV2(), dfInfo.getV3(), dfInfo.getV4());
             } catch (Exception e) {
                 Log.logErrorWarning(e, "Unable to getNodeInfo(");
