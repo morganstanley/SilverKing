@@ -23,7 +23,6 @@ function f_runBuildAntScript {
 }
 
 function f_runBuildGradleScript {
-    # rm -rf $LIB_DIR, once lib/ jars are actually no longer committed in the repo, we can remove this
     f_runGradle "downloadLibs" "$1"
     f_runJarChecks "$2"
 }

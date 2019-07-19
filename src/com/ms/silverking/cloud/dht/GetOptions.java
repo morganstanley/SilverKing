@@ -25,8 +25,8 @@ public final class GetOptions extends RetrievalOptions {
     }
 
      ///
-     /// REMOVEME! - this is C++ only.
-     /// This should be removed once C++ SKGetptions.cpp is using the other constructor below properly.
+     /// FIXME - this is C++ only.
+     /// This should be removed once C++ SKGetOptions.cpp is using the other constructor below properly.
      ///
      /**
       * Construct a fully-specified GetOptions.
