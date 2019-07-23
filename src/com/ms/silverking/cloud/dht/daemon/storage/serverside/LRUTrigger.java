@@ -44,6 +44,14 @@ public class LRUTrigger implements PutTrigger, RetrieveTrigger, LRUStateProvider
     }
 
     @Override
+    public ByteBuffer[] retrieve(SSNamespaceStore nsStore, DHTKey[] keys, SSRetrievalOptions options) {
+        for (DHTKey key : keys) {
+            impl.markRead(key);
+        }
+        return nsStore.retrieve(keys, options);
+    }
+
+    @Override
     public Iterator<DHTKey> keyIterator() {
         throw new RuntimeException("Panic");
     }

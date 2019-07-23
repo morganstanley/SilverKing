@@ -31,10 +31,9 @@ public class LRUStateImpl implements LRUStateProvider {
         LRUInfo    lruInfo;
 
         lruInfo = lruInfoMap.get(key);
+        // Ignore the case lruInfo==null for now
         if (lruInfo != null) {
             lruInfo.updateAccessTime(timeSource.absTimeNanos());
-        } else {
-            // Ignore for now
         }
     }
 
