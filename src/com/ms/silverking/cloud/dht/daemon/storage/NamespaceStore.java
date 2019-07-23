@@ -3536,6 +3536,11 @@ public class NamespaceStore implements SSNamespaceStore {
     }
 
     @Override
+    public ByteBuffer[] retrieve(DHTKey[] keys, SSRetrievalOptions options) {
+        return _retrieve(keys, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+    }
+
+    @Override
     public File getNamespaceSSDir() {
         synchronized (ssDir) {
             if (!ssDir.exists() && !ssDir.mkdir()) {
