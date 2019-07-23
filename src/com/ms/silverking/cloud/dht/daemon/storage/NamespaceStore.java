@@ -1493,8 +1493,8 @@ public class NamespaceStore implements SSNamespaceStore {
     
     public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
         if (retrieveTrigger == null) {
-            DHTKey[]          _keys;
-            ByteBuffer[]    _results;
+            DHTKey[]                         _keys;
+            ByteBuffer[]                     _results;
             ArrayList<Pair<DHTKey, Integer>> _readThroughKeys;
             
             if (debugVersion) {
@@ -1575,7 +1575,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
             }
 
-            if(!_readThroughKeys.isEmpty() && options.getRetrievalType().isReadThrough()) {
+            if (!_readThroughKeys.isEmpty() && options.getRetrievalType().isReadThrough()) {
                 DHTKey[] _rtKeys = new DHTKey[_readThroughKeys.size()];
 
                 for (int i = 0; i < _readThroughKeys.size(); i++) {

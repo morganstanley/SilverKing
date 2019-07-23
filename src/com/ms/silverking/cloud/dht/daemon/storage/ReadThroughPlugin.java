@@ -45,7 +45,6 @@ public abstract class ReadThroughPlugin {
         StorageParametersAndRequirements paramsAndReqs;
         short ccss;
 
-
         ccss = CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE);
 
         paramsAndReqs = new StorageParametersAndRequirements(
