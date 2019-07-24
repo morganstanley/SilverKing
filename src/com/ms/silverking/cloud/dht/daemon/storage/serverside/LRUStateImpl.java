@@ -14,9 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class LRUStateImpl implements LRUStateProvider {
-    private AbsNanosTimeSource    timeSource;
-    private final ConcurrentMap<DHTKey, LRUInfo>    lruInfoMap;
-    private static LRUKeyedInfoComparator lruKeyedInfoComparator = new LRUKeyedInfoComparator();
+    private AbsNanosTimeSource                    timeSource;
+    private final ConcurrentMap<DHTKey, LRUInfo>  lruInfoMap;
+    private static LRUKeyedInfoComparator         lruKeyedInfoComparator = new LRUKeyedInfoComparator();
 
     public LRUStateImpl(AbsNanosTimeSource timeSource) {
         if (timeSource == null) {
