@@ -7,7 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUKeyedInfo;
-import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUTrigger;
+import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUStateProvider;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.log.Log;
@@ -44,7 +44,7 @@ public class LRURetentionPolicy extends CapacityBasedRetentionPolicy<LRURetentio
 
     @Override
     public LRURetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
-        LRUTrigger    lruTrigger;
+        LRUStateProvider lruState;
         
         //System.out.printf("createInitialState\n");
         if (putTrigger == null) {
@@ -53,8 +53,8 @@ public class LRURetentionPolicy extends CapacityBasedRetentionPolicy<LRURetentio
         if (retrieveTrigger == null) {
             Log.warning("LRURetentionPolicy has no retrieve trigger");
         }
-        lruTrigger = (LRUTrigger)retrieveTrigger;
-        return new LRURetentionState(createRetentionMap(lruTrigger.getLRUList()));
+        lruState = (LRUStateProvider)retrieveTrigger;
+        return new LRURetentionState(createRetentionMap(lruState.getLRUList()));
     }
     
     /**

@@ -17,5 +17,6 @@ public interface SSNamespaceStore {
     public OpResult put(DHTKey key, ByteBuffer value, SSStorageParametersAndRequirements storageParams, byte[] userData, NamespaceVersionMode nsVersionMode);
     public OpResult putUpdate(DHTKey key, long version, byte storageState);
     public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options);
+    public default ByteBuffer[] retrieve(DHTKey[] keys, SSRetrievalOptions options) { throw new RuntimeException("not implemented"); }
     public ReadWriteLock getReadWriteLock();
 }
