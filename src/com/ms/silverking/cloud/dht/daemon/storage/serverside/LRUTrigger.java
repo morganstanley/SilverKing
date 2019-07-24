@@ -14,6 +14,7 @@ import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.time.AbsNanosTimeSource;
 
 public class LRUTrigger implements PutTrigger, RetrieveTrigger, LRUStateProvider {
@@ -21,10 +22,12 @@ public class LRUTrigger implements PutTrigger, RetrieveTrigger, LRUStateProvider
     private SSNamespaceStore    nsStore;
 
     static {
-        System.out.println("LRUTrigger loaded");
+        Log.fine("LRUTrigger loaded");
     }
 
-    public LRUTrigger() { this(null); }
+    public LRUTrigger() {
+        this(null);
+    }
     public LRUTrigger(AbsNanosTimeSource timeSource) {
         this.impl = new LRUStateImpl(timeSource);
     }
