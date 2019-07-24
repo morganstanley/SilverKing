@@ -252,22 +252,6 @@ public class NamespaceStore implements SSNamespaceStore {
         peerHealthMonitor = _peerHealthMonitor; 
     }
 
-    // A read-through plugin may be provided and invoked on misses
-    // the default is a noop, so a miss will remain a miss.
-    // users may override this by setting a system property which selects
-    // an alternative plugin visible on the classpath
-    private static ReadThroughPlugin _readThroughPlugin;
-    static {
-        _readThroughPlugin = ReadThroughPlugin.getPlugin();
-        Log.info("Read Through: using "+ _readThroughPlugin.getName());
-    }
-    ReadThroughPlugin readThroughPlugin() {
-        return _readThroughPlugin;
-    }
-    void setReadThroughPlugin(ReadThroughPlugin plugin){
-        _readThroughPlugin = plugin;
-    }
-    
     /////////////////////////////////
     /*
     private static final int    ssWorkerPoolTargetSize = 2;
@@ -1493,9 +1477,8 @@ public class NamespaceStore implements SSNamespaceStore {
     
     public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
         if (retrieveTrigger == null) {
-            DHTKey[]                         _keys;
-            ByteBuffer[]                     _results;
-            ArrayList<Pair<DHTKey, Integer>> _readThroughKeys;
+            DHTKey[]     _keys;
+            ByteBuffer[] _results;
             
             if (debugVersion) {
                 Log.fineAsync("retrieve internal options: %s", options);
@@ -1514,7 +1497,6 @@ public class NamespaceStore implements SSNamespaceStore {
                 _results[0] = _retrieve(_keys[0], options);
             }
 
-            _readThroughKeys = new ArrayList<>();
             for (int i = 0; i < _results.length; i++) {
                 if (parent != null) {
                     VersionConstraint   vc;
@@ -1567,25 +1549,9 @@ public class NamespaceStore implements SSNamespaceStore {
                     // Note that since we hold the readLock, a write cannot come
                     // in while we add the pending wait for.
                     addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
-                } else if (_results[i] == null && options.getRetrievalType().isReadThrough()) {
-                    _readThroughKeys.add(new Pair<>(_keys[i], i));
                 }
                 if (options.getVerifyIntegrity()) {
                     _results[i] = verifyIntegrity(_keys[i], _results[i]);
-                }
-            }
-
-            if (!_readThroughKeys.isEmpty() && options.getRetrievalType().isReadThrough()) {
-                DHTKey[] _rtKeys = new DHTKey[_readThroughKeys.size()];
-
-                for (int i = 0; i < _readThroughKeys.size(); i++) {
-                    _rtKeys[i] = _readThroughKeys.get(i).getV1();
-                }
-                ByteBuffer[] rtResults;
-                rtResults = _readThroughPlugin.readThroughBatch(_rtKeys, options, this);
-                for (Pair<DHTKey, Integer> readThroughKey : _readThroughKeys) {
-                    int index = readThroughKey.getV2();
-                    _results[index] = rtResults[index];
                 }
             }
 
@@ -1738,8 +1704,6 @@ public class NamespaceStore implements SSNamespaceStore {
                     // Note that since we hold the readLock, a write cannot come
                     // in while we add the pending wait for.
                     addPendingWaitFor(key, options.getRetrievalOptions(), opUUID);
-                } else if (result == null && options.getRetrievalType().isReadThrough()) {
-                    result = _readThroughPlugin.readThroughSingle(key, options, this);
                 }
                 if (options.getVerifyIntegrity()) {
                     result = verifyIntegrity(key, result);
