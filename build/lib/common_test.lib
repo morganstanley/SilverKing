@@ -6,17 +6,18 @@ function f_runTestAntScript {
     typeset line=`wc -l < $filename`
     ((line++))
     
-    f_runAnt $1 "$4"
+    f_runAnt "$1" "$5"
     
     typeset tmpFilename="${filename}_ant_junit_output"
     tail -n +$line "$filename" > "$tmpFilename"
     
-    f_runJunitTestChecks "$tmpFilename" $3 
+    f_runJunitTestChecks "$tmpFilename" "$3" "$4"
 }
 
 function f_runJunitTestChecks {
     typeset filename=$1
-    typeset expectedTotal=$2
+    typeset expectedMinTotal=$2
+    typeset expectedTotal=$3
     
     f_printSection "TESTS";
     
@@ -45,7 +46,8 @@ function f_runJunitTestChecks {
         f_printResult "$result" "$testname" "total:${runCount} (p:${passCount},f:${failCount},e:${errorCount},s:${skippedCount})" "$filename"
     done 
     
-    f_testTotalTestsRun "$filename" "$expectedTotal"
+    f_testTotalTestsRun_Minimum "$filename" "$expectedMinTotal"
+    f_testTotalTestsRun         "$filename" "$expectedTotal"
 }
 
 function f_getTestCount {
@@ -164,6 +166,14 @@ function f_runGTestChecks {
     f_testTotalTestsRun "$filename" "$TEST_SILVERKING_CLIENT_EXPECTED_COUNT"
 }
 
+function f_testTotalTestsRun_Minimum {
+    typeset filename=$1
+    typeset expectedTotal=$2
+    
+    typeset actualPassCount=$(f_getPassCount "$filename")
+    typeset result=$(f_getGreaterThanOrEqualsResult "$actualPassCount" "$expectedTotal")
+    f_printResult "$result" "# of passing tests run should be >= $expectedTotal" "$actualPassCount"
+}
 
 function f_testTotalTestsRun {
     typeset filename=$1
@@ -182,4 +192,30 @@ function f_getGtestContent {
     
     echo $line | grep -Po "$name=\"\K($type+)(?=\")"
 }    
+
+function f_getSkSmallExpectedCount {
+    typeset  allTestsCount=$(f_expectedCountHelper "@Test")
+    typeset   skLargeCount=$(f_getSkLargeExpectedCount)
+    typeset skfsSmallCount=$(f_getSkfsSmallExpectedCount)
+    typeset skfsLargeCount=$(f_getSkfsLargeExpectedCount)
+    
+    typeset skSmallCount=$((allTestsCount-(skLargeCount+skfsSmallCount+skfsLargeCount)))
+    echo $skSmallCount
+} 
+
+function f_getSkLargeExpectedCount {
+    f_expectedCountHelper "@SkLarge"
+} 
+
+function f_getSkfsSmallExpectedCount {
+    f_expectedCountHelper "@SkfsSmall"
+} 
+
+function f_getSkfsLargeExpectedCount {
+    f_expectedCountHelper "@SkfsLarge"
+}
+
+function f_expectedCountHelper {
+    grep -l -R "$1" $TEST_DIR | wc -l
+}
 

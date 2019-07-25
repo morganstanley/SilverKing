@@ -23,7 +23,6 @@ function f_runBuildAntScript {
 }
 
 function f_runBuildGradleScript {
-    # rm -rf $LIB_DIR, once lib/ jars are actually no longer committed in the repo, we can remove this
     f_runGradle "downloadLibs" "$1"
     f_runJarChecks "$2"
 }
@@ -43,15 +42,22 @@ function f_runJarChecks {
 function f_runBuildChecks {
     f_printSection "CHECKS"
     
-    typeset expectedNumClasses=1442
-    f_testGreaterThanOrEquals "$OUT_CLASSES_SRC_DIR" "*" "$expectedNumClasses"
-    typeset expectedTestCount=$((TEST_SILVERKING_EXPECTED_COUNT+TEST_SILVERKING_FS_EXPECTED_COUNT))
-    f_testEquals "$OUT_CLASSES_TEST_DIR" "*Test.class" "$expectedTestCount"
+    typeset expectedMinNumSrcClasses_HardcodedFloor=1442
+    f_testGreaterThanOrEquals "$OUT_CLASSES_SRC_DIR" "*.class" "$expectedMinNumSrcClasses_HardcodedFloor"
+    
+    typeset actualNumSrcJavaFiles=$(f_getMatchingFilesCount "$SRC_DIR" "*.java")
+    typeset approximateMinNumOfNestedClassesAndEnumsAndEtc=300
+    typeset expectedMinNumSrcClasses=$((actualNumSrcJavaFiles+approximateMinNumOfNestedClassesAndEnumsAndEtc))
+    f_testGreaterThanOrEquals "$OUT_CLASSES_SRC_DIR" "*.class" "$expectedMinNumSrcClasses"
+    
+    typeset actualNumTestJavaFiles=$(f_getMatchingFilesCount "$TEST_DIR" "*.java")
+    typeset expectedMinNumTestClasses=$actualNumTestJavaFiles
+    f_testGreaterThanOrEquals "$OUT_CLASSES_TEST_DIR" "*.class" "$expectedMinNumTestClasses"
     
     f_testEquals "$OUT_JAR_DIR" "*.jar" "1" 
     f_testExists "$SILVERKING_JAR"
     typeset count=`jar tf $SILVERKING_JAR | grep '.class$' | wc -l`
-    typeset result=$(f_getGreaterThanOrEqualsResult "$count" "$expectedNumClasses")
+    typeset result=$(f_getGreaterThanOrEqualsResult "$count" "$expectedMinNumSrcClasses")   # test classes aren't included in the jar
     f_printResult "$result" "# of jar .class files >= /$SRC_FOLDER_NAME folder" "$count"
 
     f_testEquals "$OUT_JAVADOC_DIR" "*.html" "174"

@@ -48,8 +48,8 @@ public final class WaitOptions extends RetrievalOptions {
     }
     
      ///
-     /// REMOVEME! - this is C++ only.
-     /// This should be removed once C++ SKWaitptions.cpp is using the other constructor below properly.
+     /// FIXME - this is C++ only.
+     /// This should be removed once C++ SKWaitOptions.cpp is using the other constructor below properly.
      ///
      /**
       * Construct fully-specified WaitOptions

@@ -39,7 +39,7 @@ public class RetrievalOptions extends OperationOptions {
     }
     
     ///
-    /// REMOVEME! - this is C++ only.
+    /// FIXME - this is C++ only.
     /// This should be removed once C++ SKRetrievalOptions.cpp is using the other constructor below properly.
     ///
     public RetrievalOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,

@@ -536,7 +536,7 @@ function f_getMatchingFilesCount {
     typeset directory=$1
     typeset filename=$2
 
-    typeset count=`find $directory -type f -name "$filename" | wc -l`
+    typeset count=`find -L $directory -type f -name "$filename" | wc -l`
     
     echo $count
 }
