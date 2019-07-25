@@ -5,12 +5,19 @@
 #include <cstddef>
 #include "skconstants.h"
 
+namespace jace { namespace proxy { namespace com { namespace ms { 
+    namespace silverking {namespace time {
+        class AbsNanosTimeSource;
+} } } } } }
+typedef jace::proxy::com::ms::silverking::time::AbsNanosTimeSource AbsNanosTimeSource;
+
+
 class SKAbsNanosTimeSource
 {
 public:
-	SKAPI virtual int64_t getNanosOriginTime();
-	SKAPI virtual int64_t absTimeNanos();
-	SKAPI virtual int64_t relNanosRemaining(int64_t absDeadlineNanos);
+	SKAPI int64_t getNanosOriginTime();
+	SKAPI int64_t absTimeNanos();
+	SKAPI int64_t relNanosRemaining(int64_t absDeadlineNanos);
     SKAPI virtual ~SKAbsNanosTimeSource();
 
     SKAbsNanosTimeSource(void * pAbsNanosTimeSource = NULL);

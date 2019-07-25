@@ -12,8 +12,8 @@ using std::string;
 #include "SKOperationOptions.h"
 #include "SKVersionConstraint.h"
 
-#include "jace/proxy/com/ms/silverking/cloud/dht/PutOptions.h"
-using jace::proxy::com::ms::silverking::cloud::dht::PutOptions;
+//#include "jace/proxy/com/ms/silverking/cloud/dht/PutOptions.h"
+//using jace::proxy::com::ms::silverking::cloud::dht::PutOptions;
 
 
 //class PutOptions;
