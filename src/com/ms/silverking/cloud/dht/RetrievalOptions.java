@@ -7,7 +7,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
 import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
-import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -29,6 +28,8 @@ public class RetrievalOptions extends OperationOptions {
     private final boolean              updateSecondariesOnMiss;
     private final byte[]               userOptions;
     
+    public static final byte[]  noUserOptions = null;
+    
     // for parsing only
     private static final RetrievalOptions templateOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE, WaitMode.GET);
     
@@ -48,7 +49,7 @@ public class RetrievalOptions extends OperationOptions {
             boolean returnInvalidations, ForwardingMode forwardingMode,
             boolean updateSecondariesOnMiss) {
         this(opTimeoutController, secondaryTargets, retrievalType, waitMode, versionConstraint, nonExistenceResponse,
-            verifyChecksums, returnInvalidations, forwardingMode, updateSecondariesOnMiss, DHTConstants.noUserOptions);
+            verifyChecksums, returnInvalidations, forwardingMode, updateSecondariesOnMiss, RetrievalOptions.noUserOptions);
     }
     
     /**

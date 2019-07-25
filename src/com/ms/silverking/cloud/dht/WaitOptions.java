@@ -5,7 +5,6 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
-import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -78,7 +77,7 @@ public final class WaitOptions extends RetrievalOptions {
          super(opTimeoutController, secondaryTargets, retrievalType, 
                  WaitMode.WAIT_FOR, versionConstraint, 
                  nonExistenceResponse, verifyChecksums,
-                 returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss, DHTConstants.noUserOptions);
+                 returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss, RetrievalOptions.noUserOptions);
          Preconditions.checkArgument(timeoutSeconds >= 0);
          Preconditions.checkArgument(threshold >= 0);
          this.timeoutSeconds = timeoutSeconds;
