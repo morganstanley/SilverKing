@@ -1474,91 +1474,110 @@ public class NamespaceStore implements SSNamespaceStore {
     // For analysis only
     private static final AtomicInteger  commonSegment = new AtomicInteger();
     private static final AtomicInteger  totalKeys = new AtomicInteger();
-    
-    public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
-        if (retrieveTrigger == null) {
-            DHTKey[]     _keys;
-            ByteBuffer[] _results;
-            
-            if (debugVersion) {
-                Log.fineAsync("retrieve internal options: %s", options);
-            }        
-            nsStats.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
-            _keys = new DHTKey[keys.size()];
-            for (int i = 0; i < _keys.length; i++) {
-                _keys[i] = keys.get(i);
-            }
-            
-            if (_keys.length > 1) {
-                _results = _retrieve(_keys, options);
-            } else {
-                // special case single retrieval
-                _results = new ByteBuffer[1];
-                _results[0] = _retrieve(_keys[0], options);
-            }
 
-            for (int i = 0; i < _results.length; i++) {
-                if (parent != null) {
-                    VersionConstraint   vc;
-                    
+    private ByteBuffer[] checkTriggerAndRetrieve(DHTKey[] keys, InternalRetrievalOptions options) {
+        ByteBuffer[] results;
+
+        if (retrieveTrigger == null) {
+            if (keys.length > 1) {
+                results = _retrieve(keys, options);
+            } else {
+                // special case single retrieval (speedup purpose)
+                results = new ByteBuffer[1];
+                results[0] = _retrieve(keys[0], options);
+            }
+        } else {
+            readLock.lock(); // Reentrant lock to scale up the critical section to cover the LRUTrigger update
+            try {
+                if (keys.length > 1) {
+                    results = retrieveTrigger.retrieve(this, keys, options);
+                } else {
+                    // special case single retrieval (speedup purpose)
+                    results = new ByteBuffer[1];
+                    results[0] = retrieveTrigger.retrieve(this, keys[0], options);
+                }
+            } finally {
+                readLock.unlock();
+            }
+        }
+
+        return results;
+    }
+
+    public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
+        DHTKey[]     _keys;
+        ByteBuffer[] _results;
+
+        if (debugVersion) {
+            Log.fineAsync("retrieve internal options: %s", options);
+        }
+        nsStats.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
+        _keys = new DHTKey[keys.size()];
+        for (int i = 0; i < _keys.length; i++) {
+            _keys[i] = keys.get(i);
+        }
+
+        _results = checkTriggerAndRetrieve(_keys, options);
+
+        for (int i = 0; i < _results.length; i++) {
+            if (parent != null) {
+                VersionConstraint   vc;
+
+                if (debugParent) {
+                    Log.warning("parent != null");
+                }
+                vc = options.getVersionConstraint();
+
+                // We look in parent if the vc could possibly be answered by the parent
+                // in a way that would override what we have from this namespace.
+
+                if (_results[i] == null) {
                     if (debugParent) {
-                        Log.warning("parent != null");
+                        Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
                     }
-                    vc = options.getVersionConstraint();
-                    
-                    // We look in parent if the vc could possibly be answered by the parent
-                    // in a way that would override what we have from this namespace.
-                    
-                    if (_results[i] == null) {
-                        if (debugParent) {
-                            Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
+                    // If result from this ns is null, look in the parent.
+                    _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+                    if (debugParent) {
+                        if (_results[i] != null) {
+                            Log.warning("Found result in parent");
                         }
-                        // If result from this ns is null, look in the parent.
-                        _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+                    }
+                } else {
+                    // If we have a non-null value from this ns, and the vc mode is GREATEST
+                    // then the value that we already have is the best.
+                    // Otherwise for the LEAST case, look in the parent to see if it has a better result.
+                    if (vc.getMode() == VersionConstraint.Mode.LEAST) {
+                        ByteBuffer parentResult;
+
                         if (debugParent) {
+                            Log.warning("Non-null result, but mode LEAST. checking parent");
+                        }
+                        parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+                        if (parentResult != null) {
+                            // if the parent had any valid result, then - by virtue of the fact
+                            // that all parent versions are < child versions - the parent
+                            // result is preferred
+                            _results[i] = parentResult;
                             if (_results[i] != null) {
                                 Log.warning("Found result in parent");
                             }
                         }
-                    } else {
-                        // If we have a non-null value from this ns, and the vc mode is GREATEST
-                        // then the value that we already have is the best.
-                        // Otherwise for the LEAST case, look in the parent to see if it has a better result.
-                        if (vc.getMode() == VersionConstraint.Mode.LEAST) {
-                            ByteBuffer parentResult;
-    
-                            if (debugParent) {
-                                Log.warning("Non-null result, but mode LEAST. checking parent");
-                            }
-                            parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
-                            if (parentResult != null) {
-                                // if the parent had any valid result, then - by virtue of the fact
-                                // that all parent versions are < child versions - the parent
-                                // result is preferred
-                                _results[i] = parentResult;
-                                if (_results[i] != null) {
-                                    Log.warning("Found result in parent");
-                                }
-                            }
-                        }
                     }
-                }
-                
-                if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR
-                        && options.getVersionConstraint().getMax() > curSnapshot) {
-                    // Note that since we hold the readLock, a write cannot come
-                    // in while we add the pending wait for.
-                    addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
-                }
-                if (options.getVerifyIntegrity()) {
-                    _results[i] = verifyIntegrity(_keys[i], _results[i]);
                 }
             }
 
-            return SKImmutableList.copyOf(_results);
-        } else {
-            return retrieve_nongroupedImpl(keys, options, opUUID);
+            if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR
+                && options.getVersionConstraint().getMax() > curSnapshot) {
+                // Note that since we hold the readLock, a write cannot come
+                // in while we add the pending wait for.
+                addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
+            }
+            if (options.getVerifyIntegrity()) {
+                _results[i] = verifyIntegrity(_keys[i], _results[i]);
+            }
         }
+
+        return SKImmutableList.copyOf(_results);
     }
     
     public List<ByteBuffer> retrieve_nongroupedImpl(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
