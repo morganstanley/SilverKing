@@ -226,8 +226,8 @@ public class SKCloudAdmin {
         printDone();
     }
     
-    // symlink even this launch host (master) b/c if it's included in the instances, we need skfsd on here, which it isn't
-    // and if it isn't a part of the instances, then it's just a harmless symlink 
+    // - symlink even this launch host (master) b/c if it's included in the instances, we need skfsd symlinked here (which it isn't)
+    // - and if it isn't a part of the instances, then it's just a harmless symlink 
     // that's why we're using instanceIps instead of just workerIps
     private void symlinkSkfsdOnAllMachines(List<String> instanceIps) {
         print("Symlinking skfsd on All Machines");
@@ -304,8 +304,8 @@ public class SKCloudAdmin {
             printDone();
         }
         
-        String skfsMountPath="/var/tmp/silverking/skfs/skfs_mnt/skfs";
-        String jarFilename="simple-project-1.0.jar";
+        String skfsMountPath = "/var/tmp/silverking/skfs/skfs_mnt/skfs";
+        String jarFilename = "simple-project-1.0.jar";
         
         nextSteps.append("- To submit an app:\n");
         if (!masterIp.equals(launchHostIp))

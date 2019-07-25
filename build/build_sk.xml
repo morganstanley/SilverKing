@@ -37,7 +37,7 @@
         <pathelement location="${classes.test.dir}" />
     </path>
     
-    <path id="sk.tests.all">    <fileset dir="${test.dir}" includes="**/*Test.java" /></path>
+    <path id="sk.tests.all">    <fileset dir="${test.dir}"><contains text="@Test" />     </fileset></path>
     <path id="sk.tests.large">  <fileset dir="${test.dir}"><contains text="@SkLarge" />  </fileset></path>
     <path id="skfs.tests.small"><fileset dir="${test.dir}"><contains text="@SkfsSmall" /></fileset></path>
     <path id="skfs.tests.large"><fileset dir="${test.dir}"><contains text="@SkfsLarge" /></fileset></path>
