@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Set;
 
+import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.VersionConstraint;
@@ -150,7 +151,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
         uoStartPos = getUOStart(mg);
         uoLength   = getUOLength(mg);
         if (uoLength == 0) {
-            return DHTConstants.noUserOptions;
+            return RetrievalOptions.noUserOptions;
         } else {
             uo = new byte[uoLength];
             System.arraycopy(mg.getBuffers()[optionBufferIndex].array(),
