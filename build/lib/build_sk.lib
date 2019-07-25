@@ -60,5 +60,5 @@ function f_runBuildChecks {
     typeset result=$(f_getGreaterThanOrEqualsResult "$count" "$expectedMinNumSrcClasses")   # test classes aren't included in the jar
     f_printResult "$result" "# of jar .class files >= /$SRC_FOLDER_NAME folder" "$count"
 
-    f_testEquals "$OUT_JAVADOC_DIR" "*.html" "174"
+    f_testEquals "$OUT_JAVADOC_DIR" "*.html" "168"
 }          
