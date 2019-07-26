@@ -1482,7 +1482,7 @@ public class NamespaceStore implements SSNamespaceStore {
             if (keys.length > 1) {
                 results = _retrieve(keys, options);
             } else {
-                // special case single retrieval (speedup purpose)
+                // special case single retrieval (for speed)
                 results = new ByteBuffer[1];
                 results[0] = _retrieve(keys[0], options);
             }
@@ -1492,7 +1492,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (keys.length > 1) {
                     results = retrieveTrigger.retrieve(this, keys, options);
                 } else {
-                    // special case single retrieval (speedup purpose)
+                    // special case single retrieval (for speed)
                     results = new ByteBuffer[1];
                     results[0] = retrieveTrigger.retrieve(this, keys[0], options);
                 }
