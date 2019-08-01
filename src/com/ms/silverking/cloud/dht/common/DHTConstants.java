@@ -63,8 +63,9 @@ public class DHTConstants {
     
     public static final int                    defaultFragmentationThreshold = 10 * 1024 * 1024;            
     public static final int                    minFragmentationThreshold =   1 * 1024;            
-    
-    public static final int                    defaultMaxValueSize = 1 * 1024 * 1024 * 1024;
+
+    // NOTE: max value size can be used for namespace cannot exceeds 2GB (due to integer limit)
+    public static final int                    defaultMaxValueSize = 1 * 1024 * 1024 * 1024; // 1GB
     
     public static final String    defaultDataBasePath = "/var/tmp/silverking/data";
     public static final String    defaultSKInstanceLogBasePath = "/tmp/silverking";

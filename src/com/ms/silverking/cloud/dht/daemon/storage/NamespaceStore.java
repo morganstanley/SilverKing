@@ -32,6 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Level;
 
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -247,6 +248,9 @@ public class NamespaceStore implements SSNamespaceStore {
         maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getLong(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
         Log.warningf("maxUnfinalizedDeletedBytes %d", maxUnfinalizedDeletedBytes);
         Log.warningf("fileSegmentCacheCapacity %d", fileSegmentCacheCapacity);
+
+        Preconditions.checkState(minFinalizationIntervalMillis > 0, "minFinalizationIntervalMillis shall be non-negative");
+        Preconditions.checkState(maxUnfinalizedDeletedBytes > 0, "maxUnfinalizedDeletedBytes shall be non-negative");
     }
     
     
@@ -2998,7 +3002,8 @@ public class NamespaceStore implements SSNamespaceStore {
      */
     private void emptyTrashAndCompaction() {
         deletionsSinceFinalization += FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-        if (deletionsSinceFinalization * nsOptions.getSegmentSize() > maxUnfinalizedDeletedBytes) {
+        long currUnfinalizedBytesEstimate = (long)deletionsSinceFinalization * (long)nsOptions.getSegmentSize();
+        if (currUnfinalizedBytesEstimate > maxUnfinalizedDeletedBytes) {
             // Doesn't presently consider other sources of finalization
             deletionsSinceFinalization = 0;
             finalization.forceFinalization(0);
