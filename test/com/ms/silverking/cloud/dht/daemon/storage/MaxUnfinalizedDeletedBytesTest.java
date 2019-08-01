@@ -83,12 +83,12 @@ public class MaxUnfinalizedDeletedBytesTest {
         doNothing().when(fakeNs).initializeReapImplState();
         // Simulation : 1 segement is deleted each time NS does liveReap()
         doReturn(1).when(fakeFileSegmentCompactor).emptyTrashAndCompaction(fakeNsDir);
-
+        doReturn(false).when(fakeFinalization).forceFinalization(testMinFinalizationIntervalMillis);
 
         // no any gc before liveReap
         verify(fakeFinalization, times(0)).forceFinalization(0);
         verify(fakeFinalization, times(0)).forceFinalization(testMinFinalizationIntervalMillis);
-        for (int i = 1; i <= testForcedGcThreshold; i++) {
+        for (int i = 1; i < testForcedGcThreshold; i++) {
             fakeNs.liveReap();
             // No forced gc shall be triggered before hitting the threshold
             verify(fakeFinalization, times(0)).forceFinalization(0);
@@ -98,6 +98,6 @@ public class MaxUnfinalizedDeletedBytesTest {
         // This liveReap will hit the threshold for forced gc
         fakeNs.liveReap();
         verify(fakeFinalization, times(1)).forceFinalization(0);
-        verify(fakeFinalization, times(testForcedGcThreshold)).forceFinalization(testMinFinalizationIntervalMillis);
+        verify(fakeFinalization, times(testForcedGcThreshold - 1)).forceFinalization(testMinFinalizationIntervalMillis);
     }
 }

@@ -64,7 +64,7 @@ public class DHTConstants {
     public static final int                    defaultFragmentationThreshold = 10 * 1024 * 1024;            
     public static final int                    minFragmentationThreshold =   1 * 1024;            
 
-    // NOTE: max value size can be used for namespace cannot exceeds 2GB (due to integer limit)
+    // NOTE: max value size for a single value in namespace cannot exceeds 2GB (due to integer limit)
     public static final int                    defaultMaxValueSize = 1 * 1024 * 1024 * 1024; // 1GB
     
     public static final String    defaultDataBasePath = "/var/tmp/silverking/data";
@@ -108,6 +108,7 @@ public class DHTConstants {
     public static final String    nsPrereadGBVar = "nsPrereadGB";
     public static final String    nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";    
     public static final String    minFinalizationIntervalMillisProperty = daemonPackageBase +".MinFinalizationIntervalMillis";
+    public static final String    verboseGlobalFinalizationProperty = daemonPackageBase + ".VerboseGlobalFinalization";
     public static final String    enablePendingPutsProperty = daemonPackageBase +".EnablePendingPuts";
     public static final String    maxUnfinalizedDeletedBytesProperty = daemonPackageBase +".MaxUnfinalizedDeletedBytes";
 

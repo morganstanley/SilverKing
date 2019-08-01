@@ -6,10 +6,8 @@ import com.ms.silverking.util.jvm.Finalization;
 public class JVMUtil {
     private static final Finalization    finalization;
 
-    public static final String    verboseFinalizationPropertyName = "com.ms.silverking.cloud.dht.common.VerboseGlobalFinalization";
-
     static {
-        boolean verboseFinalization = PropertiesHelper.systemHelper.getBoolean(verboseFinalizationPropertyName, true);
+        boolean verboseFinalization = PropertiesHelper.systemHelper.getBoolean(DHTConstants.verboseGlobalFinalizationProperty, true);
         finalization = new Finalization(SystemTimeUtil.timerDrivenTimeSource, verboseFinalization);
     }
 
