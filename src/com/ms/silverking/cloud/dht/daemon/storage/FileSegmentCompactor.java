@@ -133,7 +133,7 @@ public class FileSegmentCompactor {
         }
     }
     
-    public static HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions, 
+    public HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions,
                                  EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException {
         FileSegment    compactedSegment;
         File        oldFile;
@@ -165,7 +165,7 @@ public class FileSegmentCompactor {
         return removedEntries;
     }
     
-    public static void delete(File nsDir, int segmentNumber) throws IOException {
+    public void delete(File nsDir, int segmentNumber) throws IOException {
         File        oldFile;
         File        trashFile;
         
@@ -174,7 +174,7 @@ public class FileSegmentCompactor {
         rename(oldFile, trashFile); // Leave old file around for one cycle in case there are references to it
     }    
     
-    public static int emptyTrashAndCompaction(File nsDir) {
+    public int emptyTrashAndCompaction(File nsDir) {
         int    totalDeleted;
         
         totalDeleted = 0;
@@ -216,7 +216,7 @@ public class FileSegmentCompactor {
                 timeSpanSeconds = Integer.parseInt(args[2]);
                 valueRetentionPolicy = new TimeAndVersionRetentionPolicy(TimeAndVersionRetentionPolicy.Mode.wallClock, 1, timeSpanSeconds);
                 nsOptions = DHTConstants.defaultNamespaceOptions.valueRetentionPolicy(valueRetentionPolicy);
-                compact(nsDir, segmentNumber, nsOptions, new TestRetentionCheck(32768), true);
+                new FileSegmentCompactor().compact(nsDir, segmentNumber, nsOptions, new TestRetentionCheck(32768), true);
             }
         } catch (Exception e) {
             e.printStackTrace();
