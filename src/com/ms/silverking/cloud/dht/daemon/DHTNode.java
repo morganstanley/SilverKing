@@ -162,7 +162,7 @@ public class DHTNode {
     }
     
     private void cleanVM() {
-        JVMUtil.finalization.forceFinalization(0);
+        JVMUtil.getGlobalFinalization().forceFinalization(0);
     }
 
     public void run() {

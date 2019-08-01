@@ -112,7 +112,7 @@ public class ActiveClientOperationTable {
                 (lwtPool.getLoad().getLoad() < finalizationLoadThreshold 
                 || finalizationSW.getSplitSeconds() > finalizationForceIntervalSeconds)) {
             System.gc();
-            JVMUtil.finalization.forceFinalization((int)(finalizationForceIntervalSeconds * 1000.0));
+            JVMUtil.getGlobalFinalization().forceFinalization((int)(finalizationForceIntervalSeconds * 1000.0));
             finalizationSW.reset();
         }
         

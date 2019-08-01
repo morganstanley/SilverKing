@@ -24,7 +24,7 @@ public class MemoryManager implements JVMMemoryObserver {
                                  jvmFinalizationIntervalMillis,
                                  true,
                                  jvmMonitorLowMemoryThresholdMB,
-                                 JVMUtil.finalization);
+                                 JVMUtil.getGlobalFinalization());
         monitor.addMemoryObserver(this);
     }
 

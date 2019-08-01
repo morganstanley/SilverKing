@@ -137,7 +137,7 @@ public class PersistentAsyncServer<T extends Connection>
         asyncServer.shutdown();
         isRunning = false;
         ThreadUtil.sleep(shutdownDelayMillis);
-        JVMUtil.finalization.forceFinalization(0);
+        JVMUtil.getGlobalFinalization().forceFinalization(0);
     }
     
     //////////////////////////////////////////////////////////////////////

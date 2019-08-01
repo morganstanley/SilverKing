@@ -119,6 +119,7 @@ import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.jvm.Finalization;
 
 public class NamespaceStore implements SSNamespaceStore {
     private final long ns;
@@ -167,6 +168,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final ReapPolicy        reapPolicy;
     private final ReapPolicyState    reapPolicyState;
     private int    deletionsSinceFinalization;
+    private final Finalization finalization;
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;    
     
@@ -314,7 +316,8 @@ public class NamespaceStore implements SSNamespaceStore {
             NamespaceStore parent,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
-            ReapPolicy reapPolicy) {
+            ReapPolicy reapPolicy,
+            Finalization finalization) {
         this.ns = ns;
         this.nsDir = nsDir;
         ssDir = new File(nsDir, DHTConstants.ssSubDirName);
@@ -398,6 +401,22 @@ public class NamespaceStore implements SSNamespaceStore {
         if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
             retrieveTrigger.initialize(this);
         }
+
+        this.finalization = finalization;
+    }
+
+    public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
+                          NamespaceStore parent,
+                          MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
+                          ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
+                          ReapPolicy reapPolicy) {
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy, JVMUtil.getGlobalFinalization());
+    }
+
+    public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
+                          MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
+                          ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, NeverReapPolicy.instance);
     }
     
     private void createInitialHeadSegment() {
@@ -466,12 +485,6 @@ public class NamespaceStore implements SSNamespaceStore {
             }
         }
         return new Pair<>(putTrigger, retrieveTrigger);
-    }
-    
-    public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
-            MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
-            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
-        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, NeverReapPolicy.instance);
     }
     
     private void initRAMSegments() {
@@ -2401,7 +2414,7 @@ public class NamespaceStore implements SSNamespaceStore {
             }
             if (oom) {
                 Log.warning("OOM attempting to open mapped file. Calling gc and finalization.");
-                JVMUtil.finalization.forceFinalization(0);
+                finalization.forceFinalization(0);
                 Log.warning("GC & finalization complete.");
                 fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
             } else {
@@ -2988,10 +3001,10 @@ public class NamespaceStore implements SSNamespaceStore {
         if (deletionsSinceFinalization * nsOptions.getSegmentSize() > maxUnfinalizedDeletedBytes) {
             // Doesn't presently consider other sources of finalization
             deletionsSinceFinalization = 0;
-            JVMUtil.finalization.forceFinalization(0);
+            finalization.forceFinalization(0);
         } else {
             // If deletionsSinceFinalization doesn't trigger finalization, then consider minFinalizationIntervalMillis
-            if (JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis)) {
+            if (finalization.forceFinalization(minFinalizationIntervalMillis)) {
                 deletionsSinceFinalization = 0;
             }
         }
