@@ -3,6 +3,7 @@ package com.ms.silverking.util.jvm;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.log.Log;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
@@ -41,7 +42,7 @@ public class Finalization {
                     sw.stop();
                     finalized = true;
                     if (verboseFinalization) {
-                        System.out.printf("Finalization completed in %f seconds\n", sw.getElapsedSeconds());
+                        Log.finef("Finalization completed in %f seconds\n", sw.getElapsedSeconds());
                     }
                 } else {
                     finalized = false;
