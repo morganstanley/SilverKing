@@ -11,8 +11,8 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUTrigger;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
+import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.jvm.Finalization;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -32,13 +32,13 @@ public class MaxUnfinalizedDeletedBytesTest {
     private FileSegmentCompactor fakeFileSegmentCompactor = spy(new FileSegmentCompactor());
     private Finalization fakeFinalization = spy(new Finalization(SystemTimeUtil.timerDrivenTimeSource, true));
 
-    private NamespaceStore createFakeNS() {
+    private NamespaceStore createFakeNS(int testSegmentSizeBytes) {
         NamespaceOptions testMutableLruNsOpts = DHTConstants.defaultNamespaceOptions
             .consistencyProtocol(ConsistencyProtocol.LOOSE)
             .versionMode(NamespaceVersionMode.SYSTEM_TIME_NANOS)
             .namespaceServerSideCode(NamespaceServerSideCode.singleTrigger(LRUTrigger.class))
             .valueRetentionPolicy(new LRURetentionPolicy(1000, 1))
-            .segmentSize(testSegimentSizeBytes);
+            .segmentSize(testSegmentSizeBytes);
         NamespaceProperties nsprop = new NamespaceProperties(testMutableLruNsOpts);
 
         return new NamespaceStore(
@@ -61,43 +61,53 @@ public class MaxUnfinalizedDeletedBytesTest {
         };
     }
 
-
-    // Literally disable auto finalization
-    private int testMinFinalizationIntervalMillis = Integer.MAX_VALUE;
-    // 1000 bytes threshold to trigger finalization
-    private int testSegimentSizeBytes = 5000;
-    // These numbers mean if there are at least 3 deleted segments, then the forced GC/Finalization
-    private int testForcedGcThreshold = 3;
-    private long testMaxUnfinalizedDeletedBytes = (long) (testForcedGcThreshold) * (long) (testSegimentSizeBytes) - 1;
-
-    @Before
-    public void setUpBefore() {
-        System.setProperty(DHTConstants.minFinalizationIntervalMillisProperty, testMinFinalizationIntervalMillis + "");
-        System.setProperty(DHTConstants.maxUnfinalizedDeletedBytesProperty, testMaxUnfinalizedDeletedBytes + "");
-    }
-
-
     @Test
     public void testMaxUnfinalizedDeletedBytes() {
-        NamespaceStore fakeNs = spy(createFakeNS());
+        // Note: copy&paste from NamespcaeStore
+        int minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
+        long maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getLong(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
+
+        int proposedLoopTime = 5;
+        int proposedSegmentNumDeletedEachTime = 1;
+        int proposedSegmentSize;
+        // adjust for overflow (in case of maxUnfinalizedDeletedBytes has been set to a very crazy number :-)
+        long tmp = maxUnfinalizedDeletedBytes / ((long)proposedLoopTime * (long)proposedSegmentNumDeletedEachTime);
+        if (tmp  < NamespaceOptions.maxMaxValueSize) {
+            proposedSegmentSize = (int)tmp;
+        } else {
+            // if maxUnfinalizedDeletedBytes is crazily large
+            // 1. try to adjust proposedSegmentSize to maximum
+            proposedSegmentSize = NamespaceOptions.maxMaxValueSize;
+            // 2. try to adjust proposedSegmentNumDeletedEachTime
+            long tmp2 = maxUnfinalizedDeletedBytes / ((long)proposedLoopTime * (long)proposedSegmentSize);
+            if (tmp2 < Integer.MAX_VALUE) {
+                proposedSegmentNumDeletedEachTime = (int)tmp2;
+            } else {
+                proposedSegmentNumDeletedEachTime = Integer.MAX_VALUE;
+                // 3. try to adjust loopTime (will be 4 loops, if both proposedSegmentSize and proposedSegmentNumDeletedEachTime are maximum)
+                proposedLoopTime = (int)(maxUnfinalizedDeletedBytes / ((long)proposedSegmentNumDeletedEachTime * (long)proposedSegmentSize));
+            }
+        }
+
+        NamespaceStore fakeNs = spy(createFakeNS(proposedSegmentSize));
         doNothing().when(fakeNs).initializeReapImplState();
         // Simulation : 1 segement is deleted each time NS does liveReap()
-        doReturn(1).when(fakeFileSegmentCompactor).emptyTrashAndCompaction(fakeNsDir);
-        doReturn(false).when(fakeFinalization).forceFinalization(testMinFinalizationIntervalMillis);
+        doReturn(proposedSegmentNumDeletedEachTime).when(fakeFileSegmentCompactor).emptyTrashAndCompaction(fakeNsDir);
+        doReturn(false).when(fakeFinalization).forceFinalization(minFinalizationIntervalMillis);
 
         // no any gc before liveReap
         verify(fakeFinalization, times(0)).forceFinalization(0);
-        verify(fakeFinalization, times(0)).forceFinalization(testMinFinalizationIntervalMillis);
-        for (int i = 1; i < testForcedGcThreshold; i++) {
+        verify(fakeFinalization, times(0)).forceFinalization(minFinalizationIntervalMillis);
+        for (int i = 1; i <= proposedLoopTime; i++) {
             fakeNs.liveReap();
             // No forced gc shall be triggered before hitting the threshold
             verify(fakeFinalization, times(0)).forceFinalization(0);
             // Auto/Normal gc shall be called during each iteration before hitting the threshold
-            verify(fakeFinalization, times(i)).forceFinalization(testMinFinalizationIntervalMillis);
+            verify(fakeFinalization, times(i)).forceFinalization(minFinalizationIntervalMillis);
         }
         // This liveReap will hit the threshold for forced gc
         fakeNs.liveReap();
         verify(fakeFinalization, times(1)).forceFinalization(0);
-        verify(fakeFinalization, times(testForcedGcThreshold - 1)).forceFinalization(testMinFinalizationIntervalMillis);
+        verify(fakeFinalization, times(proposedLoopTime)).forceFinalization(minFinalizationIntervalMillis);
     }
 }
