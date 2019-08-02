@@ -256,10 +256,11 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
 
-    // TODO: remove these two throw-way methods when we figure out a way to manage the binds between System property and static variables
+    // TODO: remove these two throw-way methods below when we figure out a way to manage the binds between System property and static variables
     protected static int getMinFinalizationIntervalMillis() {
         return minFinalizationIntervalMillis;
     }
+
     protected static long getMaxUnfinalizedDeletedBytes() {
         return maxUnfinalizedDeletedBytes;
     }
