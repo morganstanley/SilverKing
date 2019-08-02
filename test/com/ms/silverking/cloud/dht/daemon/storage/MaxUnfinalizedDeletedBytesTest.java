@@ -28,8 +28,8 @@ import static org.mockito.Mockito.verify;
 public class MaxUnfinalizedDeletedBytesTest {
     private MessageGroupBase mockMg = mock(MessageGroupBase.class);
     private NodeRingMaster2 mockRingMaster = mock(NodeRingMaster2.class);
+    private FileSystemOps mockFileSystemOps = mock(FileSystemOps.class);
     private File fakeNsDir = spy(new File("dummy"));
-    private FileSegmentCompactor fakeFileSegmentCompactor = spy(new FileSegmentCompactor());
     private Finalization fakeFinalization = spy(new Finalization(SystemTimeUtil.timerDrivenTimeSource, true));
 
     private NamespaceStore createFakeNS(int testSegmentSizeBytes) {
@@ -52,13 +52,9 @@ public class MaxUnfinalizedDeletedBytesTest {
             true,
             new ConcurrentHashMap<>(),
             new LRUReapPolicy(true, true, true, 500, 1000, 1000),
-            fakeFinalization
-        ) {
-            @Override
-            protected FileSegmentCompactor createFileSegmentCompactor() {
-                return fakeFileSegmentCompactor;
-            }
-        };
+            fakeFinalization,
+            mockFileSystemOps
+        );
     }
 
     @Test
@@ -91,7 +87,7 @@ public class MaxUnfinalizedDeletedBytesTest {
         NamespaceStore fakeNs = spy(createFakeNS(proposedSegmentSize));
         doNothing().when(fakeNs).initializeReapImplState();
         // Simulation : 1 segement is deleted each time NS does liveReap()
-        doReturn(proposedSegmentNumDeletedEachTime).when(fakeFileSegmentCompactor).emptyTrashAndCompaction(fakeNsDir);
+        doReturn(proposedSegmentNumDeletedEachTime).when(mockFileSystemOps).emptyTrashAndCompactionSegments(fakeNsDir);
         doReturn(false).when(fakeFinalization).forceFinalization(minFinalizationIntervalMillis);
 
         // no any gc before liveReap
