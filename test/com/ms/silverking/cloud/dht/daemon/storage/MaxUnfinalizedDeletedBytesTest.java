@@ -11,7 +11,6 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUTrigger;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
-import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.jvm.Finalization;
 import org.junit.Test;
 
@@ -28,7 +27,7 @@ import static org.mockito.Mockito.verify;
 public class MaxUnfinalizedDeletedBytesTest {
     private MessageGroupBase mockMg = mock(MessageGroupBase.class);
     private NodeRingMaster2 mockRingMaster = mock(NodeRingMaster2.class);
-    private FileSystemOps mockFileSystemOps = mock(FileSystemOps.class);
+    private FileSegmentCompactor mockFileSegmentCompactor = mock(FileSegmentCompactor.class);
     private File fakeNsDir = spy(new File("dummy"));
     private Finalization fakeFinalization = spy(new Finalization(SystemTimeUtil.timerDrivenTimeSource, true));
 
@@ -53,7 +52,7 @@ public class MaxUnfinalizedDeletedBytesTest {
             new ConcurrentHashMap<>(),
             new LRUReapPolicy(true, true, true, 500, 1000, 1000),
             fakeFinalization,
-            mockFileSystemOps
+            mockFileSegmentCompactor
         );
     }
 
@@ -87,7 +86,7 @@ public class MaxUnfinalizedDeletedBytesTest {
         NamespaceStore fakeNs = spy(createFakeNS(proposedSegmentSize));
         doNothing().when(fakeNs).initializeReapImplState();
         // Simulation : 1 segement is deleted each time NS does liveReap()
-        doReturn(proposedSegmentNumDeletedEachTime).when(mockFileSystemOps).emptyTrashAndCompactionSegments(fakeNsDir);
+        doReturn(proposedSegmentNumDeletedEachTime).when(mockFileSegmentCompactor).emptyTrashAndCompaction(fakeNsDir);
         doReturn(false).when(fakeFinalization).forceFinalization(minFinalizationIntervalMillis);
 
         // no any gc before liveReap

@@ -170,7 +170,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final ReapPolicyState    reapPolicyState;
     private int    deletionsSinceFinalization;
     private final Finalization finalization;
-    private final FileSystemOps   fileSystemOps;
+    private final FileSegmentCompactor fileSegmentCompactor;
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;    
     
@@ -332,7 +332,7 @@ public class NamespaceStore implements SSNamespaceStore {
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
             ReapPolicy reapPolicy,
             Finalization finalization,
-            FileSystemOps fileSystemOps) {
+            FileSegmentCompactor fileSegmentCompactor) {
         this.ns = ns;
         this.nsDir = nsDir;
         ssDir = new File(nsDir, DHTConstants.ssSubDirName);
@@ -418,7 +418,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
 
         this.finalization = finalization;
-        this.fileSystemOps = fileSystemOps;
+        this.fileSegmentCompactor = fileSegmentCompactor;
     }
 
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
@@ -427,7 +427,7 @@ public class NamespaceStore implements SSNamespaceStore {
                           ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
                           ReapPolicy reapPolicy,
                           Finalization finalization) {
-        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy, finalization, FileSystemOps.globalDefaultFileSystemOps);
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy, finalization, FileSegmentCompactor.globalDefaultFileSegmentCompactor);
     }
 
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
@@ -3022,7 +3022,7 @@ public class NamespaceStore implements SSNamespaceStore {
      * has been exceeded.
      */
     private void emptyTrashAndCompaction() {
-        deletionsSinceFinalization += fileSystemOps.emptyTrashAndCompactionSegments(nsDir);
+        deletionsSinceFinalization += fileSegmentCompactor.emptyTrashAndCompaction(nsDir);
         long currUnfinalizedBytesEstimate = (long)deletionsSinceFinalization * (long)nsOptions.getSegmentSize();
         if (currUnfinalizedBytesEstimate > maxUnfinalizedDeletedBytes) {
             // Doesn't presently consider other sources of finalization
@@ -3274,7 +3274,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
                                 Log.warning("Deleting segment: ", curSegment);
                             }
-                            fileSystemOps.deleteSegment(nsDir, curSegment);
+                            fileSegmentCompactor.delete(nsDir, curSegment);
                             if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
                                 Log.warning("Done deleting segment: ", curSegment);
                             }
@@ -3287,7 +3287,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             HashedSetMap<DHTKey, Triple<Long, Integer, Long>> segmentRemovedEntries;
     
                             fileSegmentCache.invalidate(curSegment);
-                            segmentRemovedEntries = fileSystemOps.compactSegment(nsDir, curSegment, nsOptions,
+                            segmentRemovedEntries = fileSegmentCompactor.compact(nsDir, curSegment, nsOptions,
                                     new RetainedOffsetMapCheck(result.getV2(), result.getV3()), reapPolicy.verboseSegmentDeletionAndCompaction());
                             removedEntries.addAll(segmentRemovedEntries);
                         } catch (IOException ioe) {
