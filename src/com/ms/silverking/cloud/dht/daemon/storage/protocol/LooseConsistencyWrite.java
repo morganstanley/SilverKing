@@ -12,7 +12,7 @@ import com.ms.silverking.net.IPAndPort;
 /**
  * Write operation for the LooseConsistency StorageProtocol.
  */
-public class LooseConsistencyWrite extends BaseStorageOperation<StorageEntrySingleState> {
+public class LooseConsistencyWrite extends BaseStorageOperation<SingleWriterLooseStorageEntryState> {
     private static final boolean    debug = false;
     
     private static final int	looseConsistencySuccessThreshold = 1;
@@ -23,7 +23,7 @@ public class LooseConsistencyWrite extends BaseStorageOperation<StorageEntrySing
     
     @Override
     public void initializeEntryState(DHTKey entryKey, List<IPAndPort> primaryReplicas, List<IPAndPort> secondaryReplicas) {
-        setEntryState(entryKey, new StorageEntrySingleState(primaryReplicas));
+        setEntryState(entryKey, new SingleWriterLooseStorageEntryState(primaryReplicas));
     }
 
 
@@ -31,7 +31,7 @@ public class LooseConsistencyWrite extends BaseStorageOperation<StorageEntrySing
     public void update(DHTKey key, IPAndPort replica, byte storageState, OpResult update, PutVirtualCommunicator pvComm) {
         // FIXME - reduce or eliminate locking here
         synchronized (this) {
-            StorageEntrySingleState entryState;
+            SingleWriterLooseStorageEntryState entryState;
 
             if (debug) {
                 System.out.printf("replica %s\tupdate %s\n", replica, update);
@@ -54,9 +54,7 @@ public class LooseConsistencyWrite extends BaseStorageOperation<StorageEntrySing
                         
                         pvComm.sendResult(key, looseResult);
                         _completeEntries = completeEntries.incrementAndGet();
-                        if (_completeEntries >= looseConsistencySuccessThreshold) {
-                        	// FIXME - not waiting for all replicas can cause memory issues
-                        	// only allow single to succeed after a timeout
+                        if (_completeEntries >= numEntries) {
                             setOpResult(OpResult.SUCCEEDED);
                         }                    
                     }

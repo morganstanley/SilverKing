@@ -6,11 +6,11 @@ import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
-class StorageEntrySingleState extends StorageEntryState {
+class SingleWriterLooseStorageEntryState extends StorageEntryState {
     private List<IPAndPort> replicas;
     private OpResult[]      replicaResults;
 
-    StorageEntrySingleState(List<IPAndPort> replicas) {
+    SingleWriterLooseStorageEntryState(List<IPAndPort> replicas) {
         super();
         this.replicas = replicas;
         replicaResults = new OpResult[replicas.size()];
@@ -22,7 +22,9 @@ class StorageEntrySingleState extends StorageEntryState {
     @Override
     OpResult getCurOpResult() {
         OpResult    result;
+        int         numFailed;
         
+        numFailed = 0;
         result = OpResult.INCOMPLETE;
         for (int i = 0; i < replicas.size(); i++) {
             OpResult    replicaResult;
@@ -30,7 +32,8 @@ class StorageEntrySingleState extends StorageEntryState {
             replicaResult = replicaResults[i];
             if (replicaResult.isComplete()) {
                 if (replicaResult.hasFailed()) {
-                    if (result == OpResult.INCOMPLETE) {
+                    ++numFailed;
+                    if (numFailed == 1) {
                         result = replicaResult;
                     } else {
                         if (result != replicaResult) {
@@ -38,10 +41,22 @@ class StorageEntrySingleState extends StorageEntryState {
                         }
                     }
                 } else {
-                    result = OpResult.SUCCEEDED;
+                    return OpResult.SUCCEEDED; // LOOSE => any replica success is grounds for op success
                 }
             }
         }
+        // We only reach here if no replica has succeeded
+        if (numFailed < replicas.size()) {
+            // LOOSE => any replica that is incomplete may succeed, so we wait
+            result = OpResult.INCOMPLETE;
+        } else {
+            // LOOSE => if all replicas have failed, then we return the results of the failure check
+            // which is stored in result already
+        }
+        
+        // FUTURE - LOOSE success on a single replica may cause memory issues under sustained writes
+        // could consider constraining the number of outstanding loose writes
+        
         return result;
     }
     

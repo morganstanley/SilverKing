@@ -22,12 +22,13 @@ public class ClientTestRegistry {
         switch (name) {
         case LockTest.testName: return new LockTest();
         case RequiredPreviousVersionTest.testName: return new RequiredPreviousVersionTest();
+        case LooseWriteReadTest.testName: return new LooseWriteReadTest();
         default: return null;
         }
     }
 
     public static List<String> getAllTestNames() {
-        return ImmutableList.of(LockTest.testName, RequiredPreviousVersionTest.testName);
+        return ImmutableList.of(LockTest.testName, RequiredPreviousVersionTest.testName, LooseWriteReadTest.testName);
     }
     
     public static List<ClientTest> getAllTests() {

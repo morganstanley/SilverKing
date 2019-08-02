@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.client.test;
 
+import com.ms.silverking.cloud.dht.ConsistencyProtocol;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RevisionMode;
@@ -21,7 +22,7 @@ public class RequiredPreviousVersionTest extends BaseClientTest {
     private static final String modifiedValue2 = "v1.4";
     
     public RequiredPreviousVersionTest() {
-        super(testName, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.NO_REVISIONS);
+        super(testName, ConsistencyProtocol.TWO_PHASE_COMMIT, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.NO_REVISIONS);
     }
 
     @Override
