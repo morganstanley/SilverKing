@@ -255,7 +255,15 @@ public class NamespaceStore implements SSNamespaceStore {
         Preconditions.checkState(maxUnfinalizedDeletedBytes > 0, "maxUnfinalizedDeletedBytes shall be non-negative");
     }
     
-    
+
+    // TODO: remove these two throw-way methods when we figure out a way to manage the binds between System property and static variables
+    protected static int getMinFinalizationIntervalMillis() {
+        return minFinalizationIntervalMillis;
+    }
+    protected static long getMaxUnfinalizedDeletedBytes() {
+        return maxUnfinalizedDeletedBytes;
+    }
+
     private static PeerHealthMonitor    peerHealthMonitor;
     
     public static void setPeerHealthMonitor(PeerHealthMonitor _peerHealthMonitor) {

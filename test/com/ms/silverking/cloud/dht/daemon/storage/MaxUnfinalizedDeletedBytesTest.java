@@ -63,9 +63,8 @@ public class MaxUnfinalizedDeletedBytesTest {
 
     @Test
     public void testMaxUnfinalizedDeletedBytes() {
-        // Note: copy&paste from NamespcaeStore
-        int minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
-        long maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getLong(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
+        int minFinalizationIntervalMillis = NamespaceStore.getMinFinalizationIntervalMillis();
+        long maxUnfinalizedDeletedBytes = NamespaceStore.getMaxUnfinalizedDeletedBytes();
 
         int proposedLoopTime = 5;
         int proposedSegmentNumDeletedEachTime = 1;
