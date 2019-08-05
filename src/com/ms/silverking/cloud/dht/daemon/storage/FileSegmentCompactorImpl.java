@@ -17,32 +17,11 @@ import com.ms.silverking.collection.HashedSetMap;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 
-public class FileSegmentCompactorImpl {
+public class FileSegmentCompactorImpl implements FileSegmentCompactor {
     private static final boolean    verbose = false;
     
     private static final String    compactionDirName = "compact";
     private static final String    trashDirName = "trash";
-
-    private static final FileSegmentCompactor globalDefaultFileSegmentCompactor = new FileSegmentCompactor() {
-        @Override
-        public HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions, EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException {
-            return FileSegmentCompactorImpl.compact(nsDir, segmentNumber, nsOptions, retentionCheck, logCompaction);
-        }
-
-        @Override
-        public void delete(File nsDir, int segmentNumber) throws IOException {
-            FileSegmentCompactorImpl.delete(nsDir, segmentNumber);
-        }
-
-        @Override
-        public int emptyTrashAndCompaction(File nsDir) {
-            return FileSegmentCompactorImpl.emptyTrashAndCompaction(nsDir);
-        }
-    };
-
-    public static FileSegmentCompactor getGlobalDefaultFileSegmentCompactor() {
-        return globalDefaultFileSegmentCompactor;
-    }
 
     /*
      * Current strategy is to leave the segment size constant, and to count on sparse file support for
@@ -153,8 +132,9 @@ public class FileSegmentCompactorImpl {
             throw new RuntimeException(ioe);
         }
     }
-    
-    public static HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions,
+
+    @Override
+    public HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions,
                                  EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException {
         FileSegment    compactedSegment;
         File        oldFile;
@@ -185,17 +165,19 @@ public class FileSegmentCompactorImpl {
         }
         return removedEntries;
     }
-    
-    public static void delete(File nsDir, int segmentNumber) throws IOException {
+
+    @Override
+    public void delete(File nsDir, int segmentNumber) throws IOException {
         File        oldFile;
         File        trashFile;
         
         oldFile = FileSegment.fileForSegment(nsDir, segmentNumber);
         trashFile = getTrashFile(nsDir, segmentNumber);
         rename(oldFile, trashFile); // Leave old file around for one cycle in case there are references to it
-    }    
-    
-    public static int emptyTrashAndCompaction(File nsDir) {
+    }
+
+    @Override
+    public int emptyTrashAndCompaction(File nsDir) {
         int    totalDeleted;
         
         totalDeleted = 0;
@@ -237,7 +219,7 @@ public class FileSegmentCompactorImpl {
                 timeSpanSeconds = Integer.parseInt(args[2]);
                 valueRetentionPolicy = new TimeAndVersionRetentionPolicy(TimeAndVersionRetentionPolicy.Mode.wallClock, 1, timeSpanSeconds);
                 nsOptions = DHTConstants.defaultNamespaceOptions.valueRetentionPolicy(valueRetentionPolicy);
-                compact(nsDir, segmentNumber, nsOptions, new TestRetentionCheck(32768), true);
+                new FileSegmentCompactorImpl().compact(nsDir, segmentNumber, nsOptions, new TestRetentionCheck(32768), true);
             }
         } catch (Exception e) {
             e.printStackTrace();
