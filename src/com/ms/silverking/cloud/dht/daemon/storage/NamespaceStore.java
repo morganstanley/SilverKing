@@ -427,7 +427,7 @@ public class NamespaceStore implements SSNamespaceStore {
                           ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
                           ReapPolicy reapPolicy,
                           Finalization finalization) {
-        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy, finalization, FileSegmentCompactor.globalDefaultFileSegmentCompactor);
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy, finalization, FileSegmentCompactorImpl.getGlobalDefaultFileSegmentCompactor());
     }
 
     public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,

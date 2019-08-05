@@ -22,7 +22,28 @@ public class FileSegmentCompactorImpl {
     
     private static final String    compactionDirName = "compact";
     private static final String    trashDirName = "trash";
-    
+
+    private static final FileSegmentCompactor globalDefaultFileSegmentCompactor = new FileSegmentCompactor() {
+        @Override
+        public HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions, EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException {
+            return FileSegmentCompactorImpl.compact(nsDir, segmentNumber, nsOptions, retentionCheck, logCompaction);
+        }
+
+        @Override
+        public void delete(File nsDir, int segmentNumber) throws IOException {
+            FileSegmentCompactorImpl.delete(nsDir, segmentNumber);
+        }
+
+        @Override
+        public int emptyTrashAndCompaction(File nsDir) {
+            return FileSegmentCompactorImpl.emptyTrashAndCompaction(nsDir);
+        }
+    };
+
+    public static FileSegmentCompactor getGlobalDefaultFileSegmentCompactor() {
+        return globalDefaultFileSegmentCompactor;
+    }
+
     /*
      * Current strategy is to leave the segment size constant, and to count on sparse file support for
      * actual disk savings. That is, upon compaction, the data will be compacted at the start of the
