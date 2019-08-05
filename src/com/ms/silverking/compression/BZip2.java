@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;
 
-import org.apache.hadoop.io.compress.bzip2.CBZip2InputStream;
-import org.apache.hadoop.io.compress.bzip2.CBZip2OutputStream;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
@@ -19,8 +19,9 @@ public class BZip2 implements Compressor, Decompressor {
     }
     
     public byte[] compress(byte[] rawValue, int offset, int length) throws IOException {
-        ByteArrayOutputStream  baos;
-        CBZip2OutputStream     bzip2os;
+        ByteArrayOutputStream       baos;
+        BZip2CompressorOutputStream bzip2os;
+
         byte[] buf;
         int    compressedLength;
 
@@ -28,7 +29,7 @@ public class BZip2 implements Compressor, Decompressor {
         baos = new ByteArrayOutputStream(rawValue.length / bzip2InitFactor);
         baos.write(0x42);
         baos.write(0x5a);
-        bzip2os = new CBZip2OutputStream(baos);
+        bzip2os = new BZip2CompressorOutputStream(baos);
         bzip2os.write(rawValue, offset, length);
         bzip2os.flush();
         bzip2os.close();
@@ -54,9 +55,9 @@ public class BZip2 implements Compressor, Decompressor {
     }
 
     public byte[] decompress(byte[] value, int offset, int length, int uncompressedLength) throws IOException {
-        CBZip2InputStream    bzip2is;
-        InputStream         inStream;
-        byte[]                uncompressedValue;
+        BZip2CompressorInputStream  bzip2is;
+        InputStream                 inStream;
+        byte[]                      uncompressedValue;
         
         //System.out.println(value.length +" "+ offset +" "+ length);
         //System.out.println(StringUtil.byteArrayToHexString(value, offset, length));
@@ -73,7 +74,7 @@ public class BZip2 implements Compressor, Decompressor {
             if (b != 'Z') {
                 throw new IOException("Invalid bzip2 value");
             }
-            bzip2is = new CBZip2InputStream(inStream);
+            bzip2is = new BZip2CompressorInputStream(inStream);
             try {
                 int    totalRead;
                 
