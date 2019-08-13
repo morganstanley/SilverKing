@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon.storage.serverside;
 
-import java.util.List;
+import java.util.Queue;
 
 public interface LRUStateProvider {
-    List<LRUKeyedInfo> getLRUList();
+    Queue<LRUKeyedInfo> getLRUList();
 }

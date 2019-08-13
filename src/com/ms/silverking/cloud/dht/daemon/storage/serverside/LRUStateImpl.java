@@ -3,13 +3,11 @@ package com.ms.silverking.cloud.dht.daemon.storage.serverside;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.DHTKeyComparator;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.time.AbsNanosTimeSource;
 import com.ms.silverking.time.SystemTimeSource;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -51,14 +49,19 @@ public class LRUStateImpl implements LRUStateProvider {
         }
     }
 
-    public List<LRUKeyedInfo> getLRUList() {
-        List<LRUKeyedInfo>    lruList;
+    @Override
+    public Queue<LRUKeyedInfo> getLRUList() {
+        Queue<LRUKeyedInfo>    lruList;
 
-        lruList = new ArrayList<>(lruInfoMap.size());
+        lruList = new PriorityQueue<>(Math.max(lruInfoMap.size(), 1), lruKeyedInfoComparator);
         for (Map.Entry<DHTKey,LRUInfo> entry : lruInfoMap.entrySet()) {
-            lruList.add(new LRUKeyedInfo(entry.getKey(), entry.getValue()));
+            LRUKeyedInfo ki;
+
+            ki = new LRUKeyedInfo(entry.getKey(), entry.getValue());
+            // Use add() instead of offer() here because we want to fail loudly
+            // if we don't have capacity to add.
+            lruList.add(ki);
         }
-        lruList.sort(lruKeyedInfoComparator);
         return lruList;
     }
 
@@ -69,9 +72,9 @@ public class LRUStateImpl implements LRUStateProvider {
         @Override
         public int compare(LRUKeyedInfo i0, LRUKeyedInfo i1) {
             if (i0.getAccessTime() < i1.getAccessTime()) {
-                return -1;
-            } else if (i0.getAccessTime() > i1.getAccessTime()) {
                 return 1;
+            } else if (i0.getAccessTime() > i1.getAccessTime()) {
+                return -1;
             } else {
                 return DHTKeyComparator.dhtKeyComparator.compare(i0.getKey(), i1.getKey());
             }

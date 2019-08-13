@@ -1,8 +1,5 @@
 package com.ms.silverking.cloud.dht;
 
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -13,6 +10,9 @@ import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.MutableInteger;
 import com.ms.silverking.text.ObjectDefParser2;
+
+import java.util.Map;
+import java.util.Queue;
 
 /**
  * Simple LRU value retention policy. LRU is per key. 
@@ -62,25 +62,24 @@ public class LRURetentionPolicy extends CapacityBasedRetentionPolicy<LRURetentio
      * @param lruList
      * @return
      */
-    private Map<DHTKey,MutableInteger> createRetentionMap(List<LRUKeyedInfo> lruList) {
+    private Map<DHTKey,MutableInteger> createRetentionMap(Queue<LRUKeyedInfo> lruList) {
         long        bytesRetained;
-        ImmutableMap.Builder<DHTKey,MutableInteger>    retentionMap;
-        
+        ImmutableMap.Builder<DHTKey,MutableInteger> retentionMap;
+
         //System.out.printf("createRetentionMap %d\n", lruList.size());
         retentionMap = ImmutableMap.builder();
         bytesRetained = 0;
         // List is sorted in ascending access time order
         // Walk the list backwards to retain the most recently accessed first
-        for (int i = lruList.size() - 1; i >= 0; i--) {
+        while (lruList.peek() != null && bytesRetained < capacityBytes) {
             LRUKeyedInfo lruKeyedInfo;
             
             //System.out.printf("%d\t%d\n", i, bytesRetained);
-            lruKeyedInfo = lruList.get(i);
+            // We know that remove() is safe here since we peek() above.
+            lruKeyedInfo = lruList.remove();
             if (bytesRetained < capacityBytes) {
                 bytesRetained += lruKeyedInfo.getSize();
                 retentionMap.put(lruKeyedInfo.getKey(), new MutableInteger(maxVersions));
-            } else {
-                retentionMap.put(lruKeyedInfo.getKey(), new MutableInteger(0));
             }
         }
         return retentionMap.build();

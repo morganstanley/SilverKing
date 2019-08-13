@@ -411,7 +411,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                 creationTime = getCreationTime(rawOffset);
                 offsetVersionAndCreationTimeList = ImmutableList.of(new Triple<>(rawOffset, version, creationTime));
             } else {
-                offsetVersionAndCreationTimeList = new ArrayList(ImmutableList.copyOf(offsetListStore.getOffsetList(-rawOffset).offsetVersionAndStorageTimeIterable()));
+                offsetVersionAndCreationTimeList = new ArrayList<>(ImmutableList.copyOf(offsetListStore.getOffsetList(-rawOffset).offsetVersionAndStorageTimeIterable()));
                 Collections.sort(offsetVersionAndCreationTimeList, new OffsetVersionAndCreationTimeListReverseComparator());
             }
             // List is now in reverse order; iterate down through the offsets

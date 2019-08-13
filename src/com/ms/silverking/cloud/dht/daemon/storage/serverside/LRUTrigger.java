@@ -1,21 +1,18 @@
 package com.ms.silverking.cloud.dht.daemon.storage.serverside;
 
-import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageValueAndParameters;
-import com.ms.silverking.cloud.dht.serverside.PutTrigger;
-import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
-import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
-import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
-import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements;
+import com.ms.silverking.cloud.dht.serverside.*;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.time.AbsNanosTimeSource;
+
+import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 
 public class LRUTrigger implements PutTrigger, RetrieveTrigger, LRUStateProvider {
     private LRUStateImpl        impl;
@@ -87,8 +84,9 @@ public class LRUTrigger implements PutTrigger, RetrieveTrigger, LRUStateProvider
     public boolean subsumesStorage() {
         return false;
     }
-    
-    public List<LRUKeyedInfo> getLRUList() {
+
+    @Override
+    public Queue<LRUKeyedInfo> getLRUList() {
         return impl.getLRUList();
     }
 }
