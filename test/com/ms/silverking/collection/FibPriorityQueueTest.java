@@ -92,6 +92,9 @@ public class FibPriorityQueueTest {
         assertEquals(0, fpq.size());
     }
 
+    /*
+    CI doesn't respect @Ignore in the SK build, so comment this out for now.
+
     @Ignore
     @Test
     public void testRemove() {
@@ -108,5 +111,5 @@ public class FibPriorityQueueTest {
         assertEquals(true, fpq.remove("d"));
         assertEquals(3, fpq.size());
         assertEquals(false, fpq.remove("d"));
-    }
+    }*/
 }
