@@ -12,20 +12,21 @@ public class ConnectionAbsorbException extends Exception {
     private Throwable cause;
 
     public ConnectionAbsorbException(SocketChannel absorbedRawConn, ConnectionListener listenerForAbsorbedCon, boolean serverside, Throwable cause) {
+        super(cause);
         this.absorbedRawConn = absorbedRawConn;
         this.listenerForAbsorbedConn = listenerForAbsorbedCon;
         this.serverside = serverside;
         this.cause = cause;
     }
-    
+
     public String getAbsorbedInfoMessage() {
         String localEndpoint = absorbedRawConn.socket().getLocalAddress().toString();
-        String remoteEndpoing = absorbedRawConn.socket().getRemoteSocketAddress().toString();
+        String remoteEndpoint = absorbedRawConn.socket().getRemoteSocketAddress().toString();
         String side = serverside ? "ServerSide" : "ClientSide";
-        String listenerInfo = listenerForAbsorbedConn.toString();
+        String listenerInfo = listenerForAbsorbedConn != null ? listenerForAbsorbedConn.toString() : "N/A";
         String causeMsg = cause!=null ? " => cause: {" + cause.getMessage() + "}" : "";
 
-        return "Connection between [" + localEndpoint + "(local)] and [" + remoteEndpoing + "(remote)] is absorbed in ["
+        return "Connection between [" + localEndpoint + "(local)] and [" + remoteEndpoint + "(remote)] is absorbed in ["
                 + side + "] with listener [" + listenerInfo + "]" + causeMsg;
 
     }
