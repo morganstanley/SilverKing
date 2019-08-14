@@ -1,20 +1,19 @@
 package com.ms.silverking.cloud.dht.daemon.storage.serverside;
 
 import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.common.DHTKeyComparator;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
-import com.ms.silverking.collection.Pair;
+import com.ms.silverking.collection.FibPriorityQueue;
 import com.ms.silverking.time.AbsNanosTimeSource;
 import com.ms.silverking.time.SystemTimeSource;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class LRUStateImpl implements LRUStateProvider {
     private AbsNanosTimeSource                    timeSource;
     private final ConcurrentMap<DHTKey, LRUInfo>  lruInfoMap;
-    private static LRUKeyedInfoComparator         lruKeyedInfoComparator = new LRUKeyedInfoComparator();
 
     public LRUStateImpl(AbsNanosTimeSource timeSource) {
         if (timeSource == null) {
@@ -51,34 +50,18 @@ public class LRUStateImpl implements LRUStateProvider {
 
     @Override
     public Queue<LRUKeyedInfo> getLRUList() {
-        Queue<LRUKeyedInfo>    lruList;
+        FibPriorityQueue<LRUKeyedInfo>    lruList;
 
-        lruList = new PriorityQueue<>(Math.max(lruInfoMap.size(), 1), lruKeyedInfoComparator);
+        lruList = new FibPriorityQueue<>();
         for (Map.Entry<DHTKey,LRUInfo> entry : lruInfoMap.entrySet()) {
             LRUKeyedInfo ki;
 
             ki = new LRUKeyedInfo(entry.getKey(), entry.getValue());
             // Use add() instead of offer() here because we want to fail loudly
             // if we don't have capacity to add.
-            lruList.add(ki);
+            lruList.add(ki, (double) ki.getAccessTime());
         }
         return lruList;
-    }
-
-    private static class LRUKeyedInfoComparator implements Comparator<LRUKeyedInfo> {
-        LRUKeyedInfoComparator() {
-        }
-
-        @Override
-        public int compare(LRUKeyedInfo i0, LRUKeyedInfo i1) {
-            if (i0.getAccessTime() < i1.getAccessTime()) {
-                return 1;
-            } else if (i0.getAccessTime() > i1.getAccessTime()) {
-                return -1;
-            } else {
-                return DHTKeyComparator.dhtKeyComparator.compare(i0.getKey(), i1.getKey());
-            }
-        }
     }
 
 }

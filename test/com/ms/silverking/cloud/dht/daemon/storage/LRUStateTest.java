@@ -8,6 +8,7 @@ import com.ms.silverking.time.AbsNanosTimeSource;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -49,15 +50,20 @@ public class LRUStateTest {
         state = new LRUStateImpl(time);
     }
 
+    private <T extends LRUKeyedInfo> List<T> iteratorToList(Iterator<T> it) {
+        Iterable<T> iter = () -> (Iterator<T>) state.getLRUList().iterator();
+        List<T> lst = StreamSupport
+                .stream(iter.spliterator(), false)
+                .collect(Collectors.toList());
+        return lst;
+    }
+
     @Test public void testSinglePut() {
         DHTKey keyA = SimpleKey.randomKey();
 
         state.markPut(keyA, 1);
 
-        Iterable<LRUKeyedInfo> it = () -> state.getLRUList().iterator();
-        List<LRUKeyedInfo> listA = StreamSupport
-                .stream(it.spliterator(), false)
-                .collect(Collectors.toList());
+        List<LRUKeyedInfo> listA = iteratorToList(state.getLRUList().iterator());
         assertEquals("LRU List should have one item after put", 1, listA.size());
         LRUKeyedInfo itemA = listA.get(0);
         assertEquals("Key should be maintained", keyA, itemA.getKey());
@@ -74,10 +80,7 @@ public class LRUStateTest {
         time.setTime(1L);
         state.markPut(keyA, 1);
 
-        Iterable<LRUKeyedInfo> it = () -> state.getLRUList().iterator();
-        List<LRUKeyedInfo> list = StreamSupport
-                .stream(it.spliterator(), false)
-                .collect(Collectors.toList());
+        List<LRUKeyedInfo> list = iteratorToList(state.getLRUList().iterator());
         LRUKeyedInfo item = list.get(0);
         assertEquals("LRU List should have one item after repeated key put", 1, list.size());
         assertEquals("Key should be maintained", keyA, item.getKey());
@@ -94,10 +97,7 @@ public class LRUStateTest {
         time.setTime(1L);
         state.markPut(keyB, 1);
 
-        Iterable<LRUKeyedInfo> it = () -> state.getLRUList().iterator();
-        List<LRUKeyedInfo> list = StreamSupport
-                .stream(it.spliterator(), false)
-                .collect(Collectors.toList());
+        List<LRUKeyedInfo> list = iteratorToList(state.getLRUList().iterator());
         assertEquals("LRU List should have two items after new key put", 2, list.size());
         LRUKeyedInfo first = list.get(0);
         LRUKeyedInfo second = list.get(1);
@@ -112,20 +112,14 @@ public class LRUStateTest {
 
         state.markPut(keyA, 1);
 
-        Iterable<LRUKeyedInfo> it = () -> state.getLRUList().iterator();
-        List<LRUKeyedInfo> list = StreamSupport
-                .stream(it.spliterator(), false)
-                .collect(Collectors.toList());
+        List<LRUKeyedInfo> list = iteratorToList(state.getLRUList().iterator());
         LRUKeyedInfo item = list.get(0);
         assertEquals("LRU List should have one item after repeated key put", 1, list.size());
         assertEquals("Timestamp should be initial put time", 0L, item.getAccessTime());
 
         time.setTime(1L);
         state.markRead(keyA);
-        Iterable<LRUKeyedInfo> it2 = () -> state.getLRUList().iterator();
-        List<LRUKeyedInfo> list2 = StreamSupport
-                .stream(it2.spliterator(), false)
-                .collect(Collectors.toList());
+        List<LRUKeyedInfo> list2 = iteratorToList(state.getLRUList().iterator());
         LRUKeyedInfo item2 = list2.get(0);
 
         assertEquals("LRU List should have one item after read update", 1, list2.size());
@@ -143,10 +137,7 @@ public class LRUStateTest {
         time.setTime(1L);
         state.markPut(keyB, 1);
 
-        Iterable<LRUKeyedInfo> it = () -> state.getLRUList().iterator();
-        List<LRUKeyedInfo> list = StreamSupport
-                .stream(it.spliterator(), false)
-                .collect(Collectors.toList());
+        List<LRUKeyedInfo> list = iteratorToList(state.getLRUList().iterator());
         assertEquals("LRU List should have two items after new key put", 2, list.size());
         LRUKeyedInfo first = list.get(0);
         LRUKeyedInfo second = list.get(1);
@@ -155,10 +146,7 @@ public class LRUStateTest {
         time.setTime(2L);
         state.markRead(keyA);
 
-        Iterable<LRUKeyedInfo> it2 = () -> state.getLRUList().iterator();
-        List<LRUKeyedInfo> list2 = StreamSupport
-                .stream(it2.spliterator(), false)
-                .collect(Collectors.toList());
+        List<LRUKeyedInfo> list2 = iteratorToList(state.getLRUList().iterator());
         assertEquals("LRU List should still have two items after read", 2, list2.size());
         LRUKeyedInfo first2 = list2.get(0);
         LRUKeyedInfo second2 = list2.get(1);

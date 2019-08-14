@@ -64,7 +64,7 @@ public class LRURetentionPolicy extends CapacityBasedRetentionPolicy<LRURetentio
      */
     private Map<DHTKey,MutableInteger> createRetentionMap(Queue<LRUKeyedInfo> lruList) {
         long        bytesRetained;
-        ImmutableMap.Builder<DHTKey,MutableInteger> retentionMap;
+        ImmutableMap.Builder<DHTKey,MutableInteger>    retentionMap;
 
         //System.out.printf("createRetentionMap %d\n", lruList.size());
         retentionMap = ImmutableMap.builder();
