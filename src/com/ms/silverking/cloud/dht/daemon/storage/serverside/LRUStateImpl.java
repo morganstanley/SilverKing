@@ -59,7 +59,7 @@ public class LRUStateImpl implements LRUStateProvider {
             ki = new LRUKeyedInfo(entry.getKey(), entry.getValue());
             // Use add() instead of offer() here because we want to fail loudly
             // if we don't have capacity to add.
-            lruList.add(ki, (double) ki.getAccessTime());
+            lruList.add(ki, (double) (-1 * ki.getAccessTime()));
         }
         return lruList;
     }

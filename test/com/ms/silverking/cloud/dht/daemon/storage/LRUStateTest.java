@@ -4,7 +4,6 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUKeyedInfo;
 import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUStateImpl;
-import com.ms.silverking.time.AbsNanosTimeSource;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,30 +16,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class LRUStateTest {
-
-    private class DummyTimeSource implements AbsNanosTimeSource {
-        private long time = 0L;
-
-        public void setTime(long newTime) {
-            time = newTime;
-        }
-
-        @Override
-        public long getNanosOriginTime() {
-            return 0L;
-        }
-
-        @Override
-        public long absTimeNanos() {
-            return time;
-        }
-
-        @Override
-        public long relNanosRemaining(long absDeadlineNanos) {
-            return 0L;
-        }
-    }
-
     private DummyTimeSource time;
     private LRUStateImpl state;
 
@@ -71,7 +46,6 @@ public class LRUStateTest {
     }
 
     @Test public void testRepeatedPut() {
-
         DHTKey keyA = SimpleKey.randomKey();
 
         state.markPut(keyA, 1);
@@ -102,9 +76,9 @@ public class LRUStateTest {
         LRUKeyedInfo first = list.get(0);
         LRUKeyedInfo second = list.get(1);
 
-        assertTrue("LRUList should be sorted on put order", first.getAccessTime() < second.getAccessTime());
-        assertEquals("KeyA should be the oldest key", keyA, first.getKey());
-        assertEquals("KeyB should be the newest key", keyB, second.getKey());
+        assertTrue("LRUList should be sorted on put order", first.getAccessTime() > second.getAccessTime());
+        assertEquals("KeyB should be the oldest key", keyA, second.getKey());
+        assertEquals("KeyA should be the newest key", keyB, first.getKey());
     }
 
     @Test public void testLRUPutAndRead() {
@@ -141,7 +115,7 @@ public class LRUStateTest {
         assertEquals("LRU List should have two items after new key put", 2, list.size());
         LRUKeyedInfo first = list.get(0);
         LRUKeyedInfo second = list.get(1);
-        assertTrue("LRUList should be sorted on put order", first.getAccessTime() < second.getAccessTime());
+        assertTrue("LRUList should be sorted on put order", first.getAccessTime() > second.getAccessTime());
 
         time.setTime(2L);
         state.markRead(keyA);
@@ -149,8 +123,7 @@ public class LRUStateTest {
         List<LRUKeyedInfo> list2 = iteratorToList(state.getLRUList().iterator());
         assertEquals("LRU List should still have two items after read", 2, list2.size());
         LRUKeyedInfo first2 = list2.get(0);
-        LRUKeyedInfo second2 = list2.get(1);
-        assertEquals("KeyB should be newest KeyA once reused", keyB, first2.getKey());
+        assertEquals("KeyA should be newest key once reused", keyA, first2.getKey());
     }
 
 }
