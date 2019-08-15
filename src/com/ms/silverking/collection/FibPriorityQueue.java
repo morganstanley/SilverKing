@@ -28,7 +28,7 @@ public class FibPriorityQueue<T> extends AbstractQueue<T> {
 
     @Override
     public boolean remove(Object o) {
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     private class FibPriorityQueueIterator<T> implements Iterator<T> {

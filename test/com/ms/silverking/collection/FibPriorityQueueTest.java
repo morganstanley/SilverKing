@@ -92,11 +92,7 @@ public class FibPriorityQueueTest {
         assertEquals(0, fpq.size());
     }
 
-    /*
-    CI doesn't respect @Ignore in the SK build, so comment this out for now.
-
-    @Ignore
-    @Test
+    @Test(expected = UnsupportedOperationException.class)
     public void testRemove() {
         FibPriorityQueue<String> fpq = new FibPriorityQueue<>();
         fpq.add("a", 1D);
@@ -105,11 +101,6 @@ public class FibPriorityQueueTest {
         fpq.add("d", 4D);
         fpq.add("e", 5D);
         assertEquals(5, fpq.size());
-        assertEquals(true, fpq.remove("a"));
-        assertEquals(4, fpq.size());
-        assertEquals(false, fpq.remove("a"));
-        assertEquals(true, fpq.remove("d"));
-        assertEquals(3, fpq.size());
-        assertEquals(false, fpq.remove("d"));
-    }*/
+        fpq.remove("a");
+    }
 }
