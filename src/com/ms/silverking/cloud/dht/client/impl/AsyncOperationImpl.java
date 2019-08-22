@@ -3,7 +3,9 @@ package com.ms.silverking.cloud.dht.client.impl;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -46,6 +48,8 @@ abstract class AsyncOperationImpl implements AsyncOperation {
     private volatile boolean   sent;    // a hint as to whether or not this operation has been sent before
                                         // used to optimize the first message creation
     protected OpTimeoutState  timeoutState;
+
+    private static Map<OperationUUID,AsyncOperationImpl>  opsWithListeners = new ConcurrentHashMap<>();
     
     public AsyncOperationImpl(Operation operation, long curTimeMillis, byte[] originator) {
         OpTimeoutController   timeoutController;
@@ -151,7 +155,9 @@ abstract class AsyncOperationImpl implements AsyncOperation {
             }
         } else {
             Set<Pair<AsyncOperationListener,EnumSet<OperationState>>>    _listeners;
+            boolean isCompletion;
             
+            isCompletion = false;
             _listeners = null;
             lock.lock();
             try {
@@ -161,6 +167,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                         failureCleanup(result.toFailureCause(getNonExistenceResponse()));
                     }
                     this.result = result;
+                    isCompletion = result.isComplete();
                     cv.signalAll();
                     if (listeners != null) {
                         _listeners = ImmutableSet.copyOf(listeners);
@@ -176,7 +183,10 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                 lock.unlock();
             }
             if (_listeners != null) {
-                notificationWorker.fiterForUpdates(this, _listeners, getState());
+                notificationWorker.filterForUpdates(this, _listeners, getState());
+                if (isCompletion) {
+                    opsWithListeners.remove(getUUID());
+                }
             }
             cleanup();
         }
@@ -203,7 +213,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                     lock.unlock();
                 }
                 if (_listeners != null) {
-                    notificationWorker.fiterForUpdates(this, _listeners, opState);
+                    notificationWorker.filterForUpdates(this, _listeners, opState);
                 }
             }
         }
@@ -221,7 +231,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
         NotificationWorker() {
         }
         
-        void fiterForUpdates(AsyncOperationImpl opImpl, Set<Pair<AsyncOperationListener,EnumSet<OperationState>>> _listeners, OperationState opState) {
+        void filterForUpdates(AsyncOperationImpl opImpl, Set<Pair<AsyncOperationListener,EnumSet<OperationState>>> _listeners, OperationState opState) {
             Set<AsyncOperationListener>    listeners;
             
             listeners = new HashSet<>();
@@ -309,7 +319,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
     public void addListener(AsyncOperationListener listener, OperationState... listenStates) {
         EnumSet<OperationState>    _listenStates;
         OperationState            opState;
-        
+
         _listenStates = CollectionUtil.arrayToEnumSet(listenStates);
         opState = getState();
         lock.lock();
@@ -322,6 +332,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                     listeners = new HashSet<>();
                 }
                 listeners.add(new Pair<>(listener, _listenStates));
+                opsWithListeners.put(getUUID(), this);
             }
         } finally {
             lock.unlock();
@@ -354,6 +365,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                 for (AsyncOperationListener listener : _listeners) {
                     listeners.add(new Pair<>(listener, _listenStates));
                 }
+                opsWithListeners.put(getUUID(), this);
             }
         } finally {
             lock.unlock();
