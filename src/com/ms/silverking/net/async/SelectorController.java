@@ -477,6 +477,11 @@ public final class SelectorController<C extends Connection> implements Runnable 
                 ThreadUtil.pauseAfterException();
             }
         }
+        try {
+            selector.close();
+        } catch (IOException e) {
+            Log.logErrorWarning(e, "Could not close selector " + selector);
+        }
     }
 
     public String getThreadName() {
