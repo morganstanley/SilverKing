@@ -237,6 +237,8 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final int    minFinalizationIntervalMillis;
     private static final long    maxUnfinalizedDeletedBytes;
 
+    private static final boolean verboseReapLogInfo;
+
     static {
         segmentIndexLocation = SegmentIndexLocation.valueOf(PropertiesHelper.systemHelper.getString(DHTConstants.segmentIndexLocationProperty, DHTConstants.defaultSegmentIndexLocation.toString()));
         Log.warningf("segmentIndexLocation: %s", segmentIndexLocation);
@@ -252,6 +254,8 @@ public class NamespaceStore implements SSNamespaceStore {
 
         Preconditions.checkState(minFinalizationIntervalMillis > 0, "minFinalizationIntervalMillis shall be non-negative");
         Preconditions.checkState(maxUnfinalizedDeletedBytes > 0, "maxUnfinalizedDeletedBytes shall be non-negative");
+
+        verboseReapLogInfo = PropertiesHelper.systemHelper.getBoolean(DHTConstants.verboseReapLogInfoProperty,false);
     }
     
 
@@ -3144,7 +3148,7 @@ public class NamespaceStore implements SSNamespaceStore {
         
         segmentsReaped = 0;
         vrp = nsOptions.getValueRetentionPolicy();
-        if (verboseReap || Log.levelMet(Level.INFO)) {
+        if (verboseReap || verboseReapLogInfo) {
             Log.infoAsyncf("_reap ns %x %s [%d, %d]", ns, vrp, startSegment, endSegment);
         }
         if (vrp != null) {
@@ -3214,7 +3218,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     }
                     result = segment.singleReverseSegmentWalk(vrp, valueRetentionState, curTimeNanos, ringMaster);
                     if (i == headSegment.getSegmentNumber()) {
-                        if (verboseReap || Log.levelMet(Level.INFO)) {
+                        if (verboseReap || verboseReapLogInfo) {
                             Log.warningAsyncf("Retaining head segment");
                         }
                     } else {
@@ -3226,7 +3230,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         }
                     }
                     sw.stop();
-                    if (verboseReap || Log.levelMet(Level.INFO)) {
+                    if (verboseReap || verboseReapLogInfo) {
                         Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
                     }
                 } catch (Exception e) {
@@ -3257,7 +3261,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     Stopwatch sw;
     
                     sw = new SimpleStopwatch();
-                    if (verboseReap || Log.levelMet(Level.INFO)) {
+                    if (verboseReap || verboseReapLogInfo) {
                         Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", curSegment, ccr.toString());
                     }
     
@@ -3295,7 +3299,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         }
                     }
                     sw.stop();
-                    if (verboseReap || Log.levelMet(Level.INFO)) {
+                    if (verboseReap || verboseReapLogInfo) {
                         Log.warningAsyncf("\t\t%d %f", curSegment, sw.getElapsedSeconds());
                     }
                 } catch (Exception e) {
