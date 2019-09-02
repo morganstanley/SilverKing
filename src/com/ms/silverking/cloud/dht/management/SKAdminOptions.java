@@ -213,8 +213,8 @@ public class SKAdminOptions {
         String[] options = startNodeExtraJVMOptions.trim().split("\\s+");
         for (String op : options) {
             // let it crash to prevent SKAdmin command to be populated
-            if (!(op.startsWith(javaSystemPropertyFlag) || op.startsWith("-X"))) {
-                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '" + javaSystemPropertyFlag + "' or '-X'");
+            if (!(op.startsWith("-"))) {
+                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '-'");
             }
         }
     }
