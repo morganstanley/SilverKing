@@ -53,7 +53,7 @@ import com.ms.silverking.thread.ThreadUtil;
  * NodeRingMaster is responsible for responding to new target and current rings
  * that are set by DHTRingMaster.
  */
-public class NodeRingMaster2 implements DHTMetaUpdateListener {
+public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResolver {
     private final String            dhtName;
     private final ZooKeeperConfig   zkConfig;
     private final IPAndPort         nodeID;

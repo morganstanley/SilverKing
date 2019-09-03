@@ -75,6 +75,7 @@ import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.common.ValueUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
+import com.ms.silverking.cloud.dht.daemon.KeyToReplicaResolver;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthIssue;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
@@ -576,6 +577,10 @@ public class NamespaceStore implements SSNamespaceStore {
     
     protected boolean isDynamic() {
         return false;
+    }
+
+    public KeyToReplicaResolver getKeyToReplicaResolver() {
+        return getRingMaster();
     }
     
     public NodeRingMaster2 getRingMaster() {
