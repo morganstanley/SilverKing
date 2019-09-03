@@ -332,6 +332,17 @@ public class PersistentAsyncServer<T extends Connection>
                 return connection;
             } catch (ConnectionAbsorbException cae) {
                 Log.logErrorWarning(cae, cae.getAbsorbedInfoMessage());
+                if (backoff == null) {
+                    backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue, deadline);
+                }
+                if (SystemTimeSource.instance.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
+                    backoff.backoff();
+                } else {
+                    if (suspectAddressListener != null) {
+                        suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
+                    }
+                    throw new ConnectException(cae.getAbsorbedInfoMessage());
+                }
             } catch (ConnectException ce) {
                 if (addressStatusProvider != null 
                         && addressStatusProvider.isAddressStatusProviderThread()) {

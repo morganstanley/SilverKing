@@ -320,25 +320,39 @@ public class AsyncBase<T extends Connection> {
                 
     ////////////////////////////////////////////////////////////////////////////////////
     public T newOutgoingConnection(InetSocketAddress dest, ConnectionListener listener) throws IOException, ConnectionAbsorbException {
-        SocketChannel    channel;
-        
-        channel = SocketChannel.open();
-        if (dest.isUnresolved()) {
-            Log.warning("Unresolved InetSocketAddress: "+ dest);
-            throw new ConnectException("Unresolved InetSocketAddress"+ dest.toString());
-        }
-        LWTThreadUtil.setBlocked();
+        SocketChannel    channel = null;
+        Exception        exc = null;
         try {
+            channel = SocketChannel.open();
+            if (dest.isUnresolved()) {
+                Log.warning("Unresolved InetSocketAddress: "+ dest);
+                ConnectException e = new ConnectException("Unresolved InetSocketAddress"+ dest.toString());
+                exc = e;
+                throw e;
+            }
+            LWTThreadUtil.setBlocked();
             channel.socket().connect(dest, defSocketConnectTimeout);
-            //channel.connect(dest);
+            LWTThreadUtil.setNonBlocked();
+            return addConnection(channel, listener, false);
         } catch (UnresolvedAddressException uae) {
             Log.logErrorWarning(uae);
             Log.warning(dest);
-            throw new ConnectException(dest.toString());
+            ConnectException e = new ConnectException(dest.toString());
+            exc = e;
+            throw e;
+        } catch (Exception e) {
+            exc = e;
+            throw e;
         } finally {
             LWTThreadUtil.setNonBlocked();
+            if (exc != null && channel != null) {
+                try {
+                    channel.close();
+                } catch (IOException e) {
+                    Log.logErrorWarning(e, "Could not close socketChannel " + channel);
+                }
+            }
         }
-        return addConnection(channel, listener, false);
     }
     
     public T addConnection(SocketChannel channel, boolean serverside) throws SocketException, ConnectionAbsorbException {
