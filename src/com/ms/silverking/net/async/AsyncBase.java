@@ -320,32 +320,23 @@ public class AsyncBase<T extends Connection> {
                 
     ////////////////////////////////////////////////////////////////////////////////////
     public T newOutgoingConnection(InetSocketAddress dest, ConnectionListener listener) throws IOException, ConnectionAbsorbException {
-        SocketChannel    channel = null;
-        Exception        exc = null;
+        SocketChannel   channel = null;
+        boolean         connectionSuccess = false;
+
         try {
             channel = SocketChannel.open();
-            if (dest.isUnresolved()) {
-                Log.warning("Unresolved InetSocketAddress: "+ dest);
-                ConnectException e = new ConnectException("Unresolved InetSocketAddress"+ dest.toString());
-                exc = e;
-                throw e;
-            }
             LWTThreadUtil.setBlocked();
             channel.socket().connect(dest, defSocketConnectTimeout);
-            LWTThreadUtil.setNonBlocked();
-            return addConnection(channel, listener, false);
+            T conn = addConnection(channel, listener, false);
+            connectionSuccess = true;
+            return conn;
         } catch (UnresolvedAddressException uae) {
             Log.logErrorWarning(uae);
             Log.warning(dest);
-            ConnectException e = new ConnectException(dest.toString());
-            exc = e;
-            throw e;
-        } catch (Exception e) {
-            exc = e;
-            throw e;
+            throw new ConnectException(dest.toString());
         } finally {
             LWTThreadUtil.setNonBlocked();
-            if (exc != null && channel != null) {
+            if (!connectionSuccess && channel != null) {
                 try {
                     channel.close();
                 } catch (IOException e) {
