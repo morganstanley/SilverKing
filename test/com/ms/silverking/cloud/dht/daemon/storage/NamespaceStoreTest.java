@@ -5,8 +5,8 @@ import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
-
 import com.ms.silverking.cloud.dht.RetrievalType;
+import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
@@ -14,31 +14,28 @@ import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
-import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
+import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import org.junit.Test;
 
-import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class NamespaceStoreTest {
 
     public NamespaceStore getNS(int version) {
-        File nsDir = mock(File.class);
         MessageGroupBase mg = mock(MessageGroupBase.class);
         NodeRingMaster2 ringMaster = mock(NodeRingMaster2.class);
         AbsMillisTimeSource ts = mock(AbsMillisTimeSource.class);
@@ -47,11 +44,10 @@ public class NamespaceStoreTest {
 
         Arrays.fill(rb, (byte) 1);
 
-
         NamespaceProperties nsprop = new NamespaceProperties(DHTConstants.defaultNamespaceOptions.consistencyProtocol(ConsistencyProtocol.LOOSE));
-        return new NamespaceStore(1, null , NamespaceStore.DirCreationMode.DoNotCreateNSDir,
-                nsprop , mg, ringMaster,
-                true, new ConcurrentHashMap<UUIDBase, ActiveProxyRetrieval>()){
+        return new NamespaceStore(1, null, NamespaceStore.DirCreationMode.DoNotCreateNSDir,
+                nsprop, mg, ringMaster,
+                true, new ConcurrentHashMap<UUIDBase, ActiveProxyRetrieval>()) {
             @Override
             protected long newestVersion(DHTKey key) {
                 return version;
@@ -76,7 +72,7 @@ public class NamespaceStoreTest {
         NamespaceStore ns = getNS(version);
         StorageParametersAndRequirements storageParams = new StorageParametersAndRequirements(version + 1,
                 1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired );
-        assertTrue(ns._put(new SimpleKey(1,1), bb, storageParams, new byte[]{},
+        assertTrue(ns._put(new SimpleKey(1, 1), bb, storageParams, new byte[]{},
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.duplicateStore.toOpResult());
     }
 
@@ -89,7 +85,7 @@ public class NamespaceStoreTest {
         NamespaceStore ns = getNS(version);
         StorageParametersAndRequirements storageParams = new StorageParametersAndRequirements(version,
                 1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired );
-        assertTrue(ns._put(new SimpleKey(1,1), bb, storageParams, new byte[]{},
+        assertTrue(ns._put(new SimpleKey(1, 1), bb, storageParams, new byte[]{},
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.duplicateStore.toOpResult());
     }
 
@@ -102,7 +98,7 @@ public class NamespaceStoreTest {
         NamespaceStore ns = getNS(version);
         StorageParametersAndRequirements storageParams = new StorageParametersAndRequirements(version + 1,
                 1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired );
-        assertTrue(ns._put(new SimpleKey(1,1), bb, storageParams, new byte[]{},
+        assertTrue(ns._put(new SimpleKey(1, 1), bb, storageParams, new byte[]{},
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.mutation.toOpResult());
     }
 
@@ -119,4 +115,127 @@ public class NamespaceStoreTest {
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.invalidVersion.toOpResult());
     }
 
+    private Pair<ByteBuffer, ByteBuffer[]> retrieveInvalidations(DHTKey key,
+                                                                 DHTKey[] keys,
+                                                                 boolean dataIsInvalid,
+                                                                 boolean includeInvalidations) {
+        assert (key == null ^ keys == null);
+        MessageGroupBase mg = mock(MessageGroupBase.class);
+        NodeRingMaster2 ringMaster = mock(NodeRingMaster2.class);
+        AbsMillisTimeSource ts = mock(AbsMillisTimeSource.class);
+        when(mg.getAbsMillisTimeSource()).thenReturn(ts);
+
+        NamespaceProperties nsprop = new NamespaceProperties(DHTConstants.defaultNamespaceOptions.consistencyProtocol(ConsistencyProtocol.LOOSE));
+        NamespaceStore ns = new NamespaceStore(1,
+                null,
+                NamespaceStore.DirCreationMode.DoNotCreateNSDir,
+                nsprop,
+                mg,
+                ringMaster,
+                true,
+                new ConcurrentHashMap<UUIDBase, ActiveProxyRetrieval>()) {
+            @Override
+            protected ByteBuffer[] _retrieve(DHTKey[] keys, InternalRetrievalOptions options) {
+                ByteBuffer[] bb = new ByteBuffer[keys.length];
+                for (int i = 0; i < keys.length; i++) {
+                    bb[i] = _retrieve(keys[i], options);
+                }
+                return bb;
+            }
+
+            @Override
+            protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
+                ByteBuffer bb = ByteBuffer.allocate(1);
+                bb.put((byte) 1);
+                return bb;
+            }
+
+            @Override
+            protected boolean isInvalidated(ByteBuffer result, int baseOffset) {
+                return dataIsInvalid;
+            }
+        };
+        RetrievalOptions ro = new RetrievalOptions(new SimpleTimeoutController(1, 0),
+                new HashSet<SecondaryTarget>(),
+                RetrievalType.META_DATA,
+                WaitMode.GET,
+                VersionConstraint.defaultConstraint,
+                NonExistenceResponse.defaultResponse,
+                true,
+                includeInvalidations,
+                ForwardingMode.DO_NOT_FORWARD,
+                false,
+                new byte[0]);
+        SSRetrievalOptions options = new InternalRetrievalOptions(ro, false);
+
+        ByteBuffer result;
+        ByteBuffer[] results;
+
+        if (keys == null) {
+            result = ns.retrieve(key, options);
+            results = null;
+        } else {
+            result = null;
+            results = ns.retrieve(keys, options);
+        }
+        return new Pair<ByteBuffer, ByteBuffer[]>(result, results);
+    }
+
+    // single key tests
+    @Test
+    public void testRetrieveSingleKeyDoesIncludeInvalidationsWhenDataIsInvalidAndReturnInvalidations() {
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(new SimpleKey(0, 0), null, true, true);
+        assertTrue(resultPair.getV1() != null);
+    }
+
+    @Test
+    public void testRetrieveSingleKeyDoesNotIncludeInvalidationsWhenDataIsInvalidAndNotReturnInvalidations() {
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(new SimpleKey(0, 0), null, true, false);
+        assertTrue(resultPair.getV1() == null);
+    }
+
+    @Test
+    public void testRetrieveSingleKeyDoesIncludeInvalidationsWhenDataIsNotInvalidAndReturnInvalidations() {
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(new SimpleKey(0, 0), null, false, true);
+        assertTrue(resultPair.getV1() != null);
+    }
+
+    @Test
+    public void testRetrieveSingleKeyDoesNotIncludeInvalidationsWhenDataIsNotInvalidAndNotReturnInvalidations() {
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(new SimpleKey(0, 0), null, false, false);
+        assertTrue(resultPair.getV1() != null);
+    }
+
+    // multiple key tests
+    @Test
+    public void testRetrieveMultipleKeysDoesIncludeInvalidationsWhenDataIsInvalidAndReturnInvalidations() {
+        DHTKey[] keys = new DHTKey[1];
+        keys[0] = new SimpleKey(0, 0);
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(null, keys, true, true);
+        assertTrue(resultPair.getV2()[0] != null);
+    }
+
+    @Test
+    public void testRetrieveMultipleKeysDoesNotIncludeInvalidationsWhenDataIsInvalidAndNotReturnInvalidations() {
+        DHTKey[] keys = new DHTKey[1];
+        keys[0] = new SimpleKey(0, 0);
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(null, keys, true, false);
+        assertTrue(resultPair.getV2()[0] == null);
+    }
+
+    @Test
+    public void testRetrieveMultipleKeysDoesIncludeInvalidationsWhenDataIsNotInvalidAndReturnInvalidations() {
+        DHTKey[] keys = new DHTKey[1];
+        keys[0] = new SimpleKey(0, 0);
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(null, keys, false, true);
+        assertTrue(resultPair.getV2()[0] != null);
+    }
+
+    @Test
+    public void testRetrieveMultipleKeysDoesNotIncludeInvalidationsWhenDataIsNotInvalidAndNotReturnInvalidations() {
+        DHTKey[] keys = new DHTKey[1];
+        keys[0] = new SimpleKey(0, 0);
+        Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(null, keys, false, false);
+        assertTrue(resultPair.getV2()[0] != null);
+    }
 }

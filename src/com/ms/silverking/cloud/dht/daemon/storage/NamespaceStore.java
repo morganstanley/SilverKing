@@ -1,37 +1,5 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-import java.util.logging.Level;
-
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -123,6 +91,37 @@ import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.jvm.Finalization;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+import java.util.logging.Level;
+
 public class NamespaceStore implements SSNamespaceStore {
     private final long ns;
     private NamespaceStore  parent;
@@ -173,7 +172,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final Finalization finalization;
     private final FileSegmentCompactor fileSegmentCompactor;
 
-    private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;    
+    private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;
     
     private static final byte[] emptyUserData = new byte[0];
     
@@ -3600,13 +3599,17 @@ public class NamespaceStore implements SSNamespaceStore {
         return _put(key, value, StorageParametersAndRequirements.fromSSStorageParametersAndRequirements(storageParams), userData, nsVersionMode);
     }
 
+    protected boolean isInvalidated(ByteBuffer result, int baseOffset) {
+        return MetaDataUtil.isInvalidation(result, baseOffset);
+    }
+
     @Override
     public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options) {
         ByteBuffer  result;
         
         result = _retrieve(key, InternalRetrievalOptions.fromSSRetrievalOptions(options));
         if (result != null && !options.getReturnInvalidations()) {
-            if (MetaDataUtil.isInvalidation(result, 0)) {
+            if (isInvalidated(result, 0)) {
                 result = null;
             }
         }
@@ -3615,7 +3618,25 @@ public class NamespaceStore implements SSNamespaceStore {
 
     @Override
     public ByteBuffer[] retrieve(DHTKey[] keys, SSRetrievalOptions options) {
-        return _retrieve(keys, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+        ByteBuffer[]  results;
+
+        results = _retrieve(keys, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+        if (options.getReturnInvalidations()) {
+            return results;
+        } else {
+            ByteBuffer[]  nulledResults;
+            ByteBuffer    result;
+
+            nulledResults = new ByteBuffer[results.length];
+            for (int i = 0; i < results.length; i++) {
+                result = results[i];
+                if (result != null && isInvalidated(result, 0)) {
+                    result = null;
+                }
+                nulledResults[i] = result;
+            }
+            return nulledResults;
+        }
     }
 
     @Override
