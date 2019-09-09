@@ -127,4 +127,9 @@ public class RandomBackoff {
     public boolean maxBackoffExceeded() {
         return consecutiveBackoffs >= maxBackoffNum;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s[curBackoffNum=%d, maxBackoffNum=%d]",this.getClass().getSimpleName(), curBackoffNum, maxBackoffNum);
+    }
 }

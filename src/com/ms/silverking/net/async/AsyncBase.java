@@ -354,19 +354,20 @@ public class AsyncBase<T extends Connection> {
         T    connection;
         SelectorController<T>    selectorController;
 
+        String connInfo = channel.socket() != null ? channel.socket().toString() : "nullSock";
         Authenticator.AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside, defAuthenticationTimeoutInMillisecond);
         if (authResult.isFailed()) {
             switch (authResult.getFailedAction()) {
                 case GO_WITHOUT_AUTH: break;
                 case THROW_ERROR:
-                    String msg = "Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide");
+                    String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide");
                     throw authResult.getFailCause().isPresent() ?
                         new AuthenticationFailError(msg, authResult.getFailCause().get()) :
                         new AuthenticationFailError(msg);
                 case ABSORB_CONNECTION:
-                    throw new ConnectionAbsorbException(channel, listener, serverside, authResult.getFailCause().orElse(null));
+                    throw new ConnectionAbsorbException(channel, connInfo, listener, serverside, authResult.getFailCause().orElse(null));
                 default:
-                    throw new RuntimeException("Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"
+                    throw new RuntimeException("Connection " + connInfo + " fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"
                             + " and action for this failure has NOT been defined: "
                             + "please check the behaviour of injected authenticator [" + authenticator.getName() + "]"));
             }
@@ -391,7 +392,7 @@ public class AsyncBase<T extends Connection> {
 
         if (authResult.isSuccessful()) {
             Log.info("Authenticator: authId["+authResult.getAuthId().get()+"] is obtained in ["
-                    + (serverside ? "ServerSide" : "ClientSide")+ "] by ["+authenticator.getName()+"]");
+                    + (serverside ? "ServerSide" : "ClientSide")+ "] by ["+authenticator.getName()+"] for connection " + connInfo);
             connection.setAuthResult(authResult);
         }
         connection.start();

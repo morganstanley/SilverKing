@@ -52,7 +52,24 @@ public class PersistentAsyncServer<T extends Connection>
     private static final String defaultSelectorControllerClass = "PAServer";
     
     public static final int    useDefaultBacklog = 0;
-    
+
+    public PersistentAsyncServer(AsyncServer<T> asyncServer,
+                                 NewConnectionTimeoutController newConnectionTimeoutController,
+                                 BaseWorker<OutgoingAsyncMessage> asyncConnector,
+                                 boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) {
+        isRunning = true;
+        this.debug = debug;
+        this.newConnectionTimeoutController = newConnectionTimeoutController;
+        this.asyncServer = asyncServer;
+        connections = new ConcurrentHashMap<InetSocketAddress,T>();
+        newConnectionLocks = new ConcurrentHashMap<InetSocketAddress,ReentrantLock>();
+        this.asyncConnector = asyncConnector;
+        if (mqListener != null) {
+            new ConnectionQueueWatcher(mqListener, mqUUID);
+        }
+        //new ConnectionDebugger();
+    }
+
     public PersistentAsyncServer(int port, int backlog,
                                 int numSelectorControllers,  
                                 String controllerClass, 
@@ -341,7 +358,7 @@ public class PersistentAsyncServer<T extends Connection>
                     if (suspectAddressListener != null) {
                         suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
                     }
-                    throw new ConnectException(cae.getAbsorbedInfoMessage());
+                    throw new ConnectException("Authentication fails after run out of retries [currTime=" + SystemTimeSource.instance.absTimeMillis() + ",deadline=" + deadline + "] and " + backoff +  " =>" + cae.getAbsorbedInfoMessage());
                 }
             } catch (ConnectException ce) {
                 if (addressStatusProvider != null 
