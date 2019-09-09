@@ -53,7 +53,8 @@ public class PersistentAsyncServer<T extends Connection>
     
     public static final int    useDefaultBacklog = 0;
 
-    public PersistentAsyncServer(AsyncServer<T> asyncServer,
+    // Mainly used for test or inject cutomized AsyncServer
+    PersistentAsyncServer(AsyncServer<T> asyncServer,
                                  NewConnectionTimeoutController newConnectionTimeoutController,
                                  BaseWorker<OutgoingAsyncMessage> asyncConnector,
                                  boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) {

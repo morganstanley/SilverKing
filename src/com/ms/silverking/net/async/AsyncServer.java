@@ -88,10 +88,11 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     }
         
     void accept(ServerSocketChannel channel) {
-        assert channel != null;
-        Log.fine("accept ", channel);
         SocketChannel   socketChannel = null;
         boolean         connectionSuccess = false;
+
+        assert channel != null;
+        Log.fine("accept ", channel);
 
         try {
             socketChannel = channel.accept();
