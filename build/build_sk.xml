@@ -76,7 +76,7 @@
         <mkdir dir="${testSkfs.dir}"/>
     </target>
 
-    <!-- Compiles the java code (including the usage of library for JUnit -->
+    <!-- Compiles the java code (including the usage of library for JUnit) -->
     <target name="compile" depends="clean, makedir">
         <javac srcdir="${src.dir}" destdir="${classes.src.dir}" classpathref="classpath" encoding="utf-8" debug="on">
             <compilerarg line="-XDignore.symbol.file" />
@@ -173,6 +173,7 @@
   
     <target name="runTests">
         <junit printsummary="withOutAndErr" haltonfailure="no" forkmode="perTest" threads="16" showoutput="true">
+            <jvmarg value="-javaagent:/ms/dist/ossjava/PROJ/jmockit/1.46.0/lib/jmockit-1.46.jar" />
             <classpath refid="classpath.test"/>
             <formatter type="xml"/>
             <batchtest fork="yes" todir="${output.run.dir}">

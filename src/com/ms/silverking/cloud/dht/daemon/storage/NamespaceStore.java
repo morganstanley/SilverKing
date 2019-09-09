@@ -3599,17 +3599,13 @@ public class NamespaceStore implements SSNamespaceStore {
         return _put(key, value, StorageParametersAndRequirements.fromSSStorageParametersAndRequirements(storageParams), userData, nsVersionMode);
     }
 
-    protected boolean isInvalidated(ByteBuffer result, int baseOffset) {
-        return MetaDataUtil.isInvalidation(result, baseOffset);
-    }
-
     @Override
     public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options) {
         ByteBuffer  result;
         
         result = _retrieve(key, InternalRetrievalOptions.fromSSRetrievalOptions(options));
         if (result != null && !options.getReturnInvalidations()) {
-            if (isInvalidated(result, 0)) {
+            if (MetaDataUtil.isInvalidation(result, 0)) {
                 result = null;
             }
         }
@@ -3630,7 +3626,7 @@ public class NamespaceStore implements SSNamespaceStore {
             nulledResults = new ByteBuffer[results.length];
             for (int i = 0; i < results.length; i++) {
                 result = results[i];
-                if (result != null && isInvalidated(result, 0)) {
+                if (result != null && MetaDataUtil.isInvalidation(result, 0)) {
                     result = null;
                 }
                 nulledResults[i] = result;

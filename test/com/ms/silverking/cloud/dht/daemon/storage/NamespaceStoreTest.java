@@ -13,6 +13,7 @@ import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
+import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
@@ -23,6 +24,8 @@ import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.time.AbsMillisTimeSource;
+import mockit.Mock;
+import mockit.MockUp;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -33,6 +36,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
+/**
+ * To run this test in the IDE, you must add:
+ *   -javaagent:M://dist/ossjava/PROJ/jmockit/1.46.0/lib/jmockit-1.46.jar
+ * to VM options. Gradle adds this, so no changes are necessary to run via the
+ * command line.
+ */
 public class NamespaceStoreTest {
 
     public NamespaceStore getNS(int version) {
@@ -125,6 +134,19 @@ public class NamespaceStoreTest {
         AbsMillisTimeSource ts = mock(AbsMillisTimeSource.class);
         when(mg.getAbsMillisTimeSource()).thenReturn(ts);
 
+        new MockUp<MetaDataUtil>() {
+            @Mock
+            public boolean isInvalidated(byte[] storedValue, int baseOffset) {
+                return dataIsInvalid;
+            }
+        };
+        new MockUp<MetaDataUtil>() {
+            @Mock
+            public boolean isInvalidated(ByteBuffer storedValue, int baseOffset) {
+                return dataIsInvalid;
+            }
+        };
+
         NamespaceProperties nsprop = new NamespaceProperties(DHTConstants.defaultNamespaceOptions.consistencyProtocol(ConsistencyProtocol.LOOSE));
         NamespaceStore ns = new NamespaceStore(1,
                 null,
@@ -148,11 +170,6 @@ public class NamespaceStoreTest {
                 ByteBuffer bb = ByteBuffer.allocate(1);
                 bb.put((byte) 1);
                 return bb;
-            }
-
-            @Override
-            protected boolean isInvalidated(ByteBuffer result, int baseOffset) {
-                return dataIsInvalid;
             }
         };
         RetrievalOptions ro = new RetrievalOptions(new SimpleTimeoutController(1, 0),
