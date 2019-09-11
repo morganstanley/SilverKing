@@ -230,6 +230,7 @@ public class FileSegment extends WritableSegmentBase {
     }
     
     public void persist() throws IOException {
+
         ((MappedByteBuffer)dataBuf).force();
         FileSegmentMetaData.persist(storageFormat, raFile, dataSegmentSize, (IntArrayCuckoo)keyToOffset, (RAMOffsetListStore)offsetListStore, invalidatedOffsets);
         raFile.close();

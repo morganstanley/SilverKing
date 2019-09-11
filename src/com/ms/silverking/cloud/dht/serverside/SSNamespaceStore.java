@@ -9,7 +9,6 @@ import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.daemon.KeyToReplicaResolver;
-import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 
 public interface SSNamespaceStore {
     public long getNamespaceHash();
@@ -22,4 +21,5 @@ public interface SSNamespaceStore {
     public ByteBuffer[] retrieve(DHTKey[] keys, SSRetrievalOptions options);
     public ReadWriteLock getReadWriteLock();
     public KeyToReplicaResolver getKeyToReplicaResolver();
+    public int getHeadSegmentNumber();
 }

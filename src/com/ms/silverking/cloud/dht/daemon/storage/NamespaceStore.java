@@ -3651,6 +3651,10 @@ public class NamespaceStore implements SSNamespaceStore {
         return rwLock;
     }
 
+    @Override
+    public int getHeadSegmentNumber() {
+        return headSegment.getSegmentNumber();
+    }
     
     private class SegmentLoader implements Callable<FileSegment> {
         private final int                   segmentNumber;
