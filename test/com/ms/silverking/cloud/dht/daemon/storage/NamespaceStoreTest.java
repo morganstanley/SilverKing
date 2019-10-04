@@ -27,6 +27,7 @@ import com.ms.silverking.time.AbsMillisTimeSource;
 import mockit.Mock;
 import mockit.MockUp;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -45,6 +46,10 @@ import static org.mockito.Mockito.*;
 public class NamespaceStoreTest {
 
     public NamespaceStore getNS(int version) {
+        return getNS(version, true);
+    }
+
+    public NamespaceStore getNS(int version, boolean recovery) {
         MessageGroupBase mg = mock(MessageGroupBase.class);
         NodeRingMaster2 ringMaster = mock(NodeRingMaster2.class);
         AbsMillisTimeSource ts = mock(AbsMillisTimeSource.class);
@@ -56,7 +61,7 @@ public class NamespaceStoreTest {
         NamespaceProperties nsprop = new NamespaceProperties(DHTConstants.defaultNamespaceOptions.consistencyProtocol(ConsistencyProtocol.LOOSE));
         return new NamespaceStore(1, null, NamespaceStore.DirCreationMode.DoNotCreateNSDir,
                 nsprop, mg, ringMaster,
-                true, new ConcurrentHashMap<UUIDBase, ActiveProxyRetrieval>()) {
+                recovery, new ConcurrentHashMap<UUIDBase, ActiveProxyRetrieval>()) {
             @Override
             protected long newestVersion(DHTKey key) {
                 return version;
@@ -254,5 +259,14 @@ public class NamespaceStoreTest {
         keys[0] = new SimpleKey(0, 0);
         Pair<ByteBuffer, ByteBuffer[]> resultPair = retrieveInvalidations(null, keys, false, false);
         assertTrue(resultPair.getV2()[0] != null);
+    }
+
+    @Test
+    public void testTriggersNotInitialisedOnConstructionIfRecovery() {
+        NamespaceStore ns = spy(getNS(0, true));
+        Mockito.verify(ns, times(0)).notifyTriggersInitialized();
+
+        NamespaceStore ns2 = spy(getNS(0, false));
+        Mockito.verify(ns2, times(1)).notifyTriggersInitialized();
     }
 }
