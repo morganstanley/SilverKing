@@ -414,13 +414,9 @@ public class NamespaceStore implements SSNamespaceStore {
         triggers = instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
         putTrigger = triggers.getV1();
         retrieveTrigger = triggers.getV2();
-        if (putTrigger != null) {
-            putTrigger.initialize(this);
+        if (!isRecovery) {
+            initalizeTriggers();
         }
-        if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
-            retrieveTrigger.initialize(this);
-        }
-
         this.finalization = finalization;
         this.fileSegmentCompactor = fileSegmentCompactor;
     }
@@ -447,7 +443,7 @@ public class NamespaceStore implements SSNamespaceStore {
                           ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
         this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, NeverReapPolicy.instance);
     }
-    
+
     private void createInitialHeadSegment() {
         FileSegment.SyncMode    syncMode;
         
@@ -2541,7 +2537,17 @@ public class NamespaceStore implements SSNamespaceStore {
         } else {
             nsStore.initRAMSegments();
         }
+        nsStore.initalizeTriggers();
         return nsStore;
+    }
+
+    private void initalizeTriggers() {
+        if (putTrigger != null) {
+            putTrigger.initialize(this);
+        }
+        if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
+            retrieveTrigger.initialize(this);
+        }
     }
 
     // FUTURE - Consider deco
