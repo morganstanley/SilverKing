@@ -23,7 +23,7 @@ public final class Log {
     // FUTURE - This implementation is derived from a legacy implementation.
     // Update this in the future.
     
-    private static final LogDest    logDest;
+    private static LogDest    logDest;
     private static Level    __level;
     private static int        _level; // store as int for performance
     
@@ -105,6 +105,10 @@ public final class Log {
         log(Level.FINE, "Logging initialized."+ logDest.getClass().getName());
         
         asyncLogRunning = new AtomicBoolean();
+    }
+
+    public static void setLogDest(LogDest dest) {
+        logDest = dest;
     }
     
     public static void initAsyncLogging() {
