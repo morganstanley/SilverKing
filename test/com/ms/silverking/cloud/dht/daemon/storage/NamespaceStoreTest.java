@@ -10,16 +10,14 @@ import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
-import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
-import com.ms.silverking.cloud.dht.common.MetaDataUtil;
-import com.ms.silverking.cloud.dht.common.NamespaceProperties;
-import com.ms.silverking.cloud.dht.common.SimpleKey;
+import com.ms.silverking.cloud.dht.common.*;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
+import com.ms.silverking.cloud.dht.serverside.PutTrigger;
+import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
+import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
@@ -32,8 +30,10 @@ import org.mockito.Mockito;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
@@ -44,6 +44,8 @@ import static org.mockito.Mockito.*;
  * command line.
  */
 public class NamespaceStoreTest {
+
+    private Pair<PutTrigger, RetrieveTrigger> triggerOverrides = null;
 
     public NamespaceStore getNS(int version) {
         return getNS(version, true);
@@ -73,6 +75,15 @@ public class NamespaceStoreTest {
                 when(result.getShort(anyInt())).thenReturn((short) 1500);
                 when(result.asReadOnlyBuffer()).thenReturn(ByteBuffer.wrap(rb));
                 return result;
+            }
+
+            @Override
+            protected Pair<PutTrigger, RetrieveTrigger> createTriggers() {
+                if (triggerOverrides != null) {
+                    return triggerOverrides;
+                } else {
+                    return super.createTriggers();
+                }
             }
         };
     }
@@ -261,12 +272,53 @@ public class NamespaceStoreTest {
         assertTrue(resultPair.getV2()[0] != null);
     }
 
+    class DummyTrigger implements RetrieveTrigger {
+
+        public boolean hasInitialised = false;
+
+        @Override
+        public ByteBuffer retrieve(SSNamespaceStore nsStore, DHTKey key, SSRetrievalOptions options) {
+            return null;
+        }
+
+        @Override
+        public ByteBuffer[] retrieve(SSNamespaceStore nsStore, DHTKey[] keys, SSRetrievalOptions options) {
+            return new ByteBuffer[0];
+        }
+
+        @Override
+        public Iterator<DHTKey> keyIterator() {
+            return null;
+        }
+
+        @Override
+        public long getTotalKeys() {
+            return 0;
+        }
+
+        @Override
+        public boolean subsumesStorage() {
+            return false;
+        }
+
+        @Override
+        public void initialize(SSNamespaceStore nsStore) {
+            hasInitialised = true;
+        }
+    }
+
     @Test
     public void testTriggersNotInitialisedOnConstructionIfRecovery() {
-        NamespaceStore ns = spy(getNS(0, true));
-        Mockito.verify(ns, times(0)).notifyTriggersInitialized();
+        DummyTrigger dummy = new DummyTrigger();
+        triggerOverrides = new Pair<>(null, dummy);
 
-        NamespaceStore ns2 = spy(getNS(0, false));
-        Mockito.verify(ns2, times(1)).notifyTriggersInitialized();
+        // Should not init during construction for recovery
+        getNS(0, true);
+        assertFalse(dummy.hasInitialised);
+
+        dummy.hasInitialised = false;
+        // Should init during construction for new namespace
+        getNS(0, false);
+        assert(dummy.hasInitialised);
     }
 }

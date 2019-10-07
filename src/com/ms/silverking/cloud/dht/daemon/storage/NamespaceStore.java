@@ -411,7 +411,7 @@ public class NamespaceStore implements SSNamespaceStore {
         deletedSegments = new HashSet<>();
         
         Pair<PutTrigger,RetrieveTrigger>    triggers;
-        triggers = instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
+        triggers = createTriggers();
         putTrigger = triggers.getV1();
         retrieveTrigger = triggers.getV2();
         if (!isRecovery) {
@@ -485,6 +485,10 @@ public class NamespaceStore implements SSNamespaceStore {
                 return true;
             }
         }
+    }
+
+    protected Pair<PutTrigger, RetrieveTrigger> createTriggers() {
+        return instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
     }
     
     private static final Pair<PutTrigger,RetrieveTrigger> instantiateServerSideCode(NamespaceServerSideCode    ssCode) {
