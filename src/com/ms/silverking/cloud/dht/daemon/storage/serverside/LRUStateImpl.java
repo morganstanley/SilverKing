@@ -24,6 +24,11 @@ public class LRUStateImpl implements LRUStateProvider {
         this.lruInfoMap = new ConcurrentHashMap<>();
     }
 
+    public LRUStateImpl(AbsNanosTimeSource timeSource, Map<DHTKey, LRUInfo> lruInfoMap) {
+        this(timeSource);
+        this.lruInfoMap.putAll(lruInfoMap);
+    }
+
     public void markRead(DHTKey key) {
         LRUInfo    lruInfo;
 
