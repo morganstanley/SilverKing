@@ -1,6 +1,8 @@
 package com.ms.silverking.collection;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -39,5 +41,18 @@ public class TupleUtil {
             }
         }
         return cookedList;
+    }
+    
+    public static List<? extends TupleBase> copyAndSort(List<? extends TupleBase> unsortedList, int fieldIndex, Comparator elementComparator) {
+        List<TupleBase>   sortedList;
+        
+        sortedList = new ArrayList<>();
+        sortedList.addAll(unsortedList);
+        sort(sortedList, fieldIndex, elementComparator);
+        return sortedList;
+    }
+    
+    public static void sort(List<? extends TupleBase> list, int elementIndex, Comparator elementComparator) {
+        Collections.sort(list, new TupleElementComparator(elementIndex, elementComparator));
     }
 }

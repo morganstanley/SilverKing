@@ -24,6 +24,16 @@ public class Pair<T1,T2> extends TupleBase {
         return new Pair<>(v1, v2);
     }
     
+    public Object getElement(int index) {
+        if (index == 0) {
+            return v1;
+        } else if (index == 1) {
+            return v2;
+        } else {
+            throw new IndexOutOfBoundsException(Integer.toString(index));
+        }
+    }
+    
     public T1 getV1() {
         return v1;
     }

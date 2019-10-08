@@ -31,6 +31,18 @@ public class Triple<T1,T2,T3> extends TupleBase {
     public static <T1,T2,T3> Triple<T1,T2,T3> of(Pair<T1,T2> p1, T3 v3) {
         return new Triple<>(p1.getV1(), p1.getV2(), v3);
     }
+    
+    public Object getElement(int index) {
+        if (index == 0) {
+            return v1;
+        } else if (index == 1) {
+            return v2;
+        } else if (index == 2) {
+            return v3;
+        } else {
+            throw new IndexOutOfBoundsException(Integer.toString(index));
+        }
+    }
 
     public T1 getV1() {
         return v1;
