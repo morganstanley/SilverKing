@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.zookeeper.KeeperException;
 
+import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -39,6 +40,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
     private final DHTKey                usedDiskBytesKey;
     private final DHTKey                freeDiskBytesKey;
     private final DHTKey                diskBytesKey;
+    private final DHTKey                allReplicasKey;
     private final DHTKey                allReplicasFreeDiskBytesKey;
     private final DHTKey                allReplicasFreeSystemDiskBytesEstimateKey;
     private final DHTKey                exclusionSetKey;
@@ -66,6 +68,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         usedDiskBytesKey = keyCreator.createKey("usedDiskBytes");
         freeDiskBytesKey = keyCreator.createKey("freeDiskBytes");
         diskBytesKey = keyCreator.createKey("diskBytes");
+        allReplicasKey = keyCreator.createKey("allReplicas");
         allReplicasFreeDiskBytesKey = keyCreator.createKey("allReplicasFreeDiskBytes");
         allReplicasFreeSystemDiskBytesEstimateKey = keyCreator.createKey("allReplicasFreeSystemDiskBytesEstimate");
         exclusionSetKey = keyCreator.createKey("exclusionSet");
@@ -75,6 +78,7 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         knownKeys.add(usedDiskBytesKey);
         knownKeys.add(freeDiskBytesKey);
         knownKeys.add(diskBytesKey);
+        knownKeys.add(allReplicasKey);
         knownKeys.add(allReplicasFreeDiskBytesKey);
         knownKeys.add(allReplicasFreeSystemDiskBytesEstimateKey);
         knownKeys.add(exclusionSetKey);
@@ -148,6 +152,13 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         }
     }
 
+    private byte[] getAllReplicas() {
+        List<IPAndPort> results;
+                
+        results = ImmutableList.copyOf(ringMaster.getAllCurrentReplicaServers());
+        return singleResultsToBytes(results);
+    }
+    
     private byte[] getAllReplicasFreeDiskBytes() {
         List<Pair<IPAndPort,Long>>    results;
         Map<IPAndPort,NodeInfo>        nodeInfo;
@@ -215,6 +226,16 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
         }
     }
     
+    public byte[] singleResultsToBytes(List<IPAndPort> results) {
+        StringBuffer    sBuf;
+        
+        sBuf = new StringBuffer();
+        for (IPAndPort result : results) {
+            sBuf.append(String.format("%s\n", result.getIPAsString()));
+        }
+        return sBuf.toString().getBytes();
+    }
+    
     public byte[] pairedResultsToBytes(List<Pair<IPAndPort,Long>> results) {
         StringBuffer    sBuf;
         
@@ -262,6 +283,8 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
                     return Long.toString(diskSpace.getV3()).getBytes();
                 } else if (key.equals(diskBytesKey)) {
                     return (diskSpace.getV1() +"\t"+ diskSpace.getV3() +"\t"+ diskSpace.getV2()).getBytes();
+                } else if (key.equals(allReplicasKey)) {
+                    return getAllReplicas();
                 } else if (key.equals(allReplicasFreeDiskBytesKey)) {
                     return getAllReplicasFreeDiskBytes();
                 } else if (key.equals(allReplicasFreeSystemDiskBytesEstimateKey)) {
