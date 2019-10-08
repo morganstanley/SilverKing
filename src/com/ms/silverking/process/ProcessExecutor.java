@@ -10,6 +10,7 @@ import java.util.Arrays;
 import org.apache.zookeeper.Shell.ShellCommandExecutor;
 
 import com.ms.silverking.text.StringUtil;
+import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.time.TimeUtils;
 
 public class ProcessExecutor {
@@ -193,7 +194,7 @@ public class ProcessExecutor {
     public static String[] getSshCommandWithRedirectOutputFile(String server, String commands) {
 //        return new String[]{"ssh -v -x -o StrictHostKeyChecking=no " + server + " \"/bin/bash -c '" + commands + "'\""};    // quotes are important around commands
 //        return new String[]{"ssh", "-v", "-x", "-o", "StrictHostKeyChecking=no", server, "/bin/bash", "-c", "'" + commands + "'"};    // quotes are important around commands
-        return new String[]{"ssh", "-v", "-x", "-o", "StrictHostKeyChecking=no", server, "/bin/bash -c '" + commands + "'", " > /tmp/ssh.out"};    // quotes are important around commands
+        return new String[]{"ssh", "-v", "-x", "-o", "StrictHostKeyChecking=no", server, "/bin/bash -c '" + commands + "'", " > /tmp/ssh.out."+ SystemTimeSource.instance.absTimeNanos()};    // quotes are important around commands
     }
     
     public static String[] getSshCommand(String server, String commands) {
