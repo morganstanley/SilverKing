@@ -13,7 +13,11 @@ public class CuckooConfig {
     // derived
     private final int   numSubTableBuckets;
     
-    public static int   BYTES = 3 * NumConversion.BYTES_PER_INT;
+    private static final int    totalEntriesOffset = 0;
+    private static final int    numSubTablesOffset = totalEntriesOffset + NumConversion.BYTES_PER_INT;
+    private static final int    entriesPerBucketOffset = numSubTablesOffset + NumConversion.BYTES_PER_INT;
+    public static final int     BYTES = entriesPerBucketOffset + NumConversion.BYTES_PER_INT;
+    
     
     public CuckooConfig(int totalEntries, int numSubTables, int entriesPerBucket) {
         Constraint.ensureNonZero(totalEntries);
@@ -65,9 +69,9 @@ public class CuckooConfig {
     }
     
     public void persist(ByteBuffer buf, int offset) {
-        buf.putInt(offset + 0 * NumConversion.BYTES_PER_INT, totalEntries);
-        buf.putInt(offset + 1 * NumConversion.BYTES_PER_INT, numSubTables);
-        buf.putInt(offset + 2 * NumConversion.BYTES_PER_INT, entriesPerBucket);
+        buf.putInt(offset + totalEntriesOffset, totalEntries);
+        buf.putInt(offset + numSubTablesOffset, numSubTables);
+        buf.putInt(offset + entriesPerBucketOffset, entriesPerBucket);
     }
     
     public static CuckooConfig read(ByteBuffer buf) {
@@ -79,9 +83,9 @@ public class CuckooConfig {
         int numSubTables;
         int entriesPerBucket;
         
-        totalEntries = buf.getInt(offset + 0 * NumConversion.BYTES_PER_INT);
-        numSubTables = buf.getInt(offset + 1 * NumConversion.BYTES_PER_INT);
-        entriesPerBucket = buf.getInt(offset + 2 * NumConversion.BYTES_PER_INT);
+        totalEntries = buf.getInt(offset + totalEntriesOffset);
+        numSubTables = buf.getInt(offset + numSubTablesOffset);
+        entriesPerBucket = buf.getInt(offset + entriesPerBucketOffset);
         return new CuckooConfig(totalEntries, numSubTables, entriesPerBucket);
     }
     
