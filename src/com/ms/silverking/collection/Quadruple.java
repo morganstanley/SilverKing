@@ -38,6 +38,20 @@ public class Quadruple<T1,T2,T3,T4> extends TupleBase {
         return new Quadruple<>(v1, p1.getV1(), p1.getV2(), v4);
     }
     
+    public Object getElement(int index) {
+        if (index == 0) {
+            return v1;
+        } else if (index == 1) {
+            return v2;
+        } else if (index == 2) {
+            return v3;
+        } else if (index == 3) {
+            return v4;
+        } else {
+            throw new IndexOutOfBoundsException(Integer.toString(index));
+        }
+    }
+    
     public T1 getV1() {
         return v1;
     }
