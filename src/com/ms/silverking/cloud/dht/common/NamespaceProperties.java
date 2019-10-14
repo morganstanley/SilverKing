@@ -28,6 +28,7 @@ public class NamespaceProperties {
     
     
     public NamespaceProperties(NamespaceOptions options, String parent, long minVersion, long creationTime) {
+        assert options != null;
         this.options = options;
         this.parent = parent;
         this.minVersion = minVersion;
