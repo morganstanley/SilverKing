@@ -20,7 +20,6 @@ import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.client.AsyncValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ClientException;
-import com.ms.silverking.cloud.dht.client.ConstantVersionProvider;
 import com.ms.silverking.cloud.dht.client.DHTClient;
 import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
