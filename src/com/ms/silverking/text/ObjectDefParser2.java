@@ -95,7 +95,11 @@ public class ObjectDefParser2 {
                                                    Set<String> exclusionFields) {
         addParser(_class, template, fieldsRequirement, null, null, null, exclusionFields);
     }
-    
+
+    public static <T> void addParserWithOptionals(T template, Set<String> optionalFields) {
+        addParser(template, FieldsRequirement.ALLOW_INCOMPLETE, null, null, optionalFields, null);
+    }
+
     public static <T> void addParser(Class<T> _class, T template) {
         addParser(_class, template, FieldsRequirement.ALLOW_INCOMPLETE, null, null, null, null);
     }
@@ -200,8 +204,16 @@ public class ObjectDefParser2 {
     public static <T> String objectToString(T obj) {
         return objectToString((Class<T>)obj.getClass(), obj);
     }
-    
+
+    public static <T> String objectToStringWithExclusions(T obj, Set<String> dedicatedExclusions) {
+        return objectToString((Class<T>)obj.getClass(), obj, dedicatedExclusions);
+    }
+
     public static <T> String objectToString(Class<T> _class, T obj) {
+        return objectToString(_class, obj, null);
+    }
+
+    public static <T> String objectToString(Class<T> _class, T obj, Set<String> dedicatedExclusions) {
         if (_class.equals(String.class)) {
             return (String)obj;
         } else {
@@ -211,7 +223,7 @@ public class ObjectDefParser2 {
                 System.out.printf("objectToString %s\n", _class.getName());
             }
             cp = getClassParser(_class);
-            return cp.objectToString(obj);
+            return cp.objectToString(obj, dedicatedExclusions);
         }
     }
     

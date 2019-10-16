@@ -478,7 +478,7 @@ class ClassParser<T> {
         return defs.toArray(new String[0]);
     }
 
-    public String objectToString(T obj) {
+    public String objectToString(T obj, Set<String> dedicatedExclusions) {
         Class   superClass;
         String  superClassString;
         StringBuilder   sb;
@@ -493,7 +493,11 @@ class ClassParser<T> {
                 sb.append(fieldDefDelimiter);
             }
         }
-        fields = CPUtils.filterFields(CPUtils.filterStaticFields(_class.getDeclaredFields()), exclusionFields);
+
+        if (dedicatedExclusions == null) {
+            dedicatedExclusions = exclusionFields;
+        }
+        fields = CPUtils.filterFields(CPUtils.filterStaticFields(_class.getDeclaredFields()), dedicatedExclusions);
         for (int i = 0; i < fields.length; i++) {
             Field   field;
             boolean recursive;
