@@ -295,7 +295,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
             break;
         default: throw new RuntimeException("Panic");
         }
-        return session.createNamespace(childName, new NamespaceProperties(nsOptions, this.name, minVersion, creationTime));
+        return session.createNamespace(childName, new NamespaceProperties(nsOptions, this.name, minVersion, childName, creationTime));
     }
 
     @Override
@@ -315,7 +315,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
                                        +"for a version mode of CLIENT_SPECIFIED");
         default: throw new RuntimeException("Panic");
         }
-        return session.createNamespace(childName, new NamespaceProperties(nsOptions, this.name, minVersion, creationTime));
+        return session.createNamespace(childName, new NamespaceProperties(nsOptions, this.name, minVersion, childName, creationTime));
     }
     
     public void linkTo(String parentName) throws NamespaceLinkException {
