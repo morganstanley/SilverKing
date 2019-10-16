@@ -29,7 +29,7 @@ import com.ms.silverking.collection.HashedListMap;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
 
-public class NamespaceOptionsClient {
+public class NamespaceOptionsClientBase {
     private final ZooKeeperConfig   zkConfig;
     private final String            dhtName;
     private final SynchronousNamespacePerspective<String,String>    syncNSP;
@@ -48,8 +48,8 @@ public class NamespaceOptionsClient {
         nsCreationOptionsMap = new ConcurrentHashMap<>();
     }
     
-    private NamespaceOptionsClient(DHTSession session, ZooKeeperConfig zkConfig, String dhtName, 
-            SessionEstablishmentTimeoutController seTimeoutController) {
+    private NamespaceOptionsClientBase(DHTSession session, ZooKeeperConfig zkConfig, String dhtName,
+                                       SessionEstablishmentTimeoutController seTimeoutController) {
         SimpleNamespaceCreator    nsCreator;
         
         syncNSP = session.openSyncNamespacePerspective(NamespaceUtil.metaInfoNamespaceName, NamespaceUtil.metaNSPOptions);
@@ -63,12 +63,12 @@ public class NamespaceOptionsClient {
         systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.replicasName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
     }
     
-    public NamespaceOptionsClient(DHTSession session) {
+    public NamespaceOptionsClientBase(DHTSession session) {
         this(session, null, null, SessionOptions.getDefaultTimeoutController());
     }
     
-    public NamespaceOptionsClient(DHTSession session, ClientDHTConfiguration dhtConfig, 
-                                SessionEstablishmentTimeoutController seTimeoutController) {
+    public NamespaceOptionsClientBase(DHTSession session, ClientDHTConfiguration dhtConfig,
+                                      SessionEstablishmentTimeoutController seTimeoutController) {
         this(session, dhtConfig.getZKConfig(), dhtConfig.getName(), seTimeoutController);
     }
 

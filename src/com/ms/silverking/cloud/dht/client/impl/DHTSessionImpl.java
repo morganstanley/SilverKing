@@ -7,7 +7,6 @@ import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
-import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
@@ -21,7 +20,7 @@ import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.common.Context;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
-import com.ms.silverking.cloud.dht.common.NamespaceOptionsClient;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientBase;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.NamespaceUtil;
 import com.ms.silverking.cloud.dht.common.TimeoutException;
@@ -65,7 +64,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final SerializationRegistry serializationRegistry;
     private final Worker            worker;
     private final NamespaceCreator  namespaceCreator;
-    private final NamespaceOptionsClient    nsOptionsClient;
+    private final NamespaceOptionsClientBase nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
     private SafeTimerTask timeoutCheckTask;
     private AsynchronousNamespacePerspective<String,String>    systemNSP;
@@ -137,7 +136,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                                               timeoutCheckIntervalMillis, 
                                               timeoutCheckIntervalMillis);
         namespaceCreator = new SimpleNamespaceCreator();
-        nsOptionsClient = new NamespaceOptionsClient(this, dhtConfig, timeoutController);
+        nsOptionsClient = new NamespaceOptionsClientBase(this, dhtConfig, timeoutController);
     }
     
     MessageGroupBase getMessageGroupBase() {

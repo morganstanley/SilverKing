@@ -15,11 +15,11 @@ import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.log.Log;
 
 /**
- * Provides NamespaceOptions for the StorageModule. Internally uses NamespaceOptionsClient to retrieve options.
+ * Provides NamespaceOptions for the StorageModule. Internally uses NamespaceOptionsClientBase to retrieve options.
  */
 public class NamespaceMetaStore {
     private final DHTSession                session;
-    private final NamespaceOptionsClient    nsOptionsClient;
+    private final NamespaceOptionsClientBase nsOptionsClient;
     private final ConcurrentMap<Long, NamespaceProperties>  nsPropertiesMap;
     
     private static final long    nsOptionsFetchTimeoutMillis = SessionOptions.getDefaultTimeoutController().getMaxRelativeTimeoutMillis(null);    
@@ -32,7 +32,7 @@ public class NamespaceMetaStore {
         this.session = session;
         try {
             ActiveClientOperationTable.disableFinalization();
-            nsOptionsClient = new NamespaceOptionsClient(session);
+            nsOptionsClient = new NamespaceOptionsClientBase(session);
             nsPropertiesMap = new ConcurrentHashMap<>();
         } catch (Exception e) {
             throw new RuntimeException("Unexpected exception", e);
