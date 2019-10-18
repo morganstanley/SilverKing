@@ -206,13 +206,13 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                 return nsOptionsClient.getNamespaceProperties(namespace);
             } catch (TimeoutException te) {
                 throw new RuntimeException("Timeout retrieving namespace meta information "+ 
-                        Long.toHexString(NamespaceUtil.nameToLong(namespace)) +" "+ namespace, te);
+                        Long.toHexString(NamespaceUtil.nameToContext(namespace)) +" "+ namespace, te);
             } catch (RetrievalException re) {
                 SynchronousNamespacePerspective<Long,String>  syncNSP;
                 String  locations;
                 long    ns;
                 
-                ns = NamespaceUtil.nameToLong(namespace);
+                ns = NamespaceUtil.nameToContext(namespace);
                 syncNSP = getNamespace(Namespace.replicasName).openSyncPerspective(Long.class, String.class);
                 try {
                     locations = syncNSP.get(ns);

@@ -1,7 +1,8 @@
 package com.ms.silverking.cloud.dht.common;
 
-public class NamespacePropertiesPutException extends Exception {
+public class NamespacePropertiesPutException extends NamespacePropertiesOperationException {
     public NamespacePropertiesPutException() {
+        super();
     }
 
     public NamespacePropertiesPutException(String message) {

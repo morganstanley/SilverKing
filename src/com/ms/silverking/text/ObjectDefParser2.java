@@ -96,7 +96,7 @@ public class ObjectDefParser2 {
         addParser(_class, template, fieldsRequirement, null, null, null, exclusionFields);
     }
 
-    public static <T> void addParserWithOptionals(T template, Set<String> optionalFields) {
+    public static <T> void addParserWithOptionalFields(T template, Set<String> optionalFields) {
         addParser(template, FieldsRequirement.ALLOW_INCOMPLETE, null, null, optionalFields, null);
     }
 
@@ -205,8 +205,8 @@ public class ObjectDefParser2 {
         return objectToString((Class<T>)obj.getClass(), obj);
     }
 
-    public static <T> String objectToStringWithExclusions(T obj, Set<String> dedicatedExclusions) {
-        return objectToString((Class<T>)obj.getClass(), obj, dedicatedExclusions);
+    public static <T> String objectToStringWithExclusions(T obj, Set<String> overrideExclusions) {
+        return objectToString((Class<T>)obj.getClass(), obj, overrideExclusions);
     }
 
     public static <T> String objectToString(Class<T> _class, T obj) {

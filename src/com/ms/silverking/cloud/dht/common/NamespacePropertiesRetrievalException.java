@@ -1,7 +1,8 @@
 package com.ms.silverking.cloud.dht.common;
 
-public class NamespacePropertiesRetrievalException extends Exception {
+public class NamespacePropertiesRetrievalException extends NamespacePropertiesOperationException{
     public NamespacePropertiesRetrievalException() {
+        super();
     }
 
     public NamespacePropertiesRetrievalException(String message) {

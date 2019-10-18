@@ -29,7 +29,7 @@ import com.ms.silverking.collection.HashedListMap;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
 
-public class NamespaceOptionsClientBase {
+public class NamespaceOptionsClientBase{
     private final ZooKeeperConfig   zkConfig;
     private final String            dhtName;
     private final SynchronousNamespacePerspective<String,String>    syncNSP;
@@ -78,7 +78,7 @@ public class NamespaceOptionsClientBase {
             System.out.printf("canBeExplicitlyCreated %s\n", nsCreationOptions.canBeExplicitlyCreated(namespace));
         }
         if (nsCreationOptions.canBeExplicitlyCreated(namespace)) {
-            storeNamespaceProperties(NamespaceUtil.nameToLong(namespace), nsProperties);
+            storeNamespaceProperties(NamespaceUtil.nameToContext(namespace), nsProperties);
         } else {
             throw new NamespaceCreationException("Namespace creation not allowed for "+ namespace);
         }
@@ -304,7 +304,7 @@ public class NamespaceOptionsClientBase {
         long    context;
         NamespaceProperties    nsProperties;
         
-        context = NamespaceUtil.nameToLong(namespace);
+        context = NamespaceUtil.nameToContext(namespace);
         nsProperties = getNamespaceProperties(context, seTimeoutController.getMaxRelativeTimeoutMillis(null));
         if (nsProperties == null) {
             ensureNSCreationOptionsSet();

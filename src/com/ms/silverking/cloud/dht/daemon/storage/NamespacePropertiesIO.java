@@ -88,8 +88,8 @@ public class NamespacePropertiesIO {
     }
     
     private static void _write(File propertiesFile, NamespaceProperties nsProperties) throws IOException {
-        // For backward compatibility, old-fashion format of nsProperties is used
-        FileUtil.writeToFile(propertiesFile, nsProperties.toLegacySkDef() +","+ nsProperties.getCreationTime());
+        // For backward compatibility, the legacy format of nsProperties is used
+        FileUtil.writeToFile(propertiesFile, nsProperties.toLegacySKDef() +","+ nsProperties.getCreationTime());
     }
     
     public static boolean propertiesFileExists(File nsDir) throws IOException {

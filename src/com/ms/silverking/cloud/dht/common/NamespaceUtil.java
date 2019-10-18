@@ -61,20 +61,20 @@ public class NamespaceUtil {
                     metaInfoNamespaceOptions.getDefaultWaitOptions(),
                     new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource), null);
             
-    public static long nameToLong(String namespace) {
-        return new SimpleNamespaceCreator().createNamespace(namespace).contextAsLong();
+    public static long nameToContext(String name) {
+        return new SimpleNamespaceCreator().createNamespace(name).contextAsLong();
     }
             
-    public static String nameToHexString(String namespace) {
-        return Long.toHexString(nameToLong(namespace));
+    public static String nameToDirName(String name) {
+        return Long.toHexString(nameToContext(name));
     }
 
-    public static String nsContextToNsDirName(long nsContext) {
-        return Long.toHexString(nsContext);
+    public static String contextToDirName(long context) {
+        return Long.toHexString(context);
     }
 
-    public static long nsDirNameToNsContext(String nsDirName) {
-        return NumConversion.parseHexStringAsUnsignedLong(nsDirName);
+    public static long dirNameToContext(String dirName) {
+        return NumConversion.parseHexStringAsUnsignedLong(dirName);
     }
 
     public static boolean canMutateWith(NamespaceOptions oldOpts, NamespaceOptions newOpts) {
@@ -104,7 +104,7 @@ public class NamespaceUtil {
 
     public static void main(String[] args) {
         for (String ns : args) {
-            System.out.printf("%s\t%s\n", ns, nameToHexString(ns));
+            System.out.printf("%s\t%s\n", ns, nameToDirName(ns));
         }
     }
 }

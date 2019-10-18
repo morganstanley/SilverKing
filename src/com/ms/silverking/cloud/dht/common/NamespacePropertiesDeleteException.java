@@ -1,7 +1,8 @@
 package com.ms.silverking.cloud.dht.common;
 
-public class NamespacePropertiesDeleteException extends Exception {
+public class NamespacePropertiesDeleteException extends NamespacePropertiesOperationException {
     public NamespacePropertiesDeleteException() {
+        super();
     }
 
     public NamespacePropertiesDeleteException(String message) {

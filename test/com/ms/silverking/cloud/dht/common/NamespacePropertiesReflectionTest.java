@@ -40,7 +40,7 @@ public class NamespacePropertiesReflectionTest {
 
     @Test
     public void reflectionFull() {
-        NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyParentName, dummyMinVersion, dummyNsName, dummyCreationTime);
+        NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyNsName, dummyParentName, dummyMinVersion, dummyCreationTime);
 
         String skDef = initialized.toString();
         NamespaceProperties parsed = NamespaceProperties.parse(skDef);
@@ -115,9 +115,9 @@ public class NamespacePropertiesReflectionTest {
     }
 
     @Test
-    public void canParsePossibleSkDef() {
+    public void canParsePossibleSKDef() {
         // Possible Sk def which contains"name"
-        String legacySkDef = "options={storageType=FILE,consistencyProtocol=LOOSE,versionMode=SYSTEM_TIME_NANOS,revisionMode=NO_REVISIONS," +
+        String possibleSKDef = "options={storageType=FILE,consistencyProtocol=LOOSE,versionMode=SYSTEM_TIME_NANOS,revisionMode=NO_REVISIONS," +
                 "defaultPutOptions={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," +
                 "compression=NONE,checksumType=MD5,checksumCompressedValues=false,version=0,requiredPreviousVersion=0,lockSeconds=0,fragmentationThreshold=10485760,}," +
                 "defaultInvalidationOptions={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," +
@@ -134,16 +134,16 @@ public class NamespacePropertiesReflectionTest {
                 "minVersion=1," +
                 "name=" + dummyNsName;
 
-        NamespaceProperties parsed = NamespaceProperties.parse(legacySkDef);
+        NamespaceProperties parsed = NamespaceProperties.parse(possibleSKDef);
         String testName = "canParsePossibleSkDef";
         assertFalse(getTestMessage(testName, "reflection.hasCreationTime() shall be false for partial initialization"), parsed.hasCreationTime());
         assertEquals(getTestMessage(testName, "reflection.getName() shall be correctly reflected"), dummyNsName, parsed.getName());
     }
 
     @Test
-    public void canParseLegacySkDef() {
+    public void canParseLegacySKDef() {
         // Legacy Sk def which contains no "name" and no "creationTime" (same format as current production env)
-        String possibleSkDef = "options={storageType=FILE,consistencyProtocol=LOOSE,versionMode=SYSTEM_TIME_NANOS,revisionMode=NO_REVISIONS," +
+        String legacySKDef = "options={storageType=FILE,consistencyProtocol=LOOSE,versionMode=SYSTEM_TIME_NANOS,revisionMode=NO_REVISIONS," +
                 "defaultPutOptions={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," +
                 "compression=NONE,checksumType=MD5,checksumCompressedValues=false,version=0,requiredPreviousVersion=0,lockSeconds=0,fragmentationThreshold=10485760,}," +
                 "defaultInvalidationOptions={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," +
@@ -159,7 +159,7 @@ public class NamespacePropertiesReflectionTest {
                 "parent=SteelBallRun," +
                 "minVersion=1";
 
-        NamespaceProperties parsed = NamespaceProperties.parse(possibleSkDef);
+        NamespaceProperties parsed = NamespaceProperties.parse(legacySKDef);
         String testName = "canParseLegacySkDef";
         assertFalse(getTestMessage(testName, "reflection.hasCreationTime() shall be false for partial initialization"), parsed.hasCreationTime());
         assertFalse(getTestMessage(testName, "reflection.hasName() shall be false for partial initialization"), parsed.hasName());
@@ -167,9 +167,9 @@ public class NamespacePropertiesReflectionTest {
 
     @Test
     public void backwardCompatibilityFunctionality() {
-        NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyParentName, dummyMinVersion, dummyNsName, dummyCreationTime);
-        String advancedDef = initialized.toSkDef();
-        String legacyDef = initialized.toLegacySkDef();
+        NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyNsName, dummyParentName, dummyMinVersion, dummyCreationTime);
+        String advancedDef = initialized.toSKDef();
+        String legacyDef = initialized.toLegacySKDef();
 
         String[] doggyFields = { "creationTime=", "name=" };
 
@@ -187,7 +187,8 @@ public class NamespacePropertiesReflectionTest {
 
         assertFalse(getTestMessage(testName, "legacyDef shall drop [creationTime] field and successfully parsed"), legacyParsed.hasCreationTime());
         assertFalse(getTestMessage(testName, "legacyDef shall drop [name] field and successfully parsed"), legacyParsed.hasName());
-        assertTrue(getTestMessage(testName, "Non-doggy fields shall be same between advanced and legacy"), legacyParsed.equals(advancedParsed));
+        assertTrue(getTestMessage(testName, "Non-doggy fields shall be same between advanced and legacy"), legacyParsed.getParent().equals(advancedParsed.getParent()));
+        assertTrue(getTestMessage(testName, "Non-doggy fields shall be same between advanced and legacy"), legacyParsed.getOptions().equals(advancedParsed.getOptions()));
         assertTrue(getTestMessage(testName, "Non-doggy fields shall be same between advanced and legacy"), legacyParsed.getMinVersion() == advancedParsed.getMinVersion());
     }
 }

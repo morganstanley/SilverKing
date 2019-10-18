@@ -3601,7 +3601,7 @@ public class NamespaceStore implements SSNamespaceStore {
 
     @Override
     public boolean isNamespace(String ns) {
-        return NamespaceUtil.nameToLong(ns) == this.ns;
+        return NamespaceUtil.nameToContext(ns) == this.ns;
     }
 
     @Override

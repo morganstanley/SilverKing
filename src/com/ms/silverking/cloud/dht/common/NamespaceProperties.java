@@ -13,43 +13,42 @@ import com.ms.silverking.text.ObjectDefParser2;
  */
 public class NamespaceProperties {
     private final NamespaceOptions  options;
+    private final String            name;   // optional field
     private final String            parent;
     private final long              minVersion;
-
-    private final String            name;
-    private final long              creationTime;
+    private final long              creationTime; // optional field
 
     private static final NamespaceProperties    templateProperties = new NamespaceProperties();
     private static final Set<String> optionalFields = ImmutableSet.of("name", "creationTime");
     // For backward compatibility only (we drop "creationTime" and "name", since its not in the old data)
     private static final Set<String> legacyExclusionFields = ImmutableSet.of("creationTime", "name");
 
-    public static final  long       uninitializedCreationTime = 0;
-    public static final String      uninitializedName = "_nsName is omitted in this version/implementation of codes_";
+    public static final long    noCreationTime = 0;
+    public static final String  noName = "__namespace_name_is_omitted_in_this_version_of_codes__";
 
     static {
-        ObjectDefParser2.addParserWithOptionals(templateProperties, optionalFields);
+        ObjectDefParser2.addParserWithOptionalFields(templateProperties, optionalFields);
     }
     
     public static void initParser() { 
     }
     
     
-    public NamespaceProperties(NamespaceOptions options, String parent, long minVersion, String name, long creationTime) {
+    public NamespaceProperties(NamespaceOptions options, String name, String parent, long minVersion, long creationTime) {
         assert options != null;
         this.options = options;
+        this.name = name;
         this.parent = parent;
         this.minVersion = minVersion;
-        this.name = name;
         this.creationTime = creationTime;
     }
 
-    public NamespaceProperties(NamespaceOptions options, String parent, long minVersion, String name) {
-        this(options, parent, minVersion, name, uninitializedCreationTime);
+    public NamespaceProperties(NamespaceOptions options, String name, String parent, long minVersion) {
+        this(options, name, parent, minVersion, noCreationTime);
     }
 
     public NamespaceProperties(NamespaceOptions options, String parent, long minVersion) {
-        this(options, parent, minVersion, uninitializedName);
+        this(options, noName, parent, minVersion);
     }
     
     public NamespaceProperties(NamespaceOptions options) {
@@ -81,37 +80,47 @@ public class NamespaceProperties {
     }
 
     public boolean hasCreationTime() {
-        return creationTime != uninitializedCreationTime;
+        return creationTime != noCreationTime;
     }
 
     public boolean hasName() {
-        return !name.equals(uninitializedName);
+        return !name.equals(noName);
     }
 
     public NamespaceProperties creationTime(long creationTime) {
-        return new NamespaceProperties(options, parent, minVersion, name, creationTime);
+        return new NamespaceProperties(options, name, parent, minVersion, creationTime);
     }
     
     public NamespaceProperties options(NamespaceOptions options) {
-        return new NamespaceProperties(options, parent, minVersion, name, creationTime);
+        return new NamespaceProperties(options, name, parent, minVersion, creationTime);
     }
 
     public NamespaceProperties name(String name) {
-        return new NamespaceProperties(options, parent, minVersion, name, creationTime);
+        return new NamespaceProperties(options, name, parent, minVersion, creationTime);
     }
 
     
     @Override
     public int hashCode() {
-        return options.hashCode() ^ (parent == null ? 0 : parent.hashCode());
+        return options.hashCode()
+                ^ (parent == null ? 0 : parent.hashCode())
+                ^ (hasName() ? name.hashCode() : 0)
+                ^ (hasCreationTime() ? Long.hashCode(creationTime) : 0);
     }
     
     @Override
     public boolean equals(Object o) {
-        NamespaceProperties oProperties;
-        
-        oProperties = (NamespaceProperties)o;
-        return this.options.equals(oProperties.options) && Objects.equals(this.parent, oProperties.parent);
+        if (o instanceof NamespaceProperties) {
+            NamespaceProperties oProperties;
+
+            oProperties = (NamespaceProperties)o;
+            return this.options.equals(oProperties.options)
+                    && Objects.equals(this.parent, oProperties.parent)
+                    && Objects.equals(this.name, oProperties.name)
+                    && this.creationTime == oProperties.creationTime;
+        } else {
+            return  false;
+        }
     }
 
     public boolean canBeReplacedBy(NamespaceProperties other) {
@@ -119,7 +128,9 @@ public class NamespaceProperties {
             return true;
         }
 
-        return NamespaceUtil.canMutateWith(options, other.options) && Objects.equals(this.parent, other.parent);
+        return NamespaceUtil.canMutateWith(options, other.options)
+                && Objects.equals(this.parent, other.parent)
+                && Objects.equals(this.name, other.name);
     }
 
     public void debugEquals(Object o) {
@@ -130,19 +141,19 @@ public class NamespaceProperties {
     }
 
     // For backward compatibility only
-    public String toLegacySkDef() {
+    public String toLegacySKDef() {
         //  We drop "creationTime" and "name", since its not in the old data
         return ObjectDefParser2.objectToStringWithExclusions(this, legacyExclusionFields);
     }
 
     // This method shall be entry-point for reflection
-    public String toSkDef() {
+    public String toSKDef() {
         return ObjectDefParser2.objectToString(this);
     }
 
     @Override
     public String toString() {
-        return toSkDef();
+        return toSKDef();
     }
 
     /**
@@ -160,10 +171,10 @@ public class NamespaceProperties {
      * @return NamespaceProperties object
      */
     public static NamespaceProperties parse(String def, long creationTime) {
-        NamespaceProperties nsProperties = ((NamespaceProperties)ObjectDefParser2.parse(NamespaceProperties.class, def)).creationTime(creationTime);
+        NamespaceProperties nsProperties = ObjectDefParser2.parse(NamespaceProperties.class, def);
         if (nsProperties.hasCreationTime()) {
-            Log.warning("The parsed NamespaceProperties already has cretionTime [" + nsProperties.getCreationTime() + "] when trying to parse it with creationTime [" + creationTime + "]");
+            Log.warning("The parsed NamespaceProperties already has creationTime [" + nsProperties.getCreationTime() + "] when trying to parse it with creationTime [" + creationTime + "]");
         }
-        return nsProperties;
+        return nsProperties.creationTime(creationTime);
     }
 }

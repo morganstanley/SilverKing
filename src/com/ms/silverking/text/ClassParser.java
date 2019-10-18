@@ -478,7 +478,11 @@ class ClassParser<T> {
         return defs.toArray(new String[0]);
     }
 
-    public String objectToString(T obj, Set<String> dedicatedExclusions) {
+    public String objectToString(T obj) {
+        return objectToString(obj, null);
+    }
+
+    public String objectToString(T obj, Set<String> overrideExclusions) {
         Class   superClass;
         String  superClassString;
         StringBuilder   sb;
@@ -494,10 +498,10 @@ class ClassParser<T> {
             }
         }
 
-        if (dedicatedExclusions == null) {
-            dedicatedExclusions = exclusionFields;
+        if (overrideExclusions == null) {
+            overrideExclusions = exclusionFields;
         }
-        fields = CPUtils.filterFields(CPUtils.filterStaticFields(_class.getDeclaredFields()), dedicatedExclusions);
+        fields = CPUtils.filterFields(CPUtils.filterStaticFields(_class.getDeclaredFields()), overrideExclusions);
         for (int i = 0; i < fields.length; i++) {
             Field   field;
             boolean recursive;
