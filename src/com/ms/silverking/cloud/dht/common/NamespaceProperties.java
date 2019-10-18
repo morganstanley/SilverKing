@@ -146,14 +146,9 @@ public class NamespaceProperties {
         return ObjectDefParser2.objectToStringWithExclusions(this, legacyExclusionFields);
     }
 
-    // This method shall be entry-point for reflection
-    public String toSKDef() {
-        return ObjectDefParser2.objectToString(this);
-    }
-
     @Override
     public String toString() {
-        return toSKDef();
+        return ObjectDefParser2.objectToString(this);
     }
 
     /**

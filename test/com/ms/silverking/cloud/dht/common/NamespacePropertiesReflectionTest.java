@@ -168,7 +168,7 @@ public class NamespacePropertiesReflectionTest {
     @Test
     public void backwardCompatibilityFunctionalityFull() {
         NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyNsName, dummyParentName, dummyMinVersion, dummyCreationTime);
-        String advancedDef = initialized.toSKDef();
+        String advancedDef = initialized.toString();
         String legacyDef = initialized.toLegacySKDef();
 
         String[] doggyFields = { "creationTime=", "name=" };
@@ -195,7 +195,7 @@ public class NamespacePropertiesReflectionTest {
     @Test
     public void backwardCompatibilityFunctionalityNoName() {
         NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyParentName, dummyMinVersion).creationTime(dummyCreationTime);
-        String advancedDef = initialized.toSKDef();
+        String advancedDef = initialized.toString();
         String legacyDef = initialized.toLegacySKDef();
 
         String[] doggyFields = { "creationTime=" };
