@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.common;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -19,7 +21,7 @@ import com.ms.silverking.log.Log;
  */
 public class NamespaceMetaStore {
     private final DHTSession                session;
-    private final NamespaceOptionsClientBase nsOptionsClient;
+    private final NamespaceOptionsClient    nsOptionsClient;
     private final ConcurrentMap<Long, NamespaceProperties>  nsPropertiesMap;
     
     private static final long    nsOptionsFetchTimeoutMillis = SessionOptions.getDefaultTimeoutController().getMaxRelativeTimeoutMillis(null);    
@@ -28,11 +30,11 @@ public class NamespaceMetaStore {
     
     private static final boolean   debug = true;
     
-    public NamespaceMetaStore(DHTSession session) {
+    public NamespaceMetaStore(DHTSession session, ClientDHTConfigurationProvider dhtConfigProvider) {
         this.session = session;
         try {
             ActiveClientOperationTable.disableFinalization();
-            nsOptionsClient = new NamespaceOptionsClientBase(session);
+            nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
             nsPropertiesMap = new ConcurrentHashMap<>();
         } catch (Exception e) {
             throw new RuntimeException("Unexpected exception", e);
@@ -41,15 +43,34 @@ public class NamespaceMetaStore {
     
     public static NamespaceMetaStore create(ClientDHTConfigurationProvider dhtConfigProvider) {
         try {
-            return new NamespaceMetaStore(new DHTClient().openSession(dhtConfigProvider));
+            return new NamespaceMetaStore(new DHTClient().openSession(dhtConfigProvider), dhtConfigProvider);
         } catch (Exception e) {
             throw new RuntimeException("Unexpected exception", e);
         }
     }
-    
+
+    public NamespaceProperties getNsPropertiesForRecovery(File nsDir) throws IOException {
+        long    nsContext;
+
+        nsContext = NamespaceUtil.dirNameToContext(nsDir.getName());
+        if (nsContext == NamespaceUtil.metaInfoNamespace.contextAsLong()) {
+            return NamespaceUtil.metaInfoNamespaceProperties;
+        } else {
+            try {
+                /*
+                 * - ZKImpl will directly read from ZK
+                 * - NSPImpl will read from "properties" file
+                 */
+                return nsOptionsClient.getNsPropertiesForRecovery(nsDir);
+            } catch (NamespacePropertiesRetrievalException re) {
+                throw new IOException("Cannot get nsProperties to recover the existing ns [" + nsDir + "]", re);
+            }
+        }
+    }
+
     // FUTURE - THINK ABOUT COMPLETELY REMOVING ANY READS/WRITES TO META NS FROM THE SERVER SIDE
     // clients can probably do it all
-    
+
     public NamespaceProperties getNamespaceProperties(long namespace, NamespaceOptionsRetrievalMode retrievalMode) {
         try {
             NamespaceProperties    nsProperties;
@@ -62,7 +83,7 @@ public class NamespaceMetaStore {
                 case LocalCheckOnly:
                     return null;
                 case FetchRemotely:
-                    nsProperties = nsOptionsClient.getNamespaceProperties(namespace, nsOptionsFetchTimeoutMillis);
+                    nsProperties = nsOptionsClient.getNamespacePropertiesWithTimeout(namespace, nsOptionsFetchTimeoutMillis);
                     if (nsProperties != null) {
                         nsPropertiesMap.put(namespace, nsProperties);
                         return nsProperties;
@@ -78,10 +99,10 @@ public class NamespaceMetaStore {
             Log.warning("Failed to retrieve namespace due to timeout "+ String.format("%x", namespace));
             Log.warning(getNamespaceMetaDataReplicas(namespace));
             throw new NamespaceNotCreatedException(Long.toHexString(namespace), te);
-        } catch (RetrievalException re) {
+        } catch (NamespacePropertiesRetrievalException re) {
             Log.warning("Failed to retrieve namespace "+ String.format("%x", namespace));
             Log.warning(getNamespaceMetaDataReplicas(namespace));
-            Log.warning(re.getDetailedFailureMessage());
+            Log.warning(re);
             throw new NamespaceNotCreatedException(Long.toHexString(namespace), re);
         }
     }

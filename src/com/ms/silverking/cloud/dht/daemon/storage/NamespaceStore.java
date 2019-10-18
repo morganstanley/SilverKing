@@ -2464,22 +2464,13 @@ public class NamespaceStore implements SSNamespaceStore {
             MessageGroupBase mgBase,
             NodeRingMaster2 ringMaster, ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
             ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener,
-            ReapPolicy reapPolicy) {
+            ReapPolicy reapPolicy,
+            NamespaceProperties nsProperties) {
         NamespaceStore nsStore;
-        NamespaceProperties nsProperties;
         int    numSegmentsToPreread;
         int    numSegmentsToSkipPreread;
         int    segmentsPrereadSkipped;
 
-        if (ns == NamespaceUtil.metaInfoNamespace.contextAsLong()) {
-            nsProperties = NamespaceUtil.metaInfoNamespaceProperties;
-        } else {
-            try {
-                nsProperties = NamespacePropertiesIO.read(nsDir);
-            } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
-            }
-        }
         nsStore = new NamespaceStore(ns, nsDir, NamespaceStore.DirCreationMode.DoNotCreateNSDir, 
                                      nsProperties, parent, mgBase, ringMaster, true, activeRetrievals,
                                      reapPolicy);
@@ -2492,7 +2483,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 int headSegmentNumber;
                 int headSegmentNumberIndex;
     
-                fsr = new FileSegmentRecoverer(nsDir);
+                fsr = new FileSegmentRecoverer(nsDir, nsProperties);
                 
                 headSegmentNumberIndex = segmentNumbers.size() - 1;
                 headSegmentNumber = segmentNumbers.get(headSegmentNumberIndex); 

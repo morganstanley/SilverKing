@@ -3,10 +3,15 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,7 +34,6 @@ import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
-import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.daemon.RingMapState2;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
@@ -50,7 +54,6 @@ import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.thread.lwt.LWTPoolParameters;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
@@ -60,6 +63,8 @@ import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.SafeTimerTask;
 import com.ms.silverking.util.memory.JVMMonitor;
+
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 
 public class StorageModule implements LinkCreationListener {
     private final NodeRingMaster2    ringMaster;
@@ -81,6 +86,7 @@ public class StorageModule implements LinkCreationListener {
     private final ValueCreator      myOriginatorID;
     private final NodeInfoZK		nodeInfoZK;
     private final ReapPolicy		reapPolicy;
+    private final File              recycleBinDir;
     private SafeTimerTask cleanerTask;
     private SafeTimerTask reapTask;
     
@@ -116,9 +122,11 @@ public class StorageModule implements LinkCreationListener {
     public enum RetrievalImplementation {Ungrouped, Grouped};
     
     private static final Set<Long>			dynamicNamespaces = new HashSet<>();
-    
+
+    static final String recycleBinDirName = "recycleBin";
+
     private static final RetrievalImplementation	retrievalImplementation;
-    
+
     static {
     	retrievalImplementation = RetrievalImplementation.valueOf(
     			PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
@@ -136,6 +144,7 @@ public class StorageModule implements LinkCreationListener {
         namespaces = new ConcurrentHashMap<>();
         baseDir = new File(nodeInfoZK.getDHTNodeConfiguration().getDataBasePath(), dhtName);
 //        baseDir = new File(DHTNodeConfiguration.dataBasePath);    // replace above with this to get rid of double directory name in path
+        this.recycleBinDir = new File(baseDir, recycleBinDirName);
         clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
         nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
         //spGroup = createTestPolicy();
@@ -220,7 +229,7 @@ public class StorageModule implements LinkCreationListener {
         if (namespaces.get(metaNS) == null) {
             NamespaceStore  metaNSStore;
             
-            metaNSStore = new NamespaceStore(metaNS, new File(baseDir, Long.toHexString(metaNS)),
+            metaNSStore = new NamespaceStore(metaNS, new File(baseDir, NamespaceUtil.contextToDirName(metaNS)),
                     NamespaceStore.DirCreationMode.CreateNSDir,
                     NamespaceUtil.metaInfoNamespaceProperties,//spGroup.getRootPolicy(),
                     mgBase, ringMaster, false, activeRetrievals);
@@ -232,8 +241,9 @@ public class StorageModule implements LinkCreationListener {
     	dynamicNamespaces.add(nsStore.getNamespace());
         namespaces.put(nsStore.getNamespace(), nsStore);
         // FUTURE - below is a duplicative store since the deeper map also has this
+        // NOTE: We have a memory cache for nsProperties here; This cache needs to be properly updated if we support on-the-fly nsProperties modify
         nsMetaStore.setNamespaceProperties(nsStore.getNamespace(), nsStore.getNamespaceProperties());
-        Log.warning(nsStore.getName() +" namespace: ", Long.toHexString(nsStore.getNamespace()));
+        Log.warning(nsStore.getName() +" namespace: ", NamespaceUtil.contextToDirName(nsStore.getNamespace()));
     }
     
     public void addMemoryObservers(JVMMonitor jvmMonitor) {
@@ -265,6 +275,35 @@ public class StorageModule implements LinkCreationListener {
     	}
     }
 
+    private File renameDeletedNs(File nsDir) throws IOException {
+        File        destFile;
+        DateFormat  dateFormat;
+        String      originalName;
+
+        originalName = nsDir.getName();
+        dateFormat = new SimpleDateFormat("yyyy-mm-dd_hh-mm-ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        do {
+            String dateTimeStr = dateFormat.format(new Date());
+            destFile = new File(recycleBinDir,  originalName + "_deleted_" + dateTimeStr);
+        } while (destFile.exists());
+
+        Files.move(nsDir.toPath(), destFile.toPath(), ATOMIC_MOVE);
+        return destFile;
+    }
+
+    private File cleanDeletedNamespace(File nsDir) throws IOException {
+        if (recycleBinDir.exists()) {
+            return renameDeletedNs(nsDir);
+        } else {
+            if (!recycleBinDir.mkdirs() && !recycleBinDir.exists()) {
+                throw new IOException("Unable to mkdirs: " + recycleBinDir);
+            } else {
+                return renameDeletedNs(nsDir);
+            }
+        }
+    }
+
     private void recoverExistingNamespace(File nsDir) throws IOException {
         try {
             long    ns;
@@ -273,12 +312,20 @@ public class StorageModule implements LinkCreationListener {
             NamespaceStore	nsStore;
                 
             Log.warning("\t\tRecovering: "+ nsDir.getName());
-            ns = NumConversion.parseHexStringAsUnsignedLong(nsDir.getName());
-            nsProperties = NamespacePropertiesIO.read(nsDir);
+            ns = NamespaceUtil.dirNameToContext(nsDir.getName());
+            nsProperties = nsMetaStore.getNsPropertiesForRecovery(nsDir);
+            if (nsProperties == null) { // This namespace is already deleted
+                Log.warning("\t\tFind pending-deleted namespace ["+ nsDir+ "] start moving it to [" + recycleBinDir + "]");
+                File dest = cleanDeletedNamespace(nsDir);
+                Log.warning("\t\tDone move ["+ nsDir+ "] as [" + dest + "]");
+                return;
+            }
+
+            // NOTE: We have a memory cache for nsProperties here; This cache needs to be properly updated if we support on-the-fly nsProperties modify
             nsMetaStore.setNamespaceProperties(ns, nsProperties);
             if (nsProperties.getParent() != null) {
                 long    parentContext;
-                
+
                 parentContext = new SimpleNamespaceCreator().createNamespace(nsProperties.getParent()).contextAsLong();
                 parent = namespaces.get(parentContext);
                 if (parent == null) {
@@ -287,8 +334,8 @@ public class StorageModule implements LinkCreationListener {
             } else {
                 parent = null;
             }
-            nsStore = NamespaceStore.recoverExisting(ns, nsDir, parent, null, mgBase, ringMaster, 
-                    activeRetrievals, zk, nsLinkBasePath, this, reapPolicy);
+            nsStore = NamespaceStore.recoverExisting(ns, nsDir, parent, null, mgBase, ringMaster,
+                    activeRetrievals, zk, nsLinkBasePath, this, reapPolicy, nsProperties);
             namespaces.put(ns, nsStore);
             nsStore.startWatches(zk, nsLinkBasePath, this);            
             Log.warning("\t\tDone recovering: "+ nsDir.getName());
@@ -303,7 +350,7 @@ public class StorageModule implements LinkCreationListener {
         
         sorted = new ArrayList<>();
         for (File file : files) {
-            if (file.isDirectory()) {
+            if (file.isDirectory() && !file.getName().equals(recycleBinDirName)) {
                 addDirAndParents(sorted, file);
             } else {
                 Log.warning("Recovery ignoring: ", file);
@@ -317,14 +364,14 @@ public class StorageModule implements LinkCreationListener {
             NamespaceProperties nsProperties;
             String              parentName;
             
-            nsProperties = NamespacePropertiesIO.read(childDir);
+            nsProperties = nsMetaStore.getNsPropertiesForRecovery(childDir);
             parentName = nsProperties.getParent();
             if (parentName != null) {
                 long    parentContext;
                 File    parentDir;
                 
                 parentContext = new SimpleNamespaceCreator().createNamespace(parentName).contextAsLong();
-                parentDir = new File(baseDir, Long.toHexString(parentContext));
+                parentDir = new File(baseDir, NamespaceUtil.contextToDirName(parentContext));
                 addDirAndParents(sorted, parentDir);
             }
             sorted.add(childDir);
@@ -376,13 +423,13 @@ public class StorageModule implements LinkCreationListener {
                             nsCreationLock.lock();
                         }
                         if (parent == null) {
-                            throw new RuntimeException("Unexpected parent not created: "+ Long.toHexString(ns));
+                            throw new RuntimeException("Unexpected parent not created: "+ NamespaceUtil.contextToDirName(ns));
                         }
                     } else {
                         parent = null;
                     }
                     created = true;
-                    nsStore = new NamespaceStore(ns, new File(baseDir, Long.toHexString(ns)),
+                    nsStore = new NamespaceStore(ns, new File(baseDir, NamespaceUtil.contextToDirName(ns)),
                                             NamespaceStore.DirCreationMode.CreateNSDir,
                                             nsProperties,//spGroup.getRootPolicy(),
                                             parent,
@@ -400,7 +447,7 @@ public class StorageModule implements LinkCreationListener {
                 if (old != null) {
                     nsStore = old;
                 } else {
-                    Log.warning("Created new namespace store: "+ Long.toHexString(ns));
+                    Log.warning("Created new namespace store: "+ NamespaceUtil.contextToDirName(ns));
                     nsStore.startWatches(zk, nsLinkBasePath, this);
                 }
             }
@@ -419,7 +466,7 @@ public class StorageModule implements LinkCreationListener {
         childNS = getNamespaceStore(child, NSCreationMode.CreateIfAbsent);
         parentNS = getNamespaceStore(parent, NSCreationMode.DoNotCreate);
         if (parentNS == null) {
-            Log.warning("linkCreated couldn't find parent: "+ Long.toHexString(parent));
+            Log.warning("linkCreated couldn't find parent: "+ NamespaceUtil.contextToDirName(parent));
             return;
         }
         childNS.linkParent(parentNS);
