@@ -13,6 +13,7 @@ import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
 import com.ms.silverking.cloud.dht.client.NamespaceDeletionException;
+import com.ms.silverking.cloud.dht.client.NamespaceModificationException;
 import com.ms.silverking.cloud.dht.client.NamespaceRecoverException;
 import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
@@ -21,8 +22,11 @@ import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.common.Context;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
-import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientBase;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsClient;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientNSPImpl;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
+import com.ms.silverking.cloud.dht.common.NamespacePropertiesDeleteException;
+import com.ms.silverking.cloud.dht.common.NamespacePropertiesRetrievalException;
 import com.ms.silverking.cloud.dht.common.NamespaceUtil;
 import com.ms.silverking.cloud.dht.common.TimeoutException;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
@@ -65,7 +69,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final SerializationRegistry serializationRegistry;
     private final Worker            worker;
     private final NamespaceCreator  namespaceCreator;
-    private final NamespaceOptionsClientBase nsOptionsClient;
+    private final NamespaceOptionsClient nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
     private SafeTimerTask timeoutCheckTask;
     private AsynchronousNamespacePerspective<String,String>    systemNSP;
@@ -131,7 +135,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         clientNamespaces = new ConcurrentHashMap<>();  
         clientNamespaceList = new CopyOnWriteArrayList<>();
         namespaceCreator = new SimpleNamespaceCreator();
-        nsOptionsClient = new NamespaceOptionsClientBase(this, dhtConfig, timeoutController);
+        nsOptionsClient = new NamespaceOptionsClientNSPImpl(this, dhtConfig, timeoutController);
 
         // Post-construction task: make sure this scheduled task is lastly called
         worker = new Worker();
@@ -205,11 +209,11 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             return NamespaceUtil.metaInfoNamespaceProperties;
         } else {
             try {
-                return nsOptionsClient.getNamespaceProperties(namespace);
+                return nsOptionsClient.getNamespacePropertiesAndTryAutoCreate(namespace);
             } catch (TimeoutException te) {
                 throw new RuntimeException("Timeout retrieving namespace meta information "+ 
                         Long.toHexString(NamespaceUtil.nameToContext(namespace)) +" "+ namespace, te);
-            } catch (RetrievalException re) {
+            } catch (NamespacePropertiesRetrievalException re) {
                 SynchronousNamespacePerspective<Long,String>  syncNSP;
                 String  locations;
                 long    ns;
@@ -225,7 +229,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                     Log.warning("Unexpected failure attempting to find key locations "
                                +"during failed ns retrieval processing");
                 }
-                Log.warning(re.getDetailedFailureMessage());
+                Log.warning(re);
                 throw new RuntimeException("Unable to retrieve namespace meta information "+ Long.toHexString(ns), re);
             }
         }
@@ -287,7 +291,14 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         }
         return createNamespace(namespace, new NamespaceProperties(nsOptions).name(namespace));
     }
-    
+
+    Namespace modifyNamespace(String namespace, NamespaceOptions nsOptions) throws NamespaceModificationException {
+        if (nsOptions == null) {
+            nsOptions = getNamespaceCreationOptions().getDefaultNamespaceOptions();
+        }
+        return modifyNamespace(namespace, new NamespaceProperties(nsOptions));
+    }
+
     Namespace createNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceCreationException {
         // New version of codes will always enrich nsProperties with name
         Preconditions.checkArgument(nsProperties.hasName(),
@@ -295,7 +306,12 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         nsOptionsClient.createNamespace(namespace, nsProperties);
         return getClientNamespace(namespace);
     }
-    
+
+    Namespace modifyNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceModificationException {
+        nsOptionsClient.modifyNamespace(namespace, nsProperties);
+        return getClientNamespace(namespace);
+    }
+
     @Override 
     public Namespace getNamespace(String namespace) {
         return getClientNamespace(namespace);
@@ -317,10 +333,23 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             throw new NamespaceDeletionException(e);
         }
         */
+
+        /*
+         * These codes might be updated in the future; For now:
+         * - SNP impl will simply throw Exception since server side cannot handle such request
+         * - ZK impl will work and deleteAllNamespaceProperties is sufficient as clientside actions (server can handle the deletion in ZK server, since ZK impl has no dependency on properties file for bootstrap)
+         */
+        try {
+            // sufficient for ZKImpl as clientside actions for now
+            nsOptionsClient.deleteNamespace(namespace);
+        } catch (NamespacePropertiesDeleteException npe) {
+            throw new NamespaceDeletionException(npe);
+        }
     }
 
     @Override
     public void recoverNamespace(String namespace) throws NamespaceRecoverException {
+        throw new NamespaceRecoverException("recoverNamespace functionality is currently not available");
     }
     
     @Override

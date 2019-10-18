@@ -102,7 +102,9 @@ public interface Namespace {
      * @throws NamespaceLinkException TODO
      */
     public void linkTo(String target) throws NamespaceLinkException;
-    
+
+    public Namespace modifyNamespace(NamespaceOptions nsOptions) throws NamespaceModificationException;
+
     /** Name of the Replicas namespace. The Replicas namespace provides the locations of replicas given a key */ 
     public static final String  replicasName = "__Replicas__";
     /** 
