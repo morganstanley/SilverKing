@@ -205,15 +205,15 @@ public class ObjectDefParser2 {
         return objectToString((Class<T>)obj.getClass(), obj);
     }
 
-    public static <T> String objectToStringWithExclusions(T obj, Set<String> overrideExclusions) {
-        return objectToString((Class<T>)obj.getClass(), obj, overrideExclusions);
+    public static <T> String objectToStringWithExclusions(T obj, Set<String> overrideExclusionFields) {
+        return objectToString((Class<T>)obj.getClass(), obj, overrideExclusionFields);
     }
 
     public static <T> String objectToString(Class<T> _class, T obj) {
         return objectToString(_class, obj, null);
     }
 
-    public static <T> String objectToString(Class<T> _class, T obj, Set<String> dedicatedExclusions) {
+    public static <T> String objectToString(Class<T> _class, T obj, Set<String> overrideExclusionFields) {
         if (_class.equals(String.class)) {
             return (String)obj;
         } else {
@@ -223,7 +223,7 @@ public class ObjectDefParser2 {
                 System.out.printf("objectToString %s\n", _class.getName());
             }
             cp = getClassParser(_class);
-            return cp.objectToString(obj, dedicatedExclusions);
+            return cp.objectToString(obj, overrideExclusionFields);
         }
     }
     

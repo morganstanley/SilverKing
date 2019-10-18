@@ -114,17 +114,13 @@ public class NamespaceProperties {
     
     @Override
     public boolean equals(Object o) {
-        if (o instanceof NamespaceProperties) {
-            NamespaceProperties oProperties;
+        NamespaceProperties oProperties;
 
-            oProperties = (NamespaceProperties)o;
-            return this.options.equals(oProperties.options)
-                    && Objects.equals(this.parent, oProperties.parent)
-                    && Objects.equals(this.name, oProperties.name)
-                    && this.creationTime == oProperties.creationTime;
-        } else {
-            return  false;
-        }
+        oProperties = (NamespaceProperties)o;
+        return this.options.equals(oProperties.options)
+                && Objects.equals(this.parent, oProperties.parent)
+                && Objects.equals(this.name, oProperties.name)
+                && this.creationTime == oProperties.creationTime;
     }
 
     public boolean canBeReplacedBy(NamespaceProperties other) {
