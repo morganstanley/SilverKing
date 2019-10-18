@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
+import com.google.common.base.Preconditions;
 import com.ms.silverking.cloud.dht.GetOptions;
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
@@ -283,10 +284,13 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         if (nsOptions == null) {
             nsOptions = getNamespaceCreationOptions().getDefaultNamespaceOptions();
         }
-        return createNamespace(namespace, new NamespaceProperties(nsOptions));
+        return createNamespace(namespace, new NamespaceProperties(nsOptions).name(namespace));
     }
     
     Namespace createNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceCreationException {
+        // New version of codes will always enrich nsProperties with name
+        Preconditions.checkArgument(nsProperties.hasName(),
+                "nsProperties is not enriched to create namespace (wrong call path or wrong Silverking version is used); ns: " + nsProperties);
         nsOptionsClient.createNamespace(namespace, nsProperties);
         return getClientNamespace(namespace);
     }

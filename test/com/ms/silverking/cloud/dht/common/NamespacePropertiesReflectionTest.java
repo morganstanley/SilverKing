@@ -166,12 +166,39 @@ public class NamespacePropertiesReflectionTest {
     }
 
     @Test
-    public void backwardCompatibilityFunctionality() {
+    public void backwardCompatibilityFunctionalityFull() {
         NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyNsName, dummyParentName, dummyMinVersion, dummyCreationTime);
         String advancedDef = initialized.toSKDef();
         String legacyDef = initialized.toLegacySKDef();
 
         String[] doggyFields = { "creationTime=", "name=" };
+
+        NamespaceProperties advancedParsed = NamespaceProperties.parse(advancedDef);
+        NamespaceProperties legacyParsed = NamespaceProperties.parse(legacyDef);
+
+        String testName = "backwardCompatibility";
+        assertNotEquals(getTestMessage(testName, "legacyDef shall drop new fields"), advancedDef, legacyDef);
+        for (String doggyField : doggyFields) {
+            assertFalse(getTestMessage(testName, "legacyDef shall drop ["+ doggyField + "] field"), legacyDef.contains(doggyField));
+        }
+        for (String doggyField : doggyFields) {
+            assertTrue(getTestMessage(testName, "advancedDef shall keep ["+ doggyField + "] field"), advancedDef.contains(doggyField));
+        }
+
+        assertFalse(getTestMessage(testName, "legacyDef shall drop [creationTime] field and successfully parsed"), legacyParsed.hasCreationTime());
+        assertFalse(getTestMessage(testName, "legacyDef shall drop [name] field and successfully parsed"), legacyParsed.hasName());
+        assertTrue(getTestMessage(testName, "Non-doggy fields shall be same between advanced and legacy"), legacyParsed.getParent().equals(advancedParsed.getParent()));
+        assertTrue(getTestMessage(testName, "Non-doggy fields shall be same between advanced and legacy"), legacyParsed.getOptions().equals(advancedParsed.getOptions()));
+        assertTrue(getTestMessage(testName, "Non-doggy fields shall be same between advanced and legacy"), legacyParsed.getMinVersion() == advancedParsed.getMinVersion());
+    }
+
+    @Test
+    public void backwardCompatibilityFunctionalityNoName() {
+        NamespaceProperties initialized = new NamespaceProperties(dummyNsOptions, dummyParentName, dummyMinVersion).creationTime(dummyCreationTime);
+        String advancedDef = initialized.toSKDef();
+        String legacyDef = initialized.toLegacySKDef();
+
+        String[] doggyFields = { "creationTime=" };
 
         NamespaceProperties advancedParsed = NamespaceProperties.parse(advancedDef);
         NamespaceProperties legacyParsed = NamespaceProperties.parse(legacyDef);

@@ -23,8 +23,7 @@ public class NamespaceProperties {
     // For backward compatibility only (we drop "creationTime" and "name", since its not in the old data)
     private static final Set<String> legacyExclusionFields = ImmutableSet.of("creationTime", "name");
 
-    public static final long    noCreationTime = 0;
-    public static final String  noName = "__namespace_name_is_omitted_in_this_version_of_codes__";
+    private static final long    noCreationTime = 0;
 
     static {
         ObjectDefParser2.addParserWithOptionalFields(templateProperties, optionalFields);
@@ -48,7 +47,12 @@ public class NamespaceProperties {
     }
 
     public NamespaceProperties(NamespaceOptions options, String parent, long minVersion) {
-        this(options, noName, parent, minVersion);
+        /* For backward compatibility, if no name is specified, null is used as placeholder
+         * NOTE:
+         *  - new version of code will always enrich nsProperties with name
+         *  - old version of code will leave name as null
+         */
+        this(options, null, parent, minVersion);
     }
     
     public NamespaceProperties(NamespaceOptions options) {
@@ -84,7 +88,7 @@ public class NamespaceProperties {
     }
 
     public boolean hasName() {
-        return !name.equals(noName);
+        return name != null;
     }
 
     public NamespaceProperties creationTime(long creationTime) {
