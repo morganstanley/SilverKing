@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.common;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,17 +11,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
-import com.ms.silverking.cloud.dht.RetrievalType;
-import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
-import com.ms.silverking.cloud.dht.client.DHTSession;
+import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
-import com.ms.silverking.cloud.dht.client.PutException;
-import com.ms.silverking.cloud.dht.client.RetrievalException;
-import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
-import com.ms.silverking.cloud.dht.client.StoredValue;
-import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
+import com.ms.silverking.cloud.dht.client.NamespaceModificationException;
 import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.meta.DHTMetaWatcher;
@@ -29,134 +24,234 @@ import com.ms.silverking.collection.HashedListMap;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
 
-public class NamespaceOptionsClientBase{
-    private final ZooKeeperConfig   zkConfig;
-    private final String            dhtName;
-    private final SynchronousNamespacePerspective<String,String>    syncNSP;
-    private NamespaceCreationOptions  nsCreationOptions;
-    private DHTMetaWatcher  dhtMetaWatcher;
-    private final SessionEstablishmentTimeoutController    seTimeoutController;
-    private final Map<Long,NamespaceOptions>    systemNamespaceOptions;
-    
+public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClient{
+    private final ClientDHTConfiguration    dhtConfig;
+    private final Map<Long, NamespaceOptions> systemNamespaceOptions;
+
+    private NamespaceCreationOptions nsCreationOptions;
+    private DHTMetaWatcher dhtMetaWatcher;
+
     private static final int    dhtMetaWatcherIntervalMillis = 60 * 60 * 1000;
-    
-    private static final boolean    debug = false;
-    
+    protected static final boolean    debug = false;
     private static final ConcurrentMap<String,NamespaceCreationOptions> nsCreationOptionsMap;
-    
+
     static {
         nsCreationOptionsMap = new ConcurrentHashMap<>();
     }
-    
-    private NamespaceOptionsClientBase(DHTSession session, ZooKeeperConfig zkConfig, String dhtName,
-                                       SessionEstablishmentTimeoutController seTimeoutController) {
-        SimpleNamespaceCreator    nsCreator;
-        
-        syncNSP = session.openSyncNamespacePerspective(NamespaceUtil.metaInfoNamespaceName, NamespaceUtil.metaNSPOptions);
-        this.zkConfig = zkConfig;
-        this.dhtName = dhtName;
-        this.seTimeoutController = seTimeoutController;
+
+    public NamespaceOptionsClientBase(ClientDHTConfigurationProvider dhtConfigurationProvider) {
+        SimpleNamespaceCreator  nsCreator;
+
+        this.dhtConfig = dhtConfigurationProvider.getClientDHTConfiguration();
         systemNamespaceOptions = new HashMap<>();
         nsCreator = new SimpleNamespaceCreator();
-        systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.systemName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
-        systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.nodeName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
+        systemNamespaceOptions.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.systemName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
+        systemNamespaceOptions.put(nsCreator.createNamespace(com.ms.silverking.cloud.dht.client.Namespace.nodeName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
         systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.replicasName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
     }
-    
-    public NamespaceOptionsClientBase(DHTSession session) {
-        this(session, null, null, SessionOptions.getDefaultTimeoutController());
-    }
-    
-    public NamespaceOptionsClientBase(DHTSession session, ClientDHTConfiguration dhtConfig,
-                                      SessionEstablishmentTimeoutController seTimeoutController) {
-        this(session, dhtConfig.getZKConfig(), dhtConfig.getName(), seTimeoutController);
-    }
 
-    public void createNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceCreationException {
+    ////// ====== Backend specific implementation (can be: fileSegment or ZooKeeper) ======
+    /**
+     * Get the default relative timeout in millis for higher-level wait on getNamespacePropertiesWithTimeout
+     * @return timeout time in millis
+     */
+    abstract protected long getDefaultRelTimeoutMillis();
+
+    /**
+     *  Write the given NamespaceProperties into backend, mutability is maintained by backend implementation
+     * @param nsContext hashed-namespace name
+     * @param nsProperties nsProperties to write
+     * @throws NamespacePropertiesPutException if encountered any exception in backend
+     */
+    abstract protected void putNamespaceProperties(long nsContext, NamespaceProperties nsProperties) throws NamespacePropertiesPutException;
+
+    /**
+     * Read the latest version of NamespaceProperties from backend with creationTime issued; <b>null</b> shall be returned if not exists
+     * @param nsContext hashed-namespace name
+     * @return the latest version NamespaceProperties with creationTime issued, or <b>null</b> if not exists
+     * @throws NamespacePropertiesRetrievalException if encountered any exception in backend (exception value not exists)
+     */
+    abstract protected NamespaceProperties retrieveFullNamespaceProperties(long nsContext) throws NamespacePropertiesRetrievalException;
+
+    /**
+     * Delete all versions of nsProperties for a specific namespace
+     * @param nsContext hashed-namespace name
+     * @throws NamespacePropertiesDeleteException if encountered any exception in backend (exception value not exists)
+     */
+    abstract protected void deleteAllNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException;
+
+    /**
+     * @return a identifier name for the backend implementation
+     */
+    abstract protected String backendName();
+
+    /**
+     * This API is for backward compatibility, since some implementation may still need properties file to bootstrap
+     * (Exposed for serverside use)
+     *
+     * @param nsDir the namespace data directory
+     * @return the full nsProperties for ns bootstrap, or <b>null</b> if nsProperties not found (e.g. ns has been deleted)
+     * @throws NamespacePropertiesRetrievalException if encountered any exception in backend (exception value not exists)
+     */
+    abstract public NamespaceProperties getNsPropertiesForRecovery(File nsDir) throws NamespacePropertiesRetrievalException;
+
+    public void createNamespace(String nsName, NamespaceProperties nsProperties) throws NamespaceCreationException {
         ensureNSCreationOptionsSet();
         if (debug) {
-            System.out.printf("canBeExplicitlyCreated %s\n", nsCreationOptions.canBeExplicitlyCreated(namespace));
+            System.out.printf("canBeExplicitlyCreated %s\n", nsCreationOptions.canBeExplicitlyCreated(nsName));
         }
-        if (nsCreationOptions.canBeExplicitlyCreated(namespace)) {
-            storeNamespaceProperties(NamespaceUtil.nameToContext(namespace), nsProperties);
+        if (nsCreationOptions.canBeExplicitlyCreated(nsName)) {
+            try {
+                storeNamespaceProperties(nsName, nsProperties, false);
+            } catch (NamespaceModificationException e) {
+                throw new NamespaceCreationException("createNamespace is disallowed on an existing ns [" + nsName + "] with modified nsOptions", e);
+            }
         } else {
-            throw new NamespaceCreationException("Namespace creation not allowed for "+ namespace);
+            throw new NamespaceCreationException("Namespace creation not allowed for [" + nsName + "] due to the filter rule: " + nsCreationOptions);
         }
     }
-    
-    public void storeNamespaceProperties(long namespace, NamespaceProperties nsProperties) throws NamespaceCreationException {
+
+    public void modifyNamespace(String nsName, NamespaceProperties nsProperties) throws NamespaceModificationException {
+        ensureNSCreationOptionsSet();
+        if (debug) {
+            System.out.printf("canBeExplicitlyCreated %s\n", nsCreationOptions.canBeExplicitlyCreated(nsName));
+        }
+        if (nsCreationOptions.canBeExplicitlyCreated(nsName)) {
+            try {
+                storeNamespaceProperties(nsName, nsProperties, true);
+            } catch (NamespaceCreationException e) {
+                throw new NamespaceModificationException(e);
+            }
+        } else {
+            throw new NamespaceModificationException("Namespace creation not allowed for [" + nsName + "] due to the filter rule: " + nsCreationOptions);
+        }
+    }
+
+    public void deleteNamespace(String nsName) throws NamespacePropertiesDeleteException {
+        /*
+         * These codes might be updated in the future; For now:
+         * - SNP impl will simply throw Exception since server side cannot handle such request
+         * - ZK impl will work and deleteAllNamespaceProperties is sufficient as clientside actions (server can handle the deletion in ZK server, since ZK impl has no dependency on properties file for bootstrap)
+         */
+        long    nsContext;
+
+        nsContext = NamespaceUtil.nameToContext(nsName);
+        // sufficient for ZKImpl as clientside actions for now
+        deleteAllNamespaceProperties(nsContext);
+    }
+
+    ////// ====== Internal shared logic ======
+    // This method for now is used in client side, so it will downgrade nsName to nsContext, and enrich the nsProperties
+    private void storeNamespaceProperties(String nsName, NamespaceProperties nsProperties, boolean mutate) throws NamespaceCreationException, NamespaceModificationException {
         boolean    retry;
-        
-        retry = false;
+        long       nsContext;
+
+        if (nsProperties.hasName() && !nsProperties.getName().equals(nsName)) {
+            Log.warning("Wrong call path could be invoked: nsName=[" + nsName + "] will overwrite nsProperties.name=[" + nsProperties.getName() + "]");
+        }
+        // Enrich NamespaceProperties before downgrade to nsContext
+        nsProperties = nsProperties.name(nsName);
+        nsContext = NamespaceUtil.nameToContext(nsName);
         do {
             NamespaceProperties existingProperties;
-            
+
+            retry = false; // need to be reset at each iteration in case of "infinite loop"
             try {
-                existingProperties = getNamespaceProperties(namespace, seTimeoutController.getMaxRelativeTimeoutMillis(null));
+                existingProperties = getNamespacePropertiesWithTimeout(nsContext, getDefaultRelTimeoutMillis());
             } catch (TimeoutException te) {
-                Log.warning("Failed to store namespace due to timeout "+ String.format("%x", namespace));
-                throw new NamespaceCreationException(Long.toHexString(namespace), te);
-            } catch (RetrievalException re) {
-                Log.warning(re.getDetailedFailureMessage());
+                Log.warning("Failed to store namespace due to timeout "+ String.format("%s", nsName));
+                throw new NamespaceCreationException(Long.toHexString(nsContext), te);
+            } catch (NamespacePropertiesRetrievalException re) {
+                Log.warning(re);
                 throw new NamespaceCreationException("RetrievalException during first property check", re);
             }
+
             if (existingProperties != null) {
                 if (!existingProperties.equals(nsProperties)) {
-                    Log.warning("existingProperties", existingProperties);
-                    Log.warning("nsProperties", nsProperties);
-                    throw new NamespaceCreationException("Namespace already created with incompatible properties");
+                    if (mutate) {
+                        if (existingProperties.canBeReplacedBy(nsProperties)) {
+                            retry = tryModifyNamespaceProperties(nsContext, nsProperties);
+                        } else {
+                            String errMsg = "Trying to modify namespace [" + nsName + "] NamespaceProperties in mutable mode";
+                            Log.warning(errMsg);
+                            Log.warning("existingProperties", existingProperties);
+                            Log.warning("nsProperties", nsProperties);
+                            throw new NamespaceModificationException(errMsg + "(some immutable of fields of NamespaceProperties may be updated)");
+                        }
+                    } else {
+                        String errMsg = "Trying to modify namespace [" + nsName + "] NamespaceProperties in immutable mode";
+                        Log.warning(errMsg);
+                        Log.warning("existingProperties", existingProperties);
+                        Log.warning("nsProperties", nsProperties);
+                        throw new NamespaceCreationException(errMsg + "(may need to explicitly call modifyNamespace method for mutation)");
+                    }
                 } else {
                     // Already created with the same options. No further action required.
+                    retry = false; // explicitly set to false in case of "infinite loop"
                 }
             } else {
-                try {
-                    if (debug) {
-                        System.out.printf("storeNamespaceProperties(%x, %s)\n", namespace, nsProperties);
-                    }
-                    syncNSP.put(getOptionsKey(namespace), nsProperties.toString());
-                    if (debug) {
-                        System.out.println("Done storeNamespaceOptions");
-                    }
-                } catch (PutException pe) {
-                    // If a simultaneous put is detected, then we must check for
-                    // consistency among the created namespaces.
-                    // For other errors, we try this also on the
-                    try {
-                        boolean optionsMatch;
-                        
-                        try {
-                            optionsMatch = verifyNamespaceProperties(namespace, nsProperties);
-                            if (!optionsMatch) {
-                                throw new NamespaceCreationException("Namespace already created with incompatible properties");
-                            }
-                        } catch (NamespaceNotCreatedException nnce) {
-                            // Should not be possible any more, but leave old retry in for now.
-                            retry = true;
-                        } catch (RuntimeException re) {
-                            Log.logErrorWarning(re);
-                            Log.warning(pe.getDetailedFailureMessage());
-                            Log.logErrorWarning(pe, "Couldn't store options due to exception");
-                        }
-                    } catch (RetrievalException re) {
-                        Log.warning("storeNamespaceProperties failing");
-                        Log.warning("PutException");
-                        pe.printStackTrace();
-                        Log.warning("RetrievalException");
-                        re.printStackTrace();
-                        throw new NamespaceCreationException(re);
-                    }
-                }
+                // No existing property exists
+                retry = tryCreateNamespaceProperties(nsContext, nsProperties);
             }
         } while (retry);
     }
 
-    private boolean verifyNamespaceProperties(long namespace, NamespaceProperties nsProperties) throws RetrievalException {
-        NamespaceOptions    existingProperties;
-        
-        if (debug) {
-            System.out.printf("verifyNamespaceProperties(%x, %s)\n", namespace, nsProperties);
+    private boolean tryCreateNamespaceProperties(long nsContext, NamespaceProperties nsProperties) throws NamespaceCreationException {
+        boolean needRetry;
+
+        needRetry = false;
+        try {
+            putNamespaceProperties(nsContext, nsProperties);
+        } catch (NamespacePropertiesPutException pe) {
+            // If a simultaneous put is detected, then we must check for
+            // consistency among the created namespaces.
+            // For other errors, we try this also on the
+            try {
+                boolean optionsMatch;
+
+                try {
+                    optionsMatch = verifyNamespaceProperties(nsContext, nsProperties);
+                    if (!optionsMatch) {
+                        throw new NamespaceCreationException("Namespace already created with incompatible properties");
+                    }
+                } catch (NamespaceNotCreatedException nnce) {
+                    // Should not be possible any more, but leave old retry in for now.
+                    needRetry = true;
+                } catch (RuntimeException re) {
+                    Log.logErrorWarning(re);
+                    Log.warning(pe);
+                    Log.logErrorWarning(pe, "Couldn't store options due to exception");
+                }
+            } catch (NamespacePropertiesRetrievalException re) {
+                Log.warning("storeNamespaceProperties failing");
+                Log.warning("PutException");
+                pe.printStackTrace();
+                Log.warning("RetrievalException");
+                re.printStackTrace();
+                throw new NamespaceCreationException(re);
+            }
         }
-        existingProperties = getNamespaceOptions(namespace);
+
+        return needRetry;
+    }
+
+
+    private boolean tryModifyNamespaceProperties(long nsContext, NamespaceProperties nsProperties) throws NamespaceModificationException {
+        try {
+            putNamespaceProperties(nsContext, nsProperties);
+            return false; // no retry for nsProperties modification
+        } catch (NamespacePropertiesPutException pe) {
+            throw new NamespaceModificationException(pe);
+        }
+    }
+
+    private boolean verifyNamespaceProperties(long nsContext, NamespaceProperties nsProperties) throws NamespacePropertiesRetrievalException {
+        NamespaceProperties    existingProperties;
+
+        if (debug) {
+            System.out.printf("verifyNamespaceProperties(%x, %s)\n", nsContext, nsProperties);
+        }
+        existingProperties = getNamespaceProperties(nsContext);
         if (debug) {
             System.out.println("Done verifyNamespaceProperties");
         }
@@ -165,50 +260,70 @@ public class NamespaceOptionsClientBase{
         }
         return existingProperties.equals(nsProperties);
     }
-    
-    private boolean verifyNamespaceOptions(long namespace, NamespaceOptions nsOptions) throws RetrievalException {
+
+    private boolean verifyNamespaceOptions(long nsContext, NamespaceOptions nsOptions) throws NamespacePropertiesRetrievalException {
         NamespaceOptions    existingOptions;
-        
+
         if (debug) {
-            System.out.printf("verifyNamespaceOptions(%x, %s)\n", namespace, nsOptions);
+            System.out.printf("verifyNamespaceOptions(%x, %s)\n", nsContext, nsOptions);
         }
-        existingOptions = getNamespaceOptions(namespace);
+        existingOptions = getNamespaceOptions(nsContext);
         if (debug) {
             System.out.println("Done verifyNamespaceOptions");
         }
         return existingOptions.equals(nsOptions);
     }
-    
-    private String getOptionsKey(long namespace) {
-        return Long.toString(namespace);
+
+    public NamespaceProperties getNamespaceProperties(long nsContext) throws NamespacePropertiesRetrievalException {
+        if (nsContext == NamespaceUtil.metaInfoNamespace.contextAsLong()) {
+            return NamespaceUtil.metaInfoNamespaceProperties;
+        } else {
+            NamespaceOptions    nsOptions;
+
+            nsOptions = systemNamespaceOptions.get(nsContext);
+            if (nsOptions != null) {
+                return new NamespaceProperties(nsOptions);
+            } else {
+                LWTThreadUtil.setBlocked();
+                try {
+                    return retrieveFullNamespaceProperties(nsContext);
+                } finally {
+                    LWTThreadUtil.setNonBlocked();
+                }
+            }
+        }
     }
-    
-    public NamespaceProperties getNamespaceProperties(long namespace, long relTimeoutMillis) throws RetrievalException, TimeoutException {
-        if (namespace != NamespaceUtil.metaInfoNamespace.contextAsLong()) {
+
+    public NamespaceOptions getNamespaceOptions(long nsContext) throws NamespacePropertiesRetrievalException {
+        NamespaceProperties nsProperties = getNamespaceProperties(nsContext);
+        return nsProperties == null ? null : nsProperties.getOptions();
+    }
+
+    public NamespaceProperties getNamespacePropertiesWithTimeout(long nsContext, long relTimeoutMillis) throws NamespacePropertiesRetrievalException, TimeoutException {
+        if (nsContext == NamespaceUtil.metaInfoNamespace.contextAsLong()) {
+            return NamespaceUtil.metaInfoNamespaceProperties;
+        } else {
             NamespaceProperties    nsProperties;
-            
-            nsProperties = NamespaceUtil.systemNamespaceProperties.get(namespace);
+
+            nsProperties = NamespaceUtil.systemNamespaceProperties.get(nsContext);
             if (nsProperties != null) {
                 return nsProperties;
             } else {
-                StoredValue<String>    storedDef;
-                
-                storedDef = null;
                 LWTThreadUtil.setBlocked();
                 try {
-                    ActiveOptionsRequest    request;
+                    NamespaceOptionsClientBase.ActiveOptionsRequest request;
                     boolean                 requestsOutstanding;
-                    
+
                     if (debug) {
-                        System.out.printf("getNamespaceProperties(%x) timeout %d\n", namespace, relTimeoutMillis);
+                        System.out.printf("getNamespacePropertiesWithTimeout(%x) timeout %d\n", nsContext, relTimeoutMillis);
                     }
                     requestsOutstanding = false;
-                    request = new ActiveOptionsRequest(namespace, relTimeoutMillis);
+                    request = new NamespaceOptionsClientBase.ActiveOptionsRequest(nsContext, relTimeoutMillis);
                     activeOptionsRequestLock.lock();
                     try {
-                        List<ActiveOptionsRequest>    requestList;
-                        
-                        requestList = activeOptionsRequests.getList(namespace);
+                        List<NamespaceOptionsClientBase.ActiveOptionsRequest> requestList;
+
+                        requestList = activeOptionsRequests.getList(nsContext);
                         requestsOutstanding = requestList.size() > 0;
                         requestList.add(request);
                     } finally {
@@ -218,20 +333,14 @@ public class NamespaceOptionsClientBase{
                         System.out.printf("requestsOutstanding %s\n", requestsOutstanding);
                     }
                     if (!requestsOutstanding) {
-                        if (debug) {
-                            System.out.printf("syncNSP.retrieve()\n");
-                        }
-                        storedDef = syncNSP.retrieve(getOptionsKey(namespace), syncNSP.getOptions().getDefaultGetOptions().retrievalType(RetrievalType.VALUE_AND_META_DATA));
-                        if (debug) {
-                            System.out.printf("syncNSP.retrieve() complete %s\n", storedDef);
-                        }
+                        nsProperties = retrieveFullNamespaceProperties(nsContext);
                         activeOptionsRequestLock.lock();
                         try {
-                            List<ActiveOptionsRequest>  requestList;
-                            
-                            requestList = activeOptionsRequests.getList(namespace);
+                            List<NamespaceOptionsClientBase.ActiveOptionsRequest>  requestList;
+
+                            requestList = activeOptionsRequests.getList(nsContext);
                             for (int i = 1; i < requestList.size(); i++) {
-                                requestList.get(i).setComplete(storedDef);
+                                requestList.get(i).setComplete(nsProperties);
                             }
                             requestList.clear();
                         } finally {
@@ -239,85 +348,45 @@ public class NamespaceOptionsClientBase{
                         }
                     } else {
                         if (debug) {
-                            System.out.printf("request.waitForCompletion()\n");
+                            System.out.printf("%s::request.waitForCompletion()\n", backendName());
                         }
-                        storedDef = request.waitForCompletion();
+                        nsProperties = request.waitForCompletion();
                         if (debug) {
-                            System.out.printf("request.waitForCompletion() complete %s\n", storedDef);
+                            System.out.printf("request.waitForCompletion() complete %s\n", nsProperties);
                         }
-                        if (storedDef == null) {
-                            storedDef = syncNSP.retrieve(getOptionsKey(namespace), syncNSP.getOptions().getDefaultGetOptions().retrievalType(RetrievalType.VALUE_AND_META_DATA));
+                        if (nsProperties == null) {
+                            nsProperties = retrieveFullNamespaceProperties(nsContext);
                         }
                     }
                 } finally {
                     LWTThreadUtil.setNonBlocked();
                 }
                 if (debug) {
-                    System.out.printf("getNamespaceProperties storedDef %s\n", storedDef);
+                    System.out.printf("getNamespaceProperties storedDef %s\n", nsProperties);
                 }
-                if (storedDef != null) {
-                    return NamespaceProperties.parse(storedDef.getValue(), storedDef.getCreationTime().inNanos());
-                } else {
-                    return null;
-                }
+                return nsProperties;
             }
-        } else {
-            return NamespaceUtil.metaInfoNamespaceProperties;
-        }
-    }    
-    
-    public NamespaceOptions getNamespaceOptions(long namespace) throws RetrievalException {
-        if (namespace != NamespaceUtil.metaInfoNamespace.contextAsLong()) {
-            NamespaceOptions    nsOptions;
-            
-            nsOptions = systemNamespaceOptions.get(namespace);
-            if (nsOptions != null) {
-                return nsOptions;
-            } else {
-                String  def;
-                
-                def = null;
-                LWTThreadUtil.setBlocked();
-                try {
-                    if (debug) {
-                        System.out.printf("getNamespaceOptions(%x)\n", namespace);
-                    }
-                    def = syncNSP.get(getOptionsKey(namespace));
-                } finally {
-                    LWTThreadUtil.setNonBlocked();
-                }
-                if (debug) {
-                    System.out.printf("getNamespaceOptions def %s\n", def);
-                }
-                if (def != null) {
-                    return NamespaceOptions.parse(def);
-                } else {
-                    return null;
-                }
-            }
-        } else {
-            return NamespaceUtil.metaInfoNamespaceOptions;
         }
     }
-    
-    public NamespaceProperties getNamespaceProperties(String namespace) throws RetrievalException, TimeoutException {
-        long    context;
+
+    public NamespaceProperties getNamespacePropertiesAndTryAutoCreate(String nsName) throws NamespacePropertiesRetrievalException, TimeoutException {
         NamespaceProperties    nsProperties;
-        
-        context = NamespaceUtil.nameToContext(namespace);
-        nsProperties = getNamespaceProperties(context, seTimeoutController.getMaxRelativeTimeoutMillis(null));
+        long                   nsContext;
+
+        nsContext = NamespaceUtil.nameToContext(nsName);
+        nsProperties = getNamespacePropertiesWithTimeout(nsContext, getDefaultRelTimeoutMillis());
         if (nsProperties == null) {
             ensureNSCreationOptionsSet();
             if (debug) {
-                System.out.printf("canBeAutoCreated %s\n", nsCreationOptions.canBeAutoCreated(namespace));
+                System.out.printf("canBeAutoCreated %s\n", nsCreationOptions.canBeAutoCreated(nsName));
             }
-            if (nsCreationOptions.canBeAutoCreated(namespace)) {
+            if (nsCreationOptions.canBeAutoCreated(nsName)) {
                 try {
-                    storeNamespaceProperties(context, new NamespaceProperties(nsCreationOptions.getDefaultNamespaceOptions()));
-                } catch (NamespaceCreationException nce) {
-                    throw new RuntimeException("Failure autocreating namespace", nce);
+                    storeNamespaceProperties(nsName, new NamespaceProperties(nsCreationOptions.getDefaultNamespaceOptions()), false);
+                } catch (NamespaceCreationException | NamespaceModificationException e) {
+                    throw new RuntimeException("Failure autocreating namespace", e);
                 }
-                nsProperties = getNamespaceProperties(context, seTimeoutController.getMaxRelativeTimeoutMillis(null));
+                nsProperties = getNamespacePropertiesWithTimeout(nsContext, getDefaultRelTimeoutMillis());
                 if (nsProperties == null) {
                     throw new RuntimeException("Failure autocreating namespace. null nsProperties");
                 }
@@ -325,8 +394,14 @@ public class NamespaceOptionsClientBase{
         }
         return nsProperties;
     }
-    
+
     private void ensureNSCreationOptionsSet() {
+        String              dhtName;
+        ZooKeeperConfig     zkConfig;
+
+        dhtName = dhtConfig.getName();
+        zkConfig = dhtConfig.getZKConfig();
+
         if (debug) {
             Log.warning("ensureNSCreationOptionsSet()");
             Thread.dumpStack();
@@ -356,37 +431,36 @@ public class NamespaceOptionsClientBase{
             }
         }
     }
-    
+
     public NamespaceCreationOptions getNamespaceCreationOptions() {
         ensureNSCreationOptionsSet();
         return nsCreationOptions;
     }
-    
-    /////
-    
-    private final Lock  activeOptionsRequestLock = new ReentrantLock();
-    private final HashedListMap<Long,ActiveOptionsRequest>    activeOptionsRequests = new HashedListMap<>(true);
+
+    ///// ====== Internal client concurrency mechanism for nsOptions create/modify request ======
+    private final Lock activeOptionsRequestLock = new ReentrantLock();
+    private final HashedListMap<Long, NamespaceOptionsClientBase.ActiveOptionsRequest> activeOptionsRequests = new HashedListMap<>(true);
     private static final int   activeOptionsRequestTimeoutMillis = 2 * 60 * 1000;
-    
+
     private static class ActiveOptionsRequest {
-        private final long  ns; // currently stored solely for debugging/logging
+        private final long    nsContext; // currently stored solely for debugging/logging
         private final long    absTimeoutMillis;
-        private StoredValue<String>    storedDef;
-        
-        ActiveOptionsRequest(long ns, long relTimeoutMillis) {
-            this.ns = ns;
+        private NamespaceProperties   storedData;
+
+        ActiveOptionsRequest(long nsContext, long relTimeoutMillis) {
+            this.nsContext = nsContext;
             this.absTimeoutMillis = SystemTimeUtil.systemTimeSource.absTimeMillis() + relTimeoutMillis;
         }
-        
-        StoredValue<String> waitForCompletion() throws TimeoutException {
+
+        NamespaceProperties waitForCompletion() throws TimeoutException {
             synchronized (this) {
-                while (storedDef == null) {
+                while (storedData == null) {
                     long    relDeadlineMillis;
                     long    timeToWaitMillis;
-                    
+
                     relDeadlineMillis = Math.max(0, absTimeoutMillis - SystemTimeUtil.systemTimeSource.absTimeMillis());
                     try {
-                        timeToWaitMillis = Math.min(activeOptionsRequestTimeoutMillis, relDeadlineMillis); 
+                        timeToWaitMillis = Math.min(activeOptionsRequestTimeoutMillis, relDeadlineMillis);
                         if (debug) {
                             System.out.printf("timeToWaitMillis %d\n", timeToWaitMillis);
                         }
@@ -401,24 +475,24 @@ public class NamespaceOptionsClientBase{
                         e.printStackTrace();
                     }
                 }
-                if (storedDef == null) {
+                if (storedData == null) {
                     throw new RuntimeException("ActiveOptionsRequest.waitForCompletion() timed out");
                 }
             }
             if (debug) {
-                System.out.printf("storedDef %d", storedDef);
+                System.out.printf("storedDef %s", storedData);
             }
-            return storedDef;
+            return storedData;
         }
-        
-        void setComplete(StoredValue<String> storedDef) {
+
+        void setComplete(NamespaceProperties data) {
             synchronized (this) {
-                if (this.storedDef != null) {
-                    Log.warning(storedDef);
-                    Log.warning(this.storedDef);
+                if (this.storedData != null) {
+                    Log.warning(data);
+                    Log.warning(this.storedData);
                     Log.warning("Unexpected multiple completion for ActiveOptionsRequest");
                 } else {
-                    this.storedDef = storedDef;
+                    this.storedData = data;
                 }
                 this.notifyAll();
             }
