@@ -121,6 +121,7 @@ public class DHTConstants {
     public static final String classpathEnv = "SK_CLASSPATH";
     public static final String classpathProperty = "java.class.path";
     public static final String jaceHomeEnv = "SK_JACE_HOME";
+    public static final String defaultNamespaceOptionsModeEnv = "SK_DEFAULT_NS_OPTIONS_MODE";
     public static final String javaHomeEnv = SKConstants.javaHomeEnv;
     public static final String javaHomeProperty = "java.home";
     
