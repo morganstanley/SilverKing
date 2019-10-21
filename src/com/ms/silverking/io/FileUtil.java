@@ -74,13 +74,17 @@ public class FileUtil {
     public static void writeToFile(String fileName, String text) throws IOException {
         writeToFile(new File(fileName), text);
     }
-    
+
     public static void writeToFile(File file, String text) throws IOException {
+        writeToFile(file, text, false);
+    }
+
+    public static void writeToFile(File file, String text, boolean append) throws IOException {
         try (BufferedWriter out = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(file)) )) {
+                new OutputStreamWriter(new FileOutputStream(file, append)) )) {
             out.write(text);
         }
-    }    
+    }
 
     public static void writeToFile(String fileName, Collection lines) throws IOException {
         writeToFile(new File(fileName), lines);

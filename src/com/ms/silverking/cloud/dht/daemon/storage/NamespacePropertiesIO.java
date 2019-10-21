@@ -2,15 +2,19 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import com.google.common.base.Preconditions;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
 
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
 public class NamespacePropertiesIO {
     private static final String propertiesFileName = "properties";
-    
+
     /*
      * Note that creationTime is not serialized by default for NamespaceProperties in order 
      * to ensure that DHT-stored namespace properties do not use this field which can vary by observer.
@@ -50,21 +54,21 @@ public class NamespacePropertiesIO {
             return NamespaceProperties.parse(def.substring(0, index), creationTime);
         }
     }
-    
-    public static void write(File nsDir, NamespaceProperties nsProperties) throws IOException {
-        _write(nsDir, nsProperties, false);
-    }
-    
+
     public static void rewrite(File nsDir, NamespaceProperties nsProperties) throws IOException {
-        _write(nsDir, nsProperties, true);
+        if (!nsDir.isDirectory()) {
+            throw new IOException("NamespacePropertiesIO.rewrite() passed non-directory: "+ nsDir);
+        }
+        if (propertiesFileExists(nsDir)) {
+            _rewrite(propertiesFile(nsDir), nsProperties);
+        } else {
+            _write(propertiesFile(nsDir), nsProperties);
+        }
     }
-    
-    private static void _write(File nsDir, NamespaceProperties nsProperties, boolean allowRewrite) throws IOException {
+
+    public static void write(File nsDir, NamespaceProperties nsProperties) throws IOException {
         if (!nsDir.isDirectory()) {
             throw new IOException("NamespacePropertiesIO.write() passed non-directory: "+ nsDir);
-        }
-        if (allowRewrite && propertiesFileExists(nsDir)) {
-            propertiesFile(nsDir).delete();
         }
         if (propertiesFileExists(nsDir)) {
             NamespaceProperties existingProperties;
@@ -91,7 +95,17 @@ public class NamespacePropertiesIO {
         // For backward compatibility, the legacy format of nsProperties is used
         FileUtil.writeToFile(propertiesFile, nsProperties.toLegacySKDef() +","+ nsProperties.getCreationTime());
     }
-    
+
+    private static void _rewrite(File propertiesFile, NamespaceProperties nsProperties) throws IOException {
+        File    tempFile;
+
+        // Try not to pollute the old properties, we firstly write new properties into a temp file and atomic move and replace the old one
+        tempFile = Files.createTempFile(propertiesFile.getParentFile().toPath(), propertiesFile.getName(), "_pre_overwrite").toFile();
+        // For backward compatibility, the legacy format of nsProperties is used
+        FileUtil.writeToFile(tempFile, nsProperties.toLegacySKDef() +","+ nsProperties.getCreationTime());
+        Files.move(tempFile.toPath(), propertiesFile.toPath(), ATOMIC_MOVE, REPLACE_EXISTING);
+    }
+
     public static boolean propertiesFileExists(File nsDir) throws IOException {
         return propertiesFile(nsDir).exists();
     }
