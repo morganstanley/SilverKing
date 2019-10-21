@@ -24,6 +24,8 @@ import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
 import com.ms.silverking.cloud.dht.common.NamespaceOptionsClient;
 import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientNSPImpl;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientZKImpl;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.NamespacePropertiesDeleteException;
 import com.ms.silverking.cloud.dht.common.NamespacePropertiesRetrievalException;
@@ -32,6 +34,7 @@ import com.ms.silverking.cloud.dht.common.TimeoutException;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.NamespaceLinksZK;
+import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
@@ -45,6 +48,7 @@ import com.ms.silverking.net.async.QueueingConnectionLimitListener;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.SafeTimerTask;
+import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.util.List;
@@ -69,6 +73,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private final SerializationRegistry serializationRegistry;
     private final Worker            worker;
     private final NamespaceCreator  namespaceCreator;
+    private final NamespaceOptionsMode nsOptionsMode;
     private final NamespaceOptionsClient nsOptionsClient;
     private NamespaceLinkMeta nsLinkMeta;
     private SafeTimerTask timeoutCheckTask;
@@ -117,7 +122,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                           AddrAndPort preferredServer,
                           AbsMillisTimeSource absMillisTimeSource, 
                           SerializationRegistry serializationRegistry, 
-                          SessionEstablishmentTimeoutController timeoutController) throws IOException {
+                          SessionEstablishmentTimeoutController timeoutController,
+                          NamespaceOptionsMode nsOptionsMode) throws IOException {
         mgBase = new MessageGroupBase(0, this, absMillisTimeSource, new NewConnectionTimeoutControllerWrapper(timeoutController), 
                                       this, connectionQueueLimit, numSelectorControllers, selectorControllerClass);
         mgBase.enable();
@@ -129,13 +135,23 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         this.dhtConfig = dhtConfig;
         this.absMillisTimeSource = absMillisTimeSource;
         this.serializationRegistry = serializationRegistry;
+        this.nsOptionsMode = nsOptionsMode;
+
         myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getPort());
         Log.info("Session IP:Port ", IPAddrUtil.addrAndPortToString(myIPAndPort));
-        
-        clientNamespaces = new ConcurrentHashMap<>();  
+
+        clientNamespaces = new ConcurrentHashMap<>();
         clientNamespaceList = new CopyOnWriteArrayList<>();
         namespaceCreator = new SimpleNamespaceCreator();
-        nsOptionsClient = new NamespaceOptionsClientNSPImpl(this, dhtConfig, timeoutController);
+        if (nsOptionsMode == NamespaceOptionsMode.ZooKeeper) {
+            try {
+                nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfig);
+            } catch (KeeperException ke) {
+                throw new IOException("Cannot create NamespaceOptionsClientZKImpl", ke);
+            }
+        } else {
+            nsOptionsClient = new NamespaceOptionsClientNSPImpl(this, dhtConfig, timeoutController);
+        }
 
         // Post-construction task: make sure this scheduled task is lastly called
         worker = new Worker();
@@ -308,6 +324,13 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     }
 
     Namespace modifyNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceModificationException {
+        /* We let this early failure here, since for now only ZK impl supports mutability
+         * (Without this check, the modification request will still fail at server side and return back here which will take longer)
+         */
+        if (nsOptionsMode != NamespaceOptionsMode.ZooKeeper) {
+            throw new NamespaceModificationException("For now only NamespaceOptions ZooKeeper mode supports mutable nsOptions");
+        }
+
         nsOptionsClient.modifyNamespace(namespace, nsProperties);
         return getClientNamespace(namespace);
     }
@@ -333,6 +356,13 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             throw new NamespaceDeletionException(e);
         }
         */
+
+        /* We let this early failure here, since for now only ZK impl supports deletion
+         * (Without this check, the deletion request will still fail at low-level SNPImpl client)
+         */
+        if (nsOptionsMode != NamespaceOptionsMode.ZooKeeper) {
+            throw new NamespaceDeletionException("For now only NamespaceOptions ZooKeeper mode supports namespace deletion");
+        }
 
         /*
          * These codes might be updated in the future; For now:

@@ -14,6 +14,7 @@ import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.client.impl.DHTSessionImpl;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
@@ -21,6 +22,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
+import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
 import com.ms.silverking.cloud.toporing.TopoRingConstants;
 import com.ms.silverking.log.Log;
@@ -32,6 +34,7 @@ import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
+import org.apache.zookeeper.KeeperException;
 
 
 /**
@@ -127,10 +130,16 @@ public class DHTClient {
     public DHTSession openSession(SessionOptions sessionOptions) throws ClientException {
         ClientDHTConfiguration dhtConfig;
         String preferredServer;
-        
+        NamespaceOptionsMode nsOptionsMode;
+
         dhtConfig = sessionOptions.getDHTConfig();
         preferredServer = sessionOptions.getPreferredServer();
-        
+        try {
+            nsOptionsMode = new NamespaceOptionsModeResolver(dhtConfig).getNamespaceOptionsMode();
+        } catch (KeeperException | IOException e) {
+            throw new ClientException("Cannot get NamespaceOptionsMode", e);
+        }
+
         if (preferredServer != null) {
             if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
                 embedPassiveNode(dhtConfig);
@@ -189,7 +198,8 @@ public class DHTClient {
                 try {
                     session = new DHTSessionImpl(dhtConfig,
                         new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort),
-                        absMillisTimeSource, serializationRegistry, sessionOptions.getTimeoutController());
+                        absMillisTimeSource, serializationRegistry, sessionOptions.getTimeoutController(),
+                        nsOptionsMode);
                 } catch (IOException ioe) {
                     throw new ClientException(ioe);
                 }
