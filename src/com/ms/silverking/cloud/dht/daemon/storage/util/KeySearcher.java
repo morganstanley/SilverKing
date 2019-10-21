@@ -11,11 +11,13 @@ import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.client.impl.KeyCreator;
 import com.ms.silverking.cloud.dht.client.serialization.internal.StringMD5KeyCreator;
 import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.daemon.storage.DataSegmentWalkEntry;
 import com.ms.silverking.cloud.dht.daemon.storage.DataSegmentWalker;
 import com.ms.silverking.cloud.dht.daemon.storage.FileSegment;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespacePropertiesIO;
+import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 
@@ -83,6 +85,11 @@ public class KeySearcher {
     }
 
     public static void main(String[] args) {
+        // This tool runs stand-alone with dependency of "properties" file, which only used by NSP mode for now
+        if (NamespaceOptionsModeResolver.defaultNamespaceOptionsMode != NamespaceOptionsMode.NSP) {
+            throw new IllegalArgumentException("You're in the default mode of [" + NamespaceOptionsModeResolver.defaultNamespaceOptionsMode + "], which is not supported by this tool");
+        }
+
         try {
             if (args.length != 2) {
                 System.err.println("args: <path> <key1,key2...>");

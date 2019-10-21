@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
+import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 
 public class SegmentDebug {
     private final File  nsDir;
@@ -26,6 +28,11 @@ public class SegmentDebug {
      * @param args
      */
     public static void main(String[] args) {
+        // This tool runs stand-alone with dependency of "properties" file, which only used by NSP mode for now
+        if (NamespaceOptionsModeResolver.defaultNamespaceOptionsMode != NamespaceOptionsMode.NSP) {
+            throw new IllegalArgumentException("You're in the default mode of [" + NamespaceOptionsModeResolver.defaultNamespaceOptionsMode + "], which is not supported by this tool");
+        }
+
         try {
             if (args.length != 2) {
                 System.out.println("args: <nsDir> <segmentNumber>");

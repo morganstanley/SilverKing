@@ -10,9 +10,11 @@ import com.ms.silverking.cloud.dht.StorageType;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.daemon.storage.FileSegment.SegmentPrereadMode;
+import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.time.SimpleStopwatch;
@@ -231,6 +233,11 @@ public class FileSegmentRecoverer {
     }
     
     public static void main(String[] args) {
+        // This tool runs stand-alone with dependency of "properties" file, which only used by NSP mode for now
+        if (NamespaceOptionsModeResolver.defaultNamespaceOptionsMode != NamespaceOptionsMode.NSP) {
+            throw new IllegalArgumentException("You're in the default mode of [" + NamespaceOptionsModeResolver.defaultNamespaceOptionsMode + "], which is not supported by this tool");
+        }
+
         try {
             if (args.length < 2 || args.length > 4) {
                 System.out.println("args: <nsDir> <segmentNumber> [maxSegmentNumber] [persist]");

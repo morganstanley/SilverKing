@@ -13,8 +13,10 @@ import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.RawRetrievalResult;
+import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.io.util.BufferUtil;
 
 public class FileSegmentUtil {
@@ -108,6 +110,11 @@ public class FileSegmentUtil {
     }
     
     public static void main(String[] args) {
+        // This tool runs stand-alone with dependency of "properties" file, which only used by NSP mode for now
+        if (NamespaceOptionsModeResolver.defaultNamespaceOptionsMode != NamespaceOptionsMode.NSP) {
+            throw new IllegalArgumentException("You're in the default mode of [" + NamespaceOptionsModeResolver.defaultNamespaceOptionsMode + "], which is not supported by this tool");
+        }
+
         if (args.length < 4 || args.length > 5) {
             System.err.println("args: <key> <nsDir> <minSegment> <maxSegment> [displayValues]");
         } else {
