@@ -498,4 +498,11 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return String.format("NamespaceOptionsClient: { dhtName=%s, port=%d, backend=%s, zkConfigPath=%s }",
+                dhtConfig.getName(), dhtConfig.getPort(),
+                implementationName(), dhtConfig.getZKConfig().getConnectString());
+    }
 }

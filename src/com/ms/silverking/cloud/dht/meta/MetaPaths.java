@@ -38,7 +38,9 @@ public class MetaPaths extends MetaPathsBase {
     private static final String curRingAndVersionPairNodeName = "curRingAndVersionPair";
     private static final String targetRingAndVersionPairNodeName = "targetRingAndVersionPair";
     private static final String masterRingAndVersionPairNodeName = "masterRingAndVersionPair";
-    
+
+    private static final String nsPropertiesNodeName = "nsProperties";
+
     /*
     public final String         dhtInfoBase;
     public final String         nodesBase;
@@ -118,7 +120,15 @@ public class MetaPaths extends MetaPathsBase {
     public static String getInstancePath(String dhtName) {
         return instancesBase +"/"+ dhtName;
     }
-    
+
+    public static String getGlobalNsPropertiesBasePath(String dhtName) {
+        return getInstancePath(dhtName) +"/" + nsPropertiesNodeName;
+    }
+
+    public static String getNsPropertiesBasePath(String dhtName, String nsName) {
+        return getGlobalNsPropertiesBasePath(dhtName) + "/"+ nsName;
+    }
+
     public static String getInstanceNSLinkPath(String dhtName) {
         return getInstancePath(dhtName) +"/"+ nsLinkNodeName;
     }

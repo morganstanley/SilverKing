@@ -38,7 +38,18 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     public String getDHTName() {
         return dhtName;
     }
-    
+
+    public String getLatestDHTConfigurationZkPath() throws KeeperException {
+        ZooKeeperExtended   zk;
+
+        zk = getZooKeeper();
+        return zk.getLatestVersionPath(getMetaPaths().getInstanceConfigPath());
+    }
+
+    public String getLatestDHTConfigurationZkPath(ZooKeeperExtended zk) throws KeeperException {
+        return zk.getLatestVersionPath(getMetaPaths().getInstanceConfigPath());
+    }
+
     public DHTConfiguration getDHTConfiguration() throws KeeperException {
         String  def;
         long    version;
@@ -47,7 +58,7 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
         ZooKeeperExtended   zk;
         
         zk = getZooKeeper();
-        latestPath = zk.getLatestVersionPath(getMetaPaths().getInstanceConfigPath());
+        latestPath = getLatestDHTConfigurationZkPath(zk);
         version = zk.getLatestVersionFromPath(latestPath);
         def = zk.getString(latestPath);
         zkid = zk.getStat(latestPath).getMzxid();

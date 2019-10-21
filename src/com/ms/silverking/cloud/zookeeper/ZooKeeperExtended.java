@@ -1007,23 +1007,37 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
         return getStat(path).getCtime();
     }
     
-    public long getLatestVersion(String path) throws KeeperException {
+    private List<Long> getSortedVersions(String path) throws KeeperException {
         List<String>    children;
         List<Long>      currentVersions;
-        
+
         children = getChildren(path);
         if (children.size() == 0) {
-            return -1;
+            return new ArrayList<>(0);
         } else {
             currentVersions = new ArrayList<>(children.size());
             for (String child : children) {
                 currentVersions.add(Long.parseLong(child));
             }
             Collections.sort(currentVersions);
-            return currentVersions.get(currentVersions.size() - 1);
+            return currentVersions;
         }
     }
-    
+
+    public long getLatestVersion(String path) throws KeeperException {
+        List<Long>      sorted;
+
+        sorted = getSortedVersions(path);
+        return sorted.isEmpty() ? -1 : sorted.get(sorted.size() - 1);
+    }
+
+    public long getLeastVersion(String path) throws KeeperException {
+        List<Long>      sorted;
+
+        sorted = getSortedVersions(path);
+        return sorted.isEmpty() ? -1 : sorted.get(0);
+    }
+
     public long getLatestVersionFromPath(String path) {
         int index;
         
@@ -1034,7 +1048,11 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     public String getLatestVersionPath(String path) throws KeeperException {
         return path +"/"+ Strings.padStart(Long.toString(getLatestVersion(path)), 10, '0');
     }
-    
+
+    public String getLeastVersionPath(String path) throws KeeperException {
+        return path +"/"+ Strings.padStart(Long.toString(getLeastVersion(path)), 10, '0');
+    }
+
     public long getVersionPriorTo(String path, long zxid) throws KeeperException {
         List<String>    children;
         List<Long>      currentVersions;

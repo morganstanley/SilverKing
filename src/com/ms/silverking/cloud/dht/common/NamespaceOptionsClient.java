@@ -20,6 +20,10 @@ public interface NamespaceOptionsClient {
     // For backward compatibility, since some implementation may still need properties file to bootstrap
     NamespaceProperties getNsPropertiesForRecovery(File nsDir) throws NamespacePropertiesRetrievalException;
 
+    ////// ====== Server side internal namespace data registering API  ======
+    void registerNamespaceDir(long nsContext, String registerInfo) throws NamespacePropertiesPutException;
+    void unregisterNamespaceDir(long nsContext, String registerInfo) throws NamespacePropertiesDeleteException;
+
     ////// ====== Client side internal query API (take human-readable namespace name as arg) ======
     NamespaceProperties getNamespacePropertiesAndTryAutoCreate(String nsName) throws NamespacePropertiesRetrievalException, TimeoutException;
     NamespaceCreationOptions getNamespaceCreationOptions();
