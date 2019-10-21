@@ -216,7 +216,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final long   maxInvalidSSLockSeconds = 10;
     
     public enum DirCreationMode {
-        CreateNSDir, DoNotCreateNSDir
+        CreateNSDir, DoNotCreateNSDir, CreateNSDirNoPropertiesFileBootstrap
     };
     
     private enum FileSegmentLoadMode {ReadWrite, ReadOnly, ReadIndexOnly};
@@ -351,6 +351,23 @@ public class NamespaceStore implements SSNamespaceStore {
         this.reapPolicy = reapPolicy;
         reapPolicyState = reapPolicy.createInitialState();
         switch (dirCreationMode) {
+        case CreateNSDirNoPropertiesFileBootstrap:
+            if (!nsDir.mkdirs()) {
+                if (!nsDir.exists()) {
+                    throw new RuntimeException("Unable to make nsDir");
+                } else {
+                    Log.warning("nsDir creation ignored due to dir already exists");
+                }
+            }
+            try {
+                // Still force write a "properties" file to support the mode switch between ZK and NSP mode
+                // (This file will not be directly used in ZK mode)
+                NamespacePropertiesIO.rewrite(nsDir, nsProperties);
+            } catch (IOException ioe) {
+                peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
+                throw new RuntimeException(ioe);
+            }
+            break;
         case CreateNSDir:
             if (!nsDir.mkdirs()) {
                 if (!nsDir.exists()) {

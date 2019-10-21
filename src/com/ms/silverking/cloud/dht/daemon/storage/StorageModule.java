@@ -320,27 +320,27 @@ public class StorageModule implements LinkCreationListener {
                 Log.warning("\t\tFind pending-deleted namespace ["+ nsDir+ "] start moving it to [" + trashManualDir + "]");
                 File dest = cleanDeletedNamespace(nsDir);
                 Log.warning("\t\tDone move ["+ nsDir+ "] as [" + dest + "]");
-                return;
-            }
-
-            // NOTE: We have a memory cache for nsProperties here; This cache needs to be properly updated if we support on-the-fly nsProperties modify
-            nsMetaStore.setNamespaceProperties(ns, nsProperties);
-            if (nsProperties.getParent() != null) {
-                long    parentContext;
-
-                parentContext = new SimpleNamespaceCreator().createNamespace(nsProperties.getParent()).contextAsLong();
-                parent = namespaces.get(parentContext);
-                if (parent == null) {
-                    throw new RuntimeException("Unexpected parent not found: "+ parentContext);
-                }
+                nsMetaStore.notifyNsDirDeleted(nsDir);
             } else {
-                parent = null;
+                // NOTE: We have a memory cache for nsProperties here; This cache needs to be properly updated if we support on-the-fly nsProperties modify
+                nsMetaStore.setNamespaceProperties(ns, nsProperties);
+                if (nsProperties.getParent() != null) {
+                    long    parentContext;
+
+                    parentContext = new SimpleNamespaceCreator().createNamespace(nsProperties.getParent()).contextAsLong();
+                    parent = namespaces.get(parentContext);
+                    if (parent == null) {
+                        throw new RuntimeException("Unexpected parent not found: "+ parentContext);
+                    }
+                } else {
+                    parent = null;
+                }
+                nsStore = NamespaceStore.recoverExisting(ns, nsDir, parent, null, mgBase, ringMaster,
+                        activeRetrievals, zk, nsLinkBasePath, this, reapPolicy, nsProperties);
+                namespaces.put(ns, nsStore);
+                nsStore.startWatches(zk, nsLinkBasePath, this);
+                Log.warning("\t\tDone recovering: "+ nsDir.getName());
             }
-            nsStore = NamespaceStore.recoverExisting(ns, nsDir, parent, null, mgBase, ringMaster,
-                    activeRetrievals, zk, nsLinkBasePath, this, reapPolicy, nsProperties);
-            namespaces.put(ns, nsStore);
-            nsStore.startWatches(zk, nsLinkBasePath, this);            
-            Log.warning("\t\tDone recovering: "+ nsDir.getName());
         } catch (NumberFormatException nfe) {
             nfe.printStackTrace();
             Log.warning("Recovery ignoring unexpected nsDir: ", nsDir);
@@ -393,7 +393,9 @@ public class StorageModule implements LinkCreationListener {
     
     private NamespaceStore getNamespaceStore(long ns, NSCreationMode mode) {
         NamespaceStore  nsStore;
-        
+        File            nsDir;
+
+        nsDir = new File(baseDir, NamespaceUtil.contextToDirName(ns));
         nsStore = namespaces.get(ns);
         if (nsStore == null && mode == NSCreationMode.CreateIfAbsent) {
             NamespaceStore  old;
@@ -430,13 +432,13 @@ public class StorageModule implements LinkCreationListener {
                     } else {
                         parent = null;
                     }
-                    created = true;
-                    nsStore = new NamespaceStore(ns, new File(baseDir, NamespaceUtil.contextToDirName(ns)),
-                                            NamespaceStore.DirCreationMode.CreateNSDir,
+                    nsStore = new NamespaceStore(ns, nsDir,
+                                            nsMetaStore.needPropertiesFileBootstrap() ? NamespaceStore.DirCreationMode.CreateNSDir : NamespaceStore.DirCreationMode.CreateNSDirNoPropertiesFileBootstrap,
                                             nsProperties,//spGroup.getRootPolicy(),
                                             parent,
                                             mgBase, ringMaster, false, activeRetrievals,
                                             reapPolicy);
+                    created = true;
                 } else {
                     created = false;
                 }
@@ -450,6 +452,11 @@ public class StorageModule implements LinkCreationListener {
                     nsStore = old;
                 } else {
                     Log.warning("Created new namespace store: "+ NamespaceUtil.contextToDirName(ns));
+                    try {
+                        nsMetaStore.notifyNsDirCreated(nsDir);
+                    } catch (IOException ioe) {
+                        Log.severe("Fail to register new namespace [" + NamespaceUtil.contextToDirName(ns) + "] in nsMetaStore", ioe);
+                    }
                     nsStore.startWatches(zk, nsLinkBasePath, this);
                 }
             }

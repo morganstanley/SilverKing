@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.ms.silverking.cloud.dht.SessionOptions;
+import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
 import com.ms.silverking.cloud.dht.client.DHTClient;
 import com.ms.silverking.cloud.dht.client.DHTSession;
@@ -14,16 +15,22 @@ import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.impl.ActiveClientOperationTable;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
+import com.ms.silverking.cloud.dht.meta.MetaClient;
+import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.IPAddrUtil;
 
 /**
  * Provides NamespaceOptions for the StorageModule. Internally uses NamespaceOptionsClientBase to retrieve options.
  */
 public class NamespaceMetaStore {
     private final DHTSession                session;
+    private final NamespaceOptionsModeResolver  nsOptionsModeResolver;
+    private final NamespaceOptionsMode  nsOptionsMode;
     private final NamespaceOptionsClient    nsOptionsClient;
     private final ConcurrentMap<Long, NamespaceProperties>  nsPropertiesMap;
-    
+    private final String    localHostPort;
+
     private static final long    nsOptionsFetchTimeoutMillis = SessionOptions.getDefaultTimeoutController().getMaxRelativeTimeoutMillis(null);    
     
     public enum NamespaceOptionsRetrievalMode {FetchRemotely, LocalCheckOnly};
@@ -33,9 +40,24 @@ public class NamespaceMetaStore {
     public NamespaceMetaStore(DHTSession session, ClientDHTConfigurationProvider dhtConfigProvider) {
         this.session = session;
         try {
+            int port;
+            ClientDHTConfiguration dhtConfig;
+
             ActiveClientOperationTable.disableFinalization();
-            nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
+            nsOptionsModeResolver = new NamespaceOptionsModeResolver(dhtConfigProvider);
+            nsOptionsMode = nsOptionsModeResolver.getNamespaceOptionsMode();
+            if (nsOptionsMode == NamespaceOptionsMode.ZooKeeper) {
+                nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfigProvider);
+            } else {
+                nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
+            }
             nsPropertiesMap = new ConcurrentHashMap<>();
+            dhtConfig = dhtConfigProvider.getClientDHTConfiguration();
+            port = dhtConfig.getPort();
+            if (!dhtConfig.hasPort()) {
+                port = new MetaClient(dhtConfig).getDHTConfiguration().getPort();
+            }
+            localHostPort = IPAddrUtil.localIPString() + ":" + port;
         } catch (Exception e) {
             throw new RuntimeException("Unexpected exception", e);
         }
@@ -68,8 +90,35 @@ public class NamespaceMetaStore {
         }
     }
 
+    public boolean needPropertiesFileBootstrap() {
+        return nsOptionsMode != NamespaceOptionsMode.ZooKeeper;
+    }
+
+    public void notifyNsDirDeleted(File nsDir) throws IOException {
+        try {
+            long    nsContext;
+
+            nsContext = NamespaceUtil.dirNameToContext(nsDir.getName());
+            nsOptionsClient.unregisterNamespaceDir(nsContext, localHostPort);
+        } catch (NamespacePropertiesDeleteException re) {
+            throw new IOException("Cannot unregisterNamespaceDir [" + nsDir + "] from [" + nsOptionsClient + "]", re);
+        }
+    }
+
+    public void notifyNsDirCreated(File nsDir) throws IOException {
+        try {
+            long    nsContext;
+
+            nsContext = NamespaceUtil.dirNameToContext(nsDir.getName());
+            nsOptionsClient.registerNamespaceDir(nsContext, localHostPort);
+        } catch (NamespacePropertiesPutException pe) {
+            throw new IOException("Cannot registerNamespaceDir [" + nsDir + "] from [" + nsOptionsClient + "]", pe);
+        }
+    }
+
     public boolean isAutoDeleteEnabled() {
-        return false;
+        // For now only only ZooKeeperImpl supports deletion
+        return nsOptionsMode == NamespaceOptionsMode.ZooKeeper;
     }
 
     // FUTURE - THINK ABOUT COMPLETELY REMOVING ANY READS/WRITES TO META NS FROM THE SERVER SIDE
