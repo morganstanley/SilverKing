@@ -111,7 +111,8 @@ public class NamespaceProperties {
                 ^ (hasName() ? name.hashCode() : 0)
                 ^ (hasCreationTime() ? Long.hashCode(creationTime) : 0);
     }
-    
+
+    // Used in server side, since server has full nsProperties
     @Override
     public boolean equals(Object o) {
         NamespaceProperties oProperties;
@@ -121,6 +122,15 @@ public class NamespaceProperties {
                 && Objects.equals(this.parent, oProperties.parent)
                 && Objects.equals(this.name, oProperties.name)
                 && this.creationTime == oProperties.creationTime;
+    }
+
+    // Used in client side nsCreation creation/update, since client only has partial nsProperties
+    public boolean partialEquals(NamespaceProperties other) {
+        // 1. Drop creationTime, since its issued in backend (client doesn't have)
+        // 2. Keep name, new version silverking ensures client will always enrich nsProperties with name
+        return this.options.equals(other.options)
+                && Objects.equals(this.parent, other.parent)
+                && Objects.equals(this.name, other.name);
     }
 
     public boolean canBeReplacedBy(NamespaceProperties other) {

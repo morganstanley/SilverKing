@@ -167,7 +167,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
             }
 
             if (existingProperties != null) {
-                if (!existingProperties.equals(nsProperties)) {
+                if (!existingProperties.partialEquals(nsProperties)) {
                     if (mutate) {
                         if (existingProperties.canBeReplacedBy(nsProperties)) {
                             retry = tryModifyNamespaceProperties(nsContext, nsProperties);
@@ -258,7 +258,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
         if (existingProperties == null) {
             throw new NamespaceNotCreatedException("No existing properties found");
         }
-        return existingProperties.equals(nsProperties);
+        return existingProperties.partialEquals(nsProperties);
     }
 
     private boolean verifyNamespaceOptions(long nsContext, NamespaceOptions nsOptions) throws NamespacePropertiesRetrievalException {
