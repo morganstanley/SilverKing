@@ -136,20 +136,34 @@ public class DHTClient {
         preferredServer = sessionOptions.getPreferredServer();
         try {
             nsOptionsMode = new NamespaceOptionsModeResolver(dhtConfig).getNamespaceOptionsMode();
-        } catch (KeeperException | IOException e) {
-            throw new ClientException("Cannot get NamespaceOptionsMode", e);
+        } catch (Exception e) {
+            if (preferredServer != null) {
+                if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE) || preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
+                    // EMBEDDED_PASSIVE_NODE or EMBEDDED_KVS may have empty/null ZK, we allow them to use default mode
+                    nsOptionsMode = NamespaceOptionsModeResolver.defaultNamespaceOptionsMode;
+                } else {
+                    throw new ClientException("Cannot get NamespaceOptionsMode", e);
+                }
+            } else {
+                throw new ClientException("Cannot get NamespaceOptionsMode", e);
+            }
         }
 
         if (preferredServer != null) {
             if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
+                // TODO: add nsOptionsMode support for EMBEDDED_PASSIVE_NODE ?
                 embedPassiveNode(dhtConfig);
                 preferredServer = null;
             } else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
-                String    gcBase;
+                File    gcBase;
                 String    gcName;
                 
-                dhtConfig = embedKVS();
-                gcBase = "/tmp"; // FIXME - make user configurable
+                dhtConfig = embedKVS(nsOptionsMode);
+                try {
+                    gcBase = Files.createTempDirectory(null).toFile(); // FIXME - make user configurable
+                } catch (IOException ioe) {
+                    throw new ClientException("Fail to create temp directory for EMBEDDED_KVS", ioe);
+                }
                 gcName = "GC_"+ dhtConfig.getName();
                 try {
                     Log.warningf("GridConfigBase: %s", gcBase);
@@ -228,7 +242,7 @@ public class DHTClient {
         embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), nodeConfig, defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
     }
     
-    private ClientDHTConfiguration embedKVS() {
-        return EmbeddedSK.createEmbeddedSKInstance();
+    private ClientDHTConfiguration embedKVS(NamespaceOptionsMode nsOptionsMode) {
+        return EmbeddedSK.createEmbeddedSKInstance(nsOptionsMode);
     }
 }

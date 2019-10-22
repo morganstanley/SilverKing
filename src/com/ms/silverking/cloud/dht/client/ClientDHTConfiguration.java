@@ -20,7 +20,7 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
     private final int              port;
     private final ZooKeeperConfig  zkConfig;
     
-    public static ClientDHTConfiguration    embeddedKVS = new ClientDHTConfiguration(SessionOptions.EMBEDDED_KVS, new ZooKeeperConfig(new AddrAndPort[0]));
+    public static final ClientDHTConfiguration    embeddedKVS = new ClientDHTConfiguration(SessionOptions.EMBEDDED_KVS, new ZooKeeperConfig(new AddrAndPort[0]));
     
     private static final int   portInZKOnly = Integer.MIN_VALUE;
     
