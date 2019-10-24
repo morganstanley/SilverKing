@@ -124,10 +124,13 @@ public class StorageModule implements LinkCreationListener {
     private static final Set<Long>			dynamicNamespaces = new HashSet<>();
 
     private static final String trashManualDirName = "trash_manual";
+    private static final DateFormat  dateFormat;
 
     private static final RetrievalImplementation	retrievalImplementation;
 
     static {
+        dateFormat = new SimpleDateFormat("yyyy-mm-dd_hh-mm-ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     	retrievalImplementation = RetrievalImplementation.valueOf(
     			PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
     	Log.warningf("retrievalImplementation: %s", retrievalImplementation);
@@ -276,13 +279,11 @@ public class StorageModule implements LinkCreationListener {
     }
 
     private File renameDeletedNs(File nsDir) throws IOException {
+        // NOTE: this method is not thread-safe
         File        destFile;
-        DateFormat  dateFormat;
         String      originalName;
 
         originalName = nsDir.getName();
-        dateFormat = new SimpleDateFormat("yyyy-mm-dd_hh-mm-ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         do {
             String dateTimeStr = dateFormat.format(new Date());
             destFile = new File(trashManualDir,  originalName + "_deleted_" + dateTimeStr);
