@@ -16,15 +16,17 @@ import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
 import com.ms.silverking.cloud.dht.client.NamespaceModificationException;
+import com.ms.silverking.cloud.dht.client.impl.NamespaceOptionsClientCS;
 import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
+import com.ms.silverking.cloud.dht.daemon.storage.NamespaceOptionsClientSS;
 import com.ms.silverking.cloud.dht.meta.DHTMetaWatcher;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.HashedListMap;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.lwt.LWTThreadUtil;
 
-public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClient{
+public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClientCS, NamespaceOptionsClientSS {
     private final ClientDHTConfiguration    dhtConfig;
     private final Map<Long, NamespaceOptions> systemNamespaceOptions;
 

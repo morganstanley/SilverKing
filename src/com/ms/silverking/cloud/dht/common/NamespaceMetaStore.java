@@ -15,6 +15,7 @@ import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.impl.ActiveClientOperationTable;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
+import com.ms.silverking.cloud.dht.daemon.storage.NamespaceOptionsClientSS;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.log.Log;
@@ -27,7 +28,7 @@ public class NamespaceMetaStore {
     private final DHTSession                session;
     private final NamespaceOptionsModeResolver  nsOptionsModeResolver;
     private final NamespaceOptionsMode  nsOptionsMode;
-    private final NamespaceOptionsClient    nsOptionsClient;
+    private final NamespaceOptionsClientSS nsOptionsClient;
     private final ConcurrentMap<Long, NamespaceProperties>  nsPropertiesMap;
     private final String    localHostPort;
 
