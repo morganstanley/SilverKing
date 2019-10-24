@@ -50,7 +50,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
         systemNamespaceOptions.put(nsCreator.createNamespace(Namespace.replicasName).contextAsLong(), DHTConstants.dynamicNamespaceOptions);
     }
 
-    ////// ====== Backend specific implementation (can be: fileSegment or ZooKeeper) ======
+    ////// ====== Abstract method for concrete implementations (e.g.: NSP or ZooKeeper) ======
     /**
      * Get the default relative timeout in millis for higher-level wait on getNamespacePropertiesWithTimeout
      * @return timeout time in millis
@@ -58,32 +58,32 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
     abstract protected long getDefaultRelTimeoutMillis();
 
     /**
-     *  Write the given NamespaceProperties into backend, mutability is maintained by backend implementation
+     *  Write the given NamespaceProperties, implementation itself shall maintain
      * @param nsContext hashed-namespace name
      * @param nsProperties nsProperties to write
-     * @throws NamespacePropertiesPutException if encountered any exception in backend
+     * @throws NamespacePropertiesPutException if encountered any exception
      */
     abstract protected void putNamespaceProperties(long nsContext, NamespaceProperties nsProperties) throws NamespacePropertiesPutException;
 
     /**
-     * Read the latest version of NamespaceProperties from backend with creationTime issued; <b>null</b> shall be returned if not exists
+     * Read the latest full version of NamespaceProperties with creationTime issued; <b>null</b> shall be returned if not exists
      * @param nsContext hashed-namespace name
      * @return the latest version NamespaceProperties with creationTime issued, or <b>null</b> if not exists
-     * @throws NamespacePropertiesRetrievalException if encountered any exception in backend (exception value not exists)
+     * @throws NamespacePropertiesRetrievalException if encountered any exception (except value not exists case, which shall return null)
      */
     abstract protected NamespaceProperties retrieveFullNamespaceProperties(long nsContext) throws NamespacePropertiesRetrievalException;
 
     /**
      * Delete all versions of nsProperties for a specific namespace
      * @param nsContext hashed-namespace name
-     * @throws NamespacePropertiesDeleteException if encountered any exception in backend (exception value not exists)
+     * @throws NamespacePropertiesDeleteException if encountered any exception (except value not exists case, which shall return null)
      */
     abstract protected void deleteAllNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException;
 
     /**
-     * @return a identifier name for the backend implementation
+     * @return a identifier name for the concrete implementation
      */
-    abstract protected String backendName();
+    abstract protected String implementationName();
 
     /**
      * This API is for backward compatibility, since some implementation may still need properties file to bootstrap
@@ -91,7 +91,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
      *
      * @param nsDir the namespace data directory
      * @return the full nsProperties for ns bootstrap, or <b>null</b> if nsProperties not found (e.g. ns has been deleted)
-     * @throws NamespacePropertiesRetrievalException if encountered any exception in backend (exception value not exists)
+     * @throws NamespacePropertiesRetrievalException if encountered any exception (except value not exists case, which shall return null)
      */
     abstract public NamespaceProperties getNsPropertiesForRecovery(File nsDir) throws NamespacePropertiesRetrievalException;
 
@@ -348,7 +348,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
                         }
                     } else {
                         if (debug) {
-                            System.out.printf("%s::request.waitForCompletion()\n", backendName());
+                            System.out.printf("%s::request.waitForCompletion()\n", implementationName());
                         }
                         nsProperties = request.waitForCompletion();
                         if (debug) {

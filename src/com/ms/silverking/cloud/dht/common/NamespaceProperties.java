@@ -126,7 +126,7 @@ public class NamespaceProperties {
 
     // Used in client side nsCreation creation/update, since client only has partial nsProperties
     public boolean partialEquals(NamespaceProperties other) {
-        // 1. Drop creationTime, since its issued in backend (client doesn't have)
+        // 1. Drop creationTime, since its issued in serverside store (client doesn't have)
         // 2. Keep name, new version silverking ensures client will always enrich nsProperties with name
         return this.options.equals(other.options)
                 && Objects.equals(this.parent, other.parent)

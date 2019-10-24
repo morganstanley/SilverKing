@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class NamespaceOptionsClientNSPImpl extends NamespaceOptionsClientBase {
-    private final static String backendName = "MetaNamespaceStore";
+    private final static String implName = "MetaNamespaceStore";
 
     private final SynchronousNamespacePerspective<String,String> syncNSP;
     private final SessionEstablishmentTimeoutController    seTimeoutController;
@@ -62,11 +62,11 @@ public class NamespaceOptionsClientNSPImpl extends NamespaceOptionsClientBase {
 
         try {
             if (debug) {
-                System.out.printf("%s::retrieveFullNamespaceProperties(%x)\n", backendName(), nsContext);
+                System.out.printf("%s::retrieveFullNamespaceProperties(%x)\n", implementationName(), nsContext);
             }
             storedDef = syncNSP.retrieve(getOptionsKey(nsContext), syncNSP.getOptions().getDefaultGetOptions().retrievalType(RetrievalType.VALUE_AND_META_DATA));
             if (debug) {
-                System.out.printf("%s::retrieveFullNamespaceProperties(%x) complete %s\n", backendName(), nsContext, storedDef);
+                System.out.printf("%s::retrieveFullNamespaceProperties(%x) complete %s\n", implementationName(), nsContext, storedDef);
             }
             if (storedDef != null) {
                 return NamespaceProperties.parse(storedDef.getValue(), storedDef.getCreationTime().inNanos());
@@ -80,12 +80,12 @@ public class NamespaceOptionsClientNSPImpl extends NamespaceOptionsClientBase {
 
     @Override
     protected void deleteAllNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException {
-        throw new NamespacePropertiesDeleteException("Deletion for ns [" + nsContext + "] is not supported in [" + backendName() + "]");
+        throw new NamespacePropertiesDeleteException("Deletion for ns [" + nsContext + "] is not supported in [" + implementationName() + "]");
     }
 
     @Override
-    protected String backendName() {
-        return backendName;
+    protected String implementationName() {
+        return implName;
     }
 
     @Override
