@@ -130,14 +130,15 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         
         clientNamespaces = new ConcurrentHashMap<>();  
         clientNamespaceList = new CopyOnWriteArrayList<>();
-        
+        namespaceCreator = new SimpleNamespaceCreator();
+        nsOptionsClient = new NamespaceOptionsClientBase(this, dhtConfig, timeoutController);
+
+        // Post-construction task: make sure this scheduled task is lastly called
         worker = new Worker();
         timeoutCheckTask = new SafeTimerTask(new TimeoutCheckTask());
         DHTUtil.timer().scheduleAtFixedRate(timeoutCheckTask,
-                                              timeoutCheckIntervalMillis, 
-                                              timeoutCheckIntervalMillis);
-        namespaceCreator = new SimpleNamespaceCreator();
-        nsOptionsClient = new NamespaceOptionsClientBase(this, dhtConfig, timeoutController);
+                timeoutCheckIntervalMillis,
+                timeoutCheckIntervalMillis);
     }
     
     MessageGroupBase getMessageGroupBase() {
