@@ -315,7 +315,7 @@ public class StorageModule implements LinkCreationListener {
             Log.warning("\t\tRecovering: "+ nsDir.getName());
             ns = NamespaceUtil.dirNameToContext(nsDir.getName());
             nsProperties = nsMetaStore.getNsPropertiesForRecovery(nsDir);
-            if (nsProperties == null) { // This namespace is already deleted
+            if (nsMetaStore.isAutoDeleteEnabled() && nsProperties == null) { // This namespace is already deleted
                 Log.warning("\t\tFind pending-deleted namespace ["+ nsDir+ "] start moving it to [" + trashManualDir + "]");
                 File dest = cleanDeletedNamespace(nsDir);
                 Log.warning("\t\tDone move ["+ nsDir+ "] as [" + dest + "]");

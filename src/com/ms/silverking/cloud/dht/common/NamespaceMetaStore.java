@@ -68,6 +68,10 @@ public class NamespaceMetaStore {
         }
     }
 
+    public boolean isAutoDeleteEnabled() {
+        return false;
+    }
+
     // FUTURE - THINK ABOUT COMPLETELY REMOVING ANY READS/WRITES TO META NS FROM THE SERVER SIDE
     // clients can probably do it all
 
