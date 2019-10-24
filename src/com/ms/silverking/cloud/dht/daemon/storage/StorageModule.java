@@ -86,7 +86,7 @@ public class StorageModule implements LinkCreationListener {
     private final ValueCreator      myOriginatorID;
     private final NodeInfoZK		nodeInfoZK;
     private final ReapPolicy		reapPolicy;
-    private final File              recycleBinDir;
+    private final File              trashManualDir;
     private SafeTimerTask cleanerTask;
     private SafeTimerTask reapTask;
     
@@ -123,7 +123,7 @@ public class StorageModule implements LinkCreationListener {
     
     private static final Set<Long>			dynamicNamespaces = new HashSet<>();
 
-    static final String recycleBinDirName = "recycleBin";
+    private static final String trashManualDirName = "trash_manual";
 
     private static final RetrievalImplementation	retrievalImplementation;
 
@@ -144,7 +144,7 @@ public class StorageModule implements LinkCreationListener {
         namespaces = new ConcurrentHashMap<>();
         baseDir = new File(nodeInfoZK.getDHTNodeConfiguration().getDataBasePath(), dhtName);
 //        baseDir = new File(DHTNodeConfiguration.dataBasePath);    // replace above with this to get rid of double directory name in path
-        this.recycleBinDir = new File(baseDir, recycleBinDirName);
+        this.trashManualDir = new File(baseDir, trashManualDirName);
         clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
         nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
         //spGroup = createTestPolicy();
@@ -285,7 +285,7 @@ public class StorageModule implements LinkCreationListener {
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         do {
             String dateTimeStr = dateFormat.format(new Date());
-            destFile = new File(recycleBinDir,  originalName + "_deleted_" + dateTimeStr);
+            destFile = new File(trashManualDir,  originalName + "_deleted_" + dateTimeStr);
         } while (destFile.exists());
 
         Files.move(nsDir.toPath(), destFile.toPath(), ATOMIC_MOVE);
@@ -293,11 +293,11 @@ public class StorageModule implements LinkCreationListener {
     }
 
     private File cleanDeletedNamespace(File nsDir) throws IOException {
-        if (recycleBinDir.exists()) {
+        if (trashManualDir.exists()) {
             return renameDeletedNs(nsDir);
         } else {
-            if (!recycleBinDir.mkdirs() && !recycleBinDir.exists()) {
-                throw new IOException("Unable to mkdirs: " + recycleBinDir);
+            if (!trashManualDir.mkdirs() && !trashManualDir.exists()) {
+                throw new IOException("Unable to mkdirs: " + trashManualDir);
             } else {
                 return renameDeletedNs(nsDir);
             }
@@ -315,7 +315,7 @@ public class StorageModule implements LinkCreationListener {
             ns = NamespaceUtil.dirNameToContext(nsDir.getName());
             nsProperties = nsMetaStore.getNsPropertiesForRecovery(nsDir);
             if (nsProperties == null) { // This namespace is already deleted
-                Log.warning("\t\tFind pending-deleted namespace ["+ nsDir+ "] start moving it to [" + recycleBinDir + "]");
+                Log.warning("\t\tFind pending-deleted namespace ["+ nsDir+ "] start moving it to [" + trashManualDir + "]");
                 File dest = cleanDeletedNamespace(nsDir);
                 Log.warning("\t\tDone move ["+ nsDir+ "] as [" + dest + "]");
                 return;
@@ -350,7 +350,7 @@ public class StorageModule implements LinkCreationListener {
         
         sorted = new ArrayList<>();
         for (File file : files) {
-            if (file.isDirectory() && !file.getName().equals(recycleBinDirName)) {
+            if (file.isDirectory() && !file.getName().equals(trashManualDirName)) {
                 addDirAndParents(sorted, file);
             } else {
                 Log.warning("Recovery ignoring: ", file);
