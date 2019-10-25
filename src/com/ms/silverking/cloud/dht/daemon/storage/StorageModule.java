@@ -124,13 +124,13 @@ public class StorageModule implements LinkCreationListener {
     private static final Set<Long>			dynamicNamespaces = new HashSet<>();
 
     private static final String trashManualDirName = "trash_manual";
-    private static final DateFormat  dateFormat;
+    private static final String deletedDirName = "_deleted_";
+    private static final String dateFormatStr = "yyyy-mm-dd_hh-mm-ss";
+    private static final String utcZone = "UTC";
 
     private static final RetrievalImplementation	retrievalImplementation;
 
     static {
-        dateFormat = new SimpleDateFormat("yyyy-mm-dd_hh-mm-ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     	retrievalImplementation = RetrievalImplementation.valueOf(
     			PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
     	Log.warningf("retrievalImplementation: %s", retrievalImplementation);
@@ -279,14 +279,15 @@ public class StorageModule implements LinkCreationListener {
     }
 
     private File renameDeletedNs(File nsDir) throws IOException {
-        // NOTE: this method is not thread-safe
         File        destFile;
         String      originalName;
+        DateFormat  dateFormat;
 
+        dateFormat = new SimpleDateFormat(dateFormatStr);
+        dateFormat.setTimeZone(TimeZone.getTimeZone(utcZone));
         originalName = nsDir.getName();
         do {
-            String dateTimeStr = dateFormat.format(new Date());
-            destFile = new File(trashManualDir,  originalName + "_deleted_" + dateTimeStr);
+            destFile = new File(trashManualDir,  originalName + deletedDirName + dateFormat.format(new Date()));
         } while (destFile.exists());
 
         Files.move(nsDir.toPath(), destFile.toPath(), ATOMIC_MOVE);
