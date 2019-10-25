@@ -19,10 +19,10 @@ import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
+import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
-import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
 import com.ms.silverking.cloud.toporing.TopoRingConstants;
 import com.ms.silverking.log.Log;
@@ -34,7 +34,6 @@ import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
-import org.apache.zookeeper.KeeperException;
 
 
 /**
@@ -135,12 +134,12 @@ public class DHTClient {
         dhtConfig = sessionOptions.getDHTConfig();
         preferredServer = sessionOptions.getPreferredServer();
         try {
-            nsOptionsMode = new NamespaceOptionsModeResolver(dhtConfig).getNamespaceOptionsMode();
+            nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getMode();
         } catch (Exception e) {
             if (preferredServer != null) {
                 if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE) || preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
                     // EMBEDDED_PASSIVE_NODE or EMBEDDED_KVS may have empty/null ZK, we allow them to use default mode
-                    nsOptionsMode = NamespaceOptionsModeResolver.defaultNamespaceOptionsMode;
+                    nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
                 } else {
                     throw new ClientException("Cannot get NamespaceOptionsMode", e);
                 }

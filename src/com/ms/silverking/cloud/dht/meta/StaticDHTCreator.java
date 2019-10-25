@@ -128,11 +128,8 @@ public class StaticDHTCreator {
         // Create DHTConfig
         DHTConfiguration    dhtConfig;
         
-        dhtConfig = new DHTConfiguration(ringName, port, passiveNodes, nsCreationOptions, ImmutableMap.of(rcResults.hostGroupName, classVarsName), 0, Long.MIN_VALUE, null);
-        dhtConfigZkPath = new DHTConfigurationZK(mc).writeToZK(dhtConfig, null);
-
-        // Set the mode
-        new NamespaceOptionsModeResolver(mc).setNamespaceOptionsMode(nsOptionsMode, dhtConfigZkPath);
+        dhtConfig = new DHTConfiguration(ringName, port, passiveNodes, nsCreationOptions, ImmutableMap.of(rcResults.hostGroupName, classVarsName), nsOptionsMode, 0, Long.MIN_VALUE, null);
+        new DHTConfigurationZK(mc).writeToZK(dhtConfig, null);
 
         // Write out curRingAndVersion
         new DHTRingCurTargetZK(mc, dhtConfig).setCurRingAndVersionPair(ringName, 0, 0);
@@ -237,7 +234,7 @@ public class StaticDHTCreator {
                 nsOptionsMode = NamespaceOptionsMode.valueOf(options.nsOptionsMode);
                 Log.warning("Using specified mode [" + nsOptionsMode + "] to create static DHT instance");
             } else {
-                nsOptionsMode = NamespaceOptionsModeResolver.defaultNamespaceOptionsMode;
+                nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
                 Log.warning("Using default mode [" + nsOptionsMode + "] to create static DHT instance");
             }
 

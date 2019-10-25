@@ -17,7 +17,6 @@ import com.ms.silverking.cloud.dht.client.impl.ActiveClientOperationTable;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceOptionsClientSS;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
-import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 
@@ -26,7 +25,6 @@ import com.ms.silverking.net.IPAddrUtil;
  */
 public class NamespaceMetaStore {
     private final DHTSession                session;
-    private final NamespaceOptionsModeResolver  nsOptionsModeResolver;
     private final NamespaceOptionsMode  nsOptionsMode;
     private final NamespaceOptionsClientSS nsOptionsClient;
     private final ConcurrentMap<Long, NamespaceProperties>  nsPropertiesMap;
@@ -45,8 +43,7 @@ public class NamespaceMetaStore {
             ClientDHTConfiguration dhtConfig;
 
             ActiveClientOperationTable.disableFinalization();
-            nsOptionsModeResolver = new NamespaceOptionsModeResolver(dhtConfigProvider);
-            nsOptionsMode = nsOptionsModeResolver.getNamespaceOptionsMode();
+            nsOptionsMode = new MetaClient(dhtConfigProvider.getClientDHTConfiguration()).getDHTConfiguration().getMode();
             if (nsOptionsMode == NamespaceOptionsMode.ZooKeeper) {
                 nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfigProvider);
             } else {

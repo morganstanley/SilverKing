@@ -20,7 +20,6 @@ import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.DHTRingCurTargetZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
-import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
 import com.ms.silverking.cloud.toporing.StaticRingCreator;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.zookeeper.LocalZKImpl;
@@ -103,7 +102,7 @@ public class EmbeddedSK {
             StaticRingCreator.createStaticRing(config.getRingName(), zkConfig, ImmutableSet.of(IPAddrUtil.localIPString()), config.getReplication());
             Log.warning("Created: "+ config.getRingName());
             
-            // 3.1) Create DHT Config in ZK
+            // 3) Create DHT Config in ZK
             DHTConfiguration    dhtConfig;
             MetaClient            dhtMC;
             DHTConfigurationZK    dhtConfigZK;
@@ -119,14 +118,9 @@ public class EmbeddedSK {
             clientDHTConfig = new ClientDHTConfiguration(config.getDHTName(), dhtPort, zkConfig);
             dhtMC = new MetaClient(clientDHTConfig);
             dhtConfigZK = new DHTConfigurationZK(dhtMC);
-            dhtConfig = DHTConfiguration.emptyTemplate.ringName(config.getRingName()).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>());
+            dhtConfig = DHTConfiguration.emptyTemplate.ringName(config.getRingName()).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>()).mode(nsOptionsMode);
             dhtConfigZkPath = dhtConfigZK.writeToZK(dhtConfig, null);
             Log.warning("Created DHT configuration in ZK");
-
-            // 3.2) Enrich DHT Config with nsOptionsMode in ZK
-            Log.warning("Setting nsOptionsMode [" + nsOptionsMode + "] in ZK: " + dhtConfigZkPath);
-            new NamespaceOptionsModeResolver(dhtMC).setNamespaceOptionsMode(nsOptionsMode, dhtConfigZkPath);
-            Log.warning("Finish setting nsOptionsMode [" + nsOptionsMode + "] in ZK: " + dhtConfigZkPath);
 
             // 4) Set cur and target rings
             DHTRingCurTargetZK    curTargetZK;
@@ -165,7 +159,7 @@ public class EmbeddedSK {
     */
     
     public static ClientDHTConfiguration createEmbeddedSKInstance() {
-        return createEmbeddedSKInstance(new EmbeddedSKConfiguration());
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(), DHTConfiguration.defaultNamespaceOptionsMode);
     }
     
     public static void main(String[] args) {
@@ -177,7 +171,7 @@ public class EmbeddedSK {
                 NamespaceOptionsMode      nsOptionsMode;
 
                 nsOptionsMode = args.length == 0 ?
-                        NamespaceOptionsModeResolver.defaultNamespaceOptionsMode :
+                        DHTConfiguration.defaultNamespaceOptionsMode :
                         NamespaceOptionsMode.valueOf(args[0]);
                 dhtConfig = createEmbeddedSKInstance(nsOptionsMode);
                 System.out.printf("DHT Configuration: %s\n", dhtConfig);

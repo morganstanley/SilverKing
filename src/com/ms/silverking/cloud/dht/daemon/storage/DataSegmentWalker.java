@@ -11,7 +11,7 @@ import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
-import com.ms.silverking.cloud.dht.meta.NamespaceOptionsModeResolver;
+import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.numeric.NumConversion;
 
 /**
@@ -203,8 +203,8 @@ public class DataSegmentWalker implements Iterator<DataSegmentWalkEntry>, Iterab
      */
     public static void main(String[] args) {
         // This tool runs stand-alone with dependency of "properties" file, which only used by NSP mode for now
-        if (NamespaceOptionsModeResolver.defaultNamespaceOptionsMode != NamespaceOptionsMode.NSP) {
-            throw new IllegalArgumentException("You're in the default mode of [" + NamespaceOptionsModeResolver.defaultNamespaceOptionsMode + "], which is not supported by this tool");
+        if (DHTConfiguration.defaultNamespaceOptionsMode != NamespaceOptionsMode.NSP) {
+            throw new IllegalArgumentException("You're in the default mode of [" + DHTConfiguration.defaultNamespaceOptionsMode + "], which is not supported by this tool");
         }
 
         try {
