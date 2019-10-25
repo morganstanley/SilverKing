@@ -36,7 +36,7 @@ public class DHTConfiguration implements VersionedDefinition {
     private static final Set<String> optionalFields;
 
     public static final NamespaceOptionsMode defaultNamespaceOptionsMode = NamespaceOptionsMode.valueOf(
-            PropertiesHelper.envHelper.getString(DHTConstants.defaultNamespaceOptionsModeEnv, NamespaceOptionsMode.NSP.name()));
+            PropertiesHelper.envHelper.getString(DHTConstants.defaultNamespaceOptionsModeEnv, NamespaceOptionsMode.MetaNamespace.name()));
 
     public static final DHTConfiguration  emptyTemplate =
             new DHTConfiguration(null, 0, null, DHTConstants.defaultNamespaceCreationOptions, 

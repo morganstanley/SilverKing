@@ -7,7 +7,7 @@ public enum NamespaceOptionsMode {
     /**
      * Use NSPImpl which stores namespaceOptions into __DHT_Meta__ namespace and "properties" file
      */
-    NSP,
+    MetaNamespace,
     /**
      * Use ZooKeeperImpl which stores full namespaceOptions into ZooKeeper node
      */
