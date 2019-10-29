@@ -76,11 +76,11 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
     abstract protected NamespaceProperties retrieveFullNamespaceProperties(long nsContext) throws NamespacePropertiesRetrievalException;
 
     /**
-     * Delete all versions of nsProperties for a specific namespace
+     * Delete nsProperties for a specific namespace (could be soft-delete or hard-delete)
      * @param nsContext hashed-namespace name
      * @throws NamespacePropertiesDeleteException if encountered any exception (except value not exists case, which shall return null)
      */
-    abstract protected void deleteAllNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException;
+    abstract protected void deleteNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException;
 
     /**
      * @return a identifier name for the concrete implementation
@@ -139,7 +139,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
 
         nsContext = NamespaceUtil.nameToContext(nsName);
         // sufficient for ZKImpl as clientside actions for now
-        deleteAllNamespaceProperties(nsContext);
+        deleteNamespaceProperties(nsContext);
     }
 
     ////// ====== Internal shared logic ======

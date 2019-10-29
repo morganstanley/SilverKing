@@ -12,6 +12,10 @@ import org.apache.zookeeper.Watcher;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
     private static final long       nanosPerMilli = 1000000;
@@ -22,35 +26,60 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
     private final static String     versionNodeName = "versions";
     private final static String     dataNodeName = "data";
 
-    private final Watcher    nsPropertiesWatcher = null;  // currently we don't support on-the-fly update, so don't need watcher for now
+    /* === Basic node structure ===
+     * nsProperties/
+     *   -nsDirName
+     *     - versions/
+     *         - 000000
+     *         - 000001
+     *         ...
+     *     - data/
+     *         - host1:port
+     *         - host2:port
+     *         ...
+     */
+    private static String getZKBaseVersionPath(String nsZKBasePath) {
+        return nsZKBasePath + "/" + versionNodeName;
+    }
+
+    private static String getZKBaseDataDirPath(String nsZKBasePath) {
+        return nsZKBasePath + "/" + dataNodeName;
+    }
+
+    private static final Watcher defaultNsPropertiesWatcher = null;  // currently we don't support on-the-fly update, so don't need watcher for now
     private final long relTimeoutMillis;
     private final MetaClientCore metaZK;
     private final ClientDHTConfiguration dhtConfig;
 
-    public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider, long relTimeoutMillis) throws IOException, KeeperException {
+    public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider, long relTimeoutMillis, Watcher watcher) throws IOException, KeeperException {
         super(dhtConfigurationProvider);
         this.relTimeoutMillis = relTimeoutMillis;
         this.dhtConfig = dhtConfigurationProvider.getClientDHTConfiguration();
-        this.metaZK = new MetaClientCore(dhtConfig.getZKConfig(), nsPropertiesWatcher);
+        this.metaZK = new MetaClientCore(dhtConfig.getZKConfig(), watcher);
+    }
+
+    public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider, Watcher watcher) throws IOException, KeeperException {
+        this(dhtConfigurationProvider, defaultTimeoutMills, watcher);
     }
 
     public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider) throws IOException, KeeperException {
-        this(dhtConfigurationProvider, defaultTimeoutMills);
+        this(dhtConfigurationProvider, defaultTimeoutMills, defaultNsPropertiesWatcher);
     }
 
-    private String getZKBasePath(long nsContext) {
-        String  nsNodeName;
+    private String getNsZKBasePath(String nsDirName) {
+        return MetaPaths.getNsPropertiesBasePath(dhtConfig.getName(), nsDirName);
+    }
 
-        nsNodeName = NamespaceUtil.contextToDirName(nsContext);
-        return MetaPaths.getNsPropertiesBasePath(dhtConfig.getName(), nsNodeName);
-}
+    private String getNsZKBasePath(long nsContext) {
+        return getNsZKBasePath(NamespaceUtil.contextToDirName(nsContext));
+    }
 
     private String resolveVersionPath(long nsContext) {
-        return getZKBasePath(nsContext) + "/" + versionNodeName;
+        return getZKBaseVersionPath(getNsZKBasePath(nsContext));
     }
 
     private String resolveDataDirPath(long nsContext, String id) {
-        return getZKBasePath(nsContext) + "/" + dataNodeName + "/" + id;
+        return getZKBaseDataDirPath(getNsZKBasePath(nsContext)) + "/" + id;
     }
 
     private long retrieveNsCreationTime(String versionPath) throws KeeperException {
@@ -65,6 +94,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
         return relTimeoutMillis;
     }
 
+    // Helper method shared by both put and delete
     private void writeNewVersion(long nsContext, String zkNodeContent) throws KeeperException {
         ZooKeeperExtended   zk;
         String              versionPath;
@@ -90,7 +120,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
     }
 
     @Override
-    protected void deleteAllNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException {
+    protected void deleteNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException {
         try {
             writeNewVersion(nsContext, softDeletePlaceholder);
         } catch (KeeperException ke) {
@@ -98,15 +128,12 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
         }
     }
 
-    @Override
-    protected NamespaceProperties retrieveFullNamespaceProperties(long nsContext) throws NamespacePropertiesRetrievalException {
+    private NamespaceProperties retrieveFullNamespaceProperties(String versionPath) throws NamespacePropertiesRetrievalException {
         try {
-            String              versionPath;
             ZooKeeperExtended   zk;
             String              skDef;
             NamespaceProperties nsProperties;
 
-            versionPath = resolveVersionPath(nsContext);
             zk = metaZK.getZooKeeper();
             skDef = zk.getString(zk.getLatestVersionPath(versionPath));
 
@@ -133,6 +160,11 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
                     throw new NamespacePropertiesRetrievalException(ke);
             }
         }
+    }
+
+    @Override
+    protected NamespaceProperties retrieveFullNamespaceProperties(long nsContext) throws NamespacePropertiesRetrievalException {
+        return retrieveFullNamespaceProperties(resolveVersionPath(nsContext));
     }
 
     @Override
@@ -179,7 +211,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
         }
     }
 
-    // For clean all ZK nodes only
+    ////===== The APIs below are for admin only (not exposed in NamespaceOptionsClientCS / NamespaceOptionsClientSS)
     public void obliterateAllNsProperties() throws NamespacePropertiesDeleteException {
         try {
             String allNsBasePath;

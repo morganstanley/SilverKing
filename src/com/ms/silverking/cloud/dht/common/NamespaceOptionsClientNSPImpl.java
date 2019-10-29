@@ -79,7 +79,7 @@ public class NamespaceOptionsClientNSPImpl extends NamespaceOptionsClientBase {
     }
 
     @Override
-    protected void deleteAllNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException {
+    protected void deleteNamespaceProperties(long nsContext) throws NamespacePropertiesDeleteException {
         throw new NamespacePropertiesDeleteException("Deletion for ns [" + nsContext + "] is not supported in [" + implementationName() + "]");
     }
 
