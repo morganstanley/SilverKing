@@ -81,6 +81,7 @@ public class EmbeddedSK {
             Log.warning("Creating embedded ZooKeeper");
             try {
                 tempDir = Files.createTempDirectory(null);
+                tempDir.toFile().deleteOnExit();
                 zkDir = new File(tempDir.toFile(), "zookeeper");
                 zkDir.mkdirs();
                 skDir = new File(tempDir.toFile(), "silverking");
