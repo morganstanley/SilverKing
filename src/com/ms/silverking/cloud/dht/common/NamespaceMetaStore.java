@@ -43,11 +43,16 @@ public class NamespaceMetaStore {
             ClientDHTConfiguration dhtConfig;
 
             ActiveClientOperationTable.disableFinalization();
-            nsOptionsMode = new MetaClient(dhtConfigProvider.getClientDHTConfiguration()).getDHTConfiguration().getMode();
-            if (nsOptionsMode == NamespaceOptionsMode.ZooKeeper) {
-                nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfigProvider);
-            } else {
-                nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
+            nsOptionsMode = new MetaClient(dhtConfigProvider.getClientDHTConfiguration()).getDHTConfiguration().getNamespaceOptionsMode();
+            switch (nsOptionsMode) {
+                case ZooKeeper:
+                    nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfigProvider);
+                    break;
+                case MetaNamespace:
+                    nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Illegal nsOptionsMode: " + nsOptionsMode);
             }
             nsPropertiesMap = new ConcurrentHashMap<>();
             dhtConfig = dhtConfigProvider.getClientDHTConfiguration();

@@ -122,7 +122,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                           SerializationRegistry serializationRegistry, 
                           SessionEstablishmentTimeoutController timeoutController,
                           NamespaceOptionsMode nsOptionsMode) throws IOException {
-        mgBase = new MessageGroupBase(0, this, absMillisTimeSource, new NewConnectionTimeoutControllerWrapper(timeoutController), 
+        mgBase = new MessageGroupBase(0, this, absMillisTimeSource, new NewConnectionTimeoutControllerWrapper(timeoutController),
                                       this, connectionQueueLimit, numSelectorControllers, selectorControllerClass);
         mgBase.enable();
         server = preferredServer;
@@ -141,14 +141,20 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         clientNamespaces = new ConcurrentHashMap<>();
         clientNamespaceList = new CopyOnWriteArrayList<>();
         namespaceCreator = new SimpleNamespaceCreator();
-        if (nsOptionsMode == NamespaceOptionsMode.ZooKeeper) {
-            try {
-                nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfig);
-            } catch (KeeperException ke) {
-                throw new IOException("Cannot create NamespaceOptionsClientZKImpl", ke);
-            }
-        } else {
-            nsOptionsClient = new NamespaceOptionsClientNSPImpl(this, dhtConfig, timeoutController);
+
+        switch (nsOptionsMode) {
+            case ZooKeeper:
+                try {
+                    nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfig);
+                } catch (KeeperException ke) {
+                    throw new IOException("Cannot create NamespaceOptionsClientZKImpl", ke);
+                }
+                break;
+            case MetaNamespace:
+                nsOptionsClient = new NamespaceOptionsClientNSPImpl(this, dhtConfig, timeoutController);
+                break;
+            default:
+                throw new IllegalArgumentException("Illegal nsOptionsMode: " + nsOptionsMode);
         }
 
         // Post-construction task: make sure this scheduled task is lastly called
