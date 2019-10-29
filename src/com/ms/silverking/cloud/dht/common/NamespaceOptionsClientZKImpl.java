@@ -226,4 +226,48 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
             throw new NamespacePropertiesDeleteException(ke);
         }
     }
+
+    public Map<String, NamespaceProperties> listAllNamespaces() throws NamespacePropertiesRetrievalException {
+        try {
+            Map<String, NamespaceProperties>  nsNames = new HashMap<>();
+            String allNsBasePath;
+            ZooKeeperExtended zk;
+
+            allNsBasePath = MetaPaths.getGlobalNsPropertiesBasePath(dhtConfig.getName());
+            zk = metaZK.getZooKeeper();
+            if (zk.exists(allNsBasePath)) {
+                for(String child : zk.getChildren(allNsBasePath)) {
+                    NamespaceProperties nsProperties;
+
+                    nsProperties = retrieveFullNamespaceProperties(getZKBaseVersionPath(allNsBasePath + "/" + child));
+                    nsNames.put(child, nsProperties);
+                }
+            }
+            return nsNames;
+        } catch (KeeperException ke) {
+            throw new NamespacePropertiesRetrievalException(ke);
+        }
+    }
+
+    public List<String> getRegisteredIds(long nsContext) throws NamespacePropertiesRetrievalException {
+        return getRegisteredIds(NamespaceUtil.contextToDirName(nsContext));
+    }
+
+    public List<String> getRegisteredIds(String nsDirName) throws NamespacePropertiesRetrievalException {
+        try {
+            String baseDataDirPath;
+            ZooKeeperExtended zk;
+
+            baseDataDirPath = getZKBaseDataDirPath(getNsZKBasePath(nsDirName));
+            zk = metaZK.getZooKeeper();
+
+            if (zk.exists(baseDataDirPath)) {
+                return zk.getChildren(baseDataDirPath);
+            } else {
+                return new ArrayList<String>(0);
+            }
+        } catch (KeeperException ke) {
+            throw new NamespacePropertiesRetrievalException(ke);
+        }
+    }
 }
