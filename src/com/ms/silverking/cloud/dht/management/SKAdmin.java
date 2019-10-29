@@ -1309,7 +1309,7 @@ public class SKAdmin {
     }
 
     private void clearNamespaceOptionsData() {
-        NamespaceOptionsMode mode = dhtConfig.getMode();
+        NamespaceOptionsMode mode = dhtConfig.getNamespaceOptionsMode();
         switch (mode) {
             case ZooKeeper:
                 try {

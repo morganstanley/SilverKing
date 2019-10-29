@@ -118,7 +118,12 @@ public class EmbeddedSK {
             clientDHTConfig = new ClientDHTConfiguration(config.getDHTName(), dhtPort, zkConfig);
             dhtMC = new MetaClient(clientDHTConfig);
             dhtConfigZK = new DHTConfigurationZK(dhtMC);
-            dhtConfig = DHTConfiguration.emptyTemplate.ringName(config.getRingName()).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>()).mode(nsOptionsMode);
+            dhtConfig = DHTConfiguration.emptyTemplate
+                    .ringName(config.getRingName())
+                    .port(dhtPort)
+                    .passiveNodeHostGroups("")
+                    .hostGroupToClassVarsMap(new HashMap<String,String>())
+                    .namespaceOptionsMode(nsOptionsMode);
             dhtConfigZkPath = dhtConfigZK.writeToZK(dhtConfig, null);
             Log.warning("Created DHT configuration in ZK");
 

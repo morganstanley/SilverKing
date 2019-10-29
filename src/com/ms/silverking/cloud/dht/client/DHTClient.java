@@ -134,7 +134,7 @@ public class DHTClient {
         dhtConfig = sessionOptions.getDHTConfig();
         preferredServer = sessionOptions.getPreferredServer();
         try {
-            nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getMode();
+            nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
         } catch (Exception e) {
             if (preferredServer != null) {
                 if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE) || preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
