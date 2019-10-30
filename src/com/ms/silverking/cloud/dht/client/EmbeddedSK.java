@@ -74,8 +74,7 @@ public class EmbeddedSK {
             File    zkDir;
             File    skDir;
             ZooKeeperConfig    zkConfig;
-            String  dhtConfigZkPath;
-            
+
             // 0) Create LWT work pools
             LWTPoolProvider.createDefaultWorkPools();
 

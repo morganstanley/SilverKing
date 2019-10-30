@@ -34,6 +34,7 @@ import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
+import org.apache.zookeeper.KeeperException;
 
 
 /**
@@ -133,33 +134,23 @@ public class DHTClient {
 
         dhtConfig = sessionOptions.getDHTConfig();
         preferredServer = sessionOptions.getPreferredServer();
-        try {
-            nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
-        } catch (Exception e) {
-            if (preferredServer != null) {
-                if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE) || preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
-                    // EMBEDDED_PASSIVE_NODE or EMBEDDED_KVS may have empty/null ZK, we allow them to use default mode
-                    nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
-                } else {
-                    throw new ClientException("Cannot get NamespaceOptionsMode", e);
-                }
-            } else {
-                throw new ClientException("Cannot get NamespaceOptionsMode", e);
-            }
-        }
 
         if (preferredServer != null) {
             if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
-                // TODO: add nsOptionsMode support for EMBEDDED_PASSIVE_NODE ?
+                // NOTE: if Embedded is created via openSession API, default nsOptionsMode is used
+                nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
                 embedPassiveNode(dhtConfig);
                 preferredServer = null;
             } else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
                 File    gcBase;
                 String    gcName;
-                
+
+                // NOTE: if Embedded is created via openSession API, default nsOptionsMode is used
+                nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
                 dhtConfig = embedKVS(nsOptionsMode);
                 try {
-                    gcBase = Files.createTempDirectory(null).toFile(); // FIXME - make user configurable
+                    gcBase = Files.createTempDirectory("embeddedSKGC").toFile(); // FIXME - make user configurable
+                    gcBase.deleteOnExit();
                 } catch (IOException ioe) {
                     throw new ClientException("Fail to create temp directory for EMBEDDED_KVS", ioe);
                 }
@@ -172,6 +163,20 @@ public class DHTClient {
                     throw new ClientException("Error creating embedded kvs", e);
                 }
                 preferredServer = null;
+            } else {
+                // Normal openSession must have nsOptionsMode
+                try {
+                    nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+                } catch (KeeperException | IOException e) {
+                    throw new ClientException("Cannot get NamespaceOptionsMode", e);
+                }
+            }
+        } else {
+            // Normal openSession must have nsOptionsMode
+            try {
+                nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+            } catch (KeeperException | IOException e) {
+                throw new ClientException("Cannot get NamespaceOptionsMode", e);
             }
         }
         
