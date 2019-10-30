@@ -227,7 +227,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
         }
     }
 
-    public Map<String, NamespaceProperties> listAllNamespaces() throws NamespacePropertiesRetrievalException {
+    public Map<String, NamespaceProperties> getAllNamespaceProperties() throws NamespacePropertiesRetrievalException {
         try {
             Map<String, NamespaceProperties>  nsNames = new HashMap<>();
             String allNsBasePath;
