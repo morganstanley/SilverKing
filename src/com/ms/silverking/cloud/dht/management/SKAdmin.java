@@ -1322,7 +1322,7 @@ public class SKAdmin {
                 // Do nothing for this impl
                 break;
             default:
-                throw new IllegalArgumentException("Illegal nsOptionsMode: " + mode);
+                throw new RuntimeException("Unhandled nsOptionsMode: " + mode);
         }
     }
 

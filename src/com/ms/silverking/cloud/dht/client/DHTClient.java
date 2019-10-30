@@ -137,14 +137,19 @@ public class DHTClient {
 
         if (preferredServer != null) {
             if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
-                // NOTE: if Embedded is created via openSession API, default nsOptionsMode is used
-                nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
                 embedPassiveNode(dhtConfig);
+                // Assumption: There will be DHTConfig registered in ZK for this EMBEDDED_PASSIVE_NODE
+                try {
+                    nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+                } catch (KeeperException | IOException e) {
+                    throw new ClientException("Cannot get NamespaceOptionsMode", e);
+                }
                 preferredServer = null;
             } else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
                 File    gcBase;
                 String    gcName;
 
+                // Assumption: There could be no DHTConfig registered in ZK for this EMBEDDED_KVS
                 // NOTE: if Embedded is created via openSession API, default nsOptionsMode is used
                 nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
                 dhtConfig = embedKVS(nsOptionsMode);

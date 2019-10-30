@@ -154,7 +154,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
                 nsOptionsClient = new NamespaceOptionsClientNSPImpl(this, dhtConfig, timeoutController);
                 break;
             default:
-                throw new IllegalArgumentException("Illegal nsOptionsMode: " + nsOptionsMode);
+                throw new RuntimeException("Unhandled nsOptionsMode: " + nsOptionsMode);
         }
 
         // Post-construction task: make sure this scheduled task is lastly called

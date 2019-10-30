@@ -52,7 +52,7 @@ public class NamespaceMetaStore {
                     nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
                     break;
                 default:
-                    throw new IllegalArgumentException("Illegal nsOptionsMode: " + nsOptionsMode);
+                    throw new RuntimeException("Unhandled nsOptionsMode: " + nsOptionsMode);
             }
             nsPropertiesMap = new ConcurrentHashMap<>();
             dhtConfig = dhtConfigProvider.getClientDHTConfiguration();
