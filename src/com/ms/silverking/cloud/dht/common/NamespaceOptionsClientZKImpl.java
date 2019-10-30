@@ -24,26 +24,9 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
 
     private final static String     softDeletePlaceholder = "deleted";
     private final static String     versionNodeName = "versions";
-    private final static String     dataNodeName = "data";
 
-    /* === Basic node structure ===
-     * nsProperties/
-     *   -nsDirName
-     *     - versions/
-     *         - 000000
-     *         - 000001
-     *         ...
-     *     - data/
-     *         - host1:port
-     *         - host2:port
-     *         ...
-     */
     private static String getZKBaseVersionPath(String nsZKBasePath) {
         return nsZKBasePath + "/" + versionNodeName;
-    }
-
-    private static String getZKBaseDataDirPath(String nsZKBasePath) {
-        return nsZKBasePath + "/" + dataNodeName;
     }
 
     private static final Watcher defaultNsPropertiesWatcher = null;  // currently we don't support on-the-fly update, so don't need watcher for now
@@ -76,10 +59,6 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
 
     private String resolveVersionPath(long nsContext) {
         return getZKBaseVersionPath(getNsZKBasePath(nsContext));
-    }
-
-    private String resolveDataDirPath(long nsContext, String id) {
-        return getZKBaseDataDirPath(getNsZKBasePath(nsContext)) + "/" + id;
     }
 
     private long retrieveNsCreationTime(String versionPath) throws KeeperException {
@@ -181,36 +160,6 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
         return implName;
     }
 
-    public void registerNamespaceDir(long nsContext, String registerInfo) throws NamespacePropertiesPutException {
-        try {
-            String dataDirPath;
-            ZooKeeperExtended zk;
-
-            dataDirPath = resolveDataDirPath(nsContext, registerInfo);
-            zk = metaZK.getZooKeeper();
-            if (!zk.exists(dataDirPath)) {
-                zk.createAllNodes(dataDirPath);
-            }
-        } catch (KeeperException ke) {
-            throw new NamespacePropertiesPutException(ke);
-        }
-    }
-
-    public void unregisterNamespaceDir(long nsContext, String registerInfo) throws NamespacePropertiesDeleteException {
-        try {
-            String dataDirPath;
-            ZooKeeperExtended zk;
-
-            dataDirPath = resolveDataDirPath(nsContext, registerInfo);
-            zk = metaZK.getZooKeeper();
-            if (zk.exists(dataDirPath)) {
-                zk.deleteRecursive(dataDirPath);
-            }
-        } catch (KeeperException ke) {
-            throw new NamespacePropertiesDeleteException(ke);
-        }
-    }
-
     ////===== The APIs below are for admin only (not exposed in NamespaceOptionsClientCS / NamespaceOptionsClientSS)
     public void obliterateAllNsProperties() throws NamespacePropertiesDeleteException {
         try {
@@ -244,28 +193,6 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
                 }
             }
             return nsNames;
-        } catch (KeeperException ke) {
-            throw new NamespacePropertiesRetrievalException(ke);
-        }
-    }
-
-    public List<String> getRegisteredIds(long nsContext) throws NamespacePropertiesRetrievalException {
-        return getRegisteredIds(NamespaceUtil.contextToDirName(nsContext));
-    }
-
-    public List<String> getRegisteredIds(String nsDirName) throws NamespacePropertiesRetrievalException {
-        try {
-            String baseDataDirPath;
-            ZooKeeperExtended zk;
-
-            baseDataDirPath = getZKBaseDataDirPath(getNsZKBasePath(nsDirName));
-            zk = metaZK.getZooKeeper();
-
-            if (zk.exists(baseDataDirPath)) {
-                return zk.getChildren(baseDataDirPath);
-            } else {
-                return new ArrayList<String>(0);
-            }
         } catch (KeeperException ke) {
             throw new NamespacePropertiesRetrievalException(ke);
         }

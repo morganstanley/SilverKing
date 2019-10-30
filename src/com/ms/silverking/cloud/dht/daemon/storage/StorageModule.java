@@ -320,7 +320,6 @@ public class StorageModule implements LinkCreationListener {
                 Log.warning("\t\tFind pending-deleted namespace ["+ nsDir+ "] start moving it to [" + trashManualDir + "]");
                 File dest = cleanDeletedNamespace(nsDir);
                 Log.warning("\t\tDone move ["+ nsDir+ "] as [" + dest + "]");
-                nsMetaStore.notifyNsDirDeleted(nsDir);
             } else {
                 // NOTE: We have a memory cache for nsProperties here; This cache needs to be properly updated if we support on-the-fly nsProperties modify
                 nsMetaStore.setNamespaceProperties(ns, nsProperties);
@@ -452,11 +451,6 @@ public class StorageModule implements LinkCreationListener {
                     nsStore = old;
                 } else {
                     Log.warning("Created new namespace store: "+ NamespaceUtil.contextToDirName(ns));
-                    try {
-                        nsMetaStore.notifyNsDirCreated(nsDir);
-                    } catch (IOException ioe) {
-                        Log.severe("Fail to register new namespace [" + NamespaceUtil.contextToDirName(ns) + "] in nsMetaStore", ioe);
-                    }
                     nsStore.startWatches(zk, nsLinkBasePath, this);
                 }
             }

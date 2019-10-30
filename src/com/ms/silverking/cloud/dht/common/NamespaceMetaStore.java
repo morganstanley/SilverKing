@@ -97,28 +97,6 @@ public class NamespaceMetaStore {
         return nsOptionsMode != NamespaceOptionsMode.ZooKeeper;
     }
 
-    public void notifyNsDirDeleted(File nsDir) throws IOException {
-        try {
-            long    nsContext;
-
-            nsContext = NamespaceUtil.dirNameToContext(nsDir.getName());
-            nsOptionsClient.unregisterNamespaceDir(nsContext, localHostPort);
-        } catch (NamespacePropertiesDeleteException re) {
-            throw new IOException("Cannot unregisterNamespaceDir [" + nsDir + "] from [" + nsOptionsClient + "]", re);
-        }
-    }
-
-    public void notifyNsDirCreated(File nsDir) throws IOException {
-        try {
-            long    nsContext;
-
-            nsContext = NamespaceUtil.dirNameToContext(nsDir.getName());
-            nsOptionsClient.registerNamespaceDir(nsContext, localHostPort);
-        } catch (NamespacePropertiesPutException pe) {
-            throw new IOException("Cannot registerNamespaceDir [" + nsDir + "] from [" + nsOptionsClient + "]", pe);
-        }
-    }
-
     public boolean isAutoDeleteEnabled() {
         // For now only only ZooKeeperImpl supports deletion
         return nsOptionsMode == NamespaceOptionsMode.ZooKeeper;

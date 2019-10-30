@@ -16,8 +16,4 @@ public interface NamespaceOptionsClientSS {
     NamespaceProperties getNamespacePropertiesWithTimeout(long nsContext, long relTimeoutMillis) throws NamespacePropertiesRetrievalException, TimeoutException;
     // For backward compatibility, since some implementation may still need properties file to bootstrap
     NamespaceProperties getNsPropertiesForRecovery(File nsDir) throws NamespacePropertiesRetrievalException;
-
-    ////// ====== server side internal namespace data registering API  ======
-    void registerNamespaceDir(long nsContext, String registerInfo) throws NamespacePropertiesPutException;
-    void unregisterNamespaceDir(long nsContext, String registerInfo) throws NamespacePropertiesDeleteException;
 }

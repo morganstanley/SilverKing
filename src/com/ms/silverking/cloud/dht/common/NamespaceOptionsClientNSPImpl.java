@@ -97,14 +97,4 @@ public class NamespaceOptionsClientNSPImpl extends NamespaceOptionsClientBase {
             throw new NamespacePropertiesRetrievalException(ioe);
         }
     }
-
-    @Override
-    public void registerNamespaceDir(long nsContext, String registerInfo) {
-        // NOOP
-    }
-
-    @Override
-    public void unregisterNamespaceDir(long nsContext, String registerInfo) {
-        // NOOP
-    }
 }
