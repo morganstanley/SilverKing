@@ -64,7 +64,7 @@ public final class IncomingMessageGroup implements IncomingData {
     
     // FUTURE - think about limiting number of buffers and message group size
     // see     public MessageGroup(MessageType messageType, long context, List<ByteBuffer> buffers)
-    private static final int   maxNumBuffers = 65536; 
+    private static final int   maxNumBuffers = 131072; 
     private static final int   minNumBuffers = 1;
     
     private static final boolean    debug = false;
