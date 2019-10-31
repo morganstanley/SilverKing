@@ -16,7 +16,7 @@ public class DHTConfigurationReflectionTest {
     @Test
     public void reflectLegacyDHTConfig() {
         // Legacy DHTConfig def
-        String legacyDHTConfig = "ringName=devny_prc_ring,port=7777,passiveNodeHostGroups={none}," +
+        String legacyDHTConfig = "ringName=ring.85071aaa-afbe-4ca3-acb6-5fc570b360a4,port=5836,passiveNodeHostGroups={none}," +
                 "nsCreationOptions={defaultNSOptions={storageType=FILE,consistencyProtocol=LOOSE,versionMode=SINGLE_VERSION," +
                 "revisionMode=NO_REVISIONS,defaultPutOptions={opTimeoutController=<OpSizeBasedTimeoutController>" +
                 "{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," +
