@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.collect.ImmutableSet;
-import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 
