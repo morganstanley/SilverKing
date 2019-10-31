@@ -79,6 +79,10 @@ public class DHTConfiguration implements VersionedDefinition {
         return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
     }
     
+    public DHTConfiguration nsCreationOptions(NamespaceCreationOptions nsCreationOptions) {
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+    }
+    
     public DHTConfiguration hostGroupToClassVarsMap(Map<String,String> hostGroupToClassVarsMap) {
         return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
     }    
