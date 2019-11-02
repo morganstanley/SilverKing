@@ -157,17 +157,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         myIPAndPortArray = new IPAndPort[1];
         myIPAndPortArray[0] = myIPAndPort;
         
-        try {
-            peerHealthMonitor = new PeerHealthMonitor(mc, myIPAndPort);
-        } catch (KeeperException ke) {
-            throw new RuntimeException("Exception creating PeerHealthMonitor", ke);
-        }
-        PeerStateWatcher.setPeerHealthMonitor(peerHealthMonitor);
-        mgBase.setPeerHealthMonitor(peerHealthMonitor);
-        ringMaster.setPeerHealthMonitor(peerHealthMonitor);
-        NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
-        DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
-        
         storage.setMessageGroupBase(mgBase);
         storage.setActiveRetrievals(activeRetrievals);
         storage.recoverExistingNamespaces();
@@ -195,6 +184,16 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         }
         //pingTimer = new SafeTimer(pingTimerName);
         //globalCommandServer = null;
+        try {
+            peerHealthMonitor = new PeerHealthMonitor(mc, myIPAndPort);
+        } catch (KeeperException ke) {
+            throw new RuntimeException("Exception creating PeerHealthMonitor", ke);
+        }
+        PeerStateWatcher.setPeerHealthMonitor(peerHealthMonitor);
+        mgBase.setPeerHealthMonitor(peerHealthMonitor);
+        ringMaster.setPeerHealthMonitor(peerHealthMonitor);
+        NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
+        DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
     }
     
     public void enable() {
@@ -397,6 +396,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         assert nsProperties != null;
         nsOptions = nsProperties.getOptions();
         assert nsOptions.getConsistencyProtocol() != null;
+        assert consistencyModeToRetrievalProtocol != null;
         return consistencyModeToRetrievalProtocol[nsOptions.getConsistencyProtocol().ordinal()];
     }
     
@@ -871,7 +871,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         Worker() {
             super(workerPool, true, maxDirectCallDepth);
         }
-        
+
         @Override
         public void doWork(MessageAndConnection m) {
             handleReceive(m.message, m.connection);
