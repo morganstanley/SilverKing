@@ -185,7 +185,7 @@ public class SKAdmin {
         String    fileBlockNSValueRetentionPolicy;
         String    dirNSSSOptions;
         
-        commonNSOptions = "revisionMode=NO_REVISIONS,storageType=FILE,consistencyProtocol="+ ConsistencyProtocol.TWO_PHASE_COMMIT;
+        commonNSOptions = "revisionMode=NO_REVISIONS,storageType=FILE,storageFormat="+ options.storageFormat +",consistencyProtocol="+ ConsistencyProtocol.TWO_PHASE_COMMIT;
         opTimeoutController = "opTimeoutController="+ options.opTimeoutController;
         dirNSPutTimeoutController = "opTimeoutController="+ options.dirNSPutTimeoutController;
         opOptions = "defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,"+ opTimeoutController +"},"

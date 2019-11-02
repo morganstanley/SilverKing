@@ -5,39 +5,43 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
+import java.util.Set;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
-import com.ms.silverking.cloud.dht.collection.CuckooConfig;
+import com.ms.silverking.cloud.dht.NamespaceVersionMode;
+import com.ms.silverking.cloud.dht.collection.CuckooBase;
 import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
-import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
-import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.FSMElementType;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentMetaData;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentStorageFormat;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.InvalidatedOffsetsElement;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.KeyToOffsetMapElement;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.OffsetListsElement;
 import com.ms.silverking.log.Log;
-import com.ms.silverking.numeric.NumConversion;
 
 public class FileSegment extends WritableSegmentBase {
-    private int                 references;
+    private final AccessMode    accessMode;
     private RandomAccessFile    raFile;
-    
+    private final FileSegmentStorageFormat  storageFormat;
+        
     private static final String    roFileMode = "r";
     private static final String    rwFileMode = "rw";
     private static final String    rwdFileMode = "rwd";
     
-    private final int   noReferences = Integer.MIN_VALUE;
-    
-    static final boolean    mapEverything;
+    enum AccessMode {Creation,     // Creation of segment. Only allowed once per segment
+                     Repair,       // Repair a segment with a damaged index; recovery only
+                     Update,       // Update segment entries, but not index
+                     ReadOnly,     // Read-only access to segment
+                     ReadIndexOnly // Read-only access to the segment index only; data proper is not mapped
+                    }; 
     
     enum SyncMode {NoSync, Sync};
-    
     enum SegmentPrereadMode {NoPreread, Preread};
     
-    private static final int    vmPageSize = 4096;
-    
-    static {
-        mapEverything = StoreConfiguration.fileSegmentCacheCapacity == DHTConstants.noCapacityLimit;
-        Log.warning("FileSegment.mapEverything: "+ mapEverything);
-    }
+    private static final boolean    debugMetaData = false;
     
     private static String syncModeToFileOpenMode(SyncMode syncMode) {
         return syncMode == SyncMode.NoSync ? rwFileMode : rwdFileMode;
@@ -56,61 +60,61 @@ public class FileSegment extends WritableSegmentBase {
         
         dataBuf = raFile.getChannel().map(MapMode.READ_WRITE, 0, dataSegmentSize);
         dataBuf.put(header);
-        //raFile.getFD().sync(); // For now we leave this out and let SyncMode cover this
-        return new FileSegment(nsDir, segmentNumber, raFile, dataBuf, dataSegmentSize, nsOptions);
+        return new FileSegment(nsDir, segmentNumber, AccessMode.Creation, raFile, dataBuf, dataSegmentSize, nsOptions);
     }
     
     public static FileSegment openForDataUpdate(File nsDir, int segmentNumber, int dataSegmentSize,
                                                 SyncMode syncMode, NamespaceOptions nsOptions, 
                                                 SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) throws IOException {
-        return open(nsDir, segmentNumber, MapMode.READ_WRITE, dataSegmentSize, syncMode, nsOptions, segmentIndexLocation, segmentPrereadMode);
+        return open(nsDir, segmentNumber, AccessMode.Update, dataSegmentSize, syncMode, nsOptions, segmentIndexLocation, segmentPrereadMode);
     }
     
-    public static FileSegment openReadOnly(File nsDir, int segmentNumber, int dataSegmentSize, 
+    public static FileSegment openReadIndexOnly(File nsDir, int segmentNumber, int dataSegmentSize, 
             NamespaceOptions nsOptions) throws IOException {
+        return open(nsDir, segmentNumber, AccessMode.ReadIndexOnly, dataSegmentSize, SyncMode.NoSync, nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.NoPreread);
+    }
+    
+    public static FileSegment openReadOnly(File nsDir, int segmentNumber, int dataSegmentSize, NamespaceOptions nsOptions) throws IOException {
         return openReadOnly(nsDir, segmentNumber, dataSegmentSize, nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
     }
     
     public static FileSegment openReadOnly(File nsDir, int segmentNumber, int dataSegmentSize, 
                                            NamespaceOptions nsOptions, SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) throws IOException {
-        return open(nsDir, segmentNumber, MapMode.READ_ONLY, dataSegmentSize, SyncMode.NoSync, nsOptions, segmentIndexLocation, segmentPrereadMode);
+        return open(nsDir, segmentNumber, AccessMode.ReadOnly, dataSegmentSize, SyncMode.NoSync, nsOptions, segmentIndexLocation, segmentPrereadMode);
     }
     
-    private static void forcePreread(ByteBuffer buf, int bufSize) {
-        int    b;
-        
-        b = 0;
-        for (int i = 0; i < bufSize; i += vmPageSize) {
-            b = b ^ buf.get(i);
-        }
-        if (System.currentTimeMillis() == 0) {
-            System.out.println(b); // ensure get() above is not a nop
-        }
-    }
-    
-    private static FileSegment open(File nsDir, int segmentNumber, MapMode dataMapMode, int dataSegmentSize, 
+    private static FileSegment open(File nsDir, int segmentNumber, AccessMode accessMode, int dataSegmentSize, 
                                     SyncMode syncMode, NamespaceOptions nsOptions, 
                                     SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) 
                                             throws IOException {
         RandomAccessFile    raFile;
         ByteBuffer          dataBuf;
         ByteBuffer          rawHTBuf;
-        ByteBuffer          htBuf;
-        int                 htBufSize;
-        int                 htTotalEntries;
         String              fileOpenMode;
-        WritableCuckooConfig        segmentCuckooConfig;
+        MapMode             dataMapMode;
+        FileSegmentMetaData         fsm;
+        InvalidatedOffsetsElement   ioe;
+        KeyToOffsetMapElement       ktome;
+        OffsetListsElement          ole;
         
         //Log.warningf("open %s %d", nsDir.toString(), segmentNumber);
+        
+        if (accessMode == AccessMode.ReadIndexOnly && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION) {
+            accessMode = AccessMode.ReadOnly;
+            // Presently, the index does not contain sufficient information to allow this in SINGLE_VERSION mode
+        }
 
-        if (dataMapMode == MapMode.READ_ONLY) {
+        switch (accessMode) {
+        case ReadOnly:      // fall through
+        case ReadIndexOnly:
+            dataMapMode = MapMode.READ_ONLY;
             fileOpenMode = roFileMode;
-        } else if (dataMapMode == MapMode.READ_WRITE) {
+            break;
+        case Update:
+            dataMapMode = MapMode.READ_WRITE;
             fileOpenMode = syncModeToFileOpenMode(syncMode);
-        } else if (dataMapMode == MapMode.PRIVATE) {
-            throw new RuntimeException("MapMode.PRIVATE currently unsupported");
-        } else {
-            throw new RuntimeException("Unexpected dataMapMode: "+ dataMapMode);
+            break;
+        default: throw new RuntimeException("Unexpected mode: "+ accessMode);
         }
         raFile = new RandomAccessFile(fileForSegment(nsDir, segmentNumber), fileOpenMode);
         if (false) {
@@ -119,17 +123,30 @@ public class FileSegment extends WritableSegmentBase {
             byte[]      _bufArray;
             
             _bufArray = new byte[dataSegmentSize];
-            raFile.seek(0);
             raFile.read(_bufArray);
             dataBuf = ByteBuffer.wrap(_bufArray);
         } else {
-            int    b;
-            
-            b = 0;
-            dataBuf = raFile.getChannel().map(dataMapMode, 0, dataSegmentSize);
-            if (segmentPrereadMode == SegmentPrereadMode.Preread) {
-                forcePreread(dataBuf, dataSegmentSize);
+            if (accessMode != AccessMode.ReadIndexOnly) {
+                dataBuf = raFile.getChannel().map(dataMapMode, 0, dataSegmentSize);
+                // Presently, the data segment is in network byte order - big endian
+                // While nice-to-have in principle for network data, the fact
+                // that all usage will likely be little endian makes this a poor format
+                // For now, we leave this format.
+                // FUTURE - switch the data buffer to little endian
+                //if (_fsStorageFormat.dataSegmentIsLTV()) {
+                //    dataBuf = dataBuf.order(ByteOrder.nativeOrder());
+                //}
+                if (segmentPrereadMode == SegmentPrereadMode.Preread) {
+                    ((MappedByteBuffer)dataBuf).load();
+                }
+            } else {
+                dataBuf = null;
             }
+        }
+        if (debugMetaData) {
+            Log.warningf("dataSegmentSize %d", dataSegmentSize);
+            Log.warningf("raFile.length() %d", raFile.length());
+            Log.warningf("raFile.length() - dataSegmentSize %d", raFile.length() - dataSegmentSize );
         }
         if (segmentIndexLocation == SegmentIndexLocation.RAM) {
             byte[]      _htBufArray;
@@ -141,34 +158,23 @@ public class FileSegment extends WritableSegmentBase {
         } else {
             rawHTBuf = raFile.getChannel().map(MapMode.READ_ONLY, dataSegmentSize, raFile.length() - dataSegmentSize);
             if (segmentPrereadMode == SegmentPrereadMode.Preread) {
-                forcePreread(rawHTBuf, (int)(raFile.length() - dataSegmentSize));
+                ((MappedByteBuffer)rawHTBuf).load();
             }
         }
         rawHTBuf = rawHTBuf.order(ByteOrder.nativeOrder());
-        try {
-        htBuf = ((ByteBuffer)rawHTBuf.duplicate().position(NumConversion.BYTES_PER_INT + CuckooConfig.BYTES)).slice();
-        } catch (RuntimeException re) {
-            System.out.println(nsDir);
-            System.out.println(segmentNumber);
-            System.out.println(dataMapMode);
-            System.out.println();
-            System.out.println(dataBuf);
-            System.out.printf("%d\t%d\t%d\t%d\n", dataSegmentSize, raFile.length(), 
-                              dataSegmentSize, raFile.length() - dataSegmentSize);
-            System.out.println();
-            System.out.println(rawHTBuf);
-            throw re;
+        
+        if (debugMetaData) {
+            Log.warningf("rawHTBuf %s", rawHTBuf);
         }
-        htBuf = htBuf.order(ByteOrder.nativeOrder());
-        // FUTURE - cache the below number or does the segment cache do this well enough? (also cache the segmentCuckooConfig...)
-        htBufSize = rawHTBuf.getInt(0);
-        segmentCuckooConfig = new WritableCuckooConfig(CuckooConfig.read(rawHTBuf, NumConversion.BYTES_PER_INT), -1); // FIXME - verify -1
-        
-        
-        htTotalEntries = htBufSize / (NumConversion.BYTES_PER_LONG * 2 + NumConversion.BYTES_PER_INT);
-        return new FileSegment(nsDir, segmentNumber, raFile, dataBuf, htBuf, 
-                               segmentCuckooConfig.newTotalEntries(htTotalEntries), 
-                               new BufferOffsetListStore(rawHTBuf, nsOptions), dataSegmentSize);
+        fsm = FileSegmentMetaData.create(rawHTBuf, FileSegmentStorageFormat.parse(nsOptions.getStorageFormat()));
+        ktome = (KeyToOffsetMapElement)fsm.getElement(FSMElementType.OffsetMap);
+        //((IntBufferCuckoo)ktome.getKeyToOffsetMap()).display();
+        ole = (OffsetListsElement)fsm.getElement(FSMElementType.OffsetLists);
+        //((BufferOffsetListStore)ole.getOffsetListStore(nsOptions)).displayForDebug();
+        ioe = (InvalidatedOffsetsElement)fsm.getElement(FSMElementType.InvalidatedOffsets);
+        return new FileSegment(nsDir, segmentNumber, accessMode, raFile, 
+                dataBuf, ktome.getKeyToOffsetMap(), ioe != null ? ioe.getInvalidatedOffsets() : null,
+                ole.getOffsetListStore(nsOptions), dataSegmentSize, nsOptions);
     }
     
     static File fileForSegment(File nsDir, int segmentNumber) {
@@ -194,150 +200,45 @@ public class FileSegment extends WritableSegmentBase {
         raFile = new RandomAccessFile(fileForSegment(nsDir, segmentNumber), syncModeToFileOpenMode(syncMode));
         
         dataBuf = raFile.getChannel().map(MapMode.READ_WRITE, 0, dataSegmentSize);
-        segment = new FileSegment(nsDir, segmentNumber, raFile, dataBuf, dataSegmentSize, nsOptions);
+        segment = new FileSegment(nsDir, segmentNumber, AccessMode.Repair, raFile, dataBuf, dataSegmentSize, nsOptions);
         return segment;
     }
     
-    /*
-    private FileSegment(File nsDir, int segmentNumber, RandomAccessFile raFile, ByteBuffer dataBuf,
-                        PartialKeyCuckooBase pkc) throws IOException {
-        super(dataBuf);
-        this.segmentNumber = segmentNumber;
-        this.raFile = raFile;
-        this.pkc = pkc;
-        nextFree = new AtomicInteger(SegmentFormat.headerSize);
-    }
-    */
-    
-    // called from openReadOnly
-    private FileSegment(File nsDir, int segmentNumber, RandomAccessFile raFile, ByteBuffer dataBuf, ByteBuffer htBuf,
-            WritableCuckooConfig cuckooConfig, BufferOffsetListStore bufferOffsetListStore, int dataSegmentSize) 
+    // Open read-only or for update
+    private FileSegment(File nsDir, int segmentNumber, AccessMode accessMode, RandomAccessFile raFile, 
+                    ByteBuffer dataBuf, CuckooBase keyToOffset, Set<Integer> invalidatedOffsets, 
+                    OffsetListStore offsetListStore, int dataSegmentSize, NamespaceOptions nsOptions) 
                     throws IOException {
-        super(nsDir, segmentNumber, dataBuf, htBuf, cuckooConfig, bufferOffsetListStore, dataSegmentSize);
-        this.raFile = raFile;
+        super(nsDir, segmentNumber, dataBuf, keyToOffset, invalidatedOffsets, offsetListStore, dataSegmentSize);
+        this.accessMode = accessMode;
+        if (accessMode != AccessMode.ReadOnly && accessMode != AccessMode.Update && accessMode != AccessMode.ReadIndexOnly) {
+            throw new RuntimeException("Unexpected mode: "+ accessMode);
+        }
+        raFile.close();
+        this.raFile = null;
+        this.storageFormat = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat());
     }
 
-    // called from open for recovery
-    /*
-    private FileSegment(File nsDir, int segmentNumber, RandomAccessFile raFile, ByteBuffer dataBuf,
-                        PartialKeyIntCuckooBase pkc) throws IOException {
-        super(nsDir, segmentNumber, dataBuf, pkc);
-        this.raFile = raFile;
-    }
-    */
-    
     // called from Create
-    private FileSegment(File nsDir, int segmentNumber, RandomAccessFile raFile, ByteBuffer dataBuf, 
-            int dataSegmentSize, NamespaceOptions nsOptions) 
+    private FileSegment(File nsDir, int segmentNumber, AccessMode accessMode, RandomAccessFile raFile, 
+            ByteBuffer dataBuf, int dataSegmentSize, NamespaceOptions nsOptions) 
                     throws IOException {
         super(nsDir, segmentNumber, dataBuf, StoreConfiguration.fileInitialCuckooConfig, dataSegmentSize, nsOptions);
+        this.accessMode = accessMode;
         this.raFile = raFile;
+        this.storageFormat = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat());
     }
     
     public void persist() throws IOException {
-        ByteBuffer  htBuf;
-        byte[]        ht;
-        int         offsetStoreSize;
-        int         htBufSize;
-        long        mapSize;
-        int         htPersistedSize;
-        
-        offsetStoreSize = ((RAMOffsetListStore)offsetListStore).persistedSizeBytes();
-        
-        if (debugPut) {
-            System.out.printf("offsetStoreSize %d\n", offsetStoreSize);
-            System.out.printf("raFile.length() %d\n", raFile.length());
-        }
-        
-        ht = ((IntArrayCuckoo)keyToOffset).getAsBytes();
-        
-        htBufSize = ht.length;
-        htPersistedSize = NumConversion.BYTES_PER_INT + htBufSize + CuckooConfig.BYTES;
-        mapSize = htPersistedSize + offsetStoreSize;
-        htBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, mapSize).order(ByteOrder.nativeOrder());
-        if (debugPut) {
-            System.out.printf("b raFile.length() %d %s\n", raFile.length(), raFile.toString());
-        }
-
-        // Store the size of the ht, then the config
-        htBuf.putInt(htBufSize);
-        keyToOffset.getConfig().persist(htBuf, NumConversion.BYTES_PER_INT);
-        if (debugPut) {
-            System.out.printf("\tpersist htBufSize: %d\tmapSize: %d\n", htBufSize, mapSize);
-            System.out.printf("c raFile.length() %d %s\n", raFile.length(), raFile.toString());
-        }
-        htBuf.position(NumConversion.BYTES_PER_INT + CuckooConfig.BYTES);
-        
-        // Persist the ht itself
-        htBuf.put(ht);
-        htBuf.position(htPersistedSize);
-        
-        // Now persist the offsetListStore
-        ((RAMOffsetListStore)offsetListStore).persist(htBuf);
-        //((sun.nio.ch.DirectBuffer)htBuf).cleaner().clean();
-        
-        raFile.getChannel().force(true);
-        raFile.getFD().sync();
-        close();
-    }
-    
-    /*
-     * We implement simple reference counting for the read-only case since we want to shut the file
-     * as soon as possible. Waiting for finalization is too long. 
-     */
-    
-    public boolean addReference() {
-        return addReferences(1);
-    }
-    
-    public boolean addReferences(int numReferences) {
-        assert numReferences > 0;
-        if (!mapEverything) {
-            synchronized (this) {
-                if (references != noReferences) {
-                    references += numReferences;
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        } else {
-            return true;
-        }
-    }
-    
-    public void removeReference() {
-        if (!mapEverything) {
-            synchronized (this) {
-                if (references <= 0) {
-                    Log.warning("Invalid removeReference: "+ this +" "+ references);
-                    return;
-                }
-                --references;
-                if (references == 0) {
-                    references = noReferences;
-                    close();
-                }
-            }
-        }
-    }
-    
-    @Override
-    public void finalize() {
+        ((MappedByteBuffer)dataBuf).force();
+        FileSegmentMetaData.persist(storageFormat, raFile, dataSegmentSize, (IntArrayCuckoo)keyToOffset, (RAMOffsetListStore)offsetListStore, invalidatedOffsets);
+        raFile.close();
+        raFile = null;
         close();
     }
     
     public void close() {
-        // FUTURE - can we close raFile earlier?        
-        try {
-            raFile.close();
-            raFile = null;
-            dataBuf = null;
-            //System.gc();
-            //System.runFinalization();
-        } catch (IOException ioe) {
-            Log.logErrorWarning(ioe);
-        }
+        dataBuf = null;
     }
 
     public void displayForDebug() {

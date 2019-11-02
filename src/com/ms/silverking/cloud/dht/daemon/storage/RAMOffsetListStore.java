@@ -1,19 +1,22 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.RevisionMode;
+import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.numeric.NumConversion;
+import com.ms.silverking.text.StringUtil;
 
 /**
  * OffsetListStore in RAM 
  */
-class RAMOffsetListStore implements OffsetListStore {
+public class RAMOffsetListStore implements OffsetListStore {
     private final List<OffsetList>  lists;
-    private final NamespaceOptions  nsOptions;
+    private final boolean           supportsStorageTime;
         
     /*
      * Indexing to lists is 0-based internally and 1-based externally.
@@ -26,17 +29,15 @@ class RAMOffsetListStore implements OffsetListStore {
      * <= -1 is known to be an offset list.  
      */
     
-    RAMOffsetListStore(NamespaceOptions nsOptions) {
+    public RAMOffsetListStore(NamespaceOptions nsOptions) {
         lists = new ArrayList<>();
-        this.nsOptions = nsOptions;
+        supportsStorageTime = nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS;
     }
 
     @Override
     public OffsetList newOffsetList() {
         OffsetList  list;
-        boolean     supportsStorageTime;
         
-        supportsStorageTime = nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS;
         list = new RAMOffsetList(lists.size() + 1, supportsStorageTime);
         lists.add(list);
         return list;
@@ -81,8 +82,9 @@ class RAMOffsetListStore implements OffsetListStore {
     public void persist(ByteBuffer buf) {
         int listOffset;
         
+        buf = buf.order(ByteOrder.nativeOrder());
         if (debug) {
-            System.out.println("RAMOffsetList.persist");
+            System.out.println("RAMOffsetListStore.persist");
             System.out.println(lists.size());
         }
         buf.putInt(lists.size());
@@ -101,5 +103,7 @@ class RAMOffsetListStore implements OffsetListStore {
         for (OffsetList list : lists) {
             ((RAMOffsetList)list).persist(buf);
         }
+        //System.out.printf("%s\n", BufferUtil.duplicate(buf).rewind());
+        //System.out.printf("%s\n", StringUtil.byteBufferToHexString((ByteBuffer)BufferUtil.duplicate(buf).rewind()));        
     }
 }

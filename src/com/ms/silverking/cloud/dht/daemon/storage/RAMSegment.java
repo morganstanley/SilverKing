@@ -9,6 +9,7 @@ import java.nio.channels.FileChannel.MapMode;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
+import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.numeric.NumConversion;
 
 class RAMSegment extends WritableSegmentBase {
@@ -62,7 +63,7 @@ class RAMSegment extends WritableSegmentBase {
             //System.out.printf("\tpersist htBufSize: %d\tmapSize: %d\n", htBufSize, mapSize);
             htBuf.put(ht);
             htBuf.position(NumConversion.BYTES_PER_INT + htBufSize);
-            ((RAMOffsetListStore)offsetListStore).persist(htBuf);
+            ((RAMOffsetListStore)offsetListStore).persist(BufferUtil.sliceAt(htBuf, NumConversion.BYTES_PER_INT + htBufSize));
             //((sun.nio.ch.DirectBuffer)htBuf).cleaner().clean();
         } finally {
             raFile.close();

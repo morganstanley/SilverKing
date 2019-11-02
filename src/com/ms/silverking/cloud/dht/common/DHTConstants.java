@@ -47,12 +47,13 @@ public class DHTConstants {
     public static final ConsistencyProtocol    defaultConsistencyProtocol = ConsistencyProtocol.TWO_PHASE_COMMIT;
     public static final NamespaceVersionMode   defaultVersionMode = NamespaceVersionMode.SINGLE_VERSION;
     public static final RevisionMode           defaultRevisionMode = RevisionMode.NO_REVISIONS;
+    public static final String                 defaultStorageFormat = "0";
     public static final int                    defaultSecondarySyncIntervalSeconds = 30 * 60;
     public static final int                    defaultSecondaryReplicaUpdateTimeoutMillis = 2 * 60 * 1000;
     public static final SegmentIndexLocation   defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
-    public static final int                       defaultNSPrereadGB = 0;
-    public static final int                       defaultMinPrimaryUnderFailure = 1;
-    public static final int                       defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
+    public static final int                    defaultNSPrereadGB = 0;
+    public static final int                    defaultMinPrimaryUnderFailure = 1;
+    public static final int                    defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
     public static final int                    defaultMaxUnfinalizedDeletedBytes = 10 * 1024 * 1024 * 1024;
     
     public static final int                    minSegmentSize = 2 * 1024;

@@ -5,6 +5,7 @@ import java.util.logging.Level;
 import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeOptions;
 import com.ms.silverking.cloud.dht.daemon.RingHealth;
 import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
@@ -184,6 +185,9 @@ public class SKAdminOptions {
 
     @Option(name = "-startNodeWithExtraJVMOptions", usage = "enable user to append its customized JVM options when starting a DHTNode")
     public String startNodeExtraJVMOptions = "";
+    
+    @Option(name = "-storageFormat", usage = "FileSegmentStorageFormat")
+    public String storageFormat = DHTConstants.defaultStorageFormat;
 
     public void fillDefaultOptions() {
         if (classPath == null) {

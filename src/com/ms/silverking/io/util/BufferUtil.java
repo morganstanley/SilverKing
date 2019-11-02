@@ -120,4 +120,30 @@ public class BufferUtil {
             return convertToArrayBacked(buf);
         }
     }
+    
+    /**
+     * Byte order preserving duplicate
+     * @param buf
+     * @return
+     */
+    public static ByteBuffer duplicate(ByteBuffer buf) {
+        return buf.duplicate().order(buf.order());
+    }
+    
+    /**
+     * Byte order preserving slice
+     * @param buf
+     * @return
+     */
+    public static ByteBuffer slice(ByteBuffer buf) {
+        return buf.slice().order(buf.order());
+    }
+    
+    public static ByteBuffer sliceAt(ByteBuffer buf, int newPosition) {
+        return ((ByteBuffer)buf.duplicate().position(newPosition)).slice().order(buf.order());
+    }
+    
+    public static ByteBuffer sliceRange(ByteBuffer buf, int newPosition, int newLimit) {
+        return ((ByteBuffer)buf.duplicate().position(newPosition).limit(newLimit)).slice().order(buf.order());
+    }
 }

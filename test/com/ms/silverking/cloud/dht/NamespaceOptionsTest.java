@@ -74,6 +74,9 @@ public class NamespaceOptionsTest {
     private static boolean alCopy                      = false;
     private static boolean alDiff                      = true;
 
+    private static final String sfCopy                  = NamespaceOptions.templateOptions.getStorageFormat();
+    private static final String sfDiff                  = "-1";
+    
     private static ValueRetentionPolicy<?> vrpCopy     = new InvalidatedRetentionPolicy(60);
     private static ValueRetentionPolicy<?> vrpDiff     = new TimeAndVersionRetentionPolicy(Mode.mostRecentValue, 100, 1);
     
@@ -82,11 +85,11 @@ public class NamespaceOptionsTest {
     private static NamespaceServerSideCode nsscNull    = null;
 
     private static final NamespaceOptions defaultNsOptions           =     NamespaceOptions.templateOptions;
-    private static final NamespaceOptions defaultNsOptionsCopy       = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, mvsCopy, alCopy, vrpCopy, nsscCopy);
-    private static final NamespaceOptions defaultNsOptionsAlmostCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, mvsCopy, alCopy, vrpCopy, nsscDiff);
-    private static final NamespaceOptions defaultNsOptionsDiff       = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, vrpDiff, nsscDiff);
-    private static final NamespaceOptions defaultNsOptionsNsscNull1  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, vrpDiff, nsscNull);
-    private static final NamespaceOptions defaultNsOptionsNsscNull2  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, vrpDiff, null);
+    private static final NamespaceOptions defaultNsOptionsCopy       = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, mvsCopy, alCopy, sfCopy, vrpCopy, nsscCopy);
+    private static final NamespaceOptions defaultNsOptionsAlmostCopy = new NamespaceOptions(stCopy, cpCopy, nsvmCopy, rmCopy, poCopy, ioCopy, goCopy, woCopy, ssisCopy, ssCopy, mvsCopy, alCopy, sfCopy, vrpCopy, nsscDiff);
+    private static final NamespaceOptions defaultNsOptionsDiff       = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, sfDiff, vrpDiff, nsscDiff);
+    private static final NamespaceOptions defaultNsOptionsNsscNull1  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, sfDiff, vrpDiff, nsscNull);
+    private static final NamespaceOptions defaultNsOptionsNsscNull2  = new NamespaceOptions(stDiff, cpDiff, nsvmDiff, rmDiff, poDiff, ioDiff, goDiff, woDiff, ssisDiff, ssDiff, mvsDiff, alDiff, sfDiff, vrpDiff, null);
     
     private StorageType getStorageType(NamespaceOptions nsOptions) {
         return nsOptions.getStorageType();

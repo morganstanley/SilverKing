@@ -28,6 +28,8 @@ class RAMOffsetList extends OffsetListBase {
     
     private static final int    intArrayListDefaultInitialSize = 1;
     
+    private static final boolean    debugPersistence = debug || false;
+    
     static {
         if (ByteOrder.nativeOrder() != ByteOrder.LITTLE_ENDIAN) {
             throw new RuntimeException("Only LITTLE_ENDIAN implemented in this class");
@@ -167,16 +169,16 @@ class RAMOffsetList extends OffsetListBase {
     }
 
     public void persist(ByteBuffer buf) {
-        if (debug) {
+        if (debugPersistence) {
             System.out.println("RAMOffsetList.persist");
             System.out.println("buf.order "+ buf.order());
-            System.out.printf("%d\t%d\n", index, offsetList.size());
+            System.out.printf("%d\t%d\t%d\n", index, offsetList.size(), buf.position());
         }
         buf.putInt(index);
         buf.putInt(size());
         for (int x : offsetList) {
-            if (debug) {
-                System.out.printf("\t%d\n", x);
+            if (debugPersistence) {
+                System.out.printf("\t:%d\t%d\n", buf.position(), x);
             }
             buf.putInt(x);
         }

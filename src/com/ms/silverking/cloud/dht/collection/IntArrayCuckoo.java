@@ -43,17 +43,21 @@ public class IntArrayCuckoo extends CuckooBase implements Iterable<DHTKeyIntEntr
         return total;
     }
     
-    public byte[] getAsBytes() {
-        byte[]    b;
-        int        curOffset;
+    public byte[] getAsBytesWithHeader(int headerSize) {
+        byte[]  b;
+        int     curOffset;
         
-        b = new byte[persistedSizeBytes()];
-        curOffset = 0;
+        b = new byte[persistedSizeBytes() + headerSize];
+        curOffset = headerSize;
         for (int i = 0; i < subTables.length; i++) {
             subTables[i].getAsBytes(b, curOffset);
             curOffset += subTables[i].persistedSizeBytes();
         }
         return b;
+    }
+    
+    public byte[] getAsBytes() {
+        return getAsBytesWithHeader(0);
     }
     
     public int get(DHTKey key) {

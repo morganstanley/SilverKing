@@ -122,6 +122,14 @@ public class FileUtil {
         return buf;
     }
     
+    public static int readFileAsInt(String file) throws IOException {
+        return readFileAsInt(new File(file));
+    }
+    
+    public static int readFileAsInt(File file) throws IOException {
+        return Integer.parseInt(readFileAsString(file).trim());
+    }
+    
     public static String readFileAsString(String file) throws IOException {
         return readFileAsString(new File(file));
     }

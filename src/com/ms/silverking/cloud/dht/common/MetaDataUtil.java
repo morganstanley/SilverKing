@@ -281,7 +281,7 @@ public class MetaDataUtil {
         return CCSSUtil.getChecksumType(getCCSS(storedValue, baseOffset));
     }
     
-    public static boolean isInvalidated(ByteBuffer storedValue, int baseOffset) {
+    public static boolean isInvalidation(ByteBuffer storedValue, int baseOffset) {
         ChecksumType checksumType;
         
         checksumType = getChecksumType(storedValue, baseOffset);
