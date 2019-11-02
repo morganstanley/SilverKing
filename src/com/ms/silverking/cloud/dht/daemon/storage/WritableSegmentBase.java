@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.RevisionMode;
@@ -24,7 +25,6 @@ import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.collection.CuckooBase;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
 import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
-import com.ms.silverking.cloud.dht.collection.IntBufferCuckoo;
 import com.ms.silverking.cloud.dht.collection.TableFullException;
 import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -45,7 +45,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     
     protected CuckooBase    keyToOffset;
 
-    protected final int               segmentNumber; // zero-based
+    protected final int           segmentNumber; // zero-based
     protected final File          nsDir;
         
     protected static final int    dataOffset = SegmentFormat.headerSize;
@@ -53,24 +53,12 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     private static final boolean    debug = false;
     private static final boolean    debugCompaction = false;
     
-    WritableSegmentBase(ByteBuffer dataBuf, OffsetListStore offsetListStore, 
-                            int segmentNumber, IntArrayCuckoo keyToOffset, int dataSegmentSize) {
-        super(dataBuf, offsetListStore);
+    // called from openReadOnly
+    WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, CuckooBase keyToOffset, Set<Integer> invalidatedOffsets,
+                        OffsetListStore offsetListStore, int dataSegmentSize) throws IOException {
+        super(dataBuf, offsetListStore, invalidatedOffsets != null ? ImmutableSet.copyOf(invalidatedOffsets) : null);        
         this.segmentNumber = segmentNumber;
         this.keyToOffset = keyToOffset;
-        nextFree = new AtomicInteger(SegmentFormat.headerSize);        
-        this.nsDir = null;
-        this.dataSegmentSize = dataSegmentSize;
-        this.indexOffset = dataSegmentSize;
-    }
-    
-    // called from openReadOnly
-    WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, ByteBuffer htBuf,
-            WritableCuckooConfig cuckooConfig, BufferOffsetListStore bufferOffsetListStore, 
-            int dataSegmentSize) throws IOException {
-        super(dataBuf, bufferOffsetListStore);        
-        this.segmentNumber = segmentNumber;
-        this.keyToOffset = new IntBufferCuckoo(cuckooConfig, htBuf);
         nextFree = new AtomicInteger(SegmentFormat.headerSize);
         this.nsDir = nsDir;
         this.dataSegmentSize = dataSegmentSize;
@@ -83,7 +71,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     // called from Create
     WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, WritableCuckooConfig initialCuckooConfig, 
             int dataSegmentSize, NamespaceOptions nsOptions) {
-        super(dataBuf, new RAMOffsetListStore(nsOptions));
+        super(dataBuf, new RAMOffsetListStore(nsOptions), new HashSet<>());
         this.segmentNumber = segmentNumber;
         this.keyToOffset = new IntArrayCuckoo(initialCuckooConfig);
         nextFree = new AtomicInteger(SegmentFormat.headerSize);
@@ -145,7 +133,15 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         }
         writeOffset = StorageFormat.writeToBuf(key, value, storageParams, userData, dataBuf, nextFree, dataSegmentSize, true);
         if (writeOffset != StorageFormat.writeFailedOffset) {
-            return _put(key, writeOffset, storageParams.getVersion(), storageParams.getValueCreator(), nsOptions);
+            SegmentStorageResult    segmentStorageResult;
+            
+            segmentStorageResult = _put(key, writeOffset, storageParams.getVersion(), storageParams.getValueCreator(), nsOptions);
+            if (segmentStorageResult == SegmentStorageResult.stored) {
+                if (invalidatedOffsets != null && storageParams.isInvalidation()) {
+                    invalidatedOffsets.add(writeOffset);
+                }
+            }
+            return segmentStorageResult;
         } else {
             return SegmentStorageResult.segmentFull;
         }
@@ -439,7 +435,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
                 // execution time. Not a huge deal for segments that will be modified, but
                 // a dramatic increase in time for segments that won't.
                 // Leaving for now as tracking in memory requires space
-                if (vrp.retains(entryKey, version, creationTime, isInvalidated(offset), valueRetentionState, curTimeNanos, storedLength)
+                if (vrp.retains(entryKey, version, creationTime, isInvalidation(offset), valueRetentionState, curTimeNanos, storedLength)
                         && ringMaster.iAmPotentialReplicaFor(entryKey)) {
                     ++numRetained;
                     retainedOffsets.add(offset);
@@ -453,5 +449,4 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         }
         return new Triple<>(new CompactionCheckResult(numRetained, numDiscarded), retainedOffsets, discardedOffsets);
     }
-    
 }

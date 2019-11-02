@@ -86,50 +86,45 @@ public class FileSegmentCompactor {
             sourceSegment = FileSegment.openReadOnly(nsDir, segmentNumber, 
                                                         nsOptions.getSegmentSize(),  
                                                         nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
-            sourceSegment.addReference();
-            try {
-                destSegment = FileSegment.create(getCompactionDir(nsDir), segmentNumber, nsOptions.getSegmentSize(), FileSegment.SyncMode.NoSync, nsOptions);
+            destSegment = FileSegment.create(getCompactionDir(nsDir), segmentNumber, nsOptions.getSegmentSize(), FileSegment.SyncMode.NoSync, nsOptions);
+            
+            dsWalker = new DataSegmentWalker(sourceSegment.dataBuf);
+            for (DataSegmentWalkEntry entry : dsWalker) {
+                SegmentStorageResult    storageResult;
                 
-                dsWalker = new DataSegmentWalker(sourceSegment.dataBuf);
-                for (DataSegmentWalkEntry entry : dsWalker) {
-                    SegmentStorageResult    storageResult;
-                    
+                if (verbose) {
+                    System.out.println(entry);
+                }
+                if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), entry.getStorageState())) {
                     if (verbose) {
-                        System.out.println(entry);
+                        Log.warningf("Ignoring invalid storage state %s %d", entry.getKey(), entry.getStorageState());
                     }
-                    if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), entry.getStorageState())) {
+                } else {
+                    if (retentionCheck.shouldRetain(segmentNumber, entry)) {
                         if (verbose) {
-                            Log.warningf("Ignoring invalid storage state %s %d", entry.getKey(), entry.getStorageState());
+                            System.out.println("setting: "+ entry.getOffset());
+                            System.out.println("sanity check: "+ sourceSegment.getPKC().get(entry.getKey()));
+                            Log.warning("Retaining:\t", entry.getKey());
                         }
-                    } else {
-                        if (retentionCheck.shouldRetain(segmentNumber, entry)) {
-                            if (verbose) {
-                                System.out.println("setting: "+ entry.getOffset());
-                                System.out.println("sanity check: "+ sourceSegment.getPKC().get(entry.getKey()));
-                                Log.warning("Retaining:\t", entry.getKey());
-                            }
-                            
-                            storageResult = destSegment.putFormattedValue(entry.getKey(), entry.getStoredFormat(), entry.getStorageParameters(), nsOptions);
-                            if (storageResult != SegmentStorageResult.stored) {
-                                // FUTURE - think about duplicate stores, and the duplicate store WritableSegmentBase
-                                if (storageResult != SegmentStorageResult.duplicateStore) {
-                                    throw new RuntimeException("Compaction failed: "+ storageResult);
-                                } else {
-                                    if (Log.levelMet(Level.FINE)) {
-                                        Log.finef("Duplicate store in compaction %s", entry.getKey());
-                                    }
+                        
+                        storageResult = destSegment.putFormattedValue(entry.getKey(), entry.getStoredFormat(), entry.getStorageParameters(), nsOptions);
+                        if (storageResult != SegmentStorageResult.stored) {
+                            // FUTURE - think about duplicate stores, and the duplicate store WritableSegmentBase
+                            if (storageResult != SegmentStorageResult.duplicateStore) {
+                                throw new RuntimeException("Compaction failed: "+ storageResult);
+                            } else {
+                                if (Log.levelMet(Level.FINE)) {
+                                    Log.finef("Duplicate store in compaction %s", entry.getKey());
                                 }
                             }
-                        } else {
-                            if (verbose) {
-                                Log.warning("Dropping: \t", entry.getKey());
-                            }
-                            removedEntries.addValue(entry.getKey(), new Triple<>(entry.getVersion(), segmentNumber, includeStorageTime ? entry.getCreationTime() : 0));
                         }
+                    } else {
+                        if (verbose) {
+                            Log.warning("Dropping: \t", entry.getKey());
+                        }
+                        removedEntries.addValue(entry.getKey(), new Triple<>(entry.getVersion(), segmentNumber, includeStorageTime ? entry.getCreationTime() : 0));
                     }
                 }
-            } finally {
-                sourceSegment.removeReference();
             }
             return destSegment;
         } catch (IOException ioe) {

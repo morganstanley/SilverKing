@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
+import com.ms.silverking.cloud.dht.client.impl.SystemChecksum;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 
@@ -10,7 +11,7 @@ public class StorageParameters implements SSStorageParameters {
     private final long          version;
     private final int           uncompressedSize;
     private final int           compressedSize;
-    private final short            lockSeconds;
+    private final short         lockSeconds;
     private final short         ccss;
     private final byte[]        checksum;
     private final byte[]        valueCreator;
@@ -112,6 +113,21 @@ public class StorageParameters implements SSStorageParameters {
         return new StorageParameters(version, uncompressedSize, compressedSize, lockSeconds, 
                                      ccss, checksum, valueCreator, creationTime);
     }
+    
+    // Mirrors logic in MetaDataUtil.isInvalidation()
+    public boolean isInvalidation() {
+        ChecksumType checksumType;
+        
+        checksumType = getChecksumType();
+        if (checksumType == ChecksumType.SYSTEM) {
+            byte[] actualChecksum;
+            
+            actualChecksum = getChecksum();
+            return SystemChecksum.isInvalidationChecksum(actualChecksum);
+        } else {
+            return false;
+        }
+    }        
     
     @Override
     public String toString() {

@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.nio.ByteBuffer;
 import java.util.Date;
+import java.util.Set;
 import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.ValueCreator;
@@ -15,26 +16,22 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 
 abstract class AbstractSegment implements ReadableSegment, ExternalStore {
-    protected ByteBuffer    dataBuf;
-    protected final OffsetListStore   offsetListStore;
+    protected ByteBuffer            dataBuf;
+    protected final OffsetListStore offsetListStore;
+    protected final Set<Integer>    invalidatedOffsets;
     
-    protected static final int    noSuchKey = IntCuckooConstants.noSuchValue;
+    protected static final int        noSuchKey = IntCuckooConstants.noSuchValue;
     protected static final boolean    debugRetrieve = false;
     protected static final boolean    debugPut = false;
     protected static final boolean    debugExternalStore = false;
     
-    AbstractSegment(ByteBuffer dataBuf, OffsetListStore offsetListStore) {
+    AbstractSegment(ByteBuffer dataBuf, OffsetListStore offsetListStore, Set<Integer> invalidatedOffsets) {
         this.dataBuf = dataBuf;
         this.offsetListStore = offsetListStore;
+        this.invalidatedOffsets = invalidatedOffsets;
     }
     
     abstract int getSegmentNumber();
-    
-    //public int size() {
-    //    return dataBuf.capacity();
-    //}
-    
-    //protected abstract int getProbableOffset(DHTKey key, VersionConstraint vc);
     
     protected abstract int getRawOffset(DHTKey key);
     
@@ -43,8 +40,15 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
         return MetaDataUtil.getChecksum(dataBuf, offset + DHTKey.BYTES_PER_KEY);
     }
     
-    boolean isInvalidated(int offset) {
-        return MetaDataUtil.isInvalidated(dataBuf, offset + DHTKey.BYTES_PER_KEY);
+    /**
+     * Returns whether the operation at the particular offset is an invalidation
+     */
+    boolean isInvalidation(int offset) {
+        if (invalidatedOffsets != null) {
+            return invalidatedOffsets.contains(offset);
+        } else {
+            return MetaDataUtil.isInvalidation(dataBuf, offset + DHTKey.BYTES_PER_KEY);
+        }
     }
     
     long getVersion(int offset) {
