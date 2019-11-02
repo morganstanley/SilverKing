@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -18,10 +17,12 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -29,6 +30,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
@@ -79,6 +82,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumTreeRequest;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumTreeServer;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentStorageFormat;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.PutCommunicator;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocolUtil;
 import com.ms.silverking.cloud.dht.meta.LinkCreationListener;
@@ -149,7 +153,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private long curSnapshot;
     private final ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals;
     private final ConcurrentMap<DHTKey, Set<PendingWaitFor>> pendingWaitFors;
-    private final ConcurrentMap<Integer, FileSegment> recentFileSegments;
+    private final Cache<Integer, FileSegment>   fileSegmentCache;
     private final Map<Integer, RAMSegment> ramSegments;
     private final NamespaceStats    nsStats;
     private long lastConvergenceVersion;
@@ -207,6 +211,8 @@ public class NamespaceStore implements SSNamespaceStore {
         CreateNSDir, DoNotCreateNSDir
     };
     
+    private enum FileSegmentLoadMode {ReadWrite, ReadOnly, ReadIndexOnly};
+    
     private enum VersionCheckResult {Invalid, Valid, Equal};
     private enum LockCheckResult {Unlocked, Locked, Ignored};
     
@@ -232,6 +238,7 @@ public class NamespaceStore implements SSNamespaceStore {
         Log.warningf("minFinalizationIntervalMillis %d", minFinalizationIntervalMillis);
         maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getInt(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
         Log.warningf("maxUnfinalizedDeletedBytes %d", maxUnfinalizedDeletedBytes);
+        Log.warningf("fileSegmentCacheCapacity %d", fileSegmentCacheCapacity);
     }
     
     
@@ -340,17 +347,12 @@ public class NamespaceStore implements SSNamespaceStore {
         switch (nsOptions.getStorageType()) {
         case RAM:
             ramSegments = new ConcurrentHashMap<>(); // FUTURE - consider a more efficient map
-            recentFileSegments = null;
+            fileSegmentCache = null;
             break;
         case FILE_SYNC:
         case FILE:
             ramSegments = null;
-            if (!FileSegment.mapEverything) {
-                //recentFileSegments = new FileSegmentMap(fileSegmentCacheCapacity);
-                throw new RuntimeException("Presently FileSegment.mapEverything is required");
-            } else {
-                recentFileSegments = new ConcurrentHashMap<>();
-            }
+            fileSegmentCache = CacheBuilder.newBuilder().maximumSize(fileSegmentCacheCapacity).build();
             break;
         default: throw new RuntimeException("Panic");
         }
@@ -1043,7 +1045,7 @@ public class NamespaceStore implements SSNamespaceStore {
             }
             if (storageResult == SegmentStorageResult.stored) {
                 putSegmentNumberAndVersion(key, storageSegment.getSegmentNumber(), storageParams.getVersion(), 
-                                           storageParams.getCreationTime());
+                                           storageParams.getCreationTime(), null);
                 addToSizeStats(storageParams);
             } else {
                 if (debugSegments) {
@@ -1078,7 +1080,9 @@ public class NamespaceStore implements SSNamespaceStore {
         return storageParams.version(version);
     }
     
-    public void putSegmentNumberAndVersion(DHTKey key, int segmentNumber, long version, long creationTime) {
+    public void putSegmentNumberAndVersion(DHTKey key, int segmentNumber, long version, long creationTime, 
+                                           AbstractSegment recoverySegment) {
+                                           // recoverySegment is only used during recovery; null otherwise
         metaWriteLock.lock();
         try {
             int    rawPrevSegment;
@@ -1137,7 +1141,11 @@ public class NamespaceStore implements SSNamespaceStore {
                             Log.warning("prevSegment >= 0");
                         }
                         offsetList = offsetListStore.newOffsetList();
-                            prevVersionAndStorageTime = segmentOldestVersion(prevSegment, key);
+                        if (recoverySegment != null && prevSegment == recoverySegment.getSegmentNumber()) {
+                            prevVersionAndStorageTime = segmentVersionAndStorageTime(recoverySegment, key, newestVersionOptions);
+                        } else {
+                            prevVersionAndStorageTime = segmentNewestVersion(prevSegment, key);
+                        }
                         assert prevVersionAndStorageTime[VERSION_INDEX] != noSuchVersion;
                         if (debugSegments) {
                             Log.warning("prevVersion: ", prevVersionAndStorageTime[VERSION_INDEX]);
@@ -1290,46 +1298,15 @@ public class NamespaceStore implements SSNamespaceStore {
             } else {
                 try {
                     WritableSegmentBase segment;
-                    /*
-                    FileSegment.SyncMode    syncMode;
-
-                    syncMode = FileSegment.SyncMode.NoSync;
-                    switch (nsOptions.getStorageType()) {
-                    case RAM: 
-                        segment = ramSegments.get(segmentNumber);
-                        break;
-                    case FILE_SYNC:
-                        syncMode = FileSegment.SyncMode.Sync;
-                        // fall through
-                    case FILE: 
-                        // FUTURE - consider getting this from file segment cache
-                        segment = FileSegment.openForDataUpdate(nsDir, segmentNumber, 
-                                                                nsOptions.getSegmentSize(), syncMode, nsOptions);
-                        break;
-                    default: throw new RuntimeException("Panic");
-                    }
-                    */
                     
                     segment = getFileSegment(segmentNumber, SegmentPrereadMode.NoPreread);
-                    try {
-                        if (debugSegments) {
-                            Log.warning("Read from file segment");
-                        }
-                        result = segment.putUpdate(key, version, storageState);
-                        if (debugSegments) {
-                            Log.warning("Done read from file segment");
-                            Log.warning("result: " + result);
-                        }
-                    } finally {
-                        switch (nsOptions.getStorageType()) {
-                        case RAM:
-                            break;
-                        case FILE: 
-                            //((FileSegment)segment).close();
-                            ((FileSegment)segment).removeReference();
-                            break;
-                        default: throw new RuntimeException("Panic");
-                        }
+                    if (debugSegments) {
+                        Log.warning("Read from file segment");
+                    }
+                    result = segment.putUpdate(key, version, storageState);
+                    if (debugSegments) {
+                        Log.warning("Done read from file segment");
+                        Log.warning("result: " + result);
                     }
                 } catch (IOException ioe) {
                     peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -1849,21 +1826,13 @@ public class NamespaceStore implements SSNamespaceStore {
                             AbstractSegment segment;
         
                             segment = getSegment(segmentNumber, readSegmentPrereadMode);
-                            try {
-                                if (debugSegments) {
-                                    Log.warning("Read from file segment");
-                                }
-                                result = retrieve(segment, key, options);
-                                if (debugSegments) {
-                                    Log.warning("Done read from file segment");
-                                    Log.warning("result: " + result);
-                                }
-                            } finally {
-                                if (nsOptions.getStorageType() == StorageType.FILE) {
-                                    if (segment != headSegment) {
-                                        ((FileSegment)segment).removeReference();
-                                    }
-                                }
+                            if (debugSegments) {
+                                Log.warning("Read from file segment");
+                            }
+                            result = retrieve(segment, key, options);
+                            if (debugSegments) {
+                                Log.warning("Done read from file segment");
+                                Log.warning("result: " + result);
                             }
                         } catch (IOException ioe) {
                             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -1954,23 +1923,13 @@ public class NamespaceStore implements SSNamespaceStore {
                             AbstractSegment segment;
         
                             segment = getSegment(keysSegmentNumbersAndIndices[i].getV2(), readSegmentPrereadMode);
-                            try {
-                                if (debugSegments) {
-                                    Log.warning("Read from file segment");
-                                }
-                                results[i] = retrieve(segment, keysSegmentNumbersAndIndices[i].getV1(), options);
-                                if (debugSegments) {
-                                    Log.warning("Done read from file segment");
-                                    Log.warning("result: " + results[i]);
-                                }
-                            } finally {
-                                // Not optimizing this as we do not expect to use it at present
-                                // (we're using the map everything approach at present)
-                                if (nsOptions.getStorageType() == StorageType.FILE) {
-                                    if (segment != headSegment) {
-                                        ((FileSegment)segment).removeReference();
-                                    }
-                                }
+                            if (debugSegments) {
+                                Log.warning("Read from file segment");
+                            }
+                            results[i] = retrieve(segment, keysSegmentNumbersAndIndices[i].getV1(), options);
+                            if (debugSegments) {
+                                Log.warning("Done read from file segment");
+                                Log.warning("result: " + results[i]);
                             }
                         } catch (IOException ioe) {
                             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -2024,8 +1983,8 @@ public class NamespaceStore implements SSNamespaceStore {
             }
             return result;
         } catch (RuntimeException re) {
-            Log.warningf("Due to exception %s, removing %d from recentFileSegments", re, segment.getSegmentNumber());
-            recentFileSegments.remove(segment.getSegmentNumber());
+            Log.warningf("Due to exception %s, removing %d from fileSegmentCache", re, segment.getSegmentNumber());
+            fileSegmentCache.invalidate(segment.getSegmentNumber());
             throw re;
         }
     }
@@ -2107,35 +2066,11 @@ public class NamespaceStore implements SSNamespaceStore {
 
     private long[] segmentVersion(int segmentNumber, DHTKey key, InternalRetrievalOptions retrievalOptions) {
         try {
-            ByteBuffer      result;
             AbstractSegment segment;
 
             // FUTURE - reduce disk accesses
             segment = getSegmentChecked(segmentNumber);
-            try {
-                return segmentVersionAndStorageTime(segment, key, retrievalOptions);
-                /*
-                if (debugSegments) {
-                    Log.warning("Read segmentVersion");
-                }
-                result = segment.retrieve(key, retrievalOptions);
-                if (debugSegments) {
-                    Log.warning("Done read segmentVersion");
-                    Log.warning("result: "+ result);
-                }
-                if (result != null) {
-                    return MetaDataUtil.getVersion(result, 0);
-                } else {
-                    return noSuchVersion;
-                }
-                */
-            } finally {
-                if (nsOptions.getStorageType() == StorageType.FILE) {
-                    if (segment != headSegment) {
-                        ((FileSegment)segment).removeReference();
-                    }
-                }
-            }
+            return segmentVersionAndStorageTime(segment, key, retrievalOptions);
         } catch (IOException ioe) {
             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
             Log.logErrorWarning(ioe);
@@ -2166,6 +2101,7 @@ public class NamespaceStore implements SSNamespaceStore {
         return versionAndStorageTime;
     }
 
+    // FUTURE - getSegment() implementation needs to be updated
     private WritableSegmentBase getSegment(int segmentNumber, SegmentPrereadMode segmentPrereadMode) throws IOException {
         if (segmentNumber == headSegment.getSegmentNumber()) {
             return headSegment;
@@ -2178,6 +2114,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
     
+    // FUTURE - getSegment() implementation needs to be updated
     private WritableSegmentBase getSegmentChecked(int segmentNumber) throws IOException {
         if (headSegment != null && segmentNumber == headSegment.getSegmentNumber()) {
             return headSegment;
@@ -2216,9 +2153,19 @@ public class NamespaceStore implements SSNamespaceStore {
         return FileSegment.fileForSegment(nsDir, segmentNumber).exists();
     }
 
+    // FUTURE - getFileSegment() implementation needs to be updated
     private FileSegment getFileSegment(int segmentNumber, SegmentPrereadMode segmentPrereadMode) throws IOException {
         try {
-            return _getFileSegment(segmentNumber, segmentPrereadMode);
+            // FUTURE - reduce usage of ReadWrite
+            return fileSegmentCache.get(segmentNumber, new SegmentLoader(segmentNumber, FileSegmentLoadMode.ReadWrite, segmentPrereadMode));
+        } catch (ExecutionException e) {
+            throw new IOException(e);
+        }
+    }
+    
+    private FileSegment loadFileSegment(int segmentNumber, FileSegmentLoadMode fileSegmentLoadMode, SegmentPrereadMode segmentPrereadMode) throws IOException {
+        try {
+            return _loadFileSegment(segmentNumber, fileSegmentLoadMode, segmentPrereadMode);
         } catch (IOException | RuntimeException e) {
             Exception    lastE;
             int            attemptIndex;
@@ -2228,7 +2175,7 @@ public class NamespaceStore implements SSNamespaceStore {
             Log.warning(String.format("Treating as non fatal. %s ns %x segmentNumber %d attemptIndex %d", e, ns, segmentNumber, attemptIndex));
             while (attemptIndex < fileSegmentAttempts) {
                 try {
-                    return _getFileSegment(segmentNumber, segmentPrereadMode);
+                    return _loadFileSegment(segmentNumber, fileSegmentLoadMode, segmentPrereadMode);
                 } catch (IOException | RuntimeException e2) {
                     lastE = e2;
                     Log.warning(String.format("Treating as non fatal. %s ns %x segmentNumber %d attemptIndex %d", e2, ns, segmentNumber, attemptIndex));
@@ -2244,131 +2191,45 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
     
-    private FileSegment _getFileSegment(int segmentNumber, SegmentPrereadMode segmentPrereadMode) throws IOException {
+    private FileSegment _loadFileSegment(int segmentNumber, FileSegmentLoadMode fileSegmentLoadMode, SegmentPrereadMode segmentPrereadMode) throws IOException {
         FileSegment fileSegment;
 
-        // FUTURE - this implementation touches disk more than we need to
-        fileSegment = recentFileSegments.get(segmentNumber);
-        if (fileSegment == null) {
-            FileSegment    existingFileSegment;
-            
-            try {
+        // FUTURE - this implementation touches disk more than we need to        
+        try {
+            if (fileSegmentLoadMode == FileSegmentLoadMode.ReadWrite) {
                 FileSegment.SyncMode    syncMode;
-
+    
                 syncMode = nsOptions.getStorageType() == StorageType.FILE_SYNC ? FileSegment.SyncMode.Sync : FileSegment.SyncMode.NoSync; 
-                //fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
                 fileSegment = FileSegment.openForDataUpdate(nsDir, segmentNumber, nsOptions.getSegmentSize(), syncMode, nsOptions, 
-                                                            segmentIndexLocation, segmentPrereadMode);
-            } catch (IOException | OutOfMemoryError e) {
-                boolean oom;
-                
-                if (e instanceof IOException) {
-                    oom = e.getCause() != null && (e.getCause() instanceof OutOfMemoryError);
+                        segmentIndexLocation, segmentPrereadMode);
+            } else {
+                if (fileSegmentLoadMode == FileSegmentLoadMode.ReadIndexOnly) {
+                    fileSegment = FileSegment.openReadIndexOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
                 } else {
-                    oom = true;
-                }
-                if (oom) {
-                    Log.warning("OOM attempting to open mapped file. Calling gc and finalization.");
-                    JVMUtil.finalization.forceFinalization(0);
-                    Log.warning("GC & finalization complete.");
                     fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
-                } else {
-                    throw e;
                 }
             }
-            existingFileSegment = recentFileSegments.putIfAbsent(segmentNumber, fileSegment);
-            if (existingFileSegment == null) {
-                fileSegment.addReferences(2); // 1 for the map, 1 for the returned reference
+        } catch (IOException | OutOfMemoryError e) {
+            boolean oom;
+            
+            if (e instanceof IOException) {
+                oom = e.getCause() != null && (e.getCause() instanceof OutOfMemoryError);
             } else {
-                fileSegment.close();
-                fileSegment = existingFileSegment;
+                oom = true;
+            }
+            if (oom) {
+                Log.warning("OOM attempting to open mapped file. Calling gc and finalization.");
+                JVMUtil.finalization.forceFinalization(0);
+                Log.warning("GC & finalization complete.");
+                fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
+            } else {
+                throw e;
             }
         }
         if (debugSegments) {
             fileSegment.displayForDebug();
         }
         return fileSegment;
-    }
-
-    private class FileSegmentMap extends LinkedHashMap<Integer, FileSegment> {
-        private final int capacity;
-        private final Lock readLock;
-        private final Lock writeLock;
-        private final ReadWriteLock rwLock;
-
-        private static final float loadFactor = 0.75f;
-
-        FileSegmentMap(int capacity) {
-            super(capacity, loadFactor, true);
-            this.capacity = capacity;
-            rwLock = new ReentrantReadWriteLock();
-            readLock = rwLock.readLock();
-            writeLock = rwLock.writeLock();
-        }
-
-        @Override
-        public FileSegment get(Object segmentNumber) {
-            readLock.lock();
-            try {
-                FileSegment segment;
-
-                segment = super.get(segmentNumber);
-                if (segment != null) {
-                    // both threads could get to here, but the other thread couldn't remove the reference
-                    if (!segment.addReference()) {
-                        segment = null;
-                    }
-                }
-                return segment;
-            } finally {
-                readLock.unlock();
-            }
-        }
-
-        @Override
-        public FileSegment put(Integer segmentNumber, FileSegment fileSegment) {
-            writeLock.lock();
-            try {
-                FileSegment prev;
-
-                prev = super.put(segmentNumber, fileSegment);
-                if (size() > capacity) {
-                    Map.Entry<Integer, FileSegment> eldest;
-                    Iterator<Map.Entry<Integer, FileSegment>> iterator;
-
-                    iterator = entrySet().iterator();
-                    if (iterator.hasNext()) {
-                        eldest = iterator.next();
-                        remove(eldest.getKey()); // first remove so that nobody else will get a reference
-                        // eldest.getValue().close();
-                        eldest.getValue().removeReference();
-                    }
-                }
-                return prev;
-            } finally {
-                writeLock.unlock();
-            }
-        }
-
-        @Override
-        public void putAll(Map<? extends Integer, ? extends FileSegment> m) {
-            throw new UnsupportedOperationException();
-        }
-        
-        public FileSegment remove(Integer segmentNumber) {
-            writeLock.lock();
-            try {
-                FileSegment prev;
-
-                prev = super.remove(segmentNumber);
-                if (prev != null) {
-                    prev.removeReference();
-                }
-                return prev;
-            } finally {
-                writeLock.unlock();
-            }
-        }        
     }
 
     static NamespaceStore recoverExisting(long ns, File nsDir, NamespaceStore parent, StoragePolicy storagePolicy, 
@@ -2438,7 +2299,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         segment = fsr.recoverFullSegment(i, nsStore, segmentIndexLocation, segmentPrereadMode);
                     }
                     if (segmentPrereadMode == SegmentPrereadMode.Preread && segment != null) {
-                        nsStore.addRecentFileSegment(i, segment);
+                        nsStore.fileSegmentCache.put(i, segment);
                     }
                     segmentsPrereadSkipped++;
                 }
@@ -2453,18 +2314,6 @@ public class NamespaceStore implements SSNamespaceStore {
             nsStore.initRAMSegments();
         }
         return nsStore;
-    }
-    
-    private void addRecentFileSegment(int segmentNumber, FileSegment fileSegment) {
-        FileSegment    existingFileSegment;
-        
-        // FIXME - think about this and the other occurrence of this existingFileSegmentCheck
-        existingFileSegment = recentFileSegments.putIfAbsent(segmentNumber, fileSegment);
-        if (existingFileSegment == null) {
-            fileSegment.addReferences(2); // 1 for the map, 1 for the returned reference
-        } else {
-            fileSegment.close();
-        }
     }
 
     // FUTURE - Consider deco
@@ -2752,21 +2601,13 @@ public class NamespaceStore implements SSNamespaceStore {
                 } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                 }
-                try {
-                    int    offset;
-                    
-                    offset = segment.getRawOffset(key);
-                    if (offset < 0) {
-                        throw new RuntimeException("Unexpected offset < 0: "+ key +" "+ offset +" "+ segmentNumber);
-                    }
-                    latestVersion = segment.getVersion(offset);
-                } finally {
-                    if (nsOptions.getStorageType() == StorageType.FILE) {
-                        if (segment != headSegment) {
-                            ((FileSegment)segment).removeReference();
-                        }
-                    }
+                int    offset;
+                
+                offset = segment.getRawOffset(key);
+                if (offset < 0) {
+                    throw new RuntimeException("Unexpected offset < 0: "+ key +" "+ offset +" "+ segmentNumber);
                 }
+                latestVersion = segment.getVersion(offset);
                 checksum = new MultiVersionChecksum();
                 checksum.addKey(key);
                 checksum.addVersionAndStorageTime(latestVersion, 0);
@@ -3125,31 +2966,40 @@ public class NamespaceStore implements SSNamespaceStore {
                     Stopwatch    sw;
                     
                     sw = new SimpleStopwatch();
-                    if (nsOptions.getStorageType() == StorageType.RAM) {
-                        segment = getSegment(i, SegmentPrereadMode.Preread);
+                    
+                    if (i == headSegment.getSegmentNumber()) {
+                        segment = headSegment;
                     } else {
-                        segment = getSegment(i, SegmentPrereadMode.Preread);
-                        //segment = FileSegment.openReadOnly(nsDir, i, nsOptions.getSegmentSize(), nsOptions, SegmentIndexLocation.RAM, SegmentPrereadMode.Preread);
-                    }
-                    try {
-                        result = segment.singleReverseSegmentWalk(vrp, valueRetentionState, curTimeNanos, ringMaster);
-                        if (i == headSegment.getSegmentNumber()) {
-                            if (verboseReap || Log.levelMet(Level.INFO)) {
-                                Log.warningAsyncf("Retaining head segment");
-                            }
+                        if (nsOptions.getStorageType() == StorageType.RAM) {
+                            segment = getSegment(i, SegmentPrereadMode.Preread);
                         } else {
-                            CompactionCheckResult    ccr;
-                            
-                            ccr = result.getV1();
-                            if (ccr.getValidEntries() == 0 || ccr.getInvalidFraction() >= compactionThreshold) {
-                                reapImplState.addReapResult(i, result);
+                            segment = fileSegmentCache.getIfPresent(i);
+                            if (segment == null) {
+                                boolean invalidationsAreIndexed;
+                                
+                                invalidationsAreIndexed = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat()).invalidationsAreIndexed();
+                                // Safe as we hold a write lock
+                                // This segment will never be cached
+                                // We don't use getSegment as we do not wish to pollute the cache
+                                // Ideally, can reap without reading the data segment. If, however, the retention policy considers
+                                // stored length, we must read the data segment as that is where that is stored
+                                segment = loadFileSegment(i, 
+                                                (vrp.considersStoredLength() || !invalidationsAreIndexed) ? FileSegmentLoadMode.ReadOnly : FileSegmentLoadMode.ReadIndexOnly, 
+                                                SegmentPrereadMode.Preread);
                             }
                         }
-                    } finally {
-                        if (nsOptions.getStorageType() == StorageType.FILE) {
-                            if (segment.getSegmentNumber() != headSegment.getSegmentNumber()) {
-                                ((FileSegment)segment).removeReference();
-                            }
+                    }
+                    result = segment.singleReverseSegmentWalk(vrp, valueRetentionState, curTimeNanos, ringMaster);
+                    if (i == headSegment.getSegmentNumber()) {
+                        if (verboseReap || Log.levelMet(Level.INFO)) {
+                            Log.warningAsyncf("Retaining head segment");
+                        }
+                    } else {
+                        CompactionCheckResult    ccr;
+                        
+                        ccr = result.getV1();
+                        if (ccr.getValidEntries() == 0 || ccr.getInvalidFraction() >= compactionThreshold) {
+                            reapImplState.addReapResult(i, result);
                         }
                     }
                     sw.stop();
@@ -3157,7 +3007,8 @@ public class NamespaceStore implements SSNamespaceStore {
                         Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
                     }
                 } catch (Exception e) {
-                    Log.logErrorWarning(e, "Skipping segment "+ i +" due to Exception");
+                    Log.logErrorWarning(e, "Skipping segment "+ i +" due to Exception..");
+                    e.printStackTrace();
                 }
             }
         }
@@ -3191,8 +3042,9 @@ public class NamespaceStore implements SSNamespaceStore {
                         try {
                             FileSegment    segment;
                             
-                            segment = recentFileSegments.remove(curSegment);
+                            segment = fileSegmentCache.getIfPresent(curSegment);
                             if (segment != null) {
+                                fileSegmentCache.invalidate(curSegment);
                                 segment.close();
                                 segment = null;
                             }
@@ -3211,7 +3063,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         try {
                             HashedSetMap<DHTKey, Triple<Long, Integer, Long>> segmentRemovedEntries;
     
-                            recentFileSegments.remove(curSegment);
+                            fileSegmentCache.invalidate(curSegment);
                             segmentRemovedEntries = FileSegmentCompactor.compact(nsDir, curSegment, nsOptions,
                                     new RetainedOffsetMapCheck(result.getV2(), result.getV3()), reapPolicy.verboseSegmentDeletionAndCompaction());
                             removedEntries.addAll(segmentRemovedEntries);
@@ -3224,7 +3076,8 @@ public class NamespaceStore implements SSNamespaceStore {
                         Log.warningAsyncf("\t\t%d %f", curSegment, sw.getElapsedSeconds());
                     }
                 } catch (Exception e) {
-                    Log.logErrorWarning(e, "Skipping segment " + curSegment + " due to Exception");
+                    Log.logErrorWarning(e, "Skipping segment "+ curSegment + " due to Exception.");
+                    e.printStackTrace();
                 }
             }
             updateOffsetLists(deletedSegments, removedEntries);
@@ -3510,7 +3363,15 @@ public class NamespaceStore implements SSNamespaceStore {
 
     @Override
     public ByteBuffer retrieve(DHTKey key, SSRetrievalOptions options) {
-        return _retrieve(key, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+        ByteBuffer  result;
+        
+        result = _retrieve(key, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+        if (result != null && !options.getReturnInvalidations()) {
+            if (MetaDataUtil.isInvalidation(result, 0)) {
+                result = null;
+            }
+        }
+        return result;
     }
 
     @Override
@@ -3527,5 +3388,22 @@ public class NamespaceStore implements SSNamespaceStore {
     @Override 
     public ReadWriteLock getReadWriteLock() {
         return rwLock;
+    }
+    
+    private class SegmentLoader implements Callable<FileSegment> {
+        private final int                   segmentNumber;
+        private final FileSegmentLoadMode   fileSegmentLoadMode;
+        private final SegmentPrereadMode    segmentPrereadMode;
+        
+        SegmentLoader(int segmentNumber, FileSegmentLoadMode fileSegmentLoadMode, SegmentPrereadMode segmentPrereadMode) {
+            this.segmentNumber = segmentNumber;
+            this.fileSegmentLoadMode = fileSegmentLoadMode;
+            this.segmentPrereadMode = segmentPrereadMode;
+        }
+        
+        @Override
+        public FileSegment call() throws Exception {
+            return loadFileSegment(segmentNumber, fileSegmentLoadMode, segmentPrereadMode);
+        }
     }
 }

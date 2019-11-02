@@ -19,7 +19,7 @@ import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 
 /**
- * For testing. Iterate through a file segment's pkc.
+ * Two purposes: 1) provide file segment recovery methods; 2) provide utility methods for reading a file segment.
  */
 public class FileSegmentRecoverer {
     private final File  nsDir;
@@ -55,7 +55,7 @@ public class FileSegmentRecoverer {
                     for (Triple<Integer,Long,Long> offsetVersionAndStorageTime : offsetList.offsetVersionAndStorageTimeIterable()) {
                         creationTime = offsetVersionAndStorageTime.getV3();
                         nsStore.putSegmentNumberAndVersion(entry.getKey(), segmentNumber, 
-                                offsetVersionAndStorageTime.getV2(), creationTime);
+                                offsetVersionAndStorageTime.getV2(), creationTime, segment);
                     }
                 } else {
                     long    version;
@@ -70,18 +70,9 @@ public class FileSegmentRecoverer {
                     } else {
                         creationTime = 0;
                     }
-                    nsStore.putSegmentNumberAndVersion(entry.getKey(), segmentNumber, version, creationTime);
+                    nsStore.putSegmentNumberAndVersion(entry.getKey(), segmentNumber, version, creationTime, segment);
                 }
             }
-            
-            //{
-                //DataSegmentWalker   dsWalker;
-                
-                //dsWalker = new DataSegmentWalker(segment.dataBuf);
-                //for (DataSegmentWalkEntry entry : dsWalker) {
-                    //nsStore.addToSizeStats(entry.getUncompressedLength(), entry.getCompressedLength());
-                //}
-            //}
             
             if (segmentPrereadMode != SegmentPrereadMode.Preread) {
                 segment.close();
@@ -109,7 +100,6 @@ public class FileSegmentRecoverer {
             fileSegment = FileSegment.openForRecovery(nsDir, segmentNumber, 
                                                       nsStore.getNamespaceOptions().getSegmentSize(), syncMode, 
                                                       nsStore.getNamespaceOptions());
-            fileSegment.addReference();
             dsWalker = new DataSegmentWalker(fileSegment.dataBuf);
             lastEntry = null;
             for (DataSegmentWalkEntry entry : dsWalker) {
@@ -118,14 +108,13 @@ public class FileSegmentRecoverer {
                 }
                 fileSegment._put(entry.getKey(), entry.getOffset(), entry.getVersion(), entry.getCreator().getBytes(), 
                                 nsStore.getNamespaceOptions());
-                //fileSegment.getPKC().put(entry.getKey(), entry.getOffset());
                 if (verbose) {
                     System.out.println("setting: "+ entry.getOffset());
                     System.out.println("sanity check: "+ fileSegment.getPKC().get(entry.getKey()));
                 }
                 lastEntry = entry;
                 nsStore.putSegmentNumberAndVersion(entry.getKey(), 
-                        segmentNumber, entry.getVersion(), entry.getCreationTime());
+                        segmentNumber, entry.getVersion(), entry.getCreationTime(), fileSegment);
                 nsStore.addToSizeStats(entry.getUncompressedLength(), entry.getCompressedLength());
             }
             if (lastEntry != null) {
@@ -148,10 +137,6 @@ public class FileSegmentRecoverer {
     
     /**
      * Read a segment. Utility method only.
-     * @param segmentNumber
-     * @param displayEntries
-     * @param nsStore
-     * @return
      */
     FileSegment readPartialSegment(int segmentNumber, boolean displayEntries) {
         try {
@@ -161,7 +146,6 @@ public class FileSegmentRecoverer {
             FileSegment.SyncMode    syncMode;
             NamespaceProperties nsProperties;
             NamespaceOptions    nsOptions;
-            //DataSegmentWalker       dsWalker;
             
             nsProperties = NamespacePropertiesIO.read(nsDir);
             nsOptions = nsProperties.getOptions();            
@@ -171,7 +155,6 @@ public class FileSegmentRecoverer {
             fileSegment = FileSegment.openForRecovery(nsDir, segmentNumber, 
                                                         nsOptions.getSegmentSize(), syncMode, 
                                                         nsOptions);
-            fileSegment.addReference();
             dsWalker = new DataSegmentWalker(fileSegment.dataBuf);
             lastEntry = null;
             for (DataSegmentWalkEntry entry : dsWalker) {
@@ -180,7 +163,7 @@ public class FileSegmentRecoverer {
                 }
                 fileSegment._put(entry.getKey(), entry.getOffset(), entry.getVersion(), entry.getCreator().getBytes(), 
                                 nsOptions);
-                //fileSegment.getPKC().put(entry.getKey(), entry.getOffset());
+                // Utility method. We display, rather than update the nsStore
                 if (verbose) {
                     System.out.println("setting: "+ entry.getOffset());
                     System.out.println("sanity check: "+ fileSegment.getPKC().get(entry.getKey()));
@@ -205,6 +188,9 @@ public class FileSegmentRecoverer {
         }
     }
     
+    /*
+     * Utility method only
+     */
     void readFullSegment(int segmentNumber, SegmentIndexLocation segmentIndexLocation, SegmentPrereadMode segmentPrereadMode) {
         Stopwatch    sw;
         
@@ -214,7 +200,6 @@ public class FileSegmentRecoverer {
             FileSegment segment;
             NamespaceProperties nsProperties;
             NamespaceOptions    nsOptions;
-            //DataSegmentWalker       dsWalker;
             
             nsProperties = NamespacePropertiesIO.read(nsDir);
             nsOptions = nsProperties.getOptions();
@@ -229,19 +214,15 @@ public class FileSegmentRecoverer {
                     
                     offsetList = segment.offsetListStore.getOffsetList(-offset);
                     for (int listOffset : offsetList) {
+                        // Utility method. We display, rather than update the nsStore
                         System.out.printf("%s\t%d\t%d\t%f\t*%d\t%d\n", entry, segment.getCreationTime(offset), segment.getVersion(listOffset), KeyUtil.keyEntropy(entry), offset, offsetList);
-                        //nsStore.putSegmentNumberAndVersion(entry.getKey(), segmentNumber, segment.getVersion(listOffset));
                     }
                 } else {
+                    // Utility method. We display, rather than update the nsStore
                     System.out.printf("%s\t%d\t%d\t%f\t%d\n", entry, segment.getCreationTime(offset), segment.getVersion(offset), KeyUtil.keyEntropy(entry), offset);
-                    //nsStore.putSegmentNumberAndVersion(entry.getKey(), segmentNumber, segment.getVersion(offset));
                 }
-            }
-            
-            //dsWalker = new DataSegmentWalker(segment.dataBuf);
-            //for (DataSegmentWalkEntry entry : dsWalker) {
-            //    nsStore.addToSizeStats(entry.getUncompressedLength(), entry.getCompressedLength());
-            //}
+            }            
+            // Utility method. We display, rather than update the nsStore stats here
             
             segment.close();
             sw.stop();

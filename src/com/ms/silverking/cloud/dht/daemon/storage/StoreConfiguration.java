@@ -10,7 +10,7 @@ import com.ms.silverking.util.PropertiesHelper;
 /**
  * Central repository for storage subsystem configuration parameters. 
  */
-class StoreConfiguration {
+public class StoreConfiguration {
     /*
     // development
     public static final int fileSegmentCacheCapacity = 5;
@@ -34,10 +34,6 @@ class StoreConfiguration {
     
     /**/
     // production
-    
-    static {
-        fileSegmentCacheCapacity = PropertiesHelper.systemHelper.getInt(DHTConstants.fileSegmentCacheCapacityProperty, DHTConstants.defaultFileSegmentCacheCapacity);
-    }
     
     public static final int fileSegmentCacheCapacity;
     public static final int ramSegmentSizeBytes = 64 * 1024 * 1024;
@@ -65,4 +61,15 @@ class StoreConfiguration {
                                      fileSegmentPKCEntriesPerBucket, fileSegmentPKCCuckooLimit);
     
     public static final int dataSegmentSizeBytes = 64 * 1024 * 1024;
+    
+    static {
+        int _fileSegmentCacheCapacity;
+        
+        _fileSegmentCacheCapacity = PropertiesHelper.systemHelper.getInt(DHTConstants.fileSegmentCacheCapacityProperty, DHTConstants.defaultFileSegmentCacheCapacity);
+        if (_fileSegmentCacheCapacity == DHTConstants.noCapacityLimit) {
+            fileSegmentCacheCapacity = Integer.MAX_VALUE;
+        } else {
+            fileSegmentCacheCapacity = _fileSegmentCacheCapacity;
+        }
+    }
 }
