@@ -23,7 +23,6 @@ import com.ms.silverking.cloud.toporing.StaticRingCreator;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.zookeeper.LocalZKImpl;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.thread.ThreadUtil;
@@ -32,8 +31,6 @@ import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
 
 public class EmbeddedSK {
-    private static final int    defaultReplication = 1;
-    
     private static AtomicBoolean    embeddedExist = new AtomicBoolean();
     private static ConcurrentMap<String,NamedRingConfiguration>    namedRingConfigs = new ConcurrentHashMap<>();
     
@@ -59,7 +56,17 @@ public class EmbeddedSK {
         namedRingConfigs.put(ringName, namedRingConfig);
     }
     
+    /*
+     Could leave this for backwards compatibility, but best to remove
     public static ClientDHTConfiguration createEmbeddedSKInstance(String dhtName, String gridConfigName, String ringName, int replication) {
+        EmbeddedSKConfiguration config;
+        
+        config = new EmbeddedSKConfiguration(dhtName, gridConfigName, ringName, replication); 
+        return createEmbeddedSKInstance(config);
+    }
+    */
+    
+    public static ClientDHTConfiguration createEmbeddedSKInstance(EmbeddedSKConfiguration config) {
         try {
             int        zkPort;
             Path    tempDir;
@@ -89,8 +96,8 @@ public class EmbeddedSK {
             
             // 2) Create ring in ZK        
             Log.warning("Creating ring");
-            StaticRingCreator.createStaticRing(ringName, zkConfig, ImmutableSet.of(IPAddrUtil.localIPString()), replication);
-            Log.warning("Created: "+ ringName);
+            StaticRingCreator.createStaticRing(config.getRingName(), zkConfig, ImmutableSet.of(IPAddrUtil.localIPString()), config.getReplication());
+            Log.warning("Created: "+ config.getRingName());
             
             // 3) Create DHT Config in ZK
             DHTConfiguration    dhtConfig;
@@ -105,10 +112,10 @@ public class EmbeddedSK {
             } else {
                 dhtPort = skPort;
             }
-            clientDHTConfig = new ClientDHTConfiguration(dhtName, dhtPort, zkConfig);
+            clientDHTConfig = new ClientDHTConfiguration(config.getDHTName(), dhtPort, zkConfig);
             dhtMC = new MetaClient(clientDHTConfig);
             dhtConfigZK = new DHTConfigurationZK(dhtMC);
-            dhtConfig = DHTConfiguration.emptyTemplate.ringName(ringName).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>());
+            dhtConfig = DHTConfiguration.emptyTemplate.ringName(config.getRingName()).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>());
             dhtConfigZK.writeToZK(dhtConfig, null);
             Log.warning("Created DHT configuration in ZK");
             
@@ -117,13 +124,13 @@ public class EmbeddedSK {
             
             Log.warning("Setting ring targets");
             curTargetZK = new DHTRingCurTargetZK(dhtMC, dhtConfig);
-            curTargetZK.setCurRingAndVersionPair(ringName, 0, 0);
-            curTargetZK.setTargetRingAndVersionPair(ringName, 0, 0);
+            curTargetZK.setCurRingAndVersionPair(config.getRingName(), 0, 0);
+            curTargetZK.setTargetRingAndVersionPair(config.getRingName(), 0, 0);
             Log.warning("Ring targets set");
             
             // 4) Start DHTNode
             Log.warning("Starting DHTNode");
-            new DHTNode(dhtName, zkConfig, 0, new ReapOnIdlePolicy());
+            new DHTNode(config.getDHTName(), zkConfig, 0, new ReapOnIdlePolicy());
             Log.warning("DHTNode started");
             
             // 5) Return the configuration to the caller
@@ -133,20 +140,23 @@ public class EmbeddedSK {
         }
     }
 
+    /*
+     * Could leave these for backwards compatibility, but best to remove.
     public static ClientDHTConfiguration createEmbeddedSKInstance(String id, int replication) {
-        return createEmbeddedSKInstance("SK."+ id, "GC_SK_"+ id, "ring."+ id, replication);
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(id, replication));
     }
     
     public static ClientDHTConfiguration createEmbeddedSKInstance(String id) {
-        return createEmbeddedSKInstance("SK."+ id, "GC_SK_"+ id, "ring."+ id, defaultReplication);
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(id));
     }
     
     public static ClientDHTConfiguration createEmbeddedSKInstance(int replication) {
-        return createEmbeddedSKInstance(new UUIDBase(false).toString(), replication);
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(replication));
     }
+    */
     
     public static ClientDHTConfiguration createEmbeddedSKInstance() {
-        return createEmbeddedSKInstance(new UUIDBase(false).toString());
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration());
     }
     
     public static void main(String[] args) {
