@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.client.test;
 
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
+import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.RevisionMode;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
@@ -28,19 +29,8 @@ public abstract class BaseClientTest implements ClientTest {
         return testName;
     }
     
-    @Override 
-    public ConsistencyProtocol getConsistencyProtocol() {
-        return consistencyProtocol;
-    }
-
-    @Override
-    public NamespaceVersionMode getNamespaceVersionMode() {
-        return nsVersionMode;
-    }
-
-    @Override
-    public RevisionMode getRevisionMode() {
-        return revisionMode;
+    public NamespaceOptions getNamespaceOptions(NamespaceOptions sessionDefaultNSOptions) {
+        return sessionDefaultNSOptions.consistencyProtocol(consistencyProtocol).versionMode(nsVersionMode).revisionMode(revisionMode);
     }
     
     protected void checkValue(SynchronousNamespacePerspective<String,String> syncNSP, String key, String expectedValue) throws RetrievalException {

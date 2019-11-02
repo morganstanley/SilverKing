@@ -5,9 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
-import com.ms.silverking.cloud.dht.ConsistencyProtocol;
-import com.ms.silverking.cloud.dht.NamespaceVersionMode;
-import com.ms.silverking.cloud.dht.RevisionMode;
+import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
 import com.ms.silverking.cloud.dht.client.ClientException;
 import com.ms.silverking.cloud.dht.client.DHTClient;
@@ -62,7 +60,7 @@ public class ClientTestFramework {
             UUIDBase    id;
             
             id = UUIDBase.random();
-            ns = createNamespace(test.getTestName() + id.toString(), test.getConsistencyProtocol(), test.getNamespaceVersionMode(), test.getRevisionMode());
+            ns = createNamespace(test.getTestName() + id.toString(), test.getNamespaceOptions(session.getDefaultNamespaceOptions()));
             Log.warningf("\nRunning test: %s\n", test.getTestName());
             return Triple.of(test.getTestName(), test.runTest(session, ns));
         } catch (NamespaceCreationException nce) {
@@ -71,7 +69,7 @@ public class ClientTestFramework {
         }
     }
     
-    private Namespace createNamespace(String nsName, ConsistencyProtocol consistencyProtocol, NamespaceVersionMode versionMode, RevisionMode revisionMode) throws NamespaceCreationException {
+    private Namespace createNamespace(String nsName, NamespaceOptions nsOptions) throws NamespaceCreationException {
         Namespace   ns;
         
         try {
@@ -81,7 +79,7 @@ public class ClientTestFramework {
         }
         if (ns == null) {
             Log.warningf("Creating namespace %s\n", nsName);
-            ns = session.createNamespace(nsName, session.getDefaultNamespaceOptions().versionMode(versionMode).revisionMode(revisionMode).consistencyProtocol(consistencyProtocol));
+            ns = session.createNamespace(nsName, nsOptions);
         } else {
             Log.warningf("Found namespace %s\n", nsName);
         }
