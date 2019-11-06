@@ -48,7 +48,7 @@ function f_compileAndLink {
         resolvedAbsFilenames+="$SKFS_SRC_DIR/$filename "
         ((fileCount++))
     done
-    
+     
     f_printSubSection "Compiling and Assembling ($fileCount in $SKFS_SRC_DIR)"
     f_compileAssembleFilesUsingMake "c" "$resolvedAbsFilenames" "$fileCount" "$SKFS_BUILD_ARCH_DIR" "$cc" "$cc_opts -W -Wall -Wno-unused -Wno-strict-aliasing" "$inc_opts -I${SKFS_SRC_DIR}"
     
