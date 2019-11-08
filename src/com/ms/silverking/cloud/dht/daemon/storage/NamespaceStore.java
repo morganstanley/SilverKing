@@ -236,7 +236,7 @@ public class NamespaceStore implements SSNamespaceStore {
         Log.warningf("nsPrereadGB: %s", nsPrereadGB);
         minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
         Log.warningf("minFinalizationIntervalMillis %d", minFinalizationIntervalMillis);
-        maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getInt(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
+        maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getLong(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
         Log.warningf("maxUnfinalizedDeletedBytes %d", maxUnfinalizedDeletedBytes);
         Log.warningf("fileSegmentCacheCapacity %d", fileSegmentCacheCapacity);
     }
@@ -2789,7 +2789,9 @@ public class NamespaceStore implements SSNamespaceStore {
             startupCompactAndDelete();
             transitionToReapPhase();
         }
-        if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
+        if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap
+                || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap
+                || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
             emptyTrashAndCompaction();
         }
     }
