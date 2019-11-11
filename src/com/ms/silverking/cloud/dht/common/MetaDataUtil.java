@@ -27,8 +27,8 @@ import com.ms.silverking.util.ArrayUtil;
  * version (8)
  * creationTime (8)
  * creator (8)
- * ccss (2)         (compression type, checksum type, StorageState)
  * lockSeconds (2)
+ * ccss (2)         (compression type, checksum type, StorageState)
  * userDataLength (1)
  * checksum (variable)
  * data...
