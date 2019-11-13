@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.util.logging.Level;
 
+import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
@@ -52,6 +53,9 @@ public class SKAdminOptions {
     public boolean targetsEqualsActiveDaemonsTarget() {
         return targets != null && targets.equalsIgnoreCase(activeDaemonsTarget);
     }
+
+    @Option(name="-mc", usage="main class to run (by default, DHTNode)", required=false)
+    public String     mainClass = DHTNode.class.getCanonicalName();
 
     @Option(name="-e", usage="includeExcludedHosts", required=false)
     public boolean    includeExcludedHosts;

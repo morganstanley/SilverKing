@@ -512,7 +512,7 @@ public class SKAdmin {
         }
 
         return getJavaCmdStart(options, classVars, escaped)
-                +" "+ DHTNode.class.getCanonicalName()
+                +" " + options.mainClass
                 +" " + reapPolicyOptions
                 +" -n "+ gc.getClientDHTConfiguration().getName()
                 +" -z "+ gc.getClientDHTConfiguration().getZKConfig()
