@@ -57,6 +57,9 @@ public class SKAdminOptions {
     @Option(name="-mc", usage="main class to run (by default, DHTNode)", required=false)
     public String     mainClass = DHTNode.class.getCanonicalName();
 
+    @Option(name="-emca", usage="Extra args to pass to the main class (useful if not running the default DHTNode)", required=false)
+    public String     extraMainClassArgs = "";
+
     @Option(name="-e", usage="includeExcludedHosts", required=false)
     public boolean    includeExcludedHosts;
 
