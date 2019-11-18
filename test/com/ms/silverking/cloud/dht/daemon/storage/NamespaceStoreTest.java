@@ -163,7 +163,7 @@ public class NamespaceStoreTest {
         };
         new MockUp<MetaDataUtil>() {
             @Mock
-            public boolean isInvalidated(ByteBuffer storedValue, int baseOffset) {
+            public boolean isInvalidation(ByteBuffer storedValue, int baseOffset) {
                 return dataIsInvalid;
             }
         };
