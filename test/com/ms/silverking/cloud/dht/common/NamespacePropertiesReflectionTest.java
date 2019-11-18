@@ -29,6 +29,7 @@ public class NamespacePropertiesReflectionTest {
             4096,
             1996,
             false,
+            DHTConstants.defaultStorageFormat,
             new LRURetentionPolicy(8L * 1024L * 1024L, 1),
             NamespaceServerSideCode.singleTrigger(LRUTrigger.class)
     );
