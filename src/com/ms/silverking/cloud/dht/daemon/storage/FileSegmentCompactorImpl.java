@@ -91,7 +91,6 @@ public class FileSegmentCompactorImpl implements FileSegmentCompactor {
             dsWalker = new DataSegmentWalker(sourceSegment.dataBuf);
             for (DataSegmentWalkEntry entry : dsWalker) {
                 SegmentStorageResult    storageResult;
-                
                 if (verbose) {
                     System.out.println(entry);
                 }

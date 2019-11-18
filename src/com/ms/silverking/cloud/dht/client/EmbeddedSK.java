@@ -122,7 +122,7 @@ public class EmbeddedSK {
                     .port(dhtPort)
                     .passiveNodeHostGroups("")
                     .hostGroupToClassVarsMap(new HashMap<String,String>())
-                    .namespaceOptionsMode(nsOptionsMode);
+                    .namespaceOptionsMode(config.getNamespaceOptionsMode());
             dhtConfigZkPath = dhtConfigZK.writeToZK(dhtConfig, null);
             Log.warning("Created DHT configuration in ZK");
 
@@ -177,7 +177,7 @@ public class EmbeddedSK {
                 nsOptionsMode = args.length == 0 ?
                         DHTConfiguration.defaultNamespaceOptionsMode :
                         NamespaceOptionsMode.valueOf(args[0]);
-                dhtConfig = createEmbeddedSKInstance(nsOptionsMode);
+                dhtConfig = createEmbeddedSKInstance(new EmbeddedSKConfiguration().namespaceOptionsMode(nsOptionsMode));
                 System.out.printf("DHT Configuration: %s\n", dhtConfig);
                 ThreadUtil.sleepForever();
             } catch (Exception e) {

@@ -107,13 +107,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -432,7 +426,7 @@ public class NamespaceStore implements SSNamespaceStore {
         putTrigger = triggers.getV1();
         retrieveTrigger = triggers.getV2();
         if (!isRecovery) {
-            initalizeTriggers();
+            initializeTriggers();
         }
         this.finalization = finalization;
         this.fileSegmentCompactor = fileSegmentCompactor;
@@ -2076,7 +2070,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             result = retrieve(segment, key, options, verifySS);
                             if (debugSegments) {
                                 Log.fineAsync("Done read from file segment");
-                                Log.fineAsyncf("result: " + result);
+                                Log.fineAsyncf("result: %s", result);
                             }
                         } catch (IOException ioe) {
                             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -2408,6 +2402,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
     
+
     private FileSegment loadFileSegment(int segmentNumber, FileSegmentLoadMode fileSegmentLoadMode, SegmentPrereadMode segmentPrereadMode) throws IOException {
         try {
             return _loadFileSegment(segmentNumber, fileSegmentLoadMode, segmentPrereadMode);
@@ -2549,11 +2544,11 @@ public class NamespaceStore implements SSNamespaceStore {
         } else {
             nsStore.initRAMSegments();
         }
-        nsStore.initalizeTriggers();
+        nsStore.initializeTriggers();
         return nsStore;
     }
 
-    private void initalizeTriggers() {
+    private void initializeTriggers() {
         if (putTrigger != null) {
             putTrigger.initialize(this);
         }

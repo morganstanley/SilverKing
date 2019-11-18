@@ -252,6 +252,6 @@ public class DHTClient {
     }
     
     private ClientDHTConfiguration embedKVS(NamespaceOptionsMode nsOptionsMode) {
-        return EmbeddedSK.createEmbeddedSKInstance(nsOptionsMode);
+        return EmbeddedSK.createEmbeddedSKInstance(new EmbeddedSKConfiguration().namespaceOptionsMode(nsOptionsMode));
     }
 }
