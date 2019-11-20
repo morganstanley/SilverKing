@@ -248,22 +248,26 @@ public class AsyncBase<T extends Connection> {
                     disconnect(connection, "numRead < 0");
                 }
             } catch (IOException ioe) {
-                Log.logErrorWarning(ioe);
-                informSuspectAddressListener(connection.getRemoteSocketAddress());
-                // FUTURE - think about marking for all exceptions
-                /*
-                if (ioe.getMessage() != null) {
-                    if (ioe.getMessage().startsWith("Connection reset")) {
-                        if (suspectAddressListener != null) {
-                            suspectAddressListener.addSuspect(connection.getRemoteSocketAddress());
-                        } else {
-                            Log.warning("suspectAddressListener is null");
+                if (connection.isConnected()) {
+                    Log.logErrorWarning(ioe);
+                    informSuspectAddressListener(connection.getRemoteSocketAddress());
+                    // FUTURE - think about marking for all exceptions
+                    /*
+                    if (ioe.getMessage() != null) {
+                        if (ioe.getMessage().startsWith("Connection reset")) {
+                            if (suspectAddressListener != null) {
+                                suspectAddressListener.addSuspect(connection.getRemoteSocketAddress());
+                            } else {
+                                Log.warning("suspectAddressListener is null");
+                            }
                         }
                     }
+                    */
                 }
-                */
             } catch (Exception e) {
-                Log.logErrorWarning(e, "Unhandled exception");
+                if (connection.isConnected()) {
+                    Log.logErrorWarning(e, "Unhandled exception");
+                }
             } finally {
                 if (!cleanRead) {
                     disconnect(connection, "!cleanRead");
@@ -291,17 +295,21 @@ public class AsyncBase<T extends Connection> {
                 connection.writeAllPending();
                 cleanWrite = true;
             } catch (IOException ioe) {
-                Log.logErrorWarning(ioe);
-                // Commented out for new approach.
-                // New approach is to simply do the disconnect as before, but not mark as suspect.
-                // If the reconnect fails, then it will get marked.
-                //if (suspectAddressListener != null) {
-                //  suspectAddressListener.addSuspect(connection.getRemoteSocketAddress());
-                //} else {
-                //  Log.warning("suspectAddressListener is null");
-                //}
+                if (connection.isConnected()) {
+                    Log.logErrorWarning(ioe);
+                    // Commented out for new approach.
+                    // New approach is to simply do the disconnect as before, but not mark as suspect.
+                    // If the reconnect fails, then it will get marked.
+                    //if (suspectAddressListener != null) {
+                    //  suspectAddressListener.addSuspect(connection.getRemoteSocketAddress());
+                    //} else {
+                    //  Log.warning("suspectAddressListener is null");
+                    //}
+                }
             } catch (Exception e) {
-                Log.logErrorWarning(e, "Unhandled exception()");
+                if (connection.isConnected()) {
+                    Log.logErrorWarning(e, "Unhandled exception()");
+                }
             } finally {
                 if (!cleanWrite) {
                     disconnect(connection, "!cleanWrite");

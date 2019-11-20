@@ -403,6 +403,10 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
         
     //////////////////////////////////////////////////////////////////////
     
+    public boolean isConnected() {
+        return connected;
+    }
+    
     /**
      * Perform subclass specific disconnect work after performing general
      * disconnection work, but before notifying the connectionListener. 
@@ -423,9 +427,9 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
             return;
         }
         // multiple sets to false are ok here
-        connected = false;
         selectorController.addKeyChangeRequest(
                 new KeyChangeRequest(channel, KeyChangeRequest.Type.CANCEL_AND_CLOSE));
+        connected = false;
         connectionLock.lock();
         try {
             Socket                socket;
