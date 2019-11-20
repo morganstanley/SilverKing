@@ -413,6 +413,8 @@ public class RingMapState2 {
                 Log.warningf("ExclusionSet change detected: %s", ringIDAndVersionPair);
                 // Read new exclusion set
                 try {
+                    ExclusionSet    candidateExclusionSet;
+                    
                     if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath()) ) {
                         ExclusionSet    exclusionSet;
                         
@@ -430,19 +432,24 @@ public class RingMapState2 {
                         // This is an instance exclusion set change
                         try {
                             instanceExclusionSet = new ExclusionSet(new ServerSetExtensionZK(dhtMC, dhtMC.getMetaPaths().getInstanceExclusionsPath()).readFromZK(version, null));
+                            if (ignoreReaddition) {
+                                curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
+                            } else {
+                                curInstanceExclusionSet = instanceExclusionSet;
+                            }
+                            Log.warning("Instance ExclusionSet change detected/merged with old:\n", instanceExclusionSet);
                         } catch (Exception e) {
-                            Log.warning("No instance ExclusionSet found");
-                            instanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
+                            Log.warning("Failed to read ExclusionSet due to exception ", e);
                         }
-                        if (ignoreReaddition) {
-                            curInstanceExclusionSet = ExclusionSet.union(instanceExclusionSet, curInstanceExclusionSet);
-                        } else {
-                            curInstanceExclusionSet = instanceExclusionSet;
-                        }
-                        Log.warning("Instance ExclusionSet change detected/merged with old:\n", instanceExclusionSet);
                     }
                     
-                    curUnionExclusionSet = ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+                    candidateExclusionSet = ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+                    
+                    if (curUnionExclusionSet.equals(candidateExclusionSet)) {
+                        Log.warning("Ignoring update due to curUnionExclusionSet.equals(candidateExclusionSet)");
+                        return;
+                    }
+                    curUnionExclusionSet = candidateExclusionSet;
                     // Small race here between the value of curUnionExclusionSet and setLocalNodeIsExcluded()
                     // and in StorageModule.liveReap() between the state of the same two. We live with this
                     // for now as the impact should be rare and limited.
