@@ -165,7 +165,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final ReapPolicy        reapPolicy;
     private final ReapPolicyState    reapPolicyState;
     private int    deletionsSinceFinalization;
-    
+
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;    
     
     private static final byte[] emptyUserData = new byte[0];
@@ -976,7 +976,7 @@ public class NamespaceStore implements SSNamespaceStore {
         SegmentStorageResult    storageResult;
         LockCheckResult            lockCheckResult;
         VersionCheckResult      versionCheckResult;
-
+        
         if (testStorageCorruption && !isDynamic() && ns != NamespaceUtil.metaInfoNamespace.contextAsLong()) {
             MetaDataUtil.testCorruption(value, storageCorruptionProbability, value.limit() - 2);
         }
@@ -1155,7 +1155,6 @@ public class NamespaceStore implements SSNamespaceStore {
                         offsetList.putOffset(version, segmentNumber, creationTime);
                         removed = valueSegments.remove(key);
                         if (!removed) {
-                            System.out.println("\n\n");
                             Log.warning(valueSegments.get(key));
                             throw new RuntimeException("valueSegments.remove() failed for: " + key);
                         }
@@ -1538,7 +1537,9 @@ public class NamespaceStore implements SSNamespaceStore {
                                 // result is preferred
                                 result = parentResult;
                                 if (result != null) {
-                                    Log.warning("Found result in parent");
+                                    if (debugParent) {
+                                        Log.warning("Found result in parent");
+                                    }
                                 }
                             }
                         }
