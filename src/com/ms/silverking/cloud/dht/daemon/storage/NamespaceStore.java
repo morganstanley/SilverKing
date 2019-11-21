@@ -253,8 +253,8 @@ public class NamespaceStore implements SSNamespaceStore {
         Log.warningf("maxUnfinalizedDeletedBytes %d", maxUnfinalizedDeletedBytes);
         Log.warningf("fileSegmentCacheCapacity %d", fileSegmentCacheCapacity);
 
-        Preconditions.checkState(minFinalizationIntervalMillis > 0, "minFinalizationIntervalMillis shall be non-negative");
-        Preconditions.checkState(maxUnfinalizedDeletedBytes > 0, "maxUnfinalizedDeletedBytes shall be non-negative");
+        Preconditions.checkState(minFinalizationIntervalMillis > 0, "minFinalizationIntervalMillis must be non-negative");
+        Preconditions.checkState(maxUnfinalizedDeletedBytes > 0, "maxUnfinalizedDeletedBytes must be non-negative");
 
         verboseReapLogInfo = PropertiesHelper.systemHelper.getBoolean(DHTConstants.verboseReapLogInfoProperty,false);
     }
