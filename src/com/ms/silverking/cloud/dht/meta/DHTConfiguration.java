@@ -171,7 +171,7 @@ public class DHTConfiguration implements VersionedDefinition {
         DHTConfiguration    instance;
         
         instance = parse(def, version);
-        return instance.zkid(version);
+        return instance.zkid(zkid);
     }
     
     @Override
