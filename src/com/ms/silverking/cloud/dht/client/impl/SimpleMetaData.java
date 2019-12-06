@@ -5,6 +5,7 @@ import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.MetaData;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 
 public class SimpleMetaData implements MetaData {
     private final int           storedLength;
@@ -99,6 +100,31 @@ public class SimpleMetaData implements MetaData {
     @Override
     public short getLockSeconds() {
         return lockSeconds;
+    }
+
+    @Override
+    public long getLockMillisRemaining() {
+        long    nanosRemaining;
+        long    millisRemaining;
+        
+        nanosRemaining = (creationTime + (long)lockSeconds * 1_000_000_000L) - SystemTimeUtil.systemTimeSource.absTimeNanos();
+        millisRemaining = nanosRemaining / 1_000_000L;
+        if (millisRemaining > 0) {
+            return millisRemaining;
+        } else {
+            // Ensure that we don't round down to zero. We want to ensure that a non-zero time in nanos
+            // is interpreted as locked, not free.
+            if (nanosRemaining > 0) {
+                return 1L;
+            } else {
+                return 0;
+            }
+        }
+    }
+    
+    @Override
+    public boolean isLocked() {
+        return SystemTimeUtil.systemTimeSource.absTimeNanos() <= creationTime + (long)lockSeconds * 1_000_000_000L;
     }
 
     @Override

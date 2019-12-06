@@ -38,6 +38,16 @@ public interface MetaData {
      */
     public short getLockSeconds();
     /**
+     * Check time remaining on advisory lock
+     * @return microseconds of lock remaining
+     */
+    public long getLockMillisRemaining();
+    /**
+     * Check advisory lock
+     * @return true if advisory lock is locked
+     */
+    public boolean isLocked();
+    /**
      * User data associated with a value.
      * @return user data associated with a value
      */

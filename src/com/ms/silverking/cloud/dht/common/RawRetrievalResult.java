@@ -290,6 +290,31 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
         return MetaDataUtil.getLockSeconds(storedValue.array(), storedValue.position());
     }
     
+    @Override
+    public long getLockMillisRemaining() {
+        long    nanosRemaining;
+        long    millisRemaining;
+        
+        nanosRemaining = (getCreationTimeRaw() + (long)getLockSeconds() * 1_000_000_000L) - SystemTimeUtil.systemTimeSource.absTimeNanos();
+        millisRemaining = nanosRemaining / 1_000_000L;
+        if (millisRemaining > 0) {
+            return millisRemaining;
+        } else {
+            if (nanosRemaining > 0) {
+                // Ensure that we don't round down to zero. We want to ensure that a non-zero time in nanos
+                // is interpreted as locked, not free.
+                return 1L;
+            } else {
+                return 0;
+            }
+        }
+    }
+    
+    @Override
+    public boolean isLocked() {
+        return SystemTimeUtil.systemTimeSource.absTimeNanos() <= getCreationTimeRaw() + (long)getLockSeconds() * 1_000_000_000L;
+    }
+    
     public boolean isSegmented() {
         if (getOpResult() == OpResult.SUCCEEDED) {
             return MetaDataUtil.isSegmented(storedValue.array(), storedValue.position());

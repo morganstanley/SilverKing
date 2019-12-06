@@ -58,8 +58,18 @@ abstract class RetrievalResultBase<V> implements StoredValue<V> {
     }
     
     @Override
+    public long getLockMillisRemaining() {
+        return getMetaData().getLockMillisRemaining();
+    }
+    
+    @Override
     public short getLockSeconds() {
         return getMetaData().getLockSeconds();
+    }
+    
+    @Override 
+    public boolean isLocked() {
+        return getMetaData().isLocked();
     }
 
     @Override
