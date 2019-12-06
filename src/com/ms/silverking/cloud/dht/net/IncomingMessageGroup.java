@@ -323,15 +323,7 @@ public final class IncomingMessageGroup implements IncomingData {
                     readState = ReadState.CHANNEL_CLOSED;
                     return ReadResult.CHANNEL_CLOSED;
                 } else {
-                    readErrors++;
-                    if (readErrors <= errorTolerance) {
-                        Log.logErrorWarning(ioe, "Ignoring read error "+ readErrors);
-                        leadingBuffer.clear();
-                        readState = ReadState.INIT_PREAMBLE_SEARCH;
-                        return ReadResult.INCOMPLETE;
-                    } else {
-                        throw ioe;
-                    }
+                    throw ioe;
                 }
             }
         } while(true);
