@@ -51,12 +51,12 @@ static uint64_t    _fid_skfs_internal_nextSequence;
 ///////////////////
 // implementation
 
-void fid_module_init() {
+void fid_module_init(uint64_t instance) {
     if (_fid_skfs_instance != 0) { // loose check
         fatalError("_fid_skfs_instance != 0", __FILE__, __LINE__);
     }
     pthread_spin_init(&_fid_sequence_lock, 0);
-    _fid_skfs_instance = (uint64_t)random() ^ (uint64_t)getpid();
+    _fid_skfs_instance = instance;
     srfsLog(LOG_WARNING, "_fid_skfs_instance %llx", _fid_skfs_instance);
 }
 

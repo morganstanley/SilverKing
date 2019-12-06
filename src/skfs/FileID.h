@@ -49,7 +49,7 @@ typedef struct FileID {
 ///////////////
 // prototypes
 
-void fid_module_init();
+void fid_module_init(uint64_t instance);
 void fid_init_native(FileID *fid, struct stat *_stat);
 void fid_init_skfs(FileID *fid, uint64_t instance, uint64_t sequence);
 FileID *fid_dup(FileID *fid);
