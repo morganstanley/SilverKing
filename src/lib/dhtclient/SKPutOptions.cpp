@@ -141,27 +141,30 @@ SKPutOptions * SKPutOptions::version(int64_t version){
     PutOptions * pPutOptImp = new PutOptions(java_cast<PutOptions>(
         ((PutOptions*)pImpl)->version(version)
     )); 
-    delete ((PutOptions*)pImpl);
-    pImpl = pPutOptImp;
-    return this;
+    //delete ((PutOptions*)pImpl);
+    //pImpl = pPutOptImp;
+    //return this;
+    return new SKPutOptions(pPutOptImp);
 }
 
 SKPutOptions * SKPutOptions::requiredPreviousVersion(int64_t requiredPreviousVersion){
     PutOptions * pPutOptImp = new PutOptions(java_cast<PutOptions>(
         ((PutOptions*)pImpl)->requiredPreviousVersion(requiredPreviousVersion)
     )); 
-    delete ((PutOptions*)pImpl);
-    pImpl = pPutOptImp;
-    return this;
+    //delete ((PutOptions*)pImpl);
+    //pImpl = pPutOptImp;
+    //return this;
+    return new SKPutOptions(pPutOptImp);
 }
 
 SKPutOptions * SKPutOptions::lockSeconds(int16_t lockSeconds){
     PutOptions * pPutOptImp = new PutOptions(java_cast<PutOptions>(
         ((PutOptions*)pImpl)->lockSeconds(lockSeconds)
     )); 
-    delete ((PutOptions*)pImpl);
-    pImpl = pPutOptImp;
-    return this;
+    //delete ((PutOptions*)pImpl);
+    //pImpl = pPutOptImp;
+    //return this;
+    return new SKPutOptions(pPutOptImp);
 }
 
 SKPutOptions * SKPutOptions::fragmentationThreshold(int64_t fragmentationThreshold){

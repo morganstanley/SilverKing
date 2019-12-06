@@ -36,16 +36,22 @@ void * SKAsyncSingleValueRetrieval::getPImpl(){
     return pImpl;
 }
 
-SKStoredValue *  SKAsyncSingleValueRetrieval::getStoredValue(){
-    StoredValue * value = NULL;
+SKStoredValue *SKAsyncSingleValueRetrieval::getStoredValue(){
+    SKStoredValue   *sv = NULL;
+    
     try {
-        value =  new StoredValue(java_cast<StoredValue>(
-            dynamic_cast<AsyncSingleValueRetrieval*>(pImpl)->getStoredValue( )  //FIXME: dynamic_cast
-        ));
+        AsyncSingleValueRetrieval *pAsvr = (AsyncSingleValueRetrieval *)getPImpl();
+        StoredValue _sv = pAsvr->getStoredValue();
+        if (_sv.isNull()) {
+            sv = NULL;
+        } else {
+            StoredValue *storedValue = new StoredValue(java_cast<StoredValue>(_sv));
+            sv = new SKStoredValue(storedValue);
+        }
     }  catch( Throwable &t ) {
         throw SKClientException( &t, __FILE__, __LINE__ );
     }
-    return new SKStoredValue(value);
+    return sv;
 }
 
 SKVal *  SKAsyncSingleValueRetrieval::getValue(){

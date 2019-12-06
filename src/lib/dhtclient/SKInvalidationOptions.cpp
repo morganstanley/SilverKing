@@ -92,27 +92,30 @@ SKInvalidationOptions * SKInvalidationOptions::version(int64_t version){
     InvalidationOptions * p = new InvalidationOptions(java_cast<InvalidationOptions>(
         ((InvalidationOptions*)pImpl)->version(version)
     )); 
-    delete ((InvalidationOptions*)pImpl);
-    pImpl = p;
-    return this;
+    //delete ((InvalidationOptions*)pImpl);
+    //pImpl = p;
+    //return this;
+    return new SKInvalidationOptions(p);
 }
 
 SKInvalidationOptions * SKInvalidationOptions::requiredPreviousVersion(int64_t requiredPreviousVersion){
     InvalidationOptions * p = new InvalidationOptions(java_cast<InvalidationOptions>(
         ((InvalidationOptions*)pImpl)->requiredPreviousVersion(requiredPreviousVersion)
     )); 
-    delete ((InvalidationOptions*)pImpl);
-    pImpl = p;
-    return this;
+    //delete ((InvalidationOptions*)pImpl);
+    //pImpl = p;
+    //return this;
+    return new SKInvalidationOptions(p);
 }
 
 SKInvalidationOptions * SKInvalidationOptions::lockSeconds(int16_t lockSeconds){
     InvalidationOptions * p = new InvalidationOptions(java_cast<InvalidationOptions>(
         ((InvalidationOptions*)pImpl)->lockSeconds(lockSeconds)
     )); 
-    delete ((InvalidationOptions*)pImpl);
-    pImpl = p;
-    return this;
+    //delete ((InvalidationOptions*)pImpl);
+    //pImpl = p;
+    //return this;
+    return new SKInvalidationOptions(p);
 }
 
 ////////
