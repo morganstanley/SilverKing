@@ -75,8 +75,16 @@ SKValueCreator * SKMetaData::getCreator() const {
     return new SKValueCreator(pvc);
 }
 
+int64_t SKMetaData::getLockMillisRemaining() const {
+    return (int64_t)(pImpl->getLockMillisRemaining());
+}
+
 int16_t SKMetaData::getLockSeconds() const {
     return (int16_t)(pImpl->getLockSeconds());
+}
+
+bool SKMetaData::isLocked() const {
+    return (bool)(pImpl->isLocked());
 }
 
 SKVal * SKMetaData::getUserData() const {

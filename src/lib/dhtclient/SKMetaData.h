@@ -49,9 +49,17 @@ public:
      */
     SKAPI SKValueCreator * getCreator() const;
     /**
+     * return lock millis remaining
+     */
+    SKAPI int64_t getLockMillisRemaining() const;
+    /**
      * lockSeconds
      */
     SKAPI int16_t getLockSeconds() const;
+    /**
+     * isLocked
+     */
+    SKAPI bool isLocked() const;
     /**
      * User data associated with a value.
      * @return
