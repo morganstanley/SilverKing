@@ -103,6 +103,7 @@ AttrReader *ar_new(FileIDToPathMap *f2p, SRFSDHT *sd, AttrWriter *aw,
             ar->ansp[i] = ns->openAsyncPerspective(nspOptions);
             delete ns;
         }
+        ar->anspDirect = ar->ansp[0];
     } catch(SKClientException & ex){
         srfsLog(LOG_ERROR, "ar_new exception opening namespace %s: what: %s\n", SKFS_ATTR_NS, ex.what());
         fatalError("exception in ar_new", __FILE__, __LINE__ );
@@ -131,6 +132,7 @@ void ar_delete(AttrReader **ar) {
         try {
             int    i;
             
+            (*ar)->anspDirect = NULL; // no need to free as presently points to ar->ansp[0] which is freed below
             for (i = 0; i < AR_DHT_THREADS; i++) {
                 (*ar)->ansp[i]->waitForActiveOps();
                 (*ar)->ansp[i]->close();
@@ -940,6 +942,7 @@ int ar_get_attr(AttrReader *ar, char *path, FileAttr *fa, uint64_t minModificati
     srfsLog(LOG_FINE, "translated %s --> %s", path, nativePath);        
     
     attempt = 0;
+    errorCode = ETIMEDOUT;
     do {
         errorCode = _ar_get_attr(ar, path, fa, isNativePath, nativePath, minModificationTime);
     } while (errorCode == ETIMEDOUT && ++attempt < _AR_MAX_INTERNAL_ATTEMPTS);
@@ -1425,3 +1428,98 @@ void ar_display_stats(AttrReader *ar, int detailedStats) {
     rts_display(ar->rtsNFS);
     f2p_display_stats(ar->f2p);
 }
+
+////////////////////////////////////////////////////////////////////////////
+
+void ar_delete_direct_read_result_contents(ARReadAttrDirectResult *result) {
+    if (result == NULL) {
+        fatalError("NULL result", __FILE__, __LINE__);
+    } else {
+        if (result->metaData != NULL) {
+            delete result->metaData;
+            result->metaData = NULL;
+        }
+        if (result->fa != NULL) {
+            mem_free((void**)&result->fa);
+        }
+    }
+}
+
+ARReadAttrDirectResult ar_read_attr_direct(AttrReader *ar, const char *path) {
+    ARReadAttrDirectResult              result;
+    SKAsyncSingleValueRetrieval         *pGet;
+    
+    srfsLog(LOG_FINE, "in ar_read_attr_direct");    
+    memset(&result, 0, sizeof(ARReadAttrDirectResult));
+    pGet = NULL;
+    srfsLog(LOG_FINE, "ar_read_attr_direct path %s", path);
+    try {
+        pGet = ar->anspDirect->get(path);
+        pGet->waitForCompletion();
+        result.opState = pGet->getState();
+    } catch (std::exception &e) {
+        srfsLog(LOG_WARNING, "ar_read_attr_direct exception %s", e.what());
+        result.opState = SKOperationState::FAILED;
+    }    
+    
+    if (result.opState != SKOperationState::SUCCEEDED) {
+        result.failureCause = pGet->getFailureCause();
+        if (result.failureCause != SKFailureCause::NO_SUCH_VALUE) {
+            srfsLog(LOG_WARNING, "ar_read_attr_direct get() failed %d", result.failureCause);
+            result.opState = SKOperationState::FAILED;
+        } else {
+            result.opState = SKOperationState::SUCCEEDED;
+        }
+    } else {
+        SKStoredValue   *pStoredVal;
+        
+        pStoredVal = pGet->getStoredValue();
+        if (pStoredVal == NULL) {
+            srfsLog(LOG_INFO, "pStoredValue == NULL  %s  %s %d", path, __FILE__, __LINE__);
+            result.opState = SKOperationState::FAILED;
+            result.failureCause = SKFailureCause::NO_SUCH_VALUE;
+        } else {
+            SKVal   *pVal;
+            
+            pVal = pStoredVal->getValue();
+            if (pVal == NULL) {
+                srfsLog(LOG_WARNING, "pStoredValue->getValue() == NULL  %s %d", __FILE__, __LINE__);
+                result.opState = SKOperationState::FAILED;
+                result.failureCause = SKFailureCause::NO_SUCH_VALUE;
+            } else {
+                if (pVal->m_len != sizeof(FileAttr) ){
+                    srfsLog(LOG_WARNING, "Unexpected pVal->m_len %d", pVal->m_len, __FILE__, __LINE__);
+                    result.opState = SKOperationState::FAILED;
+                    result.failureCause = SKFailureCause::NO_SUCH_VALUE;
+                } else {
+                    if (!memcmp(pVal->m_pVal, &_attr_does_not_exist, sizeof(FileAttr))) {
+                        result.opState = SKOperationState::SUCCEEDED;
+                        result.failureCause = SKFailureCause::NO_SUCH_VALUE;
+                    } else {
+                        result.fa = (FileAttr *)mem_dup(pVal->m_pVal, sizeof(FileAttr));
+                        result.metaData = pStoredVal->getMetaData();
+                        srfsLog(LOG_FINE, "result.metaData %llx", result.metaData);
+                        if (result.metaData == NULL) {
+                            srfsLog(LOG_WARNING, "Couldn't find meta data %s %d", __FILE__, __LINE__);
+                            result.opState = SKOperationState::FAILED;
+                            result.failureCause = SKFailureCause::NO_SUCH_VALUE;
+                        }
+                    }
+                }
+                //pVal->m_pVal = NULL; // FIXME
+                sk_destroy_val(&pVal);
+            }
+            delete pStoredVal;
+            pStoredVal = NULL;
+        }
+    }
+    
+    if (pGet) {
+        delete pGet;
+        pGet = NULL;
+    }
+    
+    srfsLog(LOG_FINE, "out ar_read_attr_direct %d", result.opState);
+    return result;
+}
+

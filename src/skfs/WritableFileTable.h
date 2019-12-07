@@ -11,6 +11,7 @@
 #include "FileAttr.h"
 #include "FileBlockWriter.h"
 #include "HashTableAndLock.h"
+#include "OpenDirTable.h"
 #include "PartialBlockReader.h"
 #include "Util.h"
 #include "WritableFile.h"
@@ -48,6 +49,6 @@ WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *n
                                     FileAttr *fa = NULL, PartialBlockReader *pbr = NULL, int *retryFlag = NULL);
 int wft_contains(WritableFileTable *wft, const char *name);
 WritableFileReference *wft_get(WritableFileTable *wft, const char *name);
-int wft_delete_file(WritableFileTable *wft, const char *name, int deleteBlocks = TRUE);
+int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt, int deleteBlocks = TRUE);
 
 #endif

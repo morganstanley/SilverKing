@@ -51,6 +51,8 @@ AttrWriter *aw_new(SRFSDHT *sd) {
         ns = aw->pSession->getNamespace(SKFS_ATTR_NS);
         nspOptions = ns->getDefaultNSPOptions();
         aw->ansp = ns->openAsyncPerspective(nspOptions);
+        aw->defaultPutOptions = nspOptions->getDefaultPutOptions();
+        aw->defaultInvalidationOptions = nspOptions->getDefaultInvalidationOptions();
         delete ns;
     } catch(SKClientException & ex){
         srfsLog(LOG_ERROR, "aw_new exception opening namespace %s: what: %s\n", SKFS_ATTR_NS, ex.what());
@@ -212,7 +214,9 @@ static void aw_process_dht_batch(void **requests, int numRequests, int curThread
     srfsLog(LOG_FINE, "out aw_process_dht_batch");
 }
 
-SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, AttrCache *ac, int maxAttempts, SKFailureCause::SKFailureCause *cause) {
+SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, 
+                                        AttrCache *ac, int maxAttempts, SKFailureCause::SKFailureCause *cause, 
+                                        int64_t requiredPreviousVersion, int16_t lockSeconds) {
     SKOperationState::SKOperationState    result;
     SKVal        *pVal;
     SKAsyncPut    *pPut;
@@ -220,6 +224,8 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
     unsigned int    seedp;
     uint64_t    writeTimeNanos;
     int         invalidVersion;
+    SKPutOptions    *putOptions = NULL;
+    SKInvalidationOptions    *invalidationOptions = NULL;
     
     seedp = 0;
     srfsLog(LOG_FINE, "in aw_write_attr_direct");    
@@ -230,12 +236,31 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
     writeTimeNanos = curSKTimeNanos();
     attempt = 0;
     invalidVersion = FALSE;
+    
     do {
         try {
             if (fa != fa_get_deletion_fa()) {
-                pPut = aw->ansp->put(path, pVal);
+                if (lockSeconds > 0 || requiredPreviousVersion > 0) {
+                    SKPutOptions    *tmpPO;
+                    
+                    tmpPO = aw->defaultPutOptions->lockSeconds(lockSeconds);
+                    putOptions = tmpPO->requiredPreviousVersion(requiredPreviousVersion);
+                    pPut = aw->ansp->put(path, pVal, putOptions);
+                    delete tmpPO;
+                } else {
+                    pPut = aw->ansp->put(path, pVal);
+                }
             } else {
-                pPut = aw->ansp->invalidate(path);
+                if (lockSeconds > 0 || requiredPreviousVersion > 0) {
+                    SKInvalidationOptions    *tmpIO;
+                    
+                    tmpIO = aw->defaultInvalidationOptions->lockSeconds(lockSeconds);
+                    invalidationOptions = tmpIO->requiredPreviousVersion(requiredPreviousVersion);
+                    pPut = aw->ansp->invalidate(path, invalidationOptions);
+                    delete tmpIO;
+                } else {
+                    pPut = aw->ansp->invalidate(path);
+                }
             }
             pPut->waitForCompletion();
             result = pPut->getState();
@@ -285,6 +310,12 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
             srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d for %s at %s %d", acResult, path, __FILE__, __LINE__);
             result = SKOperationState::FAILED;
         }
+    }
+    if (putOptions != NULL) {
+        delete putOptions;
+    }
+    if (invalidationOptions != NULL) {
+        delete invalidationOptions;
     }
     srfsLog(LOG_FINE, "out aw_write_attr_direct %d", result);
     return result;

@@ -151,6 +151,8 @@
 #define SKFS_DEF_ATTR_TIMEOUT_SECS    10
 #define SKFS_DEF_NEGATIVE_TIMEOUT_SECS    10
 
+#define SKFS_LOCK_CLOCK_SKEW_TOLERANCE_MILLIS 10
+
 #if FUSE_MAJOR_VERSION >= 3
 #define FILLER_TAIL ,(enum fuse_fill_dir_flags)0
 #else

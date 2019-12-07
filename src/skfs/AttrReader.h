@@ -16,6 +16,8 @@
 #include "QueueProcessor.h"
 #include "ReaderStats.h"
 #include "ResponseTimeStats.h"
+#include "skconstants.h"
+#include "SKMetaData.h"
 #include "SRFSConstants.h"
 #include "SRFSDHT.h"
 #include "Util.h"
@@ -49,12 +51,20 @@ typedef struct AttrReader {
     SRFSDHT        *sd;
     SKSession        *(pSession[FBR_DHT_THREADS]);
     SKAsyncNSPerspective *(ansp[FBR_DHT_THREADS]);
+    SKAsyncNSPerspective *anspDirect;
     AttrWriter    *aw;
     ResponseTimeStats    *rtsDHT;
     ResponseTimeStats    *rtsNFS;
     ReaderStats    *rs;
     G2TaskOutputReader    *g2tor;
 } AttrReader;
+
+typedef struct ARReadAttrDirectResult {
+    SKOperationState::SKOperationState  opState;
+    SKMetaData                          *metaData;
+    FileAttr                            *fa;
+    SKFailureCause::SKFailureCause      failureCause;
+} ARReadAttrDirectResult;
 
 
 ///////////////
@@ -82,5 +92,8 @@ void ar_ensure_path_fid_associated(AttrReader *ar, char * path, FileID *fid);
 
 void ar_translate_path(AttrReader *ar, char *nfsPath, const char *path);
 void ar_display_stats(AttrReader *ar, int detailedStats);
+
+void ar_delete_direct_read_result_contents(ARReadAttrDirectResult *result);
+ARReadAttrDirectResult ar_read_attr_direct(AttrReader *ar, const char *path);
 
 #endif

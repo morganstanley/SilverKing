@@ -65,12 +65,13 @@ static void wf_limit_outstanding_blocks(WritableFile *wf, FileBlockWriter *fbw, 
 static int wf_all_blocks_written_successfully(WritableFile *wf, FileBlockWriter *fbw);
 static int wf_blocks_written_successfully(WritableFile *wf, size_t numBlocks, FileBlockWriter *fbw);
 static uint64_t wf_cur_block_index(WritableFile *wf);
-static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int cacheOnly = FALSE);
+static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int cacheOnly = FALSE, int lockSeconds = 0);
 static int _wf_find_empty_ref(WritableFile *wf);
 static int _wf_has_references(WritableFile *wf);
 static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
 static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
 static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fbw);
+
 
 ///////////////////
 // implementation
@@ -193,6 +194,9 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
         if (wf_init_cur_block(wf, pbr) != 0) {
             // wf_init_cur_block can currently fail if we're given an old file attribute
             // Work around this
+            // Update: the workaround should no longer be necessary
+            // Remove after confirmation that the below logging does not appear
+            srfsLog(LOG_WARNING, "wf_init_cur_block failed %s %d", __FILE__, __LINE__);
             if (retryFlag != NULL) {
                 *retryFlag = TRUE;
             }
@@ -644,7 +648,7 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
     }
     if (blocksOK) {
         //if (wf->kvAttrStale) {
-            result = wf_update_attr(wf, aw, ac, FALSE);
+            result = wf_update_attr(wf, aw, ac, FALSE, 0);
         //}
         if (wf_syncDirUpdates && wf->parentDir != NULL) {
             srfsLog(LOG_INFO, "_wf_flush %s od_waitForWrite parentDir %s", wf->path, wf->parentDir->path);
@@ -666,7 +670,7 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
             srfsLog(LOG_WARNING, "%s okBytes %d", wf->path, okBytes);
             tResult = _wf_truncate(wf, okBytes, fbw, NULL); // NULL is allowed for pbr since we won't have any partial blocks to read
             srfsLog(LOG_WARNING, "%s _wf_truncate %s", wf->path, !tResult ? "succeeded" : "failed");
-            aResult = wf_update_attr(wf, aw, ac, FALSE);
+            aResult = wf_update_attr(wf, aw, ac, FALSE, 0);
             srfsLog(LOG_WARNING, "%s wf_update_attr %s", wf->path, !aResult ? "succeeded" : "failed");
         }
         result = EIO;
@@ -675,7 +679,7 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
     return result;
 }
 
-static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int cacheOnly) {
+static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int cacheOnly, int lockSeconds) {
     SKOperationState::SKOperationState    awResult;
     time_t    curTimeSeconds;
     long    curTimeNanos;
@@ -712,7 +716,7 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
     } else {
         //aw_write_attr(aw, wf->path, &wf->fa); // old queued async write
         // Write out attribute information & wait for the write to complete
-        awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, ac, WF_ATTR_WRITE_MAX_ATTEMPTS);
+        awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, ac, WF_ATTR_WRITE_MAX_ATTEMPTS, 0, lockSeconds);
         srfsLog(LOG_FINE, "wf_update_attr %s aw_write result %d\n", wf->path, awResult);
         if (awResult != SKOperationState::SUCCEEDED) {
             result = EIO;

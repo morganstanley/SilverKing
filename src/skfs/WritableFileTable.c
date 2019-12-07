@@ -16,6 +16,7 @@
 // private defines
 
 #define WFT_ATTR_WRITE_MAX_ATTEMPTS    12
+#define WFT_DELETION_OP_LOCK_SECONDS    60
 
 
 ///////////////////////
@@ -192,31 +193,95 @@ WritableFileReference *wft_remove(WritableFileTable *wft, const char *name) {
 
 // FUTURE - Consider moving this out of wft. No wft is currently used,
 // but wft contains locks for controlling file creation.
-int wft_delete_file(WritableFileTable *wft, const char *name, int deleteBlocks) {
+int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt, int deleteBlocks) {
     SKOperationState::SKOperationState    awResult;
     int result;    
-    int getAttrResult;
     FileAttr _fa;
     FileAttr *fa;
+    
+    ARReadAttrDirectResult  arReadAttrDirectResult;
+    SKFailureCause::SKFailureCause  skFailureCause;
 
+    skFailureCause = SKFailureCause::ERROR;
     fa = &_fa;
     memset(fa, 0, sizeof(FileAttr));
-    getAttrResult = ar_get_attr(wft->ar, (char *)name, fa);
-    awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS);
-    srfsLog(LOG_FINE, "wft_delete_file %s aw_write result %d\n", name, awResult);
-    if (awResult != SKOperationState::SUCCEEDED) {
-        result = EIO;
-    } else {
-        if (!getAttrResult) {
-            if (deleteBlocks) {
-                srfsLog(LOG_FINE, "wft_delete_file %s invalidating %d blocks\n", name, fa->stat.st_blocks);
-                fbw_invalidate_file_blocks(wft->fbw, &fa->fid, fa->stat.st_blocks);
-            }
-            result = 0;
+    
+    arReadAttrDirectResult = ar_read_attr_direct(wft->ar, name);
+    if (arReadAttrDirectResult.opState != SKOperationState::SUCCEEDED) {
+        srfsLog(LOG_WARNING, "arReadAttrDirectResult.opState != SKOperationState::SUCCEEDED  %d %d  %s %d", 
+                    arReadAttrDirectResult.opState, arReadAttrDirectResult.failureCause,
+                    __FILE__, __LINE__);
+        if (arReadAttrDirectResult.failureCause == SKFailureCause::NO_SUCH_VALUE) {
+            result = -ENOENT;
         } else {
-            srfsLog(LOG_FINE, "wft_delete_file %s failed to retrieve FileAttr; %d", name, getAttrResult);
-            result = EIO;
+            result = -EIO;
         }
+    } else {
+        if (arReadAttrDirectResult.failureCause == SKFailureCause::NO_SUCH_VALUE) {
+            result = -ENOENT;
+        } else {
+            srfsLog(LOG_FINE, "arReadAttrDirectResult.fa %llx", arReadAttrDirectResult.fa);
+            if (arReadAttrDirectResult.fa == NULL) {
+                result = -ENOENT;
+            } else {
+                memcpy(fa, arReadAttrDirectResult.fa, sizeof(FileAttr));
+                
+                int64_t lockMillisRemaining;
+
+                lockMillisRemaining = arReadAttrDirectResult.metaData->getLockMillisRemaining();
+                if (lockMillisRemaining > 0) {
+                    if (lockMillisRemaining < SKFS_LOCK_CLOCK_SKEW_TOLERANCE_MILLIS) {
+                        usleep(lockMillisRemaining * 1000);
+                    } else {
+                        srfsLog(LOG_WARNING, "wft_delete_file failed. %s lockMillisRemaining %d", name, lockMillisRemaining);
+                        ar_delete_direct_read_result_contents(&arReadAttrDirectResult);
+                        return -ENOLCK;
+                    }
+                }
+                
+                // Write lock the attr so that we can both delete the attribute and remove the directory entry
+                awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS,
+                                                &skFailureCause, arReadAttrDirectResult.metaData->getVersion(), WFT_DELETION_OP_LOCK_SECONDS);
+                if (awResult != SKOperationState::SUCCEEDED) {
+                    srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, skFailureCause, __FILE__, __LINE__);
+                    // Handle failure
+                    if (skFailureCause == SKFailureCause::INVALID_VERSION) {
+                        result = -ENOLCK;
+                    } else if (skFailureCause == SKFailureCause::LOCKED) {
+                        result = -ENOLCK;
+                    } else {
+                        result = -EIO;
+                    }
+                } else {
+                    // We have a lock on the attribute. Remove from the parent directory
+                    if (odt_rm_entry_from_parent_dir(odt, (char *)name)) {
+                        // Couldn't remove the entry in the parent. Allow the lock to timeout (rather than immediately unlocking)
+                        // FUTURE - consider attempting to backout the deletion
+                        srfsLog(LOG_WARNING, "Couldn't rm entry in parent for %s  %s %d", name, __FILE__, __LINE__);
+                        result = -EIO;
+                    } else {
+                        // Entry in parent removed.
+                        // Now write the deleted attribute
+                        // Not specifying required previous version as we already have a lock.
+                        // (Getting the actual previous version would entail another attribute fetch.)
+                        awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS, &skFailureCause, 0, 0);
+                        srfsLog(LOG_FINE, "wft_delete_file %s aw_write result %d\n", name, awResult);
+                        if (awResult != SKOperationState::SUCCEEDED) {
+                            srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, skFailureCause, __FILE__, __LINE__);
+                            result = -EIO;
+                        } else {
+                            if (deleteBlocks) {
+                                srfsLog(LOG_FINE, "wft_delete_file %s invalidating %d blocks\n", name, fa->stat.st_blocks);
+                                fbw_invalidate_file_blocks(wft->fbw, &fa->fid, fa->stat.st_blocks);
+                            }
+                            result = 0;
+                        }
+                    }
+                }
+            }
+        }        
     }
+    
+    ar_delete_direct_read_result_contents(&arReadAttrDirectResult);
     return result;
 }
