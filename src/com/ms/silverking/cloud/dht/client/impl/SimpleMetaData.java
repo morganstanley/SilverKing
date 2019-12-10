@@ -5,6 +5,7 @@ import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.MetaData;
+import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 
 public class SimpleMetaData implements MetaData {
@@ -125,6 +126,11 @@ public class SimpleMetaData implements MetaData {
     @Override
     public boolean isLocked() {
         return SystemTimeUtil.systemTimeSource.absTimeNanos() <= creationTime + (long)lockSeconds * 1_000_000_000L;
+    }
+    
+    @Override
+    public boolean isInvalidation() {
+        return MetaDataUtil.isInvalidation(checksumType, checksum);
     }
 
     @Override

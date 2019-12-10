@@ -315,6 +315,11 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
         return SystemTimeUtil.systemTimeSource.absTimeNanos() <= getCreationTimeRaw() + (long)getLockSeconds() * 1_000_000_000L;
     }
     
+    @Override
+    public boolean isInvalidation() {
+        return MetaDataUtil.isInvalidation(getChecksumType(), getChecksum());
+    }
+    
     public boolean isSegmented() {
         if (getOpResult() == OpResult.SUCCEEDED) {
             return MetaDataUtil.isSegmented(storedValue.array(), storedValue.position());

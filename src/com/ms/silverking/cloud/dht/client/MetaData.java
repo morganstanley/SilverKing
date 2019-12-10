@@ -48,6 +48,11 @@ public interface MetaData {
      */
     public boolean isLocked();
     /**
+     * Check if this is an invalidation
+     * @return true if this is an invalidation
+     */
+    public boolean isInvalidation();
+    /**
      * User data associated with a value.
      * @return user data associated with a value
      */

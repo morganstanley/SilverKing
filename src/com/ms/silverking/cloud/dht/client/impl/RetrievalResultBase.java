@@ -71,6 +71,11 @@ abstract class RetrievalResultBase<V> implements StoredValue<V> {
     public boolean isLocked() {
         return getMetaData().isLocked();
     }
+    
+    @Override
+    public boolean isInvalidation() {
+        return getMetaData().isInvalidation();
+    }
 
     @Override
     public byte[] getUserData() {

@@ -105,6 +105,14 @@ public class MetaDataUtil {
         return checksum;
     }        
     
+    public static boolean isInvalidation(ChecksumType checksumType, byte[] checksum) {
+        if (checksumType == ChecksumType.SYSTEM) {
+            return SystemChecksum.isInvalidationChecksum(checksum);
+        } else {
+            return false;
+        }
+    }
+    
     public static boolean isInvalidated(byte[] storedValue, int baseOffset) {
         ChecksumType checksumType;
         
