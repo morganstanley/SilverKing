@@ -21,10 +21,14 @@ public class RequiredPreviousVersionTest extends BaseClientTest {
     public static final String testName = "RequiredPreviousVersionTest";
     
     private static final String testKey = "k1";
-    private static final String initialValue = "v1.1";
-    private static final String failedPutValue = "v1.2";
-    private static final String modifiedValue = "v1.3";
-    private static final String modifiedValue2 = "v1.4";
+    private static final String initialValue = "v1.0";
+    private static final String failedPutValue = "v1.f";
+    private static final String modifiedValue = "v1.m";
+    private static final String modifiedValue2 = "v1.2";
+    private static final String modifiedValue3 = "v1.3";
+    private static final String modifiedValue4 = "v1.4";
+    private static final String modifiedValue5 = "v1.5";
+    private static final String modifiedValue6 = "v1.6";
     
     private static final String testKey2 = "k2";
     
@@ -33,9 +37,10 @@ public class RequiredPreviousVersionTest extends BaseClientTest {
     static {
         nsop = new HashSet<>();
         nsop.add(new Triple(ConsistencyProtocol.TWO_PHASE_COMMIT, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.NO_REVISIONS));
-        nsop.add(new Triple(ConsistencyProtocol.TWO_PHASE_COMMIT, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.UNRESTRICTED_REVISIONS));
+        //nsop.add(new Triple(ConsistencyProtocol.TWO_PHASE_COMMIT, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.UNRESTRICTED_REVISIONS));
         nsop.add(new Triple(ConsistencyProtocol.LOOSE, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.NO_REVISIONS));
-        nsop.add(new Triple(ConsistencyProtocol.LOOSE, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.UNRESTRICTED_REVISIONS));
+        //nsop.add(new Triple(ConsistencyProtocol.LOOSE, NamespaceVersionMode.CLIENT_SPECIFIED, RevisionMode.UNRESTRICTED_REVISIONS));
+        // FIXME - define semantics of required previous version for unrestricted revisions
     }
     
     public RequiredPreviousVersionTest() {
@@ -99,7 +104,6 @@ public class RequiredPreviousVersionTest extends BaseClientTest {
             syncNSP.put(testKey, modifiedValue2, defaultPutOptions.requiredPreviousVersion(2).version(3));
             checkValueAndVersion(syncNSP, testKey, modifiedValue2, 3);
 
-            
             // key2 tests
             
             checkValue(syncNSP, testKey2, null);            
@@ -158,7 +162,7 @@ public class RequiredPreviousVersionTest extends BaseClientTest {
 
             syncNSP.put(testKey2, modifiedValue2, defaultPutOptions.requiredPreviousVersion(PutOptions.previousVersionNonexistentOrInvalid).version(6));
             checkValueAndVersion(syncNSP, testKey2, modifiedValue2, 6);
-            
+
             ++successful;
         } catch (Exception e) {
             if (e instanceof PutException) {
