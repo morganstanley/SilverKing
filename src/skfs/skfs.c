@@ -1189,7 +1189,10 @@ LockAttributeResult _skfs_lock_file_attribute(const char *name, AttributeExisten
                         lockAttributeResult.attrExists ? arReadAttrDirectResult.metaData->getVersion() : SKPutOptions::previousVersionNonexistentOrInvalid(), 
                         _SKFS_RENAME_LOCK_SECONDS);
     if (awResult != SKOperationState::SUCCEEDED) {
-        srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
+        srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %d  %s %d", 
+                awResult, awFailureCause, 
+                lockAttributeResult.attrExists ? arReadAttrDirectResult.metaData->getVersion() : SKPutOptions::previousVersionNonexistentOrInvalid(),
+                __FILE__, __LINE__);
         // Handle failure
         if (awFailureCause == SKFailureCause::INVALID_VERSION) {
             lockAttributeResult.result = -ENOLCK;
