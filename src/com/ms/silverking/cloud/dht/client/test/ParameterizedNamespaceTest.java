@@ -2,10 +2,12 @@ package com.ms.silverking.cloud.dht.client.test;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
@@ -43,8 +45,8 @@ public class ParameterizedNamespaceTest implements ClientTest {
     }
 
     @Override
-    public NamespaceOptions getNamespaceOptions(NamespaceOptions sessionDefaultNSOptions) {
-        return nsOptions;
+    public List<NamespaceOptions> getNamespaceOptions(NamespaceOptions sessionDefaultNSOptions) {
+        return ImmutableList.of(nsOptions);
     }
 
     @Override

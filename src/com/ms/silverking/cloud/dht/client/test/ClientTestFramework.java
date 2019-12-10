@@ -49,19 +49,30 @@ public class ClientTestFramework {
         
         results = new ArrayList<>();
         for (ClientTest test : tests) {
-            results.add(runTest(test));
+            results.addAll(runTest(test));
         }
         return ImmutableList.copyOf(results);
     }
     
-    public Triple<String,Integer,Integer> runTest(ClientTest test) {
+    public List<Triple<String,Integer,Integer>> runTest(ClientTest test) {
+        List<Triple<String,Integer,Integer>>    results;
+        
+        results = new ArrayList<>();
+        for (NamespaceOptions nsOptions : test.getNamespaceOptions(session.getDefaultNamespaceOptions())) {
+            results.add(runTest(test, nsOptions));
+        }
+        return results;
+    }
+    
+    public Triple<String,Integer,Integer> runTest(ClientTest test, NamespaceOptions nsOptions) {
         try {
             Namespace   ns;
             UUIDBase    id;
             
             id = UUIDBase.random();
-            ns = createNamespace(test.getTestName() + id.toString(), test.getNamespaceOptions(session.getDefaultNamespaceOptions()));
+            ns = createNamespace(test.getTestName() + id.toString(), nsOptions);
             Log.warningf("\nRunning test: %s\n", test.getTestName());
+            Log.warningf("nsOptions %s", nsOptions);
             return Triple.of(test.getTestName(), test.runTest(session, ns));
         } catch (NamespaceCreationException nce) {
             Log.logErrorWarning(nce, "Unable to create namespace for test "+ test.getTestName());
