@@ -660,33 +660,117 @@ public class NamespaceStore implements SSNamespaceStore {
     
     // writeLock must be held
     private VersionCheckResult checkPutVersion(DHTKey key, long version, long requiredPreviousVersion) {
+        // FUTURE - simplify, but must be sure to avoid hurting efficiency
         if (version <= curSnapshot || version < minVersion || !nsOptions.getVersionMode().validVersion(version)) {
             return VersionCheckResult.Invalid;
         } else {
-            if (nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS) {
-                long segmentNewestVersion;
-    
-                segmentNewestVersion = newestVersion(key);
-                if (segmentNewestVersion >= 0) {
-                    if (debugVersion) {
-                        System.out.printf("version %d segmentNewestVersion %d\n", version, segmentNewestVersion);
-                    }
-                    if (version > segmentNewestVersion) {
-                        if (requiredPreviousVersion == PutOptions.noVersionRequired || requiredPreviousVersion == segmentNewestVersion) {
-                            return VersionCheckResult.Valid;
-                        } else {
-                            return VersionCheckResult.Invalid;
+            if (requiredPreviousVersion == PutOptions.noVersionRequired) {
+                if (nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS) {
+                    long newestVersion;
+        
+                    newestVersion = newestVersion(key);
+                    if (newestVersion >= 0) {
+                        if (debugVersion) {
+                            System.out.printf("version %d segmentNewestVersion %d\n", version, newestVersion);
                         }
-                    } else if (version < segmentNewestVersion) {
-                        return VersionCheckResult.Invalid;
+                        if (version > newestVersion) {
+                            return VersionCheckResult.Valid;
+                        } else if (version < newestVersion) {
+                            return VersionCheckResult.Invalid;
+                        } else {
+                            return VersionCheckResult.Equal;
+                        }
                     } else {
-                        return VersionCheckResult.Equal;
+                        return VersionCheckResult.Valid;
                     }
                 } else {
                     return VersionCheckResult.Valid;
                 }
-            } else {
-                return VersionCheckResult.Valid;
+            } else { // requiredPreviousVersion has been specified
+                if (nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS) {
+                    if (version < requiredPreviousVersion) { // sanity check PutOptions
+                        return VersionCheckResult.Invalid;
+                    } else {
+                        long newestVersion;
+            
+                        newestVersion = newestVersion(key);                        
+                        if (newestVersion >= 0) {
+                            // a value exists (might be an invalidation)
+                            if (debugVersion) {
+                                System.out.printf("version %d segmentNewestVersion %d\n", version, newestVersion);
+                            }
+                            if (version > newestVersion) {
+                                if (requiredPreviousVersion == newestVersion) {
+                                    return VersionCheckResult.Valid;
+                                } else {
+                                    if (requiredPreviousVersion == PutOptions.previousVersionNonexistent) {
+                                        return VersionCheckResult.Invalid;
+                                    } else if (requiredPreviousVersion == PutOptions.previousVersionNonexistentOrInvalid) {
+                                        return checkForInvalidation(key, newestVersion) ? VersionCheckResult.Valid : VersionCheckResult.Invalid; 
+                                    } else {
+                                        return VersionCheckResult.Invalid;
+                                    }
+                                }
+                            } else if (version < newestVersion) {
+                                // revisions disallowed by the RevisionMode
+                                return VersionCheckResult.Invalid;
+                            } else { // version == newestVersion
+                                if (requiredPreviousVersion == newestVersion) {
+                                    return VersionCheckResult.Equal;
+                                } else { 
+                                    if (requiredPreviousVersion == PutOptions.previousVersionNonexistent) {
+                                        return VersionCheckResult.Invalid;
+                                    } else if (requiredPreviousVersion == PutOptions.previousVersionNonexistentOrInvalid) {
+                                        return checkForInvalidation(key, newestVersion) ? VersionCheckResult.Valid : VersionCheckResult.Invalid; 
+                                    } else {
+                                        return VersionCheckResult.Invalid;
+                                    }
+                                }
+                            }
+                        } else { // no value exists for this key
+                            if (requiredPreviousVersion == PutOptions.previousVersionNonexistent 
+                                    || requiredPreviousVersion == PutOptions.previousVersionNonexistentOrInvalid) {
+                                return VersionCheckResult.Valid;
+                            } else {
+                                return VersionCheckResult.Invalid;
+                            }
+                        }
+                    }
+                } else { // revisions allowed
+                    // FIXME - semantics are not yet defined for this case
+                    long newestVersion;
+                    
+                    newestVersion = newestVersion(key);
+                    if (newestVersion >= 0) {
+                        // a value exists (might be an invalidation)
+                        if (debugVersion) {
+                            System.out.printf("version %d segmentNewestVersion %d\n", version, newestVersion);
+                        }
+                        if (requiredPreviousVersion == newestVersion) {
+                            // no need to check for nonexistence/invalid required versions in this case
+                            if (version == newestVersion) {
+                                return VersionCheckResult.Equal;
+                            } else {
+                                return VersionCheckResult.Valid;
+                            }
+                        } else {
+                            if (requiredPreviousVersion == PutOptions.previousVersionNonexistent) {
+                                return VersionCheckResult.Invalid;
+                            } else if (requiredPreviousVersion == PutOptions.previousVersionNonexistentOrInvalid) {
+                                return checkForInvalidation(key, newestVersion) ? VersionCheckResult.Valid : VersionCheckResult.Invalid; 
+                            } else {
+                                return VersionCheckResult.Invalid;
+                            }
+                        }
+                    } else {
+                        if (requiredPreviousVersion == PutOptions.previousVersionNonexistent 
+                                || requiredPreviousVersion == PutOptions.previousVersionNonexistentOrInvalid) {
+                            return VersionCheckResult.Valid;
+                        } else {
+                            return VersionCheckResult.Invalid;
+                        }
+                    }
+                }
             }
         }
     }
@@ -714,6 +798,21 @@ public class NamespaceStore implements SSNamespaceStore {
             }
         } else {
             return LockCheckResult.Ignored;
+        }
+    }
+    
+    // FUTURE - make checkForLock and checkForInvalidation use a common retrieval
+    private boolean checkForInvalidation(DHTKey key, long version) {
+        RetrievalOptions    options;
+        ByteBuffer          result;
+
+        options = OptionsHelper.newRetrievalOptions(RetrievalType.META_DATA, WaitMode.GET, 
+                        VersionConstraint.exactMatch(version), NonExistenceResponse.NULL_VALUE, true);
+        result = _retrieve(key, options);
+        if (result == null) {
+            return true; // shouldn't happen, but safe
+        } else {
+            return MetaDataUtil.isInvalidation(result, 0);
         }
     }
     
@@ -1004,6 +1103,9 @@ public class NamespaceStore implements SSNamespaceStore {
             throw new RuntimeException("Panic"); // moved to ActiveProxyPut for now
         } else {
             versionCheckResult = checkPutVersion(key, storageParams.getVersion(), storageParams.getRequiredPreviousVersion());
+            if (debugVersion) {
+                Log.warningf("%s %d %d %s", key, storageParams.getVersion(), storageParams.getRequiredPreviousVersion(), versionCheckResult);
+            }
         }
         switch (versionCheckResult) {
         case Invalid:
