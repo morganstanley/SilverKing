@@ -59,6 +59,17 @@ class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveI
         }
     }
     
+    public StoredValue<V> retrieve(K key) throws RetrievalException {
+        Map<K, ? extends StoredValue<V>>  storedValues;
+        
+        storedValues = retrieve(ImmutableSet.of(key), nspoImpl.getDefaultGetOptions());
+        if (storedValues.isEmpty()) {
+            return null;
+        } else {
+            return storedValues.values().iterator().next();
+        }
+    }
+    
     @Override
     public Map<K, ? extends StoredValue<V>> get(Set<? extends K> keys,
             GetOptions getOptions) throws RetrievalException {

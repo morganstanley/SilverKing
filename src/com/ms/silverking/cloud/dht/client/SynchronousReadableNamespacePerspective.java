@@ -38,6 +38,14 @@ public interface SynchronousReadableNamespacePerspective<K,V> extends BaseNamesp
      * @throws RetrievalException TODO
      */
     public StoredValue<V> retrieve(K key, RetrievalOptions retrievalOptions) throws RetrievalException;
+    /**
+     * Single value retrieval operation. 
+     * @param key key to retrieve
+     * @return a StoredValue if a the key was found to have an associated value. null otherwise unless the retrieval
+     * options are set to throw an exception for non-existence
+     * @throws RetrievalException TODO
+     */
+    public StoredValue<V> retrieve(K key) throws RetrievalException;
     
     // get - do not wait for key-value pairs to exist
     /**
