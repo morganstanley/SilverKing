@@ -436,8 +436,8 @@ public final class MessageGroup {
 
     @Override
     public String toString() {
-        return String.format("%s:%s:%x:%s:%s", messageType, uuid, context, 
-                new SimpleValueCreator(originator), getBufferLengthsString());
+        return String.format("%s:%s:%x:%s:%s:s", messageType, uuid, context, 
+                new SimpleValueCreator(originator), forward, getBufferLengthsString());
     }
     
     private String getBufferLengthsString() {
