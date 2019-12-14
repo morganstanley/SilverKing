@@ -18,7 +18,7 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
     private final ConsistencyProtocol    cpSSToVerify; // ConsistencyProtocol to verify storage state against
                                                       // non-null value implies that state should be verified
     
-    public InternalRetrievalOptions(RetrievalOptions retrievalOptions, boolean verifyIntegrity, ConsistencyProtocol    cpSSToVerify) {
+    public InternalRetrievalOptions(RetrievalOptions retrievalOptions, boolean verifyIntegrity, ConsistencyProtocol cpSSToVerify) {
         this.retrievalOptions = retrievalOptions;
         this.verifyIntegrity = verifyIntegrity;
         this.cpSSToVerify = cpSSToVerify;
