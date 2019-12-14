@@ -1299,7 +1299,7 @@ int _skfs_rename_phase1(const char *source, const char *target, unordered_map<st
                         sprintf(targetChildPath, "%s/%s", target, de_get_name(de));
                         rc = _skfs_rename_phase1(sourceChildPath, targetChildPath, p1rMap);
                         if (rc != 0) {
-                            srfsLog(LOG_WARNING, "rc != 0  %s %d  %s %d", source, rc, __FILE__, __LINE__);
+                            srfsLog(LOG_WARNING, "rc != 0  %s %s  %d  %s %d", sourceChildPath, targetChildPath,  rc, __FILE__, __LINE__);
                             p1r.result = rc;
                             dd_delete(&dd);
                             return p1r.result;
