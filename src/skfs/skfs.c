@@ -164,6 +164,7 @@ using std::make_pair;
 #define _PREREAD_SIZE 1
 
 #define _MAX_FILE_CREATION_ATTEMPTS 4
+#define _ATTR_DIRECT_WRITE_ATTEMPTS 10
 
 
 //////////////////
@@ -1424,14 +1425,14 @@ int _skfs_rename_phase2(const char *source, const char *target, unordered_map<st
         fa.stat.st_ctime = curEpochTimeSeconds;
         fa.stat.st_ctim.tv_nsec = curTimeNanos;
         // (This write will link the blocks [for files] and unlock the target)
-        awResult = aw_write_attr_direct(aw, target, &fa, ar->attrCache, 1, &awFailureCause, 0, 0);
+        awResult = aw_write_attr_direct(aw, target, &fa, ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, 0, 0);
         if (awResult != SKOperationState::SUCCEEDED) {
             srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
             result = -EIO;
         } else {
             // Delete the old file (releases the lock on the old file)
             awFailureCause = SKFailureCause::ERROR; // default value; should be unused
-            awResult = aw_write_attr_direct(aw, source, fa_get_deletion_fa(), ar->attrCache, 1, &awFailureCause, 0, 0);
+            awResult = aw_write_attr_direct(aw, source, fa_get_deletion_fa(), ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, 0, 0);
             srfsLog(LOG_FINE, "_skfs_rename %s aw_write result %d\n", source, awResult);
             if (awResult != SKOperationState::SUCCEEDED) {
                 srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
@@ -1457,7 +1458,7 @@ int _skfs_unlock_lar(const char *name, LockAttributeResult lockAttributeResult) 
     // Request an invalidation write if there was no attribute.
     awResult = aw_write_attr_direct(aw, name, 
                         lockAttributeResult.attrExists ? &lockAttributeResult.fa : fa_get_deletion_fa(), 
-                        ar->attrCache, 1, // one write attempt
+                        ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, // one write attempt
                         &awFailureCause, 0, 0);
     if (awResult != SKOperationState::SUCCEEDED) {
         int result;

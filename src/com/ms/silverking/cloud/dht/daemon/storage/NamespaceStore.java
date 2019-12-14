@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Level;
 
 import com.google.common.cache.Cache;
@@ -146,9 +148,9 @@ public class NamespaceStore implements SSNamespaceStore {
     private final ReadWriteLock metaRWLock;
     private final Lock metaReadLock;
     private final Lock metaWriteLock;
-    private final ReadWriteLock rwLock;
-    private final Lock readLock;
-    private final Lock writeLock;
+    private final ReentrantReadWriteLock    rwLock;
+    private final ReadLock readLock;
+    private final WriteLock writeLock;
     private long minVersion;
     private long curSnapshot;
     private final ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals;
@@ -206,6 +208,8 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private static final long    nsIdleIntervalMillis = 4 * 60 * 1000;
     private static final long    minFullReapIntervalMillis = 4 * 60 * 60 * 1000;
+    
+    private static final long   maxInvalidSSLockSeconds = 10;
     
     public enum DirCreationMode {
         CreateNSDir, DoNotCreateNSDir
@@ -782,22 +786,57 @@ public class NamespaceStore implements SSNamespaceStore {
 
             options = OptionsHelper.newRetrievalOptions(RetrievalType.META_DATA, WaitMode.GET, 
                             VersionConstraint.greatest, NonExistenceResponse.NULL_VALUE, true);
-            result = _retrieve(key, options);
+            result = _retrieve(key, new InternalRetrievalOptions(options), false);
             if (result == null) {
+                //Log.warningf("%s %d unlocked.1", KeyUtil.keyToString(key), storageParams != null ? storageParams.getVersion() : -1);
                 return LockCheckResult.Unlocked;
             } else {
                 short    existingLockSeconds;
                 
                 existingLockSeconds = MetaDataUtil.getLockSeconds(result, 0);
+                //Log.warningf("%s %d %d %d %s %s", KeyUtil.keyToString(key), storageParams != null ? storageParams.getVersion() : -1, existingLockSeconds, MetaDataUtil.getVersion(result, 0), writeLock, writeLock.isHeldByCurrentThread());
                 if (existingLockSeconds == PutOptions.noLock) {
                     return LockCheckResult.Unlocked;
                 } else {
-                    return systemTimeSource.absTimeNanos() <= MetaDataUtil.getCreationTime(result, 0) + (long)existingLockSeconds * 1_000_000_000L
+                    long    lockSeconds;
+                    
+                    if (StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+                            MetaDataUtil.getStorageState(result, 0))) {
+                        lockSeconds = (long)existingLockSeconds;
+                    } else {
+                        lockSeconds = maxInvalidSSLockSeconds;
+                    }
+                    return systemTimeSource.absTimeNanos() <= MetaDataUtil.getCreationTime(result, 0) + lockSeconds * 1_000_000_000L
                             ? LockCheckResult.Locked : LockCheckResult.Unlocked;
                 }
             }
         } else {
+            //Log.warningf("%s %d ignored.1", KeyUtil.keyToString(key), storageParams.getVersion());
             return LockCheckResult.Ignored;
+        }
+    }
+
+    private LockCheckResult checkForLockOnPutUpdate(DHTKey key, AbstractSegment segment, long version) {
+        RetrievalOptions options;
+        ByteBuffer         result;
+
+        options = OptionsHelper.newRetrievalOptions(RetrievalType.META_DATA, WaitMode.GET, 
+                        VersionConstraint.exactMatch(version), NonExistenceResponse.NULL_VALUE, true);
+        result = retrieve(segment, key, new InternalRetrievalOptions(options), true);
+        if (result == null) {
+            //Log.warningf("%s %d error in checkForLockOnPutUpdate", KeyUtil.keyToString(key), version);
+            return LockCheckResult.Unlocked;
+        } else {
+            short    existingLockSeconds;
+            
+            existingLockSeconds = MetaDataUtil.getLockSeconds(result, 0);
+            //Log.warningf("cflopu: %s %d %d %d %s %s", KeyUtil.keyToString(key), version, existingLockSeconds, MetaDataUtil.getVersion(result, 0), writeLock, writeLock.isHeldByCurrentThread());
+            if (existingLockSeconds == PutOptions.noLock) {
+                return LockCheckResult.Unlocked;
+            } else {
+                return systemTimeSource.absTimeNanos() <= MetaDataUtil.getCreationTime(result, 0) + (long)existingLockSeconds * 1_000_000_000L
+                        ? LockCheckResult.Locked : LockCheckResult.Unlocked;
+            }
         }
     }
     
@@ -1392,7 +1431,15 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (debugSegments) {
                     Log.warning("PutUpdate, head segment");
                 }
-                result = headSegment.putUpdate(key, version, storageState);
+                result = headSegment.putUpdate(key, version, storageState, false);
+                if (result == OpResult.LOCKED) {
+                    // OpResult.LOCKED here simply indicates the intent of the store to lock
+                    if (checkForLockOnPutUpdate(key, headSegment, version) == LockCheckResult.Locked) {
+                        result = OpResult.LOCKED;
+                    } else {
+                        result = headSegment.putUpdate(key, version, storageState, true);
+                    }
+                }
                 if (debugSegments) {
                     Log.warning("Done PutUpdate, head segment "+ result +" "+ storageState);
                 }
@@ -1404,7 +1451,15 @@ public class NamespaceStore implements SSNamespaceStore {
                     if (debugSegments) {
                         Log.warning("Read from file segment");
                     }
-                    result = segment.putUpdate(key, version, storageState);
+                    result = segment.putUpdate(key, version, storageState, false);
+                    if (result == OpResult.LOCKED) {
+                        // OpResult.LOCKED here simply indicates the intent of the store to lock
+                        if (checkForLockOnPutUpdate(key, segment, version) == LockCheckResult.Locked) {
+                            result = OpResult.LOCKED;
+                        } else {
+                            result = segment.putUpdate(key, version, storageState, true);
+                        }
+                    }
                     if (debugSegments) {
                         Log.warning("Done read from file segment");
                         Log.warning("result: " + result);
@@ -1892,6 +1947,10 @@ public class NamespaceStore implements SSNamespaceStore {
     */
     
     protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
+        return _retrieve(key, options, true);
+    }
+    
+    protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options, boolean verifySS) {
         int segmentNumber;
         VersionConstraint    versionConstraint;
         int    failedStore;
@@ -1920,7 +1979,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         if (debugSegments) {
                             Log.warning("Read from head segment");
                         }
-                        result = retrieve(headSegment, key, options);
+                        result = retrieve(headSegment, key, options, verifySS);
                         if (debugSegments) {
                             Log.warning("Done read from head segment");
                         }
@@ -1932,7 +1991,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             if (debugSegments) {
                                 Log.warning("Read from file segment");
                             }
-                            result = retrieve(segment, key, options);
+                            result = retrieve(segment, key, options, verifySS);
                             if (debugSegments) {
                                 Log.warning("Done read from file segment");
                                 Log.warning("result: " + result);
@@ -1955,7 +2014,7 @@ public class NamespaceStore implements SSNamespaceStore {
                                 CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0))));
                     }
                     // FUTURE - this is a temporary workaround until the versioned storage is overhauled
-                    if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+                    if (verifySS && !StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
                                                    MetaDataUtil.getStorageState(result, 0))) {
                         //System.out.printf("key %s storage state: %d\n", KeyUtil.keyToString(key), 
                         //        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
@@ -2017,7 +2076,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         if (debugSegments) {
                             Log.warning("Read from head segment");
                         }
-                        results[i] = retrieve(headSegment, keysSegmentNumbersAndIndices[i].getV1(), options);
+                        results[i] = retrieve(headSegment, keysSegmentNumbersAndIndices[i].getV1(), options, true);
                         if (debugSegments) {
                             Log.warning("Done read from head segment");
                         }
@@ -2029,7 +2088,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             if (debugSegments) {
                                 Log.warning("Read from file segment");
                             }
-                            results[i] = retrieve(segment, keysSegmentNumbersAndIndices[i].getV1(), options);
+                            results[i] = retrieve(segment, keysSegmentNumbersAndIndices[i].getV1(), options, true);
                             if (debugSegments) {
                                 Log.warning("Done read from file segment");
                                 Log.warning("result: " + results[i]);
@@ -2074,15 +2133,16 @@ public class NamespaceStore implements SSNamespaceStore {
      * @param segment
      * @param key
      * @param options
+     * @param verifySS 
      * @return
      */
-    private ByteBuffer retrieve(AbstractSegment segment, DHTKey key, InternalRetrievalOptions options) {
+    private ByteBuffer retrieve(AbstractSegment segment, DHTKey key, InternalRetrievalOptions options, boolean verifySS) {
         try {
             ByteBuffer    result;
             
-            result = segment.retrieve(key, options);
-            if (result != null && verifyStorageState && !storageStateValid(result)) {
-                result = segment.retrieve(key, options.cpSSToVerify(nsOptions.getConsistencyProtocol()));
+            result = segment.retrieve(key, options, false);
+            if (result != null && verifySS && verifyStorageState && !storageStateValid(result)) {
+                result = segment.retrieve(key, options.cpSSToVerify(nsOptions.getConsistencyProtocol()), true);
             }
             return result;
         } catch (RuntimeException re) {
@@ -2189,7 +2249,7 @@ public class NamespaceStore implements SSNamespaceStore {
         if (debugSegments) {
             Log.warning("Read segmentVersion");
         }
-        result = retrieve(segment, key, retrievalOptions);
+        result = retrieve(segment, key, retrievalOptions, true);
         if (debugSegments) {
             Log.warning("Done read segmentVersion");
             Log.warning("result: " + result);

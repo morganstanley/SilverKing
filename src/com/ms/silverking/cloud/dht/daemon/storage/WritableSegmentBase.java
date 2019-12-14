@@ -337,7 +337,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     
     public abstract void persist() throws IOException;
 
-    public OpResult putUpdate(DHTKey key, long version, byte storageState) {
+    public OpResult putUpdate(DHTKey key, long version, byte storageState, boolean ignoreLock) {
         int offset;
         
         if (debugPut) {
@@ -349,8 +349,12 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
             return OpResult.ERROR;
         } else {
             offset += DHTKey.BYTES_PER_KEY;
-            MetaDataUtil.updateStorageState(dataBuf, offset, storageState);
-            return OpResult.SUCCEEDED;
+            if (!ignoreLock && MetaDataUtil.getLockSeconds(dataBuf, offset) > 0) {
+                return OpResult.LOCKED; // overloading the intent here to relay the lock request
+            } else {
+                MetaDataUtil.updateStorageState(dataBuf, offset, storageState);
+                return OpResult.SUCCEEDED;
+            }
         }
     }
     

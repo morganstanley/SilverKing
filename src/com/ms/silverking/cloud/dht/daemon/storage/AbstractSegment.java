@@ -187,6 +187,10 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     */
     
     public ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options) {
+        return retrieve(key, options);
+    }
+    
+    public ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options, boolean verifySS) {
         try {
             int offset;
             
@@ -194,7 +198,7 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
             if (debugRetrieve) {
                 Log.warningf("AbstractSegment.retrieve %s %s %d", key, options, offset);
             }
-            return retrieve(key, options, offset);
+            return retrieve(key, options, offset, verifySS);
         } catch (RuntimeException re) { // FIXME - TEMP DEBUG
             Log.warningf("segment %d %s %s", getSegmentNumber(), key, options);
             re.printStackTrace();
@@ -224,7 +228,7 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     }
     
     @SuppressWarnings("unused")
-    private ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options, int offset) {
+    private ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options, int offset, boolean verifySS) {
         // FUTURE - think about getResolvedOffset and doubleCheckVersion
         // Currently can't use getResolvedOffset due to the doubleCheckVersion
         // code. Need to determine if that code is required.
@@ -257,7 +261,7 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
                     Log.warning("offsetList: ", offsetList);
                     offsetList.displayForDebug();
                 }
-                if (options.getVerifyStorageState()) {
+                if (verifySS && options.getVerifyStorageState()) {
                     validityVerifier = new ValidityVerifier(dataBuf, options.getCPSSToVerify());
                 } else {
                     validityVerifier = null;
