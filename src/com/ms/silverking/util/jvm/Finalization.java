@@ -42,7 +42,7 @@ public class Finalization {
                     sw.stop();
                     finalized = true;
                     if (verboseFinalization) {
-                        Log.finef("Finalization completed in %f seconds\n", sw.getElapsedSeconds());
+                        Log.warningf("Finalization completed in %f seconds\n", sw.getElapsedSeconds());
                     }
                 } else {
                     finalized = false;

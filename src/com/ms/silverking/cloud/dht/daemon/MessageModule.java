@@ -514,7 +514,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         version = ProtoPutUpdateMessageGroup.getPutVersion(message);
         storageState = ProtoPutUpdateMessageGroup.getStorageState(message);
         if (debug) {
-            Log.fineAsyncf("handlePutUpdate storageState: %s ", storageState);
+            Log.warningAsyncf("handlePutUpdate storageState: %s ", storageState);
         }
         results = new ArrayList<>();
         for (MessageGroupKeyEntry entry : message.getKeyIterator()) {

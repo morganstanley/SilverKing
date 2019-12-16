@@ -75,17 +75,17 @@ public class StorageModule implements LinkCreationListener {
     private StoragePolicyGroup  spGroup;
     private ConcurrentMap<UUIDBase,ActiveProxyRetrieval>  activeRetrievals;
     private NodeNamespaceStore    nodeNSStore;
-    private SystemNamespaceStore	systemNSStore;
+    private SystemNamespaceStore    systemNSStore;
     private ReplicasNamespaceStore  replicasNSStore;
     private Lock    nsCreationLock;
     private final ZooKeeperExtended zk;
     private final String            nsLinkBasePath;
     private final MethodCallWorker  methodCallBlockingWorker;
     private final MethodCallWorker  methodCallNonBlockingWorker;
-    private final Timer				timer;
+    private final Timer                timer;
     private final ValueCreator      myOriginatorID;
-    private final NodeInfoZK		nodeInfoZK;
-    private final ReapPolicy		reapPolicy;
+    private final NodeInfoZK        nodeInfoZK;
+    private final ReapPolicy        reapPolicy;
     private final File              trashManualDir;
     private SafeTimerTask cleanerTask;
     private SafeTimerTask reapTask;
@@ -121,19 +121,19 @@ public class StorageModule implements LinkCreationListener {
     private enum NSCreationMode {CreateIfAbsent, DoNotCreate};
     public enum RetrievalImplementation {Ungrouped, Grouped};
     
-    private static final Set<Long>			dynamicNamespaces = new HashSet<>();
+    private static final Set<Long>            dynamicNamespaces = new HashSet<>();
 
     private static final String trashManualDirName = "trash_manual";
     private static final String deletedDirName = "_deleted_";
     private static final String dateFormatStr = "yyyy-mm-dd_hh-mm-ss";
     private static final String utcZone = "UTC";
 
-    private static final RetrievalImplementation	retrievalImplementation;
+    private static final RetrievalImplementation    retrievalImplementation;
 
     static {
-    	retrievalImplementation = RetrievalImplementation.valueOf(
-    			PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
-    	Log.warningf("retrievalImplementation: %s", retrievalImplementation);
+        retrievalImplementation = RetrievalImplementation.valueOf(
+                PropertiesHelper.systemHelper.getString(DHTConstants.retrievalImplementationProperty, DHTConstants.defaultRetrievalImplementation.toString()));
+        Log.warningf("retrievalImplementation: %s", retrievalImplementation);
     }
     
     public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy) {
@@ -206,7 +206,7 @@ public class StorageModule implements LinkCreationListener {
         this.cleanerTask = new SafeTimerTask(new Cleaner());
         timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
         if (reapPolicy.supportsLiveReap()) {
-        	this.reapTask = new SafeTimerTask(new Reaper());
+            this.reapTask = new SafeTimerTask(new Reaper());
             timer.scheduleAtFixedRate(reapTask, reapPolicy.getReapIntervalMillis(), reapPolicy.getReapIntervalMillis());
         }
     }
@@ -241,7 +241,7 @@ public class StorageModule implements LinkCreationListener {
     }
 
     private void addDynamicNamespace(DynamicNamespaceStore nsStore) {
-    	dynamicNamespaces.add(nsStore.getNamespace());
+        dynamicNamespaces.add(nsStore.getNamespace());
         namespaces.put(nsStore.getNamespace(), nsStore);
         // FUTURE - below is a duplicative store since the deeper map also has this
         // NOTE: We have a memory cache for nsProperties here; This cache needs to be properly updated if we support on-the-fly nsProperties modify
@@ -273,9 +273,9 @@ public class StorageModule implements LinkCreationListener {
     }
     
     private void startLinkWatches() {
-    	for (NamespaceStore nsStore: namespaces.values()) {
+        for (NamespaceStore nsStore: namespaces.values()) {
             nsStore.startWatches(zk, nsLinkBasePath, this);
-    	}
+        }
     }
 
     private File renameDeletedNs(File nsDir) throws IOException {
@@ -311,7 +311,7 @@ public class StorageModule implements LinkCreationListener {
             long    ns;
             NamespaceProperties nsProperties;
             NamespaceStore  parent;
-            NamespaceStore	nsStore;
+            NamespaceStore    nsStore;
                 
             Log.warning("\t\tRecovering: "+ nsDir.getName());
             ns = NamespaceUtil.dirNameToContext(nsDir.getName());
@@ -527,11 +527,11 @@ public class StorageModule implements LinkCreationListener {
             // Can't use DoNotCreate if we have a waitfor.
             //nsStore = getNamespaceStore(ns, NSCreationMode.DoNotCreate);
             if (nsStore != null) {
-            	if (retrievalImplementation == RetrievalImplementation.Grouped) {
-            		return nsStore.retrieve(keys, options, opUUID);
-            	} else {
-            		return nsStore.retrieve_nongroupedImpl(keys, options, opUUID);
-            	}
+                if (retrievalImplementation == RetrievalImplementation.Grouped) {
+                    return nsStore.retrieve(keys, options, opUUID);
+                } else {
+                    return nsStore.retrieve_nongroupedImpl(keys, options, opUUID);
+                }
             } else {
                 return null;
             }
@@ -560,41 +560,41 @@ public class StorageModule implements LinkCreationListener {
     }
     
     public void startupReap() {
-    	Stopwatch	sw;
+        Stopwatch    sw;
 
-    	Log.info("Startup reap");
-    	sw = new SimpleStopwatch();
+        Log.warning("Startup reap");
+        sw = new SimpleStopwatch();
         for (NamespaceStore ns : namespaces.values()) {
-        	if (!ns.isDynamic()) {
-        		ns.startupReap();
-        	}
+            if (!ns.isDynamic()) {
+                ns.startupReap();
+            }
         }
-    	sw.stop();
-    	Log.infof("Startup reap complete: %f", sw.getElapsedSeconds());
+        sw.stop();
+        Log.warningf("Startup reap complete: %f", sw.getElapsedSeconds());
     }
     
     public void liveReap() {
-    	if (!RingMapState2.localNodeIsExcluded()) {
-	    	Stopwatch	sw;
-	    	
-			if (reapPolicy.verboseReap()) {
-				Log.infoAsync("Live reap");
-			}
-	    	sw = new SimpleStopwatch();
-	        for (NamespaceStore ns : namespaces.values()) {
-	        	if (!ns.isDynamic()) {
-	        		ns.liveReap();
-	        	}
-	        }
-	    	sw.stop();
-			if (reapPolicy.verboseReap()) {
-				Log.infoAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
-			}
-    	} else {
-			if (reapPolicy.verboseReap()) {
-				Log.infoAsync("Skipping live reap. Local node is excluded.");
-			}
-    	}
+        if (!RingMapState2.localNodeIsExcluded()) {
+            Stopwatch    sw;
+            
+            if (reapPolicy.verboseReap()) {
+                Log.warningAsync("Live reap");
+            }
+            sw = new SimpleStopwatch();
+            for (NamespaceStore ns : namespaces.values()) {
+                if (!ns.isDynamic()) {
+                    ns.liveReap();
+                }
+            }
+            sw.stop();
+            if (reapPolicy.verboseReap()) {
+                Log.infoAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
+            }
+        } else {
+            if (reapPolicy.verboseReap()) {
+                Log.infoAsync("Skipping live reap. Local node is excluded.");
+            }
+        }
     }
     
     /////////////////////////
@@ -605,19 +605,19 @@ public class StorageModule implements LinkCreationListener {
                                          ConvergencePoint sourceCP, MessageGroupConnection connection, 
                                          byte[] originator, RingRegion region, IPAndPort replica, Integer timeoutMillis) {
         NamespaceStore  nsStore;
-        boolean			success;
-        OpResult		result;
-        ProtoOpResponseMessageGroup	response;
+        boolean            success;
+        OpResult        result;
+        ProtoOpResponseMessageGroup    response;
         
         nsStore = getNamespaceStore(ns, NSCreationMode.CreateIfAbsent);
-		success = nsStore.getChecksumTreeForLocal(uuid, targetCP, sourceCP, connection, originator, region, replica, timeoutMillis);
-		result = success ? OpResult.SUCCEEDED : OpResult.ERROR;
-		response = new ProtoOpResponseMessageGroup(uuid, 0, result, SimpleValueCreator.forLocalProcess().getBytes(), timeoutMillis);
-		try {
-			connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.systemTimeSource.absTimeMillis() + timeoutMillis);
-		} catch (IOException ioe) {
-			Log.logErrorWarning(ioe);
-		}
+        success = nsStore.getChecksumTreeForLocal(uuid, targetCP, sourceCP, connection, originator, region, replica, timeoutMillis);
+        result = success ? OpResult.SUCCEEDED : OpResult.ERROR;
+        response = new ProtoOpResponseMessageGroup(uuid, 0, result, SimpleValueCreator.forLocalProcess().getBytes(), timeoutMillis);
+        try {
+            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.systemTimeSource.absTimeMillis() + timeoutMillis);
+        } catch (IOException ioe) {
+            Log.logErrorWarning(ioe);
+        }
     }
 
     // ns is Long so that invokeAsync works
@@ -704,29 +704,29 @@ public class StorageModule implements LinkCreationListener {
     
     /////////////////////////////////
     
-	public void handleSetConvergenceState(MessageGroup message, MessageGroupConnection connection) {
-		ringMaster.setConvergenceState(message, connection);
-	}
+    public void handleSetConvergenceState(MessageGroup message, MessageGroupConnection connection) {
+        ringMaster.setConvergenceState(message, connection);
+    }
 
-	public void handleReap(MessageGroup message, MessageGroupConnection connection) {
-		OpResult	result;
-		ProtoOpResponseMessageGroup	response;
+    public void handleReap(MessageGroup message, MessageGroupConnection connection) {
+        OpResult    result;
+        ProtoOpResponseMessageGroup    response;
 
         asyncInvocationNonBlocking("reap");
-		result = OpResult.SUCCEEDED;
-		response = new ProtoOpResponseMessageGroup(message.getUUID(), 0, result, myOriginatorID.getBytes(), message.getDeadlineRelativeMillis());
-		try {
-			connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.systemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
-		} catch (IOException ioe) {
-			Log.logErrorWarning(ioe);
-		}
-	}
+        result = OpResult.SUCCEEDED;
+        response = new ProtoOpResponseMessageGroup(message.getUUID(), 0, result, myOriginatorID.getBytes(), message.getDeadlineRelativeMillis());
+        try {
+            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.systemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
+        } catch (IOException ioe) {
+            Log.logErrorWarning(ioe);
+        }
+    }
 
     /////////////////////////////////
 
     private static final String methodCallBlockingPoolName = "StorageBlockingMethodCallPool";
     private static final String methodCallNonBlockingPoolName = "StorageNonBlockingMethodCallPool";
-    private static final int	_methodCallPoolSize = NumUtil.bound(20, 2, Runtime.getRuntime().availableProcessors() / 2);
+    private static final int    _methodCallPoolSize = NumUtil.bound(20, 2, Runtime.getRuntime().availableProcessors() / 2);
     private static final int    methodCallBlockingPoolTargetSize = _methodCallPoolSize;
     private static final int    methodCallBlockingPoolMaxSize = _methodCallPoolSize;
     private static final int    methodCallNonBlockingPoolTargetSize = _methodCallPoolSize;
@@ -734,7 +734,7 @@ public class StorageModule implements LinkCreationListener {
     private static final int    methodCallPoolWorkUnit = 16;
     
     static {
-    	Log.warningf("_methodCallPoolSize: %d", _methodCallPoolSize);
+        Log.warningf("_methodCallPoolSize: %d", _methodCallPoolSize);
     }
     
     // methods called from here may block on a local or remote async invocation

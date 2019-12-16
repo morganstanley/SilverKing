@@ -254,7 +254,7 @@ public class FileSegment extends WritableSegmentBase {
                 offsetList = null;
             }
             if (offsetList != null) {
-                Log.finef("Offset list: %s", i);
+                Log.warningf("Offset list: %s", i);
                 offsetList.displayForDebug();
                 i++;
             } else {

@@ -217,7 +217,7 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         protoMG = asyncOpImpls[startIndex].createProtoMG(estimate);
         
         if (debug) {
-            Log.fineAsyncf("asyncOpImpls.length %d startIndex %d endIndex %d", asyncOpImpls.length, startIndex, endIndex);
+            Log.warningAsyncf("asyncOpImpls.length %d startIndex %d endIndex %d", asyncOpImpls.length, startIndex, endIndex);
         }
         messageGroups = new ArrayList<>();
         // Walk through all of the compatible operations.
