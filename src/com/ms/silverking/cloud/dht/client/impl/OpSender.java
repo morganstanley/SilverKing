@@ -225,7 +225,7 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         // then create a new protoMG and add the old to the messageGroups list.
         for (int i = startIndex; i <= endIndex; i++) {
             if (debug) {
-                Log.fineAsyncf("Calling create with %s for %s", protoMG.getUUID(), asyncOpImpls[i].objectToString());
+                Log.warningAsyncf("Calling create with %s for %s", protoMG.getUUID(), asyncOpImpls[i].objectToString());
             }
             protoMG = asyncOpImpls[i].createMessagesForIncomplete(protoMG, messageGroups, estimate);
         }
@@ -235,8 +235,8 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         // FUTURE - consider sending sooner, in creation loop
         for (MessageGroup messageGroup : messageGroups) {
             if (debug) {
-                Log.fineAsync("OpSender sending:");
-                Log.fineAsync(messageGroup);
+                Log.warningAsync("OpSender sending:");
+                Log.warningAsync(messageGroup);
                 messageGroup.displayForDebug();
             }
             send(messageGroup);

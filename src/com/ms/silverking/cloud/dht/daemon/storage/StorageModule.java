@@ -588,11 +588,11 @@ public class StorageModule implements LinkCreationListener {
             }
             sw.stop();
             if (reapPolicy.verboseReap()) {
-                Log.infoAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
+                Log.warningAsyncf("Live reap complete: %f", sw.getElapsedSeconds());
             }
         } else {
             if (reapPolicy.verboseReap()) {
-                Log.infoAsync("Skipping live reap. Local node is excluded.");
+                Log.warningAsync("Skipping live reap. Local node is excluded.");
             }
         }
     }

@@ -549,11 +549,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                                     results.size(), 
                                     mgBase.getMyID(), storageState, deadlineRelativeMillis); // FUTURE - allow constructor without this?
             if (debug) {
-                Log.fineAsyncf("results.size: %d"+ results.size());
+                Log.warningAsyncf("results.size: %d", results.size());
             }
             for (PutResult result : results) {
                 if (debug) {
-                    Log.fineAsync(result);
+                    Log.warningAsync(result);
                 }
                 response.addResult(result.getKey(), result.getResult());           
             }
@@ -602,7 +602,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             PrimarySecondaryIPListPair  replicaListPair;
             
             if (debug) {
-                Log.fineAsyncf("getReplicaListPair: %s ", key);
+                Log.warningAsyncf("getReplicaListPair: %s ", key);
             }
             // FUTURE - think about improvements
             replicaListPair = ringMaster.getReplicaListPair(key, ownerQueryOpType);
@@ -620,12 +620,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             List<IPAndPort>   replicaList;
             
             if (debug) {
-                Log.fineAsyncf("getReplicas %s \t %s",key , oqm);
+                Log.warningAsyncf("getReplicas %s \t %s",key , oqm);
             }
             // FUTURE - think about improvements
             replicaList = ringMaster.getReplicaList(key, oqm, ownerQueryOpType);
             if (debug) {
-                Log.fineAsyncf("%s \t %s",key , CollectionUtil.toString(replicaList, ':'));
+                Log.warningAsyncf("%s \t %s",key , CollectionUtil.toString(replicaList, ':'));
             }
             return replicaList;
         }
@@ -636,12 +636,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         IPAndPort[]   replicas;
         
         if (debug) {
-            Log.fineAsyncf("getPrimaryReplicas ", key);
+            Log.warningAsyncf("getPrimaryReplicas ", key);
         }
         // FUTURE - think about improvements
         replicas = ringMaster.getReplicas(key, oqm, ownerQueryOpType);
         if (debug) {
-            Log.fineAsyncf("%s \t %s", key , IPAndPort.arrayToString(replicas));
+            Log.warningAsyncf("%s \t %s", key , IPAndPort.arrayToString(replicas));
         }
         return replicas;
     }
@@ -653,7 +653,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     @Override
     public boolean isLocal(IPAndPort replica) {
         if (debug) {
-            Log.fineAsyncf("#### %s %s\t%s",replica, myIPAndPort, replica.equals(myIPAndPort));
+            Log.warningAsyncf("#### %s %s\t%s",replica, myIPAndPort, replica.equals(myIPAndPort));
         }
         return replica.equals(myIPAndPort);
     }

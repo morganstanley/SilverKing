@@ -927,8 +927,8 @@ public class NamespaceStore implements SSNamespaceStore {
     
         newestSegment = newestSegment(key);
         if (debugVersion) {
-            Log.fineAsyncf("newestVersion(%s)", key);
-            Log.fineAsyncf("newestSegment: (%s)", newestSegment);
+            Log.warningAsyncf("newestVersion(%s)", key);
+            Log.warningAsyncf("newestSegment: (%s)", newestSegment);
         }
         if (newestSegment != null && newestSegment >= 0) {
             long[] segmentNewestVersionAndStorageTime;
@@ -947,8 +947,8 @@ public class NamespaceStore implements SSNamespaceStore {
     // write lock must be held
     private Set<Waiter> checkPendingWaitFors(DHTKey key) {
         if (debugWaitFor) {
-            Log.fineAsync("checkPendingWaitFors");
-            Log.fineAsyncf("pendingWaitFors.size() %d", pendingWaitFors.size());
+            Log.warningAsync("checkPendingWaitFors");
+            Log.warningAsyncf("pendingWaitFors.size() %d", pendingWaitFors.size());
         }
         if (pendingWaitFors.size() > 0) {
             Set<Waiter> triggeredWaiters;
@@ -961,7 +961,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     ByteBuffer result;
 
                     if (debugWaitFor) {
-                        Log.fineAsyncf("pendingWaitFor %s options %s", pendingWaitFor, pendingWaitFor.getOptions());
+                        Log.warningAsyncf("pendingWaitFor %s options %s", pendingWaitFor, pendingWaitFor.getOptions());
                     }
                     result = _retrieve(key, pendingWaitFor.getOptions());
                     if (result != null) {
@@ -977,7 +977,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             // duplicate the result so that each
                             // waiter gets its own
                             if (debugWaitFor) {
-                                Log.fineAsyncf("Triggering waiter for %s", pendingWaitFor.getOpUUID());
+                                Log.warningAsyncf("Triggering waiter for %s", pendingWaitFor.getOpUUID());
                             }
                             waiter.waitForTriggered(key, result.duplicate());
                             // Give the waiter the result of the waitfor.
@@ -986,19 +986,19 @@ public class NamespaceStore implements SSNamespaceStore {
                             // they have all been gathered.
                         } else {
                             if (debugWaitFor) {
-                                Log.fineAsyncf("No waiter found for %s", pendingWaitFor.getOpUUID());
+                                Log.warningAsyncf("No waiter found for %s", pendingWaitFor.getOpUUID());
                             }
                         }
                         pendingWaitForCollection.remove(pendingWaitFor);
                     } else {
                         if (debugWaitFor) {
-                            Log.fineAsyncf("No result found for %s", KeyUtil.keyToString(key));
+                            Log.warningAsyncf("No result found for %s", KeyUtil.keyToString(key));
                         }
                     }
                 }
             } else {
                 if (debugWaitFor) {
-                    Log.fineAsync("pendingWaitForCollection not found");
+                    Log.warningAsync("pendingWaitForCollection not found");
                 }
             }
             return triggeredWaiters;
@@ -1009,7 +1009,7 @@ public class NamespaceStore implements SSNamespaceStore {
 
     private void handleTriggeredWaitFors(Set<Waiter> triggeredWaitFors) {
         if (debugWaitFor) {
-            Log.fineAsync("handleTriggeredWaitFors");
+            Log.warningAsync("handleTriggeredWaitFors");
         }
         if (triggeredWaitFors != null) {
             for (Waiter triggeredWaitFor : triggeredWaitFors) {
@@ -1185,11 +1185,11 @@ public class NamespaceStore implements SSNamespaceStore {
         }
         
         if (debugVersion) {
-            Log.fineAsync("StorageParameters: %s", storageParams);
+            Log.warningAsyncf("StorageParameters: %s", storageParams);
         }
         if (debug) {
-            Log.fineAsyncf("_put %s %s %s", key, value, storageParams.getChecksumType());
-            Log.fineAsyncf("userData length: %s", (userData == null ? "null" : userData.length));
+            Log.warningAsyncf("_put %s %s %s", key, value, storageParams.getChecksumType());
+            Log.warningAsyncf("userData length: %s", (userData == null ? "null" : userData.length));
         }
         
         lockCheckResult = checkForLock(key, storageParams);
@@ -1213,7 +1213,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
         if (versionCheckResult == VersionCheckResult.Invalid) {
             if (debug) {
-                Log.fineAsync("_put returning INVALID_VERSION");
+                Log.warningAsync("_put returning INVALID_VERSION");
             }
             return OpResult.INVALID_VERSION;
         } else {
@@ -1224,13 +1224,13 @@ public class NamespaceStore implements SSNamespaceStore {
                         : VersionConstraint.maxBelowOrEqual(storageParams.getVersion());
                 storageResult = checkForDuplicateStore(key, value, storageParams, userData, vc);
                 if (debug) {
-                    Log.fineAsync("checkForDuplicateStore result %s", storageResult);
+                    Log.warningAsyncf("checkForDuplicateStore result %s", storageResult);
                 }
                 if (storageResult != SegmentStorageResult.previousStoreIncomplete) {
                     return storageResult.toOpResult();
                 }
                 if (debug) {
-                    Log.fineAsync("fall through after checkForDuplicateStore");
+                    Log.warningAsync("fall through after checkForDuplicateStore");
                 }
             }
 
@@ -1440,7 +1440,7 @@ public class NamespaceStore implements SSNamespaceStore {
         Set<Waiter> triggeredWaitFors;
         
         if (debug) {
-            Log.fineAsync("Single key putUpdate()");
+            Log.warningAsync("Single key putUpdate()");
         }
         triggeredWaitFors = null;
         writeLock.lock();
@@ -1479,14 +1479,14 @@ public class NamespaceStore implements SSNamespaceStore {
         int segmentNumber;
 
         if (debugVersion) {
-            Log.fineAsyncf("putUpdate: %s", key);
-            Log.fineAsyncf("version: %s", version);
+            Log.warningAsyncf("putUpdate: %s", key);
+            Log.warningAsyncf("version: %s", version);
         }
         segmentNumber = getSegmentNumber(key, VersionConstraint.exactMatch(version));
         assert segmentNumber >= 0 || segmentNumber == IntCuckooConstants.noSuchValue;
         if (segmentNumber == IntCuckooConstants.noSuchValue) {
             if (debug) {
-                Log.fineAsync("_putUpdate returning INVALID_VERSION");
+                Log.warningAsync("_putUpdate returning INVALID_VERSION");
             }
             Log.warningf("Couldn't find %s %d in _putUpdate()", KeyUtil.keyToString(key), version);
             return OpResult.ERROR;
@@ -1699,7 +1699,7 @@ public class NamespaceStore implements SSNamespaceStore {
         */
         
         if (debugVersion) {
-            Log.fineAsyncf("retrieve internal options: %s", options);
+            Log.warningAsyncf("retrieve internal options: %s", options);
         }
         results = new ArrayList<>(keys.size());
         //readLock.lock();
@@ -1859,7 +1859,7 @@ public class NamespaceStore implements SSNamespaceStore {
         Set<PendingWaitFor> pendingWaitForSet;
 
         if (debugWaitFor) {
-            Log.fineAsyncf("addPendingWaitFor %s %s %s", key, options, opUUID);
+            Log.warningAsyncf("addPendingWaitFor %s %s %s", key, options, opUUID);
         }
         pendingWaitForSet = pendingWaitFors.get(key);
         if (pendingWaitForSet == null) {
@@ -2039,7 +2039,7 @@ public class NamespaceStore implements SSNamespaceStore {
         int    failedStore;
         
         if (debugParent) {
-            Log.fineAsyncf("_retrieve %x %s", ns, key);
+            Log.warningAsyncf("_retrieve %x %s", ns, key);
         }
         
         failedStore = 0;
@@ -2049,8 +2049,8 @@ public class NamespaceStore implements SSNamespaceStore {
     
             segmentNumber = getSegmentNumber(key, versionConstraint);
             if (debugVersion) {
-                Log.fineAsyncf("retrieve: %s", key);
-                Log.fineAsyncf("RetrievalOptions: %s", options);
+                Log.warningAsyncf("retrieve: %s", key);
+                Log.warningAsyncf("RetrievalOptions: %s", options);
             }
             if (segmentNumber == IntCuckooConstants.noSuchValue) {
                 return null;
@@ -2060,11 +2060,11 @@ public class NamespaceStore implements SSNamespaceStore {
                     if (headSegment.getSegmentNumber() == segmentNumber) {
                         // return getValueEntry(key).retrieve(options);
                         if (debugSegments) {
-                            Log.fineAsync("Read from head segment");
+                            Log.warningAsync("Read from head segment");
                         }
                         result = retrieve(headSegment, key, options, verifySS);
                         if (debugSegments) {
-                            Log.fineAsync("Done read from head segment");
+                            Log.warningAsync("Done read from head segment");
                         }
                     } else {
                         try {
@@ -2072,12 +2072,12 @@ public class NamespaceStore implements SSNamespaceStore {
         
                             segment = getSegment(segmentNumber, readSegmentPrereadMode);
                             if (debugSegments) {
-                                Log.fineAsync("Read from file segment");
+                                Log.warningAsync("Read from file segment");
                             }
                             result = retrieve(segment, key, options, verifySS);
                             if (debugSegments) {
-                                Log.fineAsync("Done read from file segment");
-                                Log.fineAsyncf("result: %s", result);
+                                Log.warningAsync("Done read from file segment");
+                                Log.warningAsyncf("result: %s", result);
                             }
                         } catch (IOException ioe) {
                             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -2092,8 +2092,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (result != null) {
                     // Double check that the result is valid
                     if (debug) {
-                        Log.fineAsyncf("tpc %d", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
-                        Log.fineAsyncf("tpc %s %s", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
+                        Log.warningAsyncf("tpc %d", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
+                        Log.warningAsyncf("tpc %s %s", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
                                 CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0))));
                     }
                     // FUTURE - this is a temporary workaround until the versioned storage is overhauled
@@ -2141,11 +2141,11 @@ public class NamespaceStore implements SSNamespaceStore {
         results = new ByteBuffer[keysSegmentNumbersAndIndices.length];
         for (int i = 0; i < keysSegmentNumbersAndIndices.length; i++) {
             if (debugParent) {
-                Log.fineAsyncf("\t%s %d %d", KeyUtil.keyToString(keysSegmentNumbersAndIndices[i].getV1()), keysSegmentNumbersAndIndices[i].getV2(), keysSegmentNumbersAndIndices[i].getV3());
+                Log.warningAsyncf("\t%s %d %d", KeyUtil.keyToString(keysSegmentNumbersAndIndices[i].getV1()), keysSegmentNumbersAndIndices[i].getV2(), keysSegmentNumbersAndIndices[i].getV3());
             }
             if (debugVersion) {
-                Log.fineAsync("retrieve: %s", keysSegmentNumbersAndIndices[i].getV1());
-                Log.fineAsync("RetrievalOptions: %s", options);
+                Log.warningAsyncf("retrieve: %s", keysSegmentNumbersAndIndices[i].getV1());
+                Log.warningAsyncf("RetrievalOptions: %s", options);
             }
             if (keysSegmentNumbersAndIndices[i].getV2() == IntCuckooConstants.noSuchValue) {
                 results[i] = null;
@@ -2157,11 +2157,11 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (keysSegmentNumbersAndIndices[i].getV2() != IntCuckooConstants.noSuchValue) {
                     if (headSegment.getSegmentNumber() == keysSegmentNumbersAndIndices[i].getV2()) {
                         if (debugSegments) {
-                            Log.fineAsync("Read from head segment");
+                            Log.warningAsync("Read from head segment");
                         }
                         results[i] = retrieve(headSegment, keysSegmentNumbersAndIndices[i].getV1(), options, true);
                         if (debugSegments) {
-                            Log.fineAsync("Done read from head segment");
+                            Log.warningAsync("Done read from head segment");
                         }
                     } else {
                         try {
@@ -2169,12 +2169,12 @@ public class NamespaceStore implements SSNamespaceStore {
         
                             segment = getSegment(keysSegmentNumbersAndIndices[i].getV2(), readSegmentPrereadMode);
                             if (debugSegments) {
-                                Log.fineAsync("Read from file segment");
+                                Log.warningAsync("Read from file segment");
                             }
                             results[i] = retrieve(segment, keysSegmentNumbersAndIndices[i].getV1(), options, true);
                             if (debugSegments) {
-                                Log.fineAsync("Done read from file segment");
-                                Log.fineAsync("result: " + results[i]);
+                                Log.warningAsync("Done read from file segment");
+                                Log.warningAsync("result: " + results[i]);
                             }
                         } catch (IOException ioe) {
                             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -2192,8 +2192,8 @@ public class NamespaceStore implements SSNamespaceStore {
             if (results[i] != null) {
                 // Double check that the result is valid
                 if (debug) {
-                    Log.fineAsyncf("tpc %d", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0)));
-                    Log.fineAsyncf("tpc %s", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
+                    Log.warningAsyncf("tpc %d", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0)));
+                    Log.warningAsyncf("tpc %s", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
                             CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0))));
                 }
                 if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
@@ -2242,7 +2242,7 @@ public class NamespaceStore implements SSNamespaceStore {
 
     public void cleanupPendingWaitFors() {
         if (debugWaitFor) {
-            Log.fineAsync("Cleaning pending waitfors");
+            Log.warningAsync("Cleaning pending waitfors");
         }
         for (Map.Entry<DHTKey, Set<PendingWaitFor>> entry : pendingWaitFors.entrySet()) {
             for (PendingWaitFor pendingWaitFor : entry.getValue()) {
@@ -2696,12 +2696,12 @@ public class NamespaceStore implements SSNamespaceStore {
     public Iterator<KeyAndVersionChecksum> keyAndVersionChecksumIterator(long minVersion, long maxVersion) {
         if (retrieveTrigger == null || !retrieveTrigger.subsumesStorage()) {
             if (debug) {
-                Log.fineAsync("KeyAndVersionChecksumIterator");
+                Log.warningAsync("KeyAndVersionChecksumIterator");
             }
             return new KeyAndVersionChecksumIterator(minVersion, maxVersion);
         } else {
             if (debug) {
-                Log.fineAsync("KeyAndVersionChecksumIteratorForTrigger");
+                Log.warningAsync("KeyAndVersionChecksumIteratorForTrigger");
             }
             return new KeyAndVersionChecksumIteratorForTrigger();
         }
@@ -3173,7 +3173,7 @@ public class NamespaceStore implements SSNamespaceStore {
         segmentsReaped = 0;
         vrp = nsOptions.getValueRetentionPolicy();
         if (verboseReap || verboseReapLogInfo) {
-            Log.infoAsyncf("_reap ns %x %s [%d, %d]", ns, vrp, startSegment, endSegment);
+            Log.warningAsyncf("_reap ns %x %s [%d, %d]", ns, vrp, startSegment, endSegment);
         }
         if (vrp != null) {
             readLock.lock();
