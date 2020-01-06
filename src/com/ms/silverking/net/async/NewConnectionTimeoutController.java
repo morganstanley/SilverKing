@@ -18,7 +18,7 @@ public interface NewConnectionTimeoutController {
      * @param attemptIndex a zero-based attempt index. Ranges from 0 to the maximum number of attempts - 1.
      * @return the relative timeout in milliseconds for the given attempt
      */
-    public int getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex);
+    public long getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex);
     /**
      * Return the maximum relative timeout for the given connection establishment. 
      * Once this timeout is triggered, no further attempts will be made irrespective 
@@ -26,5 +26,5 @@ public interface NewConnectionTimeoutController {
      * @param addrAndPort the target of the connection being established 
      * @return the maximum relative timeout for the given operation
      */
-    public int getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort);
+    public long getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort);
 }

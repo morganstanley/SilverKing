@@ -182,7 +182,7 @@ public class AsyncRetrievalOperationImpl<K,V> extends AsyncKVOperationImpl<K,V>
     }
     
     private RetrievalException newRetrievalException() throws RetrievalException {
-        return new RetrievalExceptionImpl((Map<Object,OperationState>)getOperationStateMap(), 
+        return new RetrievalExceptionImpl((Map<Object,OperationState>)getOperationStateMap(),
                 (Map<Object,FailureCause>)getFailureCauses(),
                 (Map<Object, StoredValue>)getPartialResults());
     }

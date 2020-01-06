@@ -1,37 +1,6 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-import java.util.logging.Level;
-
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -74,6 +43,7 @@ import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.common.ValueUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
+import com.ms.silverking.cloud.dht.daemon.KeyToReplicaResolver;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthIssue;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
@@ -119,6 +89,39 @@ import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.jvm.Finalization;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+import java.util.logging.Level;
 
 public class NamespaceStore implements SSNamespaceStore {
     private final long ns;
@@ -167,12 +170,14 @@ public class NamespaceStore implements SSNamespaceStore {
     private final ReapPolicy        reapPolicy;
     private final ReapPolicyState    reapPolicyState;
     private int    deletionsSinceFinalization;
+    private final Finalization finalization;
+    private final FileSegmentCompactor fileSegmentCompactor;
 
-    private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;    
+    private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;
     
     private static final byte[] emptyUserData = new byte[0];
     
-    private static final boolean debug = false;
+    private static final boolean debug = PropertiesHelper.systemHelper.getBoolean(NamespaceStore.class.getCanonicalName() + ".debug", false);
     private static final boolean debugConvergence = false || debug;
     private static final boolean debugParent = false || debug;
     private static final boolean debugVersion = false || debug;
@@ -212,14 +217,14 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final long   maxInvalidSSLockSeconds = 10;
     
     public enum DirCreationMode {
-        CreateNSDir, DoNotCreateNSDir
+        CreateNSDir, DoNotCreateNSDir, CreateNSDirNoPropertiesFileBootstrap
     };
     
     private enum FileSegmentLoadMode {ReadWrite, ReadOnly, ReadIndexOnly};
     
-    private enum VersionCheckResult {Invalid, Valid, Equal};
+    private enum VersionCheckResult {Invalid, Valid, Equal, Valid_New_Key};
     private enum LockCheckResult {Unlocked, Locked, Ignored};
-    
+
     private static final int    VERSION_INDEX = 0;
     private static final int    STORAGE_TIME_INDEX = 1;
     
@@ -228,11 +233,13 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final SegmentPrereadMode    readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     private static final SegmentPrereadMode    updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
     
-    private static final boolean    enablePendingPuts = true;
+    public static final boolean    enablePendingPuts;
     
     private static final int    minFinalizationIntervalMillis;
     private static final long    maxUnfinalizedDeletedBytes;
-    
+
+    private static final boolean verboseReapLogInfo;
+
     static {
         segmentIndexLocation = SegmentIndexLocation.valueOf(PropertiesHelper.systemHelper.getString(DHTConstants.segmentIndexLocationProperty, DHTConstants.defaultSegmentIndexLocation.toString()));
         Log.warningf("segmentIndexLocation: %s", segmentIndexLocation);
@@ -240,18 +247,34 @@ public class NamespaceStore implements SSNamespaceStore {
         Log.warningf("nsPrereadGB: %s", nsPrereadGB);
         minFinalizationIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.minFinalizationIntervalMillisProperty, DHTConstants.defaultMinFinalizationIntervalMillis);
         Log.warningf("minFinalizationIntervalMillis %d", minFinalizationIntervalMillis);
+        enablePendingPuts = PropertiesHelper.systemHelper.getBoolean(DHTConstants.enablePendingPutsProperty, DHTConstants.defaultEnablePendingPuts);
+        Log.warningf("enablePendingPuts: %s", enablePendingPuts);
         maxUnfinalizedDeletedBytes = PropertiesHelper.systemHelper.getLong(DHTConstants.maxUnfinalizedDeletedBytesProperty, DHTConstants.defaultMaxUnfinalizedDeletedBytes);
         Log.warningf("maxUnfinalizedDeletedBytes %d", maxUnfinalizedDeletedBytes);
         Log.warningf("fileSegmentCacheCapacity %d", fileSegmentCacheCapacity);
+
+        Preconditions.checkState(minFinalizationIntervalMillis > 0, "minFinalizationIntervalMillis must be non-negative");
+        Preconditions.checkState(maxUnfinalizedDeletedBytes > 0, "maxUnfinalizedDeletedBytes must be non-negative");
+
+        verboseReapLogInfo = PropertiesHelper.systemHelper.getBoolean(DHTConstants.verboseReapLogInfoProperty,false);
     }
     
-    
+
+    // TODO: remove these two throw-way methods below when we figure out a way to manage the binds between System property and static variables
+    protected static int getMinFinalizationIntervalMillis() {
+        return minFinalizationIntervalMillis;
+    }
+
+    protected static long getMaxUnfinalizedDeletedBytes() {
+        return maxUnfinalizedDeletedBytes;
+    }
+
     private static PeerHealthMonitor    peerHealthMonitor;
     
     public static void setPeerHealthMonitor(PeerHealthMonitor _peerHealthMonitor) {
         peerHealthMonitor = _peerHealthMonitor; 
     }
-    
+
     /////////////////////////////////
     /*
     private static final int    ssWorkerPoolTargetSize = 2;
@@ -312,7 +335,9 @@ public class NamespaceStore implements SSNamespaceStore {
             NamespaceStore parent,
             MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
-            ReapPolicy reapPolicy) {
+            ReapPolicy reapPolicy,
+            Finalization finalization,
+            FileSegmentCompactor fileSegmentCompactor) {
         this.ns = ns;
         this.nsDir = nsDir;
         ssDir = new File(nsDir, DHTConstants.ssSubDirName);
@@ -327,6 +352,23 @@ public class NamespaceStore implements SSNamespaceStore {
         this.reapPolicy = reapPolicy;
         reapPolicyState = reapPolicy.createInitialState();
         switch (dirCreationMode) {
+        case CreateNSDirNoPropertiesFileBootstrap:
+            if (!nsDir.mkdirs()) {
+                if (!nsDir.exists()) {
+                    throw new RuntimeException("Unable to make nsDir");
+                } else {
+                    Log.warning("nsDir creation ignored due to dir already exists");
+                }
+            }
+            try {
+                // Still force write a "properties" file to support the mode switch between ZK and NSP mode
+                // (This file will not be directly used in ZK mode)
+                NamespacePropertiesIO.rewrite(nsDir, nsProperties);
+            } catch (IOException ioe) {
+                peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
+                throw new RuntimeException(ioe);
+            }
+            break;
         case CreateNSDir:
             if (!nsDir.mkdirs()) {
                 if (!nsDir.exists()) {
@@ -386,18 +428,40 @@ public class NamespaceStore implements SSNamespaceStore {
         nsStats = new NamespaceStats();
         deletedSegments = new HashSet<>();
         
-        Pair<PutTrigger,RetrieveTrigger>    triggers;        
-        triggers = instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
+        Pair<PutTrigger,RetrieveTrigger>    triggers;
+        triggers = createTriggers();
         putTrigger = triggers.getV1();
         retrieveTrigger = triggers.getV2();
-        if (putTrigger != null) {
-            putTrigger.initialize(this);
+        if (!isRecovery) {
+            initializeTriggers();
         }
-        if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
-            retrieveTrigger.initialize(this);
-        }
+        this.finalization = finalization;
+        this.fileSegmentCompactor = fileSegmentCompactor;
     }
-    
+
+    public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
+                          NamespaceStore parent,
+                          MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
+                          ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
+                          ReapPolicy reapPolicy,
+                          Finalization finalization) {
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy, finalization, new FileSegmentCompactorImpl());
+    }
+
+    public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
+                          NamespaceStore parent,
+                          MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
+                          ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
+                          ReapPolicy reapPolicy) {
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy, JVMUtil.getGlobalFinalization());
+    }
+
+    public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
+                          MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
+                          ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
+        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, NeverReapPolicy.instance);
+    }
+
     private void createInitialHeadSegment() {
         FileSegment.SyncMode    syncMode;
         
@@ -440,6 +504,10 @@ public class NamespaceStore implements SSNamespaceStore {
             }
         }
     }
+
+    protected Pair<PutTrigger, RetrieveTrigger> createTriggers() {
+        return instantiateServerSideCode(nsOptions.getNamespaceServerSideCode());
+    }
     
     private static final Pair<PutTrigger,RetrieveTrigger> instantiateServerSideCode(NamespaceServerSideCode    ssCode) {
         PutTrigger        putTrigger;
@@ -464,12 +532,6 @@ public class NamespaceStore implements SSNamespaceStore {
             }
         }
         return new Pair<>(putTrigger, retrieveTrigger);
-    }
-    
-    public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
-            MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
-            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
-        this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, NeverReapPolicy.instance);
     }
     
     private void initRAMSegments() {
@@ -532,6 +594,10 @@ public class NamespaceStore implements SSNamespaceStore {
     
     protected boolean isDynamic() {
         return false;
+    }
+
+    public KeyToReplicaResolver getKeyToReplicaResolver() {
+        return getRingMaster();
     }
     
     public NodeRingMaster2 getRingMaster() {
@@ -675,7 +741,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     newestVersion = newestVersion(key);
                     if (newestVersion >= 0) {
                         if (debugVersion) {
-                            System.out.printf("version %d segmentNewestVersion %d\n", version, newestVersion);
+                            Log.warningAsyncf("version %d segmentNewestVersion %d", version, newestVersion);
                         }
                         if (version > newestVersion) {
                             return VersionCheckResult.Valid;
@@ -688,7 +754,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         return VersionCheckResult.Valid;
                     }
                 } else {
-                    return VersionCheckResult.Valid;
+                    return VersionCheckResult.Valid_New_Key;
                 }
             } else { // requiredPreviousVersion has been specified
                 if (nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS) {
@@ -784,7 +850,7 @@ public class NamespaceStore implements SSNamespaceStore {
             RetrievalOptions options;
             ByteBuffer         result;
 
-            options = OptionsHelper.newRetrievalOptions(RetrievalType.META_DATA, WaitMode.GET, 
+            options = OptionsHelper.newRetrievalOptions(RetrievalType.META_DATA, WaitMode.GET,
                             VersionConstraint.greatest, NonExistenceResponse.NULL_VALUE, true);
             result = _retrieve(key, new InternalRetrievalOptions(options), false);
             if (result == null) {
@@ -792,7 +858,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 return LockCheckResult.Unlocked;
             } else {
                 short    existingLockSeconds;
-                
+
                 existingLockSeconds = MetaDataUtil.getLockSeconds(result, 0);
                 //Log.warningf("%s %d %d %d %s %s", KeyUtil.keyToString(key), storageParams != null ? storageParams.getVersion() : -1, existingLockSeconds, MetaDataUtil.getVersion(result, 0), writeLock, writeLock.isHeldByCurrentThread());
                 if (existingLockSeconds == PutOptions.noLock) {
@@ -856,13 +922,13 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     // write lock must be held
-    private long newestVersion(DHTKey key) {
+    protected long newestVersion(DHTKey key) {
         Integer newestSegment;
     
         newestSegment = newestSegment(key);
         if (debugVersion) {
-            System.out.printf("newestVersion(%s)\n", key);
-            System.out.println("newestSegment: " + newestSegment);
+            Log.warningAsyncf("newestVersion(%s)", key);
+            Log.warningAsyncf("newestSegment: (%s)", newestSegment);
         }
         if (newestSegment != null && newestSegment >= 0) {
             long[] segmentNewestVersionAndStorageTime;
@@ -881,8 +947,8 @@ public class NamespaceStore implements SSNamespaceStore {
     // write lock must be held
     private Set<Waiter> checkPendingWaitFors(DHTKey key) {
         if (debugWaitFor) {
-            System.out.println("checkPendingWaitFors");
-            System.out.printf("pendingWaitFors.size() %d\n", pendingWaitFors.size());
+            Log.warningAsync("checkPendingWaitFors");
+            Log.warningAsyncf("pendingWaitFors.size() %d", pendingWaitFors.size());
         }
         if (pendingWaitFors.size() > 0) {
             Set<Waiter> triggeredWaiters;
@@ -895,7 +961,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     ByteBuffer result;
 
                     if (debugWaitFor) {
-                        System.out.printf("pendingWaitFor %s options %s\n", pendingWaitFor, pendingWaitFor.getOptions());
+                        Log.warningAsyncf("pendingWaitFor %s options %s", pendingWaitFor, pendingWaitFor.getOptions());
                     }
                     result = _retrieve(key, pendingWaitFor.getOptions());
                     if (result != null) {
@@ -911,7 +977,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             // duplicate the result so that each
                             // waiter gets its own
                             if (debugWaitFor) {
-                                System.out.printf("Triggering waiter for %s\n", pendingWaitFor.getOpUUID());
+                                Log.warningAsyncf("Triggering waiter for %s", pendingWaitFor.getOpUUID());
                             }
                             waiter.waitForTriggered(key, result.duplicate());
                             // Give the waiter the result of the waitfor.
@@ -920,19 +986,19 @@ public class NamespaceStore implements SSNamespaceStore {
                             // they have all been gathered.
                         } else {
                             if (debugWaitFor) {
-                                System.out.printf("No waiter found for %s\n", pendingWaitFor.getOpUUID());
+                                Log.warningAsyncf("No waiter found for %s", pendingWaitFor.getOpUUID());
                             }
                         }
                         pendingWaitForCollection.remove(pendingWaitFor);
                     } else {
                         if (debugWaitFor) {
-                            System.out.printf("No result found for %s\n", KeyUtil.keyToString(key));
+                            Log.warningAsyncf("No result found for %s", KeyUtil.keyToString(key));
                         }
                     }
                 }
             } else {
                 if (debugWaitFor) {
-                    System.out.println("pendingWaitForCollection not found");
+                    Log.warningAsync("pendingWaitForCollection not found");
                 }
             }
             return triggeredWaiters;
@@ -943,7 +1009,7 @@ public class NamespaceStore implements SSNamespaceStore {
 
     private void handleTriggeredWaitFors(Set<Waiter> triggeredWaitFors) {
         if (debugWaitFor) {
-            System.out.println("handleTriggeredWaitFors");
+            Log.warningAsync("handleTriggeredWaitFors");
         }
         if (triggeredWaitFors != null) {
             for (Waiter triggeredWaitFor : triggeredWaitFors) {
@@ -1060,15 +1126,14 @@ public class NamespaceStore implements SSNamespaceStore {
      * @return
      */
     private SegmentStorageResult checkForDuplicateStore(DHTKey key, ByteBuffer value, StorageParameters storageParams,
-            byte[] userData) {
+            byte[] userData, VersionConstraint vc) {
         RetrievalOptions options;
         ByteBuffer result;
         int    debug = 0;
 
         // this comparison isn't returning invalid version like it should for some cases
         options = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE, WaitMode.GET, 
-                        VersionConstraint.exactMatch(storageParams.getVersion()), 
-                        NonExistenceResponse.EXCEPTION, true);
+                        vc, NonExistenceResponse.EXCEPTION, true);
         result = _retrieve(key, options);
         if (result == null) {
             debug = -1;
@@ -1108,7 +1173,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
 
-    protected final OpResult _put(DHTKey key, ByteBuffer value, StorageParametersAndRequirements storageParams, byte[] userData, 
+    protected final OpResult _put(DHTKey key, ByteBuffer value, StorageParametersAndRequirements storageParams, byte[] userData,
                                 NamespaceVersionMode nsVersionMode) {
         WritableSegmentBase     storageSegment;
         SegmentStorageResult    storageResult;
@@ -1120,18 +1185,18 @@ public class NamespaceStore implements SSNamespaceStore {
         }
         
         if (debugVersion) {
-            System.out.println("StorageParameters: " + storageParams);
+            Log.warningAsyncf("StorageParameters: %s", storageParams);
         }
         if (debug) {
-            System.out.println("_put " + key + " " + value + " "+ storageParams.getChecksumType());
-            System.out.println(userData == null ? "null" : userData.length);
+            Log.warningAsyncf("_put %s %s %s", key, value, storageParams.getChecksumType());
+            Log.warningAsyncf("userData length: %s", (userData == null ? "null" : userData.length));
         }
         
         lockCheckResult = checkForLock(key, storageParams);
         if (lockCheckResult == LockCheckResult.Locked) {
             return OpResult.LOCKED;
         }
-        
+
         // FUTURE - Improve below. Note that we've moved time-based out of here
         // for now, and possibly forever. The feature that currently is not supported
         // is sequential versioning
@@ -1146,26 +1211,29 @@ public class NamespaceStore implements SSNamespaceStore {
                 Log.warningf("%s %d %d %s", key, storageParams.getVersion(), storageParams.getRequiredPreviousVersion(), versionCheckResult);
             }
         }
-        switch (versionCheckResult) {
-        case Invalid:
+        if (versionCheckResult == VersionCheckResult.Invalid) {
             if (debug) {
-                System.out.println("_put returning INVALID_VERSION");
+                Log.warningAsync("_put returning INVALID_VERSION");
             }
             return OpResult.INVALID_VERSION;
-        case Equal:
-            storageResult = checkForDuplicateStore(key, value, storageParams, userData);
-            if (debug) {
-                System.out.printf("checkForDuplicateStore result %s\n", storageResult);
+        } else {
+            if (versionCheckResult == VersionCheckResult.Equal || (versionCheckResult != VersionCheckResult.Valid_New_Key
+                    && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION && nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS)) {
+                VersionConstraint vc = versionCheckResult == VersionCheckResult.Equal
+                        ? VersionConstraint.exactMatch(storageParams.getVersion())
+                        : VersionConstraint.maxBelowOrEqual(storageParams.getVersion());
+                storageResult = checkForDuplicateStore(key, value, storageParams, userData, vc);
+                if (debug) {
+                    Log.warningAsyncf("checkForDuplicateStore result %s", storageResult);
+                }
+                if (storageResult != SegmentStorageResult.previousStoreIncomplete) {
+                    return storageResult.toOpResult();
+                }
+                if (debug) {
+                    Log.warningAsync("fall through after checkForDuplicateStore");
+                }
             }
-            if (storageResult != SegmentStorageResult.previousStoreIncomplete) {
-                break;
-            } else {
-                // fall through and store fresh
-            }
-            if (debug) {
-                System.out.printf("fall through after checkForDuplicateStore\n");
-            }
-        case Valid:
+
             storageSegment = headSegment;
             try {
                 storageResult = storageSegment.put(key, value, storageParams, userData, nsOptions);
@@ -1193,9 +1261,6 @@ public class NamespaceStore implements SSNamespaceStore {
                     Log.warning("not stored "+ storageResult);
                 }
             }
-            break;
-        default:
-            throw new RuntimeException("panic");
         }
         //if (storageResult != SegmentStorageResult.stored) Log.warningf("!stored _put2 %s %s %d %s", KeyUtil.keyToString(key), storageResult, storageParams.getVersion(), storageParams); // for debugging
         return storageResult.toOpResult();
@@ -1208,7 +1273,7 @@ public class NamespaceStore implements SSNamespaceStore {
     public void addToSizeStats(int uncompressedSize, int compressedSize) {
         nsStats.addBytes(uncompressedSize, compressedSize);
     }
-    
+
     private StorageParameters getSystemVersionParams(DHTKey key, StorageParameters storageParams) {
         long    version;
         
@@ -1259,7 +1324,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     valueSegmentsPut(key, segmentNumber);
                 } else {
                     int    prevSegment;
-                    
+
                     prevSegment = rawPrevSegment;
                     // this key has been stored previously; check to see if
                     // we need to do more work
@@ -1274,7 +1339,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         OffsetList offsetList;
                         long[] prevVersionAndStorageTime;
                         boolean removed;
-    
+
                         // only a single previous segment exists
                         // we need to save the old and the new segments in the
                         // offset list
@@ -1291,7 +1356,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         if (debugSegments) {
                             Log.warning("prevVersion: ", prevVersionAndStorageTime[VERSION_INDEX]);
                         }
-                        offsetList.putOffset(prevVersionAndStorageTime[VERSION_INDEX], prevSegment, 
+                        offsetList.putOffset(prevVersionAndStorageTime[VERSION_INDEX], prevSegment,
                                              prevVersionAndStorageTime[STORAGE_TIME_INDEX]);
                         offsetList.putOffset(version, segmentNumber, creationTime);
                         removed = valueSegments.remove(key);
@@ -1375,7 +1440,7 @@ public class NamespaceStore implements SSNamespaceStore {
         Set<Waiter> triggeredWaitFors;
         
         if (debug) {
-            System.out.println("Single key putUpdate()");
+            Log.warningAsync("Single key putUpdate()");
         }
         triggeredWaitFors = null;
         writeLock.lock();
@@ -1414,14 +1479,14 @@ public class NamespaceStore implements SSNamespaceStore {
         int segmentNumber;
 
         if (debugVersion) {
-            System.out.println("putUpdate:\t" + key);
-            System.out.println("version:\t" + version);
+            Log.warningAsyncf("putUpdate: %s", key);
+            Log.warningAsyncf("version: %s", version);
         }
         segmentNumber = getSegmentNumber(key, VersionConstraint.exactMatch(version));
         assert segmentNumber >= 0 || segmentNumber == IntCuckooConstants.noSuchValue;
         if (segmentNumber == IntCuckooConstants.noSuchValue) {
             if (debug) {
-                System.out.println("_putUpdate returning INVALID_VERSION");
+                Log.warningAsync("_putUpdate returning INVALID_VERSION");
             }
             Log.warningf("Couldn't find %s %d in _putUpdate()", KeyUtil.keyToString(key), version);
             return OpResult.ERROR;
@@ -1477,90 +1542,110 @@ public class NamespaceStore implements SSNamespaceStore {
     // For analysis only
     private static final AtomicInteger  commonSegment = new AtomicInteger();
     private static final AtomicInteger  totalKeys = new AtomicInteger();
-    
-    public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
+
+    private ByteBuffer[] checkTriggerAndRetrieve(DHTKey[] keys, InternalRetrievalOptions options) {
+        ByteBuffer[] results;
+
         if (retrieveTrigger == null) {
-            DHTKey[]          _keys;
-            ByteBuffer[]    _results;
-            
-            if (debugVersion) {
-                System.out.printf("retrieve internal options: %s\n", options);
-            }        
-            nsStats.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
-            _keys = new DHTKey[keys.size()];
-            for (int i = 0; i < _keys.length; i++) {
-                _keys[i] = keys.get(i);
-            }
-            
-            if (_keys.length > 1) {
-                _results = _retrieve(_keys, options);
+            if (keys.length > 1) {
+                results = _retrieve(keys, options);
             } else {
-                // special case single retrieval
-                _results = new ByteBuffer[1];
-                _results[0] = _retrieve(_keys[0], options);
+                // special case single retrieval (for speed)
+                results = new ByteBuffer[1];
+                results[0] = _retrieve(keys[0], options);
             }
-            
-            for (int i = 0; i < _results.length; i++) {
-                if (parent != null) {
-                    VersionConstraint   vc;
-                    
+        } else {
+            readLock.lock(); // Reentrant lock to scale up the critical section to cover the LRUTrigger update
+            try {
+                if (keys.length > 1) {
+                    results = retrieveTrigger.retrieve(this, keys, options);
+                } else {
+                    // special case single retrieval (for speed)
+                    results = new ByteBuffer[1];
+                    results[0] = retrieveTrigger.retrieve(this, keys[0], options);
+                }
+            } finally {
+                readLock.unlock();
+            }
+        }
+
+        return results;
+    }
+
+    public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
+        DHTKey[]     _keys;
+        ByteBuffer[] _results;
+
+        if (debugVersion) {
+            Log.fineAsync("retrieve internal options: %s", options);
+        }
+        nsStats.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
+        _keys = new DHTKey[keys.size()];
+        for (int i = 0; i < _keys.length; i++) {
+            _keys[i] = keys.get(i);
+        }
+
+        _results = checkTriggerAndRetrieve(_keys, options);
+
+        for (int i = 0; i < _results.length; i++) {
+            if (parent != null) {
+                VersionConstraint   vc;
+
+                if (debugParent) {
+                    Log.warning("parent != null");
+                }
+                vc = options.getVersionConstraint();
+
+                // We look in parent if the vc could possibly be answered by the parent
+                // in a way that would override what we have from this namespace.
+
+                if (_results[i] == null) {
                     if (debugParent) {
-                        Log.warning("parent != null");
+                        Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
                     }
-                    vc = options.getVersionConstraint();
-                    
-                    // We look in parent if the vc could possibly be answered by the parent
-                    // in a way that would override what we have from this namespace.
-                    
-                    if (_results[i] == null) {
-                        if (debugParent) {
-                            Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
+                    // If result from this ns is null, look in the parent.
+                    _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+                    if (debugParent) {
+                        if (_results[i] != null) {
+                            Log.warning("Found result in parent");
                         }
-                        // If result from this ns is null, look in the parent.
-                        _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+                    }
+                } else {
+                    // If we have a non-null value from this ns, and the vc mode is GREATEST
+                    // then the value that we already have is the best.
+                    // Otherwise for the LEAST case, look in the parent to see if it has a better result.
+                    if (vc.getMode() == VersionConstraint.Mode.LEAST) {
+                        ByteBuffer parentResult;
+
                         if (debugParent) {
+                            Log.warning("Non-null result, but mode LEAST. checking parent");
+                        }
+                        parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+                        if (parentResult != null) {
+                            // if the parent had any valid result, then - by virtue of the fact
+                            // that all parent versions are < child versions - the parent
+                            // result is preferred
+                            _results[i] = parentResult;
                             if (_results[i] != null) {
                                 Log.warning("Found result in parent");
                             }
                         }
-                    } else {
-                        // If we have a non-null value from this ns, and the vc mode is GREATEST
-                        // then the value that we already have is the best.
-                        // Otherwise for the LEAST case, look in the parent to see if it has a better result.
-                        if (vc.getMode() == VersionConstraint.Mode.LEAST) {
-                            ByteBuffer parentResult;
-    
-                            if (debugParent) {
-                                Log.warning("Non-null result, but mode LEAST. checking parent");
-                            }
-                            parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
-                            if (parentResult != null) {
-                                // if the parent had any valid result, then - by virtue of the fact
-                                // that all parent versions are < child versions - the parent
-                                // result is preferred
-                                _results[i] = parentResult;
-                                if (_results[i] != null) {
-                                    Log.warning("Found result in parent");
-                                }
-                            }
-                        }
                     }
                 }
-                
-                if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR
-                        && options.getVersionConstraint().getMax() > curSnapshot) {
-                    // Note that since we hold the readLock, a write cannot come
-                    // in while we add the pending wait for.
-                    addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
-                }
-                if (options.getVerifyIntegrity()) {
-                    _results[i] = verifyIntegrity(_keys[i], _results[i]);
-                }
             }
-            return SKImmutableList.copyOf(_results);
-        } else {
-            return retrieve_nongroupedImpl(keys, options, opUUID);
+
+            if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR
+                && options.getVersionConstraint().getMax() > curSnapshot) {
+                // Note that since we hold the readLock, a write cannot come
+                // in while we add the pending wait for.
+                addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
+            }
+            if (options.getVerifyIntegrity()) {
+                _results[i] = verifyIntegrity(_keys[i], _results[i]);
+            }
         }
+
+        return SKImmutableList.copyOf(_results);
     }
     
     public List<ByteBuffer> retrieve_nongroupedImpl(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
@@ -1614,7 +1699,7 @@ public class NamespaceStore implements SSNamespaceStore {
         */
         
         if (debugVersion) {
-            System.out.printf("retrieve internal options: %s\n", options);
+            Log.warningAsyncf("retrieve internal options: %s", options);
         }
         results = new ArrayList<>(keys.size());
         //readLock.lock();
@@ -1693,10 +1778,8 @@ public class NamespaceStore implements SSNamespaceStore {
                                 // that all parent versions are < child versions - the parent
                                 // result is preferred
                                 result = parentResult;
-                                if (result != null) {
-                                    if (debugParent) {
-                                        Log.warning("Found result in parent");
-                                    }
+                                if (debugParent) {
+                                    Log.warning("Found result in parent");
                                 }
                             }
                         }
@@ -1776,7 +1859,7 @@ public class NamespaceStore implements SSNamespaceStore {
         Set<PendingWaitFor> pendingWaitForSet;
 
         if (debugWaitFor) {
-            System.out.printf("addPendingWaitFor %s %s %s\n", key, options, opUUID);
+            Log.warningAsyncf("addPendingWaitFor %s %s %s", key, options, opUUID);
         }
         pendingWaitForSet = pendingWaitFors.get(key);
         if (pendingWaitForSet == null) {
@@ -1956,7 +2039,7 @@ public class NamespaceStore implements SSNamespaceStore {
         int    failedStore;
         
         if (debugParent) {
-            Log.warningf("_retrieve %x %s", ns, key);
+            Log.warningAsyncf("_retrieve %x %s", ns, key);
         }
         
         failedStore = 0;
@@ -1966,8 +2049,8 @@ public class NamespaceStore implements SSNamespaceStore {
     
             segmentNumber = getSegmentNumber(key, versionConstraint);
             if (debugVersion) {
-                System.out.println("retrieve:\t" + key);
-                System.out.println("RetrievalOptions:\t" + options);
+                Log.warningAsyncf("retrieve: %s", key);
+                Log.warningAsyncf("RetrievalOptions: %s", options);
             }
             if (segmentNumber == IntCuckooConstants.noSuchValue) {
                 return null;
@@ -1977,11 +2060,11 @@ public class NamespaceStore implements SSNamespaceStore {
                     if (headSegment.getSegmentNumber() == segmentNumber) {
                         // return getValueEntry(key).retrieve(options);
                         if (debugSegments) {
-                            Log.warning("Read from head segment");
+                            Log.warningAsync("Read from head segment");
                         }
                         result = retrieve(headSegment, key, options, verifySS);
                         if (debugSegments) {
-                            Log.warning("Done read from head segment");
+                            Log.warningAsync("Done read from head segment");
                         }
                     } else {
                         try {
@@ -1989,12 +2072,12 @@ public class NamespaceStore implements SSNamespaceStore {
         
                             segment = getSegment(segmentNumber, readSegmentPrereadMode);
                             if (debugSegments) {
-                                Log.warning("Read from file segment");
+                                Log.warningAsync("Read from file segment");
                             }
                             result = retrieve(segment, key, options, verifySS);
                             if (debugSegments) {
-                                Log.warning("Done read from file segment");
-                                Log.warning("result: " + result);
+                                Log.warningAsync("Done read from file segment");
+                                Log.warningAsyncf("result: %s", result);
                             }
                         } catch (IOException ioe) {
                             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -2009,8 +2092,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (result != null) {
                     // Double check that the result is valid
                     if (debug) {
-                        System.out.printf("tpc %d\n", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
-                        System.out.printf("tpc %s\n", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+                        Log.warningAsyncf("tpc %d", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
+                        Log.warningAsyncf("tpc %s %s", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
                                 CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0))));
                     }
                     // FUTURE - this is a temporary workaround until the versioned storage is overhauled
@@ -2061,8 +2144,8 @@ public class NamespaceStore implements SSNamespaceStore {
                 Log.warningAsyncf("\t%s %d %d", KeyUtil.keyToString(keysSegmentNumbersAndIndices[i].getV1()), keysSegmentNumbersAndIndices[i].getV2(), keysSegmentNumbersAndIndices[i].getV3());
             }
             if (debugVersion) {
-                System.out.println("retrieve:\t" + keysSegmentNumbersAndIndices[i].getV1());
-                System.out.println("RetrievalOptions:\t" + options);
+                Log.warningAsyncf("retrieve: %s", keysSegmentNumbersAndIndices[i].getV1());
+                Log.warningAsyncf("RetrievalOptions: %s", options);
             }
             if (keysSegmentNumbersAndIndices[i].getV2() == IntCuckooConstants.noSuchValue) {
                 results[i] = null;
@@ -2074,11 +2157,11 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (keysSegmentNumbersAndIndices[i].getV2() != IntCuckooConstants.noSuchValue) {
                     if (headSegment.getSegmentNumber() == keysSegmentNumbersAndIndices[i].getV2()) {
                         if (debugSegments) {
-                            Log.warning("Read from head segment");
+                            Log.warningAsync("Read from head segment");
                         }
                         results[i] = retrieve(headSegment, keysSegmentNumbersAndIndices[i].getV1(), options, true);
                         if (debugSegments) {
-                            Log.warning("Done read from head segment");
+                            Log.warningAsync("Done read from head segment");
                         }
                     } else {
                         try {
@@ -2086,12 +2169,12 @@ public class NamespaceStore implements SSNamespaceStore {
         
                             segment = getSegment(keysSegmentNumbersAndIndices[i].getV2(), readSegmentPrereadMode);
                             if (debugSegments) {
-                                Log.warning("Read from file segment");
+                                Log.warningAsync("Read from file segment");
                             }
                             results[i] = retrieve(segment, keysSegmentNumbersAndIndices[i].getV1(), options, true);
                             if (debugSegments) {
-                                Log.warning("Done read from file segment");
-                                Log.warning("result: " + results[i]);
+                                Log.warningAsync("Done read from file segment");
+                                Log.warningAsync("result: " + results[i]);
                             }
                         } catch (IOException ioe) {
                             peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -2109,8 +2192,8 @@ public class NamespaceStore implements SSNamespaceStore {
             if (results[i] != null) {
                 // Double check that the result is valid
                 if (debug) {
-                    System.out.printf("tpc %d\n", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0)));
-                    System.out.printf("tpc %s\n", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
+                    Log.warningAsyncf("tpc %d", CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0)));
+                    Log.warningAsyncf("tpc %s", StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
                             CCSSUtil.getStorageState(MetaDataUtil.getCCSS(results[i], 0))));
                 }
                 if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
@@ -2159,7 +2242,7 @@ public class NamespaceStore implements SSNamespaceStore {
 
     public void cleanupPendingWaitFors() {
         if (debugWaitFor) {
-            System.out.println("Cleaning pending waitfors");
+            Log.warningAsync("Cleaning pending waitfors");
         }
         for (Map.Entry<DHTKey, Set<PendingWaitFor>> entry : pendingWaitFors.entrySet()) {
             for (PendingWaitFor pendingWaitFor : entry.getValue()) {
@@ -2168,11 +2251,11 @@ public class NamespaceStore implements SSNamespaceStore {
                 waiter = activeRetrievals.get(pendingWaitFor.getOpUUID());
                 if (waiter == null) {
                     if (debugWaitFor) {
-                        System.out.printf("No active retrieval for %s\n", pendingWaitFor.getKey());
-                    } else {
-                        System.out.printf("Found active retrieval for %s\n", pendingWaitFor.getKey());
+                        Log.fineAsyncf("No active retrieval for %s", pendingWaitFor.getKey());
                     }
                     entry.getValue().remove(pendingWaitFor);
+                } else {
+                    Log.fineAsyncf("Found active retrieval for %s", pendingWaitFor.getKey());
                 }
             }
             if (entry.getValue().size() == 0) {
@@ -2326,6 +2409,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
     
+
     private FileSegment loadFileSegment(int segmentNumber, FileSegmentLoadMode fileSegmentLoadMode, SegmentPrereadMode segmentPrereadMode) throws IOException {
         try {
             return _loadFileSegment(segmentNumber, fileSegmentLoadMode, segmentPrereadMode);
@@ -2382,7 +2466,7 @@ public class NamespaceStore implements SSNamespaceStore {
             }
             if (oom) {
                 Log.warning("OOM attempting to open mapped file. Calling gc and finalization.");
-                JVMUtil.finalization.forceFinalization(0);
+                finalization.forceFinalization(0);
                 Log.warning("GC & finalization complete.");
                 fileSegment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions);
             } else {
@@ -2399,22 +2483,13 @@ public class NamespaceStore implements SSNamespaceStore {
             MessageGroupBase mgBase,
             NodeRingMaster2 ringMaster, ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
             ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener,
-            ReapPolicy reapPolicy) {
+            ReapPolicy reapPolicy,
+            NamespaceProperties nsProperties) {
         NamespaceStore nsStore;
-        NamespaceProperties nsProperties;
         int    numSegmentsToPreread;
         int    numSegmentsToSkipPreread;
         int    segmentsPrereadSkipped;
 
-        if (ns == NamespaceUtil.metaInfoNamespace.contextAsLong()) {
-            nsProperties = NamespaceUtil.metaInfoNamespaceProperties;
-        } else {
-            try {
-                nsProperties = NamespacePropertiesIO.read(nsDir);
-            } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
-            }
-        }
         nsStore = new NamespaceStore(ns, nsDir, NamespaceStore.DirCreationMode.DoNotCreateNSDir, 
                                      nsProperties, parent, mgBase, ringMaster, true, activeRetrievals,
                                      reapPolicy);
@@ -2427,7 +2502,7 @@ public class NamespaceStore implements SSNamespaceStore {
                 int headSegmentNumber;
                 int headSegmentNumberIndex;
     
-                fsr = new FileSegmentRecoverer(nsDir);
+                fsr = new FileSegmentRecoverer(nsDir, nsProperties);
                 
                 headSegmentNumberIndex = segmentNumbers.size() - 1;
                 headSegmentNumber = segmentNumbers.get(headSegmentNumberIndex); 
@@ -2476,7 +2551,17 @@ public class NamespaceStore implements SSNamespaceStore {
         } else {
             nsStore.initRAMSegments();
         }
+        nsStore.initializeTriggers();
         return nsStore;
+    }
+
+    private void initializeTriggers() {
+        if (putTrigger != null) {
+            putTrigger.initialize(this);
+        }
+        if (retrieveTrigger != null && retrieveTrigger != putTrigger) {
+            retrieveTrigger.initialize(this);
+        }
     }
 
     // FUTURE - Consider deco
@@ -2611,12 +2696,12 @@ public class NamespaceStore implements SSNamespaceStore {
     public Iterator<KeyAndVersionChecksum> keyAndVersionChecksumIterator(long minVersion, long maxVersion) {
         if (retrieveTrigger == null || !retrieveTrigger.subsumesStorage()) {
             if (debug) {
-                System.out.printf("KeyAndVersionChecksumIterator\n");
+                Log.warningAsync("KeyAndVersionChecksumIterator");
             }
             return new KeyAndVersionChecksumIterator(minVersion, maxVersion);
         } else {
             if (debug) {
-                System.out.printf("KeyAndVersionChecksumIteratorForTrigger\n");
+                Log.warningAsync("KeyAndVersionChecksumIteratorForTrigger");
             }
             return new KeyAndVersionChecksumIteratorForTrigger();
         }
@@ -2958,22 +3043,23 @@ public class NamespaceStore implements SSNamespaceStore {
             emptyTrashAndCompaction();
         }
     }
-    
+
     /**
      * Empty trash and compaction directories. Run finalization if *either*
      * maxUnfinalizedDeletedBytes has been exceeded or minFinalizationIntervalMillis
      * has been exceeded.
      */
     private void emptyTrashAndCompaction() {
-        deletionsSinceFinalization += FileSegmentCompactor.emptyTrashAndCompaction(nsDir);
-        if (deletionsSinceFinalization * nsOptions.getSegmentSize() > maxUnfinalizedDeletedBytes) {
+        deletionsSinceFinalization += fileSegmentCompactor.emptyTrashAndCompaction(nsDir);
+        long currUnfinalizedBytesEstimate = (long)deletionsSinceFinalization * (long)nsOptions.getSegmentSize();
+        if (currUnfinalizedBytesEstimate > maxUnfinalizedDeletedBytes) {
             // Doesn't presently consider other sources of finalization
             deletionsSinceFinalization = 0;
-            JVMUtil.finalization.forceFinalization(0);
+            finalization.forceFinalization(0);
         } else {
-            // If deletionsSinceFinalization doesn't trigger finalization, then consider minFinalizationIntervalMillis 
-            if (JVMUtil.finalization.forceFinalization(minFinalizationIntervalMillis)) {
-                deletionsSinceFinalization = 0;                
+            // If deletionsSinceFinalization doesn't trigger finalization, then consider minFinalizationIntervalMillis
+            if (finalization.forceFinalization(minFinalizationIntervalMillis)) {
+                deletionsSinceFinalization = 0;
             }
         }
     }
@@ -3086,7 +3172,7 @@ public class NamespaceStore implements SSNamespaceStore {
         
         segmentsReaped = 0;
         vrp = nsOptions.getValueRetentionPolicy();
-        if (verboseReap || Log.levelMet(Level.INFO)) {
+        if (verboseReap || verboseReapLogInfo) {
             Log.warningAsyncf("_reap ns %x %s [%d, %d]", ns, vrp, startSegment, endSegment);
         }
         if (vrp != null) {
@@ -3156,7 +3242,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     }
                     result = segment.singleReverseSegmentWalk(vrp, valueRetentionState, curTimeNanos, ringMaster);
                     if (i == headSegment.getSegmentNumber()) {
-                        if (verboseReap || Log.levelMet(Level.INFO)) {
+                        if (verboseReap || verboseReapLogInfo) {
                             Log.warningAsyncf("Retaining head segment");
                         }
                     } else {
@@ -3168,7 +3254,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         }
                     }
                     sw.stop();
-                    if (verboseReap || Log.levelMet(Level.INFO)) {
+                    if (verboseReap || verboseReapLogInfo) {
                         Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
                     }
                 } catch (Exception e) {
@@ -3199,7 +3285,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     Stopwatch sw;
     
                     sw = new SimpleStopwatch();
-                    if (verboseReap || Log.levelMet(Level.INFO)) {
+                    if (verboseReap || verboseReapLogInfo) {
                         Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", curSegment, ccr.toString());
                     }
     
@@ -3216,7 +3302,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
                                 Log.warning("Deleting segment: ", curSegment);
                             }
-                            FileSegmentCompactor.delete(nsDir, curSegment);
+                            fileSegmentCompactor.delete(nsDir, curSegment);
                             if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
                                 Log.warning("Done deleting segment: ", curSegment);
                             }
@@ -3229,7 +3315,7 @@ public class NamespaceStore implements SSNamespaceStore {
                             HashedSetMap<DHTKey, Triple<Long, Integer, Long>> segmentRemovedEntries;
     
                             fileSegmentCache.invalidate(curSegment);
-                            segmentRemovedEntries = FileSegmentCompactor.compact(nsDir, curSegment, nsOptions,
+                            segmentRemovedEntries = fileSegmentCompactor.compact(nsDir, curSegment, nsOptions,
                                     new RetainedOffsetMapCheck(result.getV2(), result.getV3()), reapPolicy.verboseSegmentDeletionAndCompaction());
                             removedEntries.addAll(segmentRemovedEntries);
                         } catch (IOException ioe) {
@@ -3237,7 +3323,7 @@ public class NamespaceStore implements SSNamespaceStore {
                         }
                     }
                     sw.stop();
-                    if (verboseReap || Log.levelMet(Level.INFO)) {
+                    if (verboseReap || verboseReapLogInfo) {
                         Log.warningAsyncf("\t\t%d %f", curSegment, sw.getElapsedSeconds());
                     }
                 } catch (Exception e) {
@@ -3321,11 +3407,13 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final int    numPendingPutWorkers = Math.min(8, Runtime.getRuntime().availableProcessors());
     private static final int    maxWorkBatchSize = 128;
     private static final BlockingQueue<PendingPut>    pendingPuts = new ArrayBlockingQueue<>(numPendingPutWorkers * maxWorkBatchSize);
-    
+
     static {
-        Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
-        for (int i = 0; i < numPendingPutWorkers; i++) {
-            new PendingPutWorker(i, pendingPuts);
+        if (enablePendingPuts) {
+            Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
+            for (int i = 0; i < numPendingPutWorkers; i++) {
+                new PendingPutWorker(i, pendingPuts);
+            }
         }
     }
     
@@ -3375,6 +3463,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     static class PendingPutWorker implements Runnable {
+        private boolean running;
         private final BlockingQueue<PendingPut>    q;
         private final PendingPut[]    work;
         
@@ -3384,6 +3473,7 @@ public class NamespaceStore implements SSNamespaceStore {
             work = new PendingPut[maxWorkBatchSize];
             this.q = q;
             t = ThreadUtil.newDaemonThread(this, "PendingPutWorker."+ index);
+            running = true;
             t.start();
         }
         
@@ -3500,7 +3590,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
                 
         public void run() {
-            while (true) {
+            while (running) {
                 try {
                     process();
                 } catch (Exception e) {
@@ -3508,6 +3598,9 @@ public class NamespaceStore implements SSNamespaceStore {
                     ThreadUtil.pauseAfterException();
                 }
             }
+        }
+        public void stop() {
+            running = false;
         }
     }
     
@@ -3518,7 +3611,7 @@ public class NamespaceStore implements SSNamespaceStore {
 
     @Override
     public boolean isNamespace(String ns) {
-        return NamespaceUtil.nameToLong(ns) == this.ns;
+        return NamespaceUtil.nameToContext(ns) == this.ns;
     }
 
     @Override
@@ -3540,6 +3633,29 @@ public class NamespaceStore implements SSNamespaceStore {
     }
 
     @Override
+    public ByteBuffer[] retrieve(DHTKey[] keys, SSRetrievalOptions options) {
+        ByteBuffer[]  results;
+
+        results = _retrieve(keys, InternalRetrievalOptions.fromSSRetrievalOptions(options));
+        if (options.getReturnInvalidations()) {
+            return results;
+        } else {
+            ByteBuffer[]  nulledResults;
+            ByteBuffer    result;
+
+            nulledResults = new ByteBuffer[results.length];
+            for (int i = 0; i < results.length; i++) {
+                result = results[i];
+                if (result != null && MetaDataUtil.isInvalidation(result, 0)) {
+                    result = null;
+                }
+                nulledResults[i] = result;
+            }
+            return nulledResults;
+        }
+    }
+
+    @Override
     public File getNamespaceSSDir() {
         synchronized (ssDir) {
             if (!ssDir.exists() && !ssDir.mkdir()) {
@@ -3553,6 +3669,11 @@ public class NamespaceStore implements SSNamespaceStore {
     @Override 
     public ReadWriteLock getReadWriteLock() {
         return rwLock;
+    }
+
+    @Override
+    public int getHeadSegmentNumber() {
+        return headSegment.getSegmentNumber();
     }
     
     private class SegmentLoader implements Callable<FileSegment> {

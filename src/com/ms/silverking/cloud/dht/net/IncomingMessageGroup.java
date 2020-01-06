@@ -141,9 +141,7 @@ public final class IncomingMessageGroup implements IncomingData {
     
     public ReadResult readFromChannel(SocketChannel channel) throws IOException {
         int   numRead;
-        int   readErrors;
-        
-        readErrors = 0;
+
         lastNumRead = 0;
         do {
             if (debug) {

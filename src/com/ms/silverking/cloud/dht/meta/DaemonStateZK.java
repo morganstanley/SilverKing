@@ -11,6 +11,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.util.SafeTimerTask;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
@@ -39,7 +40,7 @@ public class DaemonStateZK implements Watcher {
     private final Condition        cv;
     private DaemonState         state;
     private volatile int    expectedSignals; // a loose hint; ok if not strictly consistent
-    
+    private SafeTimerTask stateCheckerTask;
     private static final int    minQuorumStatePollIntervalMillis = 5 * 1000;
     private static final int    maxQuorumStatePollIntervalMillis = 20 * 1000;
     private static final int    maxQuorumStatePollThreshold = 500;
@@ -59,7 +60,8 @@ public class DaemonStateZK implements Watcher {
         instanceDaemonStatePath = mc.getMetaPaths().getInstanceDaemonStatePath();
         if (!monitorOnly) {
             setState(DaemonState.INITIAL);
-            timer.scheduleAtFixedRate(new StateChecker(), 
+            stateCheckerTask = new SafeTimerTask(new StateChecker());
+            timer.scheduleAtFixedRate(stateCheckerTask,
                     ThreadLocalRandom.current().nextInt(stateCheckPeriodMillis), 
                     stateCheckPeriodMillis);
         }
@@ -406,6 +408,12 @@ public class DaemonStateZK implements Watcher {
         @Override
         public void run() {
             ensureStateSet();
+        }
+    }
+
+    public void stopStateChecker() {
+        if(stateCheckerTask != null) {
+            stateCheckerTask.cancel();
         }
     }
 }

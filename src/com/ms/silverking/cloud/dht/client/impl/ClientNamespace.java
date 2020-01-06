@@ -15,6 +15,7 @@ import com.ms.silverking.cloud.dht.client.KeyDigestType;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
 import com.ms.silverking.cloud.dht.client.NamespaceLinkException;
+import com.ms.silverking.cloud.dht.client.NamespaceModificationException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
@@ -295,7 +296,18 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
             break;
         default: throw new RuntimeException("Panic");
         }
-        return session.createNamespace(childName, new NamespaceProperties(nsOptions, this.name, minVersion, creationTime));
+        return session.createNamespace(childName, new NamespaceProperties(nsOptions, childName, this.name, minVersion, creationTime));
+    }
+
+
+    @Override
+    public Namespace modifyNamespace(NamespaceOptions nsOptions) throws NamespaceModificationException {
+        if (parent != null) {
+            // TODO: for now we just disallow the modification from cloned namespace
+            throw new NamespaceModificationException("modification from cloned namespace is not currently supported");
+        } else {
+            return session.modifyNamespace(name, nsOptions);
+        }
     }
 
     @Override
@@ -315,7 +327,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
                                        +"for a version mode of CLIENT_SPECIFIED");
         default: throw new RuntimeException("Panic");
         }
-        return session.createNamespace(childName, new NamespaceProperties(nsOptions, this.name, minVersion, creationTime));
+        return session.createNamespace(childName, new NamespaceProperties(nsOptions, childName, this.name, minVersion, creationTime));
     }
     
     public void linkTo(String parentName) throws NamespaceLinkException {

@@ -65,6 +65,7 @@ import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.Connection;
 import com.ms.silverking.net.async.MultipleConnectionQueueLengthListener;
 import com.ms.silverking.numeric.LongInterval;
+import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.time.AbsMillisTimeSource;
 
@@ -986,8 +987,8 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     }
     
     static {
-        new Thread(new PausedChecksumWorker(), "PausedChecksumWorker").start();
-        new Thread(new PausedSignalWorker(), "PausedSignalWorker").start();
+        new SafeThread(new PausedChecksumWorker(), "PausedChecksumWorker", true).start();
+        new SafeThread(new PausedSignalWorker(), "PausedSignalWorker", true).start();
     }
     
     private static class MQListener implements MultipleConnectionQueueLengthListener {

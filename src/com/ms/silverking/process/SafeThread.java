@@ -12,7 +12,7 @@ public class SafeThread extends Thread implements Comparable<SafeThread> {
 
     private static GridUncaughtExceptionHandler         exceptionHandler;
     private static ConcurrentSkipListSet<SafeThread>    runningThreads;
-    
+
     static {
         exceptionHandler = new GridUncaughtExceptionHandler();
         runningThreads = new ConcurrentSkipListSet<SafeThread>();

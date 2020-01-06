@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -62,6 +63,8 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     private static final int ANY_VERSION = -1;
     
     public static final int AUTO_VERSION_FIELD_SIZE = 10;
+
+    public static AtomicReference<ProcessRunner> processRunner = new AtomicReference();
     
     private final Watcher   watcher;
     private final SKAclProvider acl;
@@ -90,7 +93,7 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     static {
         defaultAclProvider = resolveDefaultAclProvider();
         asyncGetResults = new LightLinkedBlockingQueue<>();
-        new ProcessRunner();
+        startProcessRunner();
     }
 
     /**
@@ -721,14 +724,16 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     }
     
     static class ProcessRunner implements Runnable {
+        private boolean running;
         ProcessRunner() {
+            running = true;
             for (int i = 0; i < processRunnerThreads; i++) {
                 new SafeThread(this, "ZKE.ProcessRunner."+ i, true).start();
             }
         }
         
         public void run() {
-            while (true) {
+            while (running) {
                 try {
                     Result    r;
                     
@@ -744,8 +749,23 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
                 }
             }
         }
+
+        public void shutdown() {
+            running = false;
+        }
     }
-    
+
+    public static void stopProcessRunner() {
+        ProcessRunner pr = processRunner.getAndSet(null);
+        if (pr != null) {
+            pr.shutdown();
+        }
+    }
+
+    public static void startProcessRunner() {
+        processRunner.compareAndSet(null, new ProcessRunner());
+    }
+
     class Result {
         private final AsyncGet    asyncGet;
         private final int        rc;
@@ -987,23 +1007,37 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
         return getStat(path).getCtime();
     }
     
-    public long getLatestVersion(String path) throws KeeperException {
+    private List<Long> getSortedVersions(String path) throws KeeperException {
         List<String>    children;
         List<Long>      currentVersions;
-        
+
         children = getChildren(path);
         if (children.size() == 0) {
-            return -1;
+            return new ArrayList<>(0);
         } else {
             currentVersions = new ArrayList<>(children.size());
             for (String child : children) {
                 currentVersions.add(Long.parseLong(child));
             }
             Collections.sort(currentVersions);
-            return currentVersions.get(currentVersions.size() - 1);
+            return currentVersions;
         }
     }
-    
+
+    public long getLatestVersion(String path) throws KeeperException {
+        List<Long>      sorted;
+
+        sorted = getSortedVersions(path);
+        return sorted.isEmpty() ? -1 : sorted.get(sorted.size() - 1);
+    }
+
+    public long getLeastVersion(String path) throws KeeperException {
+        List<Long>      sorted;
+
+        sorted = getSortedVersions(path);
+        return sorted.isEmpty() ? -1 : sorted.get(0);
+    }
+
     public long getLatestVersionFromPath(String path) {
         int index;
         
@@ -1014,7 +1048,11 @@ public class ZooKeeperExtended extends ZooKeeper implements AsyncCallback.String
     public String getLatestVersionPath(String path) throws KeeperException {
         return path +"/"+ Strings.padStart(Long.toString(getLatestVersion(path)), 10, '0');
     }
-    
+
+    public String getLeastVersionPath(String path) throws KeeperException {
+        return path +"/"+ Strings.padStart(Long.toString(getLeastVersion(path)), 10, '0');
+    }
+
     public long getVersionPriorTo(String path, long zxid) throws KeeperException {
         List<String>    children;
         List<Long>      currentVersions;

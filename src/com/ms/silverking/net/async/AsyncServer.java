@@ -88,11 +88,13 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     }
         
     void accept(ServerSocketChannel channel) {
+        SocketChannel   socketChannel = null;
+        boolean         connectionSuccess = false;
+
         assert channel != null;
         Log.fine("accept ", channel);
+
         try {
-            SocketChannel   socketChannel;
-            
             socketChannel = channel.accept();
             if (enabled) {
                 if (socketChannel != null) {
@@ -112,10 +114,19 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
                     socketChannel.close();
                 }
             }
+            connectionSuccess = true;
         } catch (ConnectionAbsorbException cae) {
             Log.logErrorWarning(cae, cae.getAbsorbedInfoMessage());
         } catch (IOException ioe) {
             Log.logErrorWarning(ioe);
+        } finally {
+            if (!connectionSuccess && socketChannel != null) {
+                try {
+                    socketChannel.close();
+                } catch (IOException e) {
+                    Log.logErrorWarning(e, "Could not close socketChannel " + socketChannel);
+                }
+            }
         }
     }
     

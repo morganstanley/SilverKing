@@ -8,4 +8,5 @@ public interface SSRetrievalOptions {
     public RetrievalType getRetrievalType();
     public VersionConstraint getVersionConstraint();
     public boolean getReturnInvalidations();
+    public byte[] getUserOptions();
 }

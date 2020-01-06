@@ -81,4 +81,8 @@ class LWTPoolController implements Runnable {
             }
         }
     }
+
+    public void stop() {
+        running = false;
+    }
 }

@@ -18,6 +18,7 @@ import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.DataSegmentWalkEntry;
@@ -25,6 +26,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.DataSegmentWalker;
 import com.ms.silverking.cloud.dht.daemon.storage.FileSegment;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespacePropertiesIO;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
+import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.serverside.SSStorageParameters;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.collection.Pair;
@@ -163,6 +165,11 @@ public class DataMigrationTool {
     }
 
     public static void main(String[] args) {
+        // This tool runs stand-alone with dependency of "properties" file, which only used by NSP mode for now
+        if (DHTConfiguration.defaultNamespaceOptionsMode != NamespaceOptionsMode.MetaNamespace) {
+            throw new IllegalArgumentException("You're in the default mode of [" + DHTConfiguration.defaultNamespaceOptionsMode + "], which is not supported by this tool");
+        }
+
         if (args.length < 1 || args.length > 3) {
             System.out.println("args: <data dir> [destDirBase] [dirFile]");
         } else {

@@ -14,10 +14,12 @@ import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.client.impl.DHTSessionImpl;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
+import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
@@ -32,6 +34,7 @@ import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
+import org.apache.zookeeper.KeeperException;
 
 
 /**
@@ -127,20 +130,35 @@ public class DHTClient {
     public DHTSession openSession(SessionOptions sessionOptions) throws ClientException {
         ClientDHTConfiguration dhtConfig;
         String preferredServer;
-        
+        NamespaceOptionsMode nsOptionsMode;
+
         dhtConfig = sessionOptions.getDHTConfig();
         preferredServer = sessionOptions.getPreferredServer();
-        
+
         if (preferredServer != null) {
             if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
                 embedPassiveNode(dhtConfig);
+                // Assumption: There will be DHTConfig registered in ZK for this EMBEDDED_PASSIVE_NODE
+                try {
+                    nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+                } catch (KeeperException | IOException e) {
+                    throw new ClientException("Cannot get NamespaceOptionsMode", e);
+                }
                 preferredServer = null;
             } else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
-                String    gcBase;
+                File    gcBase;
                 String    gcName;
-                
-                dhtConfig = embedKVS();
-                gcBase = "/tmp"; // FIXME - make user configurable
+
+                // Assumption: There could be no DHTConfig registered in ZK for this EMBEDDED_KVS
+                // NOTE: if Embedded is created via openSession API, default nsOptionsMode is used
+                nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
+                dhtConfig = embedKVS(nsOptionsMode);
+                try {
+                    gcBase = Files.createTempDirectory("embeddedSKGC").toFile(); // FIXME - make user configurable
+                    gcBase.deleteOnExit();
+                } catch (IOException ioe) {
+                    throw new ClientException("Fail to create temp directory for EMBEDDED_KVS", ioe);
+                }
                 gcName = "GC_"+ dhtConfig.getName();
                 try {
                     Log.warningf("GridConfigBase: %s", gcBase);
@@ -150,6 +168,20 @@ public class DHTClient {
                     throw new ClientException("Error creating embedded kvs", e);
                 }
                 preferredServer = null;
+            } else {
+                // Normal openSession must have nsOptionsMode
+                try {
+                    nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+                } catch (KeeperException | IOException e) {
+                    throw new ClientException("Cannot get NamespaceOptionsMode", e);
+                }
+            }
+        } else {
+            // Normal openSession must have nsOptionsMode
+            try {
+                nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+            } catch (KeeperException | IOException e) {
+                throw new ClientException("Cannot get NamespaceOptionsMode", e);
             }
         }
         
@@ -189,7 +221,8 @@ public class DHTClient {
                 try {
                     session = new DHTSessionImpl(dhtConfig,
                         new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort),
-                        absMillisTimeSource, serializationRegistry, sessionOptions.getTimeoutController());
+                        absMillisTimeSource, serializationRegistry, sessionOptions.getTimeoutController(),
+                        nsOptionsMode);
                 } catch (IOException ioe) {
                     throw new ClientException(ioe);
                 }
@@ -214,11 +247,11 @@ public class DHTClient {
             throw new RuntimeException(ioe);
         }
         
-        DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
-        embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
+        DHTNodeConfiguration nodeConfig  = new DHTNodeConfiguration(skDir.getAbsolutePath() +"/data");
+        embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), nodeConfig, defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
     }
     
-    private ClientDHTConfiguration embedKVS() {
-        return EmbeddedSK.createEmbeddedSKInstance();
+    private ClientDHTConfiguration embedKVS(NamespaceOptionsMode nsOptionsMode) {
+        return EmbeddedSK.createEmbeddedSKInstance(new EmbeddedSKConfiguration().namespaceOptionsMode(nsOptionsMode));
     }
 }

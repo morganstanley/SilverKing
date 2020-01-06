@@ -54,5 +54,8 @@ class StaticDHTCreatorOptions {
     String    skfsConfigurationFile;
     
     @Option(name="-c", usage="classVarsFile", required=false)
-    String    classVarsFile;    
+    String    classVarsFile;
+
+    @Option(name="-m", usage="nsOptionsMode", required=false)
+    String    nsOptionsMode;
 }

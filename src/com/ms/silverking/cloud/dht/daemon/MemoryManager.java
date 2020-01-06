@@ -1,7 +1,9 @@
 package com.ms.silverking.cloud.dht.daemon;
 
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.memory.JVMMemoryObserver;
 import com.ms.silverking.util.memory.JVMMonitor;
 
@@ -11,8 +13,8 @@ import com.ms.silverking.util.memory.JVMMonitor;
 public class MemoryManager implements JVMMemoryObserver {
     private final JVMMonitor  monitor;
 
-    private static final int jvmMonitorMinIntervalMillis = 10 * 1000;
-    private static final int jvmMonitorMaxIntervalMillis = 10 * 1000;
+    private static final int jvmMonitorMinIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.jvmMonitorMinIntervalMillisProperty, 10 * 1000);
+    private static final int jvmMonitorMaxIntervalMillis = PropertiesHelper.systemHelper.getInt(DHTConstants.jvmMonitorMaxIntervalMillisProperty, 30 * 1000);
     //private static final int jvmMonitorMaxIntervalMillis = 15 * 60 * 1000;
     //private static final int jvmFinalizationIntervalMillis = 15 * 60 * 1000;
     private static final int jvmFinalizationIntervalMillis = Integer.MAX_VALUE;
@@ -24,7 +26,7 @@ public class MemoryManager implements JVMMemoryObserver {
                                  jvmFinalizationIntervalMillis,
                                  true,
                                  jvmMonitorLowMemoryThresholdMB,
-                                 JVMUtil.finalization);
+                                 JVMUtil.getGlobalFinalization());
         monitor.addMemoryObserver(this);
     }
 

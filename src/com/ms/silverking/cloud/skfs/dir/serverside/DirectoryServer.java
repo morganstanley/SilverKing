@@ -349,7 +349,18 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
         }
         return rVal;
     }
-    
+
+    @Override
+    public ByteBuffer[] retrieve(SSNamespaceStore nsStore, DHTKey[] keys, SSRetrievalOptions options) {
+        // Re-use non-batched retrieve for now
+        ByteBuffer[] buffers = new ByteBuffer[keys.length];
+        for (int i = 0; i < buffers.length; i++) {
+            DHTKey key = keys[i];
+            buffers[i] = retrieve(nsStore, key, options);
+        }
+        return buffers;
+    }
+
     /**
      * Check to see if given directory is already in memory. If not,
      * check to see if it exists on disk; if so, then read it in to memory. 

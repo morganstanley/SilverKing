@@ -3,6 +3,7 @@ package com.ms.silverking.time;
 import java.util.TimerTask;
 
 import com.ms.silverking.util.SafeTimer;
+import com.ms.silverking.util.SafeTimerTask;
 
 /**
  * A RelNanosAbsMillisTimeSource that utilizes a Timer class to provide very 
@@ -24,7 +25,7 @@ public final class TimerDrivenTimeSource extends TimerTask implements RelNanosAb
     
     public TimerDrivenTimeSource(SafeTimer timer, long periodMillis) {
         this.timer = timer;
-        timer.scheduleAtFixedRate(this, 0, periodMillis);
+        timer.scheduleAtFixedRate(new SafeTimerTask(this), 0, periodMillis);
     }
 
     public TimerDrivenTimeSource(SafeTimer timer) {

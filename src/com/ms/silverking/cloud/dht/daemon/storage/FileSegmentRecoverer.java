@@ -10,9 +10,11 @@ import com.ms.silverking.cloud.dht.StorageType;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.daemon.storage.FileSegment.SegmentPrereadMode;
+import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.time.SimpleStopwatch;
@@ -23,11 +25,13 @@ import com.ms.silverking.time.Stopwatch;
  */
 public class FileSegmentRecoverer {
     private final File  nsDir;
-    
+    private final NamespaceProperties nsProperties;
+
     private static final boolean    verbose = false;
     
-    public FileSegmentRecoverer(File nsDir) {
+    public FileSegmentRecoverer(File nsDir, NamespaceProperties nsProperties) {
         this.nsDir = nsDir;
+        this.nsProperties = nsProperties;
     }
     
     FileSegment recoverFullSegment(int segmentNumber, NamespaceStore nsStore, 
@@ -144,10 +148,8 @@ public class FileSegmentRecoverer {
             FileSegment             fileSegment;
             DataSegmentWalkEntry    lastEntry;
             FileSegment.SyncMode    syncMode;
-            NamespaceProperties nsProperties;
             NamespaceOptions    nsOptions;
-            
-            nsProperties = NamespacePropertiesIO.read(nsDir);
+
             nsOptions = nsProperties.getOptions();            
             Log.warning("Reading partial segment: ", segmentNumber);
             syncMode = nsOptions.getStorageType() == StorageType.FILE_SYNC ? 
@@ -198,10 +200,8 @@ public class FileSegmentRecoverer {
         sw = new SimpleStopwatch();
         try {
             FileSegment segment;
-            NamespaceProperties nsProperties;
             NamespaceOptions    nsOptions;
             
-            nsProperties = NamespacePropertiesIO.read(nsDir);
             nsOptions = nsProperties.getOptions();
             segment = FileSegment.openReadOnly(nsDir, segmentNumber, nsOptions.getSegmentSize(), nsOptions, 
                                             segmentIndexLocation, segmentPrereadMode);
@@ -233,6 +233,11 @@ public class FileSegmentRecoverer {
     }
     
     public static void main(String[] args) {
+        // This tool runs stand-alone with dependency of "properties" file, which only used by NSP mode for now
+        if (DHTConfiguration.defaultNamespaceOptionsMode != NamespaceOptionsMode.MetaNamespace) {
+            throw new IllegalArgumentException("You're in the default mode of [" + DHTConfiguration.defaultNamespaceOptionsMode + "], which is not supported by this tool");
+        }
+
         try {
             if (args.length < 2 || args.length > 4) {
                 System.out.println("args: <nsDir> <segmentNumber> [maxSegmentNumber] [persist]");
@@ -256,7 +261,8 @@ public class FileSegmentRecoverer {
                 } else {
                     persist = false;
                 }
-                segmentReader = new FileSegmentRecoverer(nsDir);
+
+                segmentReader = new FileSegmentRecoverer(nsDir, NamespacePropertiesIO.read(nsDir));
                 FileSegment    segment;
                 
                 for (int segmentNumber = minSegmentNumber; segmentNumber <= maxSegmentNumber; segmentNumber++) {
