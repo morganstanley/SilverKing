@@ -24,6 +24,8 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AsyncGlobals;
 import com.ms.silverking.net.async.OutgoingData;
+import com.ms.silverking.process.LogAndExitUncaughtExceptionHandler;
+import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
@@ -76,6 +78,7 @@ public class DHTNode {
         BaseRetrievalEntryState.setAbsMillisTimeSource(absMillisTimeSource);
         BaseOperation.setAbsMillisTimeSource(absMillisTimeSource);
         ConvergenceController2.setAbsMillisTimeSource(absMillisTimeSource);
+        SafeThread.setDefaultUncaughtExceptionHandler(new LogAndExitUncaughtExceptionHandler());
     }
     
     public DHTNode(String dhtName, ZooKeeperConfig zkConfig, int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy) {
