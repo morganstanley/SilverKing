@@ -7,11 +7,12 @@ bin_dir=`pwd`
 source lib/common.lib
 
 allArgs="$@"
+internalArgs="-Dcom.ms.silverking.process.SafeThread.DefaultUncaughtExceptionHandler=com.ms.silverking.process.LogAndExitUncaughtExceptionHandler"
 
 f_sourceSkConfigAndConfigureClasspath "$__SK_CLASSPATH_TYPE"
 
 toolClass=$__SK_TOOL_EXEC_TOOL_CLASS
-cmd="$skAdminJavaCommandHeader $skJavaHome/bin/java -ea -cp $classpath $toolClass $allArgs"
+cmd="$skAdminJavaCommandHeader $skJavaHome/bin/java -ea -cp $classpath $internalArgs $toolClass $allArgs"
 f_logStart "$toolClass" "$allArgs"
 typeset skAdminPattern="SKAdmin"
 if [[ $toolClass =~ ${skAdminPattern}$ ]]; then   # quotes around "SKAdmin$" makes the if statement fail for some reason...

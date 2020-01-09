@@ -166,6 +166,7 @@ using std::make_pair;
 #define _MAX_FILE_CREATION_ATTEMPTS 4
 #define _ATTR_DIRECT_WRITE_ATTEMPTS 10
 
+#define _INTERNAL_JVM_OPTIONS ",-Dcom.ms.silverking.process.SafeThread.DefaultUncaughtExceptionHandler=com.ms.silverking.process.LogAndExitUncaughtExceptionHandler"
 
 //////////////////
 // private types
@@ -2592,6 +2593,8 @@ void initFuse() {
 
 void initDHT() {
     try {
+        char    *_jvmOptions;
+    
         defaultChecksum    = args->checksum;
         defaultCompression = args->compression;
 
@@ -2605,8 +2608,10 @@ void initDHT() {
         //} else {
         //    lvl = LVL_INFO;
         }
+        
+        _jvmOptions = strcat((char *)args->jvmOptions, _INTERNAL_JVM_OPTIONS);
 
-        pClient = SKClient::getClient(lvl, args->jvmOptions);
+        pClient = SKClient::getClient(lvl, _jvmOptions);
         if (!pClient) {
             srfsLog(LOG_WARNING, "dht client init failed. Will continue with NFS-only");
         }
