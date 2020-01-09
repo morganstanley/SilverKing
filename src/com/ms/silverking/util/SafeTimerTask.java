@@ -9,7 +9,7 @@ import com.ms.silverking.log.Log;
  */
 public class SafeTimerTask extends TimerTask {
     private final TimerTask    task;
-    
+
     public SafeTimerTask(TimerTask task) {
         this.task = task;
     }

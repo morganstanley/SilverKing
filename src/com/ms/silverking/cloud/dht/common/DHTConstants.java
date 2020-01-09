@@ -54,16 +54,18 @@ public class DHTConstants {
     public static final int                    defaultNSPrereadGB = 0;
     public static final int                    defaultMinPrimaryUnderFailure = 1;
     public static final int                    defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
+    public static final boolean                defaultEnablePendingPuts = true;
     public static final long                   defaultMaxUnfinalizedDeletedBytes = 10L * 1024L * 1024L * 1024L;
-    
+
     public static final int                    minSegmentSize = 2 * 1024;
     public static final int                    defaultSegmentSize = 64 * 1024 * 1024;
     public static final int                    segmentSafetyMargin = 1 * 1024;
     
     public static final int                    defaultFragmentationThreshold = 10 * 1024 * 1024;            
     public static final int                    minFragmentationThreshold =   1 * 1024;            
-    
-    public static final int                    defaultMaxValueSize = 1 * 1024 * 1024 * 1024;
+
+    // NOTE: max value size for a single value in namespace cannot exceeds 2GB (due to integer limit)
+    public static final int                    defaultMaxValueSize = 1 * 1024 * 1024 * 1024; // 1GB
     
     public static final String    defaultDataBasePath = "/var/tmp/silverking/data";
     public static final String    defaultSKInstanceLogBasePath = "/tmp/silverking";
@@ -106,13 +108,20 @@ public class DHTConstants {
     public static final String    nsPrereadGBVar = "nsPrereadGB";
     public static final String    nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";    
     public static final String    minFinalizationIntervalMillisProperty = daemonPackageBase +".MinFinalizationIntervalMillis";
+    public static final String    enablePendingPutsProperty = daemonPackageBase +".EnablePendingPuts";
     public static final String    maxUnfinalizedDeletedBytesProperty = daemonPackageBase +".MaxUnfinalizedDeletedBytes";
-    
+    public static final String    verboseReapLogInfoProperty = daemonPackageBase +".VerboseReapLogInfo";
+
+    public static final String    verboseGlobalFinalizationProperty = systemClassBase + ".VerboseGlobalFinalization";
+    public static final String    jvmMonitorMaxIntervalMillisProperty = systemClassBase + ".JvmMonitorMaxIntervalMillis";
+    public static final String    jvmMonitorMinIntervalMillisProperty = systemClassBase + ".JvmMonitorMinIntervalMillis";
+
     public static final String    ssSubDirName = "ss";
-    
+
     public static final String classpathEnv = "SK_CLASSPATH";
     public static final String classpathProperty = "java.class.path";
     public static final String jaceHomeEnv = "SK_JACE_HOME";
+    public static final String defaultNamespaceOptionsModeEnv = "SK_DEFAULT_NS_OPTIONS_MODE";
     public static final String javaHomeEnv = SKConstants.javaHomeEnv;
     public static final String javaHomeProperty = "java.home";
     

@@ -1009,7 +1009,8 @@ function f_runStaticInstanceCreator {
     f_printSubSection "StaticInstanceCreator"
     
     typeset vars=$(f_getUserAndBinScriptVars)
-    f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE"
+    echo "Creating static instance with mode [$SK_DEFAULT_NS_OPTIONS_MODE]"
+    f_runCmdInEvalEnv "$vars" "$BIN_DIR/StaticInstanceCreator.sh -G $SK_GRID_CONFIG_DIR -g $SK_GRID_CONFIG_NAME -d $SK_DHT_NAME -s $SK_SERVERS -r $SK_REPLICATION -z $SK_ZK_ENSEMBLE -D $SK_DATA_HOME -L $SK_LOG_HOME -k $SK_SKFS_CONFIG_FILE -i $SK_SK_INITIAL_HEAP_SIZE -m $SK_DEFAULT_NS_OPTIONS_MODE"
 }
 
 function f_stopSilverking {

@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.util.logging.Level;
 
+import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import org.kohsuke.args4j.Option;
 
 import com.ms.silverking.cloud.dht.client.Compression;
@@ -52,6 +53,12 @@ public class SKAdminOptions {
     public boolean targetsEqualsActiveDaemonsTarget() {
         return targets != null && targets.equalsIgnoreCase(activeDaemonsTarget);
     }
+
+    @Option(name="-mc", usage="main class to run (by default, DHTNode)", required=false)
+    public String     mainClass = DHTNode.class.getCanonicalName();
+
+    @Option(name="-emca", usage="Extra args to pass to the main class (useful if not running the default DHTNode)", required=false)
+    public String     extraMainClassArgs = "";
 
     @Option(name="-e", usage="includeExcludedHosts", required=false)
     public boolean    includeExcludedHosts;
@@ -213,8 +220,8 @@ public class SKAdminOptions {
         String[] options = startNodeExtraJVMOptions.trim().split("\\s+");
         for (String op : options) {
             // let it crash to prevent SKAdmin command to be populated
-            if (!op.startsWith(javaSystemPropertyFlag)) {
-                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '" + javaSystemPropertyFlag + "'");
+            if (!(op.startsWith("-"))) {
+                throw new RuntimeException("User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall at least start with '-'");
             }
         }
     }

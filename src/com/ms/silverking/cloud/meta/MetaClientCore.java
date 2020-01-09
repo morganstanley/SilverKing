@@ -188,7 +188,18 @@ public class MetaClientCore implements Watcher {
             watcher.process(event);
         }
     }
-    
+
+    public void closeZkExtendeed() {
+        _getZooKeeper().close();
+    }
+
+    public static void clearZkMap() {
+        for (ZooKeeperExtended zk : zkMap.values()) {
+            zk.close();
+        }
+        zkMap.clear();
+    }
+
     public void close() {
         //zk.close(); // FIXME
     }

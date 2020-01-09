@@ -104,7 +104,7 @@ public class ChecksumTreeDebug implements MessageGroupReceiver {
                 
                 gc = SKGridConfiguration.parseFile(args[0]);
                 sourceNode = new IPAndPort(args[1], gc.getClientDHTConfiguration().getPort());
-                namespace = NamespaceUtil.nameToLong(args[2]);
+                namespace = NamespaceUtil.nameToContext(args[2]);
                 dhtConfigVersion = Integer.parseInt(args[3]);
                 ringID = RingID.nameToRingID(args[4]);
                 sourceRing = getVersionPair(args[5]);

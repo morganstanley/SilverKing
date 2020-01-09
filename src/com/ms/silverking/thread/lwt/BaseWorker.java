@@ -183,4 +183,8 @@ public abstract class BaseWorker<I> {
         //throw new RuntimeException(this +" doesn't support multiple work");
         return null;
     }
+
+    public void stopLWTPool() {
+        threadPool.stop();
+    }
 }

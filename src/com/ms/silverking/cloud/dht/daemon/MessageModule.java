@@ -13,6 +13,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
+import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.SafeTimerTask;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.ImmutableList;
@@ -89,6 +91,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private final List<IPAndPort> systemNamespaceReplicaList;
     private final Set<IPAndPort>  systemNamespaceReplicas;
     private final PeerHealthMonitor peerHealthMonitor;
+    private final SafeTimerTask cleanerTask;
     //private final Timer    pingTimer;
     //private final GlobalCommandServer globalCommandServer;
     
@@ -100,7 +103,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private final StorageProtocol localConsistencyModeToStorageProtocol[];
     private final RetrievalProtocol consistencyModeToRetrievalProtocol[];
     
-    private static final boolean    debug = false;
+    private static final boolean    debug = PropertiesHelper.systemHelper.getBoolean(MessageModule.class.getCanonicalName()+ ".debug", false);
     private static final boolean    debugReceivedMessages = false || debug;
     private static final boolean    debugCleanup = false || debug;
     private static final boolean    debugShortTimeMessages = false || debug;
@@ -137,7 +140,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     private static final long    interPingDelayMillis = 100;
     
     public static final String    nodePingerThreadName = "NodePinger";
-    
+    private Pinger pingerThread;
+
     public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, 
                          AbsMillisTimeSource absMillisTimeSource,
                          Timer timer, int serverPort, MetaClient mc) throws IOException {
@@ -147,7 +151,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         this.ringMaster = ringMaster;
         this.storage = storage;
         this.absMillisTimeSource = absMillisTimeSource;
-        worker = new Worker();
+        LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
+        worker = new Worker(workerPool);
         // FUTURE - could consider using soft maps instead of explicit cleaning
         //activePuts = new MapMaker().softValues().makeMap();
         activePuts = new ConcurrentHashMap<>();
@@ -162,7 +167,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         storage.recoverExistingNamespaces();
         storage.ensureMetaNamespaceStoreExists();
         storage.setReady();
-        timer.scheduleAtFixedRate(new Cleaner(), cleanupPeriodMillis, cleanupPeriodMillis);
+        cleanerTask = new SafeTimerTask(new Cleaner());
+        timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
         //timer.scheduleAtFixedRate(new StatsWorker(), statsPeriodMillis, statsPeriodMillis);
         //timer.scheduleAtFixedRate(new ReplicaTimeoutChecker(), replicaTimeoutCheckPeriodMillis, replicaTimeoutCheckPeriodMillis);
         systemNamespaceReplicas = ImmutableSet.of(myIPAndPort);
@@ -204,8 +210,18 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     public void start() {
         establishConnections();
         startPinger();
+
     }
-    
+
+    public void stop() {
+        cleanerTask.cancel();
+        if (pingerThread != null) {
+            pingerThread.stop();
+        }
+        mgBase.shutdown();
+        worker.stopLWTPool();
+    }
+
     private void startPinger() {
         /*
         int        numReplicas;
@@ -218,7 +234,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         pingTimer.scheduleAtFixedRate(new Pinger(), pingPeriodMillis, pingPeriodMillis);
         */
         Log.warning("Starting Pinger");
-        new SafeThread(new Pinger(), nodePingerThreadName, true).start();
+        pingerThread  = new Pinger();
+        new SafeThread(pingerThread, nodePingerThreadName, true).start();
     }
     
     public void setAddressStatusProvider(AddressStatusProvider addressStatusProvider) {
@@ -497,7 +514,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         version = ProtoPutUpdateMessageGroup.getPutVersion(message);
         storageState = ProtoPutUpdateMessageGroup.getStorageState(message);
         if (debug) {
-            System.out.println("handlePutUpdate storageState: "+ storageState);
+            Log.warningAsyncf("handlePutUpdate storageState: %s ", storageState);
         }
         results = new ArrayList<>();
         for (MessageGroupKeyEntry entry : message.getKeyIterator()) {
@@ -532,11 +549,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                                     results.size(), 
                                     mgBase.getMyID(), storageState, deadlineRelativeMillis); // FUTURE - allow constructor without this?
             if (debug) {
-                System.out.println("results.size "+ results.size());
+                Log.warningAsyncf("results.size: %d", results.size());
             }
             for (PutResult result : results) {
                 if (debug) {
-                    System.out.println(result);
+                    Log.warningAsync(result);
                 }
                 response.addResult(result.getKey(), result.getResult());           
             }
@@ -585,12 +602,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             PrimarySecondaryIPListPair  replicaListPair;
             
             if (debug) {
-                System.out.println("\t\tgetReplicaListPair "+ key);
+                Log.warningAsyncf("getReplicaListPair: %s ", key);
             }
             // FUTURE - think about improvements
             replicaListPair = ringMaster.getReplicaListPair(key, ownerQueryOpType);
             if (debug) {
-                System.out.println("\t\t"+ key +"\t"+ replicaListPair +':');
+                Log.fineAsyncf("%s \t %s :", key , replicaListPair);
             }
             return replicaListPair;
         }
@@ -603,12 +620,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
             List<IPAndPort>   replicaList;
             
             if (debug) {
-                System.out.println("\t\tgetReplicas "+ key +"\t"+ oqm);
+                Log.warningAsyncf("getReplicas %s \t %s",key , oqm);
             }
             // FUTURE - think about improvements
             replicaList = ringMaster.getReplicaList(key, oqm, ownerQueryOpType);
             if (debug) {
-                System.out.println("\t\t"+ key +"\t"+ CollectionUtil.toString(replicaList, ':'));
+                Log.warningAsyncf("%s \t %s",key , CollectionUtil.toString(replicaList, ':'));
             }
             return replicaList;
         }
@@ -619,12 +636,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         IPAndPort[]   replicas;
         
         if (debug) {
-            System.out.println("\t\tgetPrimaryReplicas "+ key);
+            Log.warningAsyncf("getPrimaryReplicas ", key);
         }
         // FUTURE - think about improvements
         replicas = ringMaster.getReplicas(key, oqm, ownerQueryOpType);
         if (debug) {
-            System.out.println("\t\t"+ key +"\t"+ IPAndPort.arrayToString(replicas));
+            Log.warningAsyncf("%s \t %s", key , IPAndPort.arrayToString(replicas));
         }
         return replicas;
     }
@@ -636,7 +653,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     @Override
     public boolean isLocal(IPAndPort replica) {
         if (debug) {
-            System.out.println("\t\t#### "+ replica +" "+ myIPAndPort +"\t"+ replica.equals(myIPAndPort));
+            Log.warningAsyncf("#### %s %s\t%s",replica, myIPAndPort, replica.equals(myIPAndPort));
         }
         return replica.equals(myIPAndPort);
     }
@@ -849,7 +866,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     public String toString() {
         return mgBase.toString();
     }
-    
+
     ///////////////////////////////////
     
     static class MessageAndConnection {
@@ -864,11 +881,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     
     private static final int    workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
     private static final int    workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
-    
-    static LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
-    
+
     class Worker extends BaseWorker<MessageAndConnection> {
-        Worker() {
+        Worker(LWTPool workerPool) {
             super(workerPool, true, maxDirectCallDepth);
         }
 
@@ -972,13 +987,14 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     class Pinger extends TimerTask {
+        private boolean running = true ;
         Pinger() {
         }
         
         @Override
         public void run() {
             Log.warning("Pinger running");
-            while (true) {
+            while (running) {
                 try {
                     pingReplicas();
                     peerHealthMonitor.refreshZK();
@@ -994,6 +1010,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 mgBase.send(new ProtoPingMessageGroup(mgBase.getMyID()).toMessageGroup(), replica);
                 ThreadUtil.sleep(interPingDelayMillis);
             }
+        }
+
+        private void stop() {
+            running = false;
         }
     }    
     

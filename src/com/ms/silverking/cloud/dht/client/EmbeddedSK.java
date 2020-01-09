@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
@@ -37,7 +38,7 @@ public class EmbeddedSK {
     public static final String    skPortProperty = EmbeddedSK.class.getName() +".SKPort";
     public static final int        defaultSKPort = 0;
     private static final int    skPort;
-    
+
     static {
         skPort = PropertiesHelper.systemHelper.getInt(skPortProperty, defaultSKPort, ParseExceptionAction.RethrowParseException);
     }    
@@ -73,7 +74,7 @@ public class EmbeddedSK {
             File    zkDir;
             File    skDir;
             ZooKeeperConfig    zkConfig;
-            
+
             // 0) Create LWT work pools
             LWTPoolProvider.createDefaultWorkPools();
 
@@ -81,6 +82,7 @@ public class EmbeddedSK {
             Log.warning("Creating embedded ZooKeeper");
             try {
                 tempDir = Files.createTempDirectory(null);
+                tempDir.toFile().deleteOnExit();
                 zkDir = new File(tempDir.toFile(), "zookeeper");
                 zkDir.mkdirs();
                 skDir = new File(tempDir.toFile(), "silverking");
@@ -92,7 +94,7 @@ public class EmbeddedSK {
             zkConfig = new ZooKeeperConfig(InetAddress.getLoopbackAddress().getHostAddress() +":"+ zkPort);
             Log.warning("Embedded ZooKeeper running at: "+ zkConfig);
             
-            DHTNodeConfiguration.setDataBasePath(skDir.getAbsolutePath() +"/data");
+            DHTNodeConfiguration nodeConfig  = new DHTNodeConfiguration(skDir.getAbsolutePath() +"/data");
             
             // 2) Create ring in ZK        
             Log.warning("Creating ring");
@@ -115,10 +117,15 @@ public class EmbeddedSK {
             clientDHTConfig = new ClientDHTConfiguration(config.getDHTName(), dhtPort, zkConfig);
             dhtMC = new MetaClient(clientDHTConfig);
             dhtConfigZK = new DHTConfigurationZK(dhtMC);
-            dhtConfig = DHTConfiguration.emptyTemplate.ringName(config.getRingName()).port(dhtPort).passiveNodeHostGroups("").hostGroupToClassVarsMap(new HashMap<String,String>());
-            dhtConfigZK.writeToZK(dhtConfig, null);
+            dhtConfig = DHTConfiguration.emptyTemplate
+                    .ringName(config.getRingName())
+                    .port(dhtPort)
+                    .passiveNodeHostGroups("")
+                    .hostGroupToClassVarsMap(new HashMap<String,String>())
+                    .namespaceOptionsMode(config.getNamespaceOptionsMode());
+            dhtConfigZkPath = dhtConfigZK.writeToZK(dhtConfig, null);
             Log.warning("Created DHT configuration in ZK");
-            
+
             // 4) Set cur and target rings
             DHTRingCurTargetZK    curTargetZK;
             
@@ -130,7 +137,7 @@ public class EmbeddedSK {
             
             // 4) Start DHTNode
             Log.warning("Starting DHTNode");
-            new DHTNode(config.getDHTName(), zkConfig, 0, new ReapOnIdlePolicy());
+            new DHTNode(config.getDHTName(), zkConfig, nodeConfig, 0, new ReapOnIdlePolicy());
             Log.warning("DHTNode started");
             
             // 5) Return the configuration to the caller
@@ -156,17 +163,21 @@ public class EmbeddedSK {
     */
     
     public static ClientDHTConfiguration createEmbeddedSKInstance() {
-        return createEmbeddedSKInstance(new EmbeddedSKConfiguration());
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(), DHTConfiguration.defaultNamespaceOptionsMode);
     }
     
     public static void main(String[] args) {
-        if (args.length != 0) {
-            System.out.println("args: none");
+        if (args.length > 1) {
+            System.out.println("args: [ZooKeeper|NSP]");
         } else {
             try {
                 ClientDHTConfiguration    dhtConfig;
-                
-                dhtConfig = createEmbeddedSKInstance();
+                NamespaceOptionsMode      nsOptionsMode;
+
+                nsOptionsMode = args.length == 0 ?
+                        DHTConfiguration.defaultNamespaceOptionsMode :
+                        NamespaceOptionsMode.valueOf(args[0]);
+                dhtConfig = createEmbeddedSKInstance(new EmbeddedSKConfiguration().namespaceOptionsMode(nsOptionsMode));
                 System.out.printf("DHT Configuration: %s\n", dhtConfig);
                 ThreadUtil.sleepForever();
             } catch (Exception e) {

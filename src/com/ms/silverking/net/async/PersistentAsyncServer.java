@@ -36,7 +36,7 @@ public class PersistentAsyncServer<T extends Connection>
     
     private AddressStatusProvider    addressStatusProvider;
     private SuspectAddressListener    suspectAddressListener;
-    
+    private boolean isRunning;
     private static final int    connectionCreationAttemptTimeoutMS = 1000;
     private static final int    connectionCreationMaximumTimeoutMS = 40 * 1000;
     private static final int    maxConnectBackoffNum = 16;
@@ -52,7 +52,25 @@ public class PersistentAsyncServer<T extends Connection>
     private static final String defaultSelectorControllerClass = "PAServer";
     
     public static final int    useDefaultBacklog = 0;
-    
+
+    // Mainly used for test or inject cutomized AsyncServer
+    PersistentAsyncServer(AsyncServer<T> asyncServer,
+                                 NewConnectionTimeoutController newConnectionTimeoutController,
+                                 BaseWorker<OutgoingAsyncMessage> asyncConnector,
+                                 boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) {
+        isRunning = true;
+        this.debug = debug;
+        this.newConnectionTimeoutController = newConnectionTimeoutController;
+        this.asyncServer = asyncServer;
+        connections = new ConcurrentHashMap<InetSocketAddress,T>();
+        newConnectionLocks = new ConcurrentHashMap<InetSocketAddress,ReentrantLock>();
+        this.asyncConnector = asyncConnector;
+        if (mqListener != null) {
+            new ConnectionQueueWatcher(mqListener, mqUUID);
+        }
+        //new ConnectionDebugger();
+    }
+
     public PersistentAsyncServer(int port, int backlog,
                                 int numSelectorControllers,  
                                 String controllerClass, 
@@ -60,6 +78,7 @@ public class PersistentAsyncServer<T extends Connection>
                                 NewConnectionTimeoutController newConnectionTimeoutController,
                                 LWTPool lwtPool, int selectionThreadWorkLimit, boolean enabled, 
                                 boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
+        isRunning = true;
         this.debug = debug;
         this.newConnectionTimeoutController = newConnectionTimeoutController;
         asyncServer = new AsyncServer<T>(port, backlog, 
@@ -134,8 +153,9 @@ public class PersistentAsyncServer<T extends Connection>
             connection.close();
         }
         asyncServer.shutdown();
+        isRunning = false;
         ThreadUtil.sleep(shutdownDelayMillis);
-        JVMUtil.finalization.forceFinalization(0);
+        JVMUtil.getGlobalFinalization().forceFinalization(0);
     }
     
     //////////////////////////////////////////////////////////////////////
@@ -312,7 +332,7 @@ public class PersistentAsyncServer<T extends Connection>
         deadline = Math.min(deadline, SystemTimeSource.instance.absTimeMillis() + newConnectionTimeoutController.getMaxRelativeTimeoutMillis(_dest));
         
         backoff = null;
-        while (true) {
+        while (isRunning) {
             if (addressStatusProvider != null
                     && !addressStatusProvider.isAddressStatusProviderThread()
                     && !addressStatusProvider.isHealthy(dest)) {
@@ -330,6 +350,17 @@ public class PersistentAsyncServer<T extends Connection>
                 return connection;
             } catch (ConnectionAbsorbException cae) {
                 Log.logErrorWarning(cae, cae.getAbsorbedInfoMessage());
+                if (backoff == null) {
+                    backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue, deadline);
+                }
+                if (SystemTimeSource.instance.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
+                    backoff.backoff();
+                } else {
+                    if (suspectAddressListener != null) {
+                        suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
+                    }
+                    throw new ConnectException("Authentication fails after run out of retries [currTime=" + SystemTimeSource.instance.absTimeMillis() + ",deadline=" + deadline + "] and " + backoff +  " =>" + cae.getAbsorbedInfoMessage());
+                }
             } catch (ConnectException ce) {
                 if (addressStatusProvider != null 
                         && addressStatusProvider.isAddressStatusProviderThread()) {
@@ -378,6 +409,7 @@ public class PersistentAsyncServer<T extends Connection>
                 throw new RuntimeException("Unexpected IOException", ioe);
             }
         }
+        return null;
     }
     
     @Override

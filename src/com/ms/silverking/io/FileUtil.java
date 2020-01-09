@@ -74,29 +74,29 @@ public class FileUtil {
     public static void writeToFile(String fileName, String text) throws IOException {
         writeToFile(new File(fileName), text);
     }
-    
+
     public static void writeToFile(File file, String text) throws IOException {
-        BufferedWriter    out;
-        
-        out = new BufferedWriter( 
-            new OutputStreamWriter(new FileOutputStream(file)) );
-        out.write(text);
-        out.close();
-    }    
+        writeToFile(file, text, false);
+    }
+
+    public static void writeToFile(File file, String text, boolean append) throws IOException {
+        try (BufferedWriter out = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(file, append)) )) {
+            out.write(text);
+        }
+    }
 
     public static void writeToFile(String fileName, Collection lines) throws IOException {
         writeToFile(new File(fileName), lines);
     }
     
     public static void writeToFile(File file, Collection lines) throws IOException {
-        BufferedWriter    out;
-        
-        out = new BufferedWriter( 
-            new OutputStreamWriter(new FileOutputStream(file)) );
-        for (Object line : lines) {
-            out.write(line.toString() +"\n");
+        try (BufferedWriter out = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(file)) )) {
+            for (Object line : lines) {
+                out.write(line.toString() +"\n");
+            }
         }
-        out.close();
     }        
     
     public static File[] namesToFiles(String[] names) {
@@ -110,16 +110,14 @@ public class FileUtil {
     }
     
     public static byte[] readFileAsBytes(File file) throws IOException {
-        byte[]    buf;
-        FileInputStream    fIn;
-        
-        buf = new byte[(int)file.length()]; 
-        
-        fIn = new FileInputStream(file);
-        StreamUtil.readBytes( buf, 0, buf.length, 
-                new BufferedInputStream(fIn) );
-        fIn.close();
-        return buf;
+        try(FileInputStream fIn = new FileInputStream(file)) {
+            byte[]    buf;
+
+            buf = new byte[(int)file.length()];
+            StreamUtil.readBytes( buf, 0, buf.length,
+                    new BufferedInputStream(fIn) );
+            return buf;
+        }
     }
     
     public static int readFileAsInt(String file) throws IOException {

@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.ProtoMessageGroup;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.async.QueueingConnectionLimitListener;
 import com.ms.silverking.thread.lwt.GroupingPausingBaseWorker;
@@ -216,7 +217,7 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         protoMG = asyncOpImpls[startIndex].createProtoMG(estimate);
         
         if (debug) {
-            System.out.printf("asyncOpImpls.length %d startIndex %d endIndex %d\n", asyncOpImpls.length, startIndex, endIndex);
+            Log.warningAsyncf("asyncOpImpls.length %d startIndex %d endIndex %d", asyncOpImpls.length, startIndex, endIndex);
         }
         messageGroups = new ArrayList<>();
         // Walk through all of the compatible operations.
@@ -224,7 +225,7 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         // then create a new protoMG and add the old to the messageGroups list.
         for (int i = startIndex; i <= endIndex; i++) {
             if (debug) {
-                System.out.printf("Calling create with %s\tfor%s\n", protoMG.getUUID(), asyncOpImpls[i].objectToString());
+                Log.warningAsyncf("Calling create with %s for %s", protoMG.getUUID(), asyncOpImpls[i].objectToString());
             }
             protoMG = asyncOpImpls[i].createMessagesForIncomplete(protoMG, messageGroups, estimate);
         }
@@ -234,8 +235,8 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         // FUTURE - consider sending sooner, in creation loop
         for (MessageGroup messageGroup : messageGroups) {
             if (debug) {
-                System.out.println("OpSender sending:");
-                System.out.println(messageGroup);
+                Log.warningAsync("OpSender sending:");
+                Log.warningAsync(messageGroup);
                 messageGroup.displayForDebug();
             }
             send(messageGroup);

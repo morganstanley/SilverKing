@@ -467,14 +467,22 @@ public final class SelectorController<C extends Connection> implements Runnable 
     // ////////////////////////////////////////////////////////////////////
 
     public void run() {
-        while (running) {
+        try {
+            while (running) {
+                try {
+                    addNewServerChannels();
+                    processKeyChangeRequests();
+                    doSelection();
+                } catch (Exception e) {
+                    Log.logErrorWarning(e);
+                    ThreadUtil.pauseAfterException();
+                }
+            }
+        } finally {
             try {
-                addNewServerChannels();
-                processKeyChangeRequests();
-                doSelection();
-            } catch (Exception e) {
-                Log.logErrorWarning(e);
-                ThreadUtil.pauseAfterException();
+                selector.close();
+            } catch (IOException e) {
+                Log.logErrorWarning(e, "Could not close selector " + selector);
             }
         }
     }

@@ -320,25 +320,30 @@ public class AsyncBase<T extends Connection> {
                 
     ////////////////////////////////////////////////////////////////////////////////////
     public T newOutgoingConnection(InetSocketAddress dest, ConnectionListener listener) throws IOException, ConnectionAbsorbException {
-        SocketChannel    channel;
-        
-        channel = SocketChannel.open();
-        if (dest.isUnresolved()) {
-            Log.warning("Unresolved InetSocketAddress: "+ dest);
-            throw new ConnectException("Unresolved InetSocketAddress"+ dest.toString());
-        }
-        LWTThreadUtil.setBlocked();
+        SocketChannel   channel = null;
+        boolean         connectionSuccess = false;
+
         try {
+            channel = SocketChannel.open();
+            LWTThreadUtil.setBlocked();
             channel.socket().connect(dest, defSocketConnectTimeout);
-            //channel.connect(dest);
+            T conn = addConnection(channel, listener, false);
+            connectionSuccess = true;
+            return conn;
         } catch (UnresolvedAddressException uae) {
             Log.logErrorWarning(uae);
             Log.warning(dest);
             throw new ConnectException(dest.toString());
         } finally {
             LWTThreadUtil.setNonBlocked();
+            if (!connectionSuccess && channel != null) {
+                try {
+                    channel.close();
+                } catch (IOException e) {
+                    Log.logErrorWarning(e, "Could not close socketChannel " + channel);
+                }
+            }
         }
-        return addConnection(channel, listener, false);
     }
     
     public T addConnection(SocketChannel channel, boolean serverside) throws SocketException, ConnectionAbsorbException {
@@ -349,19 +354,20 @@ public class AsyncBase<T extends Connection> {
         T    connection;
         SelectorController<T>    selectorController;
 
+        String connInfo = channel.socket() != null ? channel.socket().toString() : "nullSock";
         Authenticator.AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside, defAuthenticationTimeoutInMillisecond);
         if (authResult.isFailed()) {
             switch (authResult.getFailedAction()) {
                 case GO_WITHOUT_AUTH: break;
                 case THROW_ERROR:
-                    String msg = "Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide");
+                    String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide");
                     throw authResult.getFailCause().isPresent() ?
                         new AuthenticationFailError(msg, authResult.getFailCause().get()) :
                         new AuthenticationFailError(msg);
                 case ABSORB_CONNECTION:
-                    throw new ConnectionAbsorbException(channel, listener, serverside, authResult.getFailCause().orElse(null));
+                    throw new ConnectionAbsorbException(channel, connInfo, listener, serverside, authResult.getFailCause().orElse(null));
                 default:
-                    throw new RuntimeException("Socket [" + channel.socket() + "] fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"
+                    throw new RuntimeException("Connection " + connInfo + " fails to be authenticated from " + (serverside ? "ServerSide" : "ClientSide"
                             + " and action for this failure has NOT been defined: "
                             + "please check the behaviour of injected authenticator [" + authenticator.getName() + "]"));
             }
@@ -386,7 +392,7 @@ public class AsyncBase<T extends Connection> {
 
         if (authResult.isSuccessful()) {
             Log.info("Authenticator: authId["+authResult.getAuthId().get()+"] is obtained in ["
-                    + (serverside ? "ServerSide" : "ClientSide")+ "] by ["+authenticator.getName()+"]");
+                    + (serverside ? "ServerSide" : "ClientSide")+ "] by ["+authenticator.getName()+"] for connection " + connInfo);
             connection.setAuthResult(authResult);
         }
         connection.start();

@@ -7,7 +7,7 @@ import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements
 /**
  * Wraps StorageParameters to hide internal optimizations from users of SSStorageParameters
  */
-class SSStorageParametersImpl implements SSStorageParametersAndRequirements {
+public class SSStorageParametersImpl implements SSStorageParametersAndRequirements {
     private final StorageParametersAndRequirements    sp;
     private final int    compressedSize;
     private final Compression    compression;

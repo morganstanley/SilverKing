@@ -4,6 +4,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.ms.silverking.util.SafeTimer;
+import com.ms.silverking.util.SafeTimerTask;
 
 public class TimerDrivenAbsNanosTimeSource extends TimerTask implements AbsNanosTimeSource, AbsMillisTimeSource {
     private final SafeTimer    timer;
@@ -25,7 +26,7 @@ public class TimerDrivenAbsNanosTimeSource extends TimerTask implements AbsNanos
     public TimerDrivenAbsNanosTimeSource(SafeTimer timer, long periodMillis, long nanoOriginTimeMillis) {
         this.timer = timer;
         lastTimeNanos = new AtomicLong();
-        timer.scheduleAtFixedRate(this, 0, periodMillis);
+        timer.scheduleAtFixedRate(new SafeTimerTask(this), 0, periodMillis);
         this.nanoOriginTimeMillis = nanoOriginTimeMillis;
     }
 

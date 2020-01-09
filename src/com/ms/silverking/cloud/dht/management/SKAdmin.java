@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientZKImpl;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.kohsuke.args4j.CmdLineException;
@@ -510,7 +512,8 @@ public class SKAdmin {
         }
 
         return getJavaCmdStart(options, classVars, escaped)
-                +" "+ DHTNode.class.getCanonicalName()
+                +" " + options.mainClass
+                +" " + options.extraMainClassArgs
                 +" " + reapPolicyOptions
                 +" -n "+ gc.getClientDHTConfiguration().getName()
                 +" -z "+ gc.getClientDHTConfiguration().getZKConfig()
@@ -1283,6 +1286,7 @@ public class SKAdmin {
                     break;
                 case ClearInstanceExclusionsData:
                 case ClearData:
+                    clearNamespaceOptionsData();
                     rawServerCommand = createClearDataCommand(dhtConfig, serverClassVars);
                     break;
                 case StartSKFS:
@@ -1304,7 +1308,25 @@ public class SKAdmin {
         }
         return serverCommands;
     }
-    
+
+    private void clearNamespaceOptionsData() {
+        NamespaceOptionsMode mode = dhtConfig.getNamespaceOptionsMode();
+        switch (mode) {
+            case ZooKeeper:
+                try {
+                    new NamespaceOptionsClientZKImpl(gc).obliterateAllNsProperties();
+                } catch (Exception e) {
+                    throw new RuntimeException("Execution of ClearData fails: cannot clear namespace options data in mode [" + mode + "]", e);
+                }
+                break;
+            case MetaNamespace:
+                // Do nothing for this impl
+                break;
+            default:
+                throw new RuntimeException("Unhandled nsOptionsMode: " + mode);
+        }
+    }
+
     private void displayCommandMap(Map<String,String[]> cmdMap) {
         for (Map.Entry<String, String[]> cmdEntry : cmdMap.entrySet()) {
             System.out.printf("%s\t%s\n", cmdEntry.getKey(), ArrayUtil.toString(cmdEntry.getValue(), ' '));

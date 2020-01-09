@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
+import com.ms.silverking.log.Log;
 import org.apache.zookeeper.KeeperException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -46,6 +48,7 @@ public class StaticDHTCreator {
     private final String            passiveNodes;
     private final NamespaceCreationOptions    nsCreationOptions;
     private final File                gridConfigDir;
+    private final NamespaceOptionsMode nsOptionsMode;
     
     private static final String    dhtNameBase = "SK.";
     private static final String    ringNameBase = "ring.";
@@ -53,7 +56,7 @@ public class StaticDHTCreator {
     private static final String    serverDelimiter = ",";
     
     StaticDHTCreator(ZooKeeperConfig zkConfig, Set<String> servers, int replication, String dhtName, String gcName, int port,
-                    NamespaceCreationOptions nsCreationOptions, String gridConfigDir) {
+                    NamespaceCreationOptions nsCreationOptions, String gridConfigDir, NamespaceOptionsMode nsOptionsMode) {
         this.zkConfig = zkConfig;
         this.servers = servers;
         this.replication = replication;
@@ -66,6 +69,7 @@ public class StaticDHTCreator {
         if (!this.gridConfigDir.exists()) {
             throw new RuntimeException(gridConfigDir +" does not exist");
         }
+        this.nsOptionsMode = nsOptionsMode;
     }
     
     private void writeSKFSConfig(String skfsConfigName, File target) throws KeeperException, IOException {
@@ -83,6 +87,7 @@ public class StaticDHTCreator {
     public void createStaticDHT(UUIDBase uuid, int initialHeapSize, int maxHeapSize, String skInstanceLogBaseVar, String dataBaseVar, String skfsConfigurationFile, String classVarsFile) throws IOException, KeeperException {
         String    ringName;
         String    classVarsName;
+        String    dhtConfigZkPath;
         RingCreationResults    rcResults;
         MetaClient            mc;
         
@@ -123,9 +128,9 @@ public class StaticDHTCreator {
         // Create DHTConfig
         DHTConfiguration    dhtConfig;
         
-        dhtConfig = new DHTConfiguration(ringName, port, passiveNodes, nsCreationOptions, ImmutableMap.of(rcResults.hostGroupName, classVarsName), 0, Long.MIN_VALUE, null);
+        dhtConfig = new DHTConfiguration(ringName, port, passiveNodes, nsCreationOptions, ImmutableMap.of(rcResults.hostGroupName, classVarsName), nsOptionsMode, 0, Long.MIN_VALUE, null);
         new DHTConfigurationZK(mc).writeToZK(dhtConfig, null);
-        
+
         // Write out curRingAndVersion
         new DHTRingCurTargetZK(mc, dhtConfig).setCurRingAndVersionPair(ringName, 0, 0);
         new DHTRingCurTargetZK(mc, dhtConfig).setTargetRingAndVersionPair(ringName, 0, 0);
@@ -181,6 +186,7 @@ public class StaticDHTCreator {
             int                        port;
             NamespaceCreationOptions    nsCreationOptions;
             UUIDBase                uuid;
+            NamespaceOptionsMode   nsOptionsMode;
             
             options = new StaticDHTCreatorOptions();
             parser = new CmdLineParser(options);
@@ -223,9 +229,17 @@ public class StaticDHTCreator {
             } else {
                 nsCreationOptions = NamespaceCreationOptions.defaultOptions;
             }
-            
+
+            if (options.nsOptionsMode != null) {
+                nsOptionsMode = NamespaceOptionsMode.valueOf(options.nsOptionsMode);
+                Log.warning("Using specified mode [" + nsOptionsMode + "] to create static DHT instance");
+            } else {
+                nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
+                Log.warning("Using default mode [" + nsOptionsMode + "] to create static DHT instance");
+            }
+
             sdc = new StaticDHTCreator(new ZooKeeperConfig(options.zkEnsemble), servers, options.replication, dhtName, gcName, port, nsCreationOptions,
-                    options.gridConfigDir);
+                    options.gridConfigDir, nsOptionsMode);
             sdc.createStaticDHT(uuid, options.initialHeapSize, options.maxHeapSize, options.skInstanceLogBaseVar, options.dataBaseVar, options.skfsConfigurationFile, options.classVarsFile);
         } catch (Exception e) {
             e.printStackTrace();

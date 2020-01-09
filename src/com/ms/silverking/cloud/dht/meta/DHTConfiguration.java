@@ -6,12 +6,14 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.meta.Utils;
 import com.ms.silverking.cloud.meta.VersionedDefinition;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParseException;
 import com.ms.silverking.text.ObjectDefParser2;
+import com.ms.silverking.util.PropertiesHelper;
 
 /**
  * DHT configuration settings. 
@@ -26,21 +28,26 @@ public class DHTConfiguration implements VersionedDefinition {
     private final String    passiveNodeHostGroups;
     private final NamespaceCreationOptions  nsCreationOptions;
     private final Map<String,String>    hostGroupToClassVarsMap;
+    private final NamespaceOptionsMode namespaceOptionsMode;
     private final long      version;
     private final long      zkid;
     private final String    defaultClassVars;
     
     private static final Set<String> optionalFields;
-    
-    public static final DHTConfiguration  emptyTemplate = 
+
+    public static final NamespaceOptionsMode defaultNamespaceOptionsMode = NamespaceOptionsMode.valueOf(
+            PropertiesHelper.envHelper.getString(DHTConstants.defaultNamespaceOptionsModeEnv, NamespaceOptionsMode.MetaNamespace.name()));
+
+    public static final DHTConfiguration  emptyTemplate =
             new DHTConfiguration(null, 0, null, DHTConstants.defaultNamespaceCreationOptions, 
-                    null, VersionedDefinition.NO_VERSION, VersionedDefinition.NO_VERSION,
+                    null, defaultNamespaceOptionsMode, VersionedDefinition.NO_VERSION, VersionedDefinition.NO_VERSION,
                     null);    
     
     static {
         ImmutableSet.Builder<String> builder;
         
         builder = ImmutableSet.builder();
+        builder.add("namespaceOptionsMode");
         builder.addAll(Utils.optionalVersionFieldSet);
         builder.add("nsCreationOptions");
         builder.add("zkid");
@@ -50,53 +57,57 @@ public class DHTConfiguration implements VersionedDefinition {
         ObjectDefParser2.addParser(emptyTemplate, FieldsRequirement.REQUIRE_ALL_NONOPTIONAL_FIELDS, optionalFields);        
     }
     
-    public DHTConfiguration(String ringName, int port, String passiveNodeHostGroups, 
-            NamespaceCreationOptions nsCreationOptions, Map<String,String> hostGroupToClassVarsMap, 
-            long version, long zkid, String defaultClassVars) {
+    public DHTConfiguration(String ringName, int port, String passiveNodeHostGroups,
+                            NamespaceCreationOptions nsCreationOptions, Map<String,String> hostGroupToClassVarsMap, NamespaceOptionsMode namespaceOptionsMode, long version, long zkid, String defaultClassVars) {
         this.ringName = ringName;
         this.port = port;
         this.passiveNodeHostGroups = passiveNodeHostGroups;
         this.nsCreationOptions = nsCreationOptions;
         this.hostGroupToClassVarsMap = hostGroupToClassVarsMap;
         this.version = version;
+        this.namespaceOptionsMode = namespaceOptionsMode;
         this.zkid = zkid;
         this.defaultClassVars = defaultClassVars;
     }
-    
+
     public static DHTConfiguration forPassiveNodes(String passiveNodeHostGroups) {
-        return new DHTConfiguration(null, Integer.MIN_VALUE, passiveNodeHostGroups, null, null, 0, Long.MIN_VALUE, null);
+        return new DHTConfiguration(null, Integer.MIN_VALUE, passiveNodeHostGroups, null, null, defaultNamespaceOptionsMode, 0, Long.MIN_VALUE, null);
     }
     
     public DHTConfiguration ringName(String ringName) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }
     
     public DHTConfiguration port(int port) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }
     
     public DHTConfiguration passiveNodeHostGroups(String passiveNodeHostGroups) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }
     
     public DHTConfiguration nsCreationOptions(NamespaceCreationOptions nsCreationOptions) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }
     
     public DHTConfiguration hostGroupToClassVarsMap(Map<String,String> hostGroupToClassVarsMap) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }    
     
     public DHTConfiguration version(long version) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }
     
     public DHTConfiguration zkid(long zkid) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }
     
     public DHTConfiguration defaultClassVars(String defaultClassVars) {
-        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, version, zkid, defaultClassVars);
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
+    }
+
+    public DHTConfiguration namespaceOptionsMode(NamespaceOptionsMode namespaceOptionsMode) {
+        return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap, namespaceOptionsMode, version, zkid, defaultClassVars);
     }
     
     public String getRingName() {
@@ -126,7 +137,11 @@ public class DHTConfiguration implements VersionedDefinition {
     public Set<String> getHostGroups() {
         return ImmutableSet.copyOf(hostGroupToClassVarsMap.keySet());
     }
-    
+
+    public NamespaceOptionsMode getNamespaceOptionsMode() {
+        return namespaceOptionsMode;
+    }
+
     @Override
     public long getVersion() {
         return version;
@@ -156,7 +171,7 @@ public class DHTConfiguration implements VersionedDefinition {
         DHTConfiguration    instance;
         
         instance = parse(def, version);
-        return instance.zkid(version);
+        return instance.zkid(zkid);
     }
     
     @Override

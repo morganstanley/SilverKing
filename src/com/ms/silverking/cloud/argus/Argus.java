@@ -10,6 +10,7 @@ import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.ms.silverking.util.SafeTimerTask;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -34,12 +35,12 @@ public class Argus implements PeerWarningListener {
     private static final String warningFileIntervalSeconds = "warningFileIntervalSeconds";
     private static final String peerWarningResponseIntervalSeconds = "peerWarningResponseIntervalSeconds";
     private final List<SafetyEnforcer>  enforcers;
-    private final Timer                 timer;
+    private final SafeTimer                 timer;
     private enum Test {RSS, DiskUsage};
     private boolean killEnabled ;
     private Terminator terminator;
     private Terminator.KillType killtype;
-    private volatile ArgusTask    nextRSSTask;
+    private volatile SafeTimerTask nextRSSTask;
     private final RSSEnforcer    rssEnforcer;
     private PeerWarningModule    peerWarningModule;
     
@@ -178,7 +179,7 @@ public class Argus implements PeerWarningListener {
             delayMillis = enforcer.enforce();
             next = new ArgusTask(enforcer);
             if (enforcer instanceof RSSEnforcer) {
-                nextRSSTask = next;
+                nextRSSTask = new SafeTimerTask(next);
             }
             timer.schedule(next, delayMillis);
         }

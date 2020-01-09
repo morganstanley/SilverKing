@@ -18,11 +18,12 @@ import com.ms.silverking.cloud.dht.client.KeyDigestType;
 import com.ms.silverking.cloud.dht.client.impl.NamespaceCreator;
 import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
+import com.ms.silverking.numeric.NumConversion;
 
 public class NamespaceUtil {
     private static final NamespaceCreator   creator = new SimpleNamespaceCreator();
     
-    public static final String metaInfoNamespaceName = "__DHT_Meta__";
+    public static final String metaInfoNamespaceName = "__DHT_Meta__"; // Current dir name 273d6df499e32426
     public static final Namespace   metaInfoNamespace = creator.createNamespace(metaInfoNamespaceName);
     public static final GetOptions metaNSDefaultGetOptions = DHTConstants.standardGetOptions.forwardingMode(ForwardingMode.ALL); // Required to bootstrap lost replicas
     public static final PutOptions  metaNSDefaultPutOptions = new PutOptions(DHTConstants.standardTimeoutController, 
@@ -60,17 +61,50 @@ public class NamespaceUtil {
                     metaInfoNamespaceOptions.getDefaultWaitOptions(),
                     new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource), null);
             
-    public static long nameToLong(String namespace) {
-        return new SimpleNamespaceCreator().createNamespace(namespace).contextAsLong();
+    public static long nameToContext(String name) {
+        return new SimpleNamespaceCreator().createNamespace(name).contextAsLong();
     }
             
-    public static String nameToHexString(String namespace) {
-        return Long.toHexString(nameToLong(namespace));
+    public static String nameToDirName(String name) {
+        return Long.toHexString(nameToContext(name));
     }
-    
+
+    public static String contextToDirName(long context) {
+        return Long.toHexString(context);
+    }
+
+    public static long dirNameToContext(String dirName) {
+        return NumConversion.parseHexStringAsUnsignedLong(dirName);
+    }
+
+    public static boolean canMutateWith(NamespaceOptions oldOpts, NamespaceOptions newOpts) {
+        if (oldOpts == newOpts) {
+            return true;
+        }
+
+        /* The following selective fields are mutable, so they are waived from equality check:
+         *  - secondarySyncIntervalSeconds
+         *  - valueRetentionPolicy
+         *  - defaultPutOptions
+         *  - defaultInvalidationOptions
+         *  - defaultGetOptions
+         *  - defaultWaitOptions
+         *  - namespaceServerSideCode
+         */
+
+        // The following fields are immutable, so we still need to check its equality
+        return oldOpts.getStorageType() == newOpts.getStorageType()
+                && oldOpts.getConsistencyProtocol() == newOpts.getConsistencyProtocol()
+                && oldOpts.getVersionMode() == newOpts.getVersionMode()
+                && oldOpts.getRevisionMode() == newOpts.getRevisionMode()
+                && oldOpts.getSegmentSize() == newOpts.getSegmentSize()
+                && oldOpts.getMaxValueSize() == newOpts.getMaxValueSize()
+                && oldOpts.getAllowLinks() == newOpts.getAllowLinks();
+    }
+
     public static void main(String[] args) {
         for (String ns : args) {
-            System.out.printf("%s\t%s\n", ns, nameToHexString(ns));
+            System.out.printf("%s\t%s\n", ns, nameToDirName(ns));
         }
     }
 }

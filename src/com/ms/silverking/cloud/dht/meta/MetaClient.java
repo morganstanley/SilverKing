@@ -38,7 +38,7 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     public String getDHTName() {
         return dhtName;
     }
-    
+
     public DHTConfiguration getDHTConfiguration() throws KeeperException {
         String  def;
         long    version;
