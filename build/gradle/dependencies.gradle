@@ -24,7 +24,7 @@ dependencies {
     compileCore group: 'org.slf4j',                        name: 'slf4j-api',               version: '1.6.1',             configuration: 'runtime'
     compileCore group: 'org.slf4j',                        name: 'slf4j-simple',            version: '1.6.1',             configuration: 'runtime'
     compileCore group: 'com.yahoo.ycsb',                   name: 'core',                    version: '0.1.4',             configuration: 'runtime'
-    compileCore group: 'org.apache.zookeeper',             name: 'zookeeper',               version: '3.4.8',             configuration: 'runtime'
+    compileCore group: 'org.apache.zookeeper',             name: 'zookeeper',               version: '3.5.3',             configuration: 'runtime'
     
     compileCore group: 'org.mockito',                      name: 'mockito-core',            version: '2.23.4',            configuration: 'runtime'
     compileCore group: 'net.bytebuddy',                    name: 'byte-buddy',              version: '1.9.6',             configuration: 'runtime'
