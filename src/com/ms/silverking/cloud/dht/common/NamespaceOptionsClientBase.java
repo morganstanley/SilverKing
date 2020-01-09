@@ -451,7 +451,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
 
         ActiveOptionsRequest(long nsContext, long relTimeoutMillis) {
             this.nsContext = nsContext;
-            this.absTimeoutMillis = SystemTimeUtil.systemTimeSource.absTimeMillis() + relTimeoutMillis;
+            this.absTimeoutMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis() + relTimeoutMillis;
         }
 
         NamespaceProperties waitForCompletion() throws TimeoutException {
@@ -460,7 +460,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
                     long    relDeadlineMillis;
                     long    timeToWaitMillis;
 
-                    relDeadlineMillis = Math.max(0, absTimeoutMillis - SystemTimeUtil.systemTimeSource.absTimeMillis());
+                    relDeadlineMillis = Math.max(0, absTimeoutMillis - SystemTimeUtil.skSystemTimeSource.absTimeMillis());
                     try {
                         timeToWaitMillis = Math.min(activeOptionsRequestTimeoutMillis, relDeadlineMillis);
                         if (debug) {

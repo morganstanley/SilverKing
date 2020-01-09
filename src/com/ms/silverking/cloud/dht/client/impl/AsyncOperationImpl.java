@@ -254,14 +254,14 @@ abstract class AsyncOperationImpl implements AsyncOperation {
         long      absoluteDeadlineMillis;
         
         relativeDeadlineMillis = TimeUnit.MILLISECONDS.convert(timeout, unit);
-        absoluteDeadlineMillis = SystemTimeUtil.systemTimeSource.absTimeMillis() + relativeDeadlineMillis; 
+        absoluteDeadlineMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis() + relativeDeadlineMillis; 
         lock.lock();
         try {
             while (!result.isComplete()) {
                 try {
                     long    millisToDeadline;
                     
-                    millisToDeadline = absoluteDeadlineMillis - SystemTimeUtil.systemTimeSource.absTimeMillis();
+                    millisToDeadline = absoluteDeadlineMillis - SystemTimeUtil.skSystemTimeSource.absTimeMillis();
                     if (millisToDeadline > 0) {
                         Log.fine("activeOp awaiting ", this);
                         if (!spin) {

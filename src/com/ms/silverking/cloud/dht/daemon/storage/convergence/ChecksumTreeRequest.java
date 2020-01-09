@@ -37,11 +37,11 @@ public class ChecksumTreeRequest {
     }
     
     public void setSent() {
-        sendTime = SystemTimeUtil.systemTimeSource.absTimeMillis();
+        sendTime = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
     }
     
     public boolean hasTimedOut() {
-        return SystemTimeUtil.systemTimeSource.absTimeMillis() > sendTime + checksumTreeRequestTimeout;
+        return SystemTimeUtil.skSystemTimeSource.absTimeMillis() > sendTime + checksumTreeRequestTimeout;
     }
 
     @Override

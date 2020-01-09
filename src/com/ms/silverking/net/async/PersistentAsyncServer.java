@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.cloud.dht.common.JVMUtil;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
@@ -20,7 +21,6 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
-import com.ms.silverking.time.SystemTimeSource;
 
 /**
  * Maintains persistent TCP connections to other peers
@@ -275,7 +275,7 @@ public class PersistentAsyncServer<T extends Connection>
     }
     
     public void ensureConnected(AddrAndPort dest) throws ConnectException {
-        getConnection(dest, SystemTimeSource.instance.absTimeMillis() + newConnectionTimeoutController.getMaxRelativeTimeoutMillis(dest));
+        getConnection(dest, SystemTimeUtil.skSystemTimeSource.absTimeMillis() + newConnectionTimeoutController.getMaxRelativeTimeoutMillis(dest));
     }
     
     public Connection getConnection(AddrAndPort dest, long deadline) throws ConnectException {
@@ -329,7 +329,7 @@ public class PersistentAsyncServer<T extends Connection>
         
         _dest = new IPAndPort(dest);
         
-        deadline = Math.min(deadline, SystemTimeSource.instance.absTimeMillis() + newConnectionTimeoutController.getMaxRelativeTimeoutMillis(_dest));
+        deadline = Math.min(deadline, SystemTimeUtil.skSystemTimeSource.absTimeMillis() + newConnectionTimeoutController.getMaxRelativeTimeoutMillis(_dest));
         
         backoff = null;
         while (isRunning) {
@@ -353,13 +353,13 @@ public class PersistentAsyncServer<T extends Connection>
                 if (backoff == null) {
                     backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue, deadline);
                 }
-                if (SystemTimeSource.instance.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
+                if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
                     backoff.backoff();
                 } else {
                     if (suspectAddressListener != null) {
                         suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
                     }
-                    throw new ConnectException("Authentication fails after run out of retries [currTime=" + SystemTimeSource.instance.absTimeMillis() + ",deadline=" + deadline + "] and " + backoff +  " =>" + cae.getAbsorbedInfoMessage());
+                    throw new ConnectException("Authentication fails after run out of retries [currTime=" + SystemTimeUtil.skSystemTimeSource.absTimeMillis() + ",deadline=" + deadline + "] and " + backoff +  " =>" + cae.getAbsorbedInfoMessage());
                 }
             } catch (ConnectException ce) {
                 if (addressStatusProvider != null 
@@ -369,14 +369,14 @@ public class PersistentAsyncServer<T extends Connection>
                 if (suspectAddressListener != null) {
                     suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
                 }
-                System.out.println(SystemTimeSource.instance.absTimeMillis() +"\t"+ deadline);
-                System.err.println(SystemTimeSource.instance.absTimeMillis() +"\t"+ deadline);
+                System.out.println(SystemTimeUtil.skSystemTimeSource.absTimeMillis() +"\t"+ deadline);
+                System.err.println(SystemTimeUtil.skSystemTimeSource.absTimeMillis() +"\t"+ deadline);
                 Log.warning(ce +" "+ dest);
                 Log.logErrorWarning(ce);
                 if (backoff == null) {
                     backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue, deadline);
                 }
-                if (SystemTimeSource.instance.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
+                if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
                     backoff.backoff();
                 } else {
                     informSuspectAddressListener(dest);
@@ -394,7 +394,7 @@ public class PersistentAsyncServer<T extends Connection>
                 if (backoff == null) {
                     backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue, deadline);
                 }
-                if (SystemTimeSource.instance.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
+                if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
                     backoff.backoff();
                 } else {
                     if (suspectAddressListener != null) {

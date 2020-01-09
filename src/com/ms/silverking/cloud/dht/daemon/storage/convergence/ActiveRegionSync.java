@@ -23,6 +23,7 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.KeyAndVersionChecksum;
 import com.ms.silverking.cloud.dht.daemon.storage.KeyAndVersionChecksumSegmentNumberComparator;
 import com.ms.silverking.cloud.dht.daemon.storage.KeyedOpResultListener;
@@ -41,7 +42,6 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.numeric.LongInterval;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.SimpleTimer;
-import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.time.Timer;
 
 public class ActiveRegionSync implements KeyedOpResultListener {
@@ -88,7 +88,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
         completionCV = completionLock.newCondition();
         outstandingSyncRetrievalRequests = new ConcurrentHashMap<>();
         inprocessSyncRetrievalRequests = new ConcurrentSkipListSet<>();
-        lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
+        lastUpdateMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
     }
     
     public ActiveRegionSync(NamespaceStore nsStore, ChecksumTreeServer checksumTreeServer, MessageGroupBase mgBase, ChecksumTreeRequest ctr) {
@@ -125,7 +125,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
         List<KeyAndVersionChecksum> keysToFetchList;
         SyncRetrievalRequest initialSRR;
 
-        lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
+        lastUpdateMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
         if (verbose) {
             Log.warningAsyncf("incomingChecksumTree %s %s %s estimatedKeys %s", uuid, cp, 
                     (connection != null ? connection.getRemoteIPAndPort() : "null connection"), 
@@ -241,7 +241,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
             List<StorageValueAndParameters> svpList;
             SyncRetrievalRequest    srr;
             
-            lastUpdateMillis = SystemTimeSource.instance.absTimeMillis();
+            lastUpdateMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
             srr = outstandingSyncRetrievalRequests.get(message.getUUID());
             
             if (verbose) {
@@ -385,7 +385,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
             } finally {
                 completionLock.unlock();
             }
-        } while (!isComplete && SystemTimeSource.instance.absTimeMillis() - lastUpdateMillis < TimeUnit.MILLISECONDS.convert(time, unit));
+        } while (!isComplete && SystemTimeUtil.skSystemTimeSource.absTimeMillis() - lastUpdateMillis < TimeUnit.MILLISECONDS.convert(time, unit));
         return isComplete;
     }
     

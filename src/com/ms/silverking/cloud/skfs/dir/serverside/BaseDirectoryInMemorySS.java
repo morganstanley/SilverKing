@@ -26,6 +26,7 @@ import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthIssue;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageParameters;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
@@ -40,7 +41,6 @@ import com.ms.silverking.compression.CompressionUtil;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.time.SimpleTimer;
-import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.time.Timer;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
@@ -184,7 +184,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
                     long    curTimeNanos;
                     
                     rs = new TimeAndVersionRetentionState();
-                    curTimeNanos = SystemTimeSource.instance.absTimeNanos();
+                    curTimeNanos = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
                     for (long version : serializedVersions.descendingKeySet()) {
                         if (greatestVersion == Long.MIN_VALUE) {
                             greatestVersion = version;

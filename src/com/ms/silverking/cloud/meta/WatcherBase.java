@@ -96,14 +96,14 @@ public abstract class WatcherBase implements Watcher, CancelableObserver {
     
     protected void doCheck() throws KeeperException {
         if (active) {
-            doCheck(SystemTimeUtil.systemTimeSource.absTimeMillis());
+            doCheck(SystemTimeUtil.skSystemTimeSource.absTimeMillis());
         }
     }
     
     public void timerRang() throws KeeperException {
         long    curTimeMillis;
         
-        curTimeMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
+        curTimeMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
         if (curTimeMillis - lastCheckMillis.get() < minIntervalMillis) {
             Log.fine("Ignoring doCheck() as last call was < intervalMillis");
         } else {

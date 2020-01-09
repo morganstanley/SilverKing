@@ -5,10 +5,10 @@ import java.util.concurrent.TimeUnit;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.text.ObjectDefParser2;
-import com.ms.silverking.time.SystemTimeSource;
 
 public class NanosVersionRetentionPolicy implements ValueRetentionPolicy<InvalidatedRetentionState> {
     private final long    invalidatedRetentionIntervalSeconds;
@@ -134,7 +134,7 @@ public class NanosVersionRetentionPolicy implements ValueRetentionPolicy<Invalid
         long    curTimeNanos;
         
         invalidatedRetentionState = new InvalidatedRetentionState();
-        curTimeNanos = SystemTimeSource.instance.absTimeNanos();
+        curTimeNanos = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
         creationTimeNanos = curTimeNanos;
         System.out.println(irp.retains(new SimpleKey(0, 1), 0, creationTimeNanos, false, invalidatedRetentionState, curTimeNanos, 0));
         System.out.println(irp.retains(new SimpleKey(0, 2), 0, creationTimeNanos, true, invalidatedRetentionState, curTimeNanos, 0));

@@ -51,7 +51,6 @@ import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
-import com.ms.silverking.time.SystemTimeSource;
 
 /**
  * Observers ZooKeeper for changes in metadata that this DHT is dependent upon.
@@ -110,7 +109,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     private static final boolean    debugValidTarget = true;
     
     static {
-        OutgoingData.setAbsMillisTimeSource(SystemTimeSource.instance);
+        OutgoingData.setAbsMillisTimeSource(SystemTimeUtil.skSystemTimeSource);
     }
 
     public DHTRingMaster(ZooKeeperConfig zkConfig, String dhtName, 
@@ -137,7 +136,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
         
         dhtMetaReader = new DHTMetaReader(zkConfig, dhtName, enableLogging);
         
-        mgBase = new MessageGroupBase(mgBasePort, this, SystemTimeUtil.systemTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, 
+        mgBase = new MessageGroupBase(mgBasePort, this, SystemTimeUtil.skSystemTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, 
                                       null, queueLimit, numSelectorControllers, selectorControllerClass);
         mode = Mode.Automatic;
         new RingMasterControlImpl(this);

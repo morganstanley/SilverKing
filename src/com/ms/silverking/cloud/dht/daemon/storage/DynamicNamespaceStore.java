@@ -141,7 +141,7 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
                                 CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), // currently no checksum on system namespace 
                                 new byte[0],
                                 dynamicCreator, 
-                                SystemTimeUtil.systemTimeSource.absTimeNanos());
+                                SystemTimeUtil.skSystemTimeSource.absTimeNanos());
 
         // FUTURE - could reduce duplication with WritablesSegmentBase
         compressedLength = value.length; // no compression for system values

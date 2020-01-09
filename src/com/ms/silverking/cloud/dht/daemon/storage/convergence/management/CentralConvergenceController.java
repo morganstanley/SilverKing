@@ -146,7 +146,7 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
         
         Log.warningAsyncf("Using exclusions:\n%s", exclusionSet);
         
-        syncController = new SyncController(mgBase, curCP, targetCP, SystemTimeUtil.systemTimeSource);
+        syncController = new SyncController(mgBase, curCP, targetCP, SystemTimeUtil.skSystemTimeSource);
         
         RingConfigurationZK    ringConfigZK;
         

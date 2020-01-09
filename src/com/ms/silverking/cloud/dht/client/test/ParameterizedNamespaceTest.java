@@ -15,11 +15,11 @@ import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.PutException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
-import com.ms.silverking.time.SystemTimeSource;
 
 public class ParameterizedNamespaceTest implements ClientTest {
     private final NamespaceOptions  nsOptions;
@@ -81,7 +81,7 @@ public class ParameterizedNamespaceTest implements ClientTest {
                 if (nsOptions.getVersionMode() == NamespaceVersionMode.CLIENT_SPECIFIED) {
                     PutOptions  po;
                     
-                    po = syncNSP.getOptions().getDefaultPutOptions().version(SystemTimeSource.instance.absTimeNanos());
+                    po = syncNSP.getOptions().getDefaultPutOptions().version(SystemTimeUtil.skSystemTimeSource.absTimeNanos());
                     syncNSP.put(createBatchForWrite(i), po);
                 } else {
                     syncNSP.put(createBatchForWrite(i));

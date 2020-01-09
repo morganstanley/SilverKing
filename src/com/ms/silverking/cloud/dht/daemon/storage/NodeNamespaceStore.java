@@ -44,7 +44,7 @@ class NodeNamespaceStore extends DynamicNamespaceStore implements JVMMemoryObser
         nsBytesCompressedKey = keyCreator.createKey("nsBytesCompressed");
         nsTotalPutsKey = keyCreator.createKey("nsTotalPuts");
         nsTotalRetrievalsKey = keyCreator.createKey("nsTotalRetrievals");
-        storeSystemKVPairs(mgBase, SystemTimeUtil.systemTimeSource.absTimeNanos());
+        storeSystemKVPairs(mgBase, SystemTimeUtil.skSystemTimeSource.absTimeNanos());
         this.nsStoreIterator = nsStoreIterator;
     }
 

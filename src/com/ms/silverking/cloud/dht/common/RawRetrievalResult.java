@@ -295,7 +295,7 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
         long    nanosRemaining;
         long    millisRemaining;
         
-        nanosRemaining = (getCreationTimeRaw() + (long)getLockSeconds() * 1_000_000_000L) - SystemTimeUtil.systemTimeSource.absTimeNanos();
+        nanosRemaining = (getCreationTimeRaw() + (long)getLockSeconds() * 1_000_000_000L) - SystemTimeUtil.skSystemTimeSource.absTimeNanos();
         millisRemaining = nanosRemaining / 1_000_000L;
         if (millisRemaining > 0) {
             return millisRemaining;
@@ -312,7 +312,7 @@ public class RawRetrievalResult implements StoredValue<ByteBuffer> {
     
     @Override
     public boolean isLocked() {
-        return SystemTimeUtil.systemTimeSource.absTimeNanos() <= getCreationTimeRaw() + (long)getLockSeconds() * 1_000_000_000L;
+        return SystemTimeUtil.skSystemTimeSource.absTimeNanos() <= getCreationTimeRaw() + (long)getLockSeconds() * 1_000_000_000L;
     }
     
     @Override

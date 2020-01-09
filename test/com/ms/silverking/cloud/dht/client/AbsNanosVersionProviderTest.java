@@ -7,19 +7,19 @@ import static com.ms.silverking.cloud.dht.client.TestUtil.relNanosProvider;
 import static com.ms.silverking.cloud.dht.client.TestUtil.test_GetVersion;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
-import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
+import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.time.AbsNanosTimeSource;
 import com.ms.silverking.time.SafeAbsNanosTimeSource;
-import com.ms.silverking.time.SystemTimeSource;
 
 public class AbsNanosVersionProviderTest {
 
     private static final AbsNanosTimeSource antsCopy = new SafeAbsNanosTimeSource(0);
-    private static final AbsNanosTimeSource antsDiff = SystemTimeSource.instance;
+    private static final AbsNanosTimeSource antsDiff = SystemTimeUtil.skSystemTimeSource;
     
     private static final AbsNanosVersionProvider absNanosProviderCopy = new AbsNanosVersionProvider(antsCopy);
     private static final AbsNanosVersionProvider absNanosProviderDiff = new AbsNanosVersionProvider(antsDiff);

@@ -7,12 +7,19 @@ package com.ms.silverking.time;
 public final class SystemTimeSource implements RelNanosAbsMillisTimeSource, AbsNanosTimeSource {
     private final TimerDrivenAbsNanosTimeSource    absNanosTimeSource;
     
-    public static final SystemTimeSource  instance = new SystemTimeSource();
+    // This instance is only intended for use by other time package utilities.
+    // Making this generally available could lead to instances where different
+    // nanosecond origins are used.
+    static final SystemTimeSource  instance = new SystemTimeSource();
     
     private SystemTimeSource(long nanoOriginInMillis) {
         absNanosTimeSource = new TimerDrivenAbsNanosTimeSource(nanoOriginInMillis);
     }
 
+    /**
+     * Create a SystemTimeSource with a nanos origin of now.
+     * <b>Be aware that this origin will change every time a new instance is created.</b>
+     */
     public SystemTimeSource() {
         this(System.currentTimeMillis());
     }

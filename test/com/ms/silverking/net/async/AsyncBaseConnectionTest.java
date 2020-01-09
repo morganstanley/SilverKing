@@ -1,13 +1,14 @@
 package com.ms.silverking.net.async;
 
-import com.ms.silverking.id.UUIDBase;
-import com.ms.silverking.net.AddrAndPort;
-import com.ms.silverking.net.HostAndPort;
-import com.ms.silverking.net.security.ConnectionAbsorbException;
-import com.ms.silverking.time.SystemTimeSource;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -15,9 +16,15 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.id.UUIDBase;
+import com.ms.silverking.net.AddrAndPort;
+import com.ms.silverking.net.HostAndPort;
+import com.ms.silverking.net.security.ConnectionAbsorbException;
 
 public class AsyncBaseConnectionTest {
     private AddressStatusProvider mockAddressStatusProvider = mock(AddressStatusProvider.class);
@@ -36,12 +43,12 @@ public class AsyncBaseConnectionTest {
 
             @Override
             public long getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex) {
-                return Long.MAX_VALUE - SystemTimeSource.instance.absTimeMillis();
+                return Long.MAX_VALUE - SystemTimeUtil.skSystemTimeSource.absTimeMillis();
             }
 
             @Override
             public long getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort) {
-                return Long.MAX_VALUE - SystemTimeSource.instance.absTimeMillis();
+                return Long.MAX_VALUE - SystemTimeUtil.skSystemTimeSource.absTimeMillis();
             }
         }, null, true, null, new UUIDBase());
         pa.setAddressStatusProvider(mockAddressStatusProvider);

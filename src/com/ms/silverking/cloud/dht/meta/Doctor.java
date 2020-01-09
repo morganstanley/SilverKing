@@ -9,13 +9,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.management.SKAdmin;
 import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import com.ms.silverking.time.SystemTimeSource;
 
 /**
  * Responsible for diagnosing and fixing nodes that are down.
@@ -116,7 +116,7 @@ public class Doctor {
         Set<String>    patientsToRestart;
         long        absTimeMillis;
         
-        absTimeMillis = SystemTimeSource.instance.absTimeMillis();
+        absTimeMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
         patientsToRestart = new HashSet<>();
         for (Patient patient : patients.values()) {
             Diagnosis    diagnosis;

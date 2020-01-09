@@ -63,7 +63,7 @@ public class PeerHealthMonitor implements SuspectAddressListener {
                 Long    lastWeakErrorTime;
                 
                 lastWeakErrorTime = lastWeakErrorTimes.get(peer);
-                if (lastWeakErrorTime != null && SystemTimeUtil.systemTimeSource.absTimeMillis() - lastWeakErrorTime <= weakErrorTimeoutMillis) {
+                if (lastWeakErrorTime != null && SystemTimeUtil.skSystemTimeSource.absTimeMillis() - lastWeakErrorTime <= weakErrorTimeoutMillis) {
                     return true;
                 } else {
                     // possibly take action
@@ -82,7 +82,7 @@ public class PeerHealthMonitor implements SuspectAddressListener {
         if (t == null) {
             return Long.MAX_VALUE;
         } else {
-            if (SystemTimeUtil.systemTimeSource.absTimeMillis() - t <= weakErrorTimeoutMillis) { 
+            if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() - t <= weakErrorTimeoutMillis) { 
                 return t;
             } else {
                 return Long.MAX_VALUE;
@@ -147,7 +147,7 @@ public class PeerHealthMonitor implements SuspectAddressListener {
     
     private void addWeakSuspect(IPAndPort peer) {
         currentWeakSuspects.add(peer);
-        lastWeakErrorTimes.put(peer, SystemTimeUtil.systemTimeSource.absTimeMillis());
+        lastWeakErrorTimes.put(peer, SystemTimeUtil.skSystemTimeSource.absTimeMillis());
     }
 
     private void addStrongSuspect(IPAndPort peer, String cause) {

@@ -6,8 +6,8 @@ package com.ms.silverking.net.async.time;
 
 import java.util.Random;
 
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.thread.ThreadUtil;
-import com.ms.silverking.time.SystemTimeSource;
 
 public class RandomBackoff {
     protected final int        maxBackoffNum;
@@ -53,7 +53,7 @@ public class RandomBackoff {
                         long hardDeadline) {
         this( maxBackoffNum, initialBackoffValue, extraBackoffValue, 
             hardDeadline, true,
-            SystemTimeSource.instance.absTimeMillis() );
+            SystemTimeUtil.skSystemTimeSource.absTimeMillis() );
     }
 
     public RandomBackoff(int maxBackoffNum, 
@@ -96,7 +96,7 @@ public class RandomBackoff {
         consecutiveBackoffs++;
         if (waitHere) {
             if (hardDeadline > 0) {
-                backoffTime = (int)Math.min(backoffTime, hardDeadline - SystemTimeSource.instance.absTimeMillis());
+                backoffTime = (int)Math.min(backoffTime, hardDeadline - SystemTimeUtil.skSystemTimeSource.absTimeMillis());
             }
             if (waitObj == null) {
                 ThreadUtil.sleep(backoffTime);

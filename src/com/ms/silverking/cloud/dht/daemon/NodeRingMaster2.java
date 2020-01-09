@@ -693,7 +693,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
         Log.warningf("setConvergenceState result %s", result);
         response = new ProtoOpResponseMessageGroup(message.getUUID(), 0, result, myOriginatorID.getBytes(), message.getDeadlineRelativeMillis());
         try {
-            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.systemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
+            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.skSystemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
         } catch (IOException ioe) {
             Log.logErrorWarning(ioe);
         }

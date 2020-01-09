@@ -58,7 +58,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
         msg_uuid = message.getUUID();
         msg_context = message.getContext();
         msg_deadline = message.getDeadlineRelativeMillis();
-        systemTimeSource = SystemTimeUtil.systemTimeSource;
+        systemTimeSource = SystemTimeUtil.skSystemTimeSource;
         _version = ProtoPutMessageGroup.getPutVersion(message);
         if (_version == DHTConstants.unspecifiedVersion) {
             switch (nsOptions.getVersionMode()) {
@@ -151,7 +151,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
             List<StorageValueAndParameters> values;
             long    creationTime;
             
-            creationTime = SystemTimeUtil.systemTimeSource.absTimeNanos();
+            creationTime = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
             values = new ArrayList<>(_entries.size());
             for (DHTKey _entry : _entries) {
                 values.add(new StorageValueAndParameters((MessageGroupPutEntry)_entry, (PutOperationContainer)this, 

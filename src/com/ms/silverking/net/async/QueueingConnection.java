@@ -8,10 +8,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.collection.ConcurrentLinkedDequeWithSize;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
-import com.ms.silverking.time.SystemTimeSource;
 
 /**
  * Connection that maintains an output queue.
@@ -219,10 +219,10 @@ public abstract class QueueingConnection<D extends OutgoingData,I extends Incomi
             //Thread.dumpStack();
         }
         if (debugMessageTimeouts) {
-            if (SystemTimeSource.instance.absTimeMillis() > deadline - messageTimeoutMargin) {
+            if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() > deadline - messageTimeoutMargin) {
                 Log.warning(data);
                 Log.warning("Message is about to time out");
-                Log.warning(SystemTimeSource.instance.absTimeMillis() +" "+ deadline);
+                Log.warning(SystemTimeUtil.skSystemTimeSource.absTimeMillis() +" "+ deadline);
                 Thread.dumpStack();
             }
         }

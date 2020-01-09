@@ -22,7 +22,7 @@ public class DHTUtil {
 
     public static long currentTimeMillis() {
         // FUTURE deprecate this function and replace with direct calls to SystemTimeUtil
-        return SystemTimeUtil.systemTimeSource.absTimeMillis();
+        return SystemTimeUtil.skSystemTimeSource.absTimeMillis();
     }
     
     public static Timer timer() {

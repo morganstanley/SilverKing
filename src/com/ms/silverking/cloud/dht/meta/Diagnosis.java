@@ -3,8 +3,8 @@ package com.ms.silverking.cloud.dht.meta;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.collection.CollectionUtil;
-import com.ms.silverking.time.SystemTimeSource;
 
 public class Diagnosis {
     private long                diagnosisTime;
@@ -15,7 +15,7 @@ public class Diagnosis {
     }
     
     public Diagnosis(Set<Disease> diseases) {
-        this(diseases, SystemTimeSource.instance.absTimeMillis());
+        this(diseases, SystemTimeUtil.skSystemTimeSource.absTimeMillis());
     }
     
     public long getDiagnosisTimeMillis() {

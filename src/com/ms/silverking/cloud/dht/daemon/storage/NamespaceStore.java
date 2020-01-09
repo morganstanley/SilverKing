@@ -424,7 +424,7 @@ public class NamespaceStore implements SSNamespaceStore {
             curSnapshot = Long.MIN_VALUE;
         }
         this.activeRetrievals = activeRetrievals;
-        systemTimeSource = SystemTimeUtil.systemTimeSource;
+        systemTimeSource = SystemTimeUtil.skSystemTimeSource;
         nsStats = new NamespaceStats();
         deletedSegments = new HashSet<>();
         

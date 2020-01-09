@@ -34,7 +34,7 @@ public final class NamespacePerspectiveOptions<K,V> {
     // FUTURE - think about this
     static final KeyDigestType standardKeyDigestType = KeyDigestType.MD5;
     
-    static final ConstantVersionProvider standardVersionProvider = new ConstantVersionProvider(SystemTimeUtil.systemTimeSource.absTimeMillis());
+    static final ConstantVersionProvider standardVersionProvider = new ConstantVersionProvider(SystemTimeUtil.skSystemTimeSource.absTimeMillis());
     static final NamespacePerspectiveOptions<byte[], byte[]> templateOptions = new NamespacePerspectiveOptions<byte[], byte[]>(byte[].class, byte[].class);
     
     static {

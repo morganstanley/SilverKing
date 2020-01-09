@@ -614,7 +614,7 @@ public class StorageModule implements LinkCreationListener {
         result = success ? OpResult.SUCCEEDED : OpResult.ERROR;
         response = new ProtoOpResponseMessageGroup(uuid, 0, result, SimpleValueCreator.forLocalProcess().getBytes(), timeoutMillis);
         try {
-            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.systemTimeSource.absTimeMillis() + timeoutMillis);
+            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.skSystemTimeSource.absTimeMillis() + timeoutMillis);
         } catch (IOException ioe) {
             Log.logErrorWarning(ioe);
         }
@@ -716,7 +716,7 @@ public class StorageModule implements LinkCreationListener {
         result = OpResult.SUCCEEDED;
         response = new ProtoOpResponseMessageGroup(message.getUUID(), 0, result, myOriginatorID.getBytes(), message.getDeadlineRelativeMillis());
         try {
-            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.systemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
+            connection.sendAsynchronous(response.toMessageGroup(), SystemTimeUtil.skSystemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
         } catch (IOException ioe) {
             Log.logErrorWarning(ioe);
         }

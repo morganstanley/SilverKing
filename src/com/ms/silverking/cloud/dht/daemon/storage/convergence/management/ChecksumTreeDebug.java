@@ -34,11 +34,11 @@ public class ChecksumTreeDebug implements MessageGroupReceiver {
     static {
         ActiveRegionSync.debug = true;
         Log.initAsyncLogging();
-        OutgoingData.setAbsMillisTimeSource(SystemTimeUtil.systemTimeSource);
+        OutgoingData.setAbsMillisTimeSource(SystemTimeUtil.skSystemTimeSource);
     }
     
     public ChecksumTreeDebug() throws IOException {
-        mgBase = new MessageGroupBase(0, this, SystemTimeUtil.systemTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, null, queueLimit, 1, "");
+        mgBase = new MessageGroupBase(0, this, SystemTimeUtil.skSystemTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, null, queueLimit, 1, "");
         mgBase.enable();
     }
     

@@ -6,9 +6,9 @@ package com.ms.silverking.process;
 
 import java.io.File;
 
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
-import com.ms.silverking.time.SystemTimeSource;
 
 
 public class Terminator implements Runnable {
@@ -25,7 +25,7 @@ public class Terminator implements Runnable {
         this.seconds = seconds;
         this.exitCode = exitCode;
         this.listener = listener;
-        termTime = SystemTimeSource.instance.absTimeMillis() + seconds * 1000;
+        termTime = SystemTimeUtil.skSystemTimeSource.absTimeMillis() + seconds * 1000;
         ThreadUtil.newDaemonThread(this, "Terminator").start();
     }
     
@@ -71,7 +71,7 @@ public class Terminator implements Runnable {
     
     protected long calcSleepMillis() {
         synchronized (this) {
-            return Math.max(termTime - SystemTimeSource.instance.absTimeMillis(), 0);
+            return Math.max(termTime - SystemTimeUtil.skSystemTimeSource.absTimeMillis(), 0);
         }
     }
     
@@ -95,7 +95,7 @@ public class Terminator implements Runnable {
                     Thread.sleep( calcSleepMillis() );
                 } catch (InterruptedException ie) {
                 }
-            } while (SystemTimeSource.instance.absTimeMillis() < termTime);
+            } while (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < termTime);
         }
         if (listener != null) {
             listener.terminationTriggered(this);

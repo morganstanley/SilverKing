@@ -244,7 +244,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         boolean     exclusionSetWritten;
         
         exclusionSetWritten = false;
-        lastCheckMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
+        lastCheckMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
         checkMutex.lock();
         try {
             SetMultimap<IPAndPort,IPAndPort>    accuserSuspects;
@@ -256,7 +256,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             Set<IPAndPort>    activeServers;
             long    updateDeltaMillis;
             
-            updateDeltaMillis = SystemTimeUtil.systemTimeSource.absTimeMillis() - lastUpdateMillis;
+            updateDeltaMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis() - lastUpdateMillis;
             if (updateDeltaMillis < minUpdateIntervalMillis) {
                 long    sleepMillis;
                 
@@ -366,7 +366,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                 } else {
                     boolean    updated;
                     
-                    addToConvictionTimes(guiltySuspects, SystemTimeUtil.systemTimeSource.absTimeMillis());
+                    addToConvictionTimes(guiltySuspects, SystemTimeUtil.skSystemTimeSource.absTimeMillis());
                     if (doctor != null) {
                         doctor.admitPatients(guiltySuspects);
                         if (!disableAddition) {
@@ -380,7 +380,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
                     
                     updated = updateInstanceExclusionSet(guiltySuspects, disableAddition ? ImmutableSet.of() : newActiveNodes);
                     if (updated) {
-                        lastUpdateMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
+                        lastUpdateMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
                     }
                 }
             }
@@ -422,7 +422,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         long    windowStart;
         int        totalConvictions;
         
-        windowStart = SystemTimeUtil.systemTimeSource.absTimeMillis() - relTimeMillis;
+        windowStart = SystemTimeUtil.skSystemTimeSource.absTimeMillis() - relTimeMillis;
         totalConvictions = 0;
         for (long convictionTimeMillis : convictionTimes.values()) {
             if (convictionTimeMillis > windowStart) {
@@ -538,7 +538,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
         running = true;
         while (running) {
             ThreadUtil.sleep(1000);
-            if (SystemTimeUtil.systemTimeSource.absTimeMillis() - lastCheckMillis > forcedCheckIntervalMillis) {
+            if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() - lastCheckMillis > forcedCheckIntervalMillis) {
                 Log.warning("Forcing check()");
                 check();
             }

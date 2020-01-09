@@ -1,15 +1,15 @@
 package com.ms.silverking.cloud.dht.daemon.storage.serverside;
 
-import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.common.SimpleKey;
-import com.ms.silverking.collection.FibPriorityQueue;
-import com.ms.silverking.time.AbsNanosTimeSource;
-import com.ms.silverking.time.SystemTimeSource;
-
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.common.SimpleKey;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.collection.FibPriorityQueue;
+import com.ms.silverking.time.AbsNanosTimeSource;
 
 public class LRUStateImpl implements LRUStateProvider {
     private AbsNanosTimeSource                    timeSource;
@@ -17,7 +17,7 @@ public class LRUStateImpl implements LRUStateProvider {
 
     public LRUStateImpl(AbsNanosTimeSource timeSource) {
         if (timeSource == null) {
-            this.timeSource = SystemTimeSource.instance;
+            this.timeSource = SystemTimeUtil.skSystemTimeSource;
         } else {
             this.timeSource = timeSource;
         }

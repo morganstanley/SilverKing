@@ -108,7 +108,7 @@ public class SimpleMetaData implements MetaData {
         long    nanosRemaining;
         long    millisRemaining;
         
-        nanosRemaining = (creationTime + (long)lockSeconds * 1_000_000_000L) - SystemTimeUtil.systemTimeSource.absTimeNanos();
+        nanosRemaining = (creationTime + (long)lockSeconds * 1_000_000_000L) - SystemTimeUtil.skSystemTimeSource.absTimeNanos();
         millisRemaining = nanosRemaining / 1_000_000L;
         if (millisRemaining > 0) {
             return millisRemaining;
@@ -125,7 +125,7 @@ public class SimpleMetaData implements MetaData {
     
     @Override
     public boolean isLocked() {
-        return SystemTimeUtil.systemTimeSource.absTimeNanos() <= creationTime + (long)lockSeconds * 1_000_000_000L;
+        return SystemTimeUtil.skSystemTimeSource.absTimeNanos() <= creationTime + (long)lockSeconds * 1_000_000_000L;
     }
     
     @Override

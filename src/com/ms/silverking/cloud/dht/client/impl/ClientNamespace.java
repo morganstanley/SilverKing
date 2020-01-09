@@ -119,17 +119,17 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
 		switch (nsOptions.getVersionMode()) {
 		case SINGLE_VERSION: 
 			// SINGLE_VERSION internally expects the version number to be abs millis
-			versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource);
+			versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.skSystemTimeSource);
 			break;
 		case CLIENT_SPECIFIED:
-			versionProvider = new ConstantVersionProvider(SystemTimeUtil.systemTimeSource.absTimeMillis());
+			versionProvider = new ConstantVersionProvider(SystemTimeUtil.skSystemTimeSource.absTimeMillis());
 			break;
 		case SYSTEM_TIME_MILLIS:
-			versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource);
+			versionProvider = new AbsMillisVersionProvider(SystemTimeUtil.skSystemTimeSource);
 			break;
 		case SEQUENTIAL: // FIXME - for now treat sequential as nanos
 		case SYSTEM_TIME_NANOS:
-			versionProvider = new AbsNanosVersionProvider(SystemTimeUtil.systemTimeSource);
+			versionProvider = new AbsNanosVersionProvider(SystemTimeUtil.skSystemTimeSource);
 			break;
 	    default: throw new RuntimeException("panic");
 		}
@@ -278,7 +278,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
         long    creationTime;
         long    minVersion;
         
-        creationTime = SystemTimeUtil.systemTimeSource.absTimeNanos();
+        creationTime = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
         switch (nsOptions.getVersionMode()) {
         case SINGLE_VERSION:
             minVersion = 0;
@@ -289,10 +289,10 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
         case SEQUENTIAL:
             throw new RuntimeException("Namespace.clone() not supported for version mode of SEQUENTIAL");
         case SYSTEM_TIME_MILLIS:
-            minVersion = SystemTimeUtil.systemTimeSource.absTimeMillis();
+            minVersion = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
             break;
         case SYSTEM_TIME_NANOS:
-            minVersion = SystemTimeUtil.systemTimeSource.absTimeNanos();
+            minVersion = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
             break;
         default: throw new RuntimeException("Panic");
         }
@@ -314,7 +314,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
     public Namespace clone(String childName, long minVersion) throws NamespaceCreationException {
         long    creationTime;
         
-        creationTime = SystemTimeUtil.systemTimeSource.absTimeNanos();
+        creationTime = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
         switch (nsOptions.getVersionMode()) {
         case CLIENT_SPECIFIED:
             break;

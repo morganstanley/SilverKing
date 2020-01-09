@@ -104,7 +104,7 @@ public class TimeAndVersionRetentionPolicy implements ValueRetentionPolicy<TimeA
         totalVersions = vData.getV1();
         mostRecentCreationTimeNanos = vData.getV2();
         if (mode == Mode.wallClock) {
-            spanEndTimeNanos = SystemTimeUtil.systemTimeSource.absTimeNanos();
+            spanEndTimeNanos = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
         } else {
             spanEndTimeNanos = mostRecentCreationTimeNanos;
         }

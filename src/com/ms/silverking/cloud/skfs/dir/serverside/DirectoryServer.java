@@ -440,7 +440,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
             
             Log.info("checkForPersistence()");
             filesToRemove = new ArrayList<>();
-            checkTimeMillis = SystemTimeUtil.systemTimeSource.absTimeMillis();
+            checkTimeMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
             for (BaseDirectoryInMemorySS dir : directories.values()) {
                 List<File>    dirFilesToRemove;
                 

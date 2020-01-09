@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeInfo;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
@@ -28,7 +29,6 @@ import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import com.ms.silverking.time.SystemTimeSource;
 
 /**
  * Provides information regarding the dht system as a whole
@@ -101,12 +101,12 @@ class SystemNamespaceStore extends DynamicNamespaceStore {
             if (cachedAllNodeInfo == null) {
                 refresh = true;
             } else {
-                refresh = SystemTimeSource.instance.absTimeMillis() > allNodeInfoCacheTimeMS + nodeInfoCacheTimeExpirationMS;
+                refresh = SystemTimeUtil.skSystemTimeSource.absTimeMillis() > allNodeInfoCacheTimeMS + nodeInfoCacheTimeExpirationMS;
             }
             if (refresh) {
                 _cachedAllNodeInfo = nodeInfoZK.getNodeInfo(ringMaster.getAllCurrentReplicaServers());
                 cachedAllNodeInfo = _cachedAllNodeInfo;
-                allNodeInfoCacheTimeMS = SystemTimeSource.instance.absTimeMillis();
+                allNodeInfoCacheTimeMS = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
             } else {
                 _cachedAllNodeInfo = cachedAllNodeInfo;
             }

@@ -59,7 +59,7 @@ public class NamespaceUtil {
                     metaInfoNamespaceOptions.getDefaultInvalidationOptions(),
                     metaInfoNamespaceOptions.getDefaultGetOptions(),
                     metaInfoNamespaceOptions.getDefaultWaitOptions(),
-                    new AbsMillisVersionProvider(SystemTimeUtil.systemTimeSource), null);
+                    new AbsMillisVersionProvider(SystemTimeUtil.skSystemTimeSource), null);
             
     public static long nameToContext(String name) {
         return new SimpleNamespaceCreator().createNamespace(name).contextAsLong();

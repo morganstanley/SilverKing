@@ -640,7 +640,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
                 outstandingMessages.incrementAndGet();
             }
         } while (m != null && outstandingMessages.get() < maxOutstandingMessages);
-        curTime = SystemTimeUtil.systemTimeSource.absTimeMillis();
+        curTime = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
         if (curTime - lastMGQueueReset.get() > outstandingMessagesResetInterval) {
             outstandingMessages.set(0);
             lastMGQueueReset.set(curTime);

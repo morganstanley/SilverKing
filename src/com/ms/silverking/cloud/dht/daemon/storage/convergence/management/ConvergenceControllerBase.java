@@ -82,7 +82,7 @@ public abstract class ConvergenceControllerBase implements RequestController {
         targetRingName = getRingNameFromCP(targetCP);
         targetRing = dhtMetaReader.readRing(targetRingName, targetCP.getRingIDAndVersionPair().getRingVersionPair());
         
-        syncController = new SyncController(mgBase, targetCP, targetCP, SystemTimeUtil.systemTimeSource);
+        syncController = new SyncController(mgBase, targetCP, targetCP, SystemTimeUtil.skSystemTimeSource);
         
         NamedRingConfiguration namedRingConfig;
         
