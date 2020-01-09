@@ -1,11 +1,10 @@
 package com.ms.silverking.cloud.dht.client;
 
-import com.google.common.collect.ImmutableMap;
-import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
-
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
+
+import com.google.common.collect.ImmutableMap;
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
 
 /**
  * Thrown when a keyed client-initiated operation fails. OperationState is provided
@@ -23,12 +22,27 @@ public abstract class KeyedOperationException extends OperationException {
     private static final int keysLimit = 10;
 
     private static String createFailureMessage(Map<Object, FailureCause> failureCause, String delimiter, int keysLimit) {
+        // Jace can't handle InvokeDynamic - rewrite without it
+        /*
         StringJoiner errorMessageJoiner = new StringJoiner(delimiter);
         failureCause.entrySet().stream().limit(keysLimit).forEach((entry) -> {
             errorMessageJoiner.add(
                     String.format("%s%s%s", entry.getKey().toString(), keyValueDelimiter, entry.getValue().name()));
         });
         return errorMessageJoiner.toString();
+        */
+        StringBuffer    sb;
+        int             limitCount;
+        
+        sb = new StringBuffer();
+        limitCount = 0;
+        for (Map.Entry<Object,FailureCause> entry : failureCause.entrySet()) {
+            sb.append(String.format("%s%s%s", entry.getKey().toString(), keyValueDelimiter, entry.getValue().name()));
+            if (++limitCount >= keysLimit) {
+                break;
+            }
+        }
+        return sb.toString();
     }
 
     protected KeyedOperationException(Map<Object, OperationState> operationState, Map<Object, FailureCause> failureCause) {

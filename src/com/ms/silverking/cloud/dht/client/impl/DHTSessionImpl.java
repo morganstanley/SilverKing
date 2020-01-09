@@ -1,5 +1,16 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.base.Preconditions;
 import com.ms.silverking.cloud.dht.GetOptions;
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions;
@@ -7,6 +18,8 @@ import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
+import com.ms.silverking.cloud.dht.WaitOptions;
+import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.DHTSession;
@@ -15,10 +28,10 @@ import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
 import com.ms.silverking.cloud.dht.client.NamespaceDeletionException;
 import com.ms.silverking.cloud.dht.client.NamespaceModificationException;
 import com.ms.silverking.cloud.dht.client.NamespaceRecoverException;
+import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
-import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.common.Context;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
@@ -37,7 +50,6 @@ import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
-import com.ms.silverking.cloud.dht.WaitOptions;
 import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
@@ -46,16 +58,6 @@ import com.ms.silverking.net.async.QueueingConnectionLimitListener;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 /**
  * Concrete implementation of DHTSession. 
@@ -502,13 +504,11 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             AsyncSingleValueRetrieval<String,String>    retrieval;
             String    exclusionSetDef;
             boolean    complete;
+            
             retrieval = systemNSP.get("exclusionSet");
             complete = retrieval.waitForCompletion(exclusionSetRetrievalTimeoutSeconds, TimeUnit.SECONDS);
             if (complete) {
                 exclusionSetDef = retrieval.getValue();
-            } else {
-                exclusionSetDef = null;
-            }
             } else {
                 exclusionSetDef = null;
             }

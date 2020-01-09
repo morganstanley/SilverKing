@@ -123,7 +123,7 @@ public class EmbeddedSK {
                     .passiveNodeHostGroups("")
                     .hostGroupToClassVarsMap(new HashMap<String,String>())
                     .namespaceOptionsMode(config.getNamespaceOptionsMode());
-            dhtConfigZkPath = dhtConfigZK.writeToZK(dhtConfig, null);
+            dhtConfigZK.writeToZK(dhtConfig, null);
             Log.warning("Created DHT configuration in ZK");
 
             // 4) Set cur and target rings
@@ -163,7 +163,7 @@ public class EmbeddedSK {
     */
     
     public static ClientDHTConfiguration createEmbeddedSKInstance() {
-        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(), DHTConfiguration.defaultNamespaceOptionsMode);
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration());
     }
     
     public static void main(String[] args) {

@@ -187,7 +187,7 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     */
     
     public ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options) {
-        return retrieve(key, options);
+        return retrieve(key, options, false);
     }
     
     public ByteBuffer retrieve(DHTKey key, InternalRetrievalOptions options, boolean verifySS) {

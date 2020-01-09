@@ -1080,7 +1080,11 @@ public class TopologyRingCreator {
                                 if (debug) {
                                     System.out.printf("allocateSubPolicyMember() next regionIndex %d\n", regionIndex);
                                 }
-                                if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+                                if (debug) { sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle); }
+                                if (regionIndex < 0) {
+                                    if (allReplicasTag) {
+                                        break;
+                                    } else {                                        
                                         Map<String,Long>    allocations;
                                         allocations = prList.getAllocations();
                                         for (int i = 0; i < nodes.size(); i++) {
@@ -1097,7 +1101,7 @@ public class TopologyRingCreator {
                                     }
                                 }
 
-                                if (debug) sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle);
+                                if (debug) { sanityCheckAllocations(prList, nodes, nodeRegionSizes, replicaIndex, nodeIndex, ringspaceToAllocate - ringspaceAllocated, shuffle); }
                                 // Now add this node to the region found
                                 protoRegion = prList.get(regionIndex);
                                 if (debug) {

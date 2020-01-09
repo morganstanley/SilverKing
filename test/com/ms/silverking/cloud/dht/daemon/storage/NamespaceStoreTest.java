@@ -101,7 +101,7 @@ public class NamespaceStoreTest {
         Arrays.fill(checksum, (byte) 1);
         NamespaceStore ns = getNS(version);
         StorageParametersAndRequirements storageParams = new StorageParametersAndRequirements(version + 1,
-                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired );
+                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired, (short)0);
         assertTrue(ns._put(new SimpleKey(1, 1), bb, storageParams, new byte[]{},
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.duplicateStore.toOpResult());
     }
@@ -114,7 +114,7 @@ public class NamespaceStoreTest {
         Arrays.fill(checksum, (byte) 1);
         NamespaceStore ns = getNS(version);
         StorageParametersAndRequirements storageParams = new StorageParametersAndRequirements(version,
-                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired );
+                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired, (short)0);
         assertTrue(ns._put(new SimpleKey(1, 1), bb, storageParams, new byte[]{},
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.duplicateStore.toOpResult());
     }
@@ -127,7 +127,7 @@ public class NamespaceStoreTest {
         Arrays.fill(checksum, (byte) 0);
         NamespaceStore ns = getNS(version);
         StorageParametersAndRequirements storageParams = new StorageParametersAndRequirements(version + 1,
-                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired );
+                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired, (short)0);
         assertTrue(ns._put(new SimpleKey(1, 1), bb, storageParams, new byte[]{},
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.mutation.toOpResult());
     }
@@ -140,7 +140,7 @@ public class NamespaceStoreTest {
         Arrays.fill(checksum, (byte) 1);
         NamespaceStore ns = getNS(version);
         StorageParametersAndRequirements storageParams = new StorageParametersAndRequirements(version - 1,
-                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired);
+                1, 1, (short) 1500, checksum, new byte[]{1, 1}, 1, PutOptions.noVersionRequired, (short)0);
         assertTrue(ns._put(new SimpleKey(1, 1), bb, storageParams, new byte[]{},
                 NamespaceVersionMode.SINGLE_VERSION) == SegmentStorageResult.invalidVersion.toOpResult());
     }
