@@ -138,6 +138,7 @@ public class DHTNode {
             cleanVM();
             daemonStateZK.setState(DaemonState.INITIAL_REAP);
             storage.startupReap();
+            storage.setReady();
             daemonStateZK.setState(DaemonState.RUNNING);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -211,6 +212,7 @@ public class DHTNode {
                 Log.initAsyncLogging();
                 dhtNode.run();
                 Log.warning("DHTNode run() returned cleanly");
+                System.exit(0);
             } catch (CmdLineException cle) {
                 Log.logErrorWarning(cle);
                 System.err.println(cle.getMessage());
@@ -228,5 +230,6 @@ public class DHTNode {
         } catch (Exception e) {
             Log.logErrorWarning(e);
         }
+        System.exit(-1);
     }
 }

@@ -13,8 +13,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
-import com.ms.silverking.util.PropertiesHelper;
-import com.ms.silverking.util.SafeTimerTask;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.ImmutableList;
@@ -75,6 +73,8 @@ import com.ms.silverking.thread.lwt.LWTPool;
 import com.ms.silverking.thread.lwt.LWTPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
+import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.SafeTimerTask;
 
 /**
  * DHTNode message processing module. 
@@ -166,7 +166,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         storage.setActiveRetrievals(activeRetrievals);
         storage.recoverExistingNamespaces();
         storage.ensureMetaNamespaceStoreExists();
-        storage.setReady();
         cleanerTask = new SafeTimerTask(new Cleaner());
         timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
         //timer.scheduleAtFixedRate(new StatsWorker(), statsPeriodMillis, statsPeriodMillis);
