@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -51,6 +53,7 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicyGroup;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.code.Constraint;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
@@ -63,8 +66,6 @@ import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.SafeTimerTask;
 import com.ms.silverking.util.memory.JVMMonitor;
-
-import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 
 public class StorageModule implements LinkCreationListener {
     private final NodeRingMaster2    ringMaster;
@@ -89,6 +90,7 @@ public class StorageModule implements LinkCreationListener {
     private final File              trashManualDir;
     private SafeTimerTask cleanerTask;
     private SafeTimerTask reapTask;
+    private JVMMonitor  jvmMonitor;
     
     private NamespaceStore  metaNamespaceStore; // used to bootstrap the meta NS store
                                                 // reference held here merely to ensure no GC
@@ -136,13 +138,22 @@ public class StorageModule implements LinkCreationListener {
         Log.warningf("retrievalImplementation: %s", retrievalImplementation);
     }
     
-    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy) {
+    public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig, NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy, JVMMonitor jvmMonitor) {
         ClientDHTConfiguration  clientDHTConfiguration;
+        
+        Constraint.ensureNotNull(ringMaster);
+        Constraint.ensureNotNull(dhtName);
+        Constraint.ensureNotNull(timer);
+        Constraint.ensureNotNull(zkConfig);
+        Constraint.ensureNotNull(nodeInfoZK);
+        Constraint.ensureNotNull(reapPolicy);
+        Constraint.ensureNotNull(jvmMonitor);
         
         this.timer = timer;
         this.ringMaster = ringMaster;
         this.nodeInfoZK = nodeInfoZK;
         this.reapPolicy = reapPolicy;
+        this.jvmMonitor = jvmMonitor;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
         baseDir = new File(nodeInfoZK.getDHTNodeConfiguration().getDataBasePath(), dhtName);
@@ -196,6 +207,7 @@ public class StorageModule implements LinkCreationListener {
         
         nodeNSStore = new NodeNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values());
         addDynamicNamespace(nodeNSStore);
+        jvmMonitor.addMemoryObserver(nodeNSStore);
         
         replicasNSStore = new ReplicasNamespaceStore(mgBase, ringMaster, activeRetrievals);
         addDynamicNamespace(replicasNSStore);
@@ -249,9 +261,6 @@ public class StorageModule implements LinkCreationListener {
         Log.warning(nsStore.getName() +" namespace: ", NamespaceUtil.contextToDirName(nsStore.getNamespace()));
     }
     
-    public void addMemoryObservers(JVMMonitor jvmMonitor) {
-        jvmMonitor.addMemoryObserver(nodeNSStore);
-    }
     
     public void recoverExistingNamespaces() {
         try {

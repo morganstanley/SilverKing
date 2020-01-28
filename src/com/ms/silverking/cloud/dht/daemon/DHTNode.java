@@ -117,12 +117,11 @@ public class DHTNode {
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY,
                     recoveryInactiveNodeTimeoutSeconds);
             nodeInfoZK = new NodeInfoZK(mc, nodeConfig, daemonIPAndPort, daemonStateTimer);
-            storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy);
+            memoryManager = new MemoryManager();
+            storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy, memoryManager.getJVMMonitor());
             msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort,
                                           mc);
             msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
-            memoryManager = new MemoryManager();
-            storage.addMemoryObservers(memoryManager.getJVMMonitor());
             daemonStateZK.setState(DaemonState.QUORUM_WAIT);
             daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT, 
                                              inactiveNodeTimeoutSeconds);

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.ms.silverking.code.Constraint;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
@@ -72,6 +73,7 @@ public class JVMMonitor implements Runnable {
     }
     
     public void addMemoryObserver(JVMMemoryObserver memoryObserver) {
+        Constraint.ensureNotNull(memoryObserver);
         memoryObservers.add(memoryObserver);
     }
     
