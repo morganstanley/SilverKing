@@ -478,6 +478,8 @@ public final class SelectorController<C extends Connection> implements Runnable 
                     ThreadUtil.pauseAfterException();
                 }
             }
+            // Ensure that any pending closes are handled
+            processKeyChangeRequests();
         } finally {
             try {
                 selector.close();

@@ -16,7 +16,7 @@ import com.ms.silverking.thread.lwt.LWTPool;
  */
 public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     private final InetSocketAddress        localSocketAddr;
-    private final ServerSocketChannel    serverChannel;
+    private /*final*/ ServerSocketChannel    serverChannel;
     private final IncomingConnectionListener<T>    incomingConnectionListener;
     private final boolean    debug;
     private boolean    enabled;
@@ -81,6 +81,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     public void shutdown() {
         try {
             serverChannel.close();
+            serverChannel = null;
         } catch (IOException ioe) {
             Log.logErrorWarning(ioe);
         }

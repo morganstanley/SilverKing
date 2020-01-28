@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
@@ -17,7 +16,6 @@ import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.time.RandomBackoff;
 import com.ms.silverking.net.security.ConnectionAbsorbException;
-import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
@@ -46,7 +44,6 @@ public class PersistentAsyncServer<T extends Connection>
     private static final int    initialConnectBackoffValue = 100;
     private static final int    maxSendBackoffNum = 7;
     private static final int    initialSendBackoffValue = 250;
-    private static final int    shutdownDelayMillis = 10;
     
     private static final int    defaultSelectorControllers = 1;
     private static final String defaultSelectorControllerClass = "PAServer";
@@ -154,8 +151,6 @@ public class PersistentAsyncServer<T extends Connection>
         }
         asyncServer.shutdown();
         isRunning = false;
-        ThreadUtil.sleep(shutdownDelayMillis);
-        JVMUtil.getGlobalFinalization().forceFinalization(0);
     }
     
     //////////////////////////////////////////////////////////////////////
