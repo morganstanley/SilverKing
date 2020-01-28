@@ -1,5 +1,37 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+import java.util.logging.Level;
+
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -90,38 +122,6 @@ import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.jvm.Finalization;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
-import java.util.logging.Level;
 
 public class NamespaceStore implements SSNamespaceStore {
     private final long ns;
@@ -3200,13 +3200,9 @@ public class NamespaceStore implements SSNamespaceStore {
     
     private <T extends ValueRetentionState> int singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, 
                                                                           int startSegment, int endSegment, boolean verboseReap) {
-        Set<Integer>            deletedSegments;
-        HashedSetMap<DHTKey,Triple<Long,Integer,Long>>    removedEntries;
         int segmentsReaped;
         
         segmentsReaped = 0;
-        removedEntries = new HashedSetMap<>();
-        deletedSegments = new HashSet<>();
         for (int i = startSegment; i >= endSegment; i--) {
             if (segmentExists(i)) {
                 Triple<CompactionCheckResult,Set<Integer>,Set<Integer>>    result; 
@@ -3263,7 +3259,6 @@ public class NamespaceStore implements SSNamespaceStore {
                 }
             }
         }
-        updateOffsetLists(deletedSegments, removedEntries);
         return segmentsReaped;
     }
     
@@ -3348,7 +3343,7 @@ public class NamespaceStore implements SSNamespaceStore {
         if (deletedSegments.size() > 0) {
             Set<DHTKey>    singleKeysInDeletedSegments;
             
-            // Remove deleted segments form offset lists
+            // Remove deleted segments from offset lists
             for (int i = 1; i <= ols.getNumLists(); i++) { // offset list indexing is 1-based
                 RAMOffsetList    ol;
                 
