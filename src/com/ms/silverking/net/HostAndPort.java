@@ -49,11 +49,7 @@ public final class HostAndPort implements Comparable<HostAndPort>, Serializable,
     }
     
     public static HostAndPort localHostAndPort(int port) {
-        try {
-            return new HostAndPort(InetAddress.getLocalHost().getHostName(), port);
-        } catch (UnknownHostException uhe) {
-            throw new RuntimeException(uhe);
-        }
+        return new HostAndPort(IPAddrUtil.localIPString(), port);
     }
     
     /**
@@ -129,14 +125,6 @@ public final class HostAndPort implements Comparable<HostAndPort>, Serializable,
     @Override
     public int hashCode() {
         return hostName.hashCode() ^ port;
-    }
-    
-    public static HostAndPort getLocalRef(int port) {
-        try {
-            return new HostAndPort(InetAddress.getLocalHost().getHostAddress(), port);
-        } catch (Exception e) {
-            throw new RuntimeException("Couldn't get local reference");
-        }
     }
     
     public static HostAndPort[] parseMultiple(String def) {
