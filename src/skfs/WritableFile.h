@@ -42,12 +42,18 @@ typedef struct WritableFileReferentState {
     int                toDelete;
 } WritableFileReferentState;
 
+typedef struct PendingRename {
+	char		*target;
+	FileAttr	target_fa;
+	bool		targetAttrExists;
+} PendingRename;
+
 
 #define _WF_TYPE_
 typedef struct WritableFile {
     uint16_t    magic;    
     const char  *path;
-    const char  *pendingRename;
+    PendingRename   *pendingRename;
     OpenDir     *parentDir;
     uint64_t    parentDirUpdateTimeMillis;
     FileAttr    fa;
@@ -70,7 +76,8 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl, AttrW
 void wf_delete(WritableFile **wf);
 void wf_set_parent_dir(WritableFile *, OpenDir *parentDir, uint64_t parentDirUpdateTimeMillis);
 WritableFileReference *wf_add_reference(WritableFile *wf, char *file, int line);
-void wf_set_pending_rename(WritableFile *wf, const char *newName);
+void wf_set_pending_rename(WritableFile *wf, char *target, 
+                           FileAttr target_fa, bool targetAttrExists);
 int wf_write(WritableFile *wf, const char *src, size_t writeSize, off_t writeOffset, 
              FileBlockWriter *fbw, PartialBlockReader *pbr, FileBlockCache *fbc);
 int wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, PartialBlockReader *pbr);

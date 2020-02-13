@@ -72,6 +72,7 @@ static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Attr
 static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
 static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fbw);
 
+static void _wf_delete_pending_rename(WritableFile *wf);
 
 ///////////////////
 // implementation
@@ -277,7 +278,7 @@ void wf_delete(WritableFile **wf) {
         abl_delete(&(*wf)->blockList);
         mem_free((void **)&(*wf)->path);
         if ((*wf)->pendingRename != NULL) {
-            mem_free((void **)&(*wf)->pendingRename);
+            _wf_delete_pending_rename(*wf);
         }
         if ((*wf)->curBlock != NULL) {
             wfb_delete(&(*wf)->curBlock);
@@ -286,6 +287,17 @@ void wf_delete(WritableFile **wf) {
         mem_free((void **)wf);
     } else {
         fatalError("bad ptr in wf_delete");
+    }
+}
+
+static void _wf_delete_pending_rename(WritableFile *wf) {
+    if (wf != NULL && wf->pendingRename != NULL) {
+        if (wf->pendingRename->target != NULL) {
+            mem_free((void **)&wf->pendingRename->target);
+        } else {
+            srfsLog(LOG_WARNING, "_wf_delete_pending_rename %s found NULL target", wf->path);
+        }
+        mem_free((void **)&wf->pendingRename);
     }
 }
 
@@ -310,13 +322,21 @@ static void wf_new_block(WritableFile *wf) {
     wf->numBlocks++;
 }
 
-void wf_set_pending_rename(WritableFile *wf, const char *newName) {
-    srfsLog(LOG_WARNING, "wf_set_pending_rename %s --> %s", wf->path, newName);
+void wf_set_pending_rename(WritableFile *wf, char *target, 
+                           FileAttr target_fa, bool targetAttrExists) {
+    srfsLog(LOG_WARNING, "wf_set_pending_rename %s --> %s", wf->path, target);
+    if (target == NULL) {
+        srfsLog(LOG_WARNING, "wf_set_pending_rename %s NULL target", wf->path);
+        return;
+    }
     pthread_mutex_lock(&wf->lock);    
     if (wf->pendingRename != NULL) {
-        mem_free((void **)&wf->pendingRename);
+        _wf_delete_pending_rename(wf);
     }
-    wf->pendingRename = str_dup(newName);
+    wf->pendingRename = (PendingRename *)mem_alloc(1, sizeof(PendingRename));
+    wf->pendingRename->target = str_dup(target);
+    wf->pendingRename->target_fa = target_fa;
+    wf->pendingRename->targetAttrExists = targetAttrExists;
     pthread_mutex_unlock(&wf->lock);
 }
 

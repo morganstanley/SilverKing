@@ -331,6 +331,12 @@ fi
 if [[ -n "${SKFS_SYNC_DIR_UPDATES}" ]] ; then 
     syncDirUpdates="${SKFS_SYNC_DIR_UPDATES}"
 fi
+if [[ -n "${SKFS_LOG_GETATTR}" ]] ; then 
+    logGetattr="${SKFS_LOG_GETATTR}"
+fi
+if [[ -n "${SKFS_LOCK_ON_WRITE}" ]] ; then 
+    lockOnWrite="${SKFS_LOCK_ON_WRITE}"
+fi
 
 f_printSection "TEARING DOWN OLD SKFS"
 f_printSubSection "Unmounting FUSE"
@@ -515,6 +521,12 @@ fi
 if [[ -n "${syncDirUpdates}" ]] ; then
     syncDirUpdatesOption="--syncDirUpdates=${syncDirUpdates}"
 fi
+if [[ -n "${logGetattr}" ]] ; then
+    logGetattrOption="--logGetattr=${logGetattr}"
+fi
+if [[ -n "${lockOnWrite}" ]] ; then
+    lockOnWriteOption="--lockOnWrite=${lockOnWrite}"
+fi
 
 echo "entryTimeoutOption:    $entryTimeoutOption"
 echo "attrTimeoutOption:     $attrTimeoutOption"
@@ -560,7 +572,7 @@ rm -v $tmpFile
 echo "writing to tmpFile: $tmpFile"
 echo "export PATH=${SK_JAVA_HOME}/bin:${PATH}:${fuseBin}:" >> $tmpFile
 # note -d option is currently in skfs.c
-export start_fuse="nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} ${nativeFileModeOption} ${brRemoteAddressFileOption}  ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} ${syncDirUpdatesOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.start.$$ 2>&1"
+export start_fuse="nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} ${nativeFileModeOption} ${brRemoteAddressFileOption}  ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} ${syncDirUpdatesOption} ${logGetattrOption} ${lockOnWriteOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.start.$$ 2>&1"
 #echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $tmpFile  
 #echo "export MALLOC_ARENA_MAX=4" >> $tmpFile
 #echo "export CLASSPATH=${CLASSPATH}" >> $tmpFile

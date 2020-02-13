@@ -48,6 +48,8 @@ typedef struct CmdArgs {
         char *reconciliationSleep;
         uint64_t    odwMinWriteIntervalMillis;
         int syncDirUpdates;
+        bool logGetattr;
+        bool lockOnWrite;
 } CmdArgs;
 
 extern CmdArgs *args;

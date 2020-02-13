@@ -106,6 +106,8 @@ using std::make_pair;
 #define SO_RECONCILIATION_SLEEP 'L'
 #define SO_ODW_MIN_WRITE_INTERVAL_MILLIS 'I'
 #define SO_SYNC_DIR_UPDATES 'U'
+#define SO_LOG_GETATTR 'Z'
+#define SO_LOCK_ON_WRITE 'W'
 
 #define LO_VERBOSE "verbose"
 #define LO_HOST "host"
@@ -142,6 +144,8 @@ using std::make_pair;
 #define LO_RECONCILIATION_SLEEP "reconciliationSleep"
 #define LO_ODW_MIN_WRITE_INTERVAL_MILLIS "odwMinWriteIntervalMillis"
 #define LO_SYNC_DIR_UPDATES "syncDirUpdates"
+#define LO_LOG_GETATTR "logGetattr"
+#define LO_LOCK_ON_WRITE "lockOnWrite"
 
 
 #define OPEN_MODE_FLAG_MASK 0x3
@@ -167,6 +171,9 @@ using std::make_pair;
 #define _ATTR_DIRECT_WRITE_ATTEMPTS 10
 
 #define _INTERNAL_JVM_OPTIONS ",-Dcom.ms.silverking.process.SafeThread.DefaultUncaughtExceptionHandler=com.ms.silverking.process.LogAndExitUncaughtExceptionHandler"
+
+#define _OPEN_ONLY_ 0
+
 
 //////////////////
 // private types
@@ -220,7 +227,9 @@ static int _skfs_rename_phase2(const char *source, const char *target, unordered
 static int _skfs_unlock_lar(const char *name, LockAttributeResult lockAttributeResult);
 static int _skfs_unlock_failed_rename(unordered_map<string, RenamePhase1Results> *p1rMap);
 void _skfs_clean_p1rMap(unordered_map<string, RenamePhase1Results> *p1rMap);
-
+static int _skfs_rename_phase2_b(const char *source, const char *target, 
+                                 bool isDir, struct timespec tp, FileAttr source_fa, FileAttr target_fa, 
+                                 bool targetAttrExists);
 
 ////////////
 // globals
@@ -261,6 +270,8 @@ static struct argp_option options[] = {
        {LO_RECONCILIATION_SLEEP, SO_RECONCILIATION_SLEEP, LO_RECONCILIATION_SLEEP, 0, "reconciliationSleep", 0 },
        {LO_ODW_MIN_WRITE_INTERVAL_MILLIS, SO_ODW_MIN_WRITE_INTERVAL_MILLIS, LO_ODW_MIN_WRITE_INTERVAL_MILLIS, 0, "odwMinWriteIntervalMillis", 0 },
        {LO_SYNC_DIR_UPDATES, SO_SYNC_DIR_UPDATES, LO_SYNC_DIR_UPDATES, 0, "syncDirUpdates", 0 },
+       {LO_LOG_GETATTR, SO_LOG_GETATTR, LO_LOG_GETATTR, 0, "logGetattr", 0},
+       {LO_LOCK_ON_WRITE, SO_LOCK_ON_WRITE, LO_LOCK_ON_WRITE, 0, "lockOnWrite", 0},
        { 0, 0, 0, 0, 0, 0 }
 };
 static char *nativeFileModes[] = {"nf_blockReadOnly", "nf_readRelay_localPreread", "nf_readRelay_distributedPreread"};
@@ -510,6 +521,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                 case SO_SYNC_DIR_UPDATES:
                         arguments->syncDirUpdates = parseBoolean(arg);
                         break;
+                case SO_LOG_GETATTR:
+                        arguments->logGetattr = parseBoolean(arg);
+                        break;
+                case SO_LOCK_ON_WRITE:
+                        arguments->lockOnWrite = parseBoolean(arg);
+                        break;
                 default:
             //printf("Adding %d %s\n", state->arg_num, state->argv[state->arg_num]); fflush(stdout);
             //fuse_opt_add_arg(&fuseArgs, state->argv[state->arg_num]);
@@ -556,6 +573,8 @@ void initDefaults(CmdArgs *arguments) {
     arguments->reconciliationSleep = NULL;
     arguments->odwMinWriteIntervalMillis = ODW_DEF_MIN_WRITE_INTERVAL_MILLIS;
     arguments->syncDirUpdates = DEF_SYNC_DIR_UPDATES;
+    arguments->logGetattr = DEF_LOG_GETATTR;
+    arguments->lockOnWrite = DEF_LOCK_ON_WRITE;
 }
 
 static void displayArguments(CmdArgs *arguments) {
@@ -583,6 +602,8 @@ static void displayArguments(CmdArgs *arguments) {
     printf("reconciliationSleep %s\n", arguments->reconciliationSleep);
     printf("odwMinWriteIntervalMillis %ld\n", arguments->odwMinWriteIntervalMillis);
     printf("syncDirUpdates %d\n", arguments->syncDirUpdates);
+    printf("logGetattr %s\n", arguments->logGetattr ? "true" : "false");
+    printf("lockOnWrite %s\n", arguments->lockOnWrite ? "true" : "false");
 }
 
 // FUSE interface
@@ -593,7 +614,7 @@ static int skfs_getattr(const char *path, struct stat *stbuf
 #endif
 ) {
     // FIXME - below is temp LOG_FINE until we can reduce log mutex contention
-    srfsLogAsync(/*LOG_OPS*/LOG_FINE, "_ga %x %s", get_caller_pid(), path);
+    srfsLogAsync(args->logGetattr ? LOG_OPS : LOG_FINE, "_ga %x %s", get_caller_pid(), path);
     if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
         char nativePath[SRFS_MAX_PATH_LENGTH];
 
@@ -1383,7 +1404,7 @@ int _skfs_rename_phase2(const char *source, const char *target, unordered_map<st
                 WritableFile    *wf;
                 
                 wf = wfr_get_wf(wfr);
-                wf_set_pending_rename(wf, target);
+                wf_set_pending_rename(wf, (char *)target, p1r.lar_target.fa, p1r.lar_target.attrExists);
                 wfr_delete(&wfr, aw, fbwSKFS, ar->attrCache);
                 return 0;
             } else {
@@ -1393,62 +1414,71 @@ int _skfs_rename_phase2(const char *source, const char *target, unordered_map<st
         }
     }
     if (!isOpenLocally) {
-        FileAttr    fa;
-        time_t      curEpochTimeSeconds;
-        long        curTimeNanos;
-        SKOperationState::SKOperationState  awResult;
-        SKFailureCause::SKFailureCause      awFailureCause;
-        
-        memset(&fa, 0, sizeof(FileAttr));
-        curEpochTimeSeconds = tp.tv_sec;
-        curTimeNanos = tp.tv_nsec;
-        
-        if (!isDir) {
-            // Create a directory entry for the new file
-            if (odt_add_entry_to_parent_dir(odt, (char *)target)) {
-                srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", target);
-                // FUTURE - for now we rely on the lock timeout to unlock
-                return -EIO;
-            }
-        }
-        
-        // Remove the source directory entry
-        if (odt_rm_entry_from_parent_dir(odt, (char *)source)) {
-            srfsLog(LOG_WARNING, "Couldn't rm entry in parent for %s  %s %d", source, __FILE__, __LINE__);
+        result = _skfs_rename_phase2_b(source, target, isDir, tp, p1r.lar_source.fa, p1r.lar_target.fa, p1r.lar_target.attrExists);
+    }
+    return result;
+}
+
+static int _skfs_rename_phase2_b(const char *source, const char *target, 
+                                 bool isDir, struct timespec tp, FileAttr source_fa, FileAttr target_fa, 
+                                 bool targetAttrExists) {
+    FileAttr    fa;
+    time_t      curEpochTimeSeconds;
+    long        curTimeNanos;
+    SKOperationState::SKOperationState  awResult;
+    SKFailureCause::SKFailureCause      awFailureCause;
+    int         result;
+    
+    result = 0;
+    
+    memset(&fa, 0, sizeof(FileAttr));
+    curEpochTimeSeconds = tp.tv_sec;
+    curTimeNanos = tp.tv_nsec;
+    
+    if (!isDir) {
+        // Create a directory entry for the new file
+        if (odt_add_entry_to_parent_dir(odt, (char *)target)) {
+            srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", target);
             // FUTURE - for now we rely on the lock timeout to unlock
             return -EIO;
         }
-        
-        // Link the new file to the old file blocks
-        memcpy(&fa, &p1r.lar_source.fa, sizeof(FileAttr));
-        
-        awFailureCause = SKFailureCause::ERROR;
-        fa.stat.st_ctime = curEpochTimeSeconds;
-        fa.stat.st_ctim.tv_nsec = curTimeNanos;
-        // (This write will link the blocks [for files] and unlock the target)
-        awResult = aw_write_attr_direct(aw, target, &fa, ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, 0, 0);
+    }
+    
+    // Remove the source directory entry
+    if (odt_rm_entry_from_parent_dir(odt, (char *)source)) {
+        srfsLog(LOG_WARNING, "Couldn't rm entry in parent for %s  %s %d", source, __FILE__, __LINE__);
+        // FUTURE - for now we rely on the lock timeout to unlock
+        return -EIO;
+    }
+    
+    // Link the new file to the old file blocks
+    memcpy(&fa, &source_fa, sizeof(FileAttr));
+    
+    awFailureCause = SKFailureCause::ERROR;
+    fa.stat.st_ctime = curEpochTimeSeconds;
+    fa.stat.st_ctim.tv_nsec = curTimeNanos;
+    // (This write will link the blocks [for files] and unlock the target)
+    awResult = aw_write_attr_direct(aw, target, &fa, ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, 0, 0);
+    if (awResult != SKOperationState::SUCCEEDED) {
+        srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
+        result = -EIO;
+    } else {
+        // Delete the old file (releases the lock on the old file)
+        awFailureCause = SKFailureCause::ERROR; // default value; should be unused
+        awResult = aw_write_attr_direct(aw, source, fa_get_deletion_fa(), ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, 0, 0);
+        srfsLog(LOG_FINE, "_skfs_rename %s aw_write result %d\n", source, awResult);
         if (awResult != SKOperationState::SUCCEEDED) {
             srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
             result = -EIO;
         } else {
-            // Delete the old file (releases the lock on the old file)
-            awFailureCause = SKFailureCause::ERROR; // default value; should be unused
-            awResult = aw_write_attr_direct(aw, source, fa_get_deletion_fa(), ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, 0, 0);
-            srfsLog(LOG_FINE, "_skfs_rename %s aw_write result %d\n", source, awResult);
-            if (awResult != SKOperationState::SUCCEEDED) {
-                srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
-                result = -EIO;
-            } else {
-                // Deletion was successful
-            }
-        }
-        
-        // Delete any pre-existing target file blocks
-        if (!isDir && result == 0 && p1r.lar_target.attrExists) {
-            fbw_invalidate_file_blocks(fbwSKFS, &p1r.lar_target.fa.fid, p1r.lar_target.fa.stat.st_blocks);
+            // Deletion was successful
         }
     }
-    return result;
+    
+    // Delete any pre-existing target file blocks
+    if (!isDir && result == 0 && targetAttrExists) {
+        fbw_invalidate_file_blocks(fbwSKFS, &target_fa.fid, target_fa.stat.st_blocks);
+    }
 }
 
 int _skfs_unlock_lar(const char *name, LockAttributeResult lockAttributeResult) {
@@ -1545,7 +1575,63 @@ static int skfs_associate_new_file(const char *path, struct fuse_file_info *fi, 
     }
 }
 
-static int skfs_open(const char *path, struct fuse_file_info *fi) {
+static int _skfs_open_native(const char *path, struct fuse_file_info *fi, mode_t mode, SKFSOpenFile *sof) {
+    int nativeRelay;
+    
+    nativeRelay = FALSE;
+    if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
+        nativeRelay = TRUE;
+    } else {
+        int         result;
+        FileAttr    *fa;
+        
+        fa = (FileAttr*)mem_alloc(1,sizeof(FileAttr));
+        result = ar_get_attr(ar, (char *)path, fa);
+        if (result != 0) {
+            if (!is_writable_path(path)) {
+                srfsLog(LOG_WARNING, "Error reading %s result %d", path, result);
+                fatalError("readFromFile() failed", __FILE__, __LINE__);
+            } else {
+                sof_delete(&sof);
+                return -ENOENT;
+            }
+        }
+        nativeRelay = fa->stat.st_nlink == FA_NATIVE_LINK_MAGIC;
+        if (!nativeRelay) {
+            sof->attr = fa;
+        } else {
+            sof->attr = fa;
+            //fa_delete(&fa);
+        }
+    }
+    if (nativeRelay) {
+        char nativePath[SRFS_MAX_PATH_LENGTH];
+        
+        sof->type = OFT_NativeRelay;
+        ar_translate_path(ar, nativePath, path);
+        srfsLog(LOG_FINE, "%s -> %s", path, nativePath);
+        sof->fd = open(nativePath, O_RDONLY);
+        if (sof->fd < 0) {
+            sof_delete(&sof);
+            return -errno;
+        }
+        sof->nativePath = strdup(nativePath);
+    } else {
+        sof->type = OFT_NativeStandard;
+    }
+    
+    /*
+    // eventually use this check, but stricter than prev code, so need to test
+    if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY) {
+        return 0;
+    } else {
+        return -EACCES;
+    }
+    */
+    return 0;
+}
+
+static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) {
     SKFSOpenFile    *sof;
     
     // Below line is LOG_INFO as we don't want to log this for r/o files
@@ -1562,61 +1648,10 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
     fi->fh = (uint64_t)sof;
     
     if (!is_writable_path(path)) {        
-        int nativeRelay;
-        
-        nativeRelay = FALSE;
-        if (fsNativeOnlyPaths != NULL && pg_matches(fsNativeOnlyPaths, path)) {
-            nativeRelay = TRUE;
-        } else {
-            int         result;
-            FileAttr    *fa;
-            
-            fa = (FileAttr*)mem_alloc(1,sizeof(FileAttr));
-            result = ar_get_attr(ar, (char *)path, fa);
-            if (result != 0) {
-                if (!is_writable_path(path)) {
-                    srfsLog(LOG_WARNING, "Error reading %s result %d", path, result);
-                    fatalError("readFromFile() failed", __FILE__, __LINE__);
-                } else {
-                    sof_delete(&sof);
-                    return -ENOENT;
-                }
-            }
-            nativeRelay = fa->stat.st_nlink == FA_NATIVE_LINK_MAGIC;
-            if (!nativeRelay) {
-                sof->attr = fa;
-            } else {
-                sof->attr = fa;
-                //fa_delete(&fa);
-            }
-        }
-        if (nativeRelay) {
-            char nativePath[SRFS_MAX_PATH_LENGTH];
-            
-            sof->type = OFT_NativeRelay;
-            ar_translate_path(ar, nativePath, path);
-            srfsLog(LOG_FINE, "%s -> %s", path, nativePath);
-            sof->fd = open(nativePath, O_RDONLY);
-            if (sof->fd < 0) {
-                sof_delete(&sof);
-                return -errno;
-            }
-            sof->nativePath = strdup(nativePath);
-        } else {
-            sof->type = OFT_NativeStandard;
-        }
-        
-        /*
-        // eventually use this check, but stricter than prev code, so need to test
-        if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY) {
-            return 0;
-        } else {
-            return -EACCES;
-        }
-        */
-        return 0;
+        return _skfs_open_native(path, fi, mode, sof);
     } else {
         if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_RDONLY) {
+            // Begin writable file system, read-only open code
             FileAttr    *fa;
             int         statResult;
             
@@ -1644,11 +1679,12 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                 sof_delete(&sof);
                 return -EIO;
             }
+            // End writable file system, read-only open code
         } else if ((fi->flags & OPEN_MODE_FLAG_MASK) == O_WRONLY
                     || (fi->flags & OPEN_MODE_FLAG_MASK) == O_RDWR) {
-            int    result;
             WritableFileReference    *existing_wf_ref;
-            OpenDir *parentDir;
+            int         result;
+            OpenDir     *parentDir;
             uint64_t    parentDirUpdateTimeMillis;
             
             if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
@@ -1659,14 +1695,10 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                 fi->direct_io = 1;
             }
             
-            srfsLogAsync(LOG_OPS, "_o %s %x", path, fi->flags);
+            srfsLogAsync(LOG_OPS, "_o %s %x %x", path, get_caller_pid(), fi->flags);
             sof->type = OFT_WritableFile_Write;
-            // FIXME - do we need this in mknod also, or can we remove it there?
-            parentDir = NULL;
             parentDirUpdateTimeMillis = curTimeMillis();
-            if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
-                srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
-            }
+            parentDir = NULL;
             existing_wf_ref = wft_get(wft, path);
             if (existing_wf_ref == NULL) {
                 // File does not exist in the wft
@@ -1680,6 +1712,18 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                         // Exclusive creation requested, but file already exists => fail
                         sof_delete(&sof);
                         return lar.result;
+                    }
+                } else {
+                    if (args->lockOnWrite) {
+                        LockAttributeResult lar;
+                        
+                        // Lock target
+                        lar = _skfs_lock_file_attribute(path, AER_NoRequirement);
+                        if (lar.result != 0) {
+                            // Couldn't lock file => fail
+                            sof_delete(&sof);
+                            return lar.result;
+                        }
                     }
                 }
                 
@@ -1713,11 +1757,11 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                     }
                 } else {
                     FileAttr    fa;
-                    int statResult;
-                    int attempt;
-                    int complete;
+                    int         statResult;
+                    int         attempt;
+                    int         complete;
 
-                    // O_TRUNC *not* specified; we need to keep the old data blocks
+                    // O_TRUNC *not* specified; we need to keep the old data blocks, if the file already exists
                     
                     attempt = 0;
                     complete = TRUE;
@@ -1762,7 +1806,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                                     int retryFlag;
                                     
                                     retryFlag = FALSE;
-                                    wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666, &fa, pbr, &retryFlag);
+                                    wf_ref = wft_create_new_file(wft, path, mode, &fa, pbr, &retryFlag);
                                     if (!retryFlag) {
                                         if (wf_ref != NULL) {
                                             result = skfs_associate_new_file(path, fi, wf_ref);
@@ -1783,7 +1827,7 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                                 WritableFileReference    *wf_ref;
                                 
                                 // File does not exist; create new file
-                                wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666);
+                                wf_ref = wft_create_new_file(wft, path, mode);
                                 if (wf_ref != NULL) {
                                     result = skfs_associate_new_file(path, fi, wf_ref);
                                 } else {
@@ -1794,6 +1838,11 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
                             }
                         }
                     } while (!complete && ++attempt < _MAX_FILE_CREATION_ATTEMPTS);
+                }
+                if (result == 0) {
+                    if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
+                        srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
+                    }
                 }
             } else {
                 // wf already exists in wft...(file is currently being written on this node)
@@ -1825,29 +1874,17 @@ static int skfs_open(const char *path, struct fuse_file_info *fi) {
     }
 }
 
-static int skfs_mknod(const char *path, mode_t mode, dev_t rdev) {
-    WritableFileReference    *wf_ref;
-    uint64_t    parentDirUpdateTimeMillis;
-    
-    parentDirUpdateTimeMillis = 0; // ignore parent update time for mknod; open will set this correctly
-    srfsLogAsync(LOG_OPS, "_mn %s %x %x", path, mode, rdev);
+static int skfs_open(const char *path, struct fuse_file_info *fi) {
+    return _skfs_open(path, fi, _OPEN_ONLY_);
+}
+
+static int skfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    srfsLogAsync(LOG_OPS, "_c %s %x", path, mode);
     if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
-        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to mknod %s", path);
+        srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to create %s", path);
         return -EROFS;
-    }
-    wf_ref = wft_create_new_file(wft, path, mode);
-    if (wf_ref != NULL) {
-        OpenDir *parentDir;
-        
-        parentDir = NULL;
-        if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
-            srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
-        }
-        wf_set_parent_dir(wfr_get_wf(wf_ref), parentDir, parentDirUpdateTimeMillis);
-        wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
-        return 0;
     } else {
-        return -EEXIST;
+        return _skfs_open(path, fi, mode);
     }
 }
 
@@ -2069,16 +2106,31 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
         wfr_sanity_check(wf_ref);
         wf = wfr_get_wf(wf_ref);
         if (wf->pendingRename != NULL) {
-            int     rc;
-            char    _old[SRFS_MAX_PATH_LENGTH];
-            char    _new[SRFS_MAX_PATH_LENGTH];
-            
-            strncpy(_old, wf->path, SRFS_MAX_PATH_LENGTH);
-            strncpy(_new, wf->pendingRename, SRFS_MAX_PATH_LENGTH);
-            rc = wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
-            srfsLog(LOG_WARNING, "release found pending rename %s --> %s", _old, _new);
-            skfs_rename(_old, _new);
-            return rc;
+            if (wf->pendingRename->target == NULL) {
+                srfsLog(LOG_WARNING, "pendingRename with NULL target for %s", wf->path);
+            } else {
+                int     rc;
+                char    _old[SRFS_MAX_PATH_LENGTH];
+                char    _new[SRFS_MAX_PATH_LENGTH];
+                FileAttr source_fa;
+                FileAttr target_fa;
+                struct timespec tp;
+                bool    targetAttrExists;
+                
+                strncpy(_old, wf->path, SRFS_MAX_PATH_LENGTH);
+                strncpy(_new, wf->pendingRename->target, SRFS_MAX_PATH_LENGTH);
+                source_fa = wf->fa;
+                target_fa = wf->pendingRename->target_fa;
+                targetAttrExists = wf->pendingRename->targetAttrExists;
+                rc = wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
+                srfsLog(LOG_WARNING, "release found pending rename %s --> %s", _old, _new);
+                
+                if (clock_gettime(CLOCK_REALTIME, &tp)) {
+                    fatalError("clock_gettime failed", __FILE__, __LINE__);
+                }
+                rc = _skfs_rename_phase2_b(_old, _new, false, tp, source_fa, target_fa, targetAttrExists);
+                return rc;
+            }
         } else {
             return wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
         }        
@@ -2571,7 +2623,7 @@ void initFuse() {
     
     skfs_oper.open = skfs_open;
     skfs_oper.release = skfs_release;
-    skfs_oper.mknod = skfs_mknod;
+    skfs_oper.create = skfs_create;
     skfs_oper.write = skfs_write;
     skfs_oper.chmod = skfs_chmod;
     skfs_oper.chown = skfs_chown;
