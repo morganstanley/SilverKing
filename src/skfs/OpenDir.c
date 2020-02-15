@@ -18,8 +18,13 @@
 #define OD_MIN_PREFETCH_INTERVAL_MILLIS    (1 * 60 * 1000)
 #define OD_TRIGGER_INTERVAL_MILLIS    4
 #define OD_RECONCILIATION_PERIOD_MILLIS (3 * 60 * 1000 + 1000)
-#define OD_SAFETY_LIMIT_MILLIS (5 * 60 * 1000)
 #define OD_EXTRA_UPDATE_MARGIN_MILLIS 20
+
+// update limits
+#define OD_UL_MIN_MILLIS 10000
+#define OD_UL_MAX_MILLIS (10 * 60 * 1000)
+#define OD_UL_MILLIS_PER_ENTRY 10
+#define OD_UL_MILLIS_PER_UPDATE 100
 
 #define _OD_DEBUG_MERGE 0
 
@@ -40,7 +45,8 @@ static void od_set_server_update_DirData(OpenDir *od, DirData *su_dd);
 static void od_setTimeToCurrentTime(OpenDir *od, uint64_t *timePtr);
 static void od_setTimeIfGreater(OpenDir *od, uint64_t *timePtr, uint64_t newTime);
 static uint64_t od_getTime(OpenDir *od, uint64_t *timePtr);
-
+static uint64_t od_update_limit(OpenDir *od);
+static bool od_reconciliation_outstanding(OpenDir *od);
 
 ///////////////
 // implementation
@@ -267,12 +273,27 @@ int od_needs_reconciliation(OpenDir *od) {
         
         lastReconciliationCompleteMillis = od_getTime(od, &od->lastReconciliationCompleteMillis);
         return (lastReconciliationTriggerMillis < lastReconciliationCompleteMillis) 
-                || (lastReconciliationCompleteMillis - lastReconciliationTriggerMillis > OD_SAFETY_LIMIT_MILLIS);
+                || (lastReconciliationCompleteMillis - lastReconciliationTriggerMillis > od_update_limit(od));
         // NOTE above assumes that any reconciliation will take measurably > 1 ms
         return TRUE;
     } else {
         return FALSE;
     }
+}
+
+static uint64_t od_update_limit(OpenDir *od) {
+    uint64_t ul;
+    
+    pthread_mutex_lock(od->mutex);
+    ul = 0;
+    if (od->dd != NULL) {
+        ul += od->dd->numEntries * OD_UL_MILLIS_PER_ENTRY;
+    }
+    ul += od->numPendingUpdates * OD_UL_MILLIS_PER_UPDATE;
+    ul = uint64_max(ul, OD_UL_MIN_MILLIS);
+    ul = uint64_min(ul, OD_UL_MAX_MILLIS);
+    pthread_mutex_unlock(od->mutex);
+    return ul;
 }
 
 static void od_setTimeToCurrentTime(OpenDir *od, uint64_t *timePtr) {
@@ -306,9 +327,18 @@ void od_add_entry(OpenDir *od, char *name, uint64_t version) {
 
 void od_check_for_remove_from_reconciliation(OpenDir *od, uint64_t _curTimeMillis) {
     srfsLog(LOG_INFO, "%ld %ld %ld %d\t%s %d", _curTimeMillis, od->lastUpdateMillis, _curTimeMillis - od->lastUpdateMillis, OD_RECONCILIATION_PERIOD_MILLIS, __FILE__, __LINE__);
-    if (!od_needs_reconciliation(od) && (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS)) {
+    if (!od_needs_reconciliation(od) && !od_reconciliation_outstanding(od) && (_curTimeMillis - od->lastUpdateMillis > OD_RECONCILIATION_PERIOD_MILLIS)) {
         od_remove_from_reconciliation(od);
     }
+}
+
+static bool od_reconciliation_outstanding(OpenDir *od) {
+    uint64_t    lastReconciliationTriggerMillis;
+    uint64_t    lastReconciliationCompleteMillis;
+    
+    lastReconciliationTriggerMillis = od_getTime(od, &od->lastReconciliationTriggerMillis);
+    lastReconciliationCompleteMillis = od_getTime(od, &od->lastReconciliationCompleteMillis);
+    return lastReconciliationTriggerMillis > lastReconciliationCompleteMillis;
 }
 
 static void od_remove_from_reconciliation(OpenDir *od) {
