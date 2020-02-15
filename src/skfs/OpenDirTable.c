@@ -530,7 +530,7 @@ int odt_rmdir(OpenDirTable *odt, char *path) {
         // Write out attribute information & wait for the write to complete
         awResult = aw_write_attr_direct(odt->aw, path, &fa, ar_get_attrCache(odt->ar));
         if (awResult != SKOperationState::SUCCEEDED) {
-            srfsLog(LOG_WARNING, "odt_mkdir aw_write_attr_direct failed %s", path);
+            srfsLog(LOG_WARNING, "odt_rmdir aw_write_attr_direct failed %s", path);
             result = EIO;
         } else {
             OpenDir    *od;
@@ -542,7 +542,7 @@ int odt_rmdir(OpenDirTable *odt, char *path) {
                 od_mark_deleted(od);
             }
         }
-        srfsLog(LOG_FINE, "out odt_mkdir %s %d", path, -result);    
+        srfsLog(LOG_FINE, "out odt_rmdir %s %d", path, -result);    
         return -result;
     }
 }
