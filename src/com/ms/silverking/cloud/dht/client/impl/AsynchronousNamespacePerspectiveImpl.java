@@ -17,7 +17,6 @@ import com.ms.silverking.cloud.dht.client.AsyncOperation;
 import com.ms.silverking.cloud.dht.client.AsyncPut;
 import com.ms.silverking.cloud.dht.client.AsyncRetrieval;
 import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
-import com.ms.silverking.cloud.dht.client.AsyncSnapshot;
 import com.ms.silverking.cloud.dht.client.AsyncSyncRequest;
 import com.ms.silverking.cloud.dht.client.AsyncValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
