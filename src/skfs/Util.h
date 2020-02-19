@@ -146,7 +146,7 @@ void bytesToString(char *dest, unsigned char *src, int length);
 time_t epoch_time_seconds();
 int msleep(uint64_t millis);
 void sleep_random_millis(uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp);
-void cond_timedwait_random_millis(pthread_cond_t *cond, pthread_mutex_t *mutex, 
+int cond_timedwait_random_millis(pthread_cond_t *cond, pthread_mutex_t *mutex, 
                                   uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp);
 
 uint64_t offsetToBlock(off_t offset);

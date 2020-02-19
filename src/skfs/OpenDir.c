@@ -272,8 +272,8 @@ int od_needs_reconciliation(OpenDir *od) {
         uint64_t    lastReconciliationCompleteMillis;
         
         lastReconciliationCompleteMillis = od_getTime(od, &od->lastReconciliationCompleteMillis);
-        return (lastReconciliationTriggerMillis < lastReconciliationCompleteMillis) 
-                || (lastReconciliationCompleteMillis - lastReconciliationTriggerMillis > od_update_limit(od));
+        return (lastReconciliationTriggerMillis > lastReconciliationCompleteMillis) // needed as the type is unsigned
+                || (lastReconciliationCompleteMillis - lastReconciliationTriggerMillis < od_update_limit(od));
         // NOTE above assumes that any reconciliation will take measurably > 1 ms
         return TRUE;
     } else {

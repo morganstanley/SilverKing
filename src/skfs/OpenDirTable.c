@@ -43,6 +43,7 @@ static uint64_t _minMinReconciliationSleepMillis = 1;
 static uint64_t    _maxMaxReconciliationSleepMillis = 1 * 60 * 1000;
 static uint64_t _minReconciliationSleepMillis = 100;
 static uint64_t    _maxReconciliationSleepMillis = 1 * 1000;
+static uint64_t _signaledReconciliationLimitMillis = 200;
 static unsigned int _reconciliationSeed;
 
 
@@ -680,13 +681,24 @@ static void odt_od_reconciliation(OpenDirTable *odt) {
 
 static void *odt_od_reconciliation_run(void *_odt) {
     OpenDirTable    *odt;
-    int                running;
+    int             running;
+    uint64_t        maxLimit;
     
     odt = (OpenDirTable *)_odt;
     srfsLog(LOG_FINE, "Starting odt_od_reconciliation_run");
     running = TRUE;
+    maxLimit = _maxMaxReconciliationSleepMillis;
     while (running) {
-        cond_timedwait_random_millis(rcstCV, rcstMutex, odt->minReconciliationSleepMillis, odt->maxReconciliationSleepMillis, &_reconciliationSeed);
+        int rVal;
+        
+        srfsLog(LOG_FINE, "%d %d %d", odt->maxReconciliationSleepMillis, maxLimit, uint64_min(odt->maxReconciliationSleepMillis, maxLimit));
+        rVal = cond_timedwait_random_millis(rcstCV, rcstMutex, uint64_min(odt->minReconciliationSleepMillis, maxLimit), uint64_min(odt->maxReconciliationSleepMillis, maxLimit), &_reconciliationSeed);
+        if (rVal == 0) {
+            // we were signaled, so for next time use lower limit
+            maxLimit = _signaledReconciliationLimitMillis;
+        } else {
+            maxLimit = _maxMaxReconciliationSleepMillis;
+        }
         odt_od_reconciliation(odt);
         msleep(_ODT_DIR_RECONCILIATION_SLEEP_MILLIS);
     }

@@ -1054,10 +1054,11 @@ void sleep_random_millis(uint64_t minMillis, uint64_t maxMillis, unsigned int *s
     msleep( random_sleep_time(minMillis, maxMillis, seedp) );
 }
 
-void cond_timedwait_random_millis(pthread_cond_t *cond, pthread_mutex_t *mutex, 
+int cond_timedwait_random_millis(pthread_cond_t *cond, pthread_mutex_t *mutex, 
                                   uint64_t minMillis, uint64_t maxMillis, unsigned int *seedp) {
     struct timespec   sleepTime;
     uint64_t    sleepTimeMillis;
+    int rVal;
     
     //srfsLog(LOG_WARNING, "minMillis %d maxMillis %d", minMillis, maxMillis);
     sleepTimeMillis = random_sleep_time(minMillis, maxMillis, seedp);
@@ -1066,9 +1067,10 @@ void cond_timedwait_random_millis(pthread_cond_t *cond, pthread_mutex_t *mutex,
     //srfsLog(LOG_WARNING, "waiting %d", curTimeMillis());
     //srfsLog(LOG_WARNING, "%d %d", sleepTime.tv_sec, sleepTime.tv_nsec);
     pthread_mutex_lock(mutex);
-    pthread_cond_timedwait(cond, mutex, &sleepTime);
+    rVal = pthread_cond_timedwait(cond, mutex, &sleepTime);
     pthread_mutex_unlock(mutex);
     //srfsLog(LOG_WARNING, "awake %d", curTimeMillis());
+    return rVal;
 }
 
 uid_t get_uid() {
