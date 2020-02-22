@@ -1479,6 +1479,7 @@ static int _skfs_rename_phase2_b(const char *source, const char *target,
     if (!isDir && result == 0 && targetAttrExists) {
         fbw_invalidate_file_blocks(fbwSKFS, &target_fa.fid, target_fa.stat.st_blocks);
     }
+    return result;
 }
 
 int _skfs_unlock_lar(const char *name, LockAttributeResult lockAttributeResult) {
