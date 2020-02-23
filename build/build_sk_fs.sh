@@ -74,7 +74,7 @@ function f_compileAndLink {
 function f_runBuildChecks {
     f_printSection "SUMMARY of Silverking FS Build"
 
-    f_testEquals "$SKFS_BUILD_ARCH_DIR" "$ALL_DOT_O_FILES" "61" 
+    f_testEquals "$SKFS_BUILD_ARCH_DIR" "$ALL_DOT_O_FILES" "59" 
     echo "Checking INSTALL /$SKFS_EXEC_NAME"
     f_testExists "$SKFS_EXEC"
 }
