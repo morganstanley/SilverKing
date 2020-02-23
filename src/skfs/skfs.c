@@ -1688,6 +1688,7 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
             OpenDir     *parentDir;
             uint64_t    parentDirUpdateTimeMillis;
             
+            result = 0;
             if (shm_get_ring_health(skHealthMonitor) != SHM_RH_Healthy) {
                 srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to open %s", path);
                 return -EROFS;
