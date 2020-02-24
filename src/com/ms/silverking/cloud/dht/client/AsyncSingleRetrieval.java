@@ -8,7 +8,7 @@ public interface AsyncSingleRetrieval<K,V> extends AsyncRetrieval<K, V> {
     /**
      * Returns the raw value if it is present. 
      * @return the raw value if it is present
-     * @throws RetrievalException TODO
+     * @throws RetrievalException
      */
     public StoredValue<V> getStoredValue() throws RetrievalException;    
 }
