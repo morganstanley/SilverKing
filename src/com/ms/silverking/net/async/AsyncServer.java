@@ -2,9 +2,11 @@ package com.ms.silverking.net.async;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.security.ConnectionAbsorbException;
 import com.ms.silverking.thread.lwt.BaseWorker;
@@ -15,8 +17,8 @@ import com.ms.silverking.thread.lwt.LWTPool;
  * Maintains persistent connections with peers.
  */
 public class AsyncServer<T extends Connection> extends AsyncBase<T> {
-    private final InetSocketAddress        localSocketAddr;
-    private /*final*/ ServerSocketChannel    serverChannel;
+    private final InetSocketAddress     localSocketAddr;
+    private ServerSocketChannel         serverChannel;
     private final IncomingConnectionListener<T>    incomingConnectionListener;
     private final boolean    debug;
     private boolean    enabled;
@@ -69,7 +71,6 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     
     public final int getPort() {
         return serverChannel.socket().getLocalPort();
-        //return localSocketAddr.getPort();
     }
     
     //////////////////////////////////////////////////////////////////////
@@ -131,7 +132,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
         }
     }
     
-    static class Acceptor<T extends Connection> extends BaseWorker<ServerSocketChannel> {
+    static class Acceptor<T extends Connection> extends BaseWorker<Triple<ServerSocketChannel,SelectorController<T>,SelectionKey>> {
         private AsyncServer<T>  asyncServer;
         
         public Acceptor(LWTPool lwtPool) {
@@ -143,13 +144,24 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
         }
         
         @Override
-        public void doWork(ServerSocketChannel channel) {
-            asyncServer.accept(channel);
+        public void doWork(Triple<ServerSocketChannel,SelectorController<T>,SelectionKey> work) {
+            ServerSocketChannel    channel;
+            SelectorController<T>  selectorController;
+            SelectionKey           key;
+            
+            channel = work.getV1();
+            selectorController = work.getV2();
+            key = work.getV3();
+            try {
+                asyncServer.accept(channel);
+            } finally {
+                selectorController.addSelectionKeyOps(key, SelectionKey.OP_ACCEPT);
+            }
         }
         
         @Override
-        public ServerSocketChannel[] newWorkArray(int size) {
-            return new ServerSocketChannel[size];
+        public Triple<ServerSocketChannel,SelectorController<T>,SelectionKey>[] newWorkArray(int size) {
+            return new Triple[size];
         }
     }    
 }

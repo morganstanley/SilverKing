@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
@@ -33,7 +34,7 @@ import com.ms.silverking.thread.lwt.BaseWorker;
 public final class SelectorController<C extends Connection> implements Runnable {
     private final Selector selector;
     
-    private final BaseWorker<ServerSocketChannel> acceptWorker;
+    private final BaseWorker<Triple<ServerSocketChannel,SelectorController,SelectionKey>>   acceptWorker;
     private final BaseWorker<C>    connectWorker;
     private final BaseWorker<C>    readWorker;
     private final BaseWorker<C>    writeWorker;
@@ -59,7 +60,7 @@ public final class SelectorController<C extends Connection> implements Runnable 
     
     private static ConcurrentMap<String,AtomicInteger>    ccSelectorThreadIDs = new ConcurrentHashMap<>();
     
-    public SelectorController(BaseWorker<ServerSocketChannel> acceptWorker, 
+    public SelectorController(BaseWorker<Triple<ServerSocketChannel,SelectorController,SelectionKey>> acceptWorker, 
                               BaseWorker<C> connectWorker, 
                               BaseWorker<C> readWorker, BaseWorker<C> writeWorker, 
                               String controllerClass,
@@ -221,8 +222,8 @@ public final class SelectorController<C extends Connection> implements Runnable 
                     if (AsyncGlobals.debug && debug) {
                         Log.fine("acceptQueue.put: ", key.channel());
                     }
-                    acceptWorker.addWork((ServerSocketChannel)key.channel());
-                    //interestOps &= ~SelectionKey.OP_ACCEPT;
+                    removeSelectionKeyOps(key, SelectionKey.OP_ACCEPT);
+                    acceptWorker.addWork(Triple.of((ServerSocketChannel)key.channel(), this, key));
                 } else if (key.isConnectable()) {
                     C attachment;
 
@@ -230,8 +231,8 @@ public final class SelectorController<C extends Connection> implements Runnable 
                     if (AsyncGlobals.debug && debug) {
                         Log.fine("connectQueue.put: ", attachment);
                     }
+                    removeSelectionKeyOps(key, SelectionKey.OP_CONNECT);
                     connectWorker.addWork(attachment);
-                    //interestOps &= ~SelectionKey.OP_CONNECT;
                 }
             }
         }

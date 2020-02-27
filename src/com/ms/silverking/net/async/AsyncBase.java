@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.UnresolvedAddressException;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.security.AuthenticationFailError;
@@ -132,7 +134,7 @@ public class AsyncBase<T extends Connection> {
     
     private AsyncBase(int port, int numSelectorControllers, 
                         String controllerClass,
-                        BaseWorker<ServerSocketChannel> acceptWorker, 
+                        BaseWorker<Triple<ServerSocketChannel,SelectorController<T>,SelectionKey>> acceptWorker, 
                         ConnectionCreator<T> connectionCreator,
                         ChannelSelectorControllerAssigner<T> cscAssigner,
                         LWTPool workPool,
@@ -147,7 +149,7 @@ public class AsyncBase<T extends Connection> {
         running = true;
         for (int i = 0; i < numSelectorControllers; i++) {
             selectorControllers.add(
-                new SelectorController<>(acceptWorker, null/*ConnecctWorker*/, 
+                new SelectorController(acceptWorker, null/*ConnecctWorker*/, 
                         new Reader(workPool), new Writer(workPool), controllerClass, selectionThreadWorkLimit, debug));        
         }
         if (Connection.statsEnabled) {
@@ -169,7 +171,7 @@ public class AsyncBase<T extends Connection> {
     
     public AsyncBase(int port, int numSelectorControllers, 
             String controllerClass, 
-            BaseWorker<ServerSocketChannel> acceptWorker, 
+            BaseWorker<Triple<ServerSocketChannel,SelectorController<T>,SelectionKey>> acceptWorker, 
             ConnectionCreator<T> connectionCreator, LWTPool lwtPool,
             int selectionThreadWorkLimit, boolean debug) throws IOException {
         this(port, numSelectorControllers, controllerClass, acceptWorker, 

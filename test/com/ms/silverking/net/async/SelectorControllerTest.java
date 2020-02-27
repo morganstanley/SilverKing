@@ -1,15 +1,19 @@
 package com.ms.silverking.net.async;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+
+import org.junit.Test;
+
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
 import com.ms.silverking.thread.lwt.LWTPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.nio.channels.ServerSocketChannel;
-
-import static org.junit.Assert.*;
 
 public class SelectorControllerTest {
 
@@ -23,9 +27,9 @@ public class SelectorControllerTest {
             }
         };
         SelectorController<Connection> sc = new SelectorController<>(
-                new BaseWorker<ServerSocketChannel>(pool, false, 1, 1) {
+                new BaseWorker<Triple<ServerSocketChannel,SelectorController,SelectionKey>>(pool, false, 1, 1) {
                     @Override
-                    public void doWork(ServerSocketChannel item) {
+                    public void doWork(Triple<ServerSocketChannel,SelectorController,SelectionKey> item) {
                     }
                 },
                 worker,
