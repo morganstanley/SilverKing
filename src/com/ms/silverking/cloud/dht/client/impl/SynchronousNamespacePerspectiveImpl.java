@@ -39,8 +39,7 @@ class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveI
     // reads
     
     @Override
-    public Map<K, ? extends StoredValue<V>> retrieve(Set<? extends K> keys,
-            RetrievalOptions retrievalOptions) throws RetrievalException {
+    public Map<K, ? extends StoredValue<V>> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions) throws RetrievalException {
         AsyncRetrieval<K,V>    asyncRetrieval;
 
         asyncRetrieval = baseRetrieve(keys, retrievalOptions, opLWTMode);
@@ -48,6 +47,12 @@ class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveI
         return asyncRetrieval.getStoredValues();
     }
     
+    @Override
+    public Map<K, ? extends StoredValue<V>> retrieve(Set<? extends K> keys) throws RetrievalException {
+        return retrieve(keys, nspoImpl.getDefaultGetOptions());
+    }
+    
+    @Override
     public StoredValue<V> retrieve(K key, RetrievalOptions retrievalOptions) throws RetrievalException {
         Map<K, ? extends StoredValue<V>>  storedValues;
         
@@ -59,43 +64,30 @@ class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveI
         }
     }
     
+    @Override
     public StoredValue<V> retrieve(K key) throws RetrievalException {
-        Map<K, ? extends StoredValue<V>>  storedValues;
-        
-        storedValues = retrieve(ImmutableSet.of(key), nspoImpl.getDefaultGetOptions());
-        if (storedValues.isEmpty()) {
-            return null;
-        } else {
-            return storedValues.values().iterator().next();
-        }
+        return retrieve(key, nspoImpl.getDefaultGetOptions());
     }
     
     @Override
-    public Map<K, ? extends StoredValue<V>> get(Set<? extends K> keys,
-            GetOptions getOptions) throws RetrievalException {
-        return retrieve(keys, getOptions);
+    public Map<K, V> get(Set<? extends K> keys, GetOptions getOptions) throws RetrievalException {
+        AsyncValueRetrieval<K,V>    asyncRetrieval;
+        
+        asyncRetrieval = (AsyncValueRetrieval<K,V>)baseRetrieve(keys, getOptions, opLWTMode);
+        asyncRetrieval.waitForCompletion();
+        return asyncRetrieval.getValues();
     }
 
     @Override
     public Map<K, V> get(Set<? extends K> keys) throws RetrievalException {
-        AsyncValueRetrieval<K,V>    asyncRetrieval;
-        
-        asyncRetrieval = (AsyncValueRetrieval<K,V>)baseRetrieve(keys, nspoImpl.getDefaultGetOptions(), 
-                                                                opLWTMode);
-        asyncRetrieval.waitForCompletion();
-        return asyncRetrieval.getValues();
+        return get(keys, nspoImpl.getDefaultGetOptions());
     }
     
     @Override
-    public StoredValue<V> get(K key, GetOptions getOptions) throws RetrievalException {
-        return retrieve(ImmutableSet.of(key), getOptions).get(key);
-    }
-
-    @Override
-    public V get(K key) throws RetrievalException {
+    public V get(K key, GetOptions getOptions) throws RetrievalException {
         StoredValue<V> storedValue;
         
-        storedValue = get(key, nspoImpl.getDefaultGetOptions());
+        storedValue = retrieve(key, getOptions);
         if (storedValue != null) {
             return storedValue.getValue();
         } else {
@@ -104,29 +96,40 @@ class SynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspectiveI
     }
 
     @Override
-    public Map<K, ? extends StoredValue<V>> waitFor(Set<? extends K> keys,
-            WaitOptions waitOptions) throws RetrievalException {
-        return retrieve(keys, waitOptions);
+    public V get(K key) throws RetrievalException {
+        return get(key, nspoImpl.getDefaultGetOptions());
     }
 
     @Override
-    public Map<K, V> waitFor(Set<? extends K> keys) throws RetrievalException {
+    public Map<K, V> waitFor(Set<? extends K> keys, WaitOptions waitOptions) throws RetrievalException {
         AsyncValueRetrieval<K,V>    asyncRetrieval;
         
-        asyncRetrieval = (AsyncValueRetrieval<K,V>)baseRetrieve(keys, nspoImpl.getDefaultWaitOptions(), 
+        asyncRetrieval = (AsyncValueRetrieval<K,V>)baseRetrieve(keys, waitOptions, 
                                                                 opLWTMode);
         asyncRetrieval.waitForCompletion();
         return asyncRetrieval.getValues();
     }
 
     @Override
-    public StoredValue<V> waitFor(K key, WaitOptions waitOptions) throws RetrievalException {
-        return retrieve(ImmutableSet.of(key), waitOptions).get(key);
+    public Map<K, V> waitFor(Set<? extends K> keys) throws RetrievalException {
+        return waitFor(keys, nspoImpl.getDefaultWaitOptions());
+    }
+
+    @Override
+    public V waitFor(K key, WaitOptions waitOptions) throws RetrievalException {
+        StoredValue<V> storedValue;
+        
+        storedValue = retrieve(key, waitOptions);
+        if (storedValue != null) {
+            return storedValue.getValue();
+        } else {
+            return null;
+        }
     }
 
     @Override
     public V waitFor(K key) throws RetrievalException {
-        return waitFor(key, nspoImpl.getDefaultWaitOptions()).getValue();
+        return waitFor(key, nspoImpl.getDefaultWaitOptions());
     }
     
     // writes

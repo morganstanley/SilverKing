@@ -85,7 +85,7 @@ public class TestUtil {
     
     private static void checkGetValue(String testName, SynchronousNamespacePerspective<String,String> nsp, String key, String expectedValue, VersionConstraint constraint) throws RetrievalException {
 //        System.out.println("version is: " + nsp.get(key, nsp.getOptions().getDefaultGetOptions().versionConstraint(constraint)).getVersion());
-        assertEquals( Util.getTestMessage("checkGet"+testName+"Value", "key: " + key, "expectingVal: " + expectedValue, constraint), expectedValue, nsp.get(key, nsp.getOptions().getDefaultGetOptions().versionConstraint(constraint)).getValue());
+        assertEquals( Util.getTestMessage("checkGet"+testName+"Value", "key: " + key, "expectingVal: " + expectedValue, constraint), expectedValue, nsp.retrieve(key, nsp.getOptions().getDefaultGetOptions().versionConstraint(constraint)).getValue());
     }
 
     static void checkGetLeastVersion(SynchronousNamespacePerspective<String,String> nsp, String key, boolean shouldMatch, int version) throws RetrievalException {
@@ -101,7 +101,7 @@ public class TestUtil {
     }
     
     static void checkGetVersion(String testName, SynchronousNamespacePerspective<String,String> nsp, String key, boolean shouldMatch, int version, VersionConstraint constraint) throws RetrievalException {
-        assertEquals( Util.getTestMessage("checkGet"+testName+"Version", "key: " + key, version), shouldMatch, nsp.get(key, nsp.getOptions().getDefaultGetOptions().versionConstraint(constraint)).getVersion() == version);
+        assertEquals( Util.getTestMessage("checkGet"+testName+"Version", "key: " + key, version), shouldMatch, nsp.retrieve(key, nsp.getOptions().getDefaultGetOptions().versionConstraint(constraint)).getVersion() == version);
     }
 
     public static void printKeyVals(SynchronousNamespacePerspective<String, String> syncNsp, String key, GetOptions getOptions) throws RetrievalException {
@@ -128,7 +128,7 @@ public class TestUtil {
     }
     
     public static String print(SynchronousNamespacePerspective<String, String> syncNsp, String key, GetOptions getOptions, VersionConstraint vc) throws RetrievalException {
-        StoredValue<String> val =  syncNsp.get(key, getOptions.versionConstraint(vc));
+        StoredValue<String> val =  syncNsp.retrieve(key, getOptions.versionConstraint(vc));
         return (val == null) ? "null" : val.getValue();
     }
 }

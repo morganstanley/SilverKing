@@ -96,7 +96,7 @@ public class PingPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pongKey);
         }
-        syncNSP.waitFor(pongKey, getWaitOptions(version));
+        syncNSP.retrieve(pongKey, getWaitOptions(version));
         if (verbose) {
             System.out.println("Received: "+ pongKey);
         }
@@ -106,7 +106,7 @@ public class PingPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pingKey);
         }
-        syncNSP.waitFor(pingKey, getWaitOptions(version));
+        syncNSP.retrieve(pingKey, getWaitOptions(version));
         if (verbose) {
             System.out.println("Received: "+ pingKey);
         }

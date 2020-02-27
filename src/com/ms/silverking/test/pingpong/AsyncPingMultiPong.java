@@ -119,7 +119,7 @@ public class AsyncPingMultiPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pongKeyBase);
         }
-        asyncRetrieval = asyncNSP.waitFor(pongKeys, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
+        asyncRetrieval = asyncNSP.retrieve(pongKeys, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
         while (asyncRetrieval.getState() == OperationState.INCOMPLETE) {
             asyncRetrieval.waitForCompletion(checkIntervalMS, TimeUnit.MILLISECONDS);
             if (asyncRetrieval.getState() == OperationState.INCOMPLETE) {
@@ -147,7 +147,7 @@ public class AsyncPingMultiPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pingKey);
         }
-        asyncWaitFor = asyncNSP.waitFor(pingKey, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
+        asyncWaitFor = asyncNSP.retrieve(pingKey, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
         asyncWaitFor.waitForCompletion();
         if (verbose) {
             System.out.println("Received: "+ pingKey);

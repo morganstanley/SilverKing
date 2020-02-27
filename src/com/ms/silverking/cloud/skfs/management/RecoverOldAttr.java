@@ -33,7 +33,7 @@ public class RecoverOldAttr {
         GetOptions    getOptions;
         
         getOptions = syncNSP.getOptions().getDefaultGetOptions().versionConstraint(VersionConstraint.exactMatch(version)).nonExistenceResponse(NonExistenceResponse.NULL_VALUE);
-        oldAttrValue = syncNSP.get(file, getOptions);
+        oldAttrValue = syncNSP.retrieve(file, getOptions);
         if (oldAttrValue == null || oldAttrValue.getValue() == null) {
             System.out.printf("Couldn't find file %s version %d\n", file, version);
         } else {

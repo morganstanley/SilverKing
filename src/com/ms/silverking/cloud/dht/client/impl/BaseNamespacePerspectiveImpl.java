@@ -93,7 +93,6 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
     
     public AsyncRetrieval<K, V> baseRetrieve(Set<? extends K> keys,
                                             RetrievalOptions retrievalOptions,
-                                            AsynchronousNamespacePerspectiveImpl<K,V> asynchronousNSPerspectiveImpl, 
                                             OpLWTMode opLWTMode) throws RetrievalException {
         AsyncRetrievalOperationImpl<K,V> opImpl;
         
@@ -105,11 +104,6 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K,V
         return opImpl;
     }
 
-    public AsyncRetrieval<K, V> baseRetrieve(Set<? extends K> keys,
-            RetrievalOptions retrievalOptions, OpLWTMode opLWTMode) throws RetrievalException {
-        return baseRetrieve(keys, retrievalOptions, null, opLWTMode);
-    }
-    
     // writes
 
     public AsyncPut<K> basePut(Map<? extends K, ? extends V> values, PutOptions putOptions, 

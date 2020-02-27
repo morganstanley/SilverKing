@@ -338,10 +338,11 @@ SKMap<string, SKStoredValue*> * SKSyncNSPerspective::waitFor(SKVector<string> co
 
 SKStoredValue * SKSyncNSPerspective::get(const char * key, SKGetOptions * getOptions){
     StoredValue * value = NULL;
-    GetOptions * pGetOptions =  (GetOptions*) getOptions->getPImpl();
+    //GetOptions * pGetOptions =  (GetOptions*) getOptions->getPImpl();
+    RetrievalOptions * pGetOptions =  (RetrievalOptions*) getOptions->getPImpl();
     String jkey  = java_new<String>((char*)key);
     try {
-        Object obj = ((SynchronousNamespacePerspective*)pImpl)->get( jkey, *pGetOptions );
+        Object obj = ((SynchronousNamespacePerspective*)pImpl)->retrieve( jkey, *pGetOptions );
         if(obj.isNull()) { 
             return NULL;
         }
@@ -374,7 +375,7 @@ SKStoredValue * SKSyncNSPerspective::waitFor(const char * key, SKWaitOptions * w
     String jkey =  java_new<String>((char*)key);
     try {
         Log::warning(waitOptions->toString());
-        Object obj = ((SynchronousNamespacePerspective*)pImpl)->waitFor( jkey, *pWaitOptions );
+        Object obj = ((SynchronousNamespacePerspective*)pImpl)->retrieve( jkey, *pWaitOptions );
         Log::warning(jkey);
         if(obj.isNull()) { 
             return NULL;

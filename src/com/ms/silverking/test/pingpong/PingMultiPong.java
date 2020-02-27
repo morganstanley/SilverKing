@@ -97,7 +97,7 @@ public class PingMultiPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pongKeyBase);
         }
-        syncNSP.waitFor(pongKeys, syncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
+        syncNSP.retrieve(pongKeys, syncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
         if (verbose) {
             System.out.println("Received: "+ pongKeyBase);
         }
@@ -110,7 +110,7 @@ public class PingMultiPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pingKey);
         }
-        syncNSP.waitFor(pingKey, syncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
+        syncNSP.retrieve(pingKey, syncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
         if (verbose) {
             System.out.println("Received: "+ pingKey);
         }

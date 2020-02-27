@@ -67,7 +67,7 @@ public class ClientTool {
         storedValue = null;
         sw.reset();
         for (int i = 0; i < options.reps; i++) {
-            storedValue = syncNSP.waitFor(options.key, waitOptions);
+            storedValue = syncNSP.retrieve(options.key, waitOptions);
         }
         sw.stop();
         if (storedValue == null) {

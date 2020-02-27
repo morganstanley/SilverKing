@@ -68,7 +68,7 @@ public class AsyncPingPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pongKey);
         }
-        asyncWaitFor = asyncNSP.waitFor(pongKey, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
+        asyncWaitFor = asyncNSP.retrieve(pongKey, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
         asyncPut.waitForCompletion();
         asyncWaitFor.waitForCompletion();
         if (verbose) {
@@ -83,7 +83,7 @@ public class AsyncPingPong {
         if (verbose) {
             System.out.println("WaitFor: "+ pingKey);
         }
-        asyncWaitFor = asyncNSP.waitFor(pingKey, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
+        asyncWaitFor = asyncNSP.retrieve(pingKey, asyncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(version)));
         asyncWaitFor.waitForCompletion();
         if (verbose) {
             System.out.println("Received: "+ pingKey);

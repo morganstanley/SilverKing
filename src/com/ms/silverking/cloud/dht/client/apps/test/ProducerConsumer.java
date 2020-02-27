@@ -77,7 +77,7 @@ public class ProducerConsumer {
         if (i % displayUnit == 0) {
             System.out.print("WaitingFor: "+ i);
         }
-        sv = syncNSP.waitFor(myKey, syncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(i)));
+        sv = syncNSP.retrieve(myKey, syncNSP.getOptions().getDefaultWaitOptions().versionConstraint(VersionConstraint.exactMatch(i)));
         if (i % displayUnit == 0) {
             System.out.println("...received: "+ i);
             System.out.println(sv.getValue());

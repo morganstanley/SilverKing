@@ -33,7 +33,7 @@ public class DirReader {
             if (maxVersion > 0) {
                 getOptions = getOptions.versionConstraint(VersionConstraint.maxBelowOrEqual(maxVersion));
             }
-            sv = dirNSP.get(dirName, getOptions);
+            sv = dirNSP.retrieve(dirName, getOptions);
             return sv.getValue();
         } catch (RetrievalException e) {
             e.printStackTrace();

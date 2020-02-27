@@ -33,7 +33,7 @@ class SynchronousNamespacePerspectiveMapView<K,V> implements Map<K,V> {
         try {
             StoredValue<V> storedValue;
             
-            storedValue = snp.get((K)key, OptionsHelper.newGetOptions(RetrievalType.EXISTENCE));
+            storedValue = snp.retrieve((K)key, OptionsHelper.newGetOptions(RetrievalType.EXISTENCE));
             return storedValue != null;
         } catch (RetrievalException re) {
             throw new RuntimeException(re);
@@ -50,7 +50,7 @@ class SynchronousNamespacePerspectiveMapView<K,V> implements Map<K,V> {
         try {
             StoredValue<V> storedValue;
             
-            storedValue = (StoredValue<V>)snp.get((K)key, OptionsHelper.newGetOptions(RetrievalType.EXISTENCE));
+            storedValue = (StoredValue<V>)snp.retrieve((K)key, OptionsHelper.newGetOptions(RetrievalType.VALUE));
             return storedValue == null ? null : storedValue.getValue();
         } catch (RetrievalException re) {
             throw new RuntimeException(re);

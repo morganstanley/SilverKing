@@ -16,6 +16,7 @@ import com.ms.silverking.cloud.dht.client.AsyncInvalidation;
 import com.ms.silverking.cloud.dht.client.AsyncOperation;
 import com.ms.silverking.cloud.dht.client.AsyncPut;
 import com.ms.silverking.cloud.dht.client.AsyncRetrieval;
+import com.ms.silverking.cloud.dht.client.AsyncSingleRetrieval;
 import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsyncSyncRequest;
 import com.ms.silverking.cloud.dht.client.AsyncValueRetrieval;
@@ -42,57 +43,68 @@ class AsynchronousNamespacePerspectiveImpl<K,V> extends BaseNamespacePerspective
     // reads
     
     @Override
-    public AsyncRetrieval<K,V> retrieve(Set<? extends K> keys,
-            RetrievalOptions retrievalOptions) throws RetrievalException {
-        return baseRetrieve(keys, retrievalOptions, this, opLWTMode);
+    public AsyncRetrieval<K,V> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions) throws RetrievalException {
+        return baseRetrieve(keys, retrievalOptions, opLWTMode);
+    }
+    
+    @Override
+    public AsyncRetrieval<K,V> retrieve(Set<? extends K> keys) throws RetrievalException {
+        return retrieve(keys, nspoImpl.getDefaultGetOptions());
+    }
+    
+    @Override
+    public AsyncSingleRetrieval<K,V> retrieve(K key, RetrievalOptions retrievalOptions) throws RetrievalException {
+        return (AsyncSingleRetrieval<K,V>)baseRetrieve(ImmutableSet.of(key), retrievalOptions, opLWTMode);
+    }
+    
+    @Override
+    public AsyncSingleRetrieval<K,V> retrieve(K key) throws RetrievalException {
+        return retrieve(key, nspoImpl.getDefaultGetOptions());
     }
     
     // gets
 
     @Override
-    public AsyncRetrieval<K,V> get(Set<? extends K> keys, 
-                                GetOptions getOptions) throws RetrievalException {
-        return retrieve(keys, getOptions);
+    public AsyncValueRetrieval<K,V> get(Set<? extends K> keys, GetOptions getOptions) throws RetrievalException {
+        return (AsyncValueRetrieval<K,V>)retrieve(keys, getOptions);
     }
 
     @Override
     public AsyncValueRetrieval<K,V> get(Set<? extends K> keys) throws RetrievalException {
-        return (AsyncValueRetrieval<K,V>)baseRetrieve(keys, nspoImpl.getDefaultGetOptions(),
-                opLWTMode);
+        return get(keys, nspoImpl.getDefaultGetOptions());
     }
     
     @Override
-    public AsyncRetrieval<K,V> get(K key, GetOptions getOptions) throws RetrievalException {
-        return retrieve(ImmutableSet.of(key), getOptions);
+    public AsyncSingleValueRetrieval<K,V> get(K key, GetOptions getOptions) throws RetrievalException {
+        return (AsyncSingleValueRetrieval<K,V>)retrieve(ImmutableSet.of(key), getOptions);
     }
 
     @Override
     public AsyncSingleValueRetrieval<K,V> get(K key) throws RetrievalException {
-        return (AsyncSingleValueRetrieval<K,V>)get(key, nspoImpl.getDefaultGetOptions());
+        return get(key, nspoImpl.getDefaultGetOptions());
     }
     
     // waitfors
 
     @Override
-    public AsyncRetrieval<K,V> waitFor(Set<? extends K> keys,
+    public AsyncValueRetrieval<K,V> waitFor(Set<? extends K> keys,
                                     WaitOptions waitOptions) throws RetrievalException {
-        return retrieve(keys, waitOptions);
+        return (AsyncValueRetrieval<K,V>)retrieve(keys, waitOptions);
     }
 
     @Override
     public AsyncValueRetrieval<K,V> waitFor(Set<? extends K> keys) throws RetrievalException {
-        return (AsyncValueRetrieval<K,V>)baseRetrieve(keys, nspoImpl.getDefaultWaitOptions(), 
-                opLWTMode);
+        return waitFor(keys, nspoImpl.getDefaultWaitOptions());
     }
 
     @Override
-    public AsyncRetrieval<K,V> waitFor(K key, WaitOptions waitOptions) throws RetrievalException {
-        return retrieve(ImmutableSet.of(key), waitOptions);
+    public AsyncSingleValueRetrieval<K,V> waitFor(K key, WaitOptions waitOptions) throws RetrievalException {
+        return (AsyncSingleValueRetrieval<K,V>)retrieve(ImmutableSet.of(key), waitOptions);
     }
 
     @Override
     public AsyncSingleValueRetrieval<K,V> waitFor(K key) throws RetrievalException {
-        return (AsyncSingleValueRetrieval<K,V>)waitFor(key, nspoImpl.getDefaultWaitOptions());
+        return waitFor(key, nspoImpl.getDefaultWaitOptions());
     }
 
     // puts

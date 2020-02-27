@@ -52,11 +52,11 @@ public class PerspectiveTest {
         
         System.out.println(syncNSPString);
         System.out.println( syncNSPString.get("k"));
-        System.out.println( syncNSPString.get("k", goString.versionConstraint(VersionConstraint.exactMatch(1))).getValue());
+        System.out.println( syncNSPString.retrieve("k", goString.versionConstraint(VersionConstraint.exactMatch(1))).getValue());
         System.out.println("-");
         System.out.println( syncNSPInt.get("k"));
-        System.out.println( syncNSPInt.get("k", goInt.versionConstraint(VersionConstraint.exactMatch(2))).getValue());
-        System.out.println( syncNSPInt.get("k", goInt.versionConstraint(VersionConstraint.exactMatch(1))).getValue());
+        System.out.println( syncNSPInt.retrieve("k", goInt.versionConstraint(VersionConstraint.exactMatch(2))).getValue());
+        System.out.println( syncNSPInt.retrieve("k", goInt.versionConstraint(VersionConstraint.exactMatch(1))).getValue());
     }
     
     @Test
