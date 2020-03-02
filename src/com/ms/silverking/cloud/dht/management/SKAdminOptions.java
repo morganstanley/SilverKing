@@ -42,6 +42,9 @@ public class SKAdminOptions {
     @Option(name="-t", usage="target(s)", required=false)
     public String    targets;
 
+    @Option(name="-rawJVMOptions", usage="rawJVMOptions", required=false)
+    public String    rawJVMOptions = "";
+    
     public boolean isReservedTarget(String s) {
         return s.equalsIgnoreCase(exclusionsTarget) || s.equalsIgnoreCase(activeDaemonsTarget);
     }

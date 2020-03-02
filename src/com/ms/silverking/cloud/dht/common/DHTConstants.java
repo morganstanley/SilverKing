@@ -88,6 +88,7 @@ public class DHTConstants {
     public static final String    initialHeapSizeVar = "initialHeapSize";
     public static final String    maxHeapSizeVar = "maxHeapSize";
     public static final String    dataBaseVar = "dataBase";
+    public static final String    rawOptionsVar = "rawOptions";
     public static final String    ipAliasMapFileVar = "skIPAliasMapFile";
     public static final String    ipAliasMapFileEnvVar = "skIPAliasMapFile";
     public static final String    dataBasePathProperty = daemonPackageBase +".DataBasePath";

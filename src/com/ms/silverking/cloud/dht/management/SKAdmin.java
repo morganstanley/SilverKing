@@ -326,14 +326,15 @@ public class SKAdmin {
     private String getJavaCmdStart(SKAdminOptions options, ClassVars classVars, boolean escaped) {        
         return options.javaBinary +" -cp "+ options.classPath
                 +" "+ options.assertionOption 
-                +" "+ getJVMOptions(classVars)
+                +" "+ getHeapDumpOptions(classVars)
                 +" "+ getProfilingOptions(options)
                 +" "+ getJVMMemoryOptions(classVars)
                 +" "+ getDHTOptions(options, classVars)
-                +" "+ getExtraOptions(options, classVars, escaped);
+                +" "+ getExtraOptions(options, classVars, escaped)
+                +" "+ getRawJVMOptions(options, classVars);
     }
     
-    private String getJVMOptions(ClassVars classVars) {
+    private String getHeapDumpOptions(ClassVars classVars) {
         return "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="
                 +getHeapDumpFile(classVars);
     }
@@ -342,6 +343,19 @@ public class SKAdmin {
         return DHTConstants.getSKInstanceLogDir(classVars, gc) +"/"+ DHTConstants.heapDumpFile;
     }
 
+    private String getRawJVMOptions(SKAdminOptions options, ClassVars classVars) {
+        String  rawJVMOptions;
+        
+        rawJVMOptions = classVars.getVarMap().get(DHTConstants.rawOptionsVar);
+        if (rawJVMOptions == null) {
+            rawJVMOptions = "";
+        } else {
+            rawJVMOptions += " ";
+        }
+        rawJVMOptions += options.rawJVMOptions;
+        return rawJVMOptions;
+    }
+    
     private String getProfilingOptions(SKAdminOptions options) {
         return options.profilingOptions;
     }
