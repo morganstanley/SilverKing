@@ -176,13 +176,6 @@ public class NumConversion {
         return b;
     }
     
-    public static int intSwapEndian(int value) {
-        return bytesToInt((byte)(value >>> 24),
-                        (byte)(value >> 16 & 0xff),
-                        (byte)(value >> 8 & 0xff),
-                        (byte)(value & 0xff));
-    }    
-    
     /**
      * Return a byte to an integer in the range [0, 255]
      * @return
