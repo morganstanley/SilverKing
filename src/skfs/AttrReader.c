@@ -653,7 +653,7 @@ static void ar_process_native_request(void *_requestOpRef, int curThreadIndex) {
         tmpStat.st_nlink = FA_NATIVE_LINK_MAGIC;
         fa = fa_new_native(&tmpStat);
         ao_set_complete(op, AOResult_Success, fa, sizeof(FileAttr));
-        ar_store_attr_in_cache(arr, fa, curSKTimeNanos());
+        cacheStoreResult = ar_store_attr_in_cache(arr, fa, curSKTimeNanos());
         if (cacheStoreResult != CACHE_STORE_SUCCESS) {
             srfsLog(LOG_WARNING, "cacheStoreResult != CACHE_STORE_SUCCESS  %d  %s  %s %d", cacheStoreResult, arr->path, __FILE__, __LINE__);
         }
