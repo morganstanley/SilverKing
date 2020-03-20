@@ -228,7 +228,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
     SKInvalidationOptions    *invalidationOptions = NULL;
     
     seedp = 0;
-    srfsLog(LOG_FINE, "in aw_write_attr_direct");    
+    srfsLog(LOG_FINE, "in aw_write_attr_direct");
     pPut = NULL;
     pVal = sk_create_val();
     sk_set_val_zero_copy(pVal, sizeof(FileAttr), (void *)fa);
@@ -240,9 +240,12 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
     do {
         try {
             if (fa != fa_get_deletion_fa()) {
-                if (lockSeconds > 0 || requiredPreviousVersion > 0) {
+                if (lockSeconds > 0 || requiredPreviousVersion != AW_NO_REQUIRED_PREV_VERSION) {
                     SKPutOptions    *tmpPO;
                     
+                    if (requiredPreviousVersion == AW_NO_REQUIRED_PREV_VERSION) {
+                        requiredPreviousVersion = 0;
+                    }
                     tmpPO = aw->defaultPutOptions->lockSeconds(lockSeconds);
                     putOptions = tmpPO->requiredPreviousVersion(requiredPreviousVersion);
                     pPut = aw->ansp->put(path, pVal, putOptions);
@@ -251,9 +254,12 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
                     pPut = aw->ansp->put(path, pVal);
                 }
             } else {
-                if (lockSeconds > 0 || requiredPreviousVersion > 0) {
+                if (lockSeconds > 0 || requiredPreviousVersion != AW_NO_REQUIRED_PREV_VERSION) {
                     SKInvalidationOptions    *tmpIO;
                     
+                    if (requiredPreviousVersion == AW_NO_REQUIRED_PREV_VERSION) {
+                        requiredPreviousVersion = 0;
+                    }
                     tmpIO = aw->defaultInvalidationOptions->lockSeconds(lockSeconds);
                     invalidationOptions = tmpIO->requiredPreviousVersion(requiredPreviousVersion);
                     pPut = aw->ansp->invalidate(path, invalidationOptions);

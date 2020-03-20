@@ -264,7 +264,7 @@ int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt,
                         // Now write the deleted attribute
                         // Not specifying required previous version as we already have a lock.
                         // (Getting the actual previous version would entail another attribute fetch.)
-                        awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS, &skFailureCause, 0, 0);
+                        awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS, &skFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
                         srfsLog(LOG_FINE, "wft_delete_file %s aw_write result %d\n", name, awResult);
                         if (awResult != SKOperationState::SUCCEEDED) {
                             srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, skFailureCause, __FILE__, __LINE__);

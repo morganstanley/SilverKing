@@ -28,6 +28,7 @@
 #define WF_ATTR_WRITE_MAX_ATTEMPTS    12
 #define WF_TRUNCATE_ON_FLUSH_ERROR  1
 #define WF_FAILED_BLOCK_RETRIES 2
+#define _WF_UPDATE_LOCK_SECONDS 600
 
 // Ugly Linux requirement to report st_blocks as 512 byte blocks
 // irrespective of actual blocks
@@ -69,8 +70,9 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
 static int _wf_find_empty_ref(WritableFile *wf);
 static int _wf_has_references(WritableFile *wf);
 static int wf_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
-static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
+static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac, int lockSeconds);
 static off_t wf_bytes_successfully_written(WritableFile *wf, FileBlockWriter *fbw);
+static void wf_init_least_incomplete_block_index(WritableFile *wf);
 
 static void _wf_delete_pending_rename(WritableFile *wf);
 
@@ -144,6 +146,39 @@ void wf_sanityCheckNumBlocks(WritableFile *wf, char *file, int line) {
     }
 }
 
+static void wf_update_attribute_times(FileAttr *fa) {
+    struct timespec tp;
+    time_t  curEpochTimeSeconds;
+    long    curTimeNanos;
+    
+    if (clock_gettime(CLOCK_REALTIME, &tp)) {
+        fatalError("clock_gettime failed", __FILE__, __LINE__);
+    }    
+    curEpochTimeSeconds = tp.tv_sec;
+    curTimeNanos = tp.tv_nsec;    
+    fa->stat.st_mtime = curEpochTimeSeconds;
+    fa->stat.st_atime = curEpochTimeSeconds;
+    fa->stat.st_mtim.tv_nsec = curTimeNanos;
+    fa->stat.st_atim.tv_nsec = curTimeNanos;
+}
+
+void wf_create_attribute(FileAttr *fa, mode_t mode) {
+    struct fuse_context    *fuseContext;    
+    
+    fid_generate_and_init_skfs(&fa->fid);
+    fa->stat.st_mode = mode;
+    fa->stat.st_nlink = 1;
+    fa->stat.st_ino = fid_get_inode(&fa->fid);
+    wf_update_attribute_times(fa);
+    fa->stat.st_ctime = fa->stat.st_mtime;
+    fa->stat.st_ctim.tv_nsec = fa->stat.st_mtim.tv_nsec;
+
+    fuseContext = fuse_get_context();
+    fa->stat.st_uid = fuseContext->uid;
+    fa->stat.st_gid = fuseContext->gid;
+    fa->stat.st_blksize = SRFS_BLOCK_SIZE;
+}
+
 WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
                      AttrWriter *aw, FileAttr *fa, PartialBlockReader *pbr,
                      int *retryFlag) {
@@ -174,17 +209,7 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
     curTimeNanos = tp.tv_nsec;
     
     if (fa == NULL) {            
-        fid_generate_and_init_skfs(&wf->fa.fid);
-        wf->fa.stat.st_mode = mode;
-        wf->fa.stat.st_nlink = 1;
-        wf->fa.stat.st_ino = fid_get_inode(&wf->fa.fid);
-        //curEpochTimeSeconds = epoch_time_seconds();
-        wf->fa.stat.st_ctime = curEpochTimeSeconds;
-        wf->fa.stat.st_ctim.tv_nsec = curTimeNanos;
-
-        wf->fa.stat.st_uid = fuseContext->uid;
-        wf->fa.stat.st_gid = fuseContext->gid;
-        wf->fa.stat.st_blksize = SRFS_BLOCK_SIZE;
+        wf_create_attribute(&wf->fa, mode);
         wf_new_block(wf);
         wf->blockList = abl_new(WF_INITIAL_BLOCK_SIZE, WF_MAX_BLOCK_SIZE, WF_BLOCK_INCREMENT, TRUE);
         wf_sanityCheckNumBlocks(wf, __FILE__, __LINE__);
@@ -205,12 +230,9 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
         }
         wf->blockList = abl_new(WF_INITIAL_BLOCK_SIZE, WF_MAX_BLOCK_SIZE, WF_BLOCK_INCREMENT, TRUE);
         wf_init_blockList(wf, wf->numBlocks - 1);
-        wf->leastIncompleteBlockIndex = wf->numBlocks - 1;
+        wf_init_least_incomplete_block_index(wf);
     }
-    wf->fa.stat.st_mtime = curEpochTimeSeconds;
-    wf->fa.stat.st_atime = curEpochTimeSeconds;
-    wf->fa.stat.st_mtim.tv_nsec = curTimeNanos;
-    wf->fa.stat.st_atim.tv_nsec = curTimeNanos;
+    wf_update_attribute_times(&wf->fa);
     
     pthread_mutexattr_init(&mutexAttr);
     pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);    
@@ -226,15 +248,21 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
         wf_delete(&wf); // sets wf to NULL
     }
     
-    /*    
-    awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, NULL, WF_ATTR_WRITE_MAX_ATTEMPTS);
-    
-    if (awResult != SKOperationState::SUCCEEDED) {
-        //result = EIO;
-        srfsLog(LOG_ERROR, "Couldn't write attribute for %s due to %d", path, awResult);
-        wf_delete(&wf); // sets wf to NULL
+    if (fa == NULL) {
+        SKFailureCause::SKFailureCause  awFailureCause;
+        
+        // We are creating a new file; acquire a lock
+        awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, NULL, 1 /* one write attempt*/, 
+                                        &awFailureCause, 
+                                        SKPutOptions::previousVersionNonexistentOrInvalid(),
+                                        _WF_UPDATE_LOCK_SECONDS);
+        if (awResult != SKOperationState::SUCCEEDED) {
+            srfsLog(LOG_ERROR, "Couldn't write attribute for %s due to %d %d", path, awResult, awFailureCause);
+            wf_delete(&wf); // sets wf to NULL
+        }
+    } else {
+        // We have been given an fa; therefore, a lock has already been acquired
     }
-    */
     return wf;
 }
 
@@ -254,6 +282,7 @@ static int wf_init_cur_block(WritableFile *wf, PartialBlockReader *pbr) {
                                          &wf->fa, TRUE, 0);
         
         if (readResult != (int)curBlockLength) {
+            srfsLog(LOG_WARNING, "readResult != (int)curBlockLength %d %d %s %d", readResult, curBlockLength, __FILE__, __LINE__);
             mem_free((void **)&blockBuf);
             return -EIO;
         }
@@ -604,7 +633,7 @@ static int _wf_truncate(WritableFile *wf, off_t size, FileBlockWriter *fbw, Part
             mem_free((void **)&blockBuf);
         }
         wf->numBlocks = newNumBlocks;
-        wf->leastIncompleteBlockIndex = wf->numBlocks - 1;
+        wf_init_least_incomplete_block_index(wf);
         wf->fa.stat.st_blocks = statBlockConversion(wf->numBlocks); 
                                                 // FUTURE - we don't normally update this on the fly
                                                 // maybe change that everywhere        
@@ -638,13 +667,13 @@ int wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *
     int rc;
     
     pthread_mutex_lock(&wf->lock);    
-    rc = _wf_flush(wf, aw, fbw, ac);
+    rc = _wf_flush(wf, aw, fbw, ac, _WF_UPDATE_LOCK_SECONDS);
     pthread_mutex_unlock(&wf->lock);
     return rc;
 }
 
 // lock must be held
-static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac) {
+static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac, int lockSeconds) {
     int    blocksOK;
     int result;
     
@@ -668,7 +697,7 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
     }
     if (blocksOK) {
         //if (wf->kvAttrStale) {
-            result = wf_update_attr(wf, aw, ac, FALSE, 0);
+            result = wf_update_attr(wf, aw, ac, FALSE, lockSeconds);
         //}
         if (wf_syncDirUpdates && wf->parentDir != NULL) {
             srfsLog(LOG_INFO, "_wf_flush %s od_waitForWrite parentDir %s", wf->path, wf->parentDir->path);
@@ -736,7 +765,7 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
     } else {
         //aw_write_attr(aw, wf->path, &wf->fa); // old queued async write
         // Write out attribute information & wait for the write to complete
-        awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, ac, WF_ATTR_WRITE_MAX_ATTEMPTS, 0, lockSeconds);
+        awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, ac, WF_ATTR_WRITE_MAX_ATTEMPTS, NULL, AW_NO_REQUIRED_PREV_VERSION, lockSeconds);
         srfsLog(LOG_FINE, "wf_update_attr %s aw_write result %d\n", wf->path, awResult);
         if (awResult != SKOperationState::SUCCEEDED) {
             result = EIO;
@@ -838,6 +867,14 @@ WritableFile *wf_fuse_fi_fh_to_wf(struct fuse_file_info *fi) {
 // this does not count unwritten blocks
 static uint64_t wf_blocks_outstanding(WritableFile *wf) {
     return abl_size(wf->blockList) - wf->leastIncompleteBlockIndex;
+}
+
+static void wf_init_least_incomplete_block_index(WritableFile *wf) {
+    if (wf->numBlocks == 0) {
+        wf->leastIncompleteBlockIndex = 0;
+    } else {
+        wf->leastIncompleteBlockIndex = wf->numBlocks - 1;
+    }
 }
 
 static uint64_t wf_cur_block_index(WritableFile *wf) {
@@ -1080,7 +1117,7 @@ static int wf_check_for_close(WritableFile *wf, AttrWriter *aw, FileBlockWriter 
         // We would like to drop the table lock here to avoid holding it during remote i/o
         // We cannot, however, as this can introduce inconsistency.
         // (Mitigating this with many table partitions to minimize extraneous locking)
-        rc_f = _wf_flush(wf, aw, fbw, ac);
+        rc_f = _wf_flush(wf, aw, fbw, ac, 0);
         // Now we may drop the table lock safely.
         pthread_rwlock_unlock(&wf->htl->rwLock);
         // we removed wf from the table, so we no longer need a lock

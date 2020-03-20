@@ -864,16 +864,26 @@ public class NamespaceStore implements SSNamespaceStore {
                 if (existingLockSeconds == PutOptions.noLock) {
                     return LockCheckResult.Unlocked;
                 } else {
-                    long    lockSeconds;
+                    long            lockSeconds;
+                    LockCheckResult lockCheckResult;
                     
                     if (StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(), 
                             MetaDataUtil.getStorageState(result, 0))) {
                         lockSeconds = (long)existingLockSeconds;
                     } else {
+                        // We have found an partially complete write that holds a lock.
+                        // Respect that lock for a small number of seconds.
+                        // After that, we presume that lock has failed.
                         lockSeconds = maxInvalidSSLockSeconds;
                     }
-                    return systemTimeSource.absTimeNanos() <= MetaDataUtil.getCreationTime(result, 0) + lockSeconds * 1_000_000_000L
+                    lockCheckResult = systemTimeSource.absTimeNanos() <= MetaDataUtil.getCreationTime(result, 0) + lockSeconds * 1_000_000_000L
                             ? LockCheckResult.Locked : LockCheckResult.Unlocked;
+                    if (lockCheckResult == LockCheckResult.Locked) {
+                        if (Arrays.equals(storageParams.getValueCreator(), MetaDataUtil.getCreator(result, 0).getBytes())) {
+                            lockCheckResult = LockCheckResult.Unlocked;
+                        }
+                    }
+                    return lockCheckResult;
                 }
             }
         } else {
@@ -882,6 +892,10 @@ public class NamespaceStore implements SSNamespaceStore {
         }
     }
 
+    /**
+     * Checks to see if another writer has managed to lock the exact same version that this operation
+     * is attempting to lock. 
+     */
     private LockCheckResult checkForLockOnPutUpdate(DHTKey key, AbstractSegment segment, long version) {
         RetrievalOptions options;
         ByteBuffer         result;
