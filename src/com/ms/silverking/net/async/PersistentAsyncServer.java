@@ -18,6 +18,7 @@ import com.ms.silverking.net.async.time.RandomBackoff;
 import com.ms.silverking.net.security.ConnectionAbsorbException;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
+import com.ms.silverking.thread.lwt.LWTPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 
 /**
@@ -68,23 +69,28 @@ public class PersistentAsyncServer<T extends Connection>
         //new ConnectionDebugger();
     }
 
+    // FUTURE - Make target size and max size configurable via property
+    private static final LWTPool defaultConnectorPool = LWTPoolProvider.createPool(LWTPoolParameters.create("ConnectorPool").targetSize(4).maxSize(16).workUnit(1));    
+    
     public PersistentAsyncServer(int port, int backlog,
                                 int numSelectorControllers,  
                                 String controllerClass, 
                                 ConnectionCreator<T> connectionCreator, 
                                 NewConnectionTimeoutController newConnectionTimeoutController,
-                                LWTPool lwtPool, int selectionThreadWorkLimit, boolean enabled, 
+                                LWTPool readerLWTPool, LWTPool writerLWTPool, LWTPool acceptorPool, LWTPool connectorPool, 
+                                int selectionThreadWorkLimit, boolean enabled, 
                                 boolean debug, MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
         isRunning = true;
         this.debug = debug;
         this.newConnectionTimeoutController = newConnectionTimeoutController;
         asyncServer = new AsyncServer<T>(port, backlog, 
                                         numSelectorControllers,  
-                                        controllerClass, connectionCreator, this, lwtPool, 
+                                        controllerClass, connectionCreator, this, 
+                                        readerLWTPool, writerLWTPool, acceptorPool, 
                                         selectionThreadWorkLimit, enabled, debug);
         connections = new ConcurrentHashMap<InetSocketAddress,T>();
         newConnectionLocks = new ConcurrentHashMap<InetSocketAddress,ReentrantLock>();    
-        asyncConnector = new AsyncConnector(lwtPool);
+        asyncConnector = new AsyncConnector(connectorPool);
         if (mqListener != null) {
             new ConnectionQueueWatcher(mqListener, mqUUID);
         }
@@ -94,7 +100,8 @@ public class PersistentAsyncServer<T extends Connection>
     public PersistentAsyncServer(int port, int backlog, int numSelectorControllers, 
             String controllerClass, ConnectionCreator<T> connectionCreator, NewConnectionTimeoutController newConnectionTimeoutController) throws IOException {
         this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, newConnectionTimeoutController, LWTPoolProvider.defaultConcurrentWorkPool, 
+                controllerClass, connectionCreator, newConnectionTimeoutController, 
+                LWTPoolProvider.defaultConcurrentWorkPool, LWTPoolProvider.defaultConcurrentWorkPool, LWTPoolProvider.defaultConcurrentWorkPool, defaultConnectorPool, 
                 SelectorController.defaultSelectionThreadWorkLimit, true, false, null, null);
     }
     
@@ -105,18 +112,8 @@ public class PersistentAsyncServer<T extends Connection>
             MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID) throws IOException {
         this(port, backlog, numSelectorControllers,  
                 controllerClass, connectionCreator, newConnectionTimeoutController, 
-                LWTPoolProvider.defaultConcurrentWorkPool, 
+                LWTPoolProvider.defaultConcurrentWorkPool, LWTPoolProvider.defaultConcurrentWorkPool, LWTPoolProvider.defaultConcurrentWorkPool, defaultConnectorPool,  
                 selectionThreadWorkLimit, true, false, mqListener, mqUUID);
-    }
-    
-    public PersistentAsyncServer(int port, int backlog, int numSelectorControllers,  
-                String controllerClass, 
-                ConnectionCreator<T> connectionCreator, NewConnectionTimeoutController newConnectionTimeoutController, 
-                LWTPool lwtPool, boolean debug) throws IOException {
-        this(port, backlog, numSelectorControllers,  
-                controllerClass, connectionCreator, newConnectionTimeoutController, 
-                lwtPool, 
-                SelectorController.defaultSelectionThreadWorkLimit, true, debug, null, null);
     }
     
     public PersistentAsyncServer(int port, ConnectionCreator<T> connectionCreator) throws IOException {

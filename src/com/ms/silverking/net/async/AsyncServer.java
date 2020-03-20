@@ -24,16 +24,18 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     private boolean    enabled;
     
     public static boolean    verbose = AsyncGlobals.verbose;
-        
+    
     private AsyncServer(int port, int backlog,
                         int numSelectorControllers,
                         String controllerClass,
                         Acceptor<T> acceptor,
                         ConnectionCreator<T> connectionCreator, 
                         IncomingConnectionListener<T> incomingConnectionListener, 
-                        LWTPool lwtPool, int selectionThreadWorkLimit, 
+                        LWTPool readerLWTPool, LWTPool writerLWTPool, 
+                        int selectionThreadWorkLimit, 
                         boolean enabled, boolean debug) throws IOException {
-        super(port, numSelectorControllers, controllerClass, acceptor, connectionCreator, lwtPool, selectionThreadWorkLimit, debug);
+        super(port, numSelectorControllers, controllerClass, acceptor, connectionCreator, readerLWTPool, writerLWTPool, 
+                selectionThreadWorkLimit, debug);
         this.incomingConnectionListener = incomingConnectionListener;
         this.enabled = enabled;
         this.debug = debug;
@@ -60,11 +62,13 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
             String controllerClass,
             ConnectionCreator<T> connectionCreator, 
             IncomingConnectionListener<T> newConnectionListener, 
-            LWTPool lwtPool, int selectionThreadWorkLimit, 
+            LWTPool readerLWTPool, LWTPool writerLWTPool, LWTPool acceptorPool, 
+            int selectionThreadWorkLimit, 
             boolean enabled, boolean debug) throws IOException {
         this(port, backlog, numSelectorControllers, 
                 controllerClass, 
-                new Acceptor<T>(lwtPool), connectionCreator, newConnectionListener, lwtPool, selectionThreadWorkLimit, enabled, debug);
+                new Acceptor<T>(acceptorPool), connectionCreator, newConnectionListener, 
+                readerLWTPool, writerLWTPool, selectionThreadWorkLimit, enabled, debug);
     }
         
     //////////////////////////////////////////////////////////////////////

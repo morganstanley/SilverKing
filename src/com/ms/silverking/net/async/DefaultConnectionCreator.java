@@ -3,8 +3,6 @@ package com.ms.silverking.net.async;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
-import com.ms.silverking.thread.lwt.LWTPool;
-
 /**
  * Creates DefaultConnections.
  */
@@ -47,7 +45,7 @@ public class DefaultConnectionCreator implements ConnectionCreator<DefaultConnec
     @Override
     public DefaultConnection createConnection(SocketChannel channel, 
                                 SelectorController<DefaultConnection> selectorController,
-                                ConnectionListener connectionListener, LWTPool lwtPool, boolean debug) {
+                                ConnectionListener connectionListener, boolean debug) {
         return new DefaultConnection(channel, selectorController, connectionListener,
                     getReceiver(channel));
     }

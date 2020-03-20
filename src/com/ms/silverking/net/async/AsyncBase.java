@@ -32,7 +32,6 @@ import com.ms.silverking.thread.lwt.LWTThreadUtil;
  */
 public class AsyncBase<T extends Connection> {
     private final List<SelectorController<T>>        selectorControllers;
-    private final LWTPool    workPool;
 
     private SuspectAddressListener    suspectAddressListener;
 
@@ -60,8 +59,6 @@ public class AsyncBase<T extends Connection> {
     private static final String    defSocketReadTimeoutProperty = propertyBase +"SocketReadTimeout";
     private static final String    defSocketConnectTimeoutProperty = propertyBase +"SocketConnectTimeoutProperty";
     private static final String defAuthenticationTimeoutProperty = propertyBase + "TimeoutMs";
-
-
 
     private final ChannelSelectorControllerAssigner<T>    cscAssigner;
     private final ConnectionCreator<T>                    connectionCreator;
@@ -137,12 +134,11 @@ public class AsyncBase<T extends Connection> {
                         BaseWorker<Triple<ServerSocketChannel,SelectorController<T>,SelectionKey>> acceptWorker, 
                         ConnectionCreator<T> connectionCreator,
                         ChannelSelectorControllerAssigner<T> cscAssigner,
-                        LWTPool workPool,
+                        LWTPool readerWorkPool, LWTPool writerWorkPool,
                         int selectionThreadWorkLimit,
                         boolean debug) throws IOException {        
         this.cscAssigner = cscAssigner;
         this.connectionCreator = connectionCreator;
-        this.workPool = workPool;
         this.debug = debug;
             
         selectorControllers = new ArrayList<SelectorController<T>>();
@@ -150,7 +146,7 @@ public class AsyncBase<T extends Connection> {
         for (int i = 0; i < numSelectorControllers; i++) {
             selectorControllers.add(
                 new SelectorController(acceptWorker, null/*ConnecctWorker*/, 
-                        new Reader(workPool), new Writer(workPool), controllerClass, selectionThreadWorkLimit, debug));        
+                        new Reader(readerWorkPool), new Writer(writerWorkPool), controllerClass, selectionThreadWorkLimit, debug));        
         }
         if (Connection.statsEnabled) {
             File  statsBaseDir;
@@ -172,10 +168,10 @@ public class AsyncBase<T extends Connection> {
     public AsyncBase(int port, int numSelectorControllers, 
             String controllerClass, 
             BaseWorker<Triple<ServerSocketChannel,SelectorController<T>,SelectionKey>> acceptWorker, 
-            ConnectionCreator<T> connectionCreator, LWTPool lwtPool,
+            ConnectionCreator<T> connectionCreator, LWTPool readerLWTPool, LWTPool writerLWTPool,
             int selectionThreadWorkLimit, boolean debug) throws IOException {
         this(port, numSelectorControllers, controllerClass, acceptWorker, 
-                connectionCreator, new LocalGroupingCSCA<T>(numSelectorControllers / 4), lwtPool, 
+                connectionCreator, new LocalGroupingCSCA<T>(numSelectorControllers / 4), readerLWTPool, writerLWTPool, 
                 selectionThreadWorkLimit, debug);
                                // FUTURE allow more than just the fixed fraction of local selector controllers
                 //new RandomChannelSelectorControllerAssigner<T>(), lwtPool, debug);
@@ -390,7 +386,7 @@ public class AsyncBase<T extends Connection> {
         }
         selectorController = cscAssigner.assignChannelToSelectorController(channel, selectorControllers);
         connection = connectionCreator.createConnection(channel, selectorController, 
-                                                        listener, workPool, debug);
+                                                        listener, debug);
 
         if (authResult.isSuccessful()) {
             Log.info("Authenticator: authId["+authResult.getAuthId().get()+"] is obtained in ["
