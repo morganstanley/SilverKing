@@ -180,11 +180,15 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
             port = activeNodes.iterator().next().getPort();                        
             activeServers = IPAndPort.copyServerIPsAsMutableSet(activeNodes);
             ineligibleServers = removeIneligibleServers(activeServers, dhtRingCurTargetZK, instanceExclusionZK);
-            for (String ineligibleServer : ineligibleServers) {
-                IPAndPort    ineligibleNode;
-                
-                ineligibleNode = new IPAndPort(ineligibleServer, port);
-                activeNodes.remove(ineligibleNode);
+            if (!forceInclusionOfUnsafeExcludedServers) {
+                for (String ineligibleServer : ineligibleServers) {
+                    IPAndPort    ineligibleNode;
+                    
+                    ineligibleNode = new IPAndPort(ineligibleServer, port);
+                    activeNodes.remove(ineligibleNode);
+                }
+            } else {
+                Log.warning("Ignoring server eligibility");
             }
         }
     }

@@ -168,12 +168,12 @@ public class PeerHealthMonitor implements SuspectAddressListener {
 
     @Override
     public void removeSuspect(InetSocketAddress addr) {
-        removeSuspect(new IPAndPort(addr));
+        removeSuspect(new IPAndPort(addr).port(DHTNode.getServerPort()));
     }
     
     public void removeSuspect(IPAndPort peer) {
         boolean    removed;
-        
+
         if (verbose) {
             Log.fineAsync("PeerHealthMonitor.removeSuspect ", peer);
         }
@@ -187,7 +187,7 @@ public class PeerHealthMonitor implements SuspectAddressListener {
             removed = false;
         }
         if (removed && verbose) {
-            Log.fineAsync("PeerHealthMonitor.removeSuspect, removed: "+ peer);
+            Log.warningAsync("PeerHealthMonitor.removeSuspect, removed: "+ peer);
         }
     }
     
