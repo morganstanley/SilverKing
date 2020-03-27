@@ -352,6 +352,15 @@ public class AsyncBase<T extends Connection> {
         T    connection;
         SelectorController<T>    selectorController;
 
+        channel.socket().setTcpNoDelay(tcpNoDelay);
+        if (defReceiveBufferSize > 0) {
+            channel.socket().setReceiveBufferSize(defReceiveBufferSize);
+        }
+        if (defSendBufferSize > 0) {
+            channel.socket().setSendBufferSize(defSendBufferSize);
+        }
+        channel.socket().setSoTimeout(defSocketReadTimeout); // (for auth as the rest is non-blocking)
+        
         String connInfo = channel.socket() != null ? channel.socket().toString() : "nullSock";
         Authenticator.AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside, defAuthenticationTimeoutInMillisecond);
         if (authResult.isFailed()) {
@@ -372,12 +381,8 @@ public class AsyncBase<T extends Connection> {
         }
 
         if (logConnections) {
-            Log.warning("AsyncBase addConnection: ", channel);
+            Log.warningf("AsyncBase addConnection: %s sBuf %d rBuf %d", channel, channel.socket().getSendBufferSize(), channel.socket().getReceiveBufferSize());
         }
-        channel.socket().setTcpNoDelay(tcpNoDelay);
-        channel.socket().setReceiveBufferSize(defReceiveBufferSize);
-        channel.socket().setSendBufferSize(defSendBufferSize);
-        channel.socket().setSoTimeout(defSocketReadTimeout); // Useless for SocketChannel I/O. Remove
         try {
             channel.configureBlocking(false);
         } catch (IOException ioe) {
