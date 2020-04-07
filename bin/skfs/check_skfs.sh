@@ -27,7 +27,6 @@ function f_printSkfsCheckWithResult {
             f_printProcessInfo
             f_printSkfsdStatus "$id" "dead"
         fi
-        
         exit
     else
         f_printSkfsNotFound
@@ -80,7 +79,14 @@ function f_printSkfsStopWithResult {
 }
 
 function f_getSkfsPid {
-    echo `pgrep -f $SKFSD_PATTERN`
+    skfsd_pid=""
+    for p in `pgrep skfsd`; do
+        grep -Pa "GC_SK_NAME=$GC_SK_NAME\x00" /proc/$p/environ 1> /dev/null 2> /dev/null
+        result=$?
+        if [ $result -eq "0" ]; then
+            echo $p
+        fi
+    done
 }
 
 function f_printSkfsdStatus {
@@ -89,11 +95,11 @@ function f_printSkfsdStatus {
 
 function f_printSkfsFound {
     typeset id=$(f_getSkfsPid)
-    echo "FOUND - skfsd '$GCName' ${id}${1}";
+    echo "FOUND - skfsd '$GC_SK_NAME' ${id}${1}";
 }
 
 function f_printSkfsNotFound {
-    echo "NOT FOUND - skfsd '$GCName'"
+    echo "NOT FOUND - skfsd '$GC_SK_NAME'"
 }
 
 function f_printPass {
@@ -181,7 +187,6 @@ echo "forceSKFSDirCreation:      $forceSKFSDirCreation"
 echo "waitForSkfsdBeforeExiting: $waitForSkfsdBeforeExiting"
 echo "skGlobalCodebase:          $skGlobalCodebase"
 
-   SK_PATTERN="DHTNode .*${GC_SK_NAME}"
 SKFSD_PATTERN="skfsd.*${GCName}"
    
   CHECK_SKFS_COMMAND="CheckSKFS"
@@ -216,18 +221,6 @@ f_exitIfUndefined "SK_JAVA_HOME"    $SK_JAVA_HOME
 f_exitIfUndefined "SK_JACE_HOME"    $SK_JACE_HOME
 # f_exitIfUndefined "SK_CLASSPATH"    $SK_CLASSPATH FIXME:bph: we aren't using this anymore, we set it ourselves below. We can delete it from SKAdmin.java and other repo grep 'SK_CLASSPATH' hits
 
-f_printSection "PRE-EXISTING CHECKS"
-f_printSubSection "Checking for skfs"
-id=$(f_getSkfsPid)
-if [[ -n $id ]]; then
-    f_printSkfsFound
-    if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
-        f_printSkfsCheckWithResult  # this will print f_printSkfsFound again, but that's ok..
-    fi
-else
-    f_printSkfsNotFound
-fi
-
 f_printSubSection "Checking GC File"
 
 fullGcFilePath=$GC_DEFAULT_BASE/$GCName.env
@@ -244,6 +237,19 @@ if [[ -z $GC_SK_NAME ]] ; then
     echo "Error in $fullGcFilePath - can't find 'GC_SK_NAME'"
     f_printFail
     exit -1
+fi
+   SK_PATTERN="DHTNode .*${GC_SK_NAME}"
+
+f_printSection "PRE-EXISTING CHECKS"
+f_printSubSection "Checking for skfs"
+id=$(f_getSkfsPid)
+if [[ -n $id ]]; then
+    f_printSkfsFound
+    if [[ $nodeControlCommand == $CHECK_SKFS_COMMAND ]] ; then
+        f_printSkfsCheckWithResult  # this will print f_printSkfsFound again, but that's ok..
+    fi
+else
+    f_printSkfsNotFound
 fi
 
 f_printSubSection "Checking for sk"
@@ -401,6 +407,8 @@ if [[ ! -e $skfsMount ]] ; then
 fi
 
 ##nativeFSOnlyFile - file with csv files/dirs list that will be accessed only from native FS
+nativeNFSOnlyFile=
+fsNativeOnlyFile=
 if [[ -n $nativeFSOnlyFile ]] ; then
     if [[ ! -f $nativeFSOnlyFile ]] ; then
         touch $nativeFSOnlyFile
@@ -570,13 +578,20 @@ f_printSubSection "Writing to tmpFile"
 tmpFile=/tmp/$$.skfs.fuse.tmp
 rm -v $tmpFile 
 echo "writing to tmpFile: $tmpFile"
-echo "export PATH=${SK_JAVA_HOME}/bin:${PATH}:${fuseBin}:" >> $tmpFile
+echo "export PATH=${SK_JAVA_HOME}/bin:${PATH}:${fuseBin}:">> $tmpFile
+#echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}">> $tmpFile  
+#echo "export MALLOC_ARENA_MAX=4">> $tmpFile
+#echo "export CLASSPATH=${CLASSPATH}">> $tmpFile
 # note -d option is currently in skfs.c
-export start_fuse="nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} --compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} --noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} --taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} --noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} --logLevel=${logLevel} ${useBigWrites} ${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} ${nativeFileModeOption} ${brRemoteAddressFileOption}  ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} ${syncDirUpdatesOption} ${logGetattrOption} ${lockOnWriteOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.start.$$ 2>&1"
-#echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $tmpFile  
-#echo "export MALLOC_ARENA_MAX=4" >> $tmpFile
-#echo "export CLASSPATH=${CLASSPATH}" >> $tmpFile
-echo "$start_fuse" >> $tmpFile
+echo "nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} \\" >> $tmpFile
+echo "--compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} \\" >> $tmpFile
+echo "--noErrorCachePaths=${noErrorCachePaths} --noLinkCachePaths=${noLinkCachePaths} --snapshotOnlyPaths=${snapshotOnlyPaths} \\" >> $tmpFile
+echo "--taskOutputPaths=${taskOutputPaths} --compressedPaths=${compressedPaths} \\" >> $tmpFile
+echo "--noFBWPaths=${noFBWPaths} ${fbwQOption} --fsNativeOnlyFile=${nativeFSOnlyFile} --transientCacheSizeKB=${transientCacheSizeKB} \\" >> $tmpFile
+echo "--logLevel=${logLevel} ${useBigWrites} \\" >> $tmpFile
+echo "${entryTimeoutOption} ${attrTimeoutOption} ${negativeTimeoutOption} ${dhtOpMinTimeoutMSOption} ${dhtOpMaxTimeoutMSOption} \\" >> $tmpFile
+echo "${nativeFileModeOption} ${brRemoteAddressFileOption} ${brPortOption} ${reconciliationSleepOption} ${odwMinWriteIntervalMillisOption} \\" >> $tmpFile
+echo "${syncDirUpdatesOption} ${skfsJvmOpt} > ${skfsLogs}/fuse.start.$$ 2>&1">> $tmpFile
 chmod +x $tmpFile
 
 # possible sanity check against concurrent CheckSKFS processes
