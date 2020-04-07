@@ -11,6 +11,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.client.AsyncOperation;
@@ -219,7 +220,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
         }
     }
     
-    private void notifyListeners(Set<AsyncOperationListener> listeners) {
+    private void notifyListeners(Iterable<AsyncOperationListener> listeners) {
         for (AsyncOperationListener listener : listeners) {
             listener.asyncOperationUpdated(this);
         }
@@ -240,13 +241,19 @@ abstract class AsyncOperationImpl implements AsyncOperation {
                     listeners.add(candidate.getV1());
                 }
             }
-            notificationWorker.addWork(new Pair<>(opImpl, listeners), 0);
+            update(opImpl, listeners);
         }
 
+        void update(AsyncOperationImpl opImpl, Set<AsyncOperationListener> listeners) {
+            if (listeners.size() > 0) {
+                addWork(new Pair<>(opImpl, listeners), 0);
+            }
+        }        
+        
         @Override
         public void doWork(Pair<AsyncOperationImpl, Set<AsyncOperationListener>> p) {
             p.getV1().notifyListeners(p.getV2());
-        }        
+        }
     }
 
     public boolean waitForCompletion(long timeout, TimeUnit unit) throws OperationException {
@@ -313,52 +320,42 @@ abstract class AsyncOperationImpl implements AsyncOperation {
     /**
      * Adds an operation listener. If the operation is already complete, the callback will be 
      * immediately executed, possibly in the calling thread.
+     * Updates of completion will occur exactly once. Updates of other states may
+     * occur multiple times and may occur in any order.
      * @param listener    update listener
      * @param listenStates    states to generate updates for
      */
     public void addListener(AsyncOperationListener listener, OperationState... listenStates) {
-        EnumSet<OperationState>    _listenStates;
-        OperationState            opState;
-
-        _listenStates = CollectionUtil.arrayToEnumSet(listenStates);
-        opState = getState();
-        lock.lock();
-        try {
-            // Trigger immediate updates for completion, but only for completion
-            if (opState != OperationState.INCOMPLETE && _listenStates.contains(opState)) {
-                listener.asyncOperationUpdated(this);
-            } else {
-                if (listeners == null) {
-                    listeners = new HashSet<>();
-                }
-                listeners.add(new Pair<>(listener, _listenStates));
-                opsWithListeners.put(getUUID(), this);
-            }
-        } finally {
-            lock.unlock();
-        }
+        addListeners(ImmutableList.of(listener), listenStates);
     }    
     
     /**
-     * Adds multiple completion listeners. For any listener that is already complete, the callback will be 
+     * Adds multiple listeners. If the operation is already complete, the callback will be 
      * immediately executed, possibly in the calling thread.
+     * Updates of completion will occur exactly once. Updates of other states may
+     * occur multiple times and may occur in any order.
      * @param listeners    update listeners
      * @param listenStates    states to generate updates for
      */
     public void addListeners(Iterable<AsyncOperationListener> _listeners, OperationState... listenStates) {
-        EnumSet<OperationState>    _listenStates;
-        OperationState            opState;
+        EnumSet<OperationState> _listenStates;
+        OperationState          opState;
+        boolean                 notifyListeners;
         
+        opState = null;
+        notifyListeners = false;
         _listenStates = CollectionUtil.arrayToEnumSet(listenStates);
-        opState = getState();
         lock.lock();
         try {
-            // Trigger immediate updates for completion, but only for completion
-            if (opState != OperationState.INCOMPLETE && _listenStates.contains(opState)) {
-                for (AsyncOperationListener listener : _listeners) {
-                    listener.asyncOperationUpdated(this);
-                }
-            } else {
+            opState = getState();
+            if (_listenStates.contains(opState)) {
+                notifyListeners = true;
+            } 
+            // We must add this to listeners if either:
+            //   1 - We are not notifying listeners now
+            //   2 - This call requests notification of incomplete state
+            //       (This will trigger both immediate callback and subsequent callbacks)
+            if (!notifyListeners || _listenStates.contains(OperationState.INCOMPLETE)) {
                 if (listeners == null) {
                     listeners = new HashSet<>();
                 }
@@ -369,6 +366,14 @@ abstract class AsyncOperationImpl implements AsyncOperation {
             }
         } finally {
             lock.unlock();
+        }
+        if (notifyListeners) {
+            // Using calling thread to trigger updates for completion, but only for completion
+            if (opState != OperationState.INCOMPLETE) {
+                notifyListeners(_listeners);
+            } else {
+                notificationWorker.update(this, ImmutableSet.copyOf(_listeners));
+            }
         }
     }    
     
