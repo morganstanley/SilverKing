@@ -160,7 +160,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private final ConcurrentMap<DHTKey, Set<PendingWaitFor>> pendingWaitFors;
     private final Cache<Integer, FileSegment>   fileSegmentCache;
     private final Map<Integer, RAMSegment> ramSegments;
-    private final NamespaceStats    nsStats;
+    private final NamespaceMetrics    nsMetrics;
     private long lastConvergenceVersion;
     private long lastConvergenceTotalKeys;
     protected final SystemTimeSource   systemTimeSource;
@@ -425,7 +425,7 @@ public class NamespaceStore implements SSNamespaceStore {
         }
         this.activeRetrievals = activeRetrievals;
         systemTimeSource = SystemTimeUtil.skSystemTimeSource;
-        nsStats = new NamespaceStats();
+        nsMetrics = new NamespaceMetrics();
         deletedSegments = new HashSet<>();
         
         Pair<PutTrigger,RetrieveTrigger>    triggers;
@@ -552,7 +552,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
     
     private boolean isIdle() {
-        return SystemTimeUtil.timerDrivenTimeSource.absTimeMillis() - nsStats.getLastActivityMillis() > nsIdleIntervalMillis;
+        return SystemTimeUtil.timerDrivenTimeSource.absTimeMillis() - nsMetrics.getLastActivityMillis() > nsIdleIntervalMillis;
     }
     
     private void watchForLink(ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
@@ -576,15 +576,15 @@ public class NamespaceStore implements SSNamespaceStore {
         return nsProperties;
     }
     
-    public NamespaceStats getNamespaceStats() {
-        return nsStats;
+    public NamespaceMetrics getNamespaceMetrics() {
+        return nsMetrics;
     }
     
     public long getTotalKeys() {
         if (retrieveTrigger != null && retrieveTrigger.subsumesStorage()) {
             return retrieveTrigger.getTotalKeys();
         } else {
-            return nsStats.getTotalKeys();
+            return nsMetrics.getTotalKeys();
         }
     }
 
@@ -1094,7 +1094,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     }
                 }
             }
-            nsStats.addPuts(numPuts, numInvalidations, SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
+            nsMetrics.addPuts(numPuts, numInvalidations, SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
         } finally {
             writeLock.unlock();
             //LWTThreadUtil.setNonBlocked();
@@ -1206,6 +1206,10 @@ public class NamespaceStore implements SSNamespaceStore {
             Log.warningAsyncf("userData length: %s", (userData == null ? "null" : userData.length));
         }
         
+        if (isDynamic()) {
+            return OpResult.MUTATION; // FUTURE - ADD R/O NS OpResult
+        }
+        
         lockCheckResult = checkForLock(key, storageParams);
         if (lockCheckResult == LockCheckResult.Locked) {
             return OpResult.LOCKED;
@@ -1285,7 +1289,7 @@ public class NamespaceStore implements SSNamespaceStore {
     }
 
     public void addToSizeStats(int uncompressedSize, int compressedSize) {
-        nsStats.addBytes(uncompressedSize, compressedSize);
+        nsMetrics.addBytes(uncompressedSize, compressedSize);
     }
 
     private StorageParameters getSystemVersionParams(DHTKey key, StorageParameters storageParams) {
@@ -1332,7 +1336,7 @@ public class NamespaceStore implements SSNamespaceStore {
                     valueSegmentsPut(key, -((RAMOffsetList)offsetList).getIndex());
                 }
                 // new key, record it in stats
-                nsStats.incTotalKeys();
+                nsMetrics.incTotalKeys();
             } else if (rawPrevSegment >= 0) {
                 if (false && nsOptions.isWriteOnce()) {
                     valueSegmentsPut(key, segmentNumber);
@@ -1593,7 +1597,7 @@ public class NamespaceStore implements SSNamespaceStore {
         if (debugVersion) {
             Log.fineAsync("retrieve internal options: %s", options);
         }
-        nsStats.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
+        nsMetrics.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
         _keys = new DHTKey[keys.size()];
         for (int i = 0; i < _keys.length; i++) {
             _keys[i] = keys.get(i);
@@ -1666,6 +1670,7 @@ public class NamespaceStore implements SSNamespaceStore {
         List<ByteBuffer> results;
         KeyAndInteger[]  _keys;
         
+        nsMetrics.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
         /*
         // We sort to attempt to group segment access
         _keys = new KeyAndInteger[keys.size()];

@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
@@ -15,6 +16,7 @@ import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
+import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.common.Namespace;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
@@ -25,12 +27,13 @@ import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.id.UUIDBase;
+import com.ms.silverking.log.Log;
 
 abstract class DynamicNamespaceStore extends NamespaceStore {
     private final String                  name;
-    protected final KeyCreator<String>    keyCreator;
     protected final byte[]                dynamicCreator;
     
+    protected static final KeyCreator<String> keyCreator = new StringMD5KeyCreator();
     protected static final byte[] dynamicUserData = new byte[0];
     protected static final NamespaceProperties   
         dynamicNamespaceProperties = new NamespaceProperties(DHTConstants.dynamicNamespaceOptions);
@@ -44,7 +47,6 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
               dynamicNamespaceProperties, 
               mgBase, ringMaster, false, activeRetrievals);
         this.name = name;
-        keyCreator = new StringMD5KeyCreator();
         dynamicCreator = SimpleValueCreator.forLocalProcess().getBytes(); 
     }
 
@@ -90,7 +92,9 @@ abstract class DynamicNamespaceStore extends NamespaceStore {
     protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
         ByteBuffer  value;
         
-        //System.out.println("SystemNamespaceStore._retrieve()");
+        if (Log.levelMet(Level.FINE)) {
+            Log.finef("DynamicNamespaceStore._retrieve() %s", KeyUtil.keyToString(key));
+        }
         value = super._retrieve(key, options);
         if (value == null) {
             byte[]  _value;

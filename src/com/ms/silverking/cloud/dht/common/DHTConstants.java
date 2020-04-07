@@ -193,6 +193,8 @@ public class DHTConstants {
     public static final NamespaceOptions    dynamicNamespaceOptions = defaultNamespaceOptions.storageType(StorageType.RAM)
                                           .consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT)
                                           .versionMode(NamespaceVersionMode.CLIENT_SPECIFIED);
+    public static final NamespaceProperties dynamicNamespaceProperties = new NamespaceProperties(dynamicNamespaceOptions);
+    public static final NamespaceProperties metricsNamespaceProperties = dynamicNamespaceProperties;
     
     public static final Class<String>    defaultKeyClass = String.class;
     public static final Class<byte[]>    defaultValueClass = byte[].class;

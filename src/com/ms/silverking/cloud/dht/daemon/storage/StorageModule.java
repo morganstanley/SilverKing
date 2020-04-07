@@ -10,7 +10,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -18,6 +17,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -64,12 +64,14 @@ import com.ms.silverking.thread.lwt.asyncmethod.MethodCallWorker;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 import com.ms.silverking.util.SafeTimerTask;
 import com.ms.silverking.util.memory.JVMMonitor;
 
 public class StorageModule implements LinkCreationListener {
     private final NodeRingMaster2    ringMaster;
     private final ConcurrentMap<Long,NamespaceStore>    namespaces;
+    private final ConcurrentMap<Long,NamespaceMetricsNamespaceStore>    nsMetricsNamespaces;
     private final File  baseDir;
     private final NamespaceMetaStore    nsMetaStore;
     private MessageGroupBase    mgBase;
@@ -123,7 +125,8 @@ public class StorageModule implements LinkCreationListener {
     private enum NSCreationMode {CreateIfAbsent, DoNotCreate};
     public enum RetrievalImplementation {Ungrouped, Grouped};
     
-    private static final Set<Long>            dynamicNamespaces = new HashSet<>();
+    private static final Set<Long>            dynamicNamespaces = new ConcurrentSkipListSet<>();
+    private static final Set<Long>            baseNamespaces = new ConcurrentSkipListSet<>();
 
     private static final String trashManualDirName = "trash_manual";
     private static final String deletedDirName = "_deleted_";
@@ -131,6 +134,8 @@ public class StorageModule implements LinkCreationListener {
     private static final String utcZone = "UTC";
 
     private static final RetrievalImplementation    retrievalImplementation;
+    
+    private static final String metricsObserversProperty = StorageModule.class.getCanonicalName() +".MetricsObservers";
 
     static {
         retrievalImplementation = RetrievalImplementation.valueOf(
@@ -149,6 +154,8 @@ public class StorageModule implements LinkCreationListener {
         Constraint.ensureNotNull(reapPolicy);
         Constraint.ensureNotNull(jvmMonitor);
         
+        baseNamespaces.add(NamespaceUtil.metaInfoNamespace.contextAsLong());
+        
         this.timer = timer;
         this.ringMaster = ringMaster;
         this.nodeInfoZK = nodeInfoZK;
@@ -156,6 +163,7 @@ public class StorageModule implements LinkCreationListener {
         this.jvmMonitor = jvmMonitor;
         ringMaster.setStorageModule(this);
         namespaces = new ConcurrentHashMap<>();
+        nsMetricsNamespaces = new ConcurrentHashMap<>();
         baseDir = new File(nodeInfoZK.getDHTNodeConfiguration().getDataBasePath(), dhtName);
 //        baseDir = new File(DHTNodeConfiguration.dataBasePath);    // replace above with this to get rid of double directory name in path
         this.trashManualDir = new File(baseDir, trashManualDirName);
@@ -205,16 +213,18 @@ public class StorageModule implements LinkCreationListener {
     public void setReady() {
         createMetaNSStore();
         
-        nodeNSStore = new NodeNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values());
-        addDynamicNamespace(nodeNSStore);
+        nodeNSStore = new NodeNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces);
+        addBaseDynamicNamespace(nodeNSStore);
         jvmMonitor.addMemoryObserver(nodeNSStore);
         
         replicasNSStore = new ReplicasNamespaceStore(mgBase, ringMaster, activeRetrievals);
-        addDynamicNamespace(replicasNSStore);
+        addBaseDynamicNamespace(replicasNSStore);
         
         systemNSStore = new SystemNamespaceStore(mgBase, ringMaster, activeRetrievals, namespaces.values(), nodeInfoZK);
-        addDynamicNamespace(systemNSStore);
-
+        addBaseDynamicNamespace(systemNSStore);
+        
+        initializeMetricsObservers(ImmutableList.of(nodeNSStore, systemNSStore));
+        
         this.cleanerTask = new SafeTimerTask(new Cleaner());
         timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
         if (reapPolicy.supportsLiveReap()) {
@@ -223,6 +233,24 @@ public class StorageModule implements LinkCreationListener {
         }
     }
 
+    private void initializeMetricsObservers(List<MetricsNamespaceStore> metricsNamespaceStores) {
+        String  metricsObservers;
+        
+        metricsObservers = PropertiesHelper.systemHelper.getString(metricsObserversProperty, UndefinedAction.ZeroOnUndefined);
+        if (metricsObservers != null) {
+            for (String metricsObserverName : metricsObserversProperty.split(",")) {
+                StorageMetricsObserver metricsObserver;
+                
+                try {
+                    metricsObserver = (StorageMetricsObserver)Class.forName(metricsObserverName).newInstance();
+                    metricsObserver.initialize(metricsNamespaceStores);
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                    Log.logErrorWarning(e, "Unable to instantiate StorageMetricsObserver: "+ metricsObserverName);
+                }
+            }
+        }
+    }
+    
     public void stop() {
         cleanerTask.cancel();
         reapTask.cancel();
@@ -261,6 +289,25 @@ public class StorageModule implements LinkCreationListener {
         Log.warning(nsStore.getName() +" namespace: ", NamespaceUtil.contextToDirName(nsStore.getNamespace()));
     }
     
+    private void addBaseDynamicNamespace(DynamicNamespaceStore nsStore) {
+        baseNamespaces.add(nsStore.getNamespace());
+        addDynamicNamespace(nsStore);
+    }
+    
+    private void addNSMetricsNamespaceForNS(NamespaceStore nsStore) {
+        NamespaceMetricsNamespaceStore  nsMetricsNamespaceStore;
+        
+        Log.warningf("addNSMetricsNamespaceForNS %x", nsStore.getNamespace());
+        nsMetricsNamespaceStore = new NamespaceMetricsNamespaceStore(mgBase, ringMaster, activeRetrievals, nsStore);
+        nsMetricsNamespaces.put(nsMetricsNamespaceStore.getNamespace(), nsMetricsNamespaceStore);
+        //try {
+            Log.warningf("nsMetricsNamespaceStore.getName() %s", nsMetricsNamespaceStore.getName());
+            //nsMetaStore.getNamespaceOptionsClientCS().createNamespace(nsMetricsNamespaceStore.getName(), nsMetricsNamespaceStore.getNamespaceProperties());
+            addDynamicNamespace(nsMetricsNamespaceStore);
+        //} catch (NamespaceCreationException e) {
+        //    Log.logErrorWarning(e, "Unable to create NamespaceMetricsNamespaceStore for "+ nsStore.getNamespace());
+        //}
+    }
     
     public void recoverExistingNamespaces() {
         try {
@@ -346,6 +393,7 @@ public class StorageModule implements LinkCreationListener {
                 nsStore = NamespaceStore.recoverExisting(ns, nsDir, parent, null, mgBase, ringMaster,
                         activeRetrievals, zk, nsLinkBasePath, this, reapPolicy, nsProperties);
                 namespaces.put(ns, nsStore);
+                addNSMetricsNamespaceForNS(nsStore);
                 nsStore.startWatches(zk, nsLinkBasePath, this);
                 Log.warning("\t\tDone recovering: "+ nsDir.getName());
             }
@@ -446,6 +494,9 @@ public class StorageModule implements LinkCreationListener {
                                             parent,
                                             mgBase, ringMaster, false, activeRetrievals,
                                             reapPolicy);
+                    if (!baseNamespaces.contains(nsStore.getNamespace())) {
+                        addNSMetricsNamespaceForNS(nsStore);
+                    }
                     created = true;
                 } else {
                     created = false;

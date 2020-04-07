@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentMap;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
+import com.ms.silverking.cloud.dht.common.NamespaceUtil;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
@@ -16,16 +17,13 @@ import com.ms.silverking.util.memory.JVMMemoryObserver;
 /**
  * Provides information regarding the local DHT Node
  */
-class NodeNamespaceStore extends DynamicNamespaceStore implements JVMMemoryObserver {
+class NodeNamespaceStore extends MetricsNamespaceStore implements JVMMemoryObserver {
     private final DHTKey                nodeIDKey;
     private final DHTKey                bytesFreeKey;
+    private final DHTKey                totalNamespacesKey;
+    private final DHTKey                namespacesKey;
     private volatile long               bytesFree;
-    private final DHTKey                nsTotalKeysKey;
-    private final DHTKey                nsBytesUncompressedKey;
-    private final DHTKey                nsBytesCompressedKey;
-    private final DHTKey                nsTotalPutsKey;
-    private final DHTKey                nsTotalRetrievalsKey;
-    private final Iterable<NamespaceStore>  nsStoreIterator;
+    private final ConcurrentMap<Long,NamespaceStore>    namespaces;
     
     private static final String nsName = Namespace.nodeName;
     static final long   context = getNamespace(nsName).contextAsLong();
@@ -33,54 +31,64 @@ class NodeNamespaceStore extends DynamicNamespaceStore implements JVMMemoryObser
     NodeNamespaceStore(MessageGroupBase mgBase, 
             NodeRingMaster2 ringMaster, 
             ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
-            Iterable<NamespaceStore> nsStoreIterator) {
+            ConcurrentMap<Long,NamespaceStore> namespaces) {
         super(nsName, mgBase, ringMaster, activeRetrievals);
         // static
-        nodeIDKey = keyCreator.createKey("nodeID");
+        nodeIDKey = createAndStoreKey("nodeID");
         // dynamic
-        bytesFreeKey = keyCreator.createKey("bytesFree");
-        nsTotalKeysKey = keyCreator.createKey("nsTotalKeys");
-        nsBytesUncompressedKey = keyCreator.createKey("nsBytesUncompressed");
-        nsBytesCompressedKey = keyCreator.createKey("nsBytesCompressed");
-        nsTotalPutsKey = keyCreator.createKey("nsTotalPuts");
-        nsTotalRetrievalsKey = keyCreator.createKey("nsTotalRetrievals");
+        bytesFreeKey = createAndStoreKey("bytesFree");
+        totalNamespacesKey = createAndStoreKey("totalNamespaces");
+        namespacesKey = createAndStoreKey("namespaces");
         storeSystemKVPairs(mgBase, SystemTimeUtil.skSystemTimeSource.absTimeNanos());
-        this.nsStoreIterator = nsStoreIterator;
+        this.namespaces = namespaces;
     }
 
     private void storeSystemKVPairs(MessageGroupBase mgBase, long curTimeMillis) {
         storeStaticKVPair(mgBase, curTimeMillis, nodeIDKey, IPAddrUtil.addrAndPortToString(mgBase.getIPAndPort()));
     }
     
+    private boolean isFilteredNamespace(NamespaceStore nsStore) {
+        return nsStore.isDynamic() || nsStore.getNamespace() == NamespaceUtil.metaInfoNamespace.contextAsLong();
+    }
+    
     protected byte[] createDynamicValue(DHTKey key, InternalRetrievalOptions options) {
         byte[]  value;
         
         value = null;
-        if (key.equals(bytesFreeKey)) {
+        if (key.equals(nodeIDKey)) {
+            value = IPAddrUtil.localIPString().getBytes();
+        } else if (key.equals(bytesFreeKey)) {
             value = Long.toString(bytesFree).getBytes();
-        } else if (key.equals(nsTotalKeysKey) || key.equals(nsBytesUncompressedKey) || key.equals(nsBytesCompressedKey)) {
+        } else if (key.equals(totalNamespacesKey)) {
+            long    totalNamespaces;
+            
+            totalNamespaces = 0;
+            for (NamespaceStore nsStore : namespaces.values()) {
+                if (!isFilteredNamespace(nsStore)) {
+                    ++totalNamespaces;
+                }
+            }
+            value = Long.toString(totalNamespaces).getBytes();
+        } else if (key.equals(namespacesKey)) {
             StringBuilder   sb;
             
             sb = new StringBuilder();
-            for (NamespaceStore nsStore : nsStoreIterator) {
-                long    statValue;
-                
-                if (key.equals(nsTotalKeysKey)) {
-                    statValue = nsStore.getTotalKeys();
-                } else if (key.equals(nsBytesUncompressedKey)) {
-                    statValue = nsStore.getNamespaceStats().getBytesUncompressed();
-                } else if (key.equals(nsBytesCompressedKey)) {
-                    statValue = nsStore.getNamespaceStats().getBytesCompressed();
-                } else if (key.equals(nsTotalPutsKey)) {
-                    statValue = nsStore.getNamespaceStats().getTotalPuts();
-                } else if (key.equals(nsTotalRetrievalsKey)) {
-                    statValue = nsStore.getNamespaceStats().getTotalRetrievals();
-                } else {
-                    throw new RuntimeException("panic");
+            for (NamespaceStore nsStore : namespaces.values()) {
+                if (!isFilteredNamespace(nsStore)) {
+                    sb.append(String.format("%x\n", nsStore.getNamespace()));
                 }
-                sb.append(String.format("%x\t%d\n", nsStore.getNamespace(), statValue));
             }
             value = sb.toString().getBytes();
+        } else if (NamespaceMetricsNamespaceStore.isMetricKey(key)) {
+            NamespaceMetrics    aggregateMetrics;
+            
+            aggregateMetrics = new NamespaceMetrics();
+            for (NamespaceStore nsStore : namespaces.values()) {
+                if (!isFilteredNamespace(nsStore)) {
+                    aggregateMetrics = NamespaceMetrics.aggregate(aggregateMetrics, nsStore.getNamespaceMetrics());
+                }
+            }
+            value = aggregateMetrics.getMetric(NamespaceMetricsNamespaceStore.keyToName(key)).toString().getBytes();
         }
         return value;
     }

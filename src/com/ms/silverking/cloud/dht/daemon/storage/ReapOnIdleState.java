@@ -20,6 +20,6 @@ public class ReapOnIdleState implements ReapPolicyState {
     @Override
     public void fullReapComplete(NamespaceStore nsStore) {
         lastFullReapMillis = SystemTimeUtil.timerDrivenTimeSource.absTimeMillis();
-        putsAsOfLastFullReap = nsStore.getNamespaceStats().getTotalPuts();
+        putsAsOfLastFullReap = nsStore.getNamespaceMetrics().getTotalPuts();
     }
 }

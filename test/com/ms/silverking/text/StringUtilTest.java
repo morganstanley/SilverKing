@@ -376,4 +376,26 @@ public class StringUtilTest {
         assertEquals(getTestMessage("stripQuotes", quotedString), expected, StringUtil.stripQuotes(quotedString));
     }
 
+    @Test
+    public void testFirstNCharsToUpperCase() {
+        Object[][] testCases = {
+                {"abcdefg", 0,        "abcdefg"},
+                {"abcdefg", 1,        "Abcdefg"},
+                {"abcdefg", 2,        "ABcdefg"},
+                {"abcdefg", 7,        "ABCDEFG"},
+                {"abcdefg", 8,        "ABCDEFG"},
+            };
+            
+            for (Object[] testCase : testCases) {
+                String s = (String)testCase[0];
+                int n = (Integer)testCase[1];
+                String expected     = (String)testCase[2];
+
+                checkFirstNCharsToUpperCase(s, n, expected);
+            }
+    }
+    
+    private void checkFirstNCharsToUpperCase(String s, int n, String expected) {
+        assertEquals(getTestMessage("firstNCharsToUpperCase", s, n), expected, StringUtil.firstNCharsToUpperCase(s, n));
+    }
 }

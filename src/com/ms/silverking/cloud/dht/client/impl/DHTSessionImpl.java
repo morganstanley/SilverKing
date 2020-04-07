@@ -22,6 +22,7 @@ import com.ms.silverking.cloud.dht.WaitOptions;
 import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
+import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
 import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
@@ -172,6 +173,11 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     }
     
     @Override
+    public ClientDHTConfigurationProvider getDHTConfigProvider() {
+        return dhtConfig;
+    }
+    
+    @Override
     public NamespaceCreationOptions getNamespaceCreationOptions() {
         return nsOptionsClient.getNamespaceCreationOptions();
     }
@@ -229,6 +235,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     private NamespaceProperties getNamespaceProperties(String namespace) {
         if (namespace.equals(NamespaceUtil.metaInfoNamespaceName)) {
             return NamespaceUtil.metaInfoNamespaceProperties;
+        } else if (namespace.startsWith(Namespace.namespaceMetricsBaseName)) {
+                return DHTConstants.metricsNamespaceProperties;
         } else {
             try {
                 return nsOptionsClient.getNamespacePropertiesAndTryAutoCreate(namespace);
@@ -261,6 +269,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         ClientNamespace clientNamespace;
         Context         context;
         
+        Log.finef("getClientNamespace %s", namespace);
         context = namespaceCreator.createNamespace(namespace);
         clientNamespace = clientNamespaces.get(context.contextAsLong());
         if (clientNamespace == null) {
@@ -271,6 +280,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
             NamespaceLinkMeta   nsLinkMeta;
             
             nsProperties = getNamespaceProperties(namespace);
+            Log.finef("nsProperties %s", nsProperties);
             if (nsProperties == null) {
                 throw new NamespaceNotCreatedException(namespace);
             }
@@ -322,28 +332,54 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     }
 
     Namespace createNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceCreationException {
-        // New version of codes will always enrich nsProperties with name
-        Preconditions.checkArgument(nsProperties.hasName(),
-                "nsProperties is not enriched to create namespace (wrong call path or wrong Silverking version is used); ns: " + nsProperties);
-        nsOptionsClient.createNamespace(namespace, nsProperties);
-        return getClientNamespace(namespace);
+        if (Namespace.isReservedNamespace(namespace)) {
+            throw new NamespaceCreationException("Reserved name: "+ namespace);
+        } else {
+            // New version of code will always enrich nsProperties with name
+            Preconditions.checkArgument(nsProperties.hasName(),
+                    "nsProperties is not enriched to create namespace (wrong call path or wrong Silverking version is used); ns: " + nsProperties);
+            nsOptionsClient.createNamespace(namespace, nsProperties);
+            return getClientNamespace(namespace);
+        }
     }
 
     Namespace modifyNamespace(String namespace, NamespaceProperties nsProperties) throws NamespaceModificationException {
-        /* We let this early failure here, since for now only ZK impl supports mutability
-         * (Without this check, the modification request will still fail at server side and return back here which will take longer)
-         */
-        if (nsOptionsMode != NamespaceOptionsMode.ZooKeeper) {
-            throw new NamespaceModificationException("For now only NamespaceOptions ZooKeeper mode supports mutable nsOptions");
+        if (Namespace.isReservedNamespace(namespace)) {
+            throw new NamespaceModificationException("Reserved name: "+ namespace);
+        } else {
+            /* We let this early failure here, since for now only ZK impl supports mutability
+             * (Without this check, the modification request will still fail at server side and return back here which will take longer)
+             */
+            if (nsOptionsMode != NamespaceOptionsMode.ZooKeeper) {
+                throw new NamespaceModificationException("For now only NamespaceOptions ZooKeeper mode supports mutable nsOptions");
+            }
+    
+            nsOptionsClient.modifyNamespace(namespace, nsProperties);
+            return getClientNamespace(namespace);
         }
+    }
 
-        nsOptionsClient.modifyNamespace(namespace, nsProperties);
-        return getClientNamespace(namespace);
+    /**
+     * Support metrics namespaces by translating the name to the hash for the ns 
+     */
+    private String translateNamespace(String namespace) {
+        if (namespace.startsWith(Namespace.namespaceMetricsBaseName)) {
+            String  targetNS;
+            
+            targetNS = namespace.substring(Namespace.namespaceMetricsBaseName.length());
+            if (Log.levelMet(Level.FINE)) {
+                Log.finef("%s", Namespace.namespaceMetricsBaseName + String.format("%x", namespaceCreator.createNamespace(targetNS).contextAsLong()));
+                Log.finef("%x", namespaceCreator.createNamespace(Namespace.namespaceMetricsBaseName + String.format("%x", namespaceCreator.createNamespace(targetNS).contextAsLong())).contextAsLong());
+            }
+            return Namespace.namespaceMetricsBaseName + String.format("%x", namespaceCreator.createNamespace(targetNS).contextAsLong());
+        } else {
+            return namespace;
+        }
     }
 
     @Override 
     public Namespace getNamespace(String namespace) {
-        return getClientNamespace(namespace);
+        return getClientNamespace(translateNamespace(namespace));
     }
     
     @Override

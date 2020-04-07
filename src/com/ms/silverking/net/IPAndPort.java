@@ -293,4 +293,36 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
         }
         return a;
     }
+    
+    public static IPAndPort[] parseToIPArray(String s) {
+        return parseToIPArray(s, defaultMultipleAddrDelimiter);
+    }
+    
+    public static IPAndPort[] parseToIPArray(String s, String delimiter) {
+        String[]        toks;
+        IPAndPort[]     a;
+        
+        toks = s.split(delimiter);
+        a = new IPAndPort[toks.length];
+        for (int i = 0; i < a.length; i++) {
+            a[i] = new IPAndPort(toks[i]);
+        }
+        return a;
+    }
+    
+    public static IPAndPort[] parseToIPArray(String s, int port) {
+        return parseToIPArray(s, port, defaultMultipleAddrDelimiter);
+    }
+    
+    public static IPAndPort[] parseToIPArray(String s, int port, String delimiter) {
+        String[]       toks;
+        IPAndPort[]    a;
+        
+        toks = s.split(delimiter);
+        a = new IPAndPort[toks.length];
+        for (int i = 0; i < a.length; i++) {
+            a[i] = new IPAndPort(toks[i], port);
+        }
+        return a;
+    }
 }

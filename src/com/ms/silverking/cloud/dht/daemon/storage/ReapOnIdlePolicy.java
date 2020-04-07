@@ -87,10 +87,10 @@ public class ReapOnIdlePolicy extends BaseReapPolicy<ReapOnIdleState> {
             if (!reapOnIdle) {
                 return false;
             } else {
-                NamespaceStats    nsStats;
+                NamespaceMetrics    nsMetrics;
                 
-                nsStats = nsStore.getNamespaceStats();
-                if (nsStats.getTotalPuts() - state.getPutsAsOfLastFullReap() < minPutDelta) {
+                nsMetrics = nsStore.getNamespaceMetrics();
+                if (nsMetrics.getTotalPuts() - state.getPutsAsOfLastFullReap() < minPutDelta) {
                     if (Log.levelMet(Level.INFO) || debug) {
                         Log.warningf("minPutDelta not met for ns %x", nsStore.getNamespace());
                     }
@@ -105,7 +105,7 @@ public class ReapOnIdlePolicy extends BaseReapPolicy<ReapOnIdleState> {
                         }
                         return false;
                     } else {
-                        if (timeMillis - nsStats.getLastActivityMillis() < minIdleIntervalMillis) {
+                        if (timeMillis - nsMetrics.getLastActivityMillis() < minIdleIntervalMillis) {
                             if (Log.levelMet(Level.INFO) || debug) {
                                 Log.warningf("minIdleIntervalMillis not met for ns %x", nsStore.getNamespace());
                             }

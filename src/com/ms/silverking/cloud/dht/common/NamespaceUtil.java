@@ -23,6 +23,7 @@ import com.ms.silverking.numeric.NumConversion;
 public class NamespaceUtil {
     private static final NamespaceCreator   creator = new SimpleNamespaceCreator();
     
+    public static final String reservedNamespacePrefix = "__"; // All reserved namespaces must start with this. Users may not use namespaces that begin with this
     public static final String metaInfoNamespaceName = "__DHT_Meta__"; // Current dir name 273d6df499e32426
     public static final Namespace   metaInfoNamespace = creator.createNamespace(metaInfoNamespaceName);
     public static final GetOptions metaNSDefaultGetOptions = DHTConstants.standardGetOptions.forwardingMode(ForwardingMode.ALL); // Required to bootstrap lost replicas

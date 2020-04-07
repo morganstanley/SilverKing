@@ -494,6 +494,28 @@ public class StringUtil {
         }
     }
     
+    public static String firstNCharsToUpperCase(String s, int n) {
+        if (s == null || s.length() < 1) {
+            return s;
+        } else {
+            String  s0;
+            
+            if (n > s.length()) {
+                n = s.length();    
+            }
+            s0 = s.substring(0, n).toUpperCase();
+            if (s.length() <= n) {
+                return s0;
+            } else {
+                return s0 + s.substring(n);
+            }
+        }
+    }
+    
+    public static String firstCharToUpperCase(String s) {
+        return firstNCharsToUpperCase(s, 1);
+    }
+    
     public static void main(String[] args) {
         /*
         String[]    qArgs;

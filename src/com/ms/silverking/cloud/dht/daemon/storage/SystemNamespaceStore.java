@@ -33,7 +33,7 @@ import com.ms.silverking.net.IPAndPort;
 /**
  * Provides information regarding the dht system as a whole
  */
-class SystemNamespaceStore extends DynamicNamespaceStore {
+class SystemNamespaceStore extends MetricsNamespaceStore {
     private final NodeInfoZK            nodeInfoZK;
     private final NodeRingMaster2        ringMaster;
     private final DHTKey                totalDiskBytesKey;

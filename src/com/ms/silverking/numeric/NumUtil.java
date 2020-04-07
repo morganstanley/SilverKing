@@ -223,6 +223,26 @@ public class NumUtil {
         return factorial(n).divide(factorial(n - r).multiply(factorial(r))).longValue();
     }
     
+    public static Pair<Long,Long> parseFloatingPoint(String s) {
+        if (s == null) {
+            return null;
+        } else {
+            int     index;
+            long    wholePart;
+            long    decimalPart;
+            
+            index = s.indexOf('.');
+            if (index < 0) {
+                wholePart = Long.valueOf(s);
+                decimalPart = 0;
+            } else {
+                wholePart = Long.valueOf(s.substring(0, index));
+                decimalPart = Long.valueOf(s.substring(index + 1));
+            }
+            return Pair.of(wholePart, decimalPart);
+        }
+    }
+    
     public static void main(String[] args) {
         for (int i = 0; i <= 16; i++) {
             //int    v;

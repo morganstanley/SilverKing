@@ -15,6 +15,11 @@ import com.ms.silverking.cloud.dht.WaitOptions;
  */
 public interface DHTSession {
     /**
+     * Return a ClientDHTConfigurationProvider for this session.
+     * @return a ClientDHTConfigurationProvider for this session.
+     */
+    ClientDHTConfigurationProvider getDHTConfigProvider();
+    /**
      * Return the NamespaceCreationOptions specified for this DHT
      * @return the NamespaceCreationOptions specified for this DHT
      */

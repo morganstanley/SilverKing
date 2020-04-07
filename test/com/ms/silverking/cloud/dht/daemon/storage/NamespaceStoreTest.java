@@ -1,5 +1,19 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.junit.Test;
+
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
@@ -27,20 +41,9 @@ import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.time.AbsMillisTimeSource;
+
 import mockit.Mock;
 import mockit.MockUp;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
 
 /**
  * To run this test in the IDE, you must add:

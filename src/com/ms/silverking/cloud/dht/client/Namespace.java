@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.client;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
+import com.ms.silverking.cloud.dht.common.NamespaceUtil;
 
 /**
  * A namespace for storing values associated with keys. All associations in this namespace are distinct with
@@ -116,4 +117,12 @@ public interface Namespace {
      * Name of the System namespace. The System namespace provides information about the overall SK instance.
      */ 
     public static final String  systemName = "__System__";
+    /** 
+     * Base name of NamespaceMetrics namespaces. 
+     */ 
+    public static final String  namespaceMetricsBaseName = "__NamespaceMetrics__";
+    
+    public static boolean isReservedNamespace(String ns) {
+        return ns.startsWith(NamespaceUtil.reservedNamespacePrefix);
+    }
 }

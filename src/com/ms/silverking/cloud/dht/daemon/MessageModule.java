@@ -26,6 +26,7 @@ import com.ms.silverking.cloud.dht.common.EnumValues;
 import com.ms.silverking.cloud.dht.common.NamespaceMetaStore.NamespaceOptionsRetrievalMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.OpResult;
+import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceStore;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergenceController2;
@@ -417,10 +418,21 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
     
     private void handleRetrieve(MessageGroup message, MessageGroupConnectionProxy connection) {
+        NamespaceProperties nsProperties;
+        RetrievalProtocol   retrievalProtocol;
+        
+        try {
+            nsProperties = storage.getNamespaceProperties(message.getContext(), 
+                    NamespaceOptionsRetrievalMode.FetchRemotely);
+            retrievalProtocol = getRetrievalProtocol(nsProperties); 
+        } catch (NamespaceNotCreatedException nnce) {
+            // Allows metrics ns retrievals to return not found without requiring
+            // the ns creation on servers where no values are stored
+            retrievalProtocol = consistencyModeToRetrievalProtocol[ConsistencyProtocol.LOOSE.ordinal()];
+        }
         new ActiveProxyRetrieval(message, connection, this, 
                 storage, ProtoRetrievalMessageGroup.getRetrievalOptions(message), 
-                getRetrievalProtocol(storage.getNamespaceProperties(message.getContext(), 
-                        NamespaceOptionsRetrievalMode.FetchRemotely)), 
+                retrievalProtocol, 
                 message.getDeadlineAbsMillis(absMillisTimeSource)).startOperation();
     }
 
