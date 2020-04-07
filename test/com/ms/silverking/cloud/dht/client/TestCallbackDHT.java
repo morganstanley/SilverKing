@@ -47,6 +47,7 @@ public class TestCallbackDHT implements AsyncOperationListener {
     
     @Override
     public void asyncOperationUpdated(AsyncOperation asyncOperation) {
+        System.out.printf("In asyncOperationUpdated %s\n", Thread.currentThread().getName());
         if (asyncOperation.getState() == OperationState.FAILED) {
             System.out.printf("Operation failed: %s\n", asyncOperation);
         } else if (asyncOperation.getState() == OperationState.INCOMPLETE) {
@@ -55,7 +56,6 @@ public class TestCallbackDHT implements AsyncOperationListener {
             System.out.printf("Complete %s\n", asyncOperation);
             s.release();
         }
-        System.out.printf("%s\n", Thread.currentThread().getName());
     }
     
     public static void main(String[] args) throws IOException {
