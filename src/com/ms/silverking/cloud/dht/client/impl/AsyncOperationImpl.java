@@ -28,6 +28,10 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.lwt.BaseWorker;
+import com.ms.silverking.thread.lwt.LWTPool;
+import com.ms.silverking.thread.lwt.LWTPoolParameters;
+import com.ms.silverking.thread.lwt.LWTPoolProvider;
+import com.ms.silverking.util.PropertiesHelper;
 
 /**
  * AsyncOperationImpl provides a concrete implementation of AsyncOperation
@@ -226,10 +230,30 @@ abstract class AsyncOperationImpl implements AsyncOperation {
         }
     }
     
-    private static final NotificationWorker    notificationWorker = new NotificationWorker();
+    private static final String notificationWorkerPoolSizeProperty = AsyncOperationImpl.class.getPackage().getName() +".NotificationWorkerPoolSize";
+    private static final String notificationWorkerMaxDirectCallDepthProperty = AsyncOperationImpl.class.getPackage().getName() +".NotificationWorkerMaxDirectCallDepth";
+    private static final int notificationWorkerMaxDirectCallDepth;
+    private static final LWTPool notificationWorkerPool;
+    private static final NotificationWorker notificationWorker;
+    
+    static {
+        int notificationWorkerPoolSize;
+        
+        notificationWorkerPoolSize = PropertiesHelper.systemHelper.getInt(notificationWorkerPoolSizeProperty, 0);
+        Log.finef("notificationWorkerPoolSize %d", notificationWorkerPoolSize);
+        if (notificationWorkerPoolSize > 0) {
+            notificationWorkerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("NotificationWorkerPool").targetSize(notificationWorkerPoolSize).maxSize(notificationWorkerPoolSize).workUnit(1));
+        } else {
+            notificationWorkerPool = LWTPoolProvider.defaultConcurrentWorkPool;
+        }
+        notificationWorker = new NotificationWorker(notificationWorkerPool);
+        notificationWorkerMaxDirectCallDepth = PropertiesHelper.systemHelper.getInt(notificationWorkerMaxDirectCallDepthProperty, 0);
+        Log.finef("notificationWorkerMaxDirectCallDepth", notificationWorkerMaxDirectCallDepth);
+    }
     
     private static class NotificationWorker extends BaseWorker<Pair<AsyncOperationImpl, Set<AsyncOperationListener>>> {
-        NotificationWorker() {
+        NotificationWorker(LWTPool lwtPool) {
+            super(lwtPool, true);
         }
         
         void filterForUpdates(AsyncOperationImpl opImpl, Set<Pair<AsyncOperationListener,EnumSet<OperationState>>> _listeners, OperationState opState) {
@@ -246,7 +270,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
 
         void update(AsyncOperationImpl opImpl, Set<AsyncOperationListener> listeners) {
             if (listeners.size() > 0) {
-                addWork(new Pair<>(opImpl, listeners), 0);
+                addWork(new Pair<>(opImpl, listeners), notificationWorkerMaxDirectCallDepth);
             }
         }        
         
