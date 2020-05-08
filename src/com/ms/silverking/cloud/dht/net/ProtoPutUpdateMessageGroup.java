@@ -19,7 +19,7 @@ public class ProtoPutUpdateMessageGroup extends ProtoKeyedMessageGroup {
                                       byte[] originator, byte storageState, int deadlineRelativeMillis) {
         super(MessageType.PUT_UPDATE, uuid, context, 
                 ByteBuffer.allocate(optionsBufferSize), destEntries.size(), keyBufferAdditionalBytesPerKey, 
-                originator, deadlineRelativeMillis, ForwardingMode.FORWARD);
+                originator, deadlineRelativeMillis, ForwardingMode.DO_NOT_FORWARD);
         bufferList.add(optionsByteBuffer);
         optionsByteBuffer.putLong(version);
         optionsByteBuffer.put(storageState);
