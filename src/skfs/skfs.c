@@ -2326,6 +2326,8 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
                 return 0;
             } else {
                 int     rc;
+                int     rc_rename;
+                int     rc_wfr_delete;
                 char    _old[SRFS_MAX_PATH_LENGTH];
                 char    _new[SRFS_MAX_PATH_LENGTH];
                 FileAttr source_fa;
@@ -2338,13 +2340,18 @@ int skfs_release(const char *path, struct fuse_file_info *fi) {
                 source_fa = wf->fa;
                 target_fa = wf->pendingRename->target_fa;
                 targetAttrExists = wf->pendingRename->targetAttrExists;
-                rc = wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
                 srfsLog(LOG_WARNING, "release found pending rename %s --> %s", _old, _new);
                 
                 if (clock_gettime(CLOCK_REALTIME, &tp)) {
                     fatalError("clock_gettime failed", __FILE__, __LINE__);
                 }
-                rc = _skfs_rename_phase2_b(_old, _new, false, tp, source_fa, target_fa, targetAttrExists);
+                rc_rename = _skfs_rename_phase2_b(_old, _new, false, tp, source_fa, target_fa, targetAttrExists);
+                rc_wfr_delete = wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
+                if (rc_rename == 0 && rc_wfr_delete == 0) {
+                    rc = 0;
+                } else {
+                    rc = rc_rename != 0 ? rc_rename : rc_wfr_delete;
+                }
                 return rc;
             }
         } else {
