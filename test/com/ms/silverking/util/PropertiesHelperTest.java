@@ -14,6 +14,7 @@ import java.util.Properties;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
@@ -36,6 +37,8 @@ public class PropertiesHelperTest {
     private static final String keyLong     = "1000L";
     private static final String valueLong   = "1000";
     private static final String keyA        = "a";
+    private static final String keyEnum     = "enumProperty";
+    private static final String valueEnum   = "LZ4";
     
     @Before
     public void setUp() throws Exception {
@@ -46,6 +49,7 @@ public class PropertiesHelperTest {
         setProperty(keyInt2, valueIntTwo);
         setProperty(keyBool, valueBool);
         setProperty(keyLong, valueLong);
+        setProperty(keyEnum, valueEnum);
         ph = new PropertiesHelper(properties);
     }
     
@@ -237,4 +241,50 @@ public class PropertiesHelperTest {
                 expected, ph.getLong(name, defaultValue, undefinedAction, parseExceptionAction));
     }
 
+    public void testGetEnumAllParams_Exceptions() {
+        Object[][] testCases = {
+            {null,    Compression.BZIP2,                 null,                  null,  NullPointerException.class},
+            {keyEnum,    Compression.BZIP2,                 null,                  null,  NullPointerException.class},
+            {keyEnum,    Compression.BZIP2, ExceptionOnUndefined,                  null,     PropertyException.class},
+            {keyEnum, Compression.BZIP2,                 null, RethrowParseException, NumberFormatException.class},
+        };
+        
+        for (Object[] testCase : testCases) {
+            String name                               =               (String)testCase[0];
+            Compression defaultValue                         =                 (Compression)testCase[1];
+            UndefinedAction undefinedAction           =      (UndefinedAction)testCase[2];
+            ParseExceptionAction parseExceptionAction = (ParseExceptionAction)testCase[3];
+            Class<?> expectedExceptionClass           =             (Class<?>)testCase[4];
+            
+            String testMessage = getTestMessage("getLong_Exceptions", name, defaultValue, undefinedAction, parseExceptionAction); 
+            ExceptionChecker ec = new ExceptionChecker() { @Override public void check(){ checkGetEnumAllParams(name, defaultValue, undefinedAction, parseExceptionAction, Compression.BZIP2); } };
+            exceptionNameChecker(ec, testMessage, expectedExceptionClass);
+        }
+    }
+    
+    @Test
+    public void testGetEnumAllParams() {
+        Object[][] testCases = {
+            {keyEnum, Compression.BZIP2,               null,                    null, Compression.valueOf( valueEnum )},
+            {"nokey", Compression.BZIP2,               null, DefaultOnParseException,                         Compression.BZIP2},
+            {"nokey",    Compression.BZIP2,    ZeroOnUndefined,                    null,                           null},
+            {"nokey",    Compression.BZIP2, DefaultOnUndefined,                    null,                         Compression.BZIP2},
+        };
+        
+        for (Object[] testCase : testCases) {
+            String name                               =               (String)testCase[0];
+            Compression defaultValue                      =                    (Compression)testCase[1];
+            UndefinedAction undefinedAction           =      (UndefinedAction)testCase[2];
+            ParseExceptionAction parseExceptionAction = (ParseExceptionAction)testCase[3];
+            Compression expected                          =                    (Compression)testCase[4];
+            
+            checkGetEnumAllParams(name, defaultValue, undefinedAction, parseExceptionAction, expected);
+        }
+    }
+    
+    private void checkGetEnumAllParams(String name, Compression defaultValue, UndefinedAction undefinedAction, ParseExceptionAction parseExceptionAction, Compression expected) {
+        //System.out.printf("%s %s %s %s %s\n", name, defaultValue, undefinedAction, parseExceptionAction, expected);
+        assertEquals( getTestMessage("getEnum", name, defaultValue, undefinedAction, parseExceptionAction),
+                expected, ph.getEnum(name, defaultValue, undefinedAction, parseExceptionAction));
+    }
 }

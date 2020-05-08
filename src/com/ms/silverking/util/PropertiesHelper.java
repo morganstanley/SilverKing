@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
 
@@ -266,6 +267,41 @@ public class PropertiesHelper  {
     
     public long getLong(String name) {
         return getLong(name, 0, standardUndefinedAction, standardParseExceptionAction);
+    }
+    
+    // Enum
+    
+    public <T extends Enum> T getEnum(String name, T defaultValue, UndefinedAction undefinedAction,
+                                    ParseExceptionAction parseExceptionAction) {
+        if (defaultValue == null) {
+            throw new RuntimeException("defaultValue cannot be null for enum");
+        } else {
+            String def;
+    
+            def = prop.getProperty(name);
+            if (def != null) {
+                try {
+                    return (T)defaultValue.valueOf(defaultValue.getClass(), def);
+                } catch (IllegalArgumentException iae) {
+                    return getExceptionValue(name, parseExceptionAction, defaultValue, iae);
+                }
+            } else {
+                return (T)getUndefinedValue(name, undefinedAction != null ? undefinedAction : UndefinedAction.DefaultOnUndefined, null, defaultValue);
+            }
+        }
+    }
+    
+    public <T extends Enum> T getEnum(String name, T defaultValue, ParseExceptionAction parseExceptionAction) {
+        return getEnum(name, defaultValue, UndefinedAction.DefaultOnUndefined, parseExceptionAction);
+    }
+
+    public <T extends Enum> T getEnum(String name, T defaultValue, UndefinedAction undefinedAction) {
+        verifyNotDefaultOnUndefined(undefinedAction);
+        return getEnum(name, defaultValue, undefinedAction, standardParseExceptionAction);
+    }
+
+    public <T extends Enum> T getEnum(String name, T defaultValue) {
+        return getEnum(name, defaultValue, UndefinedAction.DefaultOnUndefined, standardParseExceptionAction);
     }
     
     ///////////////////////
