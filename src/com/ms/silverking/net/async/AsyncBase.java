@@ -44,7 +44,7 @@ public class AsyncBase<T extends Connection> {
     //private static final int    _defSendBufferSize = 32678;
     // FUTURE - link below to default op timeouts so that we at least try one additional connection in each op
     private static final int    _defSocketReadTimeout = 5 * 60 * 1000 - 10 * 1000; 
-    private static final int    _defSocketConnectTimeout = 8 * 1000;    
+    private static final int    _defSocketConnectTimeout = 25 * 1000;    
     private static final int     _defaultAuthenticationTimeoutInMillisecond = 30 * 1000;
 
     private static final int    defReceiveBufferSize;
