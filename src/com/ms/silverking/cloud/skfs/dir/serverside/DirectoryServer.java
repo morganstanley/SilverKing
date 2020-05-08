@@ -35,6 +35,7 @@ import com.ms.silverking.cloud.skfs.dir.DirectoryInMemory;
 import com.ms.silverking.cloud.skfs.dir.DirectoryInPlace;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.compression.CompressionUtil;
+import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.process.SafeThread;
@@ -160,6 +161,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
                 Log.warningf("DirectoryServer.put() %s %s %s", KeyUtil.keyToString(key), value.hasArray(), storageParams.getCompression());
             }
     
+            value = BufferUtil.ensureArrayBacked(value);
             buf = value.array();
             bufOffset = value.arrayOffset() + value.position();
             bufLimit = value.limit();
@@ -318,6 +320,7 @@ public class DirectoryServer implements PutTrigger, RetrieveTrigger {
         
         storageParams = svp;        
         value = svp.getValue();
+        value = BufferUtil.ensureArrayBacked(value);
         dataOffset = value.position();
         if (storageParams.getCompression() == Compression.NONE) {
             buf = new byte[svp.getUncompressedSize()];

@@ -69,6 +69,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
     private static final Compression    dimSSCompression;
     private static final double            compressionThreshold = 0.8;
     
+    private static final boolean    debug = false;
     private static final boolean    debugPersistence = false;
     
     protected static FileDeletionWorker    fileDeletionWorker;
@@ -348,12 +349,16 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
         }
     }
     
-    private final void persist(SerializedDirectory sd) {
+    protected final void persist(SerializedDirectory sd) {
         if (debugPersistence) {
             Log.warningf("persist()");
         }
-        persist(sd.getStorageParameters(), sd.getSerializedDir());
-        sd.setPersisted();
+        synchronized (sd) {
+            if (!sd.isPersisted()) {
+                persist(sd.getStorageParameters(), sd.getSerializedDir());
+                sd.setPersisted();
+            }
+        }
     }
     
     private final void persist(SSStorageParameters sp, byte[] serializedDirData) {
@@ -391,6 +396,18 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
         return new Pair<>(sp, b);
     }
     
+    Pair<SSStorageParameters, ByteBuffer> readFromDisk_Mapped(long version) throws IOException {
+        ByteBuffer  b;
+        SSStorageParameters    sp;
+        
+        b = FileUtil.mapFile(fileForVersion(version), FileUtil.FileMapMode.FileBackedMap_ReadOnly);
+        sp = StorageParameterSerializer.deserialize(b); // deserialize will duplicate the buffer for safety
+        if (debug || Log.levelMet(Level.INFO)) {
+            Log.warningf("readFromDisk_Mapped b %s", b);
+        }
+        return new Pair<>(sp, b);
+    }
+    
     private File fileForVersion(SSStorageParameters sp) {
         return fileForVersion(sp.getVersion());
     }
@@ -401,21 +418,25 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
     
     protected class SerializedDirectory {
         private final SSStorageParameters    sp;
-        private byte[]    serializedDir;
+        private ByteBuffer  serializedDir;
         private boolean    isPersisted;
         
-        public SerializedDirectory(SSStorageParameters sp, byte[] serializedDir, boolean isPersisted) {
+        public SerializedDirectory(SSStorageParameters sp, ByteBuffer serializedDir, boolean isPersisted) {
             this.sp = sp;
             if (serializedDir != null) {
                 this.serializedDir = serializedDir;
             } else {
-                this.serializedDir = new byte[sp.getUncompressedSize()]; // For now, create dummy value; future remove
+                this.serializedDir = ByteBuffer.allocate(sp.getUncompressedSize()); // For now, create dummy value; future remove
             }
             this.isPersisted = isPersisted;
         }
         
+        public SerializedDirectory(SSStorageParameters sp, byte[] serializedDir, boolean isPersisted) {
+            this(sp, ByteBuffer.wrap(serializedDir), isPersisted);
+        }
+        
         public SerializedDirectory(Pair<SSStorageParameters,byte[]> sd, boolean isPersisted) {
-            this(sd.getV1(), sd.getV2(), isPersisted);
+            this(sd.getV1(), ByteBuffer.wrap(sd.getV2()), isPersisted);
         }
         
         public SSStorageParameters getStorageParameters() {
@@ -423,23 +444,24 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
         }
         
         public byte[] getSerializedDir() {
-            return serializedDir;
+            return serializedDir.array();
         }
         
         public void clearCachedData() {
             this.serializedDir = null;
         }
         
-        public Pair<SSStorageParameters,byte[]> readDir() throws IOException {
+        public Pair<SSStorageParameters,ByteBuffer> readDir() throws IOException {
             if (serializedDir != null) {
-                return new Pair<>(sp, serializedDir);
+                return new Pair<>(sp, serializedDir.duplicate());
             } else {
-                return readFromDisk(sp.getVersion());
+                return readFromDisk_Mapped(sp.getVersion());
             }
         }
         
         public void setPersisted() {
             this.isPersisted = true;
+            serializedDir = null;
         }
         
         public boolean isPersisted() {
@@ -448,7 +470,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
         
         @Override
         public String toString() {
-            return String.format("%s:%d:%s", sp, serializedDir.length, isPersisted);
+            return String.format("%s:%s:%s", sp, serializedDir != null ? serializedDir.remaining() : "<null>", isPersisted);
         }
     }
     

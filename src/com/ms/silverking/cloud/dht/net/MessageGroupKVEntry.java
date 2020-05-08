@@ -39,9 +39,7 @@ public abstract class MessageGroupKVEntry extends MessageGroupKeyEntry {
                     }
                 }
                 
-                if (buffers[bufferIndex].isDirect()) {
-                //if (buffers[bufferIndex].isDirect() || buffers[bufferIndex].isReadOnly()) { // second clause is TEMP
-                // Think about why we can't use for read only. Ideally we would like to reduce copies
+                if (!buffers[bufferIndex].hasArray()) {
                     int     length;
                     
                     length = storedLength;
@@ -63,7 +61,9 @@ public abstract class MessageGroupKVEntry extends MessageGroupKeyEntry {
             } catch (RuntimeException re) {
                 byte[]  array;
                 
+                System.out.println(re);
                 re.printStackTrace();
+                re.printStackTrace(System.out);
                 System.out.println(super.toString());
                 System.out.printf("bufferIndex %d  bufferOffset %d  storedLength %d\n",
                                     bufferIndex, bufferOffset, storedLength);

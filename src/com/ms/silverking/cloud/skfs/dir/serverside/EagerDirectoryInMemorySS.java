@@ -58,7 +58,7 @@ public class EagerDirectoryInMemorySS extends BaseDirectoryInMemorySS {
         ByteBuffer    rVal;
         VersionConstraint    vc;
         SerializedDirectory    sd;
-        Pair<SSStorageParameters,byte[]>    sdp;
+        Pair<SSStorageParameters,ByteBuffer>    sdp;
         
         vc = options.getVersionConstraint();
         if (vc.equals(VersionConstraint.greatest)) {

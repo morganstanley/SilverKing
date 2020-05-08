@@ -93,6 +93,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
                         Log.warningAsyncf("Unexpected multiple serialization for %s %d", KeyUtil.keyToString(dirKey), sdsp.getV1().getVersion());
                     }
                     hasUnserializedUpdates = false;
+                    persist(sd);
                 } else {
                     // Updates were serialized while this thread was waiting for the lock. Simply return the most recent
                     if (Log.levelMet(Level.INFO)) {
@@ -105,7 +106,6 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
                 nsStore.getReadWriteLock().writeLock().unlock();
             }
         }
-        super.persistLatestIfNecessary(nsStore);
     }
     
     /**
@@ -118,7 +118,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
         ByteBuffer    rVal;
         VersionConstraint    vc;
         SerializedDirectory    sd;
-        Pair<SSStorageParameters,byte[]>    sdp;
+        Pair<SSStorageParameters,ByteBuffer>    sdp;
         
         vc = options.getVersionConstraint();
         // Check to see if this retrieve() is asking for the latest version
@@ -148,7 +148,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
                             // Not yet serialized. Do it now
                             sdsp = serializeDir();
                             sd = new SerializedDirectory(sdsp, false);
-                            if (Log.levelMet(Level.INFO)) {
+                            if (debug || Log.levelMet(Level.INFO)) {
                                 Log.warningf("a serializedVersions.put %s %d", KeyUtil.keyToString(dirKey), sdsp.getV1().getVersion());
                             }
                             prev = serializedVersions.putIfAbsent(sdsp.getV1().getVersion(), sd); 
@@ -160,9 +160,10 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
                                 }
                             }
                             hasUnserializedUpdates = false;
+                            persist(sd);
                         } else {
                             // Updates were serialized while this thread was waiting for the lock. Simply return the most recent
-                            if (Log.levelMet(Level.INFO)) {
+                            if (debug || Log.levelMet(Level.INFO)) {
                                 Log.warningf("b serializedVersions.get %s %d", KeyUtil.keyToString(dirKey), latestUpdateSP.getVersion());
                             }
                             sd = getMostRecentDirectory();
@@ -173,7 +174,7 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
                 }
             } else {
                 // All updates have been serialized. Simply return the most recent
-                if (Log.levelMet(Level.INFO)) {
+                if (debug || Log.levelMet(Level.INFO)) {
                     Log.warningf("c serializedVersions.get %s %d", KeyUtil.keyToString(dirKey), latestUpdateSP.getVersion());
                 }
                 sd = getMostRecentDirectory();
@@ -201,11 +202,31 @@ public class LazyDirectoryInMemorySS extends BaseDirectoryInMemorySS {
                 sd = null;
             }
         }
+        if (debug || Log.levelMet(Level.INFO)) {
+            Log.warningf("retrieve sd %s", sd);
+        }
         if (sd != null) {
             try {
                 sdp = sd.readDir();
                 
-                rVal = ByteBuffer.wrap(sdp.getV2());
+                rVal = sdp.getV2();
+                if (!rVal.hasRemaining()) {
+                    // Shouldn't happen. Remove eventually
+                    Log.warningf("fixing rVal %s", rVal);
+                    rVal.rewind();
+                    Log.warningf("rVal %s", rVal);
+                    if (!rVal.hasRemaining()) {
+                        try {
+                            Log.warningf("rVal %s", rVal);
+                            throw new RuntimeException();
+                        } catch (RuntimeException re) {
+                            re.printStackTrace(System.out);
+                        }
+                    }
+                }
+                if (debug || Log.levelMet(Level.INFO)) {
+                    Log.warningf("retrieve rVal %s", rVal);
+                }
                 return rVal;
             } catch (IOException ioe) {
                 Log.logErrorWarning(ioe);

@@ -128,6 +128,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private NamespaceStore  parent;
     private final File nsDir;
     private final File ssDir;
+    private final File ssTempDir;
     private final NamespaceProperties nsProperties;
     private final NamespaceOptions nsOptions;
     private final boolean    verifyStorageState;
@@ -172,6 +173,10 @@ public class NamespaceStore implements SSNamespaceStore {
     private int    deletionsSinceFinalization;
     private final Finalization finalization;
     private final FileSegmentCompactor fileSegmentCompactor;
+    private SVPMapper svpMapper;
+    private static SVPMapper.Mode  svpMapperMode = (SVPMapper.Mode)PropertiesHelper.systemHelper.getEnum(NamespaceStore.class.getPackage().getName() + ".SVPMapper.Mode", SVPMapper.Mode.FileBackedMap);
+    private static final int    defaultSVPMapThreshold = 16383;
+    private static int svpMapThreshold = PropertiesHelper.systemHelper.getInt(NamespaceStore.class.getPackage().getName() + ".SVPMapThreshold", defaultSVPMapThreshold);
 
     private final ConcurrentMap<UUIDBase,ActiveRegionSync>    activeRegionSyncs;
     
@@ -341,6 +346,7 @@ public class NamespaceStore implements SSNamespaceStore {
         this.ns = ns;
         this.nsDir = nsDir;
         ssDir = new File(nsDir, DHTConstants.ssSubDirName);
+        ssTempDir = new File(nsDir, DHTConstants.ssTempSubDirName);
         activeRegionSyncs = new ConcurrentHashMap<>();
         this.nsOptions = nsProperties.getOptions();
         verifyStorageState = StorageProtocolUtil.requiresStorageStateVerification(nsOptions.getConsistencyProtocol());
@@ -435,6 +441,28 @@ public class NamespaceStore implements SSNamespaceStore {
         if (!isRecovery) {
             initializeTriggers();
         }
+        if (enablePendingPuts && putTrigger != null && putTrigger.supportsMerge()) {
+            try {
+                switch (svpMapperMode) {
+                case NoMap:
+                    svpMapper = null;
+                    break;
+                case PrivateMap:
+                    svpMapper = SVPMapper.newPrivateModeMapper(nsOptions.getMaxValueSize());
+                    break;
+                case FileBackedMap:
+                    svpMapper = SVPMapper.newFileBackedMapper(ssTempDir);
+                    break;
+                default: throw new RuntimeException("panic");
+                }
+            } catch (IOException ioe) {
+                Log.logErrorWarning(ioe);
+                svpMapper = null;
+            }
+        } else {
+            svpMapper = null;
+        }
+        
         this.finalization = finalization;
         this.fileSegmentCompactor = fileSegmentCompactor;
     }
@@ -3421,7 +3449,7 @@ public class NamespaceStore implements SSNamespaceStore {
     private static final int    numPendingPutWorkers = Math.min(8, Runtime.getRuntime().availableProcessors());
     private static final int    maxWorkBatchSize = 128;
     private static final BlockingQueue<PendingPut>    pendingPuts = new ArrayBlockingQueue<>(numPendingPutWorkers * maxWorkBatchSize);
-
+    
     static {
         if (enablePendingPuts) {
             Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
@@ -3449,6 +3477,8 @@ public class NamespaceStore implements SSNamespaceStore {
         _values = new ArrayList<>(values.size());
         for (StorageValueAndParameters svp : values) {
             int    compressedLength;
+            StorageValueAndParameters   _svp;
+            StorageValueAndParameters   __svp;
             
             if (svp.compressedSizeSet()) {
                 compressedLength = svp.getCompressedSize();
@@ -3459,10 +3489,21 @@ public class NamespaceStore implements SSNamespaceStore {
             // uncompressed size. As ccss is per message, and this compression check is per value, 
             // we catch this case and modify the ccss for values where this applies.
             if (compressedLength == svp.getUncompressedSize()) {
-                _values.add(svp.ccss(CCSSUtil.updateCompression(svp.getCCSS(), Compression.NONE)));
+                _svp = svp.ccss(CCSSUtil.updateCompression(svp.getCCSS(), Compression.NONE));
             } else {
-                _values.add(svp);
+                _svp = svp;
             }
+            if (svpMapper != null && compressedLength > svpMapThreshold) {
+                try {
+                    __svp = svpMapper.convertToMappedSVP(_svp);
+                } catch (Exception e) { // only IO thrown, but catch & tolerate anything
+                    Log.logErrorWarning(e);
+                    __svp = _svp; 
+                }
+            } else {
+                __svp = _svp;
+            }
+            _values.add(__svp);
         }
         return _values;
     }
@@ -3672,6 +3713,9 @@ public class NamespaceStore implements SSNamespaceStore {
     @Override
     public File getNamespaceSSDir() {
         synchronized (ssDir) {
+            if (!ssTempDir.exists() && !ssTempDir.mkdir()) {
+                throw new RuntimeException("Unable to create: "+ ssTempDir);
+            }
             if (!ssDir.exists() && !ssDir.mkdir()) {
                 throw new RuntimeException("Unable to create: "+ ssDir);
             } else {

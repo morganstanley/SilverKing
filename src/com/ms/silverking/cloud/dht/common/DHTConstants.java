@@ -118,6 +118,7 @@ public class DHTConstants {
     public static final String    jvmMonitorMinIntervalMillisProperty = systemClassBase + ".JvmMonitorMinIntervalMillis";
 
     public static final String    ssSubDirName = "ss";
+    public static final String    ssTempSubDirName = "ssTemp";
 
     public static final String classpathEnv = "SK_CLASSPATH";
     public static final String classpathProperty = "java.class.path";

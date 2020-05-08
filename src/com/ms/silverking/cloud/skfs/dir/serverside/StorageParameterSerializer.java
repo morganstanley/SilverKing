@@ -45,7 +45,24 @@ public class StorageParameterSerializer {
     }
     
     public static SSStorageParameters deserialize(byte[] a, int offset) {
-        ByteBuffer    b;
+        return _deserialize(ByteBuffer.wrap(a, offset, a.length - offset), offset);
+    }
+    
+    public static SSStorageParameters deserialize(ByteBuffer b) {
+        return deserialize(b, 0);
+    }
+    
+    public static SSStorageParameters deserialize(ByteBuffer b, int offset) {
+        return _deserialize(b.duplicate(), 0);
+    }
+    
+    /**
+     * No defensive b.duplicate()
+     * @param b
+     * @param offset
+     * @return
+     */
+    private static SSStorageParameters _deserialize(ByteBuffer b, int offset) {
         long    version;
         int        uncompressedSize;
         int        compressedSize;
@@ -55,7 +72,6 @@ public class StorageParameterSerializer {
         long    creationTime;
         short    lockSeconds;
         
-        b = ByteBuffer.wrap(a, offset, a.length - offset);
         compressedSize = b.getInt();
         uncompressedSize = b.getInt();
         version = b.getLong();

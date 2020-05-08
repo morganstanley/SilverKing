@@ -11,7 +11,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -230,5 +234,34 @@ public class FileUtil {
             Collections.sort(fileNumbers);
         }
         return fileNumbers;
+    }
+    
+    public enum FileMapMode {PrivateMap, FileBackedMap_Writable, FileBackedMap_ReadOnly};
+    
+    public static MappedByteBuffer mapFile(File file, FileMapMode fileMapMode) throws IOException {
+        return mapFile(new RandomAccessFile(file, fileMapMode == FileMapMode.FileBackedMap_Writable ? "rw" : "r"), fileMapMode, 0, file.length());
+    }
+    
+    public static MappedByteBuffer mapFile(RandomAccessFile rf, FileMapMode fileMapMode, long position, long size) throws IOException {
+        try {
+            MappedByteBuffer    mbb;
+            FileChannel         fc;
+            
+            fc = rf.getChannel();
+            switch (fileMapMode) {
+            case PrivateMap:
+                mbb = fc.map(MapMode.PRIVATE, position, size);
+                break;
+            case FileBackedMap_Writable: // fall through
+            case FileBackedMap_ReadOnly:
+                    mbb = fc.map(fileMapMode == FileMapMode.FileBackedMap_Writable ? MapMode.READ_WRITE : MapMode.READ_ONLY, position, size);
+                break;
+            default:
+                throw new RuntimeException("panic");
+            }
+            return mbb;
+        } finally {
+            rf.close();
+        }
     }
 }
