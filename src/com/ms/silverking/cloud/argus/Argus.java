@@ -101,7 +101,7 @@ public class Argus implements PeerWarningListener {
             }
             String loggerFileName = eventsLogDir + "/" + InetAddress.getLocalHost().getHostName();
             killEnabled = Boolean.parseBoolean(ph.getString(propKillEnabled, defaultKillEnabled));
-            terminator = new Terminator(killEnabled ? Terminator.Mode.Armed : Terminator.Mode.LogOnly, loggerFileName, killtype);
+            terminator = new Terminator(killEnabled ? Terminator.Mode.Armed : Terminator.Mode.LogOnly, loggerFileName, killtype, options.minKillIntervalSeconds * 1000);
             Log.warning("Argus terminator is running with mode " + terminator.getMode().name() + " and termination type: ", killtype);
             
             customTerminatorDef = ph.getString(Terminator.KillType.CustomTerminator.toString(), UndefinedAction.ZeroOnUndefined);

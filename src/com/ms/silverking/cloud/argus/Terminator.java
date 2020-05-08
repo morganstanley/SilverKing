@@ -1,9 +1,9 @@
 package com.ms.silverking.cloud.argus;
 import java.io.IOException;
-
 import java.util.HashMap;
 import java.util.Map;
 
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
 
@@ -13,15 +13,17 @@ import com.ms.silverking.text.StringUtil;
  * it will only log the action that it would have taken.
  */
 public class Terminator {
-    private final static String killCmd = "/usr/bin/kill";
-    
     private final Mode      mode;
     private final Runtime   runtime;
     private final TerminatorAsyncLogger logMessageHandler;
     private final KillType  killType;
+    private final long      minKillIntervalMillis;
+    private final Map<Integer,Long> lastKillMillis;
     
     public enum Mode {LogOnly, Armed};
     public enum KillType {KillTerminator, CustomTerminator};
+    
+    private final static String killCmd = "/usr/bin/kill";
     
     private static Map<String,String>    killCommands;
     private static final String    PID_VARIABLE = "__PID__";
@@ -36,11 +38,13 @@ public class Terminator {
         killCommands.put(name, cmd);
     }
     
-    public Terminator(Mode mode, String loggerFileName, KillType killType) {
+    public Terminator(Mode mode, String loggerFileName, KillType killType, long minKillIntervalMillis) {
         this.mode = mode;
         runtime = Runtime.getRuntime();
         logMessageHandler = new TerminatorAsyncLogger(loggerFileName );
         this.killType = killType;
+        this.minKillIntervalMillis = minKillIntervalMillis;
+        lastKillMillis = new HashMap<>();
     }
     
     public Mode getMode() {
@@ -63,6 +67,20 @@ public class Terminator {
     }
     
     public void terminate(int pid, String msg) {
+        Long    lastPidKillMillis;
+        long    curTimeMillis;
+        
+        curTimeMillis = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
+        lastPidKillMillis = lastKillMillis.get(pid);
+        if (lastPidKillMillis != null) {
+            long    delta;
+            
+            delta = curTimeMillis - lastPidKillMillis;
+            if (delta < minKillIntervalMillis) {
+                Log.warningf("%s Last kill too soon for %d. %d < %d", mode.name(), pid, delta, minKillIntervalMillis);
+                return;
+            }
+        }
         try {
             String[]    cmd;
             
@@ -70,6 +88,7 @@ public class Terminator {
             if (mode == Mode.LogOnly) {
                 Log.warning(mode.name() + " Would have run: " + StringUtil.arrayToQuotedString(cmd) + " ", pid);
             } else {
+                lastKillMillis.put(pid, curTimeMillis);
                 runtime.exec(cmd);
                 Log.warning(mode.name() + " " + msg);
             }
@@ -87,7 +106,7 @@ public class Terminator {
             
             killType = KillType.valueOf(args[0]);
             pid = Integer.parseInt(args[1]);
-            terminator = new Terminator(Mode.Armed, "/tmp/test.terminator", killType);
+            terminator = new Terminator(Mode.Armed, "/tmp/test.terminator", killType, 0);
             terminator.terminate(pid, "test");
         } catch (Exception e) {
             e.printStackTrace();

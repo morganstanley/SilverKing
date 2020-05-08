@@ -36,6 +36,9 @@ public class ArgusOptions {
     @Option(name="-T", usage="rssPrioritizationThreshold")
     int rssPrioritizationThreshold = defaultRSSPrioritizationThreshold;
 
+    @Option(name="-i", usage="minKillIntervalSeconds", required = false)
+    long minKillIntervalSeconds = 0;
+    
     static final String prioritizedUserDelimiter = ":";
     static final int    defaultRSSPrioritizationThreshold = 1 * 1024 * 1024;
 
