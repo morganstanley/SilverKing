@@ -14,6 +14,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.async.IncomingData;
 import com.ms.silverking.net.async.ReadResult;
 import com.ms.silverking.numeric.NumConversion;
+import com.ms.silverking.text.StringUtil;
 
 // FUTURE - add header checksums, timeouts on reception
 
@@ -226,6 +227,8 @@ public final class IncomingMessageGroup implements IncomingData {
                             //if (debug) {
                                 Log.warningAsync("*** No preamble match ***");
                             //}
+                            Log.warningAsyncf("%s", leadingBuffer);
+                            Log.warningAsyncf("%s", StringUtil.byteBufferToHexString((ByteBuffer)leadingBuffer.duplicate().position(0)));
                             /*
                             // mismatch - search for real preamble
                             leadingBuffer.clear();
