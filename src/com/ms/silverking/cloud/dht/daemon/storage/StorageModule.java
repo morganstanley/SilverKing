@@ -10,7 +10,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.Timer;
@@ -24,6 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
+import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -54,6 +57,7 @@ import com.ms.silverking.cloud.storagepolicy.StoragePolicyGroup;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.code.Constraint;
+import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
@@ -725,13 +729,23 @@ public class StorageModule implements LinkCreationListener {
     /////////////////////////////////
     
     public void handleNamespaceRequest(MessageGroup message, MessageGroupConnection connection) {
+        Set<Long>   nsSet;
         List<Long>  nsList;
         ProtoNamespaceResponseMessageGroup  protoMG;
         
         if (debugNSRequests) {
             Log.warning("Handling namespace request from: ", connection.getRemoteSocketAddress());
         }
-        nsList = ImmutableList.copyOf(namespaces.keySet());
+        nsSet = new HashSet<>();
+        for (Map.Entry<Long, NamespaceStore> entry : namespaces.entrySet()) {
+            if (!entry.getValue().isDynamic()) {
+                nsSet.add(entry.getKey());
+            }
+        }
+        nsList = ImmutableList.copyOf(nsSet);
+        if (debugNSRequests) {
+            Log.warningf("Returning namespaces %s: ", CollectionUtil.toString(nsList));
+        }
         protoMG = new ProtoNamespaceResponseMessageGroup(message.getUUID(), mgBase.getMyID(), nsList);
         try {
             connection.sendAsynchronous(protoMG.toMessageGroup(), 
@@ -742,8 +756,7 @@ public class StorageModule implements LinkCreationListener {
     }
     
     public void handleNamespaceResponse(MessageGroup message, MessageGroupConnection connection) {
-        NamespaceRequest    nsRequest;        
-        List<Long>  nsList;
+       List<Long>  nsList;
         
         if (debugNSRequests) {
             Log.warning("Received namespace response from: ", connection.getRemoteSocketAddress());
