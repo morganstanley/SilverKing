@@ -1,9 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import com.ms.silverking.cloud.dht.client.Namespace;
