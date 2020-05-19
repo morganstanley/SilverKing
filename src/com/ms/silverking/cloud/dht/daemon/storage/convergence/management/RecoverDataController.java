@@ -32,8 +32,8 @@ public class RecoverDataController extends ConvergenceControllerBase implements 
     private static final boolean    serializeNamespaces = false;
     
     public RecoverDataController(UUIDBase uuid, DHTMetaReader dhtMetaReader, ConvergencePoint targetCP, 
-                                        ExclusionSet exclusionSet, MessageGroupBase    mgBase) throws KeeperException, IOException {    
-        super(uuid, dhtMetaReader, targetCP, exclusionSet, mgBase);
+                                        ExclusionSet exclusionSet, MessageGroupBase mgBase, Set<Long> ignoredNamespaces) throws KeeperException, IOException {    
+        super(uuid, dhtMetaReader, targetCP, exclusionSet, mgBase, ignoredNamespaces);
         targetMap = getResolvedReplicaMap(targetRing, targetRingConfig);
         targetReplicas = targetMap.allReplicas();
     }

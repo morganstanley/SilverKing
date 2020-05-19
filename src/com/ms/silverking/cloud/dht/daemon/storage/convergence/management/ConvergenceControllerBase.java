@@ -59,6 +59,7 @@ public abstract class ConvergenceControllerBase implements RequestController {
     protected SyncController    syncController;
     protected final Set<UUIDBase>        opUUIDs;
     protected final RingConfigurationZK    ringConfigZK;
+    private final Set<Long>             ignoredNamespaces;
     
     private boolean    abandoned;
     private boolean    failed;
@@ -70,7 +71,8 @@ public abstract class ConvergenceControllerBase implements RequestController {
     protected static final boolean    debug = true;
     
     public ConvergenceControllerBase(UUIDBase uuid, DHTMetaReader dhtMetaReader, ConvergencePoint targetCP, 
-                                        ExclusionSet exclusionSet, MessageGroupBase    mgBase) throws KeeperException, IOException {    
+                                        ExclusionSet exclusionSet, MessageGroupBase mgBase,
+                                        Set<Long> ignoredNamespaces) throws KeeperException, IOException {    
         assert dhtMetaReader != null;
         assert targetCP != null;
         this.uuid = uuid;
@@ -79,6 +81,7 @@ public abstract class ConvergenceControllerBase implements RequestController {
         this.dhtMetaReader = dhtMetaReader;
         this.exclusionSet = exclusionSet;
         this.mgBase = mgBase;
+        this.ignoredNamespaces = ignoredNamespaces;
         targetRingName = getRingNameFromCP(targetCP);
         targetRing = dhtMetaReader.readRing(targetRingName, targetCP.getRingIDAndVersionPair().getRingVersionPair());
         
@@ -205,8 +208,13 @@ public abstract class ConvergenceControllerBase implements RequestController {
         if (!ok) {
             throw new ConvergenceException("getAllNamespaces failed");
         } else {
-            Log.warningAsyncf("Received all namespaces %s\n%s", targetRing.getRingIDAndVersionPair(), CollectionUtil.toString(nr.getNamespaces()));        
-            return nr.getNamespaces();
+            Set<Long>   nrMinusIgnored;
+            
+            Log.warningAsyncf("Received all namespaces %s\n%s", targetRing.getRingIDAndVersionPair(), CollectionUtil.numberSetToHexString(nr.getNamespaces()));
+            nrMinusIgnored = new HashSet<>(nr.getNamespaces());
+            Log.warningAsyncf("Removing ignored namespaces %s", CollectionUtil.numberSetToHexString(ignoredNamespaces));
+            nrMinusIgnored.removeAll(ignoredNamespaces);
+            return ImmutableSet.copyOf(nrMinusIgnored);
         }
     }    
     

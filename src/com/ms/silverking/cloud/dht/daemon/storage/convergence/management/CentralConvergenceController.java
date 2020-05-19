@@ -134,8 +134,9 @@ public class CentralConvergenceController extends ConvergenceControllerBase impl
     
     public CentralConvergenceController(UUIDBase uuid, DHTMetaReader dhtMetaReader, ConvergencePoint curCP, ConvergencePoint targetCP, 
                                         ExclusionSet exclusionSet, MessageGroupBase    mgBase, boolean syncUnchangedOwners,
-                                        RequestedSyncMode requestedSyncMode, PassiveConvergenceMode passiveConvergenceMode) throws KeeperException, IOException {
-        super(uuid, dhtMetaReader, targetCP, exclusionSet, mgBase);
+                                        RequestedSyncMode requestedSyncMode, PassiveConvergenceMode passiveConvergenceMode,
+                                        Set<Long> ignoredNamespaces) throws KeeperException, IOException {
+        super(uuid, dhtMetaReader, targetCP, exclusionSet, mgBase, ignoredNamespaces);
         assert curCP != null;
         assert curCP.getRingIDAndVersionPair() != null;
         this.curCP = curCP;

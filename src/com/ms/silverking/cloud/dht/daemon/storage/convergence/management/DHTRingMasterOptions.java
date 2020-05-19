@@ -1,6 +1,14 @@
 package com.ms.silverking.cloud.dht.daemon.storage.convergence.management;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.kohsuke.args4j.Option;
+
+import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.client.impl.NamespaceCreator;
+import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
+import com.ms.silverking.collection.CollectionUtil;
 
 public class DHTRingMasterOptions {
     @Option(name="-g", usage="GridConfig", required=true)
@@ -11,4 +19,22 @@ public class DHTRingMasterOptions {
     public Mode mode = Mode.Manual;
     @Option(name="-pcm", usage="PassiveConvergenceMode", required=false)
     public PassiveConvergenceMode passiveConvergenceMode = PassiveConvergenceMode.FullSync_FailOnFailure;
+    @Option(name="-ignoreNamespacesHex", usage="ignoreNamespacesHex", required=false)
+    public String ignoreNamespacesHex;
+    
+    public Set<Long> getIgnoredNamespaces() {
+        if (ignoreNamespacesHex == null) {
+            return ImmutableSet.of();
+        } else {
+            NamespaceCreator    nsc;
+            HashSet<Long>       ignoredNamespaces;
+
+            nsc = new SimpleNamespaceCreator();
+            ignoredNamespaces = new HashSet<>();
+            for (String ns : CollectionUtil.parseSet(ignoreNamespacesHex, ",")) {
+                ignoredNamespaces.add(Long.decode(ns));
+            }
+            return ignoredNamespaces;
+        }
+    }
 }

@@ -119,4 +119,27 @@ public class CollectionUtil {
     public static <K extends Enum<K>> EnumSet<K> arrayToEnumSet(K[] a) {
         return EnumSet.copyOf(ImmutableSet.copyOf(a));
     }
+    
+    public static <T extends Number> String numberSetToHexString(Set<T> set) {
+        return numberSetToHexString(set, defaultStartBrace, defaultEndBrace, defaultSeparator);
+    }
+    
+    public static <T extends Number> String numberSetToHexString(Set<T> set, String startBrace, String endBrace, char separator) {
+        StringBuffer    sb;
+        boolean         initial;
+        
+        initial = true;
+        sb = new StringBuffer();
+        sb.append(startBrace);
+        for (Number n : set) {
+            if (initial) {
+                initial = false;
+            } else {
+                sb.append(separator);
+            }
+            sb.append(String.format("%x", n));
+        }
+        sb.append(endBrace);
+        return sb.toString();
+    }
 }

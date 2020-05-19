@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.daemon.storage.convergence.management;
 
 import java.io.IOException;
 import java.rmi.AlreadyBoundException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -73,6 +74,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     private final DHTMetaReader    dhtMetaReader;
     private Mode    mode;
     private ConcurrentMap<UUIDBase,ConvergenceControllerBase>    convergenceControllers;
+    private Set<Long>   ignoredNamespaces;
     
     private final MessageGroupBase    mgBase;
     
@@ -113,7 +115,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
     }
 
     public DHTRingMaster(ZooKeeperConfig zkConfig, String dhtName, 
-                          long intervalMillis, Mode mode, boolean enableLogging, PassiveConvergenceMode passiveConvergenceMode) throws IOException, KeeperException, AlreadyBoundException {
+                          long intervalMillis, Mode mode, boolean enableLogging, PassiveConvergenceMode passiveConvergenceMode, Set<Long> ignoredNamespaces) throws IOException, KeeperException, AlreadyBoundException {
         mc = new MetaClient(dhtName, zkConfig);
         convergenceControllers = new ConcurrentHashMap<>();
         this.intervalMillis = intervalMillis;
@@ -122,6 +124,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
         this.zkConfig = zkConfig;
         convergenceLock = new ReentrantLock();
         this.passiveConvergenceMode = passiveConvergenceMode;
+        this.ignoredNamespaces = ignoredNamespaces;
         /*
          * The below VersionWatcher watches the DHTConfiguration for changes. Whenever a new DHTConfiguration
          * is observed, a new RingConfigWatcher is started.
@@ -142,9 +145,9 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
         new RingMasterControlImpl(this);
     }
     
-    public DHTRingMaster(ZooKeeperConfig zkConfig, String dhtName, long intervalMillis, Mode mode, PassiveConvergenceMode passiveConvergenceMode) 
+    public DHTRingMaster(ZooKeeperConfig zkConfig, String dhtName, long intervalMillis, Mode mode, PassiveConvergenceMode passiveConvergenceMode, Set<Long> ignoredNamespaces) 
                   throws IOException, KeeperException, AlreadyBoundException {
-        this(zkConfig, dhtName, intervalMillis, mode, true, passiveConvergenceMode);
+        this(zkConfig, dhtName, intervalMillis, mode, true, passiveConvergenceMode, ignoredNamespaces);
     }
     
     public String getDHTName() {
@@ -425,7 +428,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
                         // MAKE syncUnchangedOnwers CONFIGURABLE
                         
                         try {
-                            targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, currentCP, targetCP, readExclusions(ring), mgBase, syncUnchangedOwners, syncMode, passiveConvergenceMode);
+                            targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, currentCP, targetCP, readExclusions(ring), mgBase, syncUnchangedOwners, syncMode, passiveConvergenceMode, ignoredNamespaces);
                             convergenceControllers.put(targetConvergenceController.getUUID(), targetConvergenceController);
                         } catch (IOException ioe) {
                             Log.logErrorWarning(ioe, "Unable to start convergence");
@@ -516,7 +519,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
                     _sourceCP = new ConvergencePoint(dhtConfig.getVersion(), RingIDAndVersionPair.fromRingNameAndVersionPair(sourceRing.getTripleAt1()), sourceRing.getV4());
                     _targetCP = new ConvergencePoint(dhtConfig.getVersion(), RingIDAndVersionPair.fromRingNameAndVersionPair(targetRing.getTripleAt1()), targetRing.getV4());
                     try {
-                        targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, _sourceCP, _targetCP, readExclusions(targetRing), mgBase, syncUnchangedOwners, CentralConvergenceController.RequestedSyncMode.SyncOnly, passiveConvergenceMode);
+                        targetConvergenceController = new CentralConvergenceController(uuid, dhtMetaReader, _sourceCP, _targetCP, readExclusions(targetRing), mgBase, syncUnchangedOwners, CentralConvergenceController.RequestedSyncMode.SyncOnly, passiveConvergenceMode, ignoredNamespaces);
                         convergenceControllers.put(targetConvergenceController.getUUID(), targetConvergenceController);
                     } catch (IOException ioe) {
                         Log.logErrorWarning(ioe, "Unable to start sync");
@@ -767,7 +770,7 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
                     } else {
                         RecoverDataController    recoverDataController;
                         
-                        recoverDataController = new RecoverDataController(uuid, dhtMetaReader, currentCP, readExclusions(currentRing.getHead(), currentRing.getV2()), mgBase);
+                        recoverDataController = new RecoverDataController(uuid, dhtMetaReader, currentCP, readExclusions(currentRing.getHead(), currentRing.getV2()), mgBase, ignoredNamespaces);
                         targetConvergenceController = recoverDataController;
                         try {
                             //convergenceLock.unlock();
@@ -828,7 +831,9 @@ public class DHTRingMaster implements DHTConfigurationListener, RingChangeListen
                 LWTPoolProvider.createDefaultWorkPools();                
                 
                 dhtRingMaster = new DHTRingMaster(gc.getClientDHTConfiguration().getZKConfig(), 
-                                                    gc.getClientDHTConfiguration().getName(), intervalMillis, options.mode, options.passiveConvergenceMode);
+                                                    gc.getClientDHTConfiguration().getName(), intervalMillis, 
+                                                    options.mode, options.passiveConvergenceMode,
+                                                    options.getIgnoredNamespaces());
                 Log.warningAsync("DHTRingMaster created");
                 dhtRingMaster.start();
                 Log.warningAsync("DHTRingMaster running");
