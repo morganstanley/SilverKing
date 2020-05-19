@@ -13,66 +13,66 @@ import com.ms.silverking.net.IPAndPort;
  * Write operation for the LooseConsistency StorageProtocol.
  */
 public class LooseConsistencyWrite extends BaseStorageOperation<SingleWriterLooseStorageEntryState> {
-    private static final boolean    debug = false;
-    
-    private static final int	looseConsistencySuccessThreshold = 1;
-    
-    LooseConsistencyWrite(PutOperationContainer putOperationContainer, ForwardingMode forwardingMode, long deadline) {
-        super(deadline, putOperationContainer, forwardingMode);
-    }
-    
-    @Override
-    public void initializeEntryState(DHTKey entryKey, List<IPAndPort> primaryReplicas, List<IPAndPort> secondaryReplicas) {
-        setEntryState(entryKey, new SingleWriterLooseStorageEntryState(primaryReplicas));
-    }
+  private static final boolean debug = false;
 
+  private static final int looseConsistencySuccessThreshold = 1;
 
-    @Override
-    public void update(DHTKey key, IPAndPort replica, byte storageState, OpResult update, PutVirtualCommunicator pvComm) {
-        // FIXME - reduce or eliminate locking here
-        synchronized (this) {
-            SingleWriterLooseStorageEntryState entryState;
+  LooseConsistencyWrite(PutOperationContainer putOperationContainer, ForwardingMode forwardingMode, long deadline) {
+    super(deadline, putOperationContainer, forwardingMode);
+  }
 
-            if (debug) {
-                System.out.printf("replica %s\tupdate %s\n", replica, update);
+  @Override
+  public void initializeEntryState(DHTKey entryKey, List<IPAndPort> primaryReplicas,
+      List<IPAndPort> secondaryReplicas) {
+    setEntryState(entryKey, new SingleWriterLooseStorageEntryState(primaryReplicas));
+  }
+
+  @Override
+  public void update(DHTKey key, IPAndPort replica, byte storageState, OpResult update, PutVirtualCommunicator pvComm) {
+    // FIXME - reduce or eliminate locking here
+    synchronized (this) {
+      SingleWriterLooseStorageEntryState entryState;
+
+      if (debug) {
+        System.out.printf("replica %s\tupdate %s\n", replica, update);
+      }
+      entryState = getEntryState(key);
+      if (debug) {
+        System.out.printf("curOpResult %s\n", entryState.getCurOpResult());
+      }
+      if (entryState.getCurOpResult() == OpResult.INCOMPLETE) {
+        entryState.setReplicaResult(replica, update);
+        if (update.isComplete()) {
+          OpResult looseResult;
+
+          looseResult = entryState.getCurOpResult();
+          if (debug) {
+            System.out.printf("looseResult %s\n", looseResult);
+          }
+          if (looseResult.isComplete()) {
+            int _completeEntries;
+
+            pvComm.sendResult(key, looseResult);
+            _completeEntries = completeEntries.incrementAndGet();
+            if (_completeEntries >= numEntries) {
+              setOpResult(OpResult.SUCCEEDED);
             }
-            entryState = getEntryState(key);
-            if (debug) {
-                System.out.printf("curOpResult %s\n", entryState.getCurOpResult());
-            }
-            if (entryState.getCurOpResult() == OpResult.INCOMPLETE) {
-                entryState.setReplicaResult(replica, update);
-                if (update.isComplete()) {
-                    OpResult    looseResult;
-                    
-                    looseResult = entryState.getCurOpResult();
-                    if (debug) {
-                        System.out.printf("looseResult %s\n", looseResult);
-                    }
-                    if (looseResult.isComplete()) {
-                        int _completeEntries;
-                        
-                        pvComm.sendResult(key, looseResult);
-                        _completeEntries = completeEntries.incrementAndGet();
-                        if (_completeEntries >= numEntries) {
-                            setOpResult(OpResult.SUCCEEDED);
-                        }                    
-                    }
-                    if (debug) {
-                        System.out.printf("completeEntries %d numEntries %d\n", completeEntries.get(), numEntries);
-                    }
-                } else {
-                    Log.warning("Unexpected incomplete update: ", update);
-                }
-            } else {
-                if (Log.levelMet(Level.FINE)) {
-                    Log.fine("Update for non-incomplete: ", key + " " + replica + " " + update);
-                }
-            }
+          }
+          if (debug) {
+            System.out.printf("completeEntries %d numEntries %d\n", completeEntries.get(), numEntries);
+          }
+        } else {
+          Log.warning("Unexpected incomplete update: ", update);
         }
+      } else {
+        if (Log.levelMet(Level.FINE)) {
+          Log.fine("Update for non-incomplete: ", key + " " + replica + " " + update);
+        }
+      }
     }
-    
-    public byte nextStorageState(byte prevStorageState) {
-        return 0;
-    }
+  }
+
+  public byte nextStorageState(byte prevStorageState) {
+    return 0;
+  }
 }

@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
  * @param <T> type to deserialize
  */
 public interface BufferSourceDeserializer<T> {
-    public T deserialize(ByteBuffer[] bytes);
-    public T deserialize(ByteBuffer bytes);
+  public T deserialize(ByteBuffer[] bytes);
+
+  public T deserialize(ByteBuffer bytes);
 }

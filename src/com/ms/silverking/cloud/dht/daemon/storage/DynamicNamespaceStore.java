@@ -30,156 +30,138 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 
 abstract class DynamicNamespaceStore extends NamespaceStore {
-    private final String                  name;
-    protected final byte[]                dynamicCreator;
-    
-    protected static final KeyCreator<String> keyCreator = new StringMD5KeyCreator();
-    protected static final byte[] dynamicUserData = new byte[0];
-    protected static final NamespaceProperties   
-        dynamicNamespaceProperties = new NamespaceProperties(DHTConstants.dynamicNamespaceOptions);
-    
-    DynamicNamespaceStore(String name,
-            MessageGroupBase mgBase, 
-            NodeRingMaster2 ringMaster, 
-            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
-        super(getNamespace(name).contextAsLong(), 
-              null, DirCreationMode.DoNotCreateNSDir, 
-              dynamicNamespaceProperties, 
-              mgBase, ringMaster, false, activeRetrievals);
-        this.name = name;
-        dynamicCreator = SimpleValueCreator.forLocalProcess().getBytes(); 
+  private final String name;
+  protected final byte[] dynamicCreator;
+
+  protected static final KeyCreator<String> keyCreator = new StringMD5KeyCreator();
+  protected static final byte[] dynamicUserData = new byte[0];
+  protected static final NamespaceProperties dynamicNamespaceProperties = new NamespaceProperties(
+      DHTConstants.dynamicNamespaceOptions);
+
+  DynamicNamespaceStore(String name, MessageGroupBase mgBase, NodeRingMaster2 ringMaster,
+      ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals) {
+    super(getNamespace(name).contextAsLong(), null, DirCreationMode.DoNotCreateNSDir, dynamicNamespaceProperties,
+        mgBase, ringMaster, false, activeRetrievals);
+    this.name = name;
+    dynamicCreator = SimpleValueCreator.forLocalProcess().getBytes();
+  }
+
+  static Namespace getNamespace(String name) {
+    return new SimpleNamespaceCreator().createNamespace(name);
+  }
+
+  String getName() {
+    return name;
+  }
+
+  @Override
+  protected boolean isDynamic() {
+    return true;
+  }
+
+  protected void storeStaticKVPair(MessageGroupBase mgBase, long curTimeMillis, DHTKey key, String value) {
+    ByteBuffer _value;
+
+    _value = ByteBuffer.wrap(value.getBytes());
+    storeStaticKVPair(mgBase, curTimeMillis, key, _value);
+  }
+
+  private void storeStaticKVPair(MessageGroupBase mgBase, long curTimeMillis, DHTKey key, ByteBuffer value) {
+    StorageParametersAndRequirements storageParams;
+
+    storageParams = new StorageParametersAndRequirements(0, value.limit(), StorageParameters.compressedSizeNotSet,
+        CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), new byte[0], dynamicCreator,
+        systemTimeSource.absTimeNanos(), PutOptions.noVersionRequired, PutOptions.noLock);
+    //System.out.println("storeSystemKVPair");
+    _put(key, value, storageParams, dynamicUserData, DHTConstants.dynamicNamespaceOptions.getVersionMode());
+  }
+
+  protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
+    ByteBuffer value;
+
+    if (Log.levelMet(Level.FINE)) {
+      Log.finef("DynamicNamespaceStore._retrieve() %s", KeyUtil.keyToString(key));
+    }
+    value = super._retrieve(key, options);
+    if (value == null) {
+      byte[] _value;
+
+      _value = createDynamicValue(key, options);
+      if (_value != null) {
+        return createDynamicValue(key, options, _value);
+      }
+    }
+    return value;
+  }
+
+  // Dynamic namespaces don't do anything special for a grouped retrieval.
+  // Simply forward to the single key retrieval.
+  protected ByteBuffer[] _retrieve(DHTKey[] keys, InternalRetrievalOptions options) {
+    ByteBuffer[] results;
+
+    results = new ByteBuffer[keys.length];
+    for (int i = 0; i < results.length; i++) {
+      results[i] = _retrieve(keys[i], options);
+    }
+    return results;
+  }
+
+  // For now, no dynamic namespace supports writing. Return errors
+  public void put(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
+    for (StorageValueAndParameters value : values) {
+      resultListener.sendResult(value.getKey(), OpResult.MUTATION);
+    }
+  }
+
+  protected abstract byte[] createDynamicValue(DHTKey key, InternalRetrievalOptions options);
+
+  private ByteBuffer createDynamicValue(DHTKey key, InternalRetrievalOptions options, byte[] value) {
+    ByteBuffer buf;
+    int writeSize;
+    int compressedLength;
+    int checksumLength;
+    int storedLength;
+    StorageParameters storageParams;
+    int writeOffset;
+
+    storageParams = new StorageParameters(0, value.length, StorageParameters.compressedSizeNotSet, PutOptions.noLock,
+        CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), // currently no checksum on system namespace
+        new byte[0], dynamicCreator, SystemTimeUtil.skSystemTimeSource.absTimeNanos());
+
+    // FUTURE - could reduce duplication with WritablesSegmentBase
+    compressedLength = value.length; // no compression for system values
+    checksumLength = storageParams.getChecksum().length;
+    storedLength = MetaDataUtil.computeStoredLength(compressedLength, checksumLength, dynamicUserData.length);
+    writeSize = storedLength + DHTKey.BYTES_PER_KEY;
+
+    buf = ByteBuffer.allocate(writeSize);
+
+    // FIXME - THINK ABOUT THE +1 BELOW AND THE CORRESPONDING ISSUE IN WritableSegmentBase
+    writeOffset = StorageFormat.writeToBuf(key, ByteBuffer.wrap(value), storageParams, dynamicUserData, buf,
+        new AtomicInteger(), buf.limit() + 1, true);
+    if (writeOffset == StorageFormat.writeFailedOffset) {
+      throw new RuntimeException("Unexpected failure in createDynamicValue()");
     }
 
-    static Namespace getNamespace(String name) {
-        return new SimpleNamespaceCreator().createNamespace(name);
-    }
-    
-    String getName() {
-        return name;
-    }
-    
-    @Override
-    protected boolean isDynamic() {
-        return true;
-    }
+    buf.position(DHTKey.BYTES_PER_KEY);
 
-    protected void storeStaticKVPair(MessageGroupBase mgBase, long curTimeMillis, 
-            DHTKey key, String value) {
-        ByteBuffer  _value;
-        
-        _value = ByteBuffer.wrap(value.getBytes());
-        storeStaticKVPair(mgBase, curTimeMillis, key, _value);
+    switch (options.getRetrievalType()) {
+    case VALUE:
+    case VALUE_AND_META_DATA:
+      buf.limit(DHTKey.BYTES_PER_KEY + storedLength);
+      break;
+    case META_DATA:
+      buf.limit(DHTKey.BYTES_PER_KEY + MetaDataUtil.getMetaDataLength(buf, DHTKey.BYTES_PER_KEY));
+      break;
+    default:
+      throw new RuntimeException();
     }
-    
-    private void storeStaticKVPair(MessageGroupBase mgBase, long curTimeMillis, 
-                                   DHTKey key, ByteBuffer value) {
-        StorageParametersAndRequirements    storageParams;
-        
-        storageParams = new StorageParametersAndRequirements(
-                                0, 
-                                value.limit(),
-                                StorageParameters.compressedSizeNotSet,
-                                CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), 
-                                new byte[0], 
-                                dynamicCreator,
-                                systemTimeSource.absTimeNanos(),
-                                PutOptions.noVersionRequired, 
-                                PutOptions.noLock);
-        //System.out.println("storeSystemKVPair");
-        _put(key, value, storageParams, dynamicUserData, DHTConstants.dynamicNamespaceOptions.getVersionMode());
-    }
-    
-    protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
-        ByteBuffer  value;
-        
-        if (Log.levelMet(Level.FINE)) {
-            Log.finef("DynamicNamespaceStore._retrieve() %s", KeyUtil.keyToString(key));
-        }
-        value = super._retrieve(key, options);
-        if (value == null) {
-            byte[]  _value;
-            
-            _value = createDynamicValue(key, options);
-            if (_value != null) {
-                return createDynamicValue(key, options, _value);
-            }
-        }
-        return value;
-    }
-    
-    // Dynamic namespaces don't do anything special for a grouped retrieval.
-    // Simply forward to the single key retrieval.
-    protected ByteBuffer[] _retrieve(DHTKey[] keys, InternalRetrievalOptions options) {
-        ByteBuffer[] results;
+    buf = buf.slice();
 
-        results = new ByteBuffer[keys.length];
-        for (int i = 0; i < results.length; i ++) {
-            results[i] = _retrieve(keys[i], options);
-        }
-        return results;
-    }    
+    ByteBuffer _buf = buf.allocate(buf.capacity());
+    _buf.put(buf);
+    _buf.rewind(); // FUTURE - look into why the copy is required
 
-    // For now, no dynamic namespace supports writing. Return errors
-    public void put(List<StorageValueAndParameters> values, byte[] userData, KeyedOpResultListener resultListener) {
-        for (StorageValueAndParameters value : values) {
-            resultListener.sendResult(value.getKey(), OpResult.MUTATION);
-        }
-    }
-    
-    protected abstract byte[] createDynamicValue(DHTKey key, InternalRetrievalOptions options);
-    
-    private ByteBuffer createDynamicValue(DHTKey key, InternalRetrievalOptions options, byte[] value) {
-        ByteBuffer  buf;
-        int         writeSize;
-        int         compressedLength;
-        int         checksumLength;
-        int         storedLength;
-        StorageParameters   storageParams;
-        int         writeOffset;
-        
-        storageParams = new StorageParameters(
-                                0, 
-                                value.length,
-                                StorageParameters.compressedSizeNotSet,
-                                PutOptions.noLock, 
-                                CCSSUtil.createCCSS(Compression.NONE, ChecksumType.NONE), // currently no checksum on system namespace 
-                                new byte[0],
-                                dynamicCreator, 
-                                SystemTimeUtil.skSystemTimeSource.absTimeNanos());
-
-        // FUTURE - could reduce duplication with WritablesSegmentBase
-        compressedLength = value.length; // no compression for system values
-        checksumLength = storageParams.getChecksum().length;
-        storedLength = MetaDataUtil.computeStoredLength(compressedLength, checksumLength, dynamicUserData.length); 
-        writeSize = storedLength + DHTKey.BYTES_PER_KEY;
-        
-        buf = ByteBuffer.allocate(writeSize);
-        
-        // FIXME - THINK ABOUT THE +1 BELOW AND THE CORRESPONDING ISSUE IN WritableSegmentBase
-        writeOffset = StorageFormat.writeToBuf(key, ByteBuffer.wrap(value), storageParams, dynamicUserData, buf, new AtomicInteger(), buf.limit() + 1, true);
-        if (writeOffset == StorageFormat.writeFailedOffset) {
-            throw new RuntimeException("Unexpected failure in createDynamicValue()");
-        }
-        
-        buf.position(DHTKey.BYTES_PER_KEY);
-        
-        switch (options.getRetrievalType()) {
-        case VALUE:
-        case VALUE_AND_META_DATA:
-            buf.limit(DHTKey.BYTES_PER_KEY + storedLength);
-            break;
-        case META_DATA:
-            buf.limit(DHTKey.BYTES_PER_KEY + MetaDataUtil.getMetaDataLength(buf, DHTKey.BYTES_PER_KEY));
-            break;
-        default:
-            throw new RuntimeException();
-        }
-        buf = buf.slice();
-        
-        ByteBuffer _buf =  buf.allocate(buf.capacity());
-        _buf.put(buf);
-        _buf.rewind(); // FUTURE - look into why the copy is required
-        
-        return _buf;
-    }
+    return _buf;
+  }
 }

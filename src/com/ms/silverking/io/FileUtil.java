@@ -1,8 +1,6 @@
 // FileUtil.java
 
-
 package com.ms.silverking.io;
-
 
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
@@ -25,243 +23,243 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import com.ms.silverking.log.Log;
 
-
 public class FileUtil {
-    public static void writeToFile(File file, byte[] value) throws IOException {
-        FileOutputStream    out;
-        
-        out = new FileOutputStream(file);
-        try {
-            out.write(value);
-        } finally {
-            out.close();
-        }
-    }        
-    
-    public static void writeToFile(File file, byte[] ... values) throws IOException {
-        FileOutputStream    out;
-        
-        out = new FileOutputStream(file);
-        try {
-            for (byte[] value : values) {
-                out.write(value);
-            }
-        } finally {
-            out.close();
-        }
+  public static void writeToFile(File file, byte[] value) throws IOException {
+    FileOutputStream out;
+
+    out = new FileOutputStream(file);
+    try {
+      out.write(value);
+    } finally {
+      out.close();
     }
-    
-    public static void writeToFile(File file, ByteBuffer value) throws IOException {
-        FileOutputStream    out;
-        
-        out = new FileOutputStream(file);
-        try {
-            out.getChannel().write(value);
-        } finally {
-            out.close();
-        }
+  }
+
+  public static void writeToFile(File file, byte[]... values) throws IOException {
+    FileOutputStream out;
+
+    out = new FileOutputStream(file);
+    try {
+      for (byte[] value : values) {
+        out.write(value);
+      }
+    } finally {
+      out.close();
     }
-    
-    public static void writeToFile(File file, ByteBuffer ... values) throws IOException {
-        FileOutputStream    out;
-        
-        out = new FileOutputStream(file);
-        try {
-            for (ByteBuffer value : values) {
-                out.getChannel().write(value);
-            }
-        } finally {
-            out.close();
-        }
+  }
+
+  public static void writeToFile(File file, ByteBuffer value) throws IOException {
+    FileOutputStream out;
+
+    out = new FileOutputStream(file);
+    try {
+      out.getChannel().write(value);
+    } finally {
+      out.close();
     }
-    
-    public static void writeToFile(String fileName, String text) throws IOException {
-        writeToFile(new File(fileName), text);
+  }
+
+  public static void writeToFile(File file, ByteBuffer... values) throws IOException {
+    FileOutputStream out;
+
+    out = new FileOutputStream(file);
+    try {
+      for (ByteBuffer value : values) {
+        out.getChannel().write(value);
+      }
+    } finally {
+      out.close();
+    }
+  }
+
+  public static void writeToFile(String fileName, String text) throws IOException {
+    writeToFile(new File(fileName), text);
+  }
+
+  public static void writeToFile(File file, String text) throws IOException {
+    writeToFile(file, text, false);
+  }
+
+  public static void writeToFile(File file, String text, boolean append) throws IOException {
+    try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, append)))) {
+      out.write(text);
+    }
+  }
+
+  public static void writeToFile(String fileName, Collection lines) throws IOException {
+    writeToFile(new File(fileName), lines);
+  }
+
+  public static void writeToFile(File file, Collection lines) throws IOException {
+    try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file)))) {
+      for (Object line : lines) {
+        out.write(line.toString() + "\n");
+      }
+    }
+  }
+
+  public static File[] namesToFiles(String[] names) {
+    File[] files;
+
+    files = new File[names.length];
+    for (int i = 0; i < files.length; i++) {
+      files[i] = new File(names[i]);
+    }
+    return files;
+  }
+
+  public static byte[] readFileAsBytes(File file) throws IOException {
+    try (FileInputStream fIn = new FileInputStream(file)) {
+      byte[] buf;
+
+      buf = new byte[(int) file.length()];
+      StreamUtil.readBytes(buf, 0, buf.length, new BufferedInputStream(fIn));
+      return buf;
+    }
+  }
+
+  public static int readFileAsInt(String file) throws IOException {
+    return readFileAsInt(new File(file));
+  }
+
+  public static int readFileAsInt(File file) throws IOException {
+    return Integer.parseInt(readFileAsString(file).trim());
+  }
+
+  public static String readFileAsString(String file) throws IOException {
+    return readFileAsString(new File(file));
+  }
+
+  public static String readFileAsString(File file) throws IOException {
+    return new String(readFileAsBytes(file));
+  }
+
+  public static List<String> readFileAsLineList(File file) throws IOException {
+    String s;
+    String[] lines;
+
+    s = readFileAsString(file);
+    lines = s.split("\\r?\\n");
+    return ImmutableList.copyOf(lines);
+  }
+
+  public static void cleanDirectory(File dir) {
+    for (File file : dir.listFiles()) {
+      file.delete();
+    }
+  }
+
+  public static List<File> listFilesRecursively(File path) {
+    List<File> list;
+
+    list = new ArrayList<>();
+    listFilesRecursively(path, list);
+    return list;
+  }
+
+  private static void listFilesRecursively(File path, List<File> list) {
+    File[] files;
+
+    files = path.listFiles();
+    if (files != null) {
+      for (File file : files) {
+        list.add(file);
+        if (file.isDirectory()) {
+          listFilesRecursively(file, list);
+        }
+      }
+    }
+  }
+
+  public static void copyDirectories(File src, File dest) {
+    if (src.isFile()) {
+      throw new RuntimeException("src needs to a be a directory");
     }
 
-    public static void writeToFile(File file, String text) throws IOException {
-        writeToFile(file, text, false);
-    }
-
-    public static void writeToFile(File file, String text, boolean append) throws IOException {
-        try (BufferedWriter out = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(file, append)) )) {
-            out.write(text);
-        }
-    }
-
-    public static void writeToFile(String fileName, Collection lines) throws IOException {
-        writeToFile(new File(fileName), lines);
-    }
-    
-    public static void writeToFile(File file, Collection lines) throws IOException {
-        try (BufferedWriter out = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(file)) )) {
-            for (Object line : lines) {
-                out.write(line.toString() +"\n");
-            }
-        }
-    }        
-    
-    public static File[] namesToFiles(String[] names) {
-        File[]    files;
-        
-        files = new File[names.length];
-        for (int i = 0; i < files.length; i++) {
-            files[i] = new File(names[i]);
-        }
-        return files;
-    }
-    
-    public static byte[] readFileAsBytes(File file) throws IOException {
-        try(FileInputStream fIn = new FileInputStream(file)) {
-            byte[]    buf;
-
-            buf = new byte[(int)file.length()];
-            StreamUtil.readBytes( buf, 0, buf.length,
-                    new BufferedInputStream(fIn) );
-            return buf;
-        }
-    }
-    
-    public static int readFileAsInt(String file) throws IOException {
-        return readFileAsInt(new File(file));
-    }
-    
-    public static int readFileAsInt(File file) throws IOException {
-        return Integer.parseInt(readFileAsString(file).trim());
-    }
-    
-    public static String readFileAsString(String file) throws IOException {
-        return readFileAsString(new File(file));
-    }
-    
-    public static String readFileAsString(File file) throws IOException {
-        return new String(readFileAsBytes(file));
-    }
-
-    public static List<String> readFileAsLineList(File file) throws IOException {
-        String    s;
-        String[]    lines;
-        
-        s = readFileAsString(file);
-        lines = s.split("\\r?\\n");
-        return ImmutableList.copyOf(lines);
-    }
-    
-    public static void cleanDirectory(File dir) {
-        for (File file : dir.listFiles()) {
-            file.delete();
-        }
-    }
-    
-    public static List<File> listFilesRecursively(File path) {
-        List<File>    list;
-        
-        list = new ArrayList<>();
-        listFilesRecursively(path, list);
-        return list;
-    }
-    
-    private static void listFilesRecursively(File path, List<File> list) {
-        File[]    files;
-        
-        files = path.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                list.add(file);
-                if (file.isDirectory()) {
-                    listFilesRecursively(file, list);
-                }
-            }
-        }
-    }
-    
-    public static void copyDirectories(File src, File dest) {
-        if (src.isFile()) {
-            throw new RuntimeException("src needs to a be a directory");
-        }
-        
-        for (File srcFile : src.listFiles()) {
-            File destFile = new File(dest, srcFile.getName());
-            if (srcFile.isDirectory()) {
-                destFile.mkdir();
-                copyDirectories(srcFile, destFile);
-            }
-            else {
-                try {
-                    Files.copy(srcFile, destFile);
-                } catch (IOException e) {
-                    throw new RuntimeException("couldn't copy " + srcFile + " to " + destFile, e);
-                }
-            }
-        }
-    }
-    
-    public static List<Long> numericFilesInDirAsSortedLongList(File dir) {
-        List<Long> fileNumbers;
-        String[]    files;
-        
-        fileNumbers = new ArrayList<>();
-        files = dir.list();
-        if (files != null) {
-            for (String file : files) {
-                try {
-                    fileNumbers.add(Long.parseLong(file));
-                } catch (NumberFormatException nfe) {
-                    Log.info("Ignoring non-numeric file: ", file);
-                }
-            }
-            Collections.sort(fileNumbers);
-        }
-        return fileNumbers;
-    }
-    
-    public static List<Integer> numericFilesInDirAsSortedIntegerList(File dir) {
-        List<Integer> fileNumbers;
-        String[]    files;
-        
-        fileNumbers = new ArrayList<>();
-        files = dir.list();
-        if (files != null) {
-            for (String file : files) {
-                try {
-                    fileNumbers.add(Integer.parseInt(file));
-                } catch (NumberFormatException nfe) {
-                    Log.info("Ignoring non-numeric file: ", file);
-                }
-            }
-            Collections.sort(fileNumbers);
-        }
-        return fileNumbers;
-    }
-    
-    public enum FileMapMode {PrivateMap, FileBackedMap_Writable, FileBackedMap_ReadOnly};
-    
-    public static MappedByteBuffer mapFile(File file, FileMapMode fileMapMode) throws IOException {
-        return mapFile(new RandomAccessFile(file, fileMapMode == FileMapMode.FileBackedMap_Writable ? "rw" : "r"), fileMapMode, 0, file.length());
-    }
-    
-    public static MappedByteBuffer mapFile(RandomAccessFile rf, FileMapMode fileMapMode, long position, long size) throws IOException {
+    for (File srcFile : src.listFiles()) {
+      File destFile = new File(dest, srcFile.getName());
+      if (srcFile.isDirectory()) {
+        destFile.mkdir();
+        copyDirectories(srcFile, destFile);
+      } else {
         try {
-            MappedByteBuffer    mbb;
-            FileChannel         fc;
-            
-            fc = rf.getChannel();
-            switch (fileMapMode) {
-            case PrivateMap:
-                mbb = fc.map(MapMode.PRIVATE, position, size);
-                break;
-            case FileBackedMap_Writable: // fall through
-            case FileBackedMap_ReadOnly:
-                    mbb = fc.map(fileMapMode == FileMapMode.FileBackedMap_Writable ? MapMode.READ_WRITE : MapMode.READ_ONLY, position, size);
-                break;
-            default:
-                throw new RuntimeException("panic");
-            }
-            return mbb;
-        } finally {
-            rf.close();
+          Files.copy(srcFile, destFile);
+        } catch (IOException e) {
+          throw new RuntimeException("couldn't copy " + srcFile + " to " + destFile, e);
         }
+      }
     }
+  }
+
+  public static List<Long> numericFilesInDirAsSortedLongList(File dir) {
+    List<Long> fileNumbers;
+    String[] files;
+
+    fileNumbers = new ArrayList<>();
+    files = dir.list();
+    if (files != null) {
+      for (String file : files) {
+        try {
+          fileNumbers.add(Long.parseLong(file));
+        } catch (NumberFormatException nfe) {
+          Log.info("Ignoring non-numeric file: ", file);
+        }
+      }
+      Collections.sort(fileNumbers);
+    }
+    return fileNumbers;
+  }
+
+  public static List<Integer> numericFilesInDirAsSortedIntegerList(File dir) {
+    List<Integer> fileNumbers;
+    String[] files;
+
+    fileNumbers = new ArrayList<>();
+    files = dir.list();
+    if (files != null) {
+      for (String file : files) {
+        try {
+          fileNumbers.add(Integer.parseInt(file));
+        } catch (NumberFormatException nfe) {
+          Log.info("Ignoring non-numeric file: ", file);
+        }
+      }
+      Collections.sort(fileNumbers);
+    }
+    return fileNumbers;
+  }
+
+  public enum FileMapMode {PrivateMap, FileBackedMap_Writable, FileBackedMap_ReadOnly}
+
+  ;
+
+  public static MappedByteBuffer mapFile(File file, FileMapMode fileMapMode) throws IOException {
+    return mapFile(new RandomAccessFile(file, fileMapMode == FileMapMode.FileBackedMap_Writable ? "rw" : "r"),
+        fileMapMode, 0, file.length());
+  }
+
+  public static MappedByteBuffer mapFile(RandomAccessFile rf, FileMapMode fileMapMode, long position, long size)
+      throws IOException {
+    try {
+      MappedByteBuffer mbb;
+      FileChannel fc;
+
+      fc = rf.getChannel();
+      switch (fileMapMode) {
+      case PrivateMap:
+        mbb = fc.map(MapMode.PRIVATE, position, size);
+        break;
+      case FileBackedMap_Writable: // fall through
+      case FileBackedMap_ReadOnly:
+        mbb = fc.map(fileMapMode == FileMapMode.FileBackedMap_Writable ? MapMode.READ_WRITE : MapMode.READ_ONLY,
+            position, size);
+        break;
+      default:
+        throw new RuntimeException("panic");
+      }
+      return mbb;
+    } finally {
+      rf.close();
+    }
+  }
 }

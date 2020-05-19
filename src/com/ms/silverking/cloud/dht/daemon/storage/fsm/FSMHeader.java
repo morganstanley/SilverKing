@@ -12,77 +12,78 @@ import com.ms.silverking.collection.TupleUtil;
 
 /**
  * Instantiated representation of FSMHeader used to access the header.
- * 
+ * <p>
  * A header contains entries that describe the type and location of
- * LTVElements in the meta data segment. 
- * 
+ * LTVElements in the meta data segment.
+ * <p>
  * The header does not contain the LTVElements themselves.
  */
 public class FSMHeader {
-    /**
-     * A header consists of several entries. Each
-     * entry maps an FSMElementType to the offset of the
-     * LTVElement in the meta data segment.
-     */
-    private final Map<FSMElementType,Integer>   entries;
-    
-    public FSMHeader(Map<FSMElementType,Integer> entries) {
-        this.entries = entries;
+  /**
+   * A header consists of several entries. Each
+   * entry maps an FSMElementType to the offset of the
+   * LTVElement in the meta data segment.
+   */
+  private final Map<FSMElementType, Integer> entries;
+
+  public FSMHeader(Map<FSMElementType, Integer> entries) {
+    this.entries = entries;
+  }
+
+  public static FSMHeader create(List<LTVElement> elements) {
+    Map<FSMElementType, Integer> entries;
+    int offset;
+
+    offset = 0;
+    entries = new HashMap<>();
+    for (LTVElement element : elements) {
+      FSMElementType type;
+
+      type = FSMElementType.typeForOrdinal(element.getType());
+      entries.put(type, offset);
+      offset += element.getLength();
     }
-    
-    public static FSMHeader create(List<LTVElement> elements) {
-        Map<FSMElementType,Integer> entries;
-        int                         offset;
-        
-        offset = 0;
-        entries = new HashMap<>();
-        for (LTVElement element : elements) {
-            FSMElementType  type;
-            
-            type = FSMElementType.typeForOrdinal(element.getType());
-            entries.put(type, offset);
-            offset += element.getLength();
-        }
-        return new FSMHeader(entries);
+    return new FSMHeader(entries);
+  }
+
+  public static FSMHeader create(LTVElement... elements) {
+    return create(ImmutableList.copyOf(elements));
+  }
+
+  public List<Pair<FSMElementType, Integer>> getEntriesByAscendingOffset() {
+    List<Pair<FSMElementType, Integer>> l;
+
+    l = new ArrayList<>();
+    for (Map.Entry<FSMElementType, Integer> e : entries.entrySet()) {
+      l.add(new Pair<>(e.getKey(), e.getValue()));
     }
-    
-    public static FSMHeader create(LTVElement... elements) {
-        return create(ImmutableList.copyOf(elements));
+    return (List<Pair<FSMElementType, Integer>>) TupleUtil.copyAndSort(l, FSMHeaderElement.offsetFieldIndex,
+        IntegerComparator.instance);
+  }
+
+  public int getElementOffset(FSMElementType type) {
+    Integer offset;
+
+    offset = entries.get(type);
+    if (offset == null) {
+      return -1;
+    } else {
+      return offset;
     }
-    
-    public List<Pair<FSMElementType,Integer>> getEntriesByAscendingOffset() {
-        List<Pair<FSMElementType,Integer>>  l;
-        
-        l = new ArrayList<>();
-        for (Map.Entry<FSMElementType, Integer> e : entries.entrySet()) {
-            l.add(new Pair<>(e.getKey(), e.getValue()));
-        }
-        return (List<Pair<FSMElementType,Integer>>)TupleUtil.copyAndSort(l, FSMHeaderElement.offsetFieldIndex, IntegerComparator.instance);
+  }
+
+  public int getNumEntries() {
+    return entries.size();
+  }
+
+  @Override
+  public String toString() {
+    StringBuffer sb;
+
+    sb = new StringBuffer();
+    for (Map.Entry<FSMElementType, Integer> e : entries.entrySet()) {
+      sb.append(String.format("%s\t%s\n", e.getKey(), e.getValue()));
     }
-    
-    public int getElementOffset(FSMElementType type) {
-        Integer offset;
-        
-        offset = entries.get(type);
-        if (offset == null) {
-            return -1;
-        } else {
-            return offset;
-        }
-    }
-    
-    public int getNumEntries() {
-        return entries.size(); 
-    }
-    
-    @Override
-    public String toString() {
-        StringBuffer    sb;
-        
-        sb = new StringBuffer();
-        for (Map.Entry<FSMElementType, Integer> e : entries.entrySet()) {
-            sb.append(String.format("%s\t%s\n", e.getKey(), e.getValue()));
-        }
-        return sb.toString();
-    }
+    return sb.toString();
+  }
 }

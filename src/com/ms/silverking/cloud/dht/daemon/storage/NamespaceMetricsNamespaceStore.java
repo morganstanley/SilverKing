@@ -18,51 +18,51 @@ import com.ms.silverking.id.UUIDBase;
  * Provides information regarding the local DHT Node
  */
 class NamespaceMetricsNamespaceStore extends MetricsNamespaceStore {
-    private final NamespaceMetrics      nsMetrics;
-    
-    private static final Map<DHTKey,String> keyToNameMap;
-    
-    static {
-        KeyCreator<String>  keyCreator;
-        
-        keyToNameMap = new HashMap<>();
-        keyCreator = new StringMD5KeyCreator();
-        for (String metricName : NamespaceMetrics.getMetricNames()) {
-            keyToNameMap.put(keyCreator.createKey(metricName), metricName);
-        }
-    }
-    
-    NamespaceMetricsNamespaceStore(MessageGroupBase mgBase, 
-            NodeRingMaster2 ringMaster, 
-            ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals,
-            NamespaceStore nsStore) {
-        super(Namespace.namespaceMetricsBaseName + String.format("%x", nsStore.getNamespace()), mgBase, ringMaster, activeRetrievals, keyToNameMap);
-        this.nsMetrics = nsStore.getNamespaceMetrics();
-    }
-    
-    public static boolean isMetricKey(DHTKey key) {
-        return keyToNameMap.containsKey(key);
-    }
-    
-    public static String keyToName(DHTKey key) {
-        return keyToNameMap.get(key);
-    }
+  private final NamespaceMetrics nsMetrics;
 
-    protected byte[] createDynamicValue(DHTKey key, InternalRetrievalOptions options) {
-        String  name;
-        
-        name = keyToNameMap.get(key);
-        if (name != null) {
-            return nsMetrics.getMetric(name).toString().getBytes();
-        } else {
-            return null;
-        }
-        // FUTURE - support metadata
+  private static final Map<DHTKey, String> keyToNameMap;
+
+  static {
+    KeyCreator<String> keyCreator;
+
+    keyToNameMap = new HashMap<>();
+    keyCreator = new StringMD5KeyCreator();
+    for (String metricName : NamespaceMetrics.getMetricNames()) {
+      keyToNameMap.put(keyCreator.createKey(metricName), metricName);
     }
+  }
+
+  NamespaceMetricsNamespaceStore(MessageGroupBase mgBase, NodeRingMaster2 ringMaster,
+      ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals, NamespaceStore nsStore) {
+    super(Namespace.namespaceMetricsBaseName + String.format("%x", nsStore.getNamespace()), mgBase, ringMaster,
+        activeRetrievals, keyToNameMap);
+    this.nsMetrics = nsStore.getNamespaceMetrics();
+  }
+
+  public static boolean isMetricKey(DHTKey key) {
+    return keyToNameMap.containsKey(key);
+  }
+
+  public static String keyToName(DHTKey key) {
+    return keyToNameMap.get(key);
+  }
+
+  protected byte[] createDynamicValue(DHTKey key, InternalRetrievalOptions options) {
+    String name;
+
+    name = keyToNameMap.get(key);
+    if (name != null) {
+      return nsMetrics.getMetric(name).toString().getBytes();
+    } else {
+      return null;
+    }
+    // FUTURE - support metadata
+  }
 
     /*
     protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
-        Log.warningf("NamespaceMetricsNamespaceStore._retrieve() %x %s %s", getNamespace(), KeyUtil.keyToString(key), keyToNameMap.get(key));
+        Log.warningf("NamespaceMetricsNamespaceStore._retrieve() %x %s %s", getNamespace(), KeyUtil.keyToString(key),
+         keyToNameMap.get(key));
         return super.retrieve(key, options);
     }
     */

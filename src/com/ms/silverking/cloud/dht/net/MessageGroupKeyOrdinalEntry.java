@@ -12,42 +12,41 @@ import com.ms.silverking.numeric.NumConversion;
  * think about GC etc.
  * Also, think about GC is MessageGroup*Entry classes and overall organization
  * of these classes, usage, etc.
- * 
+ *
  * do we need equals and hashCode?
  */
 
 public class MessageGroupKeyOrdinalEntry extends MessageGroupKeyEntry {
-    private final DHTKey    dhtKey;
-    private final byte      ordinal;
-    
-    public static final int bytesPerEntry = 2 * NumConversion.BYTES_PER_LONG 
-                                            + 1; 
-    
-    private static final int    lslOffset = NumConversion.BYTES_PER_LONG;
-    private static final int    responseOffset = lslOffset + NumConversion.BYTES_PER_LONG;
-    
-    // FIXME - probably eliminate the locally stored key since MessageGroupKeyEntry
-    // can act as a key directly
-    // also examine usage and getKey() usage in particular to see if we can
-    // eliminate that call
-    
-    public MessageGroupKeyOrdinalEntry(long msl, long lsl, byte ordinal) {
-        super(msl, lsl);
-        this.dhtKey = new SimpleKey(msl, lsl);
-        this.ordinal = ordinal;
-    }
+  private final DHTKey dhtKey;
+  private final byte ordinal;
 
-    public MessageGroupKeyOrdinalEntry(ByteBuffer buffer, int offset) {
-        this(buffer.getLong(offset), buffer.getLong(offset + lslOffset), buffer.get(offset + responseOffset));
-    }
+  public static final int bytesPerEntry = 2 * NumConversion.BYTES_PER_LONG + 1;
 
-    public MessageGroupKeyOrdinalEntry(DHTKey key, byte ordinal) {
-        this(key.getMSL(), key.getLSL(), ordinal);
-    }
-    
-    public DHTKey getKey() {
-        return dhtKey;
-    }
+  private static final int lslOffset = NumConversion.BYTES_PER_LONG;
+  private static final int responseOffset = lslOffset + NumConversion.BYTES_PER_LONG;
+
+  // FIXME - probably eliminate the locally stored key since MessageGroupKeyEntry
+  // can act as a key directly
+  // also examine usage and getKey() usage in particular to see if we can
+  // eliminate that call
+
+  public MessageGroupKeyOrdinalEntry(long msl, long lsl, byte ordinal) {
+    super(msl, lsl);
+    this.dhtKey = new SimpleKey(msl, lsl);
+    this.ordinal = ordinal;
+  }
+
+  public MessageGroupKeyOrdinalEntry(ByteBuffer buffer, int offset) {
+    this(buffer.getLong(offset), buffer.getLong(offset + lslOffset), buffer.get(offset + responseOffset));
+  }
+
+  public MessageGroupKeyOrdinalEntry(DHTKey key, byte ordinal) {
+    this(key.getMSL(), key.getLSL(), ordinal);
+  }
+
+  public DHTKey getKey() {
+    return dhtKey;
+  }
     
     /*
     public MessageGroupKeyOrdinalEntry(long msl, long lsl, byte ordinal) {
@@ -69,12 +68,12 @@ public class MessageGroupKeyOrdinalEntry extends MessageGroupKeyEntry {
     }
     */
 
-    public byte getOrdinal() {
-        return ordinal;
-    }
+  public byte getOrdinal() {
+    return ordinal;
+  }
 
-    @Override
-    public String toString() {
-        return dhtKey +":"+ ordinal;
-    }
+  @Override
+  public String toString() {
+    return dhtKey + ":" + ordinal;
+  }
 }

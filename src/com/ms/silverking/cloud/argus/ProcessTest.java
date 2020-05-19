@@ -33,10 +33,13 @@ public class ProcessTest {
     private static final String thisClassPattern = ".*ProcessTest.*";
     private static final List<String>   masterExclusionList;
     
-    private static final String  defaultArgs = "Armed 10 5 .*NodeDaemon.* .*symphony.*pem .*platformShellSvc.*:.*ShellCommandService.*:.*3rd.*symphony.* .*gridtasks.*";
-    //private static final StringdefaultArgs = "Armed 10 5 .*NodeDaemon.* .*symphony.*pem .*platformShellSvc.*:.*ShellCommandService.* .*gridtasks.*";
+    private static final String  defaultArgs = "Armed 10 5 .*NodeDaemon.* .*symphony.*pem .*platformShellSvc.*:
+    .*ShellCommandService.*:.*3rd.*symphony.* .*gridtasks.*";
+    //private static final StringdefaultArgs = "Armed 10 5 .*NodeDaemon.* .*symphony.*pem .*platformShellSvc.*:
+    .*ShellCommandService.* .*gridtasks.*";
     //                                   terminatorMode inactiveIntervalSeconds> activeIntervalSeconds" +
-    //                                   priorityMaster:priorityMaster:...> <guestMaster:guestMaster:...> <guestMasterProxies> <priorityChildrenToIgnore>");
+    //                                   priorityMaster:priorityMaster:...> <guestMaster:guestMaster:...>
+    <guestMasterProxies> <priorityChildrenToIgnore>");
     
     static {
         masterExclusionList = new ArrayList<>();
@@ -83,7 +86,8 @@ public class ProcessTest {
         return pidList;
     }
     
-    private List<Integer> checkForProxies(Map<Integer,ProcTreeNode> procForest, List<Integer> pidList, List<String> proxyPatterns) {
+    private List<Integer> checkForProxies(Map<Integer,ProcTreeNode> procForest, List<Integer> pidList, List<String>
+    proxyPatterns) {
         List<Integer>  proxyPIDList;
         
         proxyPIDList = new ArrayList<>();
@@ -130,7 +134,8 @@ public class ProcessTest {
             List<Integer>   priorityPIDs;
             
             priorityPIDs = getMasterPIDList(activePIDs, priorityMasters);
-            //priorityPIDs = procReader.filteredActivePIDList(activePIDs, ProcReader.FilterType.INCLUSIVE, priorityMasters);
+            //priorityPIDs = procReader.filteredActivePIDList(activePIDs, ProcReader.FilterType.INCLUSIVE,
+            priorityMasters);
             //System.out.println(priorityPIDs.get(0) +"\t"+ procForest.get(priorityPIDs.get(0)).getDepth());
             if (active(procForest, priorityPIDs, null)) {
                 newGuestState = GuestState.CONFLICTED;
@@ -142,7 +147,8 @@ public class ProcessTest {
         } else {
             newGuestState = GuestState.INACTIVE;
             if (debug) {
-                if (active(procForest, procReader.filteredActivePIDList(activePIDs, ProcReader.FilterType.INCLUSIVE, priorityMasters), null)) {
+                if (active(procForest, procReader.filteredActivePIDList(activePIDs, ProcReader.FilterType.INCLUSIVE,
+                priorityMasters), null)) {
                     System.out.println("Priority is active");
                 } else {
                     System.out.println("Priority is not active");
@@ -154,7 +160,8 @@ public class ProcessTest {
             System.err.flush();
         }
         if (newGuestState != oldGuestState) {
-            System.out.println(IPAddrUtil.addrToString(IPAddrUtil.localIP()) +"\t"+ new Date() +"\t"+ oldGuestState +"\t"+ newGuestState); 
+            System.out.println(IPAddrUtil.addrToString(IPAddrUtil.localIP()) +"\t"+ new Date() +"\t"+ oldGuestState
+            +"\t"+ newGuestState);
             System.out.flush();
         }
         return newGuestState;
@@ -243,7 +250,8 @@ public class ProcessTest {
         try {
             if (args.length != 7 && args.length > 1) {
                 System.out.println("args: <terminatorMode> <inactiveIntervalSeconds> <activeIntervalSeconds> "
-                        +"<priorityMaster:priorityMaster:...> <guestMaster:guestMaster:...> <guestMasterProxies> <priorityChildrenToIgnore>");
+                        +"<priorityMaster:priorityMaster:...> <guestMaster:guestMaster:...> <guestMasterProxies>
+                        <priorityChildrenToIgnore>");
             } else {
                 ProcessTest pt;
                 String[]  priorityMasters;

@@ -12,199 +12,198 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
-    private final ConcurrentLinkedQueue<T> q;
-    private final AtomicInteger potentialWaiters;
-    private final Lock          lock;
-    private final Condition     nonEmpty;
-    private final long            spinsBeforeParking;
-    
-    private static final long    defaultSpinsBeforeParking = 10000;
-      
-    public LightLinkedBlockingQueue(long spinsBeforeParking) {
-        this.spinsBeforeParking = spinsBeforeParking;
-        q = new ConcurrentLinkedQueue<T>();
-        potentialWaiters = new AtomicInteger();
-        lock = new ReentrantLock();
-        nonEmpty = lock.newCondition();
-    }
+  private final ConcurrentLinkedQueue<T> q;
+  private final AtomicInteger potentialWaiters;
+  private final Lock lock;
+  private final Condition nonEmpty;
+  private final long spinsBeforeParking;
 
-    public LightLinkedBlockingQueue() {
-        this(defaultSpinsBeforeParking);
-    }
-    
-    public LightLinkedBlockingQueue(Collection<? extends T> c) {
-        this();
-        addAll(c);
-    }
-    
-    @Override
-    public boolean add(T e) {
-        throw new UnsupportedOperationException("Method not implemented");
-    }
+  private static final long defaultSpinsBeforeParking = 10000;
 
-    @Override
-    public boolean contains(Object o) {
-        return q.contains(o);
-    }
+  public LightLinkedBlockingQueue(long spinsBeforeParking) {
+    this.spinsBeforeParking = spinsBeforeParking;
+    q = new ConcurrentLinkedQueue<T>();
+    potentialWaiters = new AtomicInteger();
+    lock = new ReentrantLock();
+    nonEmpty = lock.newCondition();
+  }
 
-    @Override
-    public int drainTo(Collection<? super T> c, int maxElements) {
-        throw new UnsupportedOperationException("Method not implemented");
-    }
+  public LightLinkedBlockingQueue() {
+    this(defaultSpinsBeforeParking);
+  }
 
-    @Override
-    public int drainTo(Collection<? super T> c) {
-        throw new UnsupportedOperationException("Method not implemented");
-    }
+  public LightLinkedBlockingQueue(Collection<? extends T> c) {
+    this();
+    addAll(c);
+  }
 
-    @Override
-    public boolean offer(T e, long timeout, TimeUnit unit)
-            throws InterruptedException {
-        throw new UnsupportedOperationException("Method not implemented");
-    }
+  @Override
+  public boolean add(T e) {
+    throw new UnsupportedOperationException("Method not implemented");
+  }
 
-    @Override
-    public boolean offer(T e) {
-        return q.offer(e);
-    }
+  @Override
+  public boolean contains(Object o) {
+    return q.contains(o);
+  }
 
-    @Override
-    public void put(T e) throws InterruptedException {
-        q.add(e);
-        if (potentialWaiters.get() > 0) {
-            lock.lock();
-            try {
-                nonEmpty.signal();
-            } finally {
-                lock.unlock();
-            }
+  @Override
+  public int drainTo(Collection<? super T> c, int maxElements) {
+    throw new UnsupportedOperationException("Method not implemented");
+  }
+
+  @Override
+  public int drainTo(Collection<? super T> c) {
+    throw new UnsupportedOperationException("Method not implemented");
+  }
+
+  @Override
+  public boolean offer(T e, long timeout, TimeUnit unit) throws InterruptedException {
+    throw new UnsupportedOperationException("Method not implemented");
+  }
+
+  @Override
+  public boolean offer(T e) {
+    return q.offer(e);
+  }
+
+  @Override
+  public void put(T e) throws InterruptedException {
+    q.add(e);
+    if (potentialWaiters.get() > 0) {
+      lock.lock();
+      try {
+        nonEmpty.signal();
+      } finally {
+        lock.unlock();
+      }
+    }
+  }
+
+  public int moveAllFrom(Collection<? extends T> c) throws InterruptedException {
+    Collection<? extends T> tmp;
+    int numMoved;
+
+    tmp = new ArrayList<T>(c);
+    numMoved = tmp.size();
+    c.clear();
+    putAll(tmp);
+    return numMoved;
+  }
+
+  public void putAll(Collection<? extends T> c) throws InterruptedException {
+    q.addAll(c);
+    if (potentialWaiters.get() > 0) {
+      lock.lock();
+      try {
+        nonEmpty.signal();
+      } finally {
+        lock.unlock();
+      }
+    }
+  }
+
+  @Override
+  public T poll(long timeout, TimeUnit unit) throws InterruptedException {
+    T entry;
+    long spin;
+
+    // optimistic attempt to dequeue an entry without locking
+    spin = 0;
+    do {
+      entry = q.poll();
+    } while (entry == null && ++spin < spinsBeforeParking);
+    if (entry == null) {
+      // optimistic attempt failed, so we might need to wait
+      // coordinate with writers
+      potentialWaiters.incrementAndGet();
+      lock.lock();
+      try {
+        while ((entry = q.poll()) == null) {
+          boolean noTimeout;
+
+          // strictly speaking, we should accumulate wait time, don't do that yet
+          noTimeout = nonEmpty.await(timeout, unit);
+          if (!noTimeout) {
+            return null;
+          }
         }
+      } finally {
+        lock.unlock();
+        potentialWaiters.decrementAndGet();
+      }
     }
+    return entry;
+  }
 
-    public int moveAllFrom(Collection<? extends T> c) throws InterruptedException {
-        Collection<? extends T>    tmp;
-        int    numMoved;
-        
-        tmp = new ArrayList<T>(c);
-        numMoved = tmp.size();
-        c.clear();
-        putAll(tmp);
-        return numMoved;
-    }
-    
-    public void putAll(Collection<? extends T> c) throws InterruptedException {
-        q.addAll(c);
-        if (potentialWaiters.get() > 0) {
-            lock.lock();
-            try {
-                nonEmpty.signal();
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-    
-    @Override
-    public T poll(long timeout, TimeUnit unit) throws InterruptedException {
-        T       entry;
-        long    spin;
-        
-        // optimistic attempt to dequeue an entry without locking
-        spin = 0;
-        do {
-            entry = q.poll();
-        } while (entry == null && ++spin < spinsBeforeParking);
-        if (entry == null) {
-            // optimistic attempt failed, so we might need to wait
-            // coordinate with writers
-            potentialWaiters.incrementAndGet();
-            lock.lock();
-            try {
-                while ((entry = q.poll()) == null) {
-                    boolean noTimeout;
+  @Override
+  public T take() throws InterruptedException {
+    T entry;
+    int spin;
 
-                    // strictly speaking, we should accumulate wait time, don't do that yet
-                    noTimeout = nonEmpty.await(timeout, unit);
-                    if (!noTimeout) {
-                        return null;
-                    }
-                }
-            } finally {
-                lock.unlock();
-                potentialWaiters.decrementAndGet();
-            }
+    // optimistic attempt to dequeue an entry without locking
+    spin = 0;
+    do {
+      entry = q.poll();
+    } while (entry == null && ++spin < spinsBeforeParking);
+    if (entry == null) {
+      // optimistic attempt failed, so we might need to wait
+      // coordinate with writers
+      potentialWaiters.incrementAndGet();
+      lock.lock();
+      try {
+        while ((entry = q.poll()) == null) {
+          nonEmpty.await();
         }
-        return entry;
+      } finally {
+        lock.unlock();
+        potentialWaiters.decrementAndGet();
+      }
     }
-    
-    @Override
-    public T take() throws InterruptedException {
-        T   entry;
-        int    spin;
-        
-        // optimistic attempt to dequeue an entry without locking
-        spin = 0;
-        do {
-            entry = q.poll();
-        } while (entry == null && ++spin < spinsBeforeParking);
-        if (entry == null) {
-            // optimistic attempt failed, so we might need to wait
-            // coordinate with writers
-            potentialWaiters.incrementAndGet();
-            lock.lock();
-            try {
-                while ((entry = q.poll()) == null) {
-                    nonEmpty.await();
-                }
-            } finally {
-                lock.unlock();
-                potentialWaiters.decrementAndGet();
-            }
-        }
-        return entry;
-    }
+    return entry;
+  }
 
-    public int takeMultiple(T[] taken) throws InterruptedException {
-        T   entry;
-        int spin;
-        int numTaken;
-        
-        assert taken.length >= 2;
-        numTaken = 0;
-        // optimistic attempt to dequeue an entry without locking
-        spin = 0;
-        do {
-            entry = q.poll();
-        } while (entry == null && ++spin < spinsBeforeParking);
-        if (entry == null) {
-            // optimistic attempt failed, so we might need to wait
-            // coordinate with writers
-            potentialWaiters.incrementAndGet();
-            lock.lock();
-            try {
-                while ((entry = q.poll()) == null) {
-                    nonEmpty.await();
-                    //nonEmpty.awaitNanos(1000 * 1000); // FUTURE think about this
-                }
-            } finally {
-                lock.unlock();
-                potentialWaiters.decrementAndGet();
-            }
-            taken[0] = entry;
-            numTaken = 1;
-        } else {
-            taken[0] = entry;
-            numTaken = 1;
-            do {                
-                entry = q.poll();
-                if (entry != null) {
-                    taken[numTaken] = entry;
-                    ++numTaken;
-                }
-            } while (entry != null && numTaken < taken.length);
+  public int takeMultiple(T[] taken) throws InterruptedException {
+    T entry;
+    int spin;
+    int numTaken;
+
+    assert taken.length >= 2;
+    numTaken = 0;
+    // optimistic attempt to dequeue an entry without locking
+    spin = 0;
+    do {
+      entry = q.poll();
+    } while (entry == null && ++spin < spinsBeforeParking);
+    if (entry == null) {
+      // optimistic attempt failed, so we might need to wait
+      // coordinate with writers
+      potentialWaiters.incrementAndGet();
+      lock.lock();
+      try {
+        while ((entry = q.poll()) == null) {
+          nonEmpty.await();
+          //nonEmpty.awaitNanos(1000 * 1000); // FUTURE think about this
         }
-        return numTaken;
+      } finally {
+        lock.unlock();
+        potentialWaiters.decrementAndGet();
+      }
+      taken[0] = entry;
+      numTaken = 1;
+    } else {
+      taken[0] = entry;
+      numTaken = 1;
+      do {
+        entry = q.poll();
+        if (entry != null) {
+          taken[numTaken] = entry;
+          ++numTaken;
+        }
+      } while (entry != null && numTaken < taken.length);
     }
+    return numTaken;
+  }
     
     /*
     public int takeAll(Collection<? extends T> c) throws InterruptedException {
@@ -230,84 +229,84 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
         return entry;
     }
     */
-    
-    @Override
-    public int remainingCapacity() {
-        return Integer.MAX_VALUE;
-    }
 
-    @Override
-    public boolean remove(Object o) {
-        return q.remove(o);
-    }
-    
-    @Override
-    public T element() {
-        return q.element();
-    }
+  @Override
+  public int remainingCapacity() {
+    return Integer.MAX_VALUE;
+  }
 
-    @Override
-    public T peek() {
-        return q.peek();
-    }
+  @Override
+  public boolean remove(Object o) {
+    return q.remove(o);
+  }
 
-    @Override
-    public T poll() {
-        return q.poll();
-    }
+  @Override
+  public T element() {
+    return q.element();
+  }
 
-    @Override
-    public T remove() {
-        return q.remove();
-    }
+  @Override
+  public T peek() {
+    return q.peek();
+  }
 
-    @Override
-    public boolean addAll(Collection<? extends T> c) {
-        return q.addAll(c);
-    }
+  @Override
+  public T poll() {
+    return q.poll();
+  }
 
-    @Override
-    public void clear() {
-        q.clear();
-    }
+  @Override
+  public T remove() {
+    return q.remove();
+  }
 
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        return q.containsAll(c);
-    }
+  @Override
+  public boolean addAll(Collection<? extends T> c) {
+    return q.addAll(c);
+  }
 
-    @Override
-    public boolean isEmpty() {
-        return q.isEmpty();
-    }
+  @Override
+  public void clear() {
+    q.clear();
+  }
 
-    @Override
-    public Iterator<T> iterator() {
-        return q.iterator();
-    }
+  @Override
+  public boolean containsAll(Collection<?> c) {
+    return q.containsAll(c);
+  }
 
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        return q.removeAll(c);
-    }
+  @Override
+  public boolean isEmpty() {
+    return q.isEmpty();
+  }
 
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        return q.retainAll(c);
-    }
+  @Override
+  public Iterator<T> iterator() {
+    return q.iterator();
+  }
 
-    @Override
-    public int size() {
-        return q.size();
-    }
+  @Override
+  public boolean removeAll(Collection<?> c) {
+    return q.removeAll(c);
+  }
 
-    @Override
-    public Object[] toArray() {
-        return q.toArray();
-    }
+  @Override
+  public boolean retainAll(Collection<?> c) {
+    return q.retainAll(c);
+  }
 
-    @Override
-    public <T> T[] toArray(T[] a) {
-        return q.toArray(a);
-    }
+  @Override
+  public int size() {
+    return q.size();
+  }
+
+  @Override
+  public Object[] toArray() {
+    return q.toArray();
+  }
+
+  @Override
+  public <T> T[] toArray(T[] a) {
+    return q.toArray(a);
+  }
 }

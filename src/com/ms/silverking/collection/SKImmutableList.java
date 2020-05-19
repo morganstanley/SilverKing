@@ -11,159 +11,159 @@ import com.ms.silverking.util.Arrays;
 /**
  * An ImmutableList that allows nulls (unlike Guava)
  */
-public class SKImmutableList<T> implements List<T>{
-    private final T[]    elements;
-    
-    private SKImmutableList(T[]    elements) {
-        this.elements = elements;
-    }
-    
-    private SKImmutableList() {
-        this.elements = (T[])new Object[0];
-    }
-    
-    public static <T> SKImmutableList of() {
-        return new SKImmutableList<>();
-    }
+public class SKImmutableList<T> implements List<T> {
+  private final T[] elements;
 
-    public static <T> SKImmutableList copyOf(T[] a) {
-        return copyOf(a, 0, a.length);
-    }
-    
-    public static <T> SKImmutableList copyOf(T[] a, int fromIndex, int toIndex) {
-        T[]    elements;
-        int    length;
-        
-        length = toIndex - fromIndex;
-        if (length == 0) {
-            return of();
-        } else if (length > 0) {
-            //elements = (T[])Array.newInstance((Class<T>)a[0].getClass(), length);
-            elements = (T[])new Object[length];
-            System.arraycopy(a, fromIndex, elements, 0, length);
-            return new SKImmutableList<>(elements);
-        } else {
-            throw new InvalidParameterException();
-        }
-    }
-    
-    @Override
-    public int size() {
-        return elements.length;
-    }
+  private SKImmutableList(T[] elements) {
+    this.elements = elements;
+  }
 
-    @Override
-    public boolean isEmpty() {
-        return elements.length == 0;
-    }
+  private SKImmutableList() {
+    this.elements = (T[]) new Object[0];
+  }
 
-    @Override
-    public boolean contains(Object o) {
-        return Arrays.contains(elements, o);
-    }
+  public static <T> SKImmutableList of() {
+    return new SKImmutableList<>();
+  }
 
-    @Override
-    public Iterator<T> iterator() {
-        return Arrays.iterator(elements);
-    }
+  public static <T> SKImmutableList copyOf(T[] a) {
+    return copyOf(a, 0, a.length);
+  }
 
-    @Override
-    public Object[] toArray() {
-        Object[]    a;
-        
-        a = new Object[elements.length];
-        System.arraycopy(elements, 0, a, 0, elements.length);
-        return a;
-    }
+  public static <T> SKImmutableList copyOf(T[] a, int fromIndex, int toIndex) {
+    T[] elements;
+    int length;
 
-    @Override
-    public <T> T[] toArray(T[] a) {
-        System.arraycopy(elements, 0, a, 0, elements.length);
-        return a;
+    length = toIndex - fromIndex;
+    if (length == 0) {
+      return of();
+    } else if (length > 0) {
+      //elements = (T[])Array.newInstance((Class<T>)a[0].getClass(), length);
+      elements = (T[]) new Object[length];
+      System.arraycopy(a, fromIndex, elements, 0, length);
+      return new SKImmutableList<>(elements);
+    } else {
+      throw new InvalidParameterException();
     }
+  }
 
-    @Override
-    public boolean add(T e) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public int size() {
+    return elements.length;
+  }
 
-    @Override
-    public boolean remove(Object o) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public boolean isEmpty() {
+    return elements.length == 0;
+  }
 
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        throw new RuntimeException("Not yet implemented");
-    }
+  @Override
+  public boolean contains(Object o) {
+    return Arrays.contains(elements, o);
+  }
 
-    @Override
-    public boolean addAll(Collection<? extends T> c) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public Iterator<T> iterator() {
+    return Arrays.iterator(elements);
+  }
 
-    @Override
-    public boolean addAll(int index, Collection<? extends T> c) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public Object[] toArray() {
+    Object[] a;
 
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
+    a = new Object[elements.length];
+    System.arraycopy(elements, 0, a, 0, elements.length);
+    return a;
+  }
 
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public <T> T[] toArray(T[] a) {
+    System.arraycopy(elements, 0, a, 0, elements.length);
+    return a;
+  }
 
-    @Override
-    public void clear() {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public boolean add(T e) {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public T get(int index) {
-        return elements[index];
-    }
+  @Override
+  public boolean remove(Object o) {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public T set(int index, T element) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public boolean containsAll(Collection<?> c) {
+    throw new RuntimeException("Not yet implemented");
+  }
 
-    @Override
-    public void add(int index, T element) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public boolean addAll(Collection<? extends T> c) {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public T remove(int index) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public boolean addAll(int index, Collection<? extends T> c) {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public int indexOf(Object o) {
-        return Arrays.indexOf(elements, (T)o);
-    }
+  @Override
+  public boolean removeAll(Collection<?> c) {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public int lastIndexOf(Object o) {
-        return Arrays.lastIndexOf(elements, (T)o);
-    }
+  @Override
+  public boolean retainAll(Collection<?> c) {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public ListIterator<T> listIterator() {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public void clear() {
+    throw new UnsupportedOperationException();
+  }
 
-    @Override
-    public ListIterator<T> listIterator(int index) {
-        throw new UnsupportedOperationException();
-    }
+  @Override
+  public T get(int index) {
+    return elements[index];
+  }
 
-    @Override
-    public List<T> subList(int fromIndex, int toIndex) {
-        return copyOf(elements, fromIndex, toIndex);
-    }    
+  @Override
+  public T set(int index, T element) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void add(int index, T element) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public T remove(int index) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public int indexOf(Object o) {
+    return Arrays.indexOf(elements, (T) o);
+  }
+
+  @Override
+  public int lastIndexOf(Object o) {
+    return Arrays.lastIndexOf(elements, (T) o);
+  }
+
+  @Override
+  public ListIterator<T> listIterator() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public ListIterator<T> listIterator(int index) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public List<T> subList(int fromIndex, int toIndex) {
+    return copyOf(elements, fromIndex, toIndex);
+  }
 }

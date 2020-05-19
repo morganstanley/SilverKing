@@ -6,26 +6,27 @@ import java.nio.ByteBuffer;
 import java.nio.channels.GatheringByteChannel;
 
 public class ChannelUtil {
-    private static final int bufferSendLimit = 8;
+  private static final int bufferSendLimit = 8;
 
-    private static long totalBytes(ByteBuffer[] buffers) {
-        long    total;
-        
-        total = 0;
-        for (Buffer buffer : buffers) {
-            total += buffer.limit();
-        }
-        return total;
+  private static long totalBytes(ByteBuffer[] buffers) {
+    long total;
+
+    total = 0;
+    for (Buffer buffer : buffers) {
+      total += buffer.limit();
     }
-    
-    /**
-     * Emperical observation shows that throughput degrades significantly for
-     * gathered writes over a certain number of buffers. This method
-     * writes the buffer without exceeding this threshold.
-     * @param buffers
-     * @param channel
-     * @throws IOException
-     */
+    return total;
+  }
+
+  /**
+   * Emperical observation shows that throughput degrades significantly for
+   * gathered writes over a certain number of buffers. This method
+   * writes the buffer without exceeding this threshold.
+   *
+   * @param buffers
+   * @param channel
+   * @throws IOException
+   */
     /*
     public static void sendBuffers(ByteBuffer[] buffers, GatheringByteChannel outChannel) 
             throws IOException {
@@ -75,21 +76,19 @@ public class ChannelUtil {
         }
     }
     */
-    
-    public static long writeBuffersBatched(ByteBuffer[] buffers, GatheringByteChannel channel) 
-            throws IOException {
-        if (buffers.length < bufferSendLimit) {
-            return channel.write(buffers);
-        } else {
-            int     startIndex;
-            int     batchSize;
-            
-            startIndex = 0;
-            while (!buffers[startIndex].hasRemaining()) {
-                startIndex++;
-            }
-            batchSize = Math.min(buffers.length - startIndex, bufferSendLimit);
-            return channel.write(buffers, startIndex, batchSize);
+  public static long writeBuffersBatched(ByteBuffer[] buffers, GatheringByteChannel channel) throws IOException {
+    if (buffers.length < bufferSendLimit) {
+      return channel.write(buffers);
+    } else {
+      int startIndex;
+      int batchSize;
+
+      startIndex = 0;
+      while (!buffers[startIndex].hasRemaining()) {
+        startIndex++;
+      }
+      batchSize = Math.min(buffers.length - startIndex, bufferSendLimit);
+      return channel.write(buffers, startIndex, batchSize);
             /*
             while (true) {
                 int     startIndex;
@@ -103,6 +102,6 @@ public class ChannelUtil {
                 return channel.write(buffers, startIndex, batchSize);
             }
             */
-        }
     }
+  }
 }

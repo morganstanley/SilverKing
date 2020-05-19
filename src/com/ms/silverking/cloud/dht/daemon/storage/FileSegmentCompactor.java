@@ -9,10 +9,10 @@ import com.ms.silverking.collection.HashedSetMap;
 import com.ms.silverking.collection.Triple;
 
 public interface FileSegmentCompactor {
-    HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions,
-                                                              EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException;
+  HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber, NamespaceOptions nsOptions,
+      EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException;
 
-    void delete(File nsDir, int segmentNumber) throws IOException;
+  void delete(File nsDir, int segmentNumber) throws IOException;
 
-    int emptyTrashAndCompaction(File nsDir);
+  int emptyTrashAndCompaction(File nsDir);
 }

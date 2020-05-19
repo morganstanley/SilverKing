@@ -7,11 +7,12 @@ import java.net.InetSocketAddress;
  * incoming connection.
  */
 public interface ReceiverProvider {
-    /**
-     * Given a InetSocketAddress, return the Receiver for
-     * this address.
-     * @param addr
-     * @return
-     */
-    public Receiver getReceiver(InetSocketAddress addr);
+  /**
+   * Given a InetSocketAddress, return the Receiver for
+   * this address.
+   *
+   * @param addr
+   * @return
+   */
+  public Receiver getReceiver(InetSocketAddress addr);
 }

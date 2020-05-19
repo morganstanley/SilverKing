@@ -7,5 +7,5 @@ import java.nio.channels.SelectionKey;
  * registers a channel with a selector.
  */
 interface ChannelRegistrationWorker {
-    public void channelRegistered(SelectionKey key);
+  public void channelRegistered(SelectionKey key);
 }

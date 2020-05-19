@@ -9,28 +9,28 @@ import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
  */
 @NonVirtual
 public class WaitForCompletionException extends ClientException {
-    private final List<AsyncOperation>    failedOperations;
+  private final List<AsyncOperation> failedOperations;
 
-    public WaitForCompletionException(List<AsyncOperation> failedOperations) {
-        this.failedOperations = failedOperations;
-    }
+  public WaitForCompletionException(List<AsyncOperation> failedOperations) {
+    this.failedOperations = failedOperations;
+  }
 
-    public WaitForCompletionException(List<AsyncOperation> failedOperations, String cause) {
-        super(cause);
-        this.failedOperations = failedOperations;
-    }
+  public WaitForCompletionException(List<AsyncOperation> failedOperations, String cause) {
+    super(cause);
+    this.failedOperations = failedOperations;
+  }
 
-    public WaitForCompletionException(List<AsyncOperation> failedOperations, Throwable cause) {
-        super(cause);
-        this.failedOperations = failedOperations;
-    }
+  public WaitForCompletionException(List<AsyncOperation> failedOperations, Throwable cause) {
+    super(cause);
+    this.failedOperations = failedOperations;
+  }
 
-    public WaitForCompletionException(List<AsyncOperation> failedOperations, String message, Throwable cause) {
-        super(message, cause);
-        this.failedOperations = failedOperations;
-    }
+  public WaitForCompletionException(List<AsyncOperation> failedOperations, String message, Throwable cause) {
+    super(message, cause);
+    this.failedOperations = failedOperations;
+  }
 
-    public List<AsyncOperation> getFailedOperations() {
-        return failedOperations;
-    }
+  public List<AsyncOperation> getFailedOperations() {
+    return failedOperations;
+  }
 }

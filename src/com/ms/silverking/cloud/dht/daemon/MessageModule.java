@@ -13,8 +13,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -35,7 +33,6 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.LooseConsistency;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.RetrievalProtocol;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.SingleWriterConsistent;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocol;
-//import com.ms.silverking.cloud.dht.gcmd.GlobalCommandServer;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
@@ -44,9 +41,6 @@ import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyEntry;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
 import com.ms.silverking.cloud.dht.net.ProtoChecksumTreeRequestMessageGroup;
-//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandMessageGroup;
-//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandResultMessageGroup;
-//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandUpdateMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoNopMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoOpResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPingAckMessageGroup;
@@ -76,153 +70,162 @@ import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.SafeTimerTask;
+import org.apache.zookeeper.KeeperException;
+
+//import com.ms.silverking.cloud.dht.gcmd.GlobalCommandServer;
+//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandMessageGroup;
+//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandResultMessageGroup;
+//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandUpdateMessageGroup;
 
 /**
- * DHTNode message processing module. 
+ * DHTNode message processing module.
  */
 public class MessageModule implements MessageGroupReceiver, StorageReplicaProvider {
-    private final NodeRingMaster2   ringMaster;
-    private final MessageGroupBase  mgBase;
-    private final StorageModule     storage;
-    private final AbsMillisTimeSource   absMillisTimeSource;
-    private final Worker    worker;
-    private final IPAndPort       myIPAndPort;
-    private final IPAndPort[]     myIPAndPortArray;
-    private final PrimarySecondaryIPListPair systemNamespaceReplicaListPair;
-    private final List<IPAndPort> systemNamespaceReplicaList;
-    private final Set<IPAndPort>  systemNamespaceReplicas;
-    private final PeerHealthMonitor peerHealthMonitor;
-    private final SafeTimerTask cleanerTask;
-    //private final Timer    pingTimer;
-    //private final GlobalCommandServer globalCommandServer;
-    
-    // Note - removal of operations is done only in bulk
-    private final ConcurrentMap<UUIDBase,ActiveProxyPut>        activePuts;
-    private final ConcurrentMap<UUIDBase,ActiveProxyRetrieval>  activeRetrievals;
-    
-    private final StorageProtocol consistencyModeToStorageProtocol[];
-    private final StorageProtocol localConsistencyModeToStorageProtocol[];
-    private final RetrievalProtocol consistencyModeToRetrievalProtocol[];
-    
-    private static final boolean    debug = PropertiesHelper.systemHelper.getBoolean(MessageModule.class.getCanonicalName()+ ".debug", false);
-    private static final boolean    debugReceivedMessages = false || debug;
-    private static final boolean    debugCleanup = false || debug;
-    private static final boolean    debugShortTimeMessages = false || debug;
-    private static final int        shortTimeWarning = 1000;
-    
-    private static final int    replicaRetryBufferMS = 30;
-    private static final int    incomingConnectionBacklog = 4096;
-    
-    // FUTURE - add an option to set the number of selector controllers, or the
-    // manner in which this number is selected
-    //private static final int    numSelectorControllers = 1;
-    //private static final int    numSelectorControllers = Runtime.getRuntime().availableProcessors() / 2;
-    private static final int    numSelectorControllers = Runtime.getRuntime().availableProcessors();
-    private static final String selectorControllerClass = "MessageModule";
-    
-    private static final int    cleanupPeriodMillis = 2 * 1000;
-    //private static final int    cleanupPeriodMillis = 5 * 1000;
-    //private static final int    replicaTimeoutCheckPeriodMillis = 1 * 1000;
-    
-    private static final int    statsPeriodMillis = 10 * 1000;
-    
-    private static final int    maxDirectCallDepth = 10;
-    
-    private static final byte[] emptyIPAndPort = new byte[IPAddrUtil.IPV4_IP_AND_PORT_BYTES];
-    
-    private final AtomicLong    _complete = new AtomicLong();
-    private final AtomicLong    _incomplete = new AtomicLong();
-    private final AtomicLong    _notFound = new AtomicLong();
-    private static final boolean    debugCompletion = false;
-    
-    //private static final String    pingTimerName = "PingTimer";
-    //private static final long    minPingPeriodMillis = 1 * 1000;
-    //private static final long    targetPingsPerSecond = 2;
-    private static final long    interPingDelayMillis = 100;
-    
-    public static final String    nodePingerThreadName = "NodePinger";
-    private Pinger pingerThread;
+  private final NodeRingMaster2 ringMaster;
+  private final MessageGroupBase mgBase;
+  private final StorageModule storage;
+  private final AbsMillisTimeSource absMillisTimeSource;
+  private final Worker worker;
+  private final IPAndPort myIPAndPort;
+  private final IPAndPort[] myIPAndPortArray;
+  private final PrimarySecondaryIPListPair systemNamespaceReplicaListPair;
+  private final List<IPAndPort> systemNamespaceReplicaList;
+  private final Set<IPAndPort> systemNamespaceReplicas;
+  private final PeerHealthMonitor peerHealthMonitor;
+  private final SafeTimerTask cleanerTask;
+  //private final Timer    pingTimer;
+  //private final GlobalCommandServer globalCommandServer;
 
-    public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, 
-                         AbsMillisTimeSource absMillisTimeSource,
-                         Timer timer, int serverPort, MetaClient mc) throws IOException {
-        mgBase = new MessageGroupBase(serverPort, incomingConnectionBacklog, this, absMillisTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController,
-                                     null, Integer.MAX_VALUE, numSelectorControllers,
-                                     selectorControllerClass, ConvergenceController2.mqListener, ConvergenceController2.mqUUID);
-        this.ringMaster = ringMaster;
-        this.storage = storage;
-        this.absMillisTimeSource = absMillisTimeSource;
-        LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(workerPoolTargetSize).maxSize(workerPoolMaxSize));
-        worker = new Worker(workerPool);
-        // FUTURE - could consider using soft maps instead of explicit cleaning
-        //activePuts = new MapMaker().softValues().makeMap();
-        activePuts = new ConcurrentHashMap<>();
-        activeRetrievals = new ConcurrentHashMap<>();
-        
-        myIPAndPort = mgBase._getIPAndPort();
-        myIPAndPortArray = new IPAndPort[1];
-        myIPAndPortArray[0] = myIPAndPort;
-        
-        storage.setMessageGroupBase(mgBase);
-        storage.setActiveRetrievals(activeRetrievals);
-        storage.recoverExistingNamespaces();
-        storage.ensureMetaNamespaceStoreExists();
-        cleanerTask = new SafeTimerTask(new Cleaner());
-        timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
-        //timer.scheduleAtFixedRate(new StatsWorker(), statsPeriodMillis, statsPeriodMillis);
-        //timer.scheduleAtFixedRate(new ReplicaTimeoutChecker(), replicaTimeoutCheckPeriodMillis, replicaTimeoutCheckPeriodMillis);
-        systemNamespaceReplicas = ImmutableSet.of(myIPAndPort);
-        systemNamespaceReplicaList = ImmutableList.of(myIPAndPort);
-        systemNamespaceReplicaListPair = new PrimarySecondaryIPListPair(systemNamespaceReplicaList, 
-                                                                        IPAndPort.emptyList);
-        
-        consistencyModeToStorageProtocol = new StorageProtocol[EnumValues.consistencyProtocol.length];
-        consistencyModeToStorageProtocol[ConsistencyProtocol.LOOSE.ordinal()] = new LooseConsistency(this);
-        consistencyModeToStorageProtocol[ConsistencyProtocol.TWO_PHASE_COMMIT.ordinal()] = new SingleWriterConsistent(this);
-        
-        localConsistencyModeToStorageProtocol = new StorageProtocol[EnumValues.consistencyProtocol.length];
-        localConsistencyModeToStorageProtocol[ConsistencyProtocol.LOOSE.ordinal()] = new LooseConsistency(new LocalReplicaProvider());
-        localConsistencyModeToStorageProtocol[ConsistencyProtocol.TWO_PHASE_COMMIT.ordinal()] = new SingleWriterConsistent(new LocalReplicaProvider());
-        
-        consistencyModeToRetrievalProtocol = new RetrievalProtocol[consistencyModeToStorageProtocol.length];
-        for (int i = 0; i < consistencyModeToRetrievalProtocol.length; i++) {
-            consistencyModeToRetrievalProtocol[i] = (RetrievalProtocol)consistencyModeToStorageProtocol[i];
-        }
-        //pingTimer = new SafeTimer(pingTimerName);
-        //globalCommandServer = null;
-        try {
-            peerHealthMonitor = new PeerHealthMonitor(mc, myIPAndPort);
-        } catch (KeeperException ke) {
-            throw new RuntimeException("Exception creating PeerHealthMonitor", ke);
-        }
-        PeerStateWatcher.setPeerHealthMonitor(peerHealthMonitor);
-        mgBase.setPeerHealthMonitor(peerHealthMonitor);
-        ringMaster.setPeerHealthMonitor(peerHealthMonitor);
-        NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
-        DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
-    }
-    
-    public void enable() {
-        peerHealthMonitor.initialize();
-        mgBase.enable();
-    }
-    
-    public void start() {
-        establishConnections();
-        startPinger();
+  // Note - removal of operations is done only in bulk
+  private final ConcurrentMap<UUIDBase, ActiveProxyPut> activePuts;
+  private final ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals;
 
-    }
+  private final StorageProtocol consistencyModeToStorageProtocol[];
+  private final StorageProtocol localConsistencyModeToStorageProtocol[];
+  private final RetrievalProtocol consistencyModeToRetrievalProtocol[];
 
-    public void stop() {
-        cleanerTask.cancel();
-        if (pingerThread != null) {
-            pingerThread.stop();
-        }
-        mgBase.shutdown();
-        worker.stopLWTPool();
-    }
+  private static final boolean debug = PropertiesHelper.systemHelper.getBoolean(
+      MessageModule.class.getCanonicalName() + ".debug", false);
+  private static final boolean debugReceivedMessages = false || debug;
+  private static final boolean debugCleanup = false || debug;
+  private static final boolean debugShortTimeMessages = false || debug;
+  private static final int shortTimeWarning = 1000;
 
-    private void startPinger() {
+  private static final int replicaRetryBufferMS = 30;
+  private static final int incomingConnectionBacklog = 4096;
+
+  // FUTURE - add an option to set the number of selector controllers, or the
+  // manner in which this number is selected
+  //private static final int    numSelectorControllers = 1;
+  //private static final int    numSelectorControllers = Runtime.getRuntime().availableProcessors() / 2;
+  private static final int numSelectorControllers = Runtime.getRuntime().availableProcessors();
+  private static final String selectorControllerClass = "MessageModule";
+
+  private static final int cleanupPeriodMillis = 2 * 1000;
+  //private static final int    cleanupPeriodMillis = 5 * 1000;
+  //private static final int    replicaTimeoutCheckPeriodMillis = 1 * 1000;
+
+  private static final int statsPeriodMillis = 10 * 1000;
+
+  private static final int maxDirectCallDepth = 10;
+
+  private static final byte[] emptyIPAndPort = new byte[IPAddrUtil.IPV4_IP_AND_PORT_BYTES];
+
+  private final AtomicLong _complete = new AtomicLong();
+  private final AtomicLong _incomplete = new AtomicLong();
+  private final AtomicLong _notFound = new AtomicLong();
+  private static final boolean debugCompletion = false;
+
+  //private static final String    pingTimerName = "PingTimer";
+  //private static final long    minPingPeriodMillis = 1 * 1000;
+  //private static final long    targetPingsPerSecond = 2;
+  private static final long interPingDelayMillis = 100;
+
+  public static final String nodePingerThreadName = "NodePinger";
+  private Pinger pingerThread;
+
+  public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, AbsMillisTimeSource absMillisTimeSource,
+      Timer timer, int serverPort, MetaClient mc) throws IOException {
+    mgBase = new MessageGroupBase(serverPort, incomingConnectionBacklog, this, absMillisTimeSource,
+        PersistentAsyncServer.defaultNewConnectionTimeoutController, null, Integer.MAX_VALUE, numSelectorControllers,
+        selectorControllerClass, ConvergenceController2.mqListener, ConvergenceController2.mqUUID);
+    this.ringMaster = ringMaster;
+    this.storage = storage;
+    this.absMillisTimeSource = absMillisTimeSource;
+    LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(
+        workerPoolTargetSize).maxSize(workerPoolMaxSize));
+    worker = new Worker(workerPool);
+    // FUTURE - could consider using soft maps instead of explicit cleaning
+    //activePuts = new MapMaker().softValues().makeMap();
+    activePuts = new ConcurrentHashMap<>();
+    activeRetrievals = new ConcurrentHashMap<>();
+
+    myIPAndPort = mgBase._getIPAndPort();
+    myIPAndPortArray = new IPAndPort[1];
+    myIPAndPortArray[0] = myIPAndPort;
+
+    storage.setMessageGroupBase(mgBase);
+    storage.setActiveRetrievals(activeRetrievals);
+    storage.recoverExistingNamespaces();
+    storage.ensureMetaNamespaceStoreExists();
+    cleanerTask = new SafeTimerTask(new Cleaner());
+    timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
+    //timer.scheduleAtFixedRate(new StatsWorker(), statsPeriodMillis, statsPeriodMillis);
+    //timer.scheduleAtFixedRate(new ReplicaTimeoutChecker(), replicaTimeoutCheckPeriodMillis,
+    // replicaTimeoutCheckPeriodMillis);
+    systemNamespaceReplicas = ImmutableSet.of(myIPAndPort);
+    systemNamespaceReplicaList = ImmutableList.of(myIPAndPort);
+    systemNamespaceReplicaListPair = new PrimarySecondaryIPListPair(systemNamespaceReplicaList, IPAndPort.emptyList);
+
+    consistencyModeToStorageProtocol = new StorageProtocol[EnumValues.consistencyProtocol.length];
+    consistencyModeToStorageProtocol[ConsistencyProtocol.LOOSE.ordinal()] = new LooseConsistency(this);
+    consistencyModeToStorageProtocol[ConsistencyProtocol.TWO_PHASE_COMMIT.ordinal()] = new SingleWriterConsistent(this);
+
+    localConsistencyModeToStorageProtocol = new StorageProtocol[EnumValues.consistencyProtocol.length];
+    localConsistencyModeToStorageProtocol[ConsistencyProtocol.LOOSE.ordinal()] = new LooseConsistency(
+        new LocalReplicaProvider());
+    localConsistencyModeToStorageProtocol[ConsistencyProtocol.TWO_PHASE_COMMIT.ordinal()] = new SingleWriterConsistent(
+        new LocalReplicaProvider());
+
+    consistencyModeToRetrievalProtocol = new RetrievalProtocol[consistencyModeToStorageProtocol.length];
+    for (int i = 0; i < consistencyModeToRetrievalProtocol.length; i++) {
+      consistencyModeToRetrievalProtocol[i] = (RetrievalProtocol) consistencyModeToStorageProtocol[i];
+    }
+    //pingTimer = new SafeTimer(pingTimerName);
+    //globalCommandServer = null;
+    try {
+      peerHealthMonitor = new PeerHealthMonitor(mc, myIPAndPort);
+    } catch (KeeperException ke) {
+      throw new RuntimeException("Exception creating PeerHealthMonitor", ke);
+    }
+    PeerStateWatcher.setPeerHealthMonitor(peerHealthMonitor);
+    mgBase.setPeerHealthMonitor(peerHealthMonitor);
+    ringMaster.setPeerHealthMonitor(peerHealthMonitor);
+    NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
+    DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
+  }
+
+  public void enable() {
+    peerHealthMonitor.initialize();
+    mgBase.enable();
+  }
+
+  public void start() {
+    establishConnections();
+    startPinger();
+
+  }
+
+  public void stop() {
+    cleanerTask.cancel();
+    if (pingerThread != null) {
+      pingerThread.stop();
+    }
+    mgBase.shutdown();
+    worker.stopLWTPool();
+  }
+
+  private void startPinger() {
         /*
         int        numReplicas;
         long    pingPeriodMillis;
@@ -233,108 +236,111 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         pingPeriodMillis = Math.max(pingPeriodMillis, minPingPeriodMillis);
         pingTimer.scheduleAtFixedRate(new Pinger(), pingPeriodMillis, pingPeriodMillis);
         */
-        Log.warning("Starting Pinger");
-        pingerThread  = new Pinger();
-        new SafeThread(pingerThread, nodePingerThreadName, true).start();
+    Log.warning("Starting Pinger");
+    pingerThread = new Pinger();
+    new SafeThread(pingerThread, nodePingerThreadName, true).start();
+  }
+
+  public void setAddressStatusProvider(AddressStatusProvider addressStatusProvider) {
+    mgBase.setAddressStatusProvider(addressStatusProvider);
+  }
+
+  @Override
+  public void receive(MessageGroup message, MessageGroupConnection connection) {
+    int maxDirectCallDepth;
+    NamespaceProperties nsProperties;
+
+    nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.LocalCheckOnly);
+    if (nsProperties == null) {
+      // If we're using a SelectorThread to do this work, we can't allow this thread to block since we
+      // don't have any properties
+      maxDirectCallDepth = 0;
+    } else {
+      if (message.getForwardingMode() == ForwardingMode.DO_NOT_FORWARD && nsProperties.getOptions().getNamespaceServerSideCode() != null) {
+        // For non-forwarded messages, disallow all potential server side code usage of SelectorThreads
+        // We don't want communication to be dependent on server side code operation
+        maxDirectCallDepth = 0;
+      } else {
+        maxDirectCallDepth = Integer.MAX_VALUE;
+      }
     }
-    
-    public void setAddressStatusProvider(AddressStatusProvider addressStatusProvider) {
-        mgBase.setAddressStatusProvider(addressStatusProvider);
-    }
-    
-    @Override
-    public void receive(MessageGroup message, MessageGroupConnection connection) {
-        int maxDirectCallDepth;
-        NamespaceProperties    nsProperties;
-        
-        nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.LocalCheckOnly);
-        if (nsProperties == null) {
-            // If we're using a SelectorThread to do this work, we can't allow this thread to block since we
-            // don't have any properties
-            maxDirectCallDepth = 0;
-        } else {
-            if (message.getForwardingMode() == ForwardingMode.DO_NOT_FORWARD && nsProperties.getOptions().getNamespaceServerSideCode() != null) {
-                // For non-forwarded messages, disallow all potential server side code usage of SelectorThreads
-                // We don't want communication to be dependent on server side code operation
-                maxDirectCallDepth = 0;
-            } else {
-                maxDirectCallDepth = Integer.MAX_VALUE;
-            }
+    worker.addWork(new MessageAndConnection(message,
+            createProxyForConnection(connection, message.getDeadlineAbsMillis(absMillisTimeSource), message.getPeer())),
+        maxDirectCallDepth, Integer.MAX_VALUE);
+  }
+
+  /**
+   * Primary message processing routine.
+   *
+   * @param message
+   * @param connection
+   */
+  private void handleReceive(MessageGroup message, MessageGroupConnectionProxy connection) {
+    try {
+      if (debugReceivedMessages) {
+        Log.warningf("\t*** Received: %s\n%s", message, Thread.currentThread().getName());
+        //message.displayForDebug(true);
+      }
+      if (debugShortTimeMessages) {
+        if (message.getDeadlineRelativeMillis() < shortTimeWarning) {
+          Log.warning("\t*** Received short time message: ", message);
+          //message.displayForDebug(true);
         }
-        worker.addWork(new MessageAndConnection(message, createProxyForConnection(connection, message.getDeadlineAbsMillis(absMillisTimeSource), message.getPeer())), maxDirectCallDepth, Integer.MAX_VALUE);
-    }
-    
-    /**
-     * Primary message processing routine.
-     * @param message
-     * @param connection
-     */
-    private void handleReceive(MessageGroup message, MessageGroupConnectionProxy connection) {
-        try {
-            if (debugReceivedMessages) {
-                Log.warningf("\t*** Received: %s\n%s", message, Thread.currentThread().getName());
-                //message.displayForDebug(true);
-            }
-            if (debugShortTimeMessages) {
-                if (message.getDeadlineRelativeMillis() < shortTimeWarning) {
-                    Log.warning("\t*** Received short time message: ", message);
-                    //message.displayForDebug(true);
-                }
-            }
-            if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
-                if (debugReceivedMessages) {
-                    Log.warning("Setting message to peer: ", message.getMessageType());
-                }
-                message.setPeer(true);
-            }
-            switch (message.getMessageType()) {
-            case PUT:
-                handlePut(message, connection);
-                break;
-            case PUT_RESPONSE:
-                handlePutResponse(message, connection);
-                break;
-            case PUT_UPDATE:
-                handlePutUpdate(message, connection);
-                break;
-            case RETRIEVE:
-                handleRetrieve(message, connection);
-                break;
-            case RETRIEVE_RESPONSE:
-                handleRetrieveResponse(message, connection);
-                break;
-            case SNAPSHOT:
-                handleSnapshot(message, connection);
-                break;
-            case SYNC_REQUEST:
-                handleSyncRequest(message, getConnectionForRemote(connection));
-                break;
-            case CHECKSUM_TREE_REQUEST:
-                handleChecksumTreeRequest(message, getConnectionForRemote(connection));
-                break;
-            case CHECKSUM_TREE:
-                handleIncomingChecksumTree(message, getConnectionForRemote(connection));
-                break;
-            case OP_NOP:
-                handleNop(message, connection);
-                break;
-            case OP_PING:
-                handlePing(message, connection);
-                break;
-            case OP_PING_ACK:
-                handlePingAck(message, connection);
-                break;
-            case NAMESPACE_REQUEST:
-                handleNamespaceRequest(message, getConnectionForRemote(connection));
-                break;
-            case NAMESPACE_RESPONSE:
-                handleNamespaceResponse(message, getConnectionForRemote(connection));
-                break;
-            case SET_CONVERGENCE_STATE:
-                handleSetConvergenceState(message, getConnectionForRemote(connection));
-                break;
-            case REAP:
-                handleReap(message, getConnectionForRemote(connection));
+      }
+      if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
+        if (debugReceivedMessages) {
+          Log.warning("Setting message to peer: ", message.getMessageType());
+        }
+        message.setPeer(true);
+      }
+      switch (message.getMessageType()) {
+      case PUT:
+        handlePut(message, connection);
+        break;
+      case PUT_RESPONSE:
+        handlePutResponse(message, connection);
+        break;
+      case PUT_UPDATE:
+        handlePutUpdate(message, connection);
+        break;
+      case RETRIEVE:
+        handleRetrieve(message, connection);
+        break;
+      case RETRIEVE_RESPONSE:
+        handleRetrieveResponse(message, connection);
+        break;
+      case SNAPSHOT:
+        handleSnapshot(message, connection);
+        break;
+      case SYNC_REQUEST:
+        handleSyncRequest(message, getConnectionForRemote(connection));
+        break;
+      case CHECKSUM_TREE_REQUEST:
+        handleChecksumTreeRequest(message, getConnectionForRemote(connection));
+        break;
+      case CHECKSUM_TREE:
+        handleIncomingChecksumTree(message, getConnectionForRemote(connection));
+        break;
+      case OP_NOP:
+        handleNop(message, connection);
+        break;
+      case OP_PING:
+        handlePing(message, connection);
+        break;
+      case OP_PING_ACK:
+        handlePingAck(message, connection);
+        break;
+      case NAMESPACE_REQUEST:
+        handleNamespaceRequest(message, getConnectionForRemote(connection));
+        break;
+      case NAMESPACE_RESPONSE:
+        handleNamespaceResponse(message, getConnectionForRemote(connection));
+        break;
+      case SET_CONVERGENCE_STATE:
+        handleSetConvergenceState(message, getConnectionForRemote(connection));
+        break;
+      case REAP:
+        handleReap(message, getConnectionForRemote(connection));
                 /*
             case GLOBAL_COMMAND_NEW:
                 handleGlobalCommandNew(message, getConnectionForRemote(connection));
@@ -346,444 +352,442 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                 handleGlobalCommandResponse(message, getConnectionForRemote(connection));
                 break;
                 */
-             default:
-                 throw new RuntimeException("type not handled: "+ message.getMessageType());
-            }
-        } catch (RuntimeException re) {
-            Throwable    t;
-            
-            Log.warning("************************************** "+ Thread.currentThread().getName());
-            t = re;
-            while (t != null) {
-                Log.logErrorWarning(t);
-                t = t.getCause();
-                Log.warning("......................................");
-            }
-            Log.logErrorWarning(re, "MessageModule error processing connection: "+ connection.getConnectionID());
-        }
-    }
-    
-    private StorageProtocol getStorageProtocol(NamespaceOptions nsOptions) {
-        return consistencyModeToStorageProtocol[nsOptions.getConsistencyProtocol().ordinal()];
-    }
-    
-    private StorageProtocol getLocalStorageProtocol(NamespaceOptions nsOptions) {
-        return localConsistencyModeToStorageProtocol[nsOptions.getConsistencyProtocol().ordinal()];
-    }
-    
-    private MessageGroupConnection getConnectionForRemote(MessageGroupConnectionProxy connection) {
-        return ((MessageGroupConnectionProxyRemote)connection).getConnection();
-    }
-    
-    private MessageGroupConnectionProxy createProxyForConnection(MessageGroupConnection connection, long deadline, boolean peer) {
-        if (connection == null || connection.getRemoteIPAndPort().equals(myIPAndPort)) {
-            return new MessageGroupConnectionProxyLocal(worker);
-        } else {
-            if (!peer) {
-                return new MessageGroupConnectionProxyRemote(connection);
-            } else {
-                try {
-                    return new MessageGroupConnectionProxyRemote(mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
-                } catch (ConnectException ce) {
-                    Log.logErrorWarning(ce, "Reverting to incoming connection for outgoing messages for "+ connection);
-                    return new MessageGroupConnectionProxyRemote(connection);
-                }
-            }
-        }
-    }
-    
-    private void handlePut(MessageGroup message, MessageGroupConnectionProxy connection) {
-        NamespaceProperties nsProperties;
-        NamespaceOptions    nsOptions;
-        
-        nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.FetchRemotely);
-        nsOptions = nsProperties.getOptions();
-        if (message.getForwardingMode().forwards()) {
-            new ActiveProxyPut(message, connection, this, getStorageProtocol(nsOptions), 
-                    message.getDeadlineAbsMillis(absMillisTimeSource), false, nsOptions).startOperation();
-        } else {
-            new ActiveProxyPut(message, connection, this, getLocalStorageProtocol(nsOptions), 
-                    message.getDeadlineAbsMillis(absMillisTimeSource), true, nsOptions).startOperation();
-        }
-    }
-    
-    private RetrievalProtocol getRetrievalProtocol(NamespaceProperties nsProperties) {
-        NamespaceOptions    nsOptions;
-        
-        assert nsProperties != null;
-        nsOptions = nsProperties.getOptions();
-        assert nsOptions.getConsistencyProtocol() != null;
-        assert consistencyModeToRetrievalProtocol != null;
-        return consistencyModeToRetrievalProtocol[nsOptions.getConsistencyProtocol().ordinal()];
-    }
-    
-    private void handleRetrieve(MessageGroup message, MessageGroupConnectionProxy connection) {
-        NamespaceProperties nsProperties;
-        RetrievalProtocol   retrievalProtocol;
-        
-        try {
-            nsProperties = storage.getNamespaceProperties(message.getContext(), 
-                    NamespaceOptionsRetrievalMode.FetchRemotely);
-            retrievalProtocol = getRetrievalProtocol(nsProperties); 
-        } catch (NamespaceNotCreatedException nnce) {
-            // Allows metrics ns retrievals to return not found without requiring
-            // the ns creation on servers where no values are stored
-            retrievalProtocol = consistencyModeToRetrievalProtocol[ConsistencyProtocol.LOOSE.ordinal()];
-        }
-        new ActiveProxyRetrieval(message, connection, this, 
-                storage, ProtoRetrievalMessageGroup.getRetrievalOptions(message), 
-                retrievalProtocol, 
-                message.getDeadlineAbsMillis(absMillisTimeSource)).startOperation();
-    }
+      default:
+        throw new RuntimeException("type not handled: " + message.getMessageType());
+      }
+    } catch (RuntimeException re) {
+      Throwable t;
 
-    /**
-     * Process a retrieval response. For client-initiated retrievals, handle in the
-     * retrieval protocol. For locally-initiated synchronization, handle in the synchronization code. 
-     * @param message
-     * @param connection
-     */
-    void handleRetrieveResponse(MessageGroup message, MessageGroupConnectionProxy connection) {
-        Log.fine("handleRetrieveResponse");
-        if (debug) {
-            Log.warning("rr: "+ message +" "+ connection);
+      Log.warning("************************************** " + Thread.currentThread().getName());
+      t = re;
+      while (t != null) {
+        Log.logErrorWarning(t);
+        t = t.getCause();
+        Log.warning("......................................");
+      }
+      Log.logErrorWarning(re, "MessageModule error processing connection: " + connection.getConnectionID());
+    }
+  }
+
+  private StorageProtocol getStorageProtocol(NamespaceOptions nsOptions) {
+    return consistencyModeToStorageProtocol[nsOptions.getConsistencyProtocol().ordinal()];
+  }
+
+  private StorageProtocol getLocalStorageProtocol(NamespaceOptions nsOptions) {
+    return localConsistencyModeToStorageProtocol[nsOptions.getConsistencyProtocol().ordinal()];
+  }
+
+  private MessageGroupConnection getConnectionForRemote(MessageGroupConnectionProxy connection) {
+    return ((MessageGroupConnectionProxyRemote) connection).getConnection();
+  }
+
+  private MessageGroupConnectionProxy createProxyForConnection(MessageGroupConnection connection, long deadline,
+      boolean peer) {
+    if (connection == null || connection.getRemoteIPAndPort().equals(myIPAndPort)) {
+      return new MessageGroupConnectionProxyLocal(worker);
+    } else {
+      if (!peer) {
+        return new MessageGroupConnectionProxyRemote(connection);
+      } else {
+        try {
+          return new MessageGroupConnectionProxyRemote(
+              mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
+        } catch (ConnectException ce) {
+          Log.logErrorWarning(ce, "Reverting to incoming connection for outgoing messages for " + connection);
+          return new MessageGroupConnectionProxyRemote(connection);
         }
-        //if (Arrays.equals(message.getOriginator(), mgBase.getIPAndPort())) {
-            //storage.incomingSyncRetrievalResponse(message);
-        //} else {
-            ActiveProxyRetrieval activeRetrieval;
-            
-            activeRetrieval = activeRetrievals.get(message.getUUID());
-            if (activeRetrieval != null) {
-                OpResult    opResult;
-                
-                opResult = activeRetrieval.handleRetrievalResponse(message, connection);
-                if (opResult.isComplete()) { // FIXME - think about failures
-                    activeRetrievals.remove(message.getUUID());
-                    if (debugCompletion) {
-                        //_complete.incrementAndGet();
-                    }
-                } else {
-                    if (debugCompletion) {
-                        //_incomplete.incrementAndGet();
-                    }
-                }
-            } else {
-                //storage.incomingSyncRetrievalResponse(message);
-                storage.asyncInvocationNonBlocking("incomingSyncRetrievalResponse", message);
+      }
+    }
+  }
+
+  private void handlePut(MessageGroup message, MessageGroupConnectionProxy connection) {
+    NamespaceProperties nsProperties;
+    NamespaceOptions nsOptions;
+
+    nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.FetchRemotely);
+    nsOptions = nsProperties.getOptions();
+    if (message.getForwardingMode().forwards()) {
+      new ActiveProxyPut(message, connection, this, getStorageProtocol(nsOptions),
+          message.getDeadlineAbsMillis(absMillisTimeSource), false, nsOptions).startOperation();
+    } else {
+      new ActiveProxyPut(message, connection, this, getLocalStorageProtocol(nsOptions),
+          message.getDeadlineAbsMillis(absMillisTimeSource), true, nsOptions).startOperation();
+    }
+  }
+
+  private RetrievalProtocol getRetrievalProtocol(NamespaceProperties nsProperties) {
+    NamespaceOptions nsOptions;
+
+    assert nsProperties != null;
+    nsOptions = nsProperties.getOptions();
+    assert nsOptions.getConsistencyProtocol() != null;
+    assert consistencyModeToRetrievalProtocol != null;
+    return consistencyModeToRetrievalProtocol[nsOptions.getConsistencyProtocol().ordinal()];
+  }
+
+  private void handleRetrieve(MessageGroup message, MessageGroupConnectionProxy connection) {
+    NamespaceProperties nsProperties;
+    RetrievalProtocol retrievalProtocol;
+
+    try {
+      nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.FetchRemotely);
+      retrievalProtocol = getRetrievalProtocol(nsProperties);
+    } catch (NamespaceNotCreatedException nnce) {
+      // Allows metrics ns retrievals to return not found without requiring
+      // the ns creation on servers where no values are stored
+      retrievalProtocol = consistencyModeToRetrievalProtocol[ConsistencyProtocol.LOOSE.ordinal()];
+    }
+    new ActiveProxyRetrieval(message, connection, this, storage,
+        ProtoRetrievalMessageGroup.getRetrievalOptions(message), retrievalProtocol,
+        message.getDeadlineAbsMillis(absMillisTimeSource)).startOperation();
+  }
+
+  /**
+   * Process a retrieval response. For client-initiated retrievals, handle in the
+   * retrieval protocol. For locally-initiated synchronization, handle in the synchronization code.
+   *
+   * @param message
+   * @param connection
+   */
+  void handleRetrieveResponse(MessageGroup message, MessageGroupConnectionProxy connection) {
+    Log.fine("handleRetrieveResponse");
+    if (debug) {
+      Log.warning("rr: " + message + " " + connection);
+    }
+    //if (Arrays.equals(message.getOriginator(), mgBase.getIPAndPort())) {
+    //storage.incomingSyncRetrievalResponse(message);
+    //} else {
+    ActiveProxyRetrieval activeRetrieval;
+
+    activeRetrieval = activeRetrievals.get(message.getUUID());
+    if (activeRetrieval != null) {
+      OpResult opResult;
+
+      opResult = activeRetrieval.handleRetrievalResponse(message, connection);
+      if (opResult.isComplete()) { // FIXME - think about failures
+        activeRetrievals.remove(message.getUUID());
+        if (debugCompletion) {
+          //_complete.incrementAndGet();
+        }
+      } else {
+        if (debugCompletion) {
+          //_incomplete.incrementAndGet();
+        }
+      }
+    } else {
+      //storage.incomingSyncRetrievalResponse(message);
+      storage.asyncInvocationNonBlocking("incomingSyncRetrievalResponse", message);
                 /*
                 Log.warning("Couldn't find activeRetrieval for ", message);
                 if (debugCompletion) {
                     //_notFound.incrementAndGet();
                 }
                 */
-            }
-        //}
     }
-    
-    /**
-     * Process a put response.
-     * @param message
-     * @param connection
-     */
-    private void handlePutResponse(MessageGroup message, MessageGroupConnectionProxy connection) {
-        ActiveProxyPut  activePut;        
-        
-        activePut = activePuts.get(message.getUUID());
-        if (activePut != null) {
-            OpResult    opResult;
-            
-            opResult = activePut.handlePutResponse(message, connection);
-            if (opResult.isComplete()) {
-                activePuts.remove(message.getUUID());
-                if (debugCompletion) {
-                    _complete.incrementAndGet();
-                }
-            } else {
-                if (debugCompletion) {
-                    _incomplete.incrementAndGet();
-                }
-            }
-        } else {
-            Log.infoAsync("Couldn't find active put ", message.getUUID() 
-                    +" "+ new IPAndPort(message.getOriginator()));
-            if (debugCompletion) {
-                _notFound.incrementAndGet();
-            }
+    //}
+  }
+
+  /**
+   * Process a put response.
+   *
+   * @param message
+   * @param connection
+   */
+  private void handlePutResponse(MessageGroup message, MessageGroupConnectionProxy connection) {
+    ActiveProxyPut activePut;
+
+    activePut = activePuts.get(message.getUUID());
+    if (activePut != null) {
+      OpResult opResult;
+
+      opResult = activePut.handlePutResponse(message, connection);
+      if (opResult.isComplete()) {
+        activePuts.remove(message.getUUID());
+        if (debugCompletion) {
+          _complete.incrementAndGet();
         }
+      } else {
+        if (debugCompletion) {
+          _incomplete.incrementAndGet();
+        }
+      }
+    } else {
+      Log.infoAsync("Couldn't find active put ", message.getUUID() + " " + new IPAndPort(message.getOriginator()));
+      if (debugCompletion) {
+        _notFound.incrementAndGet();
+      }
     }
-    
-    /**
-     * Process a put update.
-     * @param message
-     * @param connection
-     */
-    private void handlePutUpdate(MessageGroup message, MessageGroupConnectionProxy connection) {
-        List<PutResult> results;
-        long            version;
-        byte            storageState;
-        
-        version = ProtoPutUpdateMessageGroup.getPutVersion(message);
-        storageState = ProtoPutUpdateMessageGroup.getStorageState(message);
+  }
+
+  /**
+   * Process a put update.
+   *
+   * @param message
+   * @param connection
+   */
+  private void handlePutUpdate(MessageGroup message, MessageGroupConnectionProxy connection) {
+    List<PutResult> results;
+    long version;
+    byte storageState;
+
+    version = ProtoPutUpdateMessageGroup.getPutVersion(message);
+    storageState = ProtoPutUpdateMessageGroup.getStorageState(message);
+    if (debug) {
+      Log.warningAsyncf("handlePutUpdate storageState: %s ", storageState);
+    }
+    results = new ArrayList<>();
+    for (MessageGroupKeyEntry entry : message.getKeyIterator()) {
+      OpResult opResult;
+
+      opResult = storage.putUpdate(message.getContext(), entry, version, storageState);
+      results.add(new PutResult(entry, opResult));
+    }
+    sendPutResults(message, version, connection, results, storageState, message.getDeadlineRelativeMillis());
+  }
+
+  ////////////////////////////
+
+  // FUTURE make ActiveProxyPut use this after we have it working for PutUpdate
+  // and after the below FUTUREs have been resolved
+  protected void sendPutResults(MessageGroup message, long version, MessageGroupConnectionProxy connection,
+      List<PutResult> results, byte storageState, int deadlineRelativeMillis) {
+    sendPutResults(message.getUUID(), message.getContext(), version, connection, results, storageState,
+        deadlineRelativeMillis);
+  }
+
+  protected void sendPutResults(UUIDBase uuid, long context, long version, MessageGroupConnectionProxy connection,
+      List<PutResult> results, byte storageState, int deadlineRelativeMillis) {
+    ProtoPutResponseMessageGroup response;
+
+    if (results.size() > 0) {
+      response = new ProtoPutResponseMessageGroup(uuid, context, version,
+          // FUTURE - does ProtoPutResponseMessageGroup really need version when we're using the uuid now?
+          results.size(), mgBase.getMyID(), storageState,
+          deadlineRelativeMillis); // FUTURE - allow constructor without this?
+      if (debug) {
+        Log.warningAsyncf("results.size: %d", results.size());
+      }
+      for (PutResult result : results) {
         if (debug) {
-            Log.warningAsyncf("handlePutUpdate storageState: %s ", storageState);
+          Log.warningAsync(result);
         }
-        results = new ArrayList<>();
-        for (MessageGroupKeyEntry entry : message.getKeyIterator()) {
-            OpResult    opResult;
-            
-            opResult = storage.putUpdate(message.getContext(), entry,
-                    version, storageState);
-            results.add(new PutResult(entry, opResult));
-        }
-        sendPutResults(message, version, connection, results, 
-                    storageState, message.getDeadlineRelativeMillis());
-    }
-    
-    ////////////////////////////
-    
-    // FUTURE make ActiveProxyPut use this after we have it working for PutUpdate
-    // and after the below FUTUREs have been resolved
-    protected void sendPutResults(MessageGroup message, long version, 
-                               MessageGroupConnectionProxy connection, List<PutResult> results, byte storageState, 
-                               int deadlineRelativeMillis) {
-        sendPutResults(message.getUUID(), message.getContext(), version, connection, results, storageState, deadlineRelativeMillis);
-    }
-    
-    protected void sendPutResults(UUIDBase uuid, long context, long version, 
-                               MessageGroupConnectionProxy connection, List<PutResult> results, byte storageState, 
-                               int deadlineRelativeMillis) {
-        ProtoPutResponseMessageGroup    response;
-        
-        if (results.size() > 0) {
-            response = new ProtoPutResponseMessageGroup(uuid, context, 
-                                    version, // FUTURE - does ProtoPutResponseMessageGroup really need version when we're using the uuid now? 
-                                    results.size(), 
-                                    mgBase.getMyID(), storageState, deadlineRelativeMillis); // FUTURE - allow constructor without this?
-            if (debug) {
-                Log.warningAsyncf("results.size: %d", results.size());
-            }
-            for (PutResult result : results) {
-                if (debug) {
-                    Log.warningAsync(result);
-                }
-                response.addResult(result.getKey(), result.getResult());           
-            }
-            try {
-                MessageGroup    mg;
-                
-                mg = response.toMessageGroup();
-                if (Log.levelMet(Level.FINE)) {
-                    Log.warning("sendResults: "+ connection.getConnectionID());
-                    mg.displayForDebug(true);
-                }
-                connection.sendAsynchronous(mg, mg.getDeadlineAbsMillis(getAbsMillisTimeSource()));
-            } catch (IOException ioe) {
-                Log.logErrorWarning(ioe);
-            }
-        }
-    }
-    
-    
-    ///////////////////////////////////
-    
-    private class LocalReplicaProvider implements StorageReplicaProvider {
-        LocalReplicaProvider() {
-        }
-        
-        @Override
-        public IPAndPort[] getReplicas(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType ownerQueryOpType) {
-            switch (oqm) {
-            case Primary: return myIPAndPortArray;
-            case Secondary: return null;
-            case All: return myIPAndPortArray;
-            default: throw new RuntimeException("panic");
-            }
-        }
+        response.addResult(result.getKey(), result.getResult());
+      }
+      try {
+        MessageGroup mg;
 
-        @Override
-        public boolean isLocal(IPAndPort replica) {
-            return false;
+        mg = response.toMessageGroup();
+        if (Log.levelMet(Level.FINE)) {
+          Log.warning("sendResults: " + connection.getConnectionID());
+          mg.displayForDebug(true);
         }
+        connection.sendAsynchronous(mg, mg.getDeadlineAbsMillis(getAbsMillisTimeSource()));
+      } catch (IOException ioe) {
+        Log.logErrorWarning(ioe);
+      }
     }
-    
-    public PrimarySecondaryIPListPair getReplicaListPair(long context, DHTKey key, RingOwnerQueryOpType ownerQueryOpType) {
-        if (StorageModule.isDynamicNamespace(context)) {
-            return systemNamespaceReplicaListPair;
-        } else {
-            PrimarySecondaryIPListPair  replicaListPair;
-            
-            if (debug) {
-                Log.warningAsyncf("getReplicaListPair: %s ", key);
-            }
-            // FUTURE - think about improvements
-            replicaListPair = ringMaster.getReplicaListPair(key, ownerQueryOpType);
-            if (debug) {
-                Log.fineAsyncf("%s \t %s :", key , replicaListPair);
-            }
-            return replicaListPair;
-        }
+  }
+
+  ///////////////////////////////////
+
+  private class LocalReplicaProvider implements StorageReplicaProvider {
+    LocalReplicaProvider() {
     }
 
-    public List<IPAndPort> getReplicaList(long context, DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType ownerQueryOpType) {
-        if (StorageModule.isDynamicNamespace(context)) {
-            return systemNamespaceReplicaList;
-        } else {
-            List<IPAndPort>   replicaList;
-            
-            if (debug) {
-                Log.warningAsyncf("getReplicas %s \t %s",key , oqm);
-            }
-            // FUTURE - think about improvements
-            replicaList = ringMaster.getReplicaList(key, oqm, ownerQueryOpType);
-            if (debug) {
-                Log.warningAsyncf("%s \t %s",key , CollectionUtil.toString(replicaList, ':'));
-            }
-            return replicaList;
-        }
-    }
-    
     @Override
     public IPAndPort[] getReplicas(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType ownerQueryOpType) {
-        IPAndPort[]   replicas;
-        
-        if (debug) {
-            Log.warningAsyncf("getPrimaryReplicas ", key);
-        }
-        // FUTURE - think about improvements
-        replicas = ringMaster.getReplicas(key, oqm, ownerQueryOpType);
-        if (debug) {
-            Log.warningAsyncf("%s \t %s", key , IPAndPort.arrayToString(replicas));
-        }
-        return replicas;
+      switch (oqm) {
+      case Primary:
+        return myIPAndPortArray;
+      case Secondary:
+        return null;
+      case All:
+        return myIPAndPortArray;
+      default:
+        throw new RuntimeException("panic");
+      }
     }
-    
-    public IPAndPort localIPAndPort() {
-        return myIPAndPort;
-    }
-    
+
     @Override
     public boolean isLocal(IPAndPort replica) {
-        if (debug) {
-            Log.warningAsyncf("#### %s %s\t%s",replica, myIPAndPort, replica.equals(myIPAndPort));
-        }
-        return replica.equals(myIPAndPort);
+      return false;
     }
-    
-    public Set<IPAndPort> getSecondarySet(Set<SecondaryTarget> secondaryTargets) {
-        return ringMaster.getSecondarySet(secondaryTargets);
-    }
-    
-    ///////////////////////////////////
-    
-    private void handleSnapshot(MessageGroup message, MessageGroupConnectionProxy connection) {
-        long    version;
-        ProtoOpResponseMessageGroup response;
-        OpResult    result;
-        
-        if (Log.levelMet(Level.FINE)) {
-            message.displayForDebug();
-        }
-        version = ProtoSnapshotMessageGroup.getVersion(message);
-        result = storage.snapshot(message.getContext(), version);
-        response = new ProtoOpResponseMessageGroup(message.getUUID(), 
-                        message.getContext(), 
-                        result, 
-                        mgBase.getMyID(), 
-                        message.getDeadlineRelativeMillis());
-        try {
-            connection.sendAsynchronous(response.toMessageGroup(), message.getDeadlineAbsMillis(absMillisTimeSource));
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-    }
+  }
 
-    // sync requests are only for testing
-    private void handleSyncRequest(MessageGroup message, MessageGroupConnection connection) {
-        long    version;
-        ProtoOpResponseMessageGroup response;
-        
-        if (Log.levelMet(Level.FINE)) {
-            message.displayForDebug();
-        }
-        Log.warning("handleSyncRequest");
-        version = ProtoVersionedBasicOpMessageGroup.getVersion(message);
-        requestChecksumTree(version);
-        response = new ProtoOpResponseMessageGroup(message.getUUID(), 
-                        message.getContext(), 
-                        OpResult.SUCCEEDED, 
-                        mgBase.getMyID(), 
-                        message.getDeadlineRelativeMillis());
-        try {
-            connection.sendAsynchronous(response.toMessageGroup(), message.getDeadlineAbsMillis(absMillisTimeSource));
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-    }
-    
-    // used only for testing
-    private void requestChecksumTree(long version) {
-        Log.warning("requestChecksumTree");
-        throw new RuntimeException("deprecated testing"); // FUTURE remove after double checking
-        //storage.requestChecksumTree(version);
-    }
+  public PrimarySecondaryIPListPair getReplicaListPair(long context, DHTKey key,
+      RingOwnerQueryOpType ownerQueryOpType) {
+    if (StorageModule.isDynamicNamespace(context)) {
+      return systemNamespaceReplicaListPair;
+    } else {
+      PrimarySecondaryIPListPair replicaListPair;
 
-    private void handleChecksumTreeRequest(MessageGroup message, MessageGroupConnection connection) {
-        ConvergencePoint    targetCP;
-        ConvergencePoint    sourceCP;
-        RingRegion          region;
-        boolean                localFlag;
-        
-        if (Log.levelMet(Level.FINE)) {
-            Log.warning("handleChecksumTreeRequest");
-            message.displayForDebug();
-        }
-        targetCP = ProtoChecksumTreeRequestMessageGroup.getTargetConvergencePoint(message);
-        sourceCP = ProtoChecksumTreeRequestMessageGroup.getSourceConvergencePoint(message);
-        region = ProtoChecksumTreeRequestMessageGroup.getRegion(message);
-        localFlag = ProtoChecksumTreeRequestMessageGroup.getLocalFlag(message);
-        //storage.getChecksumTreeForRemote(message.getContext(), message.getUUID(), 
-        //                        targetCP, sourceCP, connection, message.getOriginator(), region);
-        if (!localFlag) {
-            storage.asyncInvocationNonBlocking("getChecksumTreeForRemote", message.getContext(), message.getUUID(), 
-                targetCP, sourceCP, connection, message.getOriginator(), region);
-        } else {
-            IPAndPort    replica;
-            
-            replica = ProtoChecksumTreeRequestMessageGroup.getReplica(message);
-            storage.asyncInvocationBlocking("getChecksumTreeForLocal", message.getContext(), message.getUUID(), 
-                    targetCP, sourceCP, connection, message.getOriginator(), region, replica, message.getDeadlineRelativeMillis());
-        }
+      if (debug) {
+        Log.warningAsyncf("getReplicaListPair: %s ", key);
+      }
+      // FUTURE - think about improvements
+      replicaListPair = ringMaster.getReplicaListPair(key, ownerQueryOpType);
+      if (debug) {
+        Log.fineAsyncf("%s \t %s :", key, replicaListPair);
+      }
+      return replicaListPair;
     }
-    
-    private void handleIncomingChecksumTree(MessageGroup message, MessageGroupConnection connection) {
-        if (Log.levelMet(Level.FINE)) {
-            Log.warning("handleIncomingChecksumTree");
-            message.displayForDebug();
-        }
-        //storage.incomingChecksumTree(message, connection);
-        storage.asyncInvocationNonBlocking("incomingChecksumTree", message, connection);
+  }
+
+  public List<IPAndPort> getReplicaList(long context, DHTKey key, OwnerQueryMode oqm,
+      RingOwnerQueryOpType ownerQueryOpType) {
+    if (StorageModule.isDynamicNamespace(context)) {
+      return systemNamespaceReplicaList;
+    } else {
+      List<IPAndPort> replicaList;
+
+      if (debug) {
+        Log.warningAsyncf("getReplicas %s \t %s", key, oqm);
+      }
+      // FUTURE - think about improvements
+      replicaList = ringMaster.getReplicaList(key, oqm, ownerQueryOpType);
+      if (debug) {
+        Log.warningAsyncf("%s \t %s", key, CollectionUtil.toString(replicaList, ':'));
+      }
+      return replicaList;
     }
-    
-    ////////////////////////////
-    
-    private void handleNamespaceRequest(MessageGroup message, MessageGroupConnection connection) {
-        storage.handleNamespaceRequest(message, connection);
+  }
+
+  @Override
+  public IPAndPort[] getReplicas(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType ownerQueryOpType) {
+    IPAndPort[] replicas;
+
+    if (debug) {
+      Log.warningAsyncf("getPrimaryReplicas ", key);
     }
-    
-    private void handleNamespaceResponse(MessageGroup message, MessageGroupConnection connection) {
-        //storage.handleNamespaceResponse(message, connection);
-        storage.asyncInvocationNonBlocking("handleNamespaceResponse", message, connection);
+    // FUTURE - think about improvements
+    replicas = ringMaster.getReplicas(key, oqm, ownerQueryOpType);
+    if (debug) {
+      Log.warningAsyncf("%s \t %s", key, IPAndPort.arrayToString(replicas));
     }
-    
-    private void handleSetConvergenceState(MessageGroup message, MessageGroupConnection connectionForRemote) {
-        storage.handleSetConvergenceState(message, connectionForRemote);
+    return replicas;
+  }
+
+  public IPAndPort localIPAndPort() {
+    return myIPAndPort;
+  }
+
+  @Override
+  public boolean isLocal(IPAndPort replica) {
+    if (debug) {
+      Log.warningAsyncf("#### %s %s\t%s", replica, myIPAndPort, replica.equals(myIPAndPort));
     }
-    
-    private void handleReap(MessageGroup message, MessageGroupConnection connectionForRemote) {
-        storage.handleReap(message, connectionForRemote);
+    return replica.equals(myIPAndPort);
+  }
+
+  public Set<IPAndPort> getSecondarySet(Set<SecondaryTarget> secondaryTargets) {
+    return ringMaster.getSecondarySet(secondaryTargets);
+  }
+
+  ///////////////////////////////////
+
+  private void handleSnapshot(MessageGroup message, MessageGroupConnectionProxy connection) {
+    long version;
+    ProtoOpResponseMessageGroup response;
+    OpResult result;
+
+    if (Log.levelMet(Level.FINE)) {
+      message.displayForDebug();
     }
-    
-    ////////////////////////////
+    version = ProtoSnapshotMessageGroup.getVersion(message);
+    result = storage.snapshot(message.getContext(), version);
+    response = new ProtoOpResponseMessageGroup(message.getUUID(), message.getContext(), result, mgBase.getMyID(),
+        message.getDeadlineRelativeMillis());
+    try {
+      connection.sendAsynchronous(response.toMessageGroup(), message.getDeadlineAbsMillis(absMillisTimeSource));
+    } catch (IOException ioe) {
+      ioe.printStackTrace();
+    }
+  }
+
+  // sync requests are only for testing
+  private void handleSyncRequest(MessageGroup message, MessageGroupConnection connection) {
+    long version;
+    ProtoOpResponseMessageGroup response;
+
+    if (Log.levelMet(Level.FINE)) {
+      message.displayForDebug();
+    }
+    Log.warning("handleSyncRequest");
+    version = ProtoVersionedBasicOpMessageGroup.getVersion(message);
+    requestChecksumTree(version);
+    response = new ProtoOpResponseMessageGroup(message.getUUID(), message.getContext(), OpResult.SUCCEEDED,
+        mgBase.getMyID(), message.getDeadlineRelativeMillis());
+    try {
+      connection.sendAsynchronous(response.toMessageGroup(), message.getDeadlineAbsMillis(absMillisTimeSource));
+    } catch (IOException ioe) {
+      ioe.printStackTrace();
+    }
+  }
+
+  // used only for testing
+  private void requestChecksumTree(long version) {
+    Log.warning("requestChecksumTree");
+    throw new RuntimeException("deprecated testing"); // FUTURE remove after double checking
+    //storage.requestChecksumTree(version);
+  }
+
+  private void handleChecksumTreeRequest(MessageGroup message, MessageGroupConnection connection) {
+    ConvergencePoint targetCP;
+    ConvergencePoint sourceCP;
+    RingRegion region;
+    boolean localFlag;
+
+    if (Log.levelMet(Level.FINE)) {
+      Log.warning("handleChecksumTreeRequest");
+      message.displayForDebug();
+    }
+    targetCP = ProtoChecksumTreeRequestMessageGroup.getTargetConvergencePoint(message);
+    sourceCP = ProtoChecksumTreeRequestMessageGroup.getSourceConvergencePoint(message);
+    region = ProtoChecksumTreeRequestMessageGroup.getRegion(message);
+    localFlag = ProtoChecksumTreeRequestMessageGroup.getLocalFlag(message);
+    //storage.getChecksumTreeForRemote(message.getContext(), message.getUUID(),
+    //                        targetCP, sourceCP, connection, message.getOriginator(), region);
+    if (!localFlag) {
+      storage.asyncInvocationNonBlocking("getChecksumTreeForRemote", message.getContext(), message.getUUID(), targetCP,
+          sourceCP, connection, message.getOriginator(), region);
+    } else {
+      IPAndPort replica;
+
+      replica = ProtoChecksumTreeRequestMessageGroup.getReplica(message);
+      storage.asyncInvocationBlocking("getChecksumTreeForLocal", message.getContext(), message.getUUID(), targetCP,
+          sourceCP, connection, message.getOriginator(), region, replica, message.getDeadlineRelativeMillis());
+    }
+  }
+
+  private void handleIncomingChecksumTree(MessageGroup message, MessageGroupConnection connection) {
+    if (Log.levelMet(Level.FINE)) {
+      Log.warning("handleIncomingChecksumTree");
+      message.displayForDebug();
+    }
+    //storage.incomingChecksumTree(message, connection);
+    storage.asyncInvocationNonBlocking("incomingChecksumTree", message, connection);
+  }
+
+  ////////////////////////////
+
+  private void handleNamespaceRequest(MessageGroup message, MessageGroupConnection connection) {
+    storage.handleNamespaceRequest(message, connection);
+  }
+
+  private void handleNamespaceResponse(MessageGroup message, MessageGroupConnection connection) {
+    //storage.handleNamespaceResponse(message, connection);
+    storage.asyncInvocationNonBlocking("handleNamespaceResponse", message, connection);
+  }
+
+  private void handleSetConvergenceState(MessageGroup message, MessageGroupConnection connectionForRemote) {
+    storage.handleSetConvergenceState(message, connectionForRemote);
+  }
+
+  private void handleReap(MessageGroup message, MessageGroupConnection connectionForRemote) {
+    storage.handleReap(message, connectionForRemote);
+  }
+
+  ////////////////////////////
     
     /*
     private void handleGlobalCommandNew(MessageGroup message, MessageGroupConnection connectionForRemote) {
@@ -798,115 +802,118 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
 
     private void handleGlobalCommandResponse(MessageGroup message, MessageGroupConnection connectionForRemote) {
-        globalCommandServer.handleCommandResponse(ProtoGlobalCommandResultMessageGroup.getGlobalCommandUpdateResult(message),
+        globalCommandServer.handleCommandResponse(ProtoGlobalCommandResultMessageGroup.getGlobalCommandUpdateResult
+        (message),
                 ProtoGlobalCommandResultMessageGroup.getCommandID(message));
     }
     */
-    
-    ////////////////////////////
-    
-    private void handleNop(MessageGroup message, MessageGroupConnectionProxy connection) {
-        Log.finef("%s %s", message.getMessageType(), connection.getConnectionID());
+
+  ////////////////////////////
+
+  private void handleNop(MessageGroup message, MessageGroupConnectionProxy connection) {
+    Log.finef("%s %s", message.getMessageType(), connection.getConnectionID());
+  }
+
+  private void handlePing(MessageGroup message, MessageGroupConnectionProxy connection) {
+    if (Log.levelMet(Level.FINE)) {
+      Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(),
+          Thread.currentThread().getName());
     }
-    
-    private void handlePing(MessageGroup message, MessageGroupConnectionProxy connection) {
-        if (Log.levelMet(Level.FINE)) {
-            Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
-        }
-        if (connection instanceof MessageGroupConnectionProxyRemote) {
-            MessageGroupConnectionProxyRemote    c;
-            ProtoPingAckMessageGroup    ack;
-            
-            ack = new ProtoPingAckMessageGroup(mgBase.getMyID(), message.getUUID());
-            c = (MessageGroupConnectionProxyRemote)connection;
-            try {
-                c.sendAsynchronous(ack.toMessageGroup(), Long.MAX_VALUE);
-            } catch (IOException ioe) {
-                Log.logErrorWarning(ioe);
-            }
-        }
+    if (connection instanceof MessageGroupConnectionProxyRemote) {
+      MessageGroupConnectionProxyRemote c;
+      ProtoPingAckMessageGroup ack;
+
+      ack = new ProtoPingAckMessageGroup(mgBase.getMyID(), message.getUUID());
+      c = (MessageGroupConnectionProxyRemote) connection;
+      try {
+        c.sendAsynchronous(ack.toMessageGroup(), Long.MAX_VALUE);
+      } catch (IOException ioe) {
+        Log.logErrorWarning(ioe);
+      }
     }
-    
-    private void handlePingAck(MessageGroup message, MessageGroupConnectionProxy connection) {
-        if (Log.levelMet(Level.FINE)) {
-            Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(), Thread.currentThread().getName());
-        }
-        if (connection instanceof MessageGroupConnectionProxyRemote) {
-            MessageGroupConnectionProxyRemote    c;
-            
-            c = (MessageGroupConnectionProxyRemote)connection;
-            peerHealthMonitor.removeSuspect(c.getConnection().getRemoteIPAndPort());
-        }
+  }
+
+  private void handlePingAck(MessageGroup message, MessageGroupConnectionProxy connection) {
+    if (Log.levelMet(Level.FINE)) {
+      Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(),
+          Thread.currentThread().getName());
     }
-    
-    private void establishConnections() {
-        for (IPAndPort replica : ringMaster.getAllCurrentReplicaServers()) {
-            ProtoNopMessageGroup    nop;
-            
-            nop = new ProtoNopMessageGroup(mgBase.getMyID());
-            Log.warning("Priming: ", replica);
-            mgBase.send(nop.toMessageGroup(), replica);
-        }
+    if (connection instanceof MessageGroupConnectionProxyRemote) {
+      MessageGroupConnectionProxyRemote c;
+
+      c = (MessageGroupConnectionProxyRemote) connection;
+      peerHealthMonitor.removeSuspect(c.getConnection().getRemoteIPAndPort());
     }
-    
-    ////////////////////////////
-    
-    StorageModule getStorage() {
-        return storage;
+  }
+
+  private void establishConnections() {
+    for (IPAndPort replica : ringMaster.getAllCurrentReplicaServers()) {
+      ProtoNopMessageGroup nop;
+
+      nop = new ProtoNopMessageGroup(mgBase.getMyID());
+      Log.warning("Priming: ", replica);
+      mgBase.send(nop.toMessageGroup(), replica);
+    }
+  }
+
+  ////////////////////////////
+
+  StorageModule getStorage() {
+    return storage;
+  }
+
+  AbsMillisTimeSource getAbsMillisTimeSource() {
+    return absMillisTimeSource;
+  }
+
+  MessageGroupBase getMessageGroupBase() {
+    return mgBase;
+  }
+
+  void addActivePut(UUIDBase uuid, ActiveProxyPut activeProxyPut) {
+    activePuts.put(uuid, activeProxyPut);
+  }
+
+  void addActiveRetrieval(UUIDBase uuid, ActiveProxyRetrieval activeProxyRetrieval) {
+    activeRetrievals.putIfAbsent(uuid, activeProxyRetrieval);
+  }
+
+  ///////////////////////////////////
+
+  @Override
+  public String toString() {
+    return mgBase.toString();
+  }
+
+  ///////////////////////////////////
+
+  static class MessageAndConnection {
+    final MessageGroup message;
+    final MessageGroupConnectionProxy connection;
+
+    MessageAndConnection(MessageGroup message, MessageGroupConnectionProxy connection) {
+      this.message = message;
+      this.connection = connection;
+    }
+  }
+
+  private static final int workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+  private static final int workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+
+  class Worker extends BaseWorker<MessageAndConnection> {
+    Worker(LWTPool workerPool) {
+      super(workerPool, true, maxDirectCallDepth);
     }
 
-    AbsMillisTimeSource getAbsMillisTimeSource() {
-        return absMillisTimeSource;
-    }
-
-    MessageGroupBase getMessageGroupBase() {
-        return mgBase;
-    }
-
-    void addActivePut(UUIDBase uuid, ActiveProxyPut activeProxyPut) {
-        activePuts.put(uuid, activeProxyPut);
-    }
-    
-    void addActiveRetrieval(UUIDBase uuid, ActiveProxyRetrieval activeProxyRetrieval) {
-        activeRetrievals.putIfAbsent(uuid, activeProxyRetrieval);
-    }
-    
-    ///////////////////////////////////
-    
     @Override
-    public String toString() {
-        return mgBase.toString();
+    public void doWork(MessageAndConnection m) {
+      handleReceive(m.message, m.connection);
     }
+  }
 
-    ///////////////////////////////////
-    
-    static class MessageAndConnection {
-        final MessageGroup message;
-        final MessageGroupConnectionProxy connection;
-        
-        MessageAndConnection(MessageGroup message, MessageGroupConnectionProxy connection) {
-            this.message = message;
-            this.connection = connection;
-        }
-    }
-    
-    private static final int    workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
-    private static final int    workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+  /////////////////////////////////
 
-    class Worker extends BaseWorker<MessageAndConnection> {
-        Worker(LWTPool workerPool) {
-            super(workerPool, true, maxDirectCallDepth);
-        }
-
-        @Override
-        public void doWork(MessageAndConnection m) {
-            handleReceive(m.message, m.connection);
-        }
-    }
-    
-    /////////////////////////////////
-    
-    // deprecated in favor of one pass combining cleanup and replica timeout checks
+  // deprecated in favor of one pass combining cleanup and replica timeout checks
     /*
     class ReplicaTimeoutChecker extends TimerTask {
         ReplicaTimeoutChecker() {
@@ -935,110 +942,111 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         }        
     }
     */
-    
-    /**
-     * Cleans up complete and timed out operations.
-     * Also, sends retries for replica timeouts.
-     */
-    class Cleaner extends TimerTask {
-        Cleaner() {
-        }
-        
-        @Override
-        public void run() {
-            cleanup();
-        }
-        
-        private void cleanup() {
-            long    absTimeMillis;
-            
-            if (debugCompletion) {
-                System.out.printf("c %d\ti %d\tn %d\n", _complete.get(), _incomplete.get(), _notFound.get());
-            }
-            Log.info("Cleaning MessageModule maps");
-            //System.out.println(activePuts.size());
-            absTimeMillis = absMillisTimeSource.absTimeMillis();
-            cleanupMap(activePuts, absTimeMillis);
-            cleanupMap(activeRetrievals, absTimeMillis);
-            Log.info("Done cleaning MessageModule maps");
-        }
-        
-        private void cleanupMap(ConcurrentMap<UUIDBase,? extends ActiveProxyOperation<?, ?>> map,
-                                long absTimeMillis) {
-            boolean    newTimeouts;
-            
-            newTimeouts = false;
-            for (Map.Entry<UUIDBase,? extends ActiveProxyOperation<?, ?>> entry : map.entrySet()) {
-                if (entry.getValue().hasTimedOut(absTimeMillis) || entry.getValue().getOpResult().isComplete()) { // FIXME - think about failures
-                    if (debugCleanup) {
-                        System.out.printf("Removing %s\n", entry.getKey());
-                    }
-                    map.remove(entry.getKey());
-                } else {
-                    Set<IPAndPort>    timedOutReplicas;
-                    
-                    // We don't retry replicas that are near timing out. This is simply
-                    // to avoid littering logs with sendTimedOut messages. I.e. we could
-                    // actually do a retry right up until the timeout, but doing so 
-                    // causes some sends to time out and we currently like to log
-                    // timed out sends since they can indicate deeper trouble.
-                    // Send timeouts due to sending near the deadline is really not 
-                    // something that we want to see logged. 
-                    timedOutReplicas = entry.getValue().checkForReplicaTimeouts(absTimeMillis - replicaRetryBufferMS);
-                    for (IPAndPort timedOutReplica : timedOutReplicas) {
-                        peerHealthMonitor.addSuspect(timedOutReplica, PeerHealthIssue.ReplicaTimeout);
-                        newTimeouts = true;
-                    }
-                }
-            }
-            if (newTimeouts) {
-                //ringMaster.updateCurMapState(); deprecated method
-            }
-        }
-    }
-    
-    class Pinger extends TimerTask {
-        private boolean running = true ;
-        Pinger() {
-        }
-        
-        @Override
-        public void run() {
-            Log.warning("Pinger running");
-            while (running) {
-                try {
-                    pingReplicas();
-                    peerHealthMonitor.refreshZK();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
 
-        private void pingReplicas() {
-            Log.fine("Pinging replicas");
-            for (IPAndPort replica : ringMaster.getAllCurrentAndTargetNonExcludedNonLocalReplicaServers()) {
-                mgBase.send(new ProtoPingMessageGroup(mgBase.getMyID()).toMessageGroup(), replica);
-                ThreadUtil.sleep(interPingDelayMillis);
-            }
-        }
-
-        private void stop() {
-            running = false;
-        }
-    }    
-    
-    class StatsWorker extends TimerTask {
-        StatsWorker() {
-        }
-        
-        @Override
-        public void run() {
-            doStats();
-        }
-        
-        private void doStats() {
-            mgBase.writeStats();
-        }
+  /**
+   * Cleans up complete and timed out operations.
+   * Also, sends retries for replica timeouts.
+   */
+  class Cleaner extends TimerTask {
+    Cleaner() {
     }
+
+    @Override
+    public void run() {
+      cleanup();
+    }
+
+    private void cleanup() {
+      long absTimeMillis;
+
+      if (debugCompletion) {
+        System.out.printf("c %d\ti %d\tn %d\n", _complete.get(), _incomplete.get(), _notFound.get());
+      }
+      Log.info("Cleaning MessageModule maps");
+      //System.out.println(activePuts.size());
+      absTimeMillis = absMillisTimeSource.absTimeMillis();
+      cleanupMap(activePuts, absTimeMillis);
+      cleanupMap(activeRetrievals, absTimeMillis);
+      Log.info("Done cleaning MessageModule maps");
+    }
+
+    private void cleanupMap(ConcurrentMap<UUIDBase, ? extends ActiveProxyOperation<?, ?>> map, long absTimeMillis) {
+      boolean newTimeouts;
+
+      newTimeouts = false;
+      for (Map.Entry<UUIDBase, ? extends ActiveProxyOperation<?, ?>> entry : map.entrySet()) {
+        if (entry.getValue().hasTimedOut(
+            absTimeMillis) || entry.getValue().getOpResult().isComplete()) { // FIXME - think about failures
+          if (debugCleanup) {
+            System.out.printf("Removing %s\n", entry.getKey());
+          }
+          map.remove(entry.getKey());
+        } else {
+          Set<IPAndPort> timedOutReplicas;
+
+          // We don't retry replicas that are near timing out. This is simply
+          // to avoid littering logs with sendTimedOut messages. I.e. we could
+          // actually do a retry right up until the timeout, but doing so
+          // causes some sends to time out and we currently like to log
+          // timed out sends since they can indicate deeper trouble.
+          // Send timeouts due to sending near the deadline is really not
+          // something that we want to see logged.
+          timedOutReplicas = entry.getValue().checkForReplicaTimeouts(absTimeMillis - replicaRetryBufferMS);
+          for (IPAndPort timedOutReplica : timedOutReplicas) {
+            peerHealthMonitor.addSuspect(timedOutReplica, PeerHealthIssue.ReplicaTimeout);
+            newTimeouts = true;
+          }
+        }
+      }
+      if (newTimeouts) {
+        //ringMaster.updateCurMapState(); deprecated method
+      }
+    }
+  }
+
+  class Pinger extends TimerTask {
+    private boolean running = true;
+
+    Pinger() {
+    }
+
+    @Override
+    public void run() {
+      Log.warning("Pinger running");
+      while (running) {
+        try {
+          pingReplicas();
+          peerHealthMonitor.refreshZK();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    }
+
+    private void pingReplicas() {
+      Log.fine("Pinging replicas");
+      for (IPAndPort replica : ringMaster.getAllCurrentAndTargetNonExcludedNonLocalReplicaServers()) {
+        mgBase.send(new ProtoPingMessageGroup(mgBase.getMyID()).toMessageGroup(), replica);
+        ThreadUtil.sleep(interPingDelayMillis);
+      }
+    }
+
+    private void stop() {
+      running = false;
+    }
+  }
+
+  class StatsWorker extends TimerTask {
+    StatsWorker() {
+    }
+
+    @Override
+    public void run() {
+      doStats();
+    }
+
+    private void doStats() {
+      mgBase.writeStats();
+    }
+  }
 }

@@ -17,179 +17,177 @@ import com.ms.silverking.time.SimpleTimer;
 import com.ms.silverking.time.Timer;
 
 public class FSStress implements Runnable {
-    private final List<File>    files;
-    private final int            durationSeconds;
-    private final AtomicInteger    nextThreadID;
-    private final AtomicLong    totalFiles;
-    private final AtomicLong    totalBytes;
-    
-    private static final boolean    displayPerThreadTotals = false;
-    private static final int    displayIntervalSeconds = 1;
-    private static final PrintStream    out = System.out;
-    private static final PrintStream    err = System.err;
-    
-    public FSStress(List<File> files, int durationSeconds) {
-        this.files = files;
-        this.durationSeconds = durationSeconds;
-        nextThreadID = new AtomicInteger();
-        totalFiles = new AtomicLong();
-        totalBytes = new AtomicLong();
-    }
+  private final List<File> files;
+  private final int durationSeconds;
+  private final AtomicInteger nextThreadID;
+  private final AtomicLong totalFiles;
+  private final AtomicLong totalBytes;
 
-    public FSStress(File dir, int durationSeconds, boolean recursive) {
-        this(recursive ? ImmutableList.copyOf(FileUtil.listFilesRecursively(dir)) : ImmutableList.copyOf(dir.listFiles()), durationSeconds);
-    }
-    
-    public int getNumFiles() {
-        return files.size();
-    }
-    
-    public void stressMultiple(int numThreads) {
-        Thread[]    threads;
-        Thread        displayThread;
-        
-        threads = new Thread[numThreads];
-        for (int i = 0; i < numThreads; i++) {
-            threads[i] = new Thread(this);
-            threads[i].start();
-        }
-        displayThread = new Thread(new TotalDisplayer());
-        displayThread.start();
-        for (int i = 0; i < numThreads; i++) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        try {
-            displayThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        displayTotals(durationSeconds);
-    }
-    
-    private class TotalDisplayer implements Runnable {
-        public void run() {
-            Timer    runTimer;
-            
-            runTimer = new SimpleTimer(TimeUnit.SECONDS, durationSeconds);
-            while (!runTimer.hasExpired()) {
-                ThreadUtil.sleepSeconds(displayIntervalSeconds);
-                displayTotals(runTimer.getSplitSeconds());
-            }
-        }    
-    }
-    
-    private long    lastBytes;
-    private double    lastElapsedSeconds;
-    
-    private void displayTotals(double elapsedSeconds) {
-        long    bytes;
-        
-        bytes = totalBytes.get();
-        out.printf("Elapsed %f\tf %d\tb %d\tGB %d\tMB/s %f %f\n", elapsedSeconds, totalFiles.get(), bytes,
-                bytes / 1000000000,
-                NetUtil.calcMBps(bytes, elapsedSeconds),
-                NetUtil.calcMBps(bytes - lastBytes, elapsedSeconds - lastElapsedSeconds)
-                );
-        lastBytes = bytes;
-        lastElapsedSeconds = elapsedSeconds;
-    }
-    
-    private void stressOne(int id) throws IOException {
-        Timer    runTimer;
-        Timer    displayTimer;
-        long    filesRead;
-        long    bytesRead;
-        
-        displayTimer = new SimpleTimer(TimeUnit.SECONDS, displayIntervalSeconds);
-        runTimer = new SimpleTimer(TimeUnit.SECONDS, durationSeconds);
-        filesRead = 0;
-        bytesRead = 0;
-        while (!runTimer.hasExpired()) {
-            long    fileBytes;
-            
-            filesRead++;
-            fileBytes = readRandomFile();
-            bytesRead += fileBytes;
-            totalFiles.incrementAndGet();
-            totalBytes.addAndGet(fileBytes);
-            if (displayPerThreadTotals && displayTimer.hasExpired()) {
-                long    bytes;
-                
-                bytes = bytesRead;
-                out.printf("id %d\tduration %f\tfiles %d\tbytes %d\tGB %d\tMB/s %f %f\n", id, runTimer.getSplitSeconds(), filesRead, bytes,
-                        bytes / 1000000000,
-                        NetUtil.calcMBps(bytes, runTimer.getSplitSeconds()),
-                        NetUtil.calcMBps(bytes, displayIntervalSeconds));
-                displayTimer.reset();
-            }
-        }
-    }
-    
-    private long readRandomFile() throws IOException {
-        do {
-            File    target;
-            
-            target = files.get(ThreadLocalRandom.current().nextInt(files.size()));
-            if (target.isFile() && target.length() <= Integer.MAX_VALUE) {
-                try {
-                    return FileUtil.readFileAsBytes(target).length;
-                } catch (NegativeArraySizeException nase) {
-                    err.printf("Error reading: %s\n", target);
-                    nase.printStackTrace();
-                } catch (IOException ioe) {
-                    if (!ioe.getMessage().equals("Operation not permitted")) {
-                        err.printf("Error reading: %s\n", target);
-                        ioe.printStackTrace();
-                    }
-                }
-            }
-        } while (true);
-    }
+  private static final boolean displayPerThreadTotals = false;
+  private static final int displayIntervalSeconds = 1;
+  private static final PrintStream out = System.out;
+  private static final PrintStream err = System.err;
 
+  public FSStress(List<File> files, int durationSeconds) {
+    this.files = files;
+    this.durationSeconds = durationSeconds;
+    nextThreadID = new AtomicInteger();
+    totalFiles = new AtomicLong();
+    totalBytes = new AtomicLong();
+  }
+
+  public FSStress(File dir, int durationSeconds, boolean recursive) {
+    this(recursive ? ImmutableList.copyOf(FileUtil.listFilesRecursively(dir)) : ImmutableList.copyOf(dir.listFiles()),
+        durationSeconds);
+  }
+
+  public int getNumFiles() {
+    return files.size();
+  }
+
+  public void stressMultiple(int numThreads) {
+    Thread[] threads;
+    Thread displayThread;
+
+    threads = new Thread[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+      threads[i] = new Thread(this);
+      threads[i].start();
+    }
+    displayThread = new Thread(new TotalDisplayer());
+    displayThread.start();
+    for (int i = 0; i < numThreads; i++) {
+      try {
+        threads[i].join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+    try {
+      displayThread.join();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    displayTotals(durationSeconds);
+  }
+
+  private class TotalDisplayer implements Runnable {
     public void run() {
-        try {
-            stressOne(nextThreadID.getAndIncrement());
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-    }
+      Timer runTimer;
 
-    public static void main(String[] args) {
-        if (args.length < 3 || args.length > 4) {
-            err.printf("<targetDir> <numThreads> <durationSeconds> [recursive]\n");
-        } else {
-            File    targetDir;
-            int        numThreads;
-            int        durationSeconds;
-            boolean    recursive;
-            FSStress    fsStress;
-            
-            targetDir = new File(args[0]);
-            if (!targetDir.exists()) {
-                err.printf("No such directory: %s\n", targetDir);
-                return;
-            }
-            if (!targetDir.isDirectory()) {
-                err.printf("Not a directory: %s\n", targetDir);
-                return;
-            }
-            numThreads = Integer.parseInt(args[1]);
-            durationSeconds = Integer.parseInt(args[2]);
-            if (args.length == 4) {
-                recursive = Boolean.parseBoolean(args[3]);
-            } else {
-                recursive = false;
-            }
-            out.printf("Creating file list...");
-            fsStress = new FSStress(targetDir, durationSeconds, recursive);
-            out.printf("Found %d files.\n", fsStress.getNumFiles());
-            out.printf("\nRunning test\n");
-            fsStress.stressMultiple(numThreads);
-            out.printf("\nTest complete\n");
-        }
+      runTimer = new SimpleTimer(TimeUnit.SECONDS, durationSeconds);
+      while (!runTimer.hasExpired()) {
+        ThreadUtil.sleepSeconds(displayIntervalSeconds);
+        displayTotals(runTimer.getSplitSeconds());
+      }
     }
+  }
+
+  private long lastBytes;
+  private double lastElapsedSeconds;
+
+  private void displayTotals(double elapsedSeconds) {
+    long bytes;
+
+    bytes = totalBytes.get();
+    out.printf("Elapsed %f\tf %d\tb %d\tGB %d\tMB/s %f %f\n", elapsedSeconds, totalFiles.get(), bytes,
+        bytes / 1000000000, NetUtil.calcMBps(bytes, elapsedSeconds),
+        NetUtil.calcMBps(bytes - lastBytes, elapsedSeconds - lastElapsedSeconds));
+    lastBytes = bytes;
+    lastElapsedSeconds = elapsedSeconds;
+  }
+
+  private void stressOne(int id) throws IOException {
+    Timer runTimer;
+    Timer displayTimer;
+    long filesRead;
+    long bytesRead;
+
+    displayTimer = new SimpleTimer(TimeUnit.SECONDS, displayIntervalSeconds);
+    runTimer = new SimpleTimer(TimeUnit.SECONDS, durationSeconds);
+    filesRead = 0;
+    bytesRead = 0;
+    while (!runTimer.hasExpired()) {
+      long fileBytes;
+
+      filesRead++;
+      fileBytes = readRandomFile();
+      bytesRead += fileBytes;
+      totalFiles.incrementAndGet();
+      totalBytes.addAndGet(fileBytes);
+      if (displayPerThreadTotals && displayTimer.hasExpired()) {
+        long bytes;
+
+        bytes = bytesRead;
+        out.printf("id %d\tduration %f\tfiles %d\tbytes %d\tGB %d\tMB/s %f %f\n", id, runTimer.getSplitSeconds(),
+            filesRead, bytes, bytes / 1000000000, NetUtil.calcMBps(bytes, runTimer.getSplitSeconds()),
+            NetUtil.calcMBps(bytes, displayIntervalSeconds));
+        displayTimer.reset();
+      }
+    }
+  }
+
+  private long readRandomFile() throws IOException {
+    do {
+      File target;
+
+      target = files.get(ThreadLocalRandom.current().nextInt(files.size()));
+      if (target.isFile() && target.length() <= Integer.MAX_VALUE) {
+        try {
+          return FileUtil.readFileAsBytes(target).length;
+        } catch (NegativeArraySizeException nase) {
+          err.printf("Error reading: %s\n", target);
+          nase.printStackTrace();
+        } catch (IOException ioe) {
+          if (!ioe.getMessage().equals("Operation not permitted")) {
+            err.printf("Error reading: %s\n", target);
+            ioe.printStackTrace();
+          }
+        }
+      }
+    } while (true);
+  }
+
+  public void run() {
+    try {
+      stressOne(nextThreadID.getAndIncrement());
+    } catch (IOException ioe) {
+      ioe.printStackTrace();
+    }
+  }
+
+  public static void main(String[] args) {
+    if (args.length < 3 || args.length > 4) {
+      err.printf("<targetDir> <numThreads> <durationSeconds> [recursive]\n");
+    } else {
+      File targetDir;
+      int numThreads;
+      int durationSeconds;
+      boolean recursive;
+      FSStress fsStress;
+
+      targetDir = new File(args[0]);
+      if (!targetDir.exists()) {
+        err.printf("No such directory: %s\n", targetDir);
+        return;
+      }
+      if (!targetDir.isDirectory()) {
+        err.printf("Not a directory: %s\n", targetDir);
+        return;
+      }
+      numThreads = Integer.parseInt(args[1]);
+      durationSeconds = Integer.parseInt(args[2]);
+      if (args.length == 4) {
+        recursive = Boolean.parseBoolean(args[3]);
+      } else {
+        recursive = false;
+      }
+      out.printf("Creating file list...");
+      fsStress = new FSStress(targetDir, durationSeconds, recursive);
+      out.printf("Found %d files.\n", fsStress.getNumFiles());
+      out.printf("\nRunning test\n");
+      fsStress.stressMultiple(numThreads);
+      out.printf("\nTest complete\n");
+    }
+  }
 }

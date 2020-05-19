@@ -7,8 +7,6 @@ import java.nio.channels.SocketChannel;
  * accepted Channel.
  */
 public interface ConnectionCreator<T extends Connection> {
-    public T createConnection(SocketChannel channel, 
-                                SelectorController<T> selectorController,
-                                ConnectionListener connectionListener, 
-                                boolean debug);
+  public T createConnection(SocketChannel channel, SelectorController<T> selectorController,
+      ConnectionListener connectionListener, boolean debug);
 }

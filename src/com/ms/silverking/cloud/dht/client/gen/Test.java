@@ -1,10 +1,9 @@
 package com.ms.silverking.cloud.dht.client.gen;
 
-
 public class Test {
 
-    public static void main(String[] args) {
-        try {
+  public static void main(String[] args) {
+    try {
             /*
             for (Method m : SynchronousReadableNamespacePerspective.class.getDeclaredMethods()) {
                 System.out.println(m);
@@ -25,10 +24,10 @@ public class Test {
             m = ValueCreator.class.getMethod("toString", null);
             System.out.printf("%s\n", m);
             */
-            //System.out.println(new DHTClient().getValueCreator().toString());
-            System.out.printf("%s\n", JNIUtil.getJNISignature(Object.class.getMethod("toString")));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+      //System.out.println(new DHTClient().getValueCreator().toString());
+      System.out.printf("%s\n", JNIUtil.getJNISignature(Object.class.getMethod("toString")));
+    } catch (Exception e) {
+      e.printStackTrace();
     }
+  }
 }

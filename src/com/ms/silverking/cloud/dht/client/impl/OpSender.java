@@ -18,28 +18,28 @@ import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.util.PropertiesHelper;
 
 class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements QueueingConnectionLimitListener {
-    private final MessageGroupBase  mgBase;
-    private final AddrAndPort       dest;
-    private final AtomicLong        doWorkCalls;
-    private final AtomicLong        doGroupedWorkCalls;
-    
-    private static final boolean    trackCallStats = false;
-    private static final boolean    debug = false;
-    
-    public static final String    opGroupingEnabledProperty = OpSender.class.getPackage().getName() + ".OpGroupingEnabled";
-    public static final boolean    defaultOpGroupingEnabled = true;
-    static final boolean    opGroupingEnabled;
-    
-    static {
-        opGroupingEnabled = PropertiesHelper.systemHelper.getBoolean(opGroupingEnabledProperty, defaultOpGroupingEnabled);
-    }    
-    
-    private static final int idleThreadsThreshold = Integer.MAX_VALUE; // Don't queue work when possible
-    //private static final int idleThreadsThreshold = LWTConstants.defaultIdleThreadThreshold; // Queue most work
-    
-    private static LWTPool  senderPool;
-    
-    static {
+  private final MessageGroupBase mgBase;
+  private final AddrAndPort dest;
+  private final AtomicLong doWorkCalls;
+  private final AtomicLong doGroupedWorkCalls;
+
+  private static final boolean trackCallStats = false;
+  private static final boolean debug = false;
+
+  public static final String opGroupingEnabledProperty = OpSender.class.getPackage().getName() + ".OpGroupingEnabled";
+  public static final boolean defaultOpGroupingEnabled = true;
+  static final boolean opGroupingEnabled;
+
+  static {
+    opGroupingEnabled = PropertiesHelper.systemHelper.getBoolean(opGroupingEnabledProperty, defaultOpGroupingEnabled);
+  }
+
+  private static final int idleThreadsThreshold = Integer.MAX_VALUE; // Don't queue work when possible
+  //private static final int idleThreadsThreshold = LWTConstants.defaultIdleThreadThreshold; // Queue most work
+
+  private static LWTPool senderPool;
+
+  static {
         /*
         LWTPoolParameters   params;
         
@@ -47,60 +47,61 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         senderPool = LWTPoolProvider.createPool(params);
         //senderPool.dumpStatsOnShutdown();
          */
-        senderPool = LWTPoolProvider.defaultConcurrentWorkPool;
-    }
-    
-    OpSender(AddrAndPort dest, MessageGroupBase mgBase) {
-        super(senderPool, true, Integer.MAX_VALUE, idleThreadsThreshold);
-        //super(senderPool, true, 0, LWTConstants.defaultIdleThreadThreshold);
-        //super(senderPool, true, LWTConstants.defaultMaxDirectCallDepth, LWTConstants.defaultIdleThreadThreshold);
-        this.dest = dest;
-        this.mgBase = mgBase;
-        doWorkCalls = new AtomicLong();
-        doGroupedWorkCalls = new AtomicLong();
-    }
-    
-    @Override
-    public AsyncOperationImpl[] newWorkArray(int size) {
-        return new AsyncOperationImpl[size];
-    }
-    
-    @Override
-    public void queueAboveLimit() {
-        super.pause();
-    }
+    senderPool = LWTPoolProvider.defaultConcurrentWorkPool;
+  }
 
-    @Override
-    public void queueBelowLimit() {
-        super.unpause();
-    }
+  OpSender(AddrAndPort dest, MessageGroupBase mgBase) {
+    super(senderPool, true, Integer.MAX_VALUE, idleThreadsThreshold);
+    //super(senderPool, true, 0, LWTConstants.defaultIdleThreadThreshold);
+    //super(senderPool, true, LWTConstants.defaultMaxDirectCallDepth, LWTConstants.defaultIdleThreadThreshold);
+    this.dest = dest;
+    this.mgBase = mgBase;
+    doWorkCalls = new AtomicLong();
+    doGroupedWorkCalls = new AtomicLong();
+  }
 
-    @Override
-    public void doWork(AsyncOperationImpl asyncOpImpl) {
-        AsyncOperationImpl[]    asyncOpImpls;
-        
-        if (trackCallStats) {
-            doWorkCalls.incrementAndGet();
-        }
-        asyncOpImpls = new AsyncOperationImpl[1];
-        asyncOpImpls[0] = asyncOpImpl;
-        createMessagesForIncomplete(asyncOpImpls);
+  @Override
+  public AsyncOperationImpl[] newWorkArray(int size) {
+    return new AsyncOperationImpl[size];
+  }
+
+  @Override
+  public void queueAboveLimit() {
+    super.pause();
+  }
+
+  @Override
+  public void queueBelowLimit() {
+    super.unpause();
+  }
+
+  @Override
+  public void doWork(AsyncOperationImpl asyncOpImpl) {
+    AsyncOperationImpl[] asyncOpImpls;
+
+    if (trackCallStats) {
+      doWorkCalls.incrementAndGet();
     }
-    
-    @Override
-    public void doWork(AsyncOperationImpl[] asyncOpImpls) {
-        if (trackCallStats) {
-            doGroupedWorkCalls.incrementAndGet();
-        }
-        //showQ();
-        createMessagesForIncomplete(asyncOpImpls);
+    asyncOpImpls = new AsyncOperationImpl[1];
+    asyncOpImpls[0] = asyncOpImpl;
+    createMessagesForIncomplete(asyncOpImpls);
+  }
+
+  @Override
+  public void doWork(AsyncOperationImpl[] asyncOpImpls) {
+    if (trackCallStats) {
+      doGroupedWorkCalls.incrementAndGet();
     }
-    
-    /**
-     * Breaks asyncOpImpls into groups of same-typed operations calling
-     * createMessages() for each group.
-     * @param asyncOpImpls
-     */
+    //showQ();
+    createMessagesForIncomplete(asyncOpImpls);
+  }
+
+  /**
+   * Breaks asyncOpImpls into groups of same-typed operations calling
+   * createMessages() for each group.
+   *
+   * @param asyncOpImpls
+   */
     /*
      * this implementation was before we took care of incompatible ops
     private void createMessagesForIncomplete(AsyncOperationImpl[] asyncOpImpls) {
@@ -125,7 +126,8 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         endIndex = startIndex + 1;
         while (startIndex < asyncOpImpls.length) {
             if (opGroupingEnabled) {
-                while (endIndex < asyncOpImpls.length && asyncOpImpls[endIndex].getType() == asyncOpImpls[startIndex].getType()) {
+                while (endIndex < asyncOpImpls.length && asyncOpImpls[endIndex].getType() == asyncOpImpls[startIndex]
+                * .getType()) {
                     endIndex++;
                 }
                 createMessages(asyncOpImpls, startIndex, endIndex - 1);
@@ -137,113 +139,114 @@ class OpSender extends GroupingPausingBaseWorker<AsyncOperationImpl> implements 
         }
     }
     */
-    
-    private static final OpGroupingComparator   opGroupingComparator = new OpGroupingComparator();
-    
-    private static class OpGroupingComparator implements Comparator<AsyncOperationImpl> {
-        @Override
-        public int compare(AsyncOperationImpl o1, AsyncOperationImpl o2) {
-            if (o1.getClass() == o2.getClass()) {
-                if (o1 instanceof AsyncPutOperationImpl) {
-                    return AsyncPutOperationImplComparator.instance.compare(
-                            (AsyncPutOperationImpl)o1, (AsyncPutOperationImpl)o2);
-                } else if (o1 instanceof AsyncRetrievalOperationImpl) {
-                    return AsyncRetrievalOperationImplComparator.instance.compare(
-                            (AsyncRetrievalOperationImpl)o1, (AsyncRetrievalOperationImpl)o2);
-                } else {
-                    return 0;
-                }
-            } else {
-                if (o1.getClass() == AsyncPutOperationImpl.class) {
-                    return 1;
-                } else {
-                    return -1;
-                }
-            }
-        }
-    }
-    
-    private static void groupOps(AsyncOperationImpl[] asyncOpImpls) {
-        Arrays.sort(asyncOpImpls, opGroupingComparator);
-    }
-    
-    private void createMessagesForIncomplete(AsyncOperationImpl[] asyncOpImpls) {
-        int startIndex;
-        int endIndex;
-        
-        if (asyncOpImpls.length > 2) {
-            groupOps(asyncOpImpls);
-        }
 
-        //System.out.printf("single %d\tgrouped%d\n", doWorkCalls.get(), doGroupedWorkCalls.get());
-        startIndex = 0;
-        endIndex = startIndex + 1;
-        while (startIndex < asyncOpImpls.length) {
-            if (opGroupingEnabled) {
-                while (endIndex < asyncOpImpls.length && asyncOpImpls[startIndex].canBeGroupedWith(asyncOpImpls[endIndex])) {
-                    endIndex++;
-                }
-                createMessages(asyncOpImpls, startIndex, endIndex - 1);
-                startIndex = endIndex;
-            } else {
-                createMessages(asyncOpImpls, startIndex, startIndex);
-                startIndex++;
-            }
+  private static final OpGroupingComparator opGroupingComparator = new OpGroupingComparator();
+
+  private static class OpGroupingComparator implements Comparator<AsyncOperationImpl> {
+    @Override
+    public int compare(AsyncOperationImpl o1, AsyncOperationImpl o2) {
+      if (o1.getClass() == o2.getClass()) {
+        if (o1 instanceof AsyncPutOperationImpl) {
+          return AsyncPutOperationImplComparator.instance.compare((AsyncPutOperationImpl) o1,
+              (AsyncPutOperationImpl) o2);
+        } else if (o1 instanceof AsyncRetrievalOperationImpl) {
+          return AsyncRetrievalOperationImplComparator.instance.compare((AsyncRetrievalOperationImpl) o1,
+              (AsyncRetrievalOperationImpl) o2);
+        } else {
+          return 0;
         }
+      } else {
+        if (o1.getClass() == AsyncPutOperationImpl.class) {
+          return 1;
+        } else {
+          return -1;
+        }
+      }
     }
-    
-    private MessageEstimate estimateMessage(AsyncOperationImpl[] asyncOpImpls, int startIndex, int endIndex) {
-        MessageEstimate  estimate;
-        
-        estimate = asyncOpImpls[startIndex].createMessageEstimate();
-        for (int i = startIndex; i <= endIndex; i++) {
-            asyncOpImpls[i].addToEstimate(estimate);
-        }
-        return estimate;
+  }
+
+  private static void groupOps(AsyncOperationImpl[] asyncOpImpls) {
+    Arrays.sort(asyncOpImpls, opGroupingComparator);
+  }
+
+  private void createMessagesForIncomplete(AsyncOperationImpl[] asyncOpImpls) {
+    int startIndex;
+    int endIndex;
+
+    if (asyncOpImpls.length > 2) {
+      groupOps(asyncOpImpls);
     }
-    
-    /**
-     * Given a group of same-typed operations, create and send messages.
-     * @param asyncOpImpls
-     * @param startIndex
-     * @param endIndex
-     */
-    private void createMessages(AsyncOperationImpl[] asyncOpImpls, int startIndex, int endIndex) {
-        ProtoMessageGroup   protoMG;        
-        List<MessageGroup>  messageGroups;
-        MessageEstimate     estimate;
-                
-        estimate = estimateMessage(asyncOpImpls, startIndex, endIndex);
-        protoMG = asyncOpImpls[startIndex].createProtoMG(estimate);
-        
-        if (debug) {
-            Log.warningAsyncf("asyncOpImpls.length %d startIndex %d endIndex %d", asyncOpImpls.length, startIndex, endIndex);
+
+    //System.out.printf("single %d\tgrouped%d\n", doWorkCalls.get(), doGroupedWorkCalls.get());
+    startIndex = 0;
+    endIndex = startIndex + 1;
+    while (startIndex < asyncOpImpls.length) {
+      if (opGroupingEnabled) {
+        while (endIndex < asyncOpImpls.length && asyncOpImpls[startIndex].canBeGroupedWith(asyncOpImpls[endIndex])) {
+          endIndex++;
         }
-        messageGroups = new ArrayList<>();
-        // Walk through all of the compatible operations.
-        // For each operation, add to the current protoMG when possible. If not possible,
-        // then create a new protoMG and add the old to the messageGroups list.
-        for (int i = startIndex; i <= endIndex; i++) {
-            if (debug) {
-                Log.warningAsyncf("Calling create with %s for %s", protoMG.getUUID(), asyncOpImpls[i].objectToString());
-            }
-            protoMG = asyncOpImpls[i].createMessagesForIncomplete(protoMG, messageGroups, estimate);
-        }
-        // Add the final protoMG to the list if it is non-empty
-        protoMG.addToMessageGroupList(messageGroups);
-        // Send all MessageGroups
-        // FUTURE - consider sending sooner, in creation loop
-        for (MessageGroup messageGroup : messageGroups) {
-            if (debug) {
-                Log.warningAsync("OpSender sending:");
-                Log.warningAsync(messageGroup);
-                messageGroup.displayForDebug();
-            }
-            send(messageGroup);
-        }
+        createMessages(asyncOpImpls, startIndex, endIndex - 1);
+        startIndex = endIndex;
+      } else {
+        createMessages(asyncOpImpls, startIndex, startIndex);
+        startIndex++;
+      }
     }
-    
-    void send(MessageGroup messageGroup) {
-        mgBase.send(messageGroup, dest);
+  }
+
+  private MessageEstimate estimateMessage(AsyncOperationImpl[] asyncOpImpls, int startIndex, int endIndex) {
+    MessageEstimate estimate;
+
+    estimate = asyncOpImpls[startIndex].createMessageEstimate();
+    for (int i = startIndex; i <= endIndex; i++) {
+      asyncOpImpls[i].addToEstimate(estimate);
     }
+    return estimate;
+  }
+
+  /**
+   * Given a group of same-typed operations, create and send messages.
+   *
+   * @param asyncOpImpls
+   * @param startIndex
+   * @param endIndex
+   */
+  private void createMessages(AsyncOperationImpl[] asyncOpImpls, int startIndex, int endIndex) {
+    ProtoMessageGroup protoMG;
+    List<MessageGroup> messageGroups;
+    MessageEstimate estimate;
+
+    estimate = estimateMessage(asyncOpImpls, startIndex, endIndex);
+    protoMG = asyncOpImpls[startIndex].createProtoMG(estimate);
+
+    if (debug) {
+      Log.warningAsyncf("asyncOpImpls.length %d startIndex %d endIndex %d", asyncOpImpls.length, startIndex, endIndex);
+    }
+    messageGroups = new ArrayList<>();
+    // Walk through all of the compatible operations.
+    // For each operation, add to the current protoMG when possible. If not possible,
+    // then create a new protoMG and add the old to the messageGroups list.
+    for (int i = startIndex; i <= endIndex; i++) {
+      if (debug) {
+        Log.warningAsyncf("Calling create with %s for %s", protoMG.getUUID(), asyncOpImpls[i].objectToString());
+      }
+      protoMG = asyncOpImpls[i].createMessagesForIncomplete(protoMG, messageGroups, estimate);
+    }
+    // Add the final protoMG to the list if it is non-empty
+    protoMG.addToMessageGroupList(messageGroups);
+    // Send all MessageGroups
+    // FUTURE - consider sending sooner, in creation loop
+    for (MessageGroup messageGroup : messageGroups) {
+      if (debug) {
+        Log.warningAsync("OpSender sending:");
+        Log.warningAsync(messageGroup);
+        messageGroup.displayForDebug();
+      }
+      send(messageGroup);
+    }
+  }
+
+  void send(MessageGroup messageGroup) {
+    mgBase.send(messageGroup, dest);
+  }
 }

@@ -4,143 +4,143 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.ms.silverking.io.FileUtil;
+import com.ms.silverking.thread.ThreadUtil;
+import com.ms.silverking.util.PropertiesHelper;
+import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
 import org.apache.zookeeper.server.LocalZookeeperServerMain;
 import org.apache.zookeeper.server.ServerConfig;
 import org.apache.zookeeper.server.admin.AdminServer;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
-import com.ms.silverking.io.FileUtil;
-import com.ms.silverking.thread.ThreadUtil;
-import com.ms.silverking.util.PropertiesHelper;
-import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
-
 public class LocalZKImpl {
-    private static final int    presumedSuccessTimeMillis = 2 * 1000;
-    
-    private static int    minStartPort = 10000;
-    private static int    maxStartPort = 12000;
-    private static int    maxAttempts = 1000;
-    
-    public static final String    zkPortProperty = LocalZKImpl.class.getName() +".ZKPort";
-    public static final int        defaultZKPort = 0;
-    private static final int    zkPort;
+  private static final int presumedSuccessTimeMillis = 2 * 1000;
 
-    private static LocalZookeeperServerMain mainZkServer;
-    
-    static {
-        zkPort = PropertiesHelper.systemHelper.getInt(zkPortProperty, defaultZKPort, ParseExceptionAction.RethrowParseException);
-    }
+  private static int minStartPort = 10000;
+  private static int maxStartPort = 12000;
+  private static int maxAttempts = 1000;
 
-    public static int startLocalZK(String dataDirBase) {
-        int    port;
-        boolean    success;
-        
-        success = false;
-        if (zkPort == 0) {
-            port = ThreadLocalRandom.current().nextInt(minStartPort, maxStartPort);
-            for (int i = 0; i < maxAttempts; i++) {
-                if (startLocalZK(port, dataDirBase +"/"+ port)) {
-                    success = true;
-                    break;
-                }
-            }
-        } else {
-            port = zkPort;
-            if (startLocalZK(port, dataDirBase +"/"+ port)) {
-                success = true;
-            }
-        }
-        if (success) {
-            return port;
-        } else {
-            throw new RuntimeException("LocalZKImpl.startLocalZK() failed");
-        }
-    }
-    
-    public static boolean startLocalZK(int port, String dataDir) {
-        return new LocalZKImpl()._startLocalZK(port, dataDir);
-    }
-    
-    private LocalZKImpl() {
-    }
-    
-    private boolean _startLocalZK(int port, String dataDirName) {
-        Starter    starter;
-        File    dataDir;
-        
-        dataDir = new File(dataDirName);
-        dataDir.mkdirs();
-        FileUtil.cleanDirectory(dataDir);
-        starter = new Starter(port, dataDirName);
-        return starter.waitForStartup();
-    }
-    
-    private class Starter implements Runnable {
-        private final int        port;
-        private final String    dataDir;
-        private boolean    failed;
-        
-        Starter(int port, String dataDir) {
-            this.port = port;
-            this.dataDir = dataDir;
-            new Thread(this, "LocalZKImpl.Starter").start();
-        }
-        
-        private void startLocalZK(int port, String dataDir) {
-            String[]    args;
-            
-            args = new String[2];
-            args[0] = Integer.toString(port);
-            args[1] = dataDir;
-            mainZkServer = new LocalZookeeperServerMain();
-            ServerConfig config = new ServerConfig();
-            config.parse(args);
-            try {
-                mainZkServer.runFromConfig(config);
-            } catch (IOException e){
-                throw new RuntimeException(e);
-            } catch (AdminServer.AdminServerException a){
-                throw new RuntimeException(a);
-            }
-        }
+  public static final String zkPortProperty = LocalZKImpl.class.getName() + ".ZKPort";
+  public static final int defaultZKPort = 0;
+  private static final int zkPort;
 
-        public void run() {
-            startLocalZK(port, dataDir);
-            failed = true;
+  private static LocalZookeeperServerMain mainZkServer;
+
+  static {
+    zkPort = PropertiesHelper.systemHelper.getInt(zkPortProperty, defaultZKPort,
+        ParseExceptionAction.RethrowParseException);
+  }
+
+  public static int startLocalZK(String dataDirBase) {
+    int port;
+    boolean success;
+
+    success = false;
+    if (zkPort == 0) {
+      port = ThreadLocalRandom.current().nextInt(minStartPort, maxStartPort);
+      for (int i = 0; i < maxAttempts; i++) {
+        if (startLocalZK(port, dataDirBase + "/" + port)) {
+          success = true;
+          break;
         }
-        
-        public boolean waitForStartup() {
-            ThreadUtil.sleep(presumedSuccessTimeMillis);
-            return !failed;
-        }
+      }
+    } else {
+      port = zkPort;
+      if (startLocalZK(port, dataDirBase + "/" + port)) {
+        success = true;
+      }
+    }
+    if (success) {
+      return port;
+    } else {
+      throw new RuntimeException("LocalZKImpl.startLocalZK() failed");
+    }
+  }
+
+  public static boolean startLocalZK(int port, String dataDir) {
+    return new LocalZKImpl()._startLocalZK(port, dataDir);
+  }
+
+  private LocalZKImpl() {
+  }
+
+  private boolean _startLocalZK(int port, String dataDirName) {
+    Starter starter;
+    File dataDir;
+
+    dataDir = new File(dataDirName);
+    dataDir.mkdirs();
+    FileUtil.cleanDirectory(dataDir);
+    starter = new Starter(port, dataDirName);
+    return starter.waitForStartup();
+  }
+
+  private class Starter implements Runnable {
+    private final int port;
+    private final String dataDir;
+    private boolean failed;
+
+    Starter(int port, String dataDir) {
+      this.port = port;
+      this.dataDir = dataDir;
+      new Thread(this, "LocalZKImpl.Starter").start();
     }
 
-    public static void shutdown() {
-        mainZkServer.shutdownZk();
-        mainZkServer = null;
+    private void startLocalZK(int port, String dataDir) {
+      String[] args;
+
+      args = new String[2];
+      args[0] = Integer.toString(port);
+      args[1] = dataDir;
+      mainZkServer = new LocalZookeeperServerMain();
+      ServerConfig config = new ServerConfig();
+      config.parse(args);
+      try {
+        mainZkServer.runFromConfig(config);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } catch (AdminServer.AdminServerException a) {
+        throw new RuntimeException(a);
+      }
     }
 
-    public static void main(String[] args) {
-        CmdLineParser    parser;
-        LocalZKOptions    options;
-        
-        options = new LocalZKOptions();
-        parser = new CmdLineParser(options);
-        try {
-            parser.parseArgument(args);
-        } catch (CmdLineException cle) {
-            System.err.println(cle.getMessage());
-            parser.printUsage(System.err);
-            System.exit(-1);
-        }
-        
-        if (options.dataDir == null) {
-            parser.printUsage(System.err);
-            System.exit(-1);
-        }
-        
-        System.out.printf("ZK started %s\n", startLocalZK(options.port, options.dataDir));
+    public void run() {
+      startLocalZK(port, dataDir);
+      failed = true;
+    }
+
+    public boolean waitForStartup() {
+      ThreadUtil.sleep(presumedSuccessTimeMillis);
+      return !failed;
+    }
+  }
+
+  public static void shutdown() {
+    mainZkServer.shutdownZk();
+    mainZkServer = null;
+  }
+
+  public static void main(String[] args) {
+    CmdLineParser parser;
+    LocalZKOptions options;
+
+    options = new LocalZKOptions();
+    parser = new CmdLineParser(options);
+    try {
+      parser.parseArgument(args);
+    } catch (CmdLineException cle) {
+      System.err.println(cle.getMessage());
+      parser.printUsage(System.err);
+      System.exit(-1);
+    }
+
+    if (options.dataDir == null) {
+      parser.printUsage(System.err);
+      System.exit(-1);
+    }
+
+    System.out.printf("ZK started %s\n", startLocalZK(options.port, options.dataDir));
         /*
         org.apache.zookeeper.server.quorum.QuorumPeerMain
         if [ "x$2" != "x" ]
@@ -157,5 +157,5 @@ public class LocalZKImpl {
         echo STARTED
         ;;
     */
-    }
+  }
 }

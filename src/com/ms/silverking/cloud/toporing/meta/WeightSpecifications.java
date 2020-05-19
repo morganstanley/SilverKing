@@ -16,33 +16,33 @@ import com.ms.silverking.cloud.meta.VersionedDefinition;
 import com.ms.silverking.cloud.topology.Node;
 
 public class WeightSpecifications implements VersionedDefinition {
-    private final long  version;
-    //private final Map<String, Double>   classWeights;
-    private final Map<String, Double>   nodeWeights;
-    
-    // FIXME - we need to be able to specify weights by groups of some sort
-    // start with host groups, and require other topology levels to specify weights by ID
-    
-    public static final double  defaultWeight = 1.0;
-    
-    public WeightSpecifications(long version) {
-        this.version = version;
-        //classWeights = new HashMap<>();
-        nodeWeights = new HashMap<>();
-    }
-    
-    public WeightSpecifications(long version, Map<String,Double> nodeWeights) {
-        this.version = version;
-        this.nodeWeights = new HashMap<>(nodeWeights);
-    }
-    
-    //public void setClassWeight(NodeClass nodeClass, double weight) {
-    //    classWeights.put(nodeClass.g, weight);
-    //}
-    
-    private void setNodeWeightByID(String nodeName, double weight) {
-        nodeWeights.put(nodeName, weight);
-    }
+  private final long version;
+  //private final Map<String, Double>   classWeights;
+  private final Map<String, Double> nodeWeights;
+
+  // FIXME - we need to be able to specify weights by groups of some sort
+  // start with host groups, and require other topology levels to specify weights by ID
+
+  public static final double defaultWeight = 1.0;
+
+  public WeightSpecifications(long version) {
+    this.version = version;
+    //classWeights = new HashMap<>();
+    nodeWeights = new HashMap<>();
+  }
+
+  public WeightSpecifications(long version, Map<String, Double> nodeWeights) {
+    this.version = version;
+    this.nodeWeights = new HashMap<>(nodeWeights);
+  }
+
+  //public void setClassWeight(NodeClass nodeClass, double weight) {
+  //    classWeights.put(nodeClass.g, weight);
+  //}
+
+  private void setNodeWeightByID(String nodeName, double weight) {
+    nodeWeights.put(nodeName, weight);
+  }
     
     /*
     public double getWeight(NodeClass nodeClass) {
@@ -56,14 +56,14 @@ public class WeightSpecifications implements VersionedDefinition {
         }
     }
     */
-    
-    public double getWeight(Node node) {
-        Double  weight;
 
-        weight = nodeWeights.get(node.getIDString());
-        if (weight != null) {
-            return weight;
-        } else {
+  public double getWeight(Node node) {
+    Double weight;
+
+    weight = nodeWeights.get(node.getIDString());
+    if (weight != null) {
+      return weight;
+    } else {
             /*
             weight = getWeight(node.getNodeClass());
             if (weight == 0.0) {
@@ -72,66 +72,66 @@ public class WeightSpecifications implements VersionedDefinition {
                 return weight;
             }
             */
-            return defaultWeight;
-        }
+      return defaultWeight;
     }
-    
-    public List<Double> getWeights(List<Node> nodes) {
-        List<Double>    weights;
-        
-        weights = new ArrayList<>(nodes.size());
-        for (Node node : nodes) {
-            weights.add(getWeight(node));
-        }
-        return weights;
-    }
-    
-    public WeightSpecifications parse(File file) throws IOException {
-        return parse(new FileInputStream(file));
-    }
-    
-    public WeightSpecifications parse(InputStream inStream) throws IOException {
-        BufferedReader   reader;
-        String           line;
-        
-        reader = new BufferedReader(new InputStreamReader(inStream));
-        do {
-            line = reader.readLine();
-            if (line != null) {
-                line = line.trim();
-                if (line.length() > 0) {
-                    String[]    toks;
-                    
-                    toks = line.split("\\s+");
-                    if (toks.length >= 2) {
-                        setNodeWeightByID(toks[0], Double.parseDouble(toks[1]));
-                    }
-                }
-            }
-        } while (line != null);
-        return this;
-    }
-    
-    public Collection<Map.Entry<String,Double>> getNodeWeights() {
-        return nodeWeights.entrySet();
-    }
-    
-    @Override
-    public String toString() {
-        StringBuilder   sb;
-        
-        sb = new StringBuilder();
-        for (Map.Entry<String,Double> entry : nodeWeights.entrySet()) {
-            sb.append(entry.getKey());
-            sb.append('\t');
-            sb.append(entry.getValue());
-            sb.append('\n');
-        }
-        return sb.toString();
-    }
+  }
 
-    @Override
-    public long getVersion() {
-        return version;
+  public List<Double> getWeights(List<Node> nodes) {
+    List<Double> weights;
+
+    weights = new ArrayList<>(nodes.size());
+    for (Node node : nodes) {
+      weights.add(getWeight(node));
     }
+    return weights;
+  }
+
+  public WeightSpecifications parse(File file) throws IOException {
+    return parse(new FileInputStream(file));
+  }
+
+  public WeightSpecifications parse(InputStream inStream) throws IOException {
+    BufferedReader reader;
+    String line;
+
+    reader = new BufferedReader(new InputStreamReader(inStream));
+    do {
+      line = reader.readLine();
+      if (line != null) {
+        line = line.trim();
+        if (line.length() > 0) {
+          String[] toks;
+
+          toks = line.split("\\s+");
+          if (toks.length >= 2) {
+            setNodeWeightByID(toks[0], Double.parseDouble(toks[1]));
+          }
+        }
+      }
+    } while (line != null);
+    return this;
+  }
+
+  public Collection<Map.Entry<String, Double>> getNodeWeights() {
+    return nodeWeights.entrySet();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb;
+
+    sb = new StringBuilder();
+    for (Map.Entry<String, Double> entry : nodeWeights.entrySet()) {
+      sb.append(entry.getKey());
+      sb.append('\t');
+      sb.append(entry.getValue());
+      sb.append('\n');
+    }
+    return sb.toString();
+  }
+
+  @Override
+  public long getVersion() {
+    return version;
+  }
 }

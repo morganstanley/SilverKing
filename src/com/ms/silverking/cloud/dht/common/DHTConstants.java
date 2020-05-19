@@ -33,212 +33,210 @@ import com.ms.silverking.cloud.dht.meta.ClassVars;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
-
 /**
  * DHTConstants for internal use. Not exposed to clients.
  */
 public class DHTConstants {
-    public static final long noSuchVersion = Long.MIN_VALUE;
-    public static final long    unspecifiedVersion = 0;
-    
-    public static final byte[]    emptyByteArray = new byte[0];
-    
-    public static final StorageType            defaultStorageType = StorageType.FILE;
-    public static final ConsistencyProtocol    defaultConsistencyProtocol = ConsistencyProtocol.TWO_PHASE_COMMIT;
-    public static final NamespaceVersionMode   defaultVersionMode = NamespaceVersionMode.SINGLE_VERSION;
-    public static final RevisionMode           defaultRevisionMode = RevisionMode.NO_REVISIONS;
-    public static final String                 defaultStorageFormat = "0";
-    public static final int                    defaultSecondarySyncIntervalSeconds = 30 * 60;
-    public static final int                    defaultSecondaryReplicaUpdateTimeoutMillis = 2 * 60 * 1000;
-    public static final SegmentIndexLocation   defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
-    public static final int                    defaultNSPrereadGB = 0;
-    public static final int                    defaultMinPrimaryUnderFailure = 1;
-    public static final int                    defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
-    public static final boolean                defaultEnablePendingPuts = true;
-    public static final long                   defaultMaxUnfinalizedDeletedBytes = 10L * 1024L * 1024L * 1024L;
+  public static final long noSuchVersion = Long.MIN_VALUE;
+  public static final long unspecifiedVersion = 0;
 
-    public static final int                    minSegmentSize = 2 * 1024;
-    public static final int                    defaultSegmentSize = 64 * 1024 * 1024;
-    public static final int                    segmentSafetyMargin = 1 * 1024;
-    
-    public static final int                    defaultFragmentationThreshold = 10 * 1024 * 1024;            
-    public static final int                    minFragmentationThreshold =   1 * 1024;            
+  public static final byte[] emptyByteArray = new byte[0];
 
-    // NOTE: max value size for a single value in namespace cannot exceeds 2GB (due to integer limit)
-    public static final int                    defaultMaxValueSize = 1 * 1024 * 1024 * 1024; // 1GB
-    
-    public static final String    defaultDataBasePath = "/var/tmp/silverking/data";
-    public static final String    defaultSKInstanceLogBasePath = "/tmp/silverking";
-    
-    public static final int noCapacityLimit = -1;
-    public static final int defaultFileSegmentCacheCapacity = noCapacityLimit;
-    
-    public static final StorageModule.RetrievalImplementation    defaultRetrievalImplementation = StorageModule.RetrievalImplementation.Ungrouped;
-    
-    public static final String  systemClassBase = "com.ms.silverking";
-    public static final String    daemonPackageBase = systemClassBase +".cloud.dht.daemon";
-        
-    public static final String    daemonLogFile = "Daemon.out";
-    public static final String    stopSKFSLogFile = "StopSKFS.out";
-    public static final String    checkSKFSLogFile = "CheckSKFS.out";
-    public static final String    prevDaemonLogFile = "Daemon.out.1";
-    public static final String    heapDumpFile = "DHTNode.heap";
-    public static final ClassVars    defaultDefaultClassVars;
+  public static final StorageType defaultStorageType = StorageType.FILE;
+  public static final ConsistencyProtocol defaultConsistencyProtocol = ConsistencyProtocol.TWO_PHASE_COMMIT;
+  public static final NamespaceVersionMode defaultVersionMode = NamespaceVersionMode.SINGLE_VERSION;
+  public static final RevisionMode defaultRevisionMode = RevisionMode.NO_REVISIONS;
+  public static final String defaultStorageFormat = "0";
+  public static final int defaultSecondarySyncIntervalSeconds = 30 * 60;
+  public static final int defaultSecondaryReplicaUpdateTimeoutMillis = 2 * 60 * 1000;
+  public static final SegmentIndexLocation defaultSegmentIndexLocation = SegmentIndexLocation.RAM;
+  public static final int defaultNSPrereadGB = 0;
+  public static final int defaultMinPrimaryUnderFailure = 1;
+  public static final int defaultMinFinalizationIntervalMillis = 12 * 60 * 60 * 1000;
+  public static final boolean defaultEnablePendingPuts = true;
+  public static final long defaultMaxUnfinalizedDeletedBytes = 10L * 1024L * 1024L * 1024L;
 
-    public static final String    initialHeapSizeVar = "initialHeapSize";
-    public static final String    maxHeapSizeVar = "maxHeapSize";
-    public static final String    dataBaseVar = "dataBase";
-    public static final String    rawOptionsVar = "rawOptions";
-    public static final String    ipAliasMapFileVar = "skIPAliasMapFile";
-    public static final String    ipAliasMapFileEnvVar = "skIPAliasMapFile";
-    public static final String    dataBasePathProperty = daemonPackageBase +".DataBasePath";
-    public static final String    skInstanceLogBaseVar = "skInstanceLogBase";
-    public static final String    skDaemonJavaCommandHeaderVar = "skDaemonJavaCommandHeader";
-    public static final String    skDaemonJavaCommandHeaderEnvVar = "skDaemonJavaCommandHeader";
-    public static final String    killCommandVar = "killCommand";
-    public static final String    killCommandEnvVar = "skKillCommand";
-    public static final String    clearDataCommandVar = "clearDataCommand";
-    public static final String    checkSKFSCommandVar = "checkSKFSCommand";
-    public static final String    checkSKFSCommandEnvVar = "skCheckSKFSCommand";    
-    public static final String    fileSegmentCacheCapacityVar = "fileSegmentCacheCapacity";
-    public static final String    fileSegmentCacheCapacityProperty = daemonPackageBase +".FileSegmentCacheCapacity";
-    public static final String    retrievalImplementationVar = "retrievalImplementation";
-    public static final String    retrievalImplementationProperty = daemonPackageBase +".RetrievalImplementation";
-    public static final String    segmentIndexLocationVar = "segmentIndexLocation";
-    public static final String    segmentIndexLocationProperty = daemonPackageBase +".SegmentIndexLocation";
-    public static final String    nsPrereadGBVar = "nsPrereadGB";
-    public static final String    nsPrereadGBProperty = daemonPackageBase +".NSPrereadGB";    
-    public static final String    minFinalizationIntervalMillisProperty = daemonPackageBase +".MinFinalizationIntervalMillis";
-    public static final String    enablePendingPutsProperty = daemonPackageBase +".EnablePendingPuts";
-    public static final String    maxUnfinalizedDeletedBytesProperty = daemonPackageBase +".MaxUnfinalizedDeletedBytes";
-    public static final String    verboseReapLogInfoProperty = daemonPackageBase +".VerboseReapLogInfo";
+  public static final int minSegmentSize = 2 * 1024;
+  public static final int defaultSegmentSize = 64 * 1024 * 1024;
+  public static final int segmentSafetyMargin = 1 * 1024;
 
-    public static final String    verboseGlobalFinalizationProperty = systemClassBase + ".VerboseGlobalFinalization";
-    public static final String    jvmMonitorMaxIntervalMillisProperty = systemClassBase + ".JvmMonitorMaxIntervalMillis";
-    public static final String    jvmMonitorMinIntervalMillisProperty = systemClassBase + ".JvmMonitorMinIntervalMillis";
+  public static final int defaultFragmentationThreshold = 10 * 1024 * 1024;
+  public static final int minFragmentationThreshold = 1 * 1024;
 
-    public static final String    ssSubDirName = "ss";
-    public static final String    ssTempSubDirName = "ssTemp";
+  // NOTE: max value size for a single value in namespace cannot exceeds 2GB (due to integer limit)
+  public static final int defaultMaxValueSize = 1 * 1024 * 1024 * 1024; // 1GB
 
-    public static final String classpathEnv = "SK_CLASSPATH";
-    public static final String classpathProperty = "java.class.path";
-    public static final String jaceHomeEnv = "SK_JACE_HOME";
-    public static final String defaultNamespaceOptionsModeEnv = "SK_DEFAULT_NS_OPTIONS_MODE";
-    public static final String javaHomeEnv = SKConstants.javaHomeEnv;
-    public static final String javaHomeProperty = "java.home";
-    
-    public static final String    dataBasePathDelimiter = "%%";
-    
-    public static boolean    isDaemon = false;
-    
-    static {
-        Map<String,String>    defMap;
-        
-        defMap = new HashMap<>();
-        defMap.put(initialHeapSizeVar, "1024");
-        defMap.put(maxHeapSizeVar, "1024");
-        defMap.put(ipAliasMapFileVar, PropertiesHelper.envHelper.getString(ipAliasMapFileEnvVar, ""));
-        defMap.put(dataBaseVar, defaultDataBasePath);
-        defMap.put(skInstanceLogBaseVar, defaultSKInstanceLogBasePath);
-        defMap.put(skDaemonJavaCommandHeaderVar, PropertiesHelper.envHelper.getString(skDaemonJavaCommandHeaderEnvVar, ""));
-        defMap.put(killCommandVar, PropertiesHelper.envHelper.getString(killCommandEnvVar, UndefinedAction.ZeroOnUndefined));
-        defMap.put(clearDataCommandVar, "rm -rf");
-        defMap.put(checkSKFSCommandVar, PropertiesHelper.envHelper.getString(checkSKFSCommandEnvVar, UndefinedAction.ZeroOnUndefined));
-        defMap.put(retrievalImplementationVar, defaultRetrievalImplementation.toString());
-        defMap.put(fileSegmentCacheCapacityVar, Integer.toString(defaultFileSegmentCacheCapacity));
-        defMap.put(segmentIndexLocationVar, defaultSegmentIndexLocation.toString());
-        defMap.put(nsPrereadGBVar, Integer.toString(defaultNSPrereadGB));
-        defaultDefaultClassVars = new ClassVars(defMap, 0);
-        
-        // assertions
-        if (minFragmentationThreshold > minSegmentSize) {
-            // Doesn't make sense to have a fragment > a segment,
-            // This is only checking to make sure that minimums are sane. 
-            // Checking that actual values requested are sane is done elsewhere.
-            throw new RuntimeException("minSegmentSize > minFragmentationThreshold");
-        }
+  public static final String defaultDataBasePath = "/var/tmp/silverking/data";
+  public static final String defaultSKInstanceLogBasePath = "/tmp/silverking";
+
+  public static final int noCapacityLimit = -1;
+  public static final int defaultFileSegmentCacheCapacity = noCapacityLimit;
+
+  public static final StorageModule.RetrievalImplementation defaultRetrievalImplementation =
+      StorageModule.RetrievalImplementation.Ungrouped;
+
+  public static final String systemClassBase = "com.ms.silverking";
+  public static final String daemonPackageBase = systemClassBase + ".cloud.dht.daemon";
+
+  public static final String daemonLogFile = "Daemon.out";
+  public static final String stopSKFSLogFile = "StopSKFS.out";
+  public static final String checkSKFSLogFile = "CheckSKFS.out";
+  public static final String prevDaemonLogFile = "Daemon.out.1";
+  public static final String heapDumpFile = "DHTNode.heap";
+  public static final ClassVars defaultDefaultClassVars;
+
+  public static final String initialHeapSizeVar = "initialHeapSize";
+  public static final String maxHeapSizeVar = "maxHeapSize";
+  public static final String dataBaseVar = "dataBase";
+  public static final String rawOptionsVar = "rawOptions";
+  public static final String ipAliasMapFileVar = "skIPAliasMapFile";
+  public static final String ipAliasMapFileEnvVar = "skIPAliasMapFile";
+  public static final String dataBasePathProperty = daemonPackageBase + ".DataBasePath";
+  public static final String skInstanceLogBaseVar = "skInstanceLogBase";
+  public static final String skDaemonJavaCommandHeaderVar = "skDaemonJavaCommandHeader";
+  public static final String skDaemonJavaCommandHeaderEnvVar = "skDaemonJavaCommandHeader";
+  public static final String killCommandVar = "killCommand";
+  public static final String killCommandEnvVar = "skKillCommand";
+  public static final String clearDataCommandVar = "clearDataCommand";
+  public static final String checkSKFSCommandVar = "checkSKFSCommand";
+  public static final String checkSKFSCommandEnvVar = "skCheckSKFSCommand";
+  public static final String fileSegmentCacheCapacityVar = "fileSegmentCacheCapacity";
+  public static final String fileSegmentCacheCapacityProperty = daemonPackageBase + ".FileSegmentCacheCapacity";
+  public static final String retrievalImplementationVar = "retrievalImplementation";
+  public static final String retrievalImplementationProperty = daemonPackageBase + ".RetrievalImplementation";
+  public static final String segmentIndexLocationVar = "segmentIndexLocation";
+  public static final String segmentIndexLocationProperty = daemonPackageBase + ".SegmentIndexLocation";
+  public static final String nsPrereadGBVar = "nsPrereadGB";
+  public static final String nsPrereadGBProperty = daemonPackageBase + ".NSPrereadGB";
+  public static final String minFinalizationIntervalMillisProperty = daemonPackageBase +
+      ".MinFinalizationIntervalMillis";
+  public static final String enablePendingPutsProperty = daemonPackageBase + ".EnablePendingPuts";
+  public static final String maxUnfinalizedDeletedBytesProperty = daemonPackageBase + ".MaxUnfinalizedDeletedBytes";
+  public static final String verboseReapLogInfoProperty = daemonPackageBase + ".VerboseReapLogInfo";
+
+  public static final String verboseGlobalFinalizationProperty = systemClassBase + ".VerboseGlobalFinalization";
+  public static final String jvmMonitorMaxIntervalMillisProperty = systemClassBase + ".JvmMonitorMaxIntervalMillis";
+  public static final String jvmMonitorMinIntervalMillisProperty = systemClassBase + ".JvmMonitorMinIntervalMillis";
+
+  public static final String ssSubDirName = "ss";
+  public static final String ssTempSubDirName = "ssTemp";
+
+  public static final String classpathEnv = "SK_CLASSPATH";
+  public static final String classpathProperty = "java.class.path";
+  public static final String jaceHomeEnv = "SK_JACE_HOME";
+  public static final String defaultNamespaceOptionsModeEnv = "SK_DEFAULT_NS_OPTIONS_MODE";
+  public static final String javaHomeEnv = SKConstants.javaHomeEnv;
+  public static final String javaHomeProperty = "java.home";
+
+  public static final String dataBasePathDelimiter = "%%";
+
+  public static boolean isDaemon = false;
+
+  static {
+    Map<String, String> defMap;
+
+    defMap = new HashMap<>();
+    defMap.put(initialHeapSizeVar, "1024");
+    defMap.put(maxHeapSizeVar, "1024");
+    defMap.put(ipAliasMapFileVar, PropertiesHelper.envHelper.getString(ipAliasMapFileEnvVar, ""));
+    defMap.put(dataBaseVar, defaultDataBasePath);
+    defMap.put(skInstanceLogBaseVar, defaultSKInstanceLogBasePath);
+    defMap.put(skDaemonJavaCommandHeaderVar, PropertiesHelper.envHelper.getString(skDaemonJavaCommandHeaderEnvVar, ""));
+    defMap.put(killCommandVar,
+        PropertiesHelper.envHelper.getString(killCommandEnvVar, UndefinedAction.ZeroOnUndefined));
+    defMap.put(clearDataCommandVar, "rm -rf");
+    defMap.put(checkSKFSCommandVar,
+        PropertiesHelper.envHelper.getString(checkSKFSCommandEnvVar, UndefinedAction.ZeroOnUndefined));
+    defMap.put(retrievalImplementationVar, defaultRetrievalImplementation.toString());
+    defMap.put(fileSegmentCacheCapacityVar, Integer.toString(defaultFileSegmentCacheCapacity));
+    defMap.put(segmentIndexLocationVar, defaultSegmentIndexLocation.toString());
+    defMap.put(nsPrereadGBVar, Integer.toString(defaultNSPrereadGB));
+    defaultDefaultClassVars = new ClassVars(defMap, 0);
+
+    // assertions
+    if (minFragmentationThreshold > minSegmentSize) {
+      // Doesn't make sense to have a fragment > a segment,
+      // This is only checking to make sure that minimums are sane.
+      // Checking that actual values requested are sane is done elsewhere.
+      throw new RuntimeException("minSegmentSize > minFragmentationThreshold");
     }
-    
-    public static String getSKInstanceLogDir(ClassVars classVars, SKGridConfiguration gc) {
-        return classVars.getVarMap().get(DHTConstants.skInstanceLogBaseVar)
-                    +"/"+ gc.getClientDHTConfiguration().getName();
-    }
-    
-    public static final Set<SecondaryTarget> noSecondaryTargets = null;
-    public static final OpTimeoutController    standardTimeoutController = new OpSizeBasedTimeoutController();
-    public static final OpTimeoutController    standardWaitForTimeoutController = new WaitForTimeoutController();
-    /** 
-     * Standard PutOptions. Subject to change. Recommended practice is for each SilverKing instance to specify 
-     * an instance default (using NamespaceCreationOptions.defaultNSOptions.defaultPutOptions.) 
-     */
-    public static final PutOptions standardPutOptions = new PutOptions(
-                                                    standardTimeoutController, 
-                                                    noSecondaryTargets, Compression.LZ4, 
-                                                    ChecksumType.MURMUR3_32, 
-                                                    false, 
-                                                    PutOptions.defaultVersion, 
-                                                    PutOptions.noVersionRequired, 
-                                                    PutOptions.noLock, defaultFragmentationThreshold, null); // FUTURE - FOR NOW THIS MUST BE REPLICATED IN PUT OPTIONS, parse limitation
-    public static final InvalidationOptions standardInvalidationOptions = OptionsHelper.newInvalidationOptions(standardTimeoutController, InvalidationOptions.defaultVersion, PutOptions.noVersionRequired, PutOptions.noLock, noSecondaryTargets);
-    public static final GetOptions standardGetOptions = OptionsHelper.newGetOptions(
-            standardTimeoutController, RetrievalType.VALUE, VersionConstraint.defaultConstraint);
-    public static final WaitOptions standardWaitOptions = OptionsHelper.newWaitOptions(
-            RetrievalType.VALUE, VersionConstraint.defaultConstraint, 
-            Integer.MAX_VALUE, WaitOptions.THRESHOLD_MAX);
-    
-    public static final NamespaceOptions    defaultNamespaceOptions = OptionsHelper.newNamespaceOptions(defaultStorageType, 
-                                                defaultConsistencyProtocol, defaultVersionMode, defaultRevisionMode,
-                                                standardPutOptions, standardInvalidationOptions, 
-                                                standardGetOptions, standardWaitOptions, 
-                                                defaultSecondarySyncIntervalSeconds, defaultSegmentSize, defaultMaxValueSize);
-    public static final NamespaceOptions    dynamicNamespaceOptions = defaultNamespaceOptions.storageType(StorageType.RAM)
-                                          .consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT)
-                                          .versionMode(NamespaceVersionMode.CLIENT_SPECIFIED);
-    public static final NamespaceProperties dynamicNamespaceProperties = new NamespaceProperties(dynamicNamespaceOptions);
-    public static final NamespaceProperties metricsNamespaceProperties = dynamicNamespaceProperties;
-    
-    public static final Class<String>    defaultKeyClass = String.class;
-    public static final Class<byte[]>    defaultValueClass = byte[].class;
-                                                
-   /**
-    * Default NamespaceCreationOptions. Subject to change. Recommended practice is for each SilverKing instance
-    * to explicitly specify. 
-    */
-    public static final NamespaceCreationOptions   defaultNamespaceCreationOptions 
-                                        = new NamespaceCreationOptions(Mode.OptionalAutoCreation_AllowMatches, "^_.*", 
-                                                defaultNamespaceOptions);
-    
-    // default encryption
-    public static final String                defaultEncrypterDecrypterProperty = systemClassBase +".DefaultEncrypterDecrypter";
-    public static final EncrypterDecrypter    defaultDefaultEncrypterDecrypter = null;
-    public static final EncrypterDecrypter    defaultEncrypterDecrypter;
-    
-    static {
-        String    val;
-        
-        val = PropertiesHelper.systemHelper.getString(defaultEncrypterDecrypterProperty, UndefinedAction.ZeroOnUndefined);
-        if (val == null) {
-            defaultEncrypterDecrypter = defaultDefaultEncrypterDecrypter;
+  }
+
+  public static String getSKInstanceLogDir(ClassVars classVars, SKGridConfiguration gc) {
+    return classVars.getVarMap().get(
+        DHTConstants.skInstanceLogBaseVar) + "/" + gc.getClientDHTConfiguration().getName();
+  }
+
+  public static final Set<SecondaryTarget> noSecondaryTargets = null;
+  public static final OpTimeoutController standardTimeoutController = new OpSizeBasedTimeoutController();
+  public static final OpTimeoutController standardWaitForTimeoutController = new WaitForTimeoutController();
+  /**
+   * Standard PutOptions. Subject to change. Recommended practice is for each SilverKing instance to specify
+   * an instance default (using NamespaceCreationOptions.defaultNSOptions.defaultPutOptions.)
+   */
+  public static final PutOptions standardPutOptions = new PutOptions(standardTimeoutController, noSecondaryTargets,
+      Compression.LZ4, ChecksumType.MURMUR3_32, false, PutOptions.defaultVersion, PutOptions.noVersionRequired,
+      PutOptions.noLock, defaultFragmentationThreshold,
+      null); // FUTURE - FOR NOW THIS MUST BE REPLICATED IN PUT OPTIONS, parse limitation
+  public static final InvalidationOptions standardInvalidationOptions = OptionsHelper.newInvalidationOptions(
+      standardTimeoutController, InvalidationOptions.defaultVersion, PutOptions.noVersionRequired, PutOptions.noLock,
+      noSecondaryTargets);
+  public static final GetOptions standardGetOptions = OptionsHelper.newGetOptions(standardTimeoutController,
+      RetrievalType.VALUE, VersionConstraint.defaultConstraint);
+  public static final WaitOptions standardWaitOptions = OptionsHelper.newWaitOptions(RetrievalType.VALUE,
+      VersionConstraint.defaultConstraint, Integer.MAX_VALUE, WaitOptions.THRESHOLD_MAX);
+
+  public static final NamespaceOptions defaultNamespaceOptions = OptionsHelper.newNamespaceOptions(defaultStorageType,
+      defaultConsistencyProtocol, defaultVersionMode, defaultRevisionMode, standardPutOptions,
+      standardInvalidationOptions, standardGetOptions, standardWaitOptions, defaultSecondarySyncIntervalSeconds,
+      defaultSegmentSize, defaultMaxValueSize);
+  public static final NamespaceOptions dynamicNamespaceOptions = defaultNamespaceOptions.storageType(
+      StorageType.RAM).consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT).versionMode(
+      NamespaceVersionMode.CLIENT_SPECIFIED);
+  public static final NamespaceProperties dynamicNamespaceProperties = new NamespaceProperties(dynamicNamespaceOptions);
+  public static final NamespaceProperties metricsNamespaceProperties = dynamicNamespaceProperties;
+
+  public static final Class<String> defaultKeyClass = String.class;
+  public static final Class<byte[]> defaultValueClass = byte[].class;
+
+  /**
+   * Default NamespaceCreationOptions. Subject to change. Recommended practice is for each SilverKing instance
+   * to explicitly specify.
+   */
+  public static final NamespaceCreationOptions defaultNamespaceCreationOptions = new NamespaceCreationOptions(
+      Mode.OptionalAutoCreation_AllowMatches, "^_.*", defaultNamespaceOptions);
+
+  // default encryption
+  public static final String defaultEncrypterDecrypterProperty = systemClassBase + ".DefaultEncrypterDecrypter";
+  public static final EncrypterDecrypter defaultDefaultEncrypterDecrypter = null;
+  public static final EncrypterDecrypter defaultEncrypterDecrypter;
+
+  static {
+    String val;
+
+    val = PropertiesHelper.systemHelper.getString(defaultEncrypterDecrypterProperty, UndefinedAction.ZeroOnUndefined);
+    if (val == null) {
+      defaultEncrypterDecrypter = defaultDefaultEncrypterDecrypter;
+    } else {
+      try {
+        if (val.equals(AESEncrypterDecrypter.name) || val.equals(AESEncrypterDecrypter.class.getName())) {
+          defaultEncrypterDecrypter = new AESEncrypterDecrypter();
+        } else if (val.equals(XOREncrypterDecrypter.name) || val.equals(XOREncrypterDecrypter.class.getName())) {
+          defaultEncrypterDecrypter = new XOREncrypterDecrypter();
         } else {
-            try {
-                if (val.equals(AESEncrypterDecrypter.name) || val.equals(AESEncrypterDecrypter.class.getName())) {
-                    defaultEncrypterDecrypter = new AESEncrypterDecrypter();
-                } else if (val.equals(XOREncrypterDecrypter.name) || val.equals(XOREncrypterDecrypter.class.getName())) {
-                    defaultEncrypterDecrypter = new XOREncrypterDecrypter();
-                } else {
-                    throw new RuntimeException("Unknown EncrypterDecrypter: "+ val);
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Exception initializing EncrypterDecrypter", e);
-            }
+          throw new RuntimeException("Unknown EncrypterDecrypter: " + val);
         }
+      } catch (Exception e) {
+        throw new RuntimeException("Exception initializing EncrypterDecrypter", e);
+      }
     }
-    
-    // Creation time functionality
-    // here only because SystemTimeUtil needs to access this
-    public static final long    nanoOriginTimeInMillis;
-    
-    static {
+  }
+
+  // Creation time functionality
+  // here only because SystemTimeUtil needs to access this
+  public static final long nanoOriginTimeInMillis;
+
+  static {
         /*
         Calendar    c;
         
@@ -246,7 +244,7 @@ public class DHTConstants {
         c.set(2000, 0, 1, 0, 0, 0);
         nanoOriginTimeInMillis = c.getTimeInMillis();
         */
-        // Above code has error. Below removes this error and ensures no skew across runs/instances
-        nanoOriginTimeInMillis = 946684800000L;
-    }   
+    // Above code has error. Below removes this error and ensures no skew across runs/instances
+    nanoOriginTimeInMillis = 946684800000L;
+  }
 }

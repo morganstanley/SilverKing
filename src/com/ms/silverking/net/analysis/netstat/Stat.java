@@ -1,87 +1,87 @@
 package com.ms.silverking.net.analysis.netstat;
 
 public class Stat {
-    private final String   fullName;
-    private final String   name;
-    private final long     value;
-    
-    public Stat(String fullName, String name, long value) {
-        this.fullName = fullName;
-        this.name = name;
-        this.value = value;
-        if (value < 0) {
-            throw new RuntimeException(String.format("Value < 0\t%s %s %d", fullName, name, value));
-        }
-    }
-    
-    public String getFullName() {
-        return fullName;
-    }
-    
-    public String getName() {
-        return name;
-    }
+  private final String fullName;
+  private final String name;
+  private final long value;
 
-    public long getValue() {
-        return value;
+  public Stat(String fullName, String name, long value) {
+    this.fullName = fullName;
+    this.name = name;
+    this.value = value;
+    if (value < 0) {
+      throw new RuntimeException(String.format("Value < 0\t%s %s %d", fullName, name, value));
     }
-    
-    public Stat add(Stat s) {
-        long    total;
-        
-        if (!s.fullName.equals(this.fullName)) {
-            throw new RuntimeException(s.fullName +" != "+ this.fullName);
-        }
-        total = this.value + s.value;
-        if (total < this.value) {
-            throw new RuntimeException("Long overflow");
-        }
-        return new Stat(fullName, name, total);
+  }
+
+  public String getFullName() {
+    return fullName;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public long getValue() {
+    return value;
+  }
+
+  public Stat add(Stat s) {
+    long total;
+
+    if (!s.fullName.equals(this.fullName)) {
+      throw new RuntimeException(s.fullName + " != " + this.fullName);
     }
-    
-    @Override
-    public String toString() {
-        return fullName +":"+ name +":"+ value;
+    total = this.value + s.value;
+    if (total < this.value) {
+      throw new RuntimeException("Long overflow");
     }
-    
-    public static Stat parse(String parentName, String s) {
-        int splitIndex;
-        int nameIndex;
-        int valueIndex;
-        
-        s = s.trim();
-        splitIndex = s.indexOf(':');
-        if (splitIndex < 0) {
-            splitIndex = s.indexOf(' ');
-            if (splitIndex < 0) {
-                return null;
-            } else {
-                nameIndex = 1;
-                valueIndex = 0;
-            }
-        } else {
-            nameIndex = 0;
-            valueIndex = 1;
-        }
-        if (s.length() == splitIndex) {
-            return null;
-        } else {
-            String[]    subs;
-            
-            subs = new String[2];
-            subs[0] = s.substring(0, splitIndex).trim();
-            subs[1] = s.substring(splitIndex + 1).trim();
-            return new Stat(parentName != null ? parentName +":"+ subs[nameIndex] : "", 
-                    subs[nameIndex], Long.parseLong(subs[valueIndex]));
-        }
+    return new Stat(fullName, name, total);
+  }
+
+  @Override
+  public String toString() {
+    return fullName + ":" + name + ":" + value;
+  }
+
+  public static Stat parse(String parentName, String s) {
+    int splitIndex;
+    int nameIndex;
+    int valueIndex;
+
+    s = s.trim();
+    splitIndex = s.indexOf(':');
+    if (splitIndex < 0) {
+      splitIndex = s.indexOf(' ');
+      if (splitIndex < 0) {
+        return null;
+      } else {
+        nameIndex = 1;
+        valueIndex = 0;
+      }
+    } else {
+      nameIndex = 0;
+      valueIndex = 1;
     }
-    
-    public static void main(String[] args) {
-        try {
-            System.out.println(parse(null, "    59815 active connections openingss"));
-            System.out.println(parse(null, "        InType0: 26144"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    if (s.length() == splitIndex) {
+      return null;
+    } else {
+      String[] subs;
+
+      subs = new String[2];
+      subs[0] = s.substring(0, splitIndex).trim();
+      subs[1] = s.substring(splitIndex + 1).trim();
+      return new Stat(parentName != null ? parentName + ":" + subs[nameIndex] : "", subs[nameIndex],
+          Long.parseLong(subs[valueIndex]));
     }
+  }
+
+  public static void main(String[] args) {
+    try {
+      System.out.println(parse(null, "    59815 active connections openingss"));
+      System.out.println(parse(null, "        InType0: 26144"));
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
 }

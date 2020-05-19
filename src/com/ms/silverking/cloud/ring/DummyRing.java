@@ -1,6 +1,5 @@
 package com.ms.silverking.cloud.ring;
 
-
 public class DummyRing<K, T> {// implements Ring<K, T> {
     /*
     private T    last;

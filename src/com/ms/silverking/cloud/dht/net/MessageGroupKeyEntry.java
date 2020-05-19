@@ -10,63 +10,63 @@ import com.ms.silverking.cloud.dht.net.protocol.KeyedMessageFormat;
  * Base of all MessageGroup*Entry classes. These classes represent components
  * of MessageGroups. Instances are generated during iteration over the
  * contents of a MessageGroup.
- * 
+ * <p>
  * (Instances of these classes are *not* used to create MessageGroups.
  * See ProtoMessageGroup for the creation of MessageGroups.)
- * 
+ * <p>
  * Unlike values, keys are copied out of the generating message and stored locally.
  */
 public class MessageGroupKeyEntry implements DHTKey, Comparable<DHTKey> {
-    private final long  msl;
-    private final long  lsl;
-    
-    public static final int bytesPerEntry = KeyedMessageFormat.baseBytesPerKeyEntry;    
-    
-    public MessageGroupKeyEntry(long msl, long lsl) {
-        this.msl = msl;
-        this.lsl = lsl;
-    }
+  private final long msl;
+  private final long lsl;
 
-    public MessageGroupKeyEntry(DHTKey key) {
-        this.msl = key.getMSL();
-        this.lsl = key.getLSL();
-    }
-    
-    public MessageGroupKeyEntry(ByteBuffer keyBuffer, int offset) {
-        msl = keyBuffer.getLong(offset + KeyedMessageFormat.keyMslOffset);
-        lsl = keyBuffer.getLong(offset + KeyedMessageFormat.keyLslOffset);
-    }
-    
-    @Override
-    public long getMSL() {
-        return msl;
-    }
+  public static final int bytesPerEntry = KeyedMessageFormat.baseBytesPerKeyEntry;
 
-    @Override
-    public long getLSL() {
-        return lsl;
-    }
-    
-    @Override
-    public int hashCode() {
-        return (int)lsl;
-    }
-    
-    @Override
-    public boolean equals(Object o) {
-        DHTKey   oKey;
-        
-        oKey = (DHTKey)o;
-        return lsl == oKey.getLSL() && msl == oKey.getMSL();
-    }
-    
-    @Override
-    public String toString() {
-        return Long.toHexString(msl) +":"+ Long.toHexString(lsl);
-    }
+  public MessageGroupKeyEntry(long msl, long lsl) {
+    this.msl = msl;
+    this.lsl = lsl;
+  }
 
-    @Override
-    public int compareTo(DHTKey o) {
-        return DHTKeyComparator.dhtKeyComparator.compare(this, o);
-    }
+  public MessageGroupKeyEntry(DHTKey key) {
+    this.msl = key.getMSL();
+    this.lsl = key.getLSL();
+  }
+
+  public MessageGroupKeyEntry(ByteBuffer keyBuffer, int offset) {
+    msl = keyBuffer.getLong(offset + KeyedMessageFormat.keyMslOffset);
+    lsl = keyBuffer.getLong(offset + KeyedMessageFormat.keyLslOffset);
+  }
+
+  @Override
+  public long getMSL() {
+    return msl;
+  }
+
+  @Override
+  public long getLSL() {
+    return lsl;
+  }
+
+  @Override
+  public int hashCode() {
+    return (int) lsl;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    DHTKey oKey;
+
+    oKey = (DHTKey) o;
+    return lsl == oKey.getLSL() && msl == oKey.getMSL();
+  }
+
+  @Override
+  public String toString() {
+    return Long.toHexString(msl) + ":" + Long.toHexString(lsl);
+  }
+
+  @Override
+  public int compareTo(DHTKey o) {
+    return DHTKeyComparator.dhtKeyComparator.compare(this, o);
+  }
 }

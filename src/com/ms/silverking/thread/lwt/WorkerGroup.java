@@ -10,10 +10,15 @@ import java.util.Collection;
  * @param <I>
  */
 public interface WorkerGroup<I> {
-    public String getName();
-    public void addWorker(BaseWorker<I> worker);
-    public void broadcastWork(I item);
-    public void scatterWork(I[] items);
-    public void scatterWork(Collection<I> items);
-    public void addWork(I item);
+  public String getName();
+
+  public void addWorker(BaseWorker<I> worker);
+
+  public void broadcastWork(I item);
+
+  public void scatterWork(I[] items);
+
+  public void scatterWork(Collection<I> items);
+
+  public void addWork(I item);
 }

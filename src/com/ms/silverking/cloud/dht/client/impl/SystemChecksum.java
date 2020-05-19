@@ -6,55 +6,54 @@ import java.util.Arrays;
 import com.ms.silverking.numeric.NumConversion;
 
 public class SystemChecksum implements Checksum {
-    public static final int    BYTES = 8;
-    
-    private static final byte[] emptyChecksum = new byte[BYTES];
-    private static final byte[] invalidationChecksum;
+  public static final int BYTES = 8;
 
-    static {
-        invalidationChecksum = NumConversion.longToBytes(0xdeadbeef);
-    }
-    
-    public SystemChecksum() {
-    }
+  private static final byte[] emptyChecksum = new byte[BYTES];
+  private static final byte[] invalidationChecksum;
 
-    
-    @Override
-    public void checksum(byte[] source, int position, int length, ByteBuffer dest) {
-        dest.put(checksum(source, position, length));
-    }
-    
-    @Override
-    public byte[] checksum(byte[] source, int position, int length) {
-        return invalidationChecksum;
-    }
+  static {
+    invalidationChecksum = NumConversion.longToBytes(0xdeadbeef);
+  }
 
-    @Override
-    public void checksum(ByteBuffer source, ByteBuffer dest) {
-        dest.put(checksum(source));
-    }
+  public SystemChecksum() {
+  }
 
-    @Override
-    public byte[] checksum(ByteBuffer source) {
-        return invalidationChecksum;
-    }
+  @Override
+  public void checksum(byte[] source, int position, int length, ByteBuffer dest) {
+    dest.put(checksum(source, position, length));
+  }
 
-    @Override
-    public void emptyChecksum(ByteBuffer dest) {
-        dest.put(emptyChecksum);
-    }
+  @Override
+  public byte[] checksum(byte[] source, int position, int length) {
+    return invalidationChecksum;
+  }
 
-    @Override
-    public boolean isEmpty(byte[] checksum) {
-        return Arrays.equals(checksum, emptyChecksum);
-    }
+  @Override
+  public void checksum(ByteBuffer source, ByteBuffer dest) {
+    dest.put(checksum(source));
+  }
 
-    @Override
-    public boolean uniquelyIdentifiesValues() {
-        return false;
-    }
+  @Override
+  public byte[] checksum(ByteBuffer source) {
+    return invalidationChecksum;
+  }
 
-    public static boolean isInvalidationChecksum(byte[] actualChecksum) {
-        return Arrays.equals(actualChecksum, invalidationChecksum);
-    }
+  @Override
+  public void emptyChecksum(ByteBuffer dest) {
+    dest.put(emptyChecksum);
+  }
+
+  @Override
+  public boolean isEmpty(byte[] checksum) {
+    return Arrays.equals(checksum, emptyChecksum);
+  }
+
+  @Override
+  public boolean uniquelyIdentifiesValues() {
+    return false;
+  }
+
+  public static boolean isInvalidationChecksum(byte[] actualChecksum) {
+    return Arrays.equals(actualChecksum, invalidationChecksum);
+  }
 }

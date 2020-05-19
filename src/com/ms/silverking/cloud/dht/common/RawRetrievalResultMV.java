@@ -9,15 +9,15 @@ import com.ms.silverking.cloud.dht.client.StoredValue;
  * Multi-versioned RawRetrievalResult
  */
 public class RawRetrievalResultMV extends RawRetrievalResult {
-    private final RawRetrievalResultMV  next;
-    
-    public RawRetrievalResultMV(RetrievalType retrievalType, RawRetrievalResultMV next) {
-        super(retrievalType);
-        this.next = next;
-    }
-    
-    @Override
-    public StoredValue<ByteBuffer> next() {
-        return next;
-    }
+  private final RawRetrievalResultMV next;
+
+  public RawRetrievalResultMV(RetrievalType retrievalType, RawRetrievalResultMV next) {
+    super(retrievalType);
+    this.next = next;
+  }
+
+  @Override
+  public StoredValue<ByteBuffer> next() {
+    return next;
+  }
 }

@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
  * Accepts notifications of suspect hosts.
  */
 public interface SuspectAddressListener {
-    public void addSuspect(InetSocketAddress addr, Object cause);
-    public void removeSuspect(InetSocketAddress addr);
+  public void addSuspect(InetSocketAddress addr, Object cause);
+
+  public void removeSuspect(InetSocketAddress addr);
 }

@@ -14,56 +14,59 @@ import com.ms.silverking.cloud.dht.client.OpTimeoutController;
  * @param <V> value type
  */
 class PutOperation<K, V> extends KeyedNamespaceOperation<K> {
-    private final Map<? extends K, ? extends V>      values;
-    /** options applied to all key/value pairs in this operation */
-    
-    public PutOperation(ClientNamespace namespace, Map<? extends K, ? extends V> values, PutOptions putOptions) {
-        super(ClientOpType.PUT, namespace, values.keySet(), putOptions);
-        // FUTURE - THINK ABOUT THIS. CONSIDER ALLOWING USERS TO GET RID OF
-        // THIS COPY
-        if (values instanceof HashMap) {
-            this.values = new HashMap<>(values);
-        } else {
-            this.values = ImmutableMap.copyOf(values);
-        }
-    }
+  private final Map<? extends K, ? extends V> values;
 
-    public PutOptions putOptions() {
-        return (PutOptions)options;
-    }
+  /**
+   * options applied to all key/value pairs in this operation
+   */
 
-    public int size() {
-        return values.size();
+  public PutOperation(ClientNamespace namespace, Map<? extends K, ? extends V> values, PutOptions putOptions) {
+    super(ClientOpType.PUT, namespace, values.keySet(), putOptions);
+    // FUTURE - THINK ABOUT THIS. CONSIDER ALLOWING USERS TO GET RID OF
+    // THIS COPY
+    if (values instanceof HashMap) {
+      this.values = new HashMap<>(values);
+    } else {
+      this.values = ImmutableMap.copyOf(values);
     }
-    
-    public V getValue(K key) {
-        return values.get(key);
+  }
+
+  public PutOptions putOptions() {
+    return (PutOptions) options;
+  }
+
+  public int size() {
+    return values.size();
+  }
+
+  public V getValue(K key) {
+    return values.get(key);
+  }
+
+  public String debugString() {
+    StringBuilder sb;
+
+    sb = new StringBuilder();
+    for (Object key : values.keySet()) {
+      sb.append(key);
+      sb.append('\n');
     }
-    
-    public String debugString() {
-        StringBuilder  sb;
-        
-        sb = new StringBuilder();
-        for (Object key : values.keySet()) {
-            sb.append(key);
-            sb.append('\n');
-        }
-        return super.oidString() +"\t"+ sb.toString();
-    }
-    
-    @Override
-    OpTimeoutController getTimeoutController() {
-        return ((PutOptions)options).getOpTimeoutController();
-    }
-    
-    @Override
-    public String toString() {
-        StringBuilder    sb;
-        
-        sb = new StringBuilder();
-        sb.append(super.toString());
-        sb.append(':');
-        sb.append(((PutOptions)options).toString());
-        return sb.toString();
-    }
+    return super.oidString() + "\t" + sb.toString();
+  }
+
+  @Override
+  OpTimeoutController getTimeoutController() {
+    return ((PutOptions) options).getOpTimeoutController();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb;
+
+    sb = new StringBuilder();
+    sb.append(super.toString());
+    sb.append(':');
+    sb.append(((PutOptions) options).toString());
+    return sb.toString();
+  }
 }

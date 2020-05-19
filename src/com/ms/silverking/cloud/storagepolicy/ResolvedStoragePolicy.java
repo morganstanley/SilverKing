@@ -7,53 +7,51 @@ import com.ms.silverking.cloud.toporing.RingTree;
 
 /**
  * Consider deprecating
- * 
- * Associates a StoragePolicy definition with 
+ * <p>
+ * Associates a StoragePolicy definition with
  * primary and secondary servers.
  */
 public class ResolvedStoragePolicy {
-    private final StoragePolicy storagePolicy;
-    private final List<Node>    primaryServers;
-    private final List<Node>    secondaryServers;
-    
-    public ResolvedStoragePolicy(StoragePolicy storagePolicy,
-                                List<Node> primaryServers, 
-                                List<Node> secondaryServers) {
-        this.storagePolicy = storagePolicy;
-        this.primaryServers = primaryServers;
-        this.secondaryServers = secondaryServers;
-    }
-    
-    public StoragePolicy getStoragePolicy() {
-        return storagePolicy;
-    }
+  private final StoragePolicy storagePolicy;
+  private final List<Node> primaryServers;
+  private final List<Node> secondaryServers;
 
-    public List<Node> getPrimaryServers() {
-        return primaryServers;
-    }
+  public ResolvedStoragePolicy(StoragePolicy storagePolicy, List<Node> primaryServers, List<Node> secondaryServers) {
+    this.storagePolicy = storagePolicy;
+    this.primaryServers = primaryServers;
+    this.secondaryServers = secondaryServers;
+  }
 
-    public List<Node> getSecondaryServers() {
-        return secondaryServers;
-    }
-    
-    // creation
-    
-    public static ResolvedStoragePolicy resolve(StoragePolicy storagePolicy, RingTree ringTree) {
+  public StoragePolicy getStoragePolicy() {
+    return storagePolicy;
+  }
+
+  public List<Node> getPrimaryServers() {
+    return primaryServers;
+  }
+
+  public List<Node> getSecondaryServers() {
+    return secondaryServers;
+  }
+
+  // creation
+
+  public static ResolvedStoragePolicy resolve(StoragePolicy storagePolicy, RingTree ringTree) {
         /*
         Node    root;
         
         root = topoRing.getTopology().getRoot();
         walk(topoRing, root);
         */
-        return null;
+    return null;
+  }
+
+  private static void walk(RingTree ringTree, Node node) {
+    System.out.println(node + "\t" + ringTree.getMap(node.getIDString()));
+    for (Node child : node.getChildren()) {
+      walk(ringTree, child);
     }
-    
-    private static void walk(RingTree ringTree, Node node) {
-        System.out.println(node +"\t"+ ringTree.getMap(node.getIDString()));
-        for (Node child : node.getChildren()) {
-            walk(ringTree, child);
-        }
-    }
+  }
 /*    
     public static ResolvedStoragePolicy resolve(StoragePolicy storagePolicy, Node node) {
         assert node != null;

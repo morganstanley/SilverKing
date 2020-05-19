@@ -9,157 +9,146 @@ import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 
 public class SimpleMetaData implements MetaData {
-    private final int           storedLength;
-    private final int           uncompressedLength;
-    private final long          version;
-    private final long          creationTime;
-    private final ValueCreator  valueCreator;
-    private final short         lockSeconds;
-    private final byte[]        userData;
-    private final byte[]        checksum;
-    private final Compression   compression;
-    private final ChecksumType  checksumType;
-    
-    public SimpleMetaData(int storedLength, int uncompressedLength,
-                          long version, long creationTime,
-                          ValueCreator valueCreator, 
-                          short lockSeconds, 
-                          byte[] userData,
-                          byte[] checksum,
-                          Compression compression, ChecksumType checksumType) {
-        this.storedLength = storedLength;
-        this.uncompressedLength = uncompressedLength;
-        this.version = version;
-        this.creationTime = creationTime;
-        this.valueCreator = valueCreator;
-        this.lockSeconds = lockSeconds;
-        this.userData = userData;
-        this.checksum = checksum;
-        this.compression = compression;
-        this.checksumType = checksumType;
-    }
-    
-    public SimpleMetaData(MetaData metaData) {
-        this(metaData.getStoredLength(), metaData.getUncompressedLength(),
-                metaData.getVersion(), metaData.getCreationTime().inNanos(),
-                metaData.getCreator(),
-                metaData.getLockSeconds(), 
-                metaData.getUserData(), 
-                metaData.getChecksum(),
-                metaData.getCompression(), metaData.getChecksumType());
-    }
-    
-    public SimpleMetaData setValueCreator(ValueCreator _valueCreator) {
-        return new SimpleMetaData(storedLength, uncompressedLength,
-                version, creationTime, _valueCreator,
-                lockSeconds, userData, checksum, compression, checksumType);
-    }
-    
-    public SimpleMetaData setStoredLength(int _storedLength) {
-        return new SimpleMetaData(_storedLength, uncompressedLength,
-                version, creationTime, valueCreator,
-                lockSeconds, userData, checksum, compression, checksumType);
-    }
+  private final int storedLength;
+  private final int uncompressedLength;
+  private final long version;
+  private final long creationTime;
+  private final ValueCreator valueCreator;
+  private final short lockSeconds;
+  private final byte[] userData;
+  private final byte[] checksum;
+  private final Compression compression;
+  private final ChecksumType checksumType;
 
-    public SimpleMetaData setUncompressedLength(int _uncompressedLength) {
-        return new SimpleMetaData(storedLength, _uncompressedLength,
-                version, creationTime, valueCreator,
-                lockSeconds, userData, checksum, compression, checksumType);
-    }
-    
-    public SimpleMetaData setChecksumTypeAndChecksum(ChecksumType checksumType, byte[] checksum) {
-        return new SimpleMetaData(storedLength, uncompressedLength,
-                version, creationTime, valueCreator,
-                lockSeconds, userData, checksum, compression, checksumType);
-    }
-    
-    @Override
-    public int getStoredLength() {
-        return storedLength;
-    }
+  public SimpleMetaData(int storedLength, int uncompressedLength, long version, long creationTime,
+      ValueCreator valueCreator, short lockSeconds, byte[] userData, byte[] checksum, Compression compression,
+      ChecksumType checksumType) {
+    this.storedLength = storedLength;
+    this.uncompressedLength = uncompressedLength;
+    this.version = version;
+    this.creationTime = creationTime;
+    this.valueCreator = valueCreator;
+    this.lockSeconds = lockSeconds;
+    this.userData = userData;
+    this.checksum = checksum;
+    this.compression = compression;
+    this.checksumType = checksumType;
+  }
 
-    @Override
-    public int getUncompressedLength() {
-        return uncompressedLength;
-    }
+  public SimpleMetaData(MetaData metaData) {
+    this(metaData.getStoredLength(), metaData.getUncompressedLength(), metaData.getVersion(),
+        metaData.getCreationTime().inNanos(), metaData.getCreator(), metaData.getLockSeconds(), metaData.getUserData(),
+        metaData.getChecksum(), metaData.getCompression(), metaData.getChecksumType());
+  }
 
-    @Override
-    public long getVersion() {
-        return version;
-    }
+  public SimpleMetaData setValueCreator(ValueCreator _valueCreator) {
+    return new SimpleMetaData(storedLength, uncompressedLength, version, creationTime, _valueCreator, lockSeconds,
+        userData, checksum, compression, checksumType);
+  }
 
-    @Override
-    public CreationTime getCreationTime() {
-        return new CreationTime(creationTime);
-    }
+  public SimpleMetaData setStoredLength(int _storedLength) {
+    return new SimpleMetaData(_storedLength, uncompressedLength, version, creationTime, valueCreator, lockSeconds,
+        userData, checksum, compression, checksumType);
+  }
 
-    @Override
-    public ValueCreator getCreator() {
-        return valueCreator;
-    }
-    
-    @Override
-    public short getLockSeconds() {
-        return lockSeconds;
-    }
+  public SimpleMetaData setUncompressedLength(int _uncompressedLength) {
+    return new SimpleMetaData(storedLength, _uncompressedLength, version, creationTime, valueCreator, lockSeconds,
+        userData, checksum, compression, checksumType);
+  }
 
-    @Override
-    public long getLockMillisRemaining() {
-        long    nanosRemaining;
-        long    millisRemaining;
-        
-        nanosRemaining = (creationTime + (long)lockSeconds * 1_000_000_000L) - SystemTimeUtil.skSystemTimeSource.absTimeNanos();
-        millisRemaining = nanosRemaining / 1_000_000L;
-        if (millisRemaining > 0) {
-            return millisRemaining;
-        } else {
-            // Ensure that we don't round down to zero. We want to ensure that a non-zero time in nanos
-            // is interpreted as locked, not free.
-            if (nanosRemaining > 0) {
-                return 1L;
-            } else {
-                return 0;
-            }
-        }
-    }
-    
-    @Override
-    public boolean isLocked() {
-        return SystemTimeUtil.skSystemTimeSource.absTimeNanos() <= creationTime + (long)lockSeconds * 1_000_000_000L;
-    }
-    
-    @Override
-    public boolean isInvalidation() {
-        return MetaDataUtil.isInvalidation(checksumType, checksum);
-    }
+  public SimpleMetaData setChecksumTypeAndChecksum(ChecksumType checksumType, byte[] checksum) {
+    return new SimpleMetaData(storedLength, uncompressedLength, version, creationTime, valueCreator, lockSeconds,
+        userData, checksum, compression, checksumType);
+  }
 
-    @Override
-    public byte[] getUserData() {
-        return userData;
-    }
+  @Override
+  public int getStoredLength() {
+    return storedLength;
+  }
 
-    @Override
-    public byte[] getChecksum() {
-        return checksum;
-    }
+  @Override
+  public int getUncompressedLength() {
+    return uncompressedLength;
+  }
 
-    @Override
-    public String toString(boolean labeled) {
-        return MetaDataTextUtil.toMetaDataString(this, labeled);
-    }
-    
-    @Override
-    public String toString() {
-        return toString(true);
-    }
+  @Override
+  public long getVersion() {
+    return version;
+  }
 
-    @Override
-    public Compression getCompression() {
-        return compression;
+  @Override
+  public CreationTime getCreationTime() {
+    return new CreationTime(creationTime);
+  }
+
+  @Override
+  public ValueCreator getCreator() {
+    return valueCreator;
+  }
+
+  @Override
+  public short getLockSeconds() {
+    return lockSeconds;
+  }
+
+  @Override
+  public long getLockMillisRemaining() {
+    long nanosRemaining;
+    long millisRemaining;
+
+    nanosRemaining =
+        (creationTime + (long) lockSeconds * 1_000_000_000L) - SystemTimeUtil.skSystemTimeSource.absTimeNanos();
+    millisRemaining = nanosRemaining / 1_000_000L;
+    if (millisRemaining > 0) {
+      return millisRemaining;
+    } else {
+      // Ensure that we don't round down to zero. We want to ensure that a non-zero time in nanos
+      // is interpreted as locked, not free.
+      if (nanosRemaining > 0) {
+        return 1L;
+      } else {
+        return 0;
+      }
     }
-    
-    @Override
-    public ChecksumType getChecksumType() {
-        return checksumType;
-    }
+  }
+
+  @Override
+  public boolean isLocked() {
+    return SystemTimeUtil.skSystemTimeSource.absTimeNanos() <= creationTime + (long) lockSeconds * 1_000_000_000L;
+  }
+
+  @Override
+  public boolean isInvalidation() {
+    return MetaDataUtil.isInvalidation(checksumType, checksum);
+  }
+
+  @Override
+  public byte[] getUserData() {
+    return userData;
+  }
+
+  @Override
+  public byte[] getChecksum() {
+    return checksum;
+  }
+
+  @Override
+  public String toString(boolean labeled) {
+    return MetaDataTextUtil.toMetaDataString(this, labeled);
+  }
+
+  @Override
+  public String toString() {
+    return toString(true);
+  }
+
+  @Override
+  public Compression getCompression() {
+    return compression;
+  }
+
+  @Override
+  public ChecksumType getChecksumType() {
+    return checksumType;
+  }
 }

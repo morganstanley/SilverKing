@@ -12,42 +12,42 @@ import com.ms.silverking.cloud.dht.common.OpResult;
  * existence results. Existence is indicated by OpResult only.
  */
 class SegmentedRetrievalResult<V> extends RetrievalResultBase<V> {
-    private final MetaData      metaData;
-    private final ByteBuffer[]  buffers;
-    private final OpResult      opResult;
-    
-    public SegmentedRetrievalResult(MetaData metaData, BufferSourceDeserializer<V> valueDeserializer,
-                                ByteBuffer[] buffers, OpResult opResult) {
-        super(valueDeserializer);
-        this.metaData = metaData;
-        this.buffers = buffers;
-        this.opResult = opResult;
+  private final MetaData metaData;
+  private final ByteBuffer[] buffers;
+  private final OpResult opResult;
+
+  public SegmentedRetrievalResult(MetaData metaData, BufferSourceDeserializer<V> valueDeserializer,
+      ByteBuffer[] buffers, OpResult opResult) {
+    super(valueDeserializer);
+    this.metaData = metaData;
+    this.buffers = buffers;
+    this.opResult = opResult;
+  }
+
+  @Override
+  public OpResult getOpResult() {
+    return opResult;
+  }
+
+  @Override
+  public V getValue() {
+    if (value == valueNotSet) {
+      // FUTURE - have an option to perform an eager deserialization
+      if (buffers != null && buffers.length != 0) {
+        //System.out.println("getValue()");
+        //for (ByteBuffer buffer : buffers) {
+        //    System.out.println(buffer +"\t"+ StringUtil.byteArrayToHexString(buffer.array(), 0, buffer.limit()));
+        //}
+        value = valueDeserializer.deserialize(buffers);
+      } else {
+        value = null;
+      }
     }
-    
-    @Override
-    public OpResult getOpResult() {
-        return opResult;
-    }
-    
-    @Override
-    public V getValue() {
-        if (value == valueNotSet) {
-            // FUTURE - have an option to perform an eager deserialization
-            if (buffers != null && buffers.length != 0) {
-                //System.out.println("getValue()");
-                //for (ByteBuffer buffer : buffers) {
-                //    System.out.println(buffer +"\t"+ StringUtil.byteArrayToHexString(buffer.array(), 0, buffer.limit()));
-                //}
-                value = valueDeserializer.deserialize(buffers);
-            } else {
-                value = null;
-            }
-        }
-        return value;
-    }
-    
-    @Override
-    public MetaData getMetaData() {
-        return metaData;
-    }
+    return value;
+  }
+
+  @Override
+  public MetaData getMetaData() {
+    return metaData;
+  }
 }

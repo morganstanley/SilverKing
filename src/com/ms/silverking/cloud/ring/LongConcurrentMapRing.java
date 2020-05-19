@@ -1,6 +1,5 @@
 package com.ms.silverking.cloud.ring;
 
-
 public class LongConcurrentMapRing<T> {//implements Ring<Long, T> {
     /*
     private final Mode    mode;

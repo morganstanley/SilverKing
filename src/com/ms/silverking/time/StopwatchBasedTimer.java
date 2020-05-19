@@ -10,197 +10,197 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 
 public class StopwatchBasedTimer implements Timer {
-    private final Stopwatch sw;
-    private final long      limitNanos;
-    
-    private StopwatchBasedTimer(Stopwatch sw, long limitNanos) {
-        this.sw = sw;
-        this.limitNanos = limitNanos;
-    }
-    
-    public StopwatchBasedTimer(Stopwatch sw, TimeUnit unit, long limit) {
-        this(sw, TimeUnit.NANOSECONDS.convert(limit, unit));
-    }
+  private final Stopwatch sw;
+  private final long limitNanos;
 
-    @Override
-    public boolean hasExpired() {
-        return getRemainingNanos() <= 0;
-    }
-    
-    @Override
-    public void waitForExpiration() {
-        while (!hasExpired()) {
-            try {
-                Thread.sleep(getRemainingMillisLong());
-            } catch (InterruptedException ie) {
-            }
-        }
-    }
+  private StopwatchBasedTimer(Stopwatch sw, long limitNanos) {
+    this.sw = sw;
+    this.limitNanos = limitNanos;
+  }
 
-    @Override
-    public long getRemainingNanos() {
-        return Math.max(limitNanos - sw.getSplitNanos(), 0);
-    }
+  public StopwatchBasedTimer(Stopwatch sw, TimeUnit unit, long limit) {
+    this(sw, TimeUnit.NANOSECONDS.convert(limit, unit));
+  }
 
-    @Override
-    public long getRemainingMillisLong() {
-        return nanos2millisLong( getRemainingNanos() );
-    }
+  @Override
+  public boolean hasExpired() {
+    return getRemainingNanos() <= 0;
+  }
 
-    @Override
-    public int getRemainingMillis() {
-        long    remainingMillis;
-        
-        remainingMillis = getRemainingMillisLong();
-        checkTooManyMillis(remainingMillis);
+  @Override
+  public void waitForExpiration() {
+    while (!hasExpired()) {
+      try {
+        Thread.sleep(getRemainingMillisLong());
+      } catch (InterruptedException ie) {
+      }
+    }
+  }
 
-        return (int)remainingMillis;
-    }
+  @Override
+  public long getRemainingNanos() {
+    return Math.max(limitNanos - sw.getSplitNanos(), 0);
+  }
 
-    @Override
-    public double getRemainingSeconds() {
-        return nanos2seconds( getRemainingNanos() );
-    }
+  @Override
+  public long getRemainingMillisLong() {
+    return nanos2millisLong(getRemainingNanos());
+  }
 
-    @Override
-    public BigDecimal getRemainingSecondsBD() {
-        return nanos2secondsBD( getRemainingNanos() );
-    }
+  @Override
+  public int getRemainingMillis() {
+    long remainingMillis;
 
-    @Override
-    public long getTimeLimitNanos() {
-        return limitNanos;
-    }
+    remainingMillis = getRemainingMillisLong();
+    checkTooManyMillis(remainingMillis);
 
-    @Override
-    public long getTimeLimitMillisLong() {
-        return nanos2millisLong( getTimeLimitNanos() );
-    }
+    return (int) remainingMillis;
+  }
 
-    @Override
-    public int getTimeLimitMillis() {
-        long    timeLimitMillis;
-        
-        timeLimitMillis = getTimeLimitMillisLong();
-        checkTooManyMillis(timeLimitMillis);
-        
-        return (int)timeLimitMillis;
-    }
+  @Override
+  public double getRemainingSeconds() {
+    return nanos2seconds(getRemainingNanos());
+  }
 
-    @Override
-    public double getTimeLimitSeconds() {
-        return nanos2seconds( getTimeLimitNanos() );
-    }
+  @Override
+  public BigDecimal getRemainingSecondsBD() {
+    return nanos2secondsBD(getRemainingNanos());
+  }
 
-    @Override
-    public BigDecimal getTimeLimitSecondsBD() {
-        return nanos2secondsBD( getTimeLimitNanos() );
-    }
-    
-    // StopwatchWrapper methods
+  @Override
+  public long getTimeLimitNanos() {
+    return limitNanos;
+  }
 
-    @Override
-    public void start() {
-        sw.start();
-    }
+  @Override
+  public long getTimeLimitMillisLong() {
+    return nanos2millisLong(getTimeLimitNanos());
+  }
 
-    @Override
-    public void stop() {
-        sw.stop();
-    }
+  @Override
+  public int getTimeLimitMillis() {
+    long timeLimitMillis;
 
-    @Override
-    public void reset() {
-        sw.reset();
-    }
+    timeLimitMillis = getTimeLimitMillisLong();
+    checkTooManyMillis(timeLimitMillis);
 
-    @Override
-    public long getElapsedNanos() {
-        return sw.getElapsedNanos();
-    }
+    return (int) timeLimitMillis;
+  }
 
-    @Override
-    public long getElapsedMillisLong() {
-        return sw.getElapsedMillisLong();
-    }
+  @Override
+  public double getTimeLimitSeconds() {
+    return nanos2seconds(getTimeLimitNanos());
+  }
 
-    @Override
-    public int getElapsedMillis() {
-        return sw.getElapsedMillis();
-    }
+  @Override
+  public BigDecimal getTimeLimitSecondsBD() {
+    return nanos2secondsBD(getTimeLimitNanos());
+  }
 
-    @Override
-    public double getElapsedSeconds() {
-        return sw.getElapsedSeconds();
-    }
+  // StopwatchWrapper methods
 
-    @Override
-    public BigDecimal getElapsedSecondsBD() {
-        return sw.getElapsedSecondsBD();
-    }
+  @Override
+  public void start() {
+    sw.start();
+  }
 
-    @Override
-    public long getSplitNanos() {
-        return sw.getSplitNanos();
-    }
+  @Override
+  public void stop() {
+    sw.stop();
+  }
 
-    @Override
-    public long getSplitMillisLong() {
-        return sw.getSplitMillisLong();
-    }
+  @Override
+  public void reset() {
+    sw.reset();
+  }
 
-    @Override
-    public int getSplitMillis() {
-        return sw.getSplitMillis();
-    }
+  @Override
+  public long getElapsedNanos() {
+    return sw.getElapsedNanos();
+  }
 
-    @Override
-    public double getSplitSeconds() {
-        return sw.getSplitSeconds();
-    }
+  @Override
+  public long getElapsedMillisLong() {
+    return sw.getElapsedMillisLong();
+  }
 
-    @Override
-    public BigDecimal getSplitSecondsBD() {
-        return sw.getSplitSecondsBD();
-    }
+  @Override
+  public int getElapsedMillis() {
+    return sw.getElapsedMillis();
+  }
 
-    @Override
-    public String getName() {
-        return sw.getName();
-    }
+  @Override
+  public double getElapsedSeconds() {
+    return sw.getElapsedSeconds();
+  }
 
-    @Override
-    public State getState() {
-        return sw.getState();
-    }
+  @Override
+  public BigDecimal getElapsedSecondsBD() {
+    return sw.getElapsedSecondsBD();
+  }
 
-    @Override
-    public boolean isRunning() {
-        return sw.isRunning();
-    }
+  @Override
+  public long getSplitNanos() {
+    return sw.getSplitNanos();
+  }
 
-    @Override
-    public boolean isStopped() {
-        return sw.isStopped();
-    }
+  @Override
+  public long getSplitMillisLong() {
+    return sw.getSplitMillisLong();
+  }
 
-    @Override
-    public String toStringElapsed() {
-        return sw.toStringElapsed() +":"+ getTimeLimitSeconds();
-    }
+  @Override
+  public int getSplitMillis() {
+    return sw.getSplitMillis();
+  }
 
-    @Override
-    public String toStringSplit() {
-        return sw.toStringSplit() +":"+ getTimeLimitSeconds();
-    }
-    
-    @Override
-    public String toString() {
-        return toStringSplit();
-    }
+  @Override
+  public double getSplitSeconds() {
+    return sw.getSplitSeconds();
+  }
 
-    @Override
-    public boolean await(Condition cv) throws InterruptedException {
-        return cv.await(getRemainingMillisLong(), TimeUnit.MILLISECONDS);
-    }
+  @Override
+  public BigDecimal getSplitSecondsBD() {
+    return sw.getSplitSecondsBD();
+  }
+
+  @Override
+  public String getName() {
+    return sw.getName();
+  }
+
+  @Override
+  public State getState() {
+    return sw.getState();
+  }
+
+  @Override
+  public boolean isRunning() {
+    return sw.isRunning();
+  }
+
+  @Override
+  public boolean isStopped() {
+    return sw.isStopped();
+  }
+
+  @Override
+  public String toStringElapsed() {
+    return sw.toStringElapsed() + ":" + getTimeLimitSeconds();
+  }
+
+  @Override
+  public String toStringSplit() {
+    return sw.toStringSplit() + ":" + getTimeLimitSeconds();
+  }
+
+  @Override
+  public String toString() {
+    return toStringSplit();
+  }
+
+  @Override
+  public boolean await(Condition cv) throws InterruptedException {
+    return cv.await(getRemainingMillisLong(), TimeUnit.MILLISECONDS);
+  }
 }

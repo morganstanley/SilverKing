@@ -7,234 +7,238 @@ import com.ms.silverking.numeric.NumConversion;
  * Functionality common to all Cuckoo hash table implementations.
  */
 public abstract class CuckooBase implements Iterable<DHTKeyIntEntry> {
-    // config
-    private final WritableCuckooConfig  config;
-    protected final int totalEntries;
-    protected final int numSubTables;
+  // config
+  private final WritableCuckooConfig config;
+  protected final int totalEntries;
+  protected final int numSubTables;
+  protected final int entriesPerBucket;
+  protected final int cuckooLimit;
+  // sub tables
+  private SubTableBase[] subTables;
+  protected final int subTablesMask;
+  protected final int entriesMask;
+  protected final int subTableBuckets;
+
+  protected static final int offsetIndexShift = 32;
+
+  private static final int[] base2Masks = { 0, 0x0, 0x1, 0, 0x3, 0, 0, 0, 0x7 };
+
+  protected static final boolean debug = false;
+  protected static final boolean debugCycle = false;
+  protected static final boolean sanityCheck = true;
+  protected static final boolean debugIterator = false;
+
+  protected static final int empty = Integer.MIN_VALUE;
+  public static final int keyNotFound = empty;
+
+  // entry - key/value entry
+  // bucket - group of entries
+  // bucketSize - entriesPerBucket
+
+  protected CuckooBase(WritableCuckooConfig cuckooConfig) {
+    if (debug) {
+      System.out.println(cuckooConfig);
+    }
+    if (cuckooConfig.getNumSubTables() < 2) {
+      throw new RuntimeException("numSubTables must be >= 2");
+    }
+    this.config = cuckooConfig;
+    this.totalEntries = cuckooConfig.getTotalEntries();
+    this.numSubTables = cuckooConfig.getNumSubTables();
+    this.entriesPerBucket = cuckooConfig.getEntriesPerBucket();
+    this.cuckooLimit = cuckooConfig.getCuckooLimit();
+    subTableBuckets = cuckooConfig.getNumSubTableBuckets();
+    if (debug) {
+      System.out.println("totalEntries: " + totalEntries);
+    }
+    //subTables = new SubTableBase[numSubTables];
+    subTablesMask = base2Masks[numSubTables];
+    entriesMask = base2Masks[entriesPerBucket];
+  }
+
+  public WritableCuckooConfig getConfig() {
+    return config;
+  }
+
+  protected void setSubTables(SubTableBase[] subTables) {
+    this.subTables = subTables;
+  }
+
+  protected void initialize() {
+    clear();
+  }
+
+  public int getTotalEntries() {
+    return totalEntries;
+  }
+
+  int getSizeBytes() {
+    return totalEntries * NumConversion.BYTES_PER_LONG;
+  }
+
+  int getNumSubTables() {
+    return numSubTables;
+  }
+
+  int getEntriesPerBucket() {
+    return entriesPerBucket;
+  }
+
+  void clear() {
+    for (SubTableBase subTable : subTables) {
+      subTable.clear();
+    }
+  }
+
+  public abstract int get(DHTKey key);
+
+  public abstract void put(DHTKey key, int offset);
+
+  public boolean remove(DHTKey key) {
+    long msl;
+    long lsl;
+
+    msl = key.getMSL();
+    lsl = key.getLSL();
+    for (SubTableBase subTable : subTables) {
+      boolean removed;
+
+      removed = subTable.remove(msl, lsl);
+      if (removed) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public void displaySizes() {
+    System.out.println("totalEntries: " + totalEntries);
+    for (int i = 0; i < subTables.length; i++) {
+      System.out.println(i + "\t" + subTables[i].size());
+    }
+  }
+
+  /**
+   * CuckooBase SubTable. Each SubTable maintains a bucketed
+   * hash table.
+   */
+  abstract class SubTableBase {
+    protected final int singleEntrySize;
+    protected final int bufferSizeLongs;
     protected final int entriesPerBucket;
-    protected final int cuckooLimit;
-    // sub tables
-    private SubTableBase[]  subTables;
-    protected final int   subTablesMask;
-    protected final int   entriesMask;
-    protected final int   subTableBuckets;
-    
-    protected static final int   offsetIndexShift = 32;
-    
-    private static final int[]  base2Masks = {0, 0x0, 0x1, 0, 0x3, 0, 0, 0, 0x7};
-    
-    protected static final boolean    debug = false;
-    protected static final boolean    debugCycle = false;
-    protected static final boolean    sanityCheck = true;
-    protected static final boolean    debugIterator = false;
-    
-    protected static final int    empty = Integer.MIN_VALUE;
-    public static final int    keyNotFound = empty;
-    
-    // entry - key/value entry
-    // bucket - group of entries
-    // bucketSize - entriesPerBucket
-    
-    protected CuckooBase(WritableCuckooConfig cuckooConfig) {        
-        if (debug) {
-            System.out.println(cuckooConfig);
-        }
-        if (cuckooConfig.getNumSubTables() < 2) {
-            throw new RuntimeException("numSubTables must be >= 2");
-        }
-        this.config = cuckooConfig;
-        this.totalEntries = cuckooConfig.getTotalEntries();
-        this.numSubTables = cuckooConfig.getNumSubTables();
-        this.entriesPerBucket = cuckooConfig.getEntriesPerBucket();
-        this.cuckooLimit = cuckooConfig.getCuckooLimit();
-        subTableBuckets = cuckooConfig.getNumSubTableBuckets();
-        if (debug) {
-            System.out.println("totalEntries: "+ totalEntries);
-        }
-        //subTables = new SubTableBase[numSubTables];
-        subTablesMask = base2Masks[numSubTables];
-        entriesMask = base2Masks[entriesPerBucket];
-    }
-    
-    public WritableCuckooConfig getConfig() {
-        return config;
-    }
-    
-    protected void setSubTables(SubTableBase[] subTables) {
-        this.subTables = subTables;
+    protected final int bucketSizeLongs;
+    protected final int entrySizeLongs;
+    protected final int bitMask;
+
+    protected static final int balanceShift = 20;
+
+    SubTableBase(int numBuckets, int entriesPerBucket, int singleEntrySize) {
+      if (debug) {
+        System.out.println("numEntries: " + numBuckets + "\tentriesPerBucket: " + entriesPerBucket);
+      }
+      if (Integer.bitCount(numBuckets) != 1) {
+        throw new RuntimeException("Supplied numBuckets must be a perfect power of 2: " + numBuckets);
+      }
+      this.singleEntrySize = singleEntrySize;
+      this.entriesPerBucket = entriesPerBucket;
+      entrySizeLongs = singleEntrySize;
+      bucketSizeLongs = singleEntrySize * entriesPerBucket;
+      this.bufferSizeLongs = numBuckets * bucketSizeLongs;
+      bitMask = numBuckets - 1;
     }
 
-    protected void initialize() {
-        clear();
+    // for debugging only, critical path usage would require a fast implementation
+    protected int numBuckets() {
+      return bufferSizeLongs / bucketSizeLongs;
     }
-    
-    public int getTotalEntries() {
-        return totalEntries;
-    }
-    
-    int getSizeBytes() {
-        return totalEntries * NumConversion.BYTES_PER_LONG;
-    }
-    
-    int getNumSubTables() {
-        return numSubTables;
-    }
-    
-    int getEntriesPerBucket() {
-        return entriesPerBucket;
-    }
-    
-    void clear() {
-        for (SubTableBase subTable : subTables) {
-            subTable.clear();
+
+    abstract void clear();
+
+    protected abstract boolean isEmpty(int bucketIndex, int entryIndex);
+
+    int size() {
+      int size;
+
+      size = 0;
+      for (int i = 0; i < numBuckets(); i++) {
+        for (int j = 0; j < entriesPerBucket; j++) {
+          size += isEmpty(i, j) ? 0 : 1;
         }
+      }
+      return size;
     }
-    
-    public abstract int get(DHTKey key);
-    public abstract void put(DHTKey key, int offset);
-    
-    public boolean remove(DHTKey key) {
-        long    msl;
-        long    lsl;
-        
-        msl = key.getMSL();
-        lsl = key.getLSL();
-        for (SubTableBase subTable : subTables) {
-            boolean removed;
-            
-            removed = subTable.remove(msl, lsl);
-            if (removed) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    public void displaySizes() {
-        System.out.println("totalEntries: "+ totalEntries);
-        for (int i = 0; i < subTables.length; i++) {
-            System.out.println(i +"\t"+ subTables[i].size());
-        }
-    }
-    
+
     /**
-     * CuckooBase SubTable. Each SubTable maintains a bucketed 
-     * hash table.
+     * Given a bucketIndex and a bucketEntryIndex compute the
+     * hash table index in the hash table array
+     *
+     * @param bucketIndex
+     * @param bucketEntryIndex
+     * @return
      */
-    abstract class SubTableBase {
-        protected final int   singleEntrySize;
-        protected final int   bufferSizeLongs;
-        protected final int   entriesPerBucket;
-        protected final int   bucketSizeLongs;
-        protected final int   entrySizeLongs;
-        protected final int   bitMask;
-        
-        protected static final int    balanceShift = 20;
-        
-        SubTableBase(int numBuckets, int entriesPerBucket, int singleEntrySize) {
-            if (debug) {
-                System.out.println("numEntries: "+ numBuckets +"\tentriesPerBucket: "+ entriesPerBucket);
-            }
-            if (Integer.bitCount(numBuckets) != 1) {
-                throw new RuntimeException("Supplied numBuckets must be a perfect power of 2: "+ numBuckets);
-            }
-            this.singleEntrySize = singleEntrySize;
-            this.entriesPerBucket = entriesPerBucket;
-            entrySizeLongs = singleEntrySize;
-            bucketSizeLongs = singleEntrySize * entriesPerBucket;
-            this.bufferSizeLongs = numBuckets * bucketSizeLongs;
-            bitMask = numBuckets - 1;
-        }
-        
-        // for debugging only, critical path usage would require a fast implementation
-        protected int numBuckets() {
-            return bufferSizeLongs / bucketSizeLongs;
-        }
-        
-        abstract void clear();
-        
-        protected abstract boolean isEmpty(int bucketIndex, int entryIndex);
-        
-        int size() {
-            int size;
-            
-            size = 0;
-            for (int i = 0; i < numBuckets(); i++) {
-                for (int j = 0; j < entriesPerBucket; j++) {
-                    size += isEmpty(i, j) ? 0 : 1;
-                }
-            }
-            return size;
-        }
-
-        /**
-         * Given a bucketIndex and a bucketEntryIndex compute the
-         * hash table index in the hash table array
-         * @param bucketIndex
-         * @param bucketEntryIndex
-         * @return
-         */
-        protected int getHTEntryIndex(int bucketIndex, int bucketEntryIndex) {
-            return bucketSizeLongs * bucketIndex + entrySizeLongs * bucketEntryIndex;
-            //return (index << 2) + bucketIndex; // saves about 1 ns
-        }        
-        
-        abstract boolean remove(long msl, long lsl);
+    protected int getHTEntryIndex(int bucketIndex, int bucketEntryIndex) {
+      return bucketSizeLongs * bucketIndex + entrySizeLongs * bucketEntryIndex;
+      //return (index << 2) + bucketIndex; // saves about 1 ns
     }
-    
+
+    abstract boolean remove(long msl, long lsl);
+  }
+
+  /**
+   * Base functionality used to iterate through the Cuckoo hash table skipping blank entries.
+   * Concrete implementations must implement curIsEmpty() and next().
+   */
+  abstract class CuckooIteratorBase {
+    protected int subTable;
+    protected int bucket;
+    protected int entry;
+    protected boolean done;
+
+    CuckooIteratorBase() {
+      entry = -1;
+      moveToNonEmpty();
+    }
+
     /**
-     * Base functionality used to iterate through the Cuckoo hash table skipping blank entries.
-     * Concrete implementations must implement curIsEmpty() and next().
+     * true if the current entry is empty
      */
-    abstract class CuckooIteratorBase {
-        protected int       subTable;
-        protected int       bucket;
-        protected int       entry;
-        protected boolean   done;
-        
-        CuckooIteratorBase() {
-            entry = -1;
-            moveToNonEmpty();
-        }
-        
-        /** true if the current entry is empty */
-        abstract boolean curIsEmpty();
+    abstract boolean curIsEmpty();
 
-        public boolean hasNext() {
-            return !done;
-        }
-
-        /**
-         * Move to a non-empty hash entry. Assert done if no such entry can be found.
-         */
-        void moveToNonEmpty() {
-            if (debugIterator) {
-                System.out.println("in moveToNonEmpty");
-            }
-            do {
-                ++entry;
-                if (entry == config.getEntriesPerBucket()) {
-                    entry = 0;
-                    ++bucket;
-                    if (bucket == config.getNumSubTableBuckets()) {
-                        bucket = 0;
-                        ++subTable;
-                        if (subTable == config.getNumSubTables()) {
-                            done = true;
-                        }
-                    }
-                }
-                if (debugIterator) {
-                    System.out.printf("subTable %d bucket %d entry %d\n", subTable, bucket, entry);
-                }
-            } while (!done && curIsEmpty());
-            if (debugIterator) {
-                System.out.println("out moveToNonEmpty");
-            }
-        }
-
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
+    public boolean hasNext() {
+      return !done;
     }
+
+    /**
+     * Move to a non-empty hash entry. Assert done if no such entry can be found.
+     */
+    void moveToNonEmpty() {
+      if (debugIterator) {
+        System.out.println("in moveToNonEmpty");
+      }
+      do {
+        ++entry;
+        if (entry == config.getEntriesPerBucket()) {
+          entry = 0;
+          ++bucket;
+          if (bucket == config.getNumSubTableBuckets()) {
+            bucket = 0;
+            ++subTable;
+            if (subTable == config.getNumSubTables()) {
+              done = true;
+            }
+          }
+        }
+        if (debugIterator) {
+          System.out.printf("subTable %d bucket %d entry %d\n", subTable, bucket, entry);
+        }
+      } while (!done && curIsEmpty());
+      if (debugIterator) {
+        System.out.println("out moveToNonEmpty");
+      }
+    }
+
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+  }
 }

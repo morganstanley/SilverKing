@@ -11,64 +11,68 @@ import com.ms.silverking.cloud.dht.net.ProtoMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoVersionedBasicOpMessageGroup;
 
 public abstract class AsyncVersionedBasicOperationImpl extends AsyncNamespaceOperationImpl {
-    private final VersionedBasicNamespaceOperation  versionedOperation;
-    
-    private static final boolean    debug = false;
+  private final VersionedBasicNamespaceOperation versionedOperation;
 
-    public AsyncVersionedBasicOperationImpl(VersionedBasicNamespaceOperation versionedOperation, Context context, long curTime, byte[] originator) {
-        super(versionedOperation, context, curTime, originator);
-        this.versionedOperation = versionedOperation;
-    }
-    
-    @Override 
-    protected NonExistenceResponse getNonExistenceResponse() {
-        return null;
-    }
+  private static final boolean debug = false;
 
-    @Override
-    public void waitForCompletion() throws OperationException {
-        super._waitForCompletion();
-    }
+  public AsyncVersionedBasicOperationImpl(VersionedBasicNamespaceOperation versionedOperation, Context context,
+      long curTime, byte[] originator) {
+    super(versionedOperation, context, curTime, originator);
+    this.versionedOperation = versionedOperation;
+  }
 
-    @Override
-    protected int opWorkItems() {
-        return 1;
-    }
+  @Override
+  protected NonExistenceResponse getNonExistenceResponse() {
+    return null;
+  }
 
-    @Override
-    void addToEstimate(MessageEstimate estimate) {
-    }
+  @Override
+  public void waitForCompletion() throws OperationException {
+    super._waitForCompletion();
+  }
 
-    @Override
-    MessageEstimate createMessageEstimate() {
-        return null;
-    }
-    
-    // FUTURE - think about moving this
-    private static MessageType clientOpTypeToMessageType(ClientOpType clientOpType) {
-        switch (clientOpType) {
-        case SNAPSHOT: return MessageType.SNAPSHOT;
-        case SYNC_REQUEST: return MessageType.SYNC_REQUEST;
-        default: throw new RuntimeException("Unsupported clientOpType: "+ clientOpType);
-        }
-    }
+  @Override
+  protected int opWorkItems() {
+    return 1;
+  }
 
-    @Override
-    ProtoMessageGroup createProtoMG(MessageEstimate estimate) {
-        return new ProtoVersionedBasicOpMessageGroup(clientOpTypeToMessageType(operation.getOpType()), 
-                    operation.getUUID(), context.contextAsLong(), versionedOperation.getVersion(), originator);
-    }
+  @Override
+  void addToEstimate(MessageEstimate estimate) {
+  }
 
-    @Override
-    ProtoMessageGroup createMessagesForIncomplete(ProtoMessageGroup protoMG, List<MessageGroup> messageGroups,
-            MessageEstimate estimate) {
-        if (debug) {
-            System.out.println("createMessagesForIncomplete");
-            System.out.println(messageGroups.size());
-        }
-        ((ProtoVersionedBasicOpMessageGroup)protoMG).setNonEmpty();
-        protoMG.addToMessageGroupList(messageGroups);
-        return createProtoMG(estimate);
+  @Override
+  MessageEstimate createMessageEstimate() {
+    return null;
+  }
+
+  // FUTURE - think about moving this
+  private static MessageType clientOpTypeToMessageType(ClientOpType clientOpType) {
+    switch (clientOpType) {
+    case SNAPSHOT:
+      return MessageType.SNAPSHOT;
+    case SYNC_REQUEST:
+      return MessageType.SYNC_REQUEST;
+    default:
+      throw new RuntimeException("Unsupported clientOpType: " + clientOpType);
     }
+  }
+
+  @Override
+  ProtoMessageGroup createProtoMG(MessageEstimate estimate) {
+    return new ProtoVersionedBasicOpMessageGroup(clientOpTypeToMessageType(operation.getOpType()), operation.getUUID(),
+        context.contextAsLong(), versionedOperation.getVersion(), originator);
+  }
+
+  @Override
+  ProtoMessageGroup createMessagesForIncomplete(ProtoMessageGroup protoMG, List<MessageGroup> messageGroups,
+      MessageEstimate estimate) {
+    if (debug) {
+      System.out.println("createMessagesForIncomplete");
+      System.out.println(messageGroups.size());
+    }
+    ((ProtoVersionedBasicOpMessageGroup) protoMG).setNonEmpty();
+    protoMG.addToMessageGroupList(messageGroups);
+    return createProtoMG(estimate);
+  }
 
 }

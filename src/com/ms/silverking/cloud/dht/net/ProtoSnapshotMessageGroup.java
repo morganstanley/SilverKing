@@ -17,9 +17,9 @@ public class ProtoSnapshotMessageGroup extends ProtoVersionedBasicOpMessageGroup
     private static final int    uuidLSLOffset = uuidMSLOffset + NumConversion.BYTES_PER_LONG;
     private static final int    versionOffset = uuidLSLOffset + NumConversion.BYTES_PER_LONG;
     */
-    
-    public ProtoSnapshotMessageGroup(MessageType type, UUIDBase uuid, long context, long version, byte[] originator) {
-        super(type, uuid, context, version, originator);
+
+  public ProtoSnapshotMessageGroup(MessageType type, UUIDBase uuid, long context, long version, byte[] originator) {
+    super(type, uuid, context, version, originator);
       /*  
         dataByteBuffer = ByteBuffer.allocate(dataBufferSize);
         bufferList.add(dataByteBuffer);
@@ -27,12 +27,12 @@ public class ProtoSnapshotMessageGroup extends ProtoVersionedBasicOpMessageGroup
         dataByteBuffer.putLong(uuid.getLeastSignificantBits());
         dataByteBuffer.putLong(version);
         */
-    }
+  }
 
-    @Override
-    public boolean isNonEmpty() {
-        return true;
-    }
+  @Override
+  public boolean isNonEmpty() {
+    return true;
+  }
     
     /*
     public static long getUUIDMSL(MessageGroup mg) {
@@ -46,5 +46,5 @@ public class ProtoSnapshotMessageGroup extends ProtoVersionedBasicOpMessageGroup
     public static long getVersion(MessageGroup mg) {
         return mg.getBuffers()[dataBufferIndex].getLong(versionOffset);
     }
-    */    
+    */
 }

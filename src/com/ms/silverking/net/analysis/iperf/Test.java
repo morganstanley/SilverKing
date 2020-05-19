@@ -11,72 +11,72 @@ import java.util.Collections;
 import java.util.List;
 
 public class Test {
-    private final List<Measurement> measurements;
-    private final SummaryStat       summaryStat;
-    
-    public Test(List<Measurement> measurements) {
-        this.measurements = measurements;       
-        this.summaryStat = computeSummaryStat(measurements);
-    }
-    
-    private static SummaryStat computeSummaryStat(List<Measurement> measurements) {
-        long    total;
-        long    max;
-        long    min;
-        long    median;
-        
-        total = 0;
-        min = Long.MAX_VALUE;
-        max = Long.MIN_VALUE;
-        for (Measurement measurement : measurements) {
-            long    bps;
-            
-            bps = measurement.getBitsPerSecond();
-            total += bps;
-            if (bps > max) {
-                max = bps;
-            }
-            if (bps < min) {
-                min = bps;
-            }
-        }
-        Collections.sort(measurements, new BPSComparator());
-        if (measurements.size() % 2 == 0) {
-            median = (measurements.get(measurements.size() / 2).getBitsPerSecond()
-                    + measurements.get(measurements.size() / 2 - 1).getBitsPerSecond()) / 2;
-        } else {
-            median = measurements.get(measurements.size() / 2 - 1).getBitsPerSecond();
-        }
-        return new SummaryStat(total, total / measurements.size(), median, max, min);
-    }
+  private final List<Measurement> measurements;
+  private final SummaryStat summaryStat;
 
-    public List<Measurement> getMeasurements() {
-        return measurements;
+  public Test(List<Measurement> measurements) {
+    this.measurements = measurements;
+    this.summaryStat = computeSummaryStat(measurements);
+  }
+
+  private static SummaryStat computeSummaryStat(List<Measurement> measurements) {
+    long total;
+    long max;
+    long min;
+    long median;
+
+    total = 0;
+    min = Long.MAX_VALUE;
+    max = Long.MIN_VALUE;
+    for (Measurement measurement : measurements) {
+      long bps;
+
+      bps = measurement.getBitsPerSecond();
+      total += bps;
+      if (bps > max) {
+        max = bps;
+      }
+      if (bps < min) {
+        min = bps;
+      }
     }
-    
-    public SummaryStat getSummaryStat() {
-        return summaryStat;
+    Collections.sort(measurements, new BPSComparator());
+    if (measurements.size() % 2 == 0) {
+      median = (measurements.get(measurements.size() / 2).getBitsPerSecond() + measurements.get(
+          measurements.size() / 2 - 1).getBitsPerSecond()) / 2;
+    } else {
+      median = measurements.get(measurements.size() / 2 - 1).getBitsPerSecond();
     }
-    
-    public static Test parse(File file) throws IOException {
-        return parse(new FileInputStream(file));
-    }
-    
-    public static Test parse(InputStream inStream) throws IOException {
-        return parse(new BufferedReader(new InputStreamReader(inStream)));
-    }
-    
-    private static Test parse(BufferedReader reader) throws IOException {
-        List<Measurement>   measurements;
-        String              line;
-        
-        measurements = new ArrayList<>();
-        do {
-            line = reader.readLine();
-            if (line != null) {
-                measurements.add(Measurement.parse(line.trim()));
-            }
-        } while (line != null);
-        return new Test(measurements);
-    }
+    return new SummaryStat(total, total / measurements.size(), median, max, min);
+  }
+
+  public List<Measurement> getMeasurements() {
+    return measurements;
+  }
+
+  public SummaryStat getSummaryStat() {
+    return summaryStat;
+  }
+
+  public static Test parse(File file) throws IOException {
+    return parse(new FileInputStream(file));
+  }
+
+  public static Test parse(InputStream inStream) throws IOException {
+    return parse(new BufferedReader(new InputStreamReader(inStream)));
+  }
+
+  private static Test parse(BufferedReader reader) throws IOException {
+    List<Measurement> measurements;
+    String line;
+
+    measurements = new ArrayList<>();
+    do {
+      line = reader.readLine();
+      if (line != null) {
+        measurements.add(Measurement.parse(line.trim()));
+      }
+    } while (line != null);
+    return new Test(measurements);
+  }
 }

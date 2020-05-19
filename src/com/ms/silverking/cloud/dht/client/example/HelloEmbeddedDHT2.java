@@ -6,27 +6,27 @@ import com.ms.silverking.cloud.dht.client.EmbeddedSK;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 
 public class HelloEmbeddedDHT2 {
-    
-    public static String runExample() {
-        try {
-            SynchronousNamespacePerspective<String, String> syncNSP;
-            ClientDHTConfiguration                            dhtConfig;
-      
-            System.out.println("Creating embedded SK instance");
-            dhtConfig = EmbeddedSK.createEmbeddedSKInstance();
-            System.out.println("Embedded SK instance running at: "+ dhtConfig);
-  
-            syncNSP = new DHTClient().openSession(dhtConfig)
-                    .openSyncNamespacePerspective("_MyNamespace", String.class, String.class);
-            syncNSP.put("Hello embedded2", "embedded2 world!");
-            return syncNSP.get("Hello embedded2");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+
+  public static String runExample() {
+    try {
+      SynchronousNamespacePerspective<String, String> syncNSP;
+      ClientDHTConfiguration dhtConfig;
+
+      System.out.println("Creating embedded SK instance");
+      dhtConfig = EmbeddedSK.createEmbeddedSKInstance();
+      System.out.println("Embedded SK instance running at: " + dhtConfig);
+
+      syncNSP = new DHTClient().openSession(dhtConfig).openSyncNamespacePerspective("_MyNamespace", String.class,
+          String.class);
+      syncNSP.put("Hello embedded2", "embedded2 world!");
+      return syncNSP.get("Hello embedded2");
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
-    
-    public static void main(String[] args) {
-        System.out.println( runExample() );
-        System.exit(0);
-    }
+  }
+
+  public static void main(String[] args) {
+    System.out.println(runExample());
+    System.exit(0);
+  }
 }

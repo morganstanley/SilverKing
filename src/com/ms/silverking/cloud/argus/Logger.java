@@ -11,7 +11,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 */
 
-public class Logger{// implements Runnable {
+public class Logger {// implements Runnable {
     /*
     private final File                      logDir;
     private final BlockingQueue<LogEntry>   messageQueue;

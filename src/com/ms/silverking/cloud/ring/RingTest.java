@@ -1,6 +1,5 @@
 package com.ms.silverking.cloud.ring;
 
-
 public class RingTest {
     /*
     private final int    numNodes;
@@ -78,9 +77,9 @@ public class RingTest {
         }
     }
 */
-    /**
-     * @param args
-     */
+  /**
+   * @param args
+   */
     /*
     public static void main(String[] args) {
         try {

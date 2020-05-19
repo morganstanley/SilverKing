@@ -4,5 +4,5 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
 
 public interface KeyedOpResultListener {
-    public void sendResult(DHTKey key, OpResult result);
+  public void sendResult(DHTKey key, OpResult result);
 }

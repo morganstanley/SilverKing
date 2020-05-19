@@ -8,7 +8,9 @@ import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.collection.Pair;
 
 public interface ClientTest {
-    public String getTestName();
-    public List<NamespaceOptions> getNamespaceOptions(NamespaceOptions sessionDefaultNSOptions);
-    public Pair<Integer,Integer> runTest(DHTSession session, Namespace ns);
+  public String getTestName();
+
+  public List<NamespaceOptions> getNamespaceOptions(NamespaceOptions sessionDefaultNSOptions);
+
+  public Pair<Integer, Integer> runTest(DHTSession session, Namespace ns);
 }

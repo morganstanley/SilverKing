@@ -4,14 +4,15 @@ import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.jvm.Finalization;
 
 public class JVMUtil {
-    private static final Finalization    finalization;
+  private static final Finalization finalization;
 
-    static {
-        boolean verboseFinalization = PropertiesHelper.systemHelper.getBoolean(DHTConstants.verboseGlobalFinalizationProperty, true);
-        finalization = new Finalization(SystemTimeUtil.timerDrivenTimeSource, verboseFinalization);
-    }
+  static {
+    boolean verboseFinalization = PropertiesHelper.systemHelper.getBoolean(
+        DHTConstants.verboseGlobalFinalizationProperty, true);
+    finalization = new Finalization(SystemTimeUtil.timerDrivenTimeSource, verboseFinalization);
+  }
 
-    public static Finalization getGlobalFinalization() {
-        return finalization;
-    }
+  public static Finalization getGlobalFinalization() {
+    return finalization;
+  }
 }

@@ -3,16 +3,16 @@ package com.ms.silverking.cloud.dht.crypto;
 import com.ms.silverking.numeric.NumConversion;
 
 public class MD5Util {
-    public static int hashCode(byte[] md5) {
-        return hashCode(md5, 0);
-    }
-    
-    public static int hashCode(byte[] md5, int offset) {
-        return NumConversion.bytesToInt(md5, offset) 
-                ^ NumConversion.bytesToInt(md5, offset + NumConversion.BYTES_PER_INT)
-                ^ NumConversion.bytesToInt(md5, offset + 2 * NumConversion.BYTES_PER_INT) 
-                ^ NumConversion.bytesToInt(md5, offset + 3 * NumConversion.BYTES_PER_INT); 
-    }
+  public static int hashCode(byte[] md5) {
+    return hashCode(md5, 0);
+  }
+
+  public static int hashCode(byte[] md5, int offset) {
+    return NumConversion.bytesToInt(md5, offset) ^ NumConversion.bytesToInt(md5,
+        offset + NumConversion.BYTES_PER_INT) ^ NumConversion.bytesToInt(md5,
+        offset + 2 * NumConversion.BYTES_PER_INT) ^ NumConversion.bytesToInt(md5,
+        offset + 3 * NumConversion.BYTES_PER_INT);
+  }
     
     /*
      * emprical test to measure benefit of MD5Util.hashCode over ArrayUtil.hashCode. Currently 2x better.

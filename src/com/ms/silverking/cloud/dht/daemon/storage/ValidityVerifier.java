@@ -12,16 +12,15 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocolUtil;
  * instance where storage state of a previous retrieval was found to be bad.
  */
 class ValidityVerifier {
-    private final ByteBuffer    buf;
-    private final ConsistencyProtocol   consistencyProtocol;
-    
-    ValidityVerifier(ByteBuffer buf, ConsistencyProtocol consistencyProtocol) {
-        this.buf = buf;
-        this.consistencyProtocol = consistencyProtocol;
-    }
-    
-    boolean isValid(int offset) {
-        return StorageProtocolUtil.storageStateValidForRead(consistencyProtocol, 
-                                        MetaDataUtil.getStorageState(buf, offset));
-    }
+  private final ByteBuffer buf;
+  private final ConsistencyProtocol consistencyProtocol;
+
+  ValidityVerifier(ByteBuffer buf, ConsistencyProtocol consistencyProtocol) {
+    this.buf = buf;
+    this.consistencyProtocol = consistencyProtocol;
+  }
+
+  boolean isValid(int offset) {
+    return StorageProtocolUtil.storageStateValidForRead(consistencyProtocol, MetaDataUtil.getStorageState(buf, offset));
+  }
 }

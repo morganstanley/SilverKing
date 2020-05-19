@@ -10,17 +10,17 @@ import com.ms.silverking.net.IPAndPort;
  * Tracks the state at each replica.
  */
 class StorageEntryPerReplicaState<K> {
-    private final Map<IPAndPort,K>    replicaState;
-    
-    StorageEntryPerReplicaState() {
-        replicaState = new HashMap<>();
-    }
-    
-    K getReplicaState(IPAndPort replica) {
-        return replicaState.get(replica);
-    }
-    
-    void setReplicaState(IPAndPort replica, K state) {
-        replicaState.put(replica, state);
-    }
+  private final Map<IPAndPort, K> replicaState;
+
+  StorageEntryPerReplicaState() {
+    replicaState = new HashMap<>();
+  }
+
+  K getReplicaState(IPAndPort replica) {
+    return replicaState.get(replica);
+  }
+
+  void setReplicaState(IPAndPort replica, K state) {
+    replicaState.put(replica, state);
+  }
 }

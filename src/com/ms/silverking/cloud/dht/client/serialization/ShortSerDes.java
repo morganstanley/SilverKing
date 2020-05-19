@@ -8,39 +8,39 @@ import com.ms.silverking.numeric.NumConversion;
  * Serializer/deserializer for Short
  */
 public final class ShortSerDes implements BufferSerDes<Short> {
-    @Override 
-    public ByteBuffer serializeToBuffer(Short n) {
-        return ByteBuffer.wrap(NumConversion.shortToBytes(n));
-    }
-    
-    @Override
-    public void serializeToBuffer(Short n, ByteBuffer buffer) {
-        buffer.put(NumConversion.shortToBytes(n));
-    }
-    
-    @Override
-    public int estimateSerializedSize(Short n) {
-        return NumConversion.BYTES_PER_SHORT;
-    }
+  @Override
+  public ByteBuffer serializeToBuffer(Short n) {
+    return ByteBuffer.wrap(NumConversion.shortToBytes(n));
+  }
 
-    @Override
-    public Short deserialize(ByteBuffer[] buffers) {
-        byte[] def;
-        
-        def = ByteArraySerDes.deserializeBuffers(buffers);
-        if (def.length != NumConversion.BYTES_PER_SHORT) {
-            throw new RuntimeException("Unable to deserialize Short def length: "+ def.length);
-        }
-        return NumConversion.bytesToShort(def);
-    }
+  @Override
+  public void serializeToBuffer(Short n, ByteBuffer buffer) {
+    buffer.put(NumConversion.shortToBytes(n));
+  }
 
-    @Override
-    public Short deserialize(ByteBuffer buffer) {
-        return buffer.getShort(buffer.position());
-    }
+  @Override
+  public int estimateSerializedSize(Short n) {
+    return NumConversion.BYTES_PER_SHORT;
+  }
 
-    @Override
-    public Short emptyObject() {
-        return new Short((short)0);
+  @Override
+  public Short deserialize(ByteBuffer[] buffers) {
+    byte[] def;
+
+    def = ByteArraySerDes.deserializeBuffers(buffers);
+    if (def.length != NumConversion.BYTES_PER_SHORT) {
+      throw new RuntimeException("Unable to deserialize Short def length: " + def.length);
     }
+    return NumConversion.bytesToShort(def);
+  }
+
+  @Override
+  public Short deserialize(ByteBuffer buffer) {
+    return buffer.getShort(buffer.position());
+  }
+
+  @Override
+  public Short emptyObject() {
+    return new Short((short) 0);
+  }
 }

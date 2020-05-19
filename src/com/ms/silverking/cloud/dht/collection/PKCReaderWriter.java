@@ -1,25 +1,18 @@
 package com.ms.silverking.cloud.dht.collection;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
-import java.nio.channels.FileChannel.MapMode;
-
 import com.ms.silverking.numeric.NumConversion;
 
 /**
  * Reads/writes PartialKeyCuckoo maps (which are RAM-base.)
  */
 public class PKCReaderWriter {
-    private final ValueTableReaderWriter    vtReaderWriter;
-    
-    public static final int    overheadBytes = NumConversion.BYTES_PER_INT * 4; 
-    
-    public PKCReaderWriter(ValueTableReaderWriter vtReaderWriter) {
-        this.vtReaderWriter = vtReaderWriter;
-    }
+  private final ValueTableReaderWriter vtReaderWriter;
+
+  public static final int overheadBytes = NumConversion.BYTES_PER_INT * 4;
+
+  public PKCReaderWriter(ValueTableReaderWriter vtReaderWriter) {
+    this.vtReaderWriter = vtReaderWriter;
+  }
     
     /*
     public int getSerializedSizeBytes(PartialKeyCuckoo map) {

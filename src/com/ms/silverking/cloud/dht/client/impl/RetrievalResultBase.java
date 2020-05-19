@@ -14,110 +14,110 @@ import com.ms.silverking.cloud.dht.common.OpResult;
  * existence results. Existence is indicated by OpResult only.
  */
 abstract class RetrievalResultBase<V> implements StoredValue<V> {
-    protected V  value;
-    protected final BufferSourceDeserializer<V>   valueDeserializer;
-    protected RetrievalResultBase<V>              next;
-    
-    protected static final Object valueNotSet = new Object();
-    
-    public RetrievalResultBase(BufferSourceDeserializer<V> valueDeserializer) {
-        this.valueDeserializer = valueDeserializer;
-        value = (V)valueNotSet;
-    }
-    
-    @Override
-    public StoredValue<V> next() {
-        return null;
-    }
-    
-    public abstract OpResult getOpResult();
-    
-    @Override
-    public int getStoredLength() {
-        return getMetaData().getStoredLength();
-    }
+  protected V value;
+  protected final BufferSourceDeserializer<V> valueDeserializer;
+  protected RetrievalResultBase<V> next;
 
-    @Override
-    public int getUncompressedLength() {
-        return getMetaData().getUncompressedLength();
-    }
+  protected static final Object valueNotSet = new Object();
 
-    @Override
-    public long getVersion() {
-        return getMetaData().getVersion();
-    }
+  public RetrievalResultBase(BufferSourceDeserializer<V> valueDeserializer) {
+    this.valueDeserializer = valueDeserializer;
+    value = (V) valueNotSet;
+  }
 
-    @Override
-    public CreationTime getCreationTime() {
-        return getMetaData().getCreationTime();
-    }
+  @Override
+  public StoredValue<V> next() {
+    return null;
+  }
 
-    @Override
-    public ValueCreator getCreator() {
-        return getMetaData().getCreator();
-    }
-    
-    @Override
-    public long getLockMillisRemaining() {
-        return getMetaData().getLockMillisRemaining();
-    }
-    
-    @Override
-    public short getLockSeconds() {
-        return getMetaData().getLockSeconds();
-    }
-    
-    @Override 
-    public boolean isLocked() {
-        return getMetaData().isLocked();
-    }
-    
-    @Override
-    public boolean isInvalidation() {
-        return getMetaData().isInvalidation();
-    }
+  public abstract OpResult getOpResult();
 
-    @Override
-    public byte[] getUserData() {
-        return getMetaData().getUserData();
-    }
+  @Override
+  public int getStoredLength() {
+    return getMetaData().getStoredLength();
+  }
 
-    @Override
-    public byte[] getChecksum() {
-        return getMetaData().getChecksum();
-    }
-    
-    @Override
-    public Compression getCompression() {
-        return getMetaData().getCompression();
-    }
-    
-    @Override
-    public ChecksumType getChecksumType() {
-        return getMetaData().getChecksumType();
-    }
-    
-    public void setNext(RetrievalResultBase<V> next) {
-        this.next = next;
-    }
-    
-    public RetrievalResultBase<V> getNext() {
-        return next;
-    }
-    
-    @Override
-    public String toString() {
-        StringBuilder   sb;
-        
-        sb = new StringBuilder();
-        sb.append(value);
-        sb.append(':');
-        sb.append(getMetaData());
-        return sb.toString();
-    }
+  @Override
+  public int getUncompressedLength() {
+    return getMetaData().getUncompressedLength();
+  }
 
-    @Override
-    public String toString(boolean labeled) {
-        return MetaDataTextUtil.toMetaDataString(this, labeled);
-    }
+  @Override
+  public long getVersion() {
+    return getMetaData().getVersion();
+  }
+
+  @Override
+  public CreationTime getCreationTime() {
+    return getMetaData().getCreationTime();
+  }
+
+  @Override
+  public ValueCreator getCreator() {
+    return getMetaData().getCreator();
+  }
+
+  @Override
+  public long getLockMillisRemaining() {
+    return getMetaData().getLockMillisRemaining();
+  }
+
+  @Override
+  public short getLockSeconds() {
+    return getMetaData().getLockSeconds();
+  }
+
+  @Override
+  public boolean isLocked() {
+    return getMetaData().isLocked();
+  }
+
+  @Override
+  public boolean isInvalidation() {
+    return getMetaData().isInvalidation();
+  }
+
+  @Override
+  public byte[] getUserData() {
+    return getMetaData().getUserData();
+  }
+
+  @Override
+  public byte[] getChecksum() {
+    return getMetaData().getChecksum();
+  }
+
+  @Override
+  public Compression getCompression() {
+    return getMetaData().getCompression();
+  }
+
+  @Override
+  public ChecksumType getChecksumType() {
+    return getMetaData().getChecksumType();
+  }
+
+  public void setNext(RetrievalResultBase<V> next) {
+    this.next = next;
+  }
+
+  public RetrievalResultBase<V> getNext() {
+    return next;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb;
+
+    sb = new StringBuilder();
+    sb.append(value);
+    sb.append(':');
+    sb.append(getMetaData());
+    return sb.toString();
+  }
+
+  @Override
+  public String toString(boolean labeled) {
+    return MetaDataTextUtil.toMetaDataString(this, labeled);
+  }
 }

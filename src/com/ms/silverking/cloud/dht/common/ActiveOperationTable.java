@@ -6,34 +6,31 @@ import java.util.concurrent.ConcurrentMap;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.id.UUIDBase;
 
-import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
-
-
 /**
  * Used by both client and server to prevent duplicate operation
  * sends.
- * 
+ * <p>
  * Currently, this is only applied to receive operations
  */
 public class ActiveOperationTable<R extends Retrieval> {
-    //private final ConcurrentMap<DHTKey,RetrievalGroup> activeRetrievals;
-    private final ConcurrentMap<UUIDBase,Retrieval>  activeRetrievals;
-    //private final ConcurrentMap<DHTKey,RetrievalGroup> activeRetrievals;
-    
-    // FUTURE - RetrievalGroup code is currently disabled. Think about whether or
-    // not we want to add it back in.
-    
-    public ActiveOperationTable() {
-        //activeRetrievals = new MapMaker().weakKeys().concurrencyLevel(2).makeMap();
-        // FUTURE - think about cleanup and how it will work for clients and proxy servers
-        activeRetrievals = new ConcurrentHashMap<>();
-    }
-    
-    //public RetrievalGroup getRetrievalGroup(DHTKey key) {
-    //    return activeRetrievals.get(key);
-    //}
-    
-    public void addRetrieval(Retrieval retrieval) {
+  //private final ConcurrentMap<DHTKey,RetrievalGroup> activeRetrievals;
+  private final ConcurrentMap<UUIDBase, Retrieval> activeRetrievals;
+  //private final ConcurrentMap<DHTKey,RetrievalGroup> activeRetrievals;
+
+  // FUTURE - RetrievalGroup code is currently disabled. Think about whether or
+  // not we want to add it back in.
+
+  public ActiveOperationTable() {
+    //activeRetrievals = new MapMaker().weakKeys().concurrencyLevel(2).makeMap();
+    // FUTURE - think about cleanup and how it will work for clients and proxy servers
+    activeRetrievals = new ConcurrentHashMap<>();
+  }
+
+  //public RetrievalGroup getRetrievalGroup(DHTKey key) {
+  //    return activeRetrievals.get(key);
+  //}
+
+  public void addRetrieval(Retrieval retrieval) {
         /*
         int overlapped;
         
@@ -61,17 +58,18 @@ public class ActiveOperationTable<R extends Retrieval> {
         System.out.printf("overlapped %d/%d\n", overlapped, retrieval.getDHTKeys().size());
         System.out.printf("activeRetrievals.size() %d\n", activeRetrievals.size());
         */
-        activeRetrievals.put(retrieval.getUUID(), retrieval);
-    }
-    
-    public void receivedRetrievalResponse(MessageGroup message) {
-        throw new RuntimeException("legacy code invoked");
+    activeRetrievals.put(retrieval.getUUID(), retrieval);
+  }
+
+  public void receivedRetrievalResponse(MessageGroup message) {
+    throw new RuntimeException("legacy code invoked");
         /*
         Retrieval   retrieval;
         
         retrieval = activeRetrievals.get(message.getUUID());
         if (retrieval != null) {
-            for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator(MessageGroupKVEntry.ValueMode.Local)) {
+            for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator
+            (MessageGroupKVEntry.ValueMode.Local)) {
                 retrieval.addResponse(entry);
             }
             if (retrieval.getState() != OperationState.INCOMPLETE) {
@@ -98,5 +96,5 @@ public class ActiveOperationTable<R extends Retrieval> {
         }
         Log.fine("out receivedRetrievalResponse()");
         */
-    }    
+  }
 }

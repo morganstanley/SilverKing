@@ -11,68 +11,68 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyedResult;
 import com.ms.silverking.net.IPAndPort;
 
-public class OpCommunicator<T extends DHTKey, R extends KeyedResult> implements OpVirtualCommunicator<T,R> {
-    private volatile Map<IPAndPort,List<T>> replicaMessageLists;
-    private volatile List<R>                results;
-    private Lock    rmlLock;
-    private Lock    rLock;
-    
-    private static final boolean    debug = false;
-    
-    protected static final int        typicalReplication = 4; // FUTURE - could provide a real value 
-    protected static final int        initialListSize = 8; // FUTURE - size the lists better 
-    
-    OpCommunicator() {
-        results = new ArrayList<>(initialListSize);
-        rLock = new ReentrantLock();
-        rmlLock = new ReentrantLock();
+public class OpCommunicator<T extends DHTKey, R extends KeyedResult> implements OpVirtualCommunicator<T, R> {
+  private volatile Map<IPAndPort, List<T>> replicaMessageLists;
+  private volatile List<R> results;
+  private Lock rmlLock;
+  private Lock rLock;
+
+  private static final boolean debug = false;
+
+  protected static final int typicalReplication = 4; // FUTURE - could provide a real value
+  protected static final int initialListSize = 8; // FUTURE - size the lists better
+
+  OpCommunicator() {
+    results = new ArrayList<>(initialListSize);
+    rLock = new ReentrantLock();
+    rmlLock = new ReentrantLock();
+  }
+
+  public Map<IPAndPort, List<T>> takeReplicaMessageLists() {
+    Map<IPAndPort, List<T>> oldReplicaMessageLists;
+
+    rmlLock.lock();
+    try {
+      oldReplicaMessageLists = replicaMessageLists;
+      replicaMessageLists = null;
+    } finally {
+      rmlLock.unlock();
     }
-    
-    public Map<IPAndPort, List<T>> takeReplicaMessageLists() {
-        Map<IPAndPort,List<T>>  oldReplicaMessageLists;
-        
-        rmlLock.lock();
-        try {
-            oldReplicaMessageLists = replicaMessageLists;
-            replicaMessageLists = null;
-        } finally {
-            rmlLock.unlock();
-        }
-        return oldReplicaMessageLists;
+    return oldReplicaMessageLists;
+  }
+
+  // must hold lock
+  private Map<IPAndPort, List<T>> getReplicaMessageLists() {
+    if (replicaMessageLists == null) {
+      replicaMessageLists = new HashMap<>(typicalReplication);
     }
-    
-    // must hold lock
-    private Map<IPAndPort, List<T>> getReplicaMessageLists() {
-        if (replicaMessageLists == null) {
-            replicaMessageLists = new HashMap<>(typicalReplication);
-        }
-        return replicaMessageLists;
+    return replicaMessageLists;
+  }
+
+  public List<R> takeResults() {
+    List<R> oldResults;
+
+    rLock.lock();
+    try {
+      oldResults = results;
+      results = new ArrayList<>(initialListSize);
+    } finally {
+      rLock.unlock();
     }
-    
-    public List<R> takeResults() {
-        List<R> oldResults;
-        
-        rLock.lock();
-        try {
-            oldResults = results;
-            results = new ArrayList<>(initialListSize);
-        } finally {
-            rLock.unlock();
-        }
-        return oldResults;
+    return oldResults;
+  }
+
+  @Override
+  public void sendResult(R result) {
+    if (debug) {
+      System.out.printf("sendResult %s\n", result);
     }
-    
-    @Override
-    public void sendResult(R result) {
-        if (debug) {
-            System.out.printf("sendResult %s\n", result);
-        }
-        rLock.lock();
-        try {
-            results.add(result);
-        } finally {
-            rLock.unlock();
-        }
+    rLock.lock();
+    try {
+      results.add(result);
+    } finally {
+      rLock.unlock();
+    }
         /*
         this.rString.add(result.toString());
         try {
@@ -81,28 +81,28 @@ public class OpCommunicator<T extends DHTKey, R extends KeyedResult> implements 
             this.re.add(re);
         }
         */
+  }
+
+  @Override
+  public void forwardEntry(IPAndPort replica, T entry) {
+    List<T> messageList;
+
+    if (debug) {
+      System.out.printf("forwardEntry %s %s\n", replica, entry);
     }
-    
-    @Override
-    public void forwardEntry(IPAndPort replica, T entry) {
-        List<T>  messageList;
-        
-        if (debug) {
-            System.out.printf("forwardEntry %s %s\n", replica, entry);
-        }
-        assert replica != null;
-        rmlLock.lock();
-        try {
-            messageList = getReplicaMessageLists().get(replica);
-            if (messageList == null) {
-                messageList = new ArrayList<>(initialListSize);
-                replicaMessageLists.put(replica, messageList);
-            }
-            messageList.add(entry);
-        } finally {
-            rmlLock.unlock();
-        }
+    assert replica != null;
+    rmlLock.lock();
+    try {
+      messageList = getReplicaMessageLists().get(replica);
+      if (messageList == null) {
+        messageList = new ArrayList<>(initialListSize);
+        replicaMessageLists.put(replica, messageList);
+      }
+      messageList.add(entry);
+    } finally {
+      rmlLock.unlock();
     }
+  }
 
     /*
     private List<String> rString = new ArrayList<>();

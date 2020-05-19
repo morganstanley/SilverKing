@@ -1,6 +1,5 @@
 package com.ms.silverking.cloud.topology;
 
-
 // Consider deprecating
 public class ServerNode {/*extends Node {
     public final byte[]    ip;

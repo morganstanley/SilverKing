@@ -4,5 +4,4 @@ import java.util.Comparator;
 
 import com.ms.silverking.net.IPAndPort;
 
-public interface ReplicaPrioritizer extends Comparator<IPAndPort> {
-}
+public interface ReplicaPrioritizer extends Comparator<IPAndPort> {}

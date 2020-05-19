@@ -10,22 +10,22 @@ import com.ms.silverking.numeric.MutableInteger;
  * Per-key LRU state
  */
 class LRURetentionState extends CapacityBasedRetentionState {
-    private final Map<DHTKey,MutableInteger>    retentionMap;
-    
-    @OmitGeneration
-    public LRURetentionState(Map<DHTKey,MutableInteger> retentionMap) {
-        this.retentionMap = retentionMap;
+  private final Map<DHTKey, MutableInteger> retentionMap;
+
+  @OmitGeneration
+  public LRURetentionState(Map<DHTKey, MutableInteger> retentionMap) {
+    this.retentionMap = retentionMap;
+  }
+
+  public boolean retains(DHTKey key) {
+    MutableInteger remainingRetention;
+
+    remainingRetention = retentionMap.get(key);
+    if (remainingRetention != null && remainingRetention.getValue() > 0) {
+      remainingRetention.decrement();
+      return true;
+    } else {
+      return false;
     }
-    
-    public boolean retains(DHTKey key) {
-        MutableInteger    remainingRetention;
-        
-        remainingRetention = retentionMap.get(key);
-        if (remainingRetention != null && remainingRetention.getValue() > 0) {
-            remainingRetention.decrement();
-            return true;
-        } else {
-            return false;
-        }
-    }
+  }
 }

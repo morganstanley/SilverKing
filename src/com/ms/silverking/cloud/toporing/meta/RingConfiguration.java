@@ -12,122 +12,121 @@ import com.ms.silverking.text.ObjectDefParser2;
 /**
  * Configuration settings required to build a ring.
  * Unlike CloudConfiguration, a RingConfiguration is named
- * and stored in zk. 
+ * and stored in zk.
  */
 public class RingConfiguration implements VersionedDefinition {
-    private final CloudConfiguration    cloudConfig;
-    private final String    weightSpecsName;
-    private final String    ringParentName;
-    private final String    storagePolicyGroupName;
-    private final String    storagePolicyName;
-    private final Set<String>   hostGroups;
-    private final long      version;
-    
-    private static final boolean    debug = false;
-    
-    //public static final char    delimiter = CloudConfiguration.delimiter;
-    
-    public static final RingConfiguration  emptyTemplate = 
-            new RingConfiguration(CloudConfiguration.emptyTemplate, null, null, null, null, null, VersionedDefinition.NO_VERSION);
-    public static final Set<String> optionalFields;
-    
-    static {
-        ImmutableSet.Builder<String>    builder;
-        
-        builder = ImmutableSet.builder();
-        builder.addAll(Utils.optionalVersionFieldSet);
-        builder.add("hostGroups");
-        optionalFields = builder.build();
-        ObjectDefParser2.addParser(emptyTemplate, FieldsRequirement.REQUIRE_ALL_NONOPTIONAL_FIELDS, optionalFields);
-    }
-    
-    public RingConfiguration(CloudConfiguration cloudConfig, String weightSpecsName, 
-                            String ringParentName, String storagePolicyGroupName, String storagePolicyName, 
-                            Set<String> hostGroups, long version) {
-        this.cloudConfig = cloudConfig;
-        this.weightSpecsName = weightSpecsName;
-        this.ringParentName = ringParentName;
-        this.storagePolicyGroupName = storagePolicyGroupName;
-        this.storagePolicyName = storagePolicyName;
-        this.hostGroups = hostGroups;
-        this.version = version;
-        //this.mapName = topologyName + delimiter + weightSpecsName 
-        //       + delimiter + exclusionListName + delimiter + replicationFactor;
-    }
-    
-    public RingConfiguration(CloudConfiguration cloudConfig, String weightSpecsName, 
-            String ringParentName, String storagePolicyGroupName, String storagePolicyName,
-            Set<String> hostGroups) {
-        this(cloudConfig, weightSpecsName, ringParentName, storagePolicyGroupName, storagePolicyName, 
-                hostGroups, VersionedDefinition.NO_VERSION);
-    }
-    
-    public RingConfiguration version(long version) {
-        return new RingConfiguration(cloudConfig, weightSpecsName, ringParentName, 
-                storagePolicyGroupName, storagePolicyName, hostGroups, version);
-    }
-    
-    public CloudConfiguration getCloudConfiguration() {
-        return cloudConfig;
-    }
+  private final CloudConfiguration cloudConfig;
+  private final String weightSpecsName;
+  private final String ringParentName;
+  private final String storagePolicyGroupName;
+  private final String storagePolicyName;
+  private final Set<String> hostGroups;
+  private final long version;
 
-    public String getWeightSpecsName() {
-        return weightSpecsName;
-    }
+  private static final boolean debug = false;
 
-    public String getRingParentName() {
-        return ringParentName;
+  //public static final char    delimiter = CloudConfiguration.delimiter;
+
+  public static final RingConfiguration emptyTemplate = new RingConfiguration(CloudConfiguration.emptyTemplate, null,
+      null, null, null, null, VersionedDefinition.NO_VERSION);
+  public static final Set<String> optionalFields;
+
+  static {
+    ImmutableSet.Builder<String> builder;
+
+    builder = ImmutableSet.builder();
+    builder.addAll(Utils.optionalVersionFieldSet);
+    builder.add("hostGroups");
+    optionalFields = builder.build();
+    ObjectDefParser2.addParser(emptyTemplate, FieldsRequirement.REQUIRE_ALL_NONOPTIONAL_FIELDS, optionalFields);
+  }
+
+  public RingConfiguration(CloudConfiguration cloudConfig, String weightSpecsName, String ringParentName,
+      String storagePolicyGroupName, String storagePolicyName, Set<String> hostGroups, long version) {
+    this.cloudConfig = cloudConfig;
+    this.weightSpecsName = weightSpecsName;
+    this.ringParentName = ringParentName;
+    this.storagePolicyGroupName = storagePolicyGroupName;
+    this.storagePolicyName = storagePolicyName;
+    this.hostGroups = hostGroups;
+    this.version = version;
+    //this.mapName = topologyName + delimiter + weightSpecsName
+    //       + delimiter + exclusionListName + delimiter + replicationFactor;
+  }
+
+  public RingConfiguration(CloudConfiguration cloudConfig, String weightSpecsName, String ringParentName,
+      String storagePolicyGroupName, String storagePolicyName, Set<String> hostGroups) {
+    this(cloudConfig, weightSpecsName, ringParentName, storagePolicyGroupName, storagePolicyName, hostGroups,
+        VersionedDefinition.NO_VERSION);
+  }
+
+  public RingConfiguration version(long version) {
+    return new RingConfiguration(cloudConfig, weightSpecsName, ringParentName, storagePolicyGroupName,
+        storagePolicyName, hostGroups, version);
+  }
+
+  public CloudConfiguration getCloudConfiguration() {
+    return cloudConfig;
+  }
+
+  public String getWeightSpecsName() {
+    return weightSpecsName;
+  }
+
+  public String getRingParentName() {
+    return ringParentName;
+  }
+
+  public String getStoragePolicyGroupName() {
+    return storagePolicyGroupName;
+  }
+
+  public String getStoragePolicyName() {
+    return storagePolicyName;
+  }
+
+  public Set<String> getHostGroups() {
+    return hostGroups;
+  }
+
+  @Override
+  public long getVersion() {
+    return version;
+  }
+
+  /*
+  @Override
+  public String toString() {
+      return cloudConfig.toString() +delimiter+ weightSpecsName
+              +delimiter+ ringParentName;
+  }
+
+  public static RingConfiguration parse(String def, long version) {
+      String[]    tokens;
+
+      System.out.println(def);
+      tokens = def.split(""+ delimiter);
+      return new RingConfiguration(new CloudConfiguration(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4]),
+                                   tokens[5], tokens[6], tokens[7], version);
+  }
+  */
+  public static RingConfiguration parse(String def, long version) {
+    RingConfiguration instance;
+
+    //instance = (RingConfiguration)new ObjectDefParser(emptyTemplate, FieldsRequirement
+    // .REQUIRE_ALL_NONOPTIONAL_FIELDS,
+    //        Utils.optionalVersionFieldSet).parse(def);
+    instance = ObjectDefParser2.parse(RingConfiguration.class, def);
+    if (debug) {
+      System.out.printf("def %s\n", def);
+      System.out.printf("instance %s\n", instance);
     }
-    
-    public String getStoragePolicyGroupName() {
-        return storagePolicyGroupName;
-    }
-    
-    public String getStoragePolicyName() {
-        return storagePolicyName;
-    }
-    
-    public Set<String> getHostGroups() {
-        return hostGroups;
-    }
-    
-    @Override
-    public long getVersion() {
-        return version;
-    }
-    
-    /*
-    @Override
-    public String toString() {
-        return cloudConfig.toString() +delimiter+ weightSpecsName 
-                +delimiter+ ringParentName;
-    }
-    
-    public static RingConfiguration parse(String def, long version) {
-        String[]    tokens;
-        
-        System.out.println(def);
-        tokens = def.split(""+ delimiter);
-        return new RingConfiguration(new CloudConfiguration(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4]), 
-                                     tokens[5], tokens[6], tokens[7], version);
-    }
-    */
-    public static RingConfiguration parse(String def, long version) {
-        RingConfiguration   instance;
-        
-        //instance = (RingConfiguration)new ObjectDefParser(emptyTemplate, FieldsRequirement.REQUIRE_ALL_NONOPTIONAL_FIELDS, 
-        //        Utils.optionalVersionFieldSet).parse(def);
-        instance = ObjectDefParser2.parse(RingConfiguration.class, def);
-        if (debug) {
-            System.out.printf("def %s\n", def);
-            System.out.printf("instance %s\n", instance);
-        }
-        return instance.version(version);
-    }
-    
-    @Override
-    public String toString() {
-        //return new ObjectDefParser(this).objectToString(this);
-        return ObjectDefParser2.objectToString(this);
-    }    
+    return instance.version(version);
+  }
+
+  @Override
+  public String toString() {
+    //return new ObjectDefParser(this).objectToString(this);
+    return ObjectDefParser2.objectToString(this);
+  }
 }

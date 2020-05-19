@@ -10,24 +10,24 @@ import com.yahoo.ycsb.ByteIterator;
  * Serializer/deserializer for byte[]. No copy of source data is made for put().
  */
 public final class ByteIteratorSerDes implements BufferSerDes<ByteIterator> {
-    @Override
-    public ByteBuffer serializeToBuffer(ByteIterator bi) {
-        return ByteBuffer.wrap(bi.toArray());
-    }
+  @Override
+  public ByteBuffer serializeToBuffer(ByteIterator bi) {
+    return ByteBuffer.wrap(bi.toArray());
+  }
 
-    @Override
-    public void serializeToBuffer(ByteIterator bi, ByteBuffer buffer) {
-        buffer.put(bi.toArray());
-    }
+  @Override
+  public void serializeToBuffer(ByteIterator bi, ByteBuffer buffer) {
+    buffer.put(bi.toArray());
+  }
 
-    @Override
-    public int estimateSerializedSize(ByteIterator bi) {
-        return (int)bi.bytesLeft();
-    }
+  @Override
+  public int estimateSerializedSize(ByteIterator bi) {
+    return (int) bi.bytesLeft();
+  }
 
-    @Override
-    public ByteIterator deserialize(ByteBuffer[] buffers) {
-        throw new RuntimeException("Not yet implemented");
+  @Override
+  public ByteIterator deserialize(ByteBuffer[] buffers) {
+    throw new RuntimeException("Not yet implemented");
         /*
         if (buffers.length != 0) {
             byte[]     bytes;
@@ -40,41 +40,41 @@ public final class ByteIteratorSerDes implements BufferSerDes<ByteIterator> {
             throw new RuntimeException("Deserialization error");
         }
         */
+  }
+
+  @Override
+  public ByteIterator deserialize(ByteBuffer buffer) {
+    //return Arrays.copyOfRange(buffer.array(), buffer.position(), buffer.position() + buffer.remaining());
+    return new ByteBufferByteIterator(buffer);
+  }
+
+  static class ByteBufferByteIterator extends ByteIterator {
+    private final ByteBuffer buf;
+
+    public ByteBufferByteIterator(ByteBuffer buf) {
+      this.buf = buf;
     }
 
     @Override
-    public ByteIterator deserialize(ByteBuffer buffer) {
-        //return Arrays.copyOfRange(buffer.array(), buffer.position(), buffer.position() + buffer.remaining());
-        return new ByteBufferByteIterator(buffer);
-    }
-    
-    static class ByteBufferByteIterator extends ByteIterator {
-        private final ByteBuffer    buf;
-        
-        public ByteBufferByteIterator(ByteBuffer buf) {
-            this.buf = buf;
-        }
-        
-        @Override
-        public long bytesLeft() {
-            return buf.remaining();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return buf.hasRemaining();
-        }
-
-        @Override
-        public byte nextByte() {
-            return (byte)buf.get();
-        }
+    public long bytesLeft() {
+      return buf.remaining();
     }
 
     @Override
-    public ByteIterator emptyObject() {
-        return new ByteBufferByteIterator(ByteBuffer.wrap(DHTConstants.emptyByteArray));
+    public boolean hasNext() {
+      return buf.hasRemaining();
     }
+
+    @Override
+    public byte nextByte() {
+      return (byte) buf.get();
+    }
+  }
+
+  @Override
+  public ByteIterator emptyObject() {
+    return new ByteBufferByteIterator(ByteBuffer.wrap(DHTConstants.emptyByteArray));
+  }
                                             
                                             /*
     @Override

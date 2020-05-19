@@ -7,18 +7,18 @@ import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 
 class InvalidatedRetentionState implements ValueRetentionState {
-    private final Set<DHTKey>    invalidatedKeys;
-    
-    @OmitGeneration
-    public InvalidatedRetentionState() {
-        invalidatedKeys = new HashSet<>();
-    }
+  private final Set<DHTKey> invalidatedKeys;
 
-    public boolean isInvalidated(DHTKey key) {
-        return invalidatedKeys.contains(key);
-    }
-    
-    public void setInvalidated(DHTKey key) {
-        invalidatedKeys.add(key);
-    }
+  @OmitGeneration
+  public InvalidatedRetentionState() {
+    invalidatedKeys = new HashSet<>();
+  }
+
+  public boolean isInvalidated(DHTKey key) {
+    return invalidatedKeys.contains(key);
+  }
+
+  public void setInvalidated(DHTKey key) {
+    invalidatedKeys.add(key);
+  }
 }

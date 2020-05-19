@@ -12,66 +12,64 @@ import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
  * the owning context, hence we only need to specify version here.
  */
 public class RetrievalGroup {
-    private final ConcurrentMap<VersionConstraint,Object> retrievals;
-    // FIXME - THINK ABOUT CONCURRENCY IN THIS CLASS
-    //private final ConcurrentNavigableMap<VersionConstraint,Retrieval> retrievals;
+  private final ConcurrentMap<VersionConstraint, Object> retrievals;
+  // FIXME - THINK ABOUT CONCURRENCY IN THIS CLASS
+  //private final ConcurrentNavigableMap<VersionConstraint,Retrieval> retrievals;
     /*
     private final List<Retrieval>   retrievals;
     private final Lock  lock;
     */
-    
-    //private static final VCComparator  vcComparator;
-    
-    
-    // FIXME - PROBABLY ONLY LOOK TO COMBINE OPERATIONS IF THE VERSION MATCH IS
-    // EXACT
-    
-    
-    //static {
-    //    vcComparator = new VCComparator();
-    //}
-    
-    public RetrievalGroup() {
-        retrievals = new ConcurrentHashMap<>();
-        //retrievals = new ConcurrentSkipListMap<>(vcComparator);
+
+  //private static final VCComparator  vcComparator;
+
+  // FIXME - PROBABLY ONLY LOOK TO COMBINE OPERATIONS IF THE VERSION MATCH IS
+  // EXACT
+
+  //static {
+  //    vcComparator = new VCComparator();
+  //}
+
+  public RetrievalGroup() {
+    retrievals = new ConcurrentHashMap<>();
+    //retrievals = new ConcurrentSkipListMap<>(vcComparator);
         /*
         retrievals = new LinkedList<>();
         lock = new ReentrantLock();
         */
-    }
-    
-    public boolean addRetrieval(Retrieval retrieval) {
-        Object  previous;
+  }
 
-        assert retrieval.getVersionConstraint() != null;
-        previous = retrievals.putIfAbsent(retrieval.getVersionConstraint(), retrieval);
-        if (previous != null) {
-            if (previous instanceof Retrieval) {
-                ArrayList<Retrieval>    rList;
-                boolean replaced;
-                
-                rList = new ArrayList<Retrieval>(2);
-                rList.add((Retrieval)previous);
-                rList.add(retrieval);                
-                replaced = retrievals.replace(retrieval.getVersionConstraint(), previous, rList);
-                if (!replaced) {
-                    ArrayList<Retrieval>    rList2;
-                    
-                    rList2 = (ArrayList<Retrieval>)retrievals.get(retrieval.getVersionConstraint());
-                    synchronized (rList2) {
-                        rList2.add(retrieval);
-                    }
-                }
-            } else {
-                ArrayList<Retrieval>    rList;
-                
-                rList = (ArrayList<Retrieval>)previous;
-                synchronized (rList) {
-                    rList.add(retrieval);
-                }
-            }
+  public boolean addRetrieval(Retrieval retrieval) {
+    Object previous;
+
+    assert retrieval.getVersionConstraint() != null;
+    previous = retrievals.putIfAbsent(retrieval.getVersionConstraint(), retrieval);
+    if (previous != null) {
+      if (previous instanceof Retrieval) {
+        ArrayList<Retrieval> rList;
+        boolean replaced;
+
+        rList = new ArrayList<Retrieval>(2);
+        rList.add((Retrieval) previous);
+        rList.add(retrieval);
+        replaced = retrievals.replace(retrieval.getVersionConstraint(), previous, rList);
+        if (!replaced) {
+          ArrayList<Retrieval> rList2;
+
+          rList2 = (ArrayList<Retrieval>) retrievals.get(retrieval.getVersionConstraint());
+          synchronized (rList2) {
+            rList2.add(retrieval);
+          }
         }
-        return false;
+      } else {
+        ArrayList<Retrieval> rList;
+
+        rList = (ArrayList<Retrieval>) previous;
+        synchronized (rList) {
+          rList.add(retrieval);
+        }
+      }
+    }
+    return false;
         /*
         lock.lock();
         try {
@@ -107,30 +105,30 @@ public class RetrievalGroup {
             // FIXME
         }
         */
-    }
-    
-    public void removeRetrieval(Retrieval retrieval) {
-        
-    }
+  }
 
-    public void receivedResponse(MessageGroupRetrievalResponseEntry entry) {
-        for (Object obj : retrievals.values()) {
-            if (obj instanceof Retrieval) {
-                Retrieval   retrieval;
-                
-                retrieval = (Retrieval)obj;
-                retrieval.addResponse(entry);
-            } else {
-                ArrayList<Retrieval>    rList;
-                
-                rList = (ArrayList<Retrieval>)obj;
-                synchronized (rList) {
-                    for (Retrieval retrieval : rList) {
-                        retrieval.addResponse(entry);
-                    }
-                }
-            }
+  public void removeRetrieval(Retrieval retrieval) {
+
+  }
+
+  public void receivedResponse(MessageGroupRetrievalResponseEntry entry) {
+    for (Object obj : retrievals.values()) {
+      if (obj instanceof Retrieval) {
+        Retrieval retrieval;
+
+        retrieval = (Retrieval) obj;
+        retrieval.addResponse(entry);
+      } else {
+        ArrayList<Retrieval> rList;
+
+        rList = (ArrayList<Retrieval>) obj;
+        synchronized (rList) {
+          for (Retrieval retrieval : rList) {
+            retrieval.addResponse(entry);
+          }
         }
+      }
+    }
         /*
         lock.lock();
         try {
@@ -144,7 +142,7 @@ public class RetrievalGroup {
             lock.unlock();
         }
         */
-    }
+  }
     
     /*
     static class VCComparator implements Comparator<VersionConstraint> {

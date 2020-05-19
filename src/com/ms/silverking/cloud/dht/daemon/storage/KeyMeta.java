@@ -10,13 +10,13 @@ import com.ms.silverking.cloud.dht.common.Version;
  * Future will use a disk-based tree.
  */
 class KeyMeta {
-    private NavigableMap<Version, ReadableWritableSegment>  segments;
-    
-    KeyMeta() {
-        segments = new TreeMap<>();
-    }
-    
-    ReadableWritableSegment getSegment(Version version) {
-        return segments.ceilingEntry(version).getValue();
-    }
+  private NavigableMap<Version, ReadableWritableSegment> segments;
+
+  KeyMeta() {
+    segments = new TreeMap<>();
+  }
+
+  ReadableWritableSegment getSegment(Version version) {
+    return segments.ceilingEntry(version).getValue();
+  }
 }

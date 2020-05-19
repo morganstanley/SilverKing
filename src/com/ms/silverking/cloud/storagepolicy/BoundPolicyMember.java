@@ -1,5 +1,4 @@
- package com.ms.silverking.cloud.storagepolicy;
-
+package com.ms.silverking.cloud.storagepolicy;
 
 // Consider deprecating
 public class BoundPolicyMember {/*extends SubPolicyMember {

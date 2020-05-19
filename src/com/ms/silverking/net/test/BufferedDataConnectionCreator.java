@@ -10,16 +10,16 @@ import com.ms.silverking.net.async.SelectorController;
  * ConnectionCreator for BufferedData.
  */
 public class BufferedDataConnectionCreator implements ConnectionCreator<BufferedDataConnection> {
-    private final BufferedDataReceiver    bufferedDataReceiver;
-    
-    public BufferedDataConnectionCreator(BufferedDataReceiver bufferedDataReceiver) {
-        this.bufferedDataReceiver = bufferedDataReceiver;
-    }
-    
-    @Override
-    public BufferedDataConnection createConnection(SocketChannel channel, 
-                                    SelectorController<BufferedDataConnection> selectorController,
-                                    ConnectionListener connectionListener, boolean debug) {
-        return new BufferedDataConnection(channel, selectorController, connectionListener, bufferedDataReceiver);
-    }
+  private final BufferedDataReceiver bufferedDataReceiver;
+
+  public BufferedDataConnectionCreator(BufferedDataReceiver bufferedDataReceiver) {
+    this.bufferedDataReceiver = bufferedDataReceiver;
+  }
+
+  @Override
+  public BufferedDataConnection createConnection(SocketChannel channel,
+      SelectorController<BufferedDataConnection> selectorController, ConnectionListener connectionListener,
+      boolean debug) {
+    return new BufferedDataConnection(channel, selectorController, connectionListener, bufferedDataReceiver);
+  }
 }

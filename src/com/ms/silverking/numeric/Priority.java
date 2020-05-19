@@ -1,66 +1,64 @@
 package com.ms.silverking.numeric;
 
-
 import java.io.Serializable;
 
-
 public class Priority implements Comparable, Serializable {
-    protected int priority;
-    
-    public Priority(int priority) {
-        this.priority = priority;
-    }
-    
-    public Priority(Priority priority) {
-        this.priority = priority.priority;
-    }    
+  protected int priority;
 
-    public boolean lessThan(Priority other) {
-        return priority < other.priority;
-    }    
+  public Priority(int priority) {
+    this.priority = priority;
+  }
 
-    public boolean lessThanEq(Priority other) {
-        return priority <= other.priority;
-    }    
+  public Priority(Priority priority) {
+    this.priority = priority.priority;
+  }
 
-    public boolean greaterThan(Priority other) {
-        return priority > other.priority;
-    }    
+  public boolean lessThan(Priority other) {
+    return priority < other.priority;
+  }
 
-    public boolean greaterThanEq(Priority other) {
-        return priority >= other.priority;
-    }    
-    
-    public int compareTo(Object other) {
-        Priority    otherP;
-        
-        otherP = (Priority)other;
-        if (priority < otherP.priority) {
-            return -1;
-        } else if (priority > otherP.priority) {
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-        
-    public int hashCode() {
-        return priority;
-    }
+  public boolean lessThanEq(Priority other) {
+    return priority <= other.priority;
+  }
 
-    public boolean equals(Object other) {
-        Priority    otherP;
-        
-        otherP = (Priority)other;
-        return priority == otherP.priority;        
+  public boolean greaterThan(Priority other) {
+    return priority > other.priority;
+  }
+
+  public boolean greaterThanEq(Priority other) {
+    return priority >= other.priority;
+  }
+
+  public int compareTo(Object other) {
+    Priority otherP;
+
+    otherP = (Priority) other;
+    if (priority < otherP.priority) {
+      return -1;
+    } else if (priority > otherP.priority) {
+      return 1;
+    } else {
+      return 0;
     }
-    
-    public int toInt() {
-        return priority;
-    }
-    
-    public String toString() {
-        return new Integer(priority).toString();
-    }
+  }
+
+  public int hashCode() {
+    return priority;
+  }
+
+  public boolean equals(Object other) {
+    Priority otherP;
+
+    otherP = (Priority) other;
+    return priority == otherP.priority;
+  }
+
+  public int toInt() {
+    return priority;
+  }
+
+  public String toString() {
+    return new Integer(priority).toString();
+  }
 }
 

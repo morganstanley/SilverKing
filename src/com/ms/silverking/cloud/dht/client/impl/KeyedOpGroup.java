@@ -9,82 +9,82 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
 
 class KeyedOpGroup {
-    private final KeyedOpGroup  parent;
-    private final DHTKey        parentKey;
-    //private final Set<DHTKey>   keys;
-    private AtomicInteger       minIncomplete;
-    private final ConcurrentMap<DHTKey,OpResult>         results;
-    
-    KeyedOpGroup(KeyedOpGroup parent, DHTKey parentKey, Set<DHTKey> keys) {
-        this.parent = parent;
-        this.parentKey = parentKey;
-        //this.keys = keys;
-        minIncomplete = new AtomicInteger(keys.size());
-        results = new ConcurrentHashMap<>(keys.size());
-        for (DHTKey key : keys) {
-            results.put(key, OpResult.INCOMPLETE);
-        }
-    }
-    
-    void update(DHTKey key, OpResult result) {
-        OpResult    oldResult;
-        
-        oldResult = results.put(key, result);
-        if (oldResult == null) {
-            throw new RuntimeException("Unexpected key for update");
-        } else {
-            if (oldResult.supercedes(result)) {
-                // Note - this accounting is a little loose since
-                // while a complete result has been removed, 
-                // it's possible for multiple final results to come in here,
-                // so the minIncomplete counter may be too low.
-                // In such a case, we wind up with an arbitrary one
-                // of the multiple complete results.
-                results.put(key, oldResult);
-            } else {
-                if (result.isComplete()) {
-                    if (minIncomplete.decrementAndGet() <= 0) {
-                        checkForCompletion();
-                    }
-                }
-            }
-        }
-    }
+  private final KeyedOpGroup parent;
+  private final DHTKey parentKey;
+  //private final Set<DHTKey>   keys;
+  private AtomicInteger minIncomplete;
+  private final ConcurrentMap<DHTKey, OpResult> results;
 
-    /*
-     * If this class is to used in the future, this
-     * method must take the NonExistenceResonse into
-     * consideration when calling hasFailed
-     */
-    private void checkForCompletion() {
-        OpResult    groupResult;
-        
-        groupResult = null;
-        for (OpResult result : results.values()) {
-            if (!result.isComplete()) {
-                break;
-            } else {
-                if (groupResult == null) {
-                    groupResult = result;
-                } else {
-                    if (groupResult.hasFailed()) {
-                        if (result.hasFailed()) {
-                            if (groupResult != result) {
-                                groupResult = OpResult.MULTIPLE;
-                            }
-                        } else {
-                            groupResult = OpResult.MULTIPLE;
-                        }
-                    } else {
-                        if (result.hasFailed()) {
-                            groupResult = OpResult.MULTIPLE;
-                        }
-                    }
-                }
-            }
-        }
-        if (groupResult.isComplete()) {
-            parent.update(parentKey, groupResult);
-        }
+  KeyedOpGroup(KeyedOpGroup parent, DHTKey parentKey, Set<DHTKey> keys) {
+    this.parent = parent;
+    this.parentKey = parentKey;
+    //this.keys = keys;
+    minIncomplete = new AtomicInteger(keys.size());
+    results = new ConcurrentHashMap<>(keys.size());
+    for (DHTKey key : keys) {
+      results.put(key, OpResult.INCOMPLETE);
     }
+  }
+
+  void update(DHTKey key, OpResult result) {
+    OpResult oldResult;
+
+    oldResult = results.put(key, result);
+    if (oldResult == null) {
+      throw new RuntimeException("Unexpected key for update");
+    } else {
+      if (oldResult.supercedes(result)) {
+        // Note - this accounting is a little loose since
+        // while a complete result has been removed,
+        // it's possible for multiple final results to come in here,
+        // so the minIncomplete counter may be too low.
+        // In such a case, we wind up with an arbitrary one
+        // of the multiple complete results.
+        results.put(key, oldResult);
+      } else {
+        if (result.isComplete()) {
+          if (minIncomplete.decrementAndGet() <= 0) {
+            checkForCompletion();
+          }
+        }
+      }
+    }
+  }
+
+  /*
+   * If this class is to used in the future, this
+   * method must take the NonExistenceResonse into
+   * consideration when calling hasFailed
+   */
+  private void checkForCompletion() {
+    OpResult groupResult;
+
+    groupResult = null;
+    for (OpResult result : results.values()) {
+      if (!result.isComplete()) {
+        break;
+      } else {
+        if (groupResult == null) {
+          groupResult = result;
+        } else {
+          if (groupResult.hasFailed()) {
+            if (result.hasFailed()) {
+              if (groupResult != result) {
+                groupResult = OpResult.MULTIPLE;
+              }
+            } else {
+              groupResult = OpResult.MULTIPLE;
+            }
+          } else {
+            if (result.hasFailed()) {
+              groupResult = OpResult.MULTIPLE;
+            }
+          }
+        }
+      }
+    }
+    if (groupResult.isComplete()) {
+      parent.update(parentKey, groupResult);
+    }
+  }
 }

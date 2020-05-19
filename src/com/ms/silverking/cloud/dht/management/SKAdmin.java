@@ -11,13 +11,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientZKImpl;
-import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -26,7 +19,8 @@ import com.ms.silverking.cloud.dht.ConsistencyProtocol;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.client.ClientException;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.cloud.dht.daemon.DHTNode;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsClientZKImpl;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
 import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
 import com.ms.silverking.cloud.dht.daemon.RingHealth;
@@ -79,167 +73,182 @@ import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.Arrays;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * <p>Tool responsible for executing most administrative SilverKing commands.
  * E.g. used to stop and start SilverKing instances.</p>
- * 
+ *
  * <p>Shell scripts used to launch this and other administrative commands should
  * contain minimal logic. Any "real work" should be done here (and in the other
  * administrative tools' Java implementations.)</p>
  */
 public class SKAdmin {
-    private final SKGridConfiguration    gc;
-    private final SKAdminOptions        options;
-    private final com.ms.silverking.cloud.dht.meta.MetaClient    dhtMC;
-    private final com.ms.silverking.cloud.meta.MetaClient    cloudMC;
-    private final DHTConfiguration    dhtConfig;
-    private final ClassVarsZK            classVarsZK;
-    private final ClassVars                defaultClassVars;
-    private final SuspectsZK            suspectsZK;
-    private final NamespaceOptions    skfsNSOptions; 
-    private final NamespaceOptions    skfsMutableNSOptions;
-    private final NamespaceOptions    skfsFileBlockNSOptions;
-    private final NamespaceOptions    skfsDirNSOptions;
-    private final String    skGlobalCodebase;
-    private final RingConfiguration        ringConfig;
-    private final InstantiatedRingTree    ringTree;
-    private ExclusionSet            exclusionSet;
-    
-    private static final String    jreSuffix = "/jre";
+  private final SKGridConfiguration gc;
+  private final SKAdminOptions options;
+  private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
+  private final com.ms.silverking.cloud.meta.MetaClient cloudMC;
+  private final DHTConfiguration dhtConfig;
+  private final ClassVarsZK classVarsZK;
+  private final ClassVars defaultClassVars;
+  private final SuspectsZK suspectsZK;
+  private final NamespaceOptions skfsNSOptions;
+  private final NamespaceOptions skfsMutableNSOptions;
+  private final NamespaceOptions skfsFileBlockNSOptions;
+  private final NamespaceOptions skfsDirNSOptions;
+  private final String skGlobalCodebase;
+  private final RingConfiguration ringConfig;
+  private final InstantiatedRingTree ringTree;
+  private ExclusionSet exclusionSet;
+
+  private static final String jreSuffix = "/jre";
+
+  /*
+   * In the future, we should probably parallelize some metadata fetches that can be done in parallel in order
+   * to hide the latency of these operations. For now, we do not do this.
+   */
+  //private enum WorkType {GetHostGroups};
+
+  //private static final String[]    _skfsNamespaces = {"fb.524288.b", "fb.131072.b", "fb.262144.b", "dht.health"};
+  //private static final String[]    _skfsMutableNamespaces = {"dir", "attr"};
+  private static final String[] _skfsNamespaces = {};
+  private static final String[] _skfsMutableNamespaces = { "attr", "dht.health" };
+  private static final String[] _skfsFileBlockNamespaces = { "fb.524288.b", "fb.131072.b", "fb.262144.b" };
+  private static final String[] _skfsDirNamespaces = { "dir" };
+  private static final Set<String> skfsNamespaces = ImmutableSet.copyOf(_skfsNamespaces);
+  private static final Set<String> skfsMutableNamespaces = ImmutableSet.copyOf(_skfsMutableNamespaces);
+  private static final Set<String> skfsFileBlockNamespaces = ImmutableSet.copyOf(_skfsFileBlockNamespaces);
+  private static final Set<String> skfsDirNamespaces = ImmutableSet.copyOf(_skfsDirNamespaces);
+
+  private static final String logFileName = "SKAdmin.out";
+
+  public static boolean exitOnCompletion = true;
+
+  private static final int localCommandErrorCode = 127;
+
+  public SKAdmin(SKGridConfiguration gc, SKAdminOptions options) throws IOException, KeeperException {
+    Pair<RingConfiguration, InstantiatedRingTree> ringConfigAndTree;
+
+    this.gc = gc;
+    this.options = options;
+    dhtMC = new com.ms.silverking.cloud.dht.meta.MetaClient(gc);
+    dhtConfig = dhtMC.getDHTConfiguration();
+    suspectsZK = new SuspectsZK(dhtMC);
+
+    ringConfigAndTree = getRing(dhtConfig, dhtMC);
+    if (ringConfigAndTree == null) {
+      Log.warning("No current ring for this instance");
+      ringConfig = null;
+      ringTree = null;
+      cloudMC = null;
+      exclusionSet = null;
+      throw new RuntimeException("No current ring for this instance");
+    } else {
+      ExclusionSet es1;
+      ExclusionSet es2;
+
+      ringConfig = ringConfigAndTree.getV1();
+      ringTree = ringConfigAndTree.getV2();
+      cloudMC = new com.ms.silverking.cloud.meta.MetaClient(ringConfig.getCloudConfiguration(),
+          dhtMC.getZooKeeper().getZKConfig());
+      es1 = new ExclusionZK(cloudMC).readLatestFromZK();
+      if (options.excludeInstanceExclusions) {
+        es2 = new InstanceExclusionZK(dhtMC).readLatestFromZK();
+      } else {
+        es2 = ExclusionSet.emptyExclusionSet(0);
+      }
+      exclusionSet = ExclusionSet.union(es1, es2);
+    }
+
+    classVarsZK = new ClassVarsZK(dhtMC);
+    if (options.defaultClassVars != null) {
+      defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(
+          classVarsZK.getClassVars(options.defaultClassVars));
+    } else {
+      if (dhtConfig.getDefaultClassVars() != null) {
+        defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(
+            classVarsZK.getClassVars(dhtConfig.getDefaultClassVars()));
+      } else {
+        defaultClassVars = DHTConstants.defaultDefaultClassVars;
+      }
+    }
+    // FUTURE - allow for a real retention interval
+    // FUTURE - eliminate parse
+    String opOptions;
+    String commonNSOptions;
+    String opTimeoutController;
+    String dirNSPutTimeoutController;
+    String dirNSOpOptions;
+    String dirNSValueRetentionPolicy;
+    String fileBlockNSValueRetentionPolicy;
+    String dirNSSSOptions;
+
+    commonNSOptions = "revisionMode=NO_REVISIONS,storageType=FILE,storageFormat=" + options.storageFormat + "," +
+        "consistencyProtocol=" + ConsistencyProtocol.TWO_PHASE_COMMIT;
+    opTimeoutController = "opTimeoutController=" + options.opTimeoutController;
+    dirNSPutTimeoutController = "opTimeoutController=" + options.dirNSPutTimeoutController;
+    opOptions = "defaultPutOptions={compression=" + options.compression + ",checksumType=MURMUR3_32," +
+        "checksumCompressedValues=false,version=0," + opTimeoutController + "}," + "defaultInvalidationOptions={" + opTimeoutController + "}," + "defaultGetOptions={nonExistenceResponse=NULL_VALUE," + opTimeoutController + "}";
+    dirNSOpOptions = "defaultPutOptions={compression=" + options.compression + ",checksumType=MURMUR3_32," +
+        "checksumCompressedValues=false,version=0," + dirNSPutTimeoutController + "}," + "defaultInvalidationOptions" +
+        "={" + opTimeoutController + "}," + "defaultGetOptions={nonExistenceResponse=NULL_VALUE," + opTimeoutController + "}";
+    dirNSSSOptions = ",namespaceServerSideCode={putTrigger=com.ms.silverking.cloud.skfs.dir.serverside" +
+        ".DirectoryServer,retrieveTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer}";
+    //dirNSSSOptions = "";
+
+    dirNSValueRetentionPolicy = "valueRetentionPolicy=<TimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=1," +
+        "timeSpanSeconds=86400}";
+    fileBlockNSValueRetentionPolicy = options.fileBlockNSValueRetentionPolicy != null ?
+        "," + options.fileBlockNSValueRetentionPolicy :
+        "";
+    Log.warningf("fileBlockNSValueRetentionPolicy %s", fileBlockNSValueRetentionPolicy);
+    skfsNSOptions = NamespaceOptions.parse("versionMode=SINGLE_VERSION," + commonNSOptions + "," + opOptions);
+    skfsMutableNSOptions = NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS," + commonNSOptions + "," + opOptions);
+    skfsFileBlockNSOptions = NamespaceOptions.parse(
+        "versionMode=SYSTEM_TIME_NANOS," + commonNSOptions + "," + opOptions + fileBlockNSValueRetentionPolicy);
+    System.out.println(skfsFileBlockNSOptions);
+    skfsDirNSOptions = NamespaceOptions.parse(
+        "versionMode=SYSTEM_TIME_NANOS," + commonNSOptions + "," + dirNSOpOptions + "," + dirNSValueRetentionPolicy + dirNSSSOptions);
+    skGlobalCodebase = PropertiesHelper.envHelper.getString("skGlobalCodebase", UndefinedAction.ZeroOnUndefined);
+
+  }
+
+  private static Pair<RingConfiguration, InstantiatedRingTree> getRing(DHTConfiguration dhtConfig,
+      com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) throws IOException, KeeperException {
+    String ringName;
+    Pair<Long, Long> ringVersion;
+    DHTRingCurTargetZK dhtRingCurTargetZK;
+    Triple<String, Long, Long> curRingNameAndVersion;
+    RingConfiguration ringConfig;
+    RingConfigurationZK ringConfigZK;
+    InstantiatedRingTree ringTree;
+    com.ms.silverking.cloud.toporing.meta.MetaClient ringMC;
+
+    dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtConfig);
+    curRingNameAndVersion = dhtRingCurTargetZK.getCurRingAndVersionPair();
+    if (curRingNameAndVersion == null) {
+      return null;
+    }
+    ringName = curRingNameAndVersion.getHead();
+    ringVersion = curRingNameAndVersion.getTail();
+
+    ringMC = com.ms.silverking.cloud.toporing.meta.MetaClient.createMetaClient(ringName, ringVersion.getV1(),
+        dhtMC.getZooKeeper().getZKConfig());
+    ringConfigZK = new RingConfigurationZK(ringMC);
+    ringConfig = ringConfigZK.readFromZK(ringVersion.getV1(), null);
+
+    //ringTree = SingleRingZK.readTree(ringMC, ringVersion);
+    ringTree = null; // FUTURE - think about whether or not we should keep this, currently unused
+
+    return new Pair<>(ringConfig, ringTree);
+  }
     
     /*
-     * In the future, we should probably parallelize some metadata fetches that can be done in parallel in order
-     * to hide the latency of these operations. For now, we do not do this. 
-     */
-    //private enum WorkType {GetHostGroups};
-    
-    //private static final String[]    _skfsNamespaces = {"fb.524288.b", "fb.131072.b", "fb.262144.b", "dht.health"};
-    //private static final String[]    _skfsMutableNamespaces = {"dir", "attr"};
-    private static final String[]    _skfsNamespaces = {};
-    private static final String[]    _skfsMutableNamespaces = {"attr", "dht.health"};
-    private static final String[]    _skfsFileBlockNamespaces = {"fb.524288.b", "fb.131072.b", "fb.262144.b"};
-    private static final String[]    _skfsDirNamespaces = {"dir"};
-    private static final Set<String>    skfsNamespaces = ImmutableSet.copyOf(_skfsNamespaces);
-    private static final Set<String>    skfsMutableNamespaces = ImmutableSet.copyOf(_skfsMutableNamespaces);
-    private static final Set<String>    skfsFileBlockNamespaces = ImmutableSet.copyOf(_skfsFileBlockNamespaces);
-    private static final Set<String>    skfsDirNamespaces = ImmutableSet.copyOf(_skfsDirNamespaces);
-    
-    private static final String    logFileName = "SKAdmin.out";
-    
-    public static boolean    exitOnCompletion = true;
-    
-    private static final int    localCommandErrorCode = 127;
-    
-    public SKAdmin(SKGridConfiguration gc, SKAdminOptions options) throws IOException, KeeperException {
-        Pair<RingConfiguration,InstantiatedRingTree>    ringConfigAndTree;
-        
-        this.gc = gc;
-        this.options = options;
-        dhtMC = new com.ms.silverking.cloud.dht.meta.MetaClient(gc);
-        dhtConfig = dhtMC.getDHTConfiguration();
-        suspectsZK = new SuspectsZK(dhtMC);
-        
-        ringConfigAndTree = getRing(dhtConfig, dhtMC);        
-        if (ringConfigAndTree == null) {
-            Log.warning("No current ring for this instance");
-            ringConfig = null;
-            ringTree = null;
-            cloudMC = null;
-            exclusionSet = null;
-            throw new RuntimeException("No current ring for this instance");
-        } else {
-            ExclusionSet    es1;
-            ExclusionSet    es2;
-            
-            ringConfig = ringConfigAndTree.getV1();
-            ringTree = ringConfigAndTree.getV2();
-            cloudMC = new com.ms.silverking.cloud.meta.MetaClient(ringConfig.getCloudConfiguration(), dhtMC.getZooKeeper().getZKConfig());
-            es1 = new ExclusionZK(cloudMC).readLatestFromZK();    
-            if (options.excludeInstanceExclusions) {
-                es2 = new InstanceExclusionZK(dhtMC).readLatestFromZK();
-            } else {
-                es2 = ExclusionSet.emptyExclusionSet(0);
-            }
-            exclusionSet = ExclusionSet.union(es1, es2);
-        }
-        
-        
-        classVarsZK = new ClassVarsZK(dhtMC);
-        if (options.defaultClassVars != null) {
-            defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(classVarsZK.getClassVars(options.defaultClassVars));
-        } else {
-            if (dhtConfig.getDefaultClassVars() != null) {
-                defaultClassVars = DHTConstants.defaultDefaultClassVars.overrideWith(classVarsZK.getClassVars(dhtConfig.getDefaultClassVars()));
-            } else {
-                defaultClassVars = DHTConstants.defaultDefaultClassVars;
-            }
-        }
-        // FUTURE - allow for a real retention interval
-        // FUTURE - eliminate parse
-        String    opOptions;
-        String    commonNSOptions;
-        String    opTimeoutController;
-        String    dirNSPutTimeoutController;
-        String    dirNSOpOptions;
-        String    dirNSValueRetentionPolicy;
-        String    fileBlockNSValueRetentionPolicy;
-        String    dirNSSSOptions;
-        
-        commonNSOptions = "revisionMode=NO_REVISIONS,storageType=FILE,storageFormat="+ options.storageFormat +",consistencyProtocol="+ ConsistencyProtocol.TWO_PHASE_COMMIT;
-        opTimeoutController = "opTimeoutController="+ options.opTimeoutController;
-        dirNSPutTimeoutController = "opTimeoutController="+ options.dirNSPutTimeoutController;
-        opOptions = "defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,"+ opTimeoutController +"},"
-                   +"defaultInvalidationOptions={"+ opTimeoutController +"},"
-                   +"defaultGetOptions={nonExistenceResponse=NULL_VALUE,"+ opTimeoutController +"}";
-        dirNSOpOptions = "defaultPutOptions={compression="+ options.compression +",checksumType=MURMUR3_32,checksumCompressedValues=false,version=0,"+ dirNSPutTimeoutController +"},"
-                   +"defaultInvalidationOptions={"+ opTimeoutController +"},"
-                   +"defaultGetOptions={nonExistenceResponse=NULL_VALUE,"+ opTimeoutController +"}";
-        dirNSSSOptions = ",namespaceServerSideCode={putTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer,retrieveTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer}";
-        //dirNSSSOptions = "";
-
-        dirNSValueRetentionPolicy = "valueRetentionPolicy=<TimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=1,timeSpanSeconds=86400}";
-        fileBlockNSValueRetentionPolicy = options.fileBlockNSValueRetentionPolicy != null ? ","+ options.fileBlockNSValueRetentionPolicy : "";
-        Log.warningf("fileBlockNSValueRetentionPolicy %s", fileBlockNSValueRetentionPolicy);
-        skfsNSOptions = NamespaceOptions.parse("versionMode=SINGLE_VERSION,"+ commonNSOptions +","+ opOptions);
-        skfsMutableNSOptions =                   NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions);
-        skfsFileBlockNSOptions =                 NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ opOptions + fileBlockNSValueRetentionPolicy);
-        System.out.println(skfsFileBlockNSOptions);
-        skfsDirNSOptions =                         NamespaceOptions.parse("versionMode=SYSTEM_TIME_NANOS,"+ commonNSOptions +","+ dirNSOpOptions +","+ dirNSValueRetentionPolicy + dirNSSSOptions);
-        skGlobalCodebase = PropertiesHelper.envHelper.getString("skGlobalCodebase", UndefinedAction.ZeroOnUndefined);
-        
-    }
-    
-    private static Pair<RingConfiguration,InstantiatedRingTree> getRing(DHTConfiguration dhtConfig, com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) throws IOException, KeeperException {
-        String ringName; 
-        Pair<Long,Long>    ringVersion;
-        DHTRingCurTargetZK    dhtRingCurTargetZK;
-        Triple<String,Long,Long>    curRingNameAndVersion;
-        RingConfiguration    ringConfig;
-        RingConfigurationZK    ringConfigZK;
-        InstantiatedRingTree    ringTree;
-        com.ms.silverking.cloud.toporing.meta.MetaClient    ringMC;
-        
-        dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtConfig);
-        curRingNameAndVersion = dhtRingCurTargetZK.getCurRingAndVersionPair();
-        if (curRingNameAndVersion == null) {
-            return null;
-        }
-        ringName = curRingNameAndVersion.getHead();
-        ringVersion = curRingNameAndVersion.getTail();
-
-        ringMC = com.ms.silverking.cloud.toporing.meta.MetaClient.createMetaClient(ringName, ringVersion.getV1(), dhtMC.getZooKeeper().getZKConfig()); 
-        ringConfigZK = new RingConfigurationZK(ringMC);
-        ringConfig = ringConfigZK.readFromZK(ringVersion.getV1(), null);
-        
-        //ringTree = SingleRingZK.readTree(ringMC, ringVersion);
-        ringTree = null; // FUTURE - think about whether or not we should keep this, currently unused
-        
-        return new Pair<>(ringConfig, ringTree);
-    }
-    
-    /*
-    private static Map<String,HostGroupTable> getHostGroupTables(Set<String> hostGroupNames, ZooKeeperConfig zkConfig) throws KeeperException, IOException {
+    private static Map<String,HostGroupTable> getHostGroupTables(Set<String> hostGroupNames, ZooKeeperConfig
+    zkConfig) throws KeeperException, IOException {
         Map<String,HostGroupTable>    hostGroupTables;
         
         hostGroupTables = new HashMap<>();
@@ -249,297 +258,298 @@ public class SKAdmin {
         return hostGroupTables;
     }
     */
-    
-    private static HostGroupTable getHostGroupTable(String hostGroupTableName, ZooKeeperConfig zkConfig) throws KeeperException, IOException {
-        HostGroupTableZK    hostGroupTableZK;
-        com.ms.silverking.cloud.meta.MetaClient    cloudMC;
-        
-        cloudMC = new com.ms.silverking.cloud.meta.MetaClient(CloudConfiguration.emptyTemplate.hostGroupTableName(hostGroupTableName), zkConfig);
-        hostGroupTableZK = new HostGroupTableZK(cloudMC);        
-        return hostGroupTableZK.readFromZK(-1, null);
+
+  private static HostGroupTable getHostGroupTable(String hostGroupTableName, ZooKeeperConfig zkConfig)
+      throws KeeperException, IOException {
+    HostGroupTableZK hostGroupTableZK;
+    com.ms.silverking.cloud.meta.MetaClient cloudMC;
+
+    cloudMC = new com.ms.silverking.cloud.meta.MetaClient(
+        CloudConfiguration.emptyTemplate.hostGroupTableName(hostGroupTableName), zkConfig);
+    hostGroupTableZK = new HostGroupTableZK(cloudMC);
+    return hostGroupTableZK.readFromZK(-1, null);
+  }
+
+  private Set<String> findValidPassiveServers(Set<String> passiveNodeHostGroupNames, HostGroupTable hostGroupTable) {
+    ImmutableSet.Builder<String> validServers;
+
+    validServers = ImmutableSet.builder();
+    for (String hostGroupName : passiveNodeHostGroupNames) {
+      validServers.addAll(hostGroupTable.getHostAddresses(hostGroupName));
     }
-    
-    private Set<String> findValidPassiveServers(Set<String> passiveNodeHostGroupNames, HostGroupTable hostGroupTable) {
-        ImmutableSet.Builder<String>    validServers;
-        
-        validServers = ImmutableSet.builder();
-        for (String hostGroupName : passiveNodeHostGroupNames) {
-            validServers.addAll(hostGroupTable.getHostAddresses(hostGroupName));
+    return validServers.build();
+  }
+
+  /**
+   * Find all servers that are in the specified host groups, have class vars, and are in the ring
+   *
+   * @param hostGroupNames
+   * @param hostGroupTable
+   * @param ringTree
+   * @return
+   * @throws KeeperException
+   */
+  private Set<String> findValidActiveServers(Set<String> hostGroupNames, HostGroupTable hostGroupTable,
+      InstantiatedRingTree ringTree) throws KeeperException {
+    ImmutableSet.Builder<String> validServers;
+    Set<String> candidateServers;
+
+    candidateServers = new HashSet<>();
+    for (String hostGroupName : hostGroupNames) {
+      candidateServers.addAll(hostGroupTable.getHostAddresses(hostGroupName));
+    }
+
+    // FIXME - think about below
+    // do we want to run on all servers or not?
+    //candidateServers.retainAll(getAllServersInTree(ringTree));
+    validServers = ImmutableSet.builder();
+    validServers.addAll(candidateServers);
+    return validServers.build();
+  }
+
+  private String findArbitraryActiveServer(Set<String> hostGroupNames, HostGroupTable hostGroupTable) {
+    if (hostGroupNames.isEmpty()) {
+      throw new RuntimeException("hostGroupNames is empty");
+    } else {
+      for (String hostGroupName : hostGroupNames) {
+        Set<String> servers;
+
+        servers = hostGroupTable.getHostAddresses(hostGroupName);
+        if (!servers.isEmpty()) {
+          return servers.iterator().next();
         }
-        return validServers.build();
+      }
+      throw new RuntimeException("All HostGroups are empty");
+    }
+  }
+
+  public Set<String> getAllServersInTree(InstantiatedRingTree ringTree) {
+    Set<Node> nodes;
+    ImmutableSet.Builder<String> servers;
+
+    nodes = ringTree.getMemberNodes(OwnerQueryMode.All, NodeClass.server);
+    servers = ImmutableSet.builder();
+    for (Node node : nodes) {
+      servers.add(node.getIDString());
+    }
+    return servers.build();
+  }
+
+  private String getJavaCmdStart(SKAdminOptions options, ClassVars classVars, boolean escaped) {
+    return options.javaBinary + " -cp " + options.classPath + " " + options.assertionOption + " " + getHeapDumpOptions(
+        classVars) + " " + getProfilingOptions(options) + " " + getJVMMemoryOptions(classVars) + " " + getDHTOptions(
+        options, classVars) + " " + getExtraOptions(options, classVars, escaped) + " " + getRawJVMOptions(options,
+        classVars);
+  }
+
+  private String getHeapDumpOptions(ClassVars classVars) {
+    return "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=" + getHeapDumpFile(classVars);
+  }
+
+  private String getHeapDumpFile(ClassVars classVars) {
+    return DHTConstants.getSKInstanceLogDir(classVars, gc) + "/" + DHTConstants.heapDumpFile;
+  }
+
+  private String getRawJVMOptions(SKAdminOptions options, ClassVars classVars) {
+    String rawJVMOptions;
+
+    rawJVMOptions = classVars.getVarMap().get(DHTConstants.rawOptionsVar);
+    if (rawJVMOptions == null) {
+      rawJVMOptions = "";
+    } else {
+      rawJVMOptions += " ";
+    }
+    rawJVMOptions += options.rawJVMOptions;
+    return rawJVMOptions;
+  }
+
+  private String getProfilingOptions(SKAdminOptions options) {
+    return options.profilingOptions;
+  }
+
+  private String getJVMMemoryOptions(ClassVars classVars) {
+    Pair<String, String> heapLimits;
+
+    heapLimits = getHeapLimits(classVars);
+    return "-Xms" + heapLimits.getV1() + " -Xmx" + heapLimits.getV2();
+  }
+
+  private String getFileSegmentCacheCapacity(ClassVars classVars) {
+    return classVars.getVarMap().get(DHTConstants.fileSegmentCacheCapacityVar);
+  }
+
+  private String getRetrievalImplementation(ClassVars classVars) {
+    return classVars.getVarMap().get(DHTConstants.retrievalImplementationVar);
+  }
+
+  private String getSegmentIndexLocation(ClassVars classVars) {
+    return classVars.getVarMap().get(DHTConstants.segmentIndexLocationVar);
+  }
+
+  private String getNSPrereadGB(ClassVars classVars) {
+    return classVars.getVarMap().get(DHTConstants.nsPrereadGBVar);
+  }
+
+  private String getDHTOptions(SKAdminOptions options, ClassVars classVars) {
+    return getSystemPropertyFormatted("com.ms.silverking.Log", options.logLevel) + getSystemPropertyFormatted(
+        DHTConstants.dataBasePathProperty, getDataDir(classVars)) + getSystemPropertyFormatted(
+        DHTConstants.fileSegmentCacheCapacityProperty,
+        getFileSegmentCacheCapacity(classVars)) + getSystemPropertyFormatted(
+        DHTConstants.retrievalImplementationProperty,
+        getRetrievalImplementation(classVars)) + getSystemPropertyFormatted(DHTConstants.segmentIndexLocationProperty,
+        getSegmentIndexLocation(classVars)) + getSystemPropertyFormatted(DHTConstants.nsPrereadGBProperty,
+        getNSPrereadGB(classVars));
+  }
+
+  public static final String javaSystemPropertyFlag = "-D";
+
+  public static String getSystemPropertyFormatted(String key, String value) {
+    return getSystemPropertyFormatted(key, value, false);
+  }
+
+  private static final String escapeStr = "\\\"";
+
+  public static String getSystemPropertyFormatted(String key, String value, boolean escaped) {
+    String property = " " + javaSystemPropertyFlag + key + "=";
+    if (escaped) {
+      property += escapeStr + value + escapeStr;
+    } else {
+      property += value;
     }
 
-    /**
-     * Find all servers that are in the specified host groups, have class vars, and are in the ring
-     * @param hostGroupNames
-     * @param hostGroupTable
-     * @param ringTree
-     * @return
-     * @throws KeeperException 
-     */
-    private Set<String> findValidActiveServers(Set<String> hostGroupNames, HostGroupTable hostGroupTable, 
-                                               InstantiatedRingTree ringTree) throws KeeperException {
-        ImmutableSet.Builder<String>    validServers;
-        Set<String>    candidateServers;
-        
-        candidateServers = new HashSet<>();
-        for (String hostGroupName : hostGroupNames) {
-            candidateServers.addAll(hostGroupTable.getHostAddresses(hostGroupName));
-        }
-        
-        // FIXME - think about below
-        // do we want to run on all servers or not?
-        //candidateServers.retainAll(getAllServersInTree(ringTree));
-        validServers = ImmutableSet.builder();
-        validServers.addAll(candidateServers);
-        return validServers.build();
-    }
-    
-    private String findArbitraryActiveServer(Set<String> hostGroupNames, HostGroupTable hostGroupTable) {
-        if (hostGroupNames.isEmpty()) {
-            throw new RuntimeException("hostGroupNames is empty");
-        } else {
-            for (String hostGroupName : hostGroupNames) {
-                Set<String>    servers;
-                
-                servers = hostGroupTable.getHostAddresses(hostGroupName);
-                if (!servers.isEmpty()) {
-                    return servers.iterator().next();
-                }
-            }
-            throw new RuntimeException("All HostGroups are empty");
-        }
-    }
-    
-    public Set<String> getAllServersInTree(InstantiatedRingTree ringTree) {
-        Set<Node>    nodes;
-        ImmutableSet.Builder<String>    servers;
+    return property;
+  }
 
-        nodes = ringTree.getMemberNodes(OwnerQueryMode.All, NodeClass.server);
-        servers = ImmutableSet.builder();
-        for (Node node : nodes) {
-            servers.add(node.getIDString());
-        }
-        return servers.build();
-    }
-    
-    private String getJavaCmdStart(SKAdminOptions options, ClassVars classVars, boolean escaped) {        
-        return options.javaBinary +" -cp "+ options.classPath
-                +" "+ options.assertionOption 
-                +" "+ getHeapDumpOptions(classVars)
-                +" "+ getProfilingOptions(options)
-                +" "+ getJVMMemoryOptions(classVars)
-                +" "+ getDHTOptions(options, classVars)
-                +" "+ getExtraOptions(options, classVars, escaped)
-                +" "+ getRawJVMOptions(options, classVars);
-    }
-    
-    private String getHeapDumpOptions(ClassVars classVars) {
-        return "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="
-                +getHeapDumpFile(classVars);
-    }
-    
-    private String getHeapDumpFile(ClassVars classVars) {
-        return DHTConstants.getSKInstanceLogDir(classVars, gc) +"/"+ DHTConstants.heapDumpFile;
+  private String getExtraOptions(SKAdminOptions options, ClassVars classVars, boolean escaped) {
+    String s;
+
+    // FUTURE - change to generic mechanism to pipe through properties
+    s = "";
+    if (options.aclImplSkStrDef != null) {
+      s += getSystemPropertyFormatted(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef, escaped);
     }
 
-    private String getRawJVMOptions(SKAdminOptions options, ClassVars classVars) {
-        String  rawJVMOptions;
-        
-        rawJVMOptions = classVars.getVarMap().get(DHTConstants.rawOptionsVar);
-        if (rawJVMOptions == null) {
-            rawJVMOptions = "";
-        } else {
-            rawJVMOptions += " ";
-        }
-        rawJVMOptions += options.rawJVMOptions;
-        return rawJVMOptions;
+    if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
+      s += getSystemPropertyFormatted(DirectoryServer.modeProperty,
+          classVars.getVarMap().get(DirectoryServer.modeProperty));
     }
-    
-    private String getProfilingOptions(SKAdminOptions options) {
-        return options.profilingOptions;
-    }
-    
-    private String getJVMMemoryOptions(ClassVars classVars) {
-        Pair<String,String>    heapLimits;
-        
-        heapLimits = getHeapLimits(classVars);
-        return "-Xms"+ heapLimits.getV1() +" -Xmx"+ heapLimits.getV2();
-    }
-    
-    private String getFileSegmentCacheCapacity(ClassVars classVars) {
-        return classVars.getVarMap().get(DHTConstants.fileSegmentCacheCapacityVar);
-    }
-    
-    private String getRetrievalImplementation(ClassVars classVars) {
-        return classVars.getVarMap().get(DHTConstants.retrievalImplementationVar);
-    }
-    
-    private String getSegmentIndexLocation(ClassVars classVars) {
-        return classVars.getVarMap().get(DHTConstants.segmentIndexLocationVar);
-    }
-    
-    private String getNSPrereadGB(ClassVars classVars) {
-        return classVars.getVarMap().get(DHTConstants.nsPrereadGBVar);
-    }
-    
-    private String getDHTOptions(SKAdminOptions options, ClassVars classVars) {
-        return getSystemPropertyFormatted("com.ms.silverking.Log", options.logLevel)
-                + getSystemPropertyFormatted(DHTConstants.dataBasePathProperty,             getDataDir(classVars))
-                + getSystemPropertyFormatted(DHTConstants.fileSegmentCacheCapacityProperty, getFileSegmentCacheCapacity(classVars))
-                + getSystemPropertyFormatted(DHTConstants.retrievalImplementationProperty,  getRetrievalImplementation(classVars))
-                + getSystemPropertyFormatted(DHTConstants.segmentIndexLocationProperty,     getSegmentIndexLocation(classVars))
-                + getSystemPropertyFormatted(DHTConstants.nsPrereadGBProperty,              getNSPrereadGB(classVars))
-                ;
-    }
-    
-    public static final String javaSystemPropertyFlag = "-D";
-    public static String getSystemPropertyFormatted(String key, String value) {
-        return getSystemPropertyFormatted(key, value, false);
-    }
-    private static final String escapeStr = "\\\"";
-    public static String getSystemPropertyFormatted(String key, String value, boolean escaped) {
-        String property = " " + javaSystemPropertyFlag + key + "=";
-        if (escaped) {
-            property += escapeStr + value + escapeStr;
-        } else {
-            property += value;
-        }
-        
-        return property;
-    }
-    
-    private String getExtraOptions(SKAdminOptions options, ClassVars classVars, boolean escaped) {
-        String    s;
-        
-        // FUTURE - change to generic mechanism to pipe through properties
-        s = "";
-        if (options.aclImplSkStrDef != null) {
-            s += getSystemPropertyFormatted(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef, escaped);
-        }
-
-        if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
-            s += getSystemPropertyFormatted(DirectoryServer.modeProperty, classVars.getVarMap().get(DirectoryServer.modeProperty));
-        }
-        if (classVars.getVarMap().containsKey(BaseDirectoryInMemorySS.compressionProperty)) {
-            s += getSystemPropertyFormatted(BaseDirectoryInMemorySS.compressionProperty, classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty));
-        }
-        
-        if (options.authImplSkStrDef != null) {
-            s += getSystemPropertyFormatted(Authenticator.authImplProperty, options.authImplSkStrDef, escaped);
-        }
-        
-        s += " " + options.startNodeExtraJVMOptions;
-
-        return s;
-    }
-    
-    private String createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
-        String    cmdFile;
-        
-        cmdFile = "/tmp/cmd."+ System.currentTimeMillis();
-        return "echo \""+ _createStartCommand(dhtConfig, classVars, options) +"\" > "+ cmdFile +"; chmod +x "+ cmdFile +"; nohup "+cmdFile +" 1> /dev/null 2>&1 < /dev/null &";
-    }
-    
-    // FUTURE - make os specific commands generic
-    private String _createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
-        String    daemonLogDir;
-        String    daemonLogFile;
-        String    prevDaemonLogFile;
-        boolean    destructive;
-        ReapPolicy    reapPolicy;
-        
-        destructive = options.destructive;
-        daemonLogDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
-        daemonLogFile = daemonLogDir +"/"+ DHTConstants.daemonLogFile;
-        prevDaemonLogFile = daemonLogDir +"/"+ DHTConstants.prevDaemonLogFile;
-        reapPolicy = options.getReapPolicy();
-        return  (destructive ? "" : "netstat -tulpn | grep tcp.*:"+ dhtConfig.getPort() +" ; ") +
-                (destructive ? "" : "if [ \\$? -ne 0 ]; then { ") +
-                (destructive ? createStopCommand(dhtConfig, classVars) +"; " : "")
-                +"mkdir -p "+ daemonLogDir +"; "
-                +"rm "+ getHeapDumpFile(classVars) +"; "
-                +"mv "+ daemonLogFile +" "+ prevDaemonLogFile +"; "
-                + getPreJavaCommand(classVars) +" "
-                + getNodeEnv(classVars)
-                + getTaskset(options)
-                + _generateNodeStartCommand(classVars, options, reapPolicy, true)
-                +( destructive ? (" 1>"+ daemonLogFile +" 2>&1 &") : (" 1>"+ daemonLogFile +"; 2>&1; } & fi") )
-                ;
+    if (classVars.getVarMap().containsKey(BaseDirectoryInMemorySS.compressionProperty)) {
+      s += getSystemPropertyFormatted(BaseDirectoryInMemorySS.compressionProperty,
+          classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty));
     }
 
-    private boolean generateSingleNodeStartCommand(SKAdminOptions options) throws IOException, KeeperException {
-        ClassVars serverClassVars;
-        String thisServer;
-
-        Set<String>           activeHostGroupNames;
-        Map<String,ClassVars> hostGroupToClassVars;
-        HostGroupTable        hostGroupTable;
-        String                hostGroupTableName;
-        Set<String>           passiveNodeHostGroupNames;
-        Set<String>           targetServers;
-        String                generatedCmd;
-        ReapPolicy            reapPolicy;
-
-        targetServers = CollectionUtil.parseSet(options.targets, ",");
-
-        if (targetServers.size() > 1) {
-            throw new IllegalArgumentException("generation of single node start command should only be passed a single target, got " + targetServers.toString());
-        } else if (targetServers.isEmpty()) {
-            throw new IllegalArgumentException("target server for start command generation must be provided via -t");
-        }
-
-        thisServer = targetServers.iterator().next();
-        Log.warning("Generating start command for target " + thisServer);
-
-        activeHostGroupNames = dhtConfig.getHostGroups();
-        Log.warning("hostGroupNames: ", CollectionUtil.toString(activeHostGroupNames));
-        hostGroupToClassVars = getHostGroupToClassVarsMap(dhtConfig);
-        Log.warning("hostGroupToClassVars: ", CollectionUtil.mapToString(hostGroupToClassVars));
-        Log.warning("ringConfig: ", ringConfig);
-        hostGroupTableName = ringConfig.getCloudConfiguration().getHostGroupTableName();
-        Log.warning("hostGroupTableName: ", hostGroupTableName);
-        hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
-        Log.warning("HostGroupTable: " + hostGroupTable.toString());
-
-        passiveNodeHostGroupNames = dhtConfig.getPassiveNodeHostGroupsAsSet();
-        Log.warning("passiveNodeHostGroupNames: ", CollectionUtil.toString(passiveNodeHostGroupNames));
-
-        serverClassVars = getServerClassVars(thisServer, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames, hostGroupToClassVars);
-
-        reapPolicy = options.getReapPolicy();
-        generatedCmd = _generateNodeStartCommand(serverClassVars, options, reapPolicy, false);
-        Log.warning("Command generated for target " + thisServer);
-
-        System.out.println(generatedCmd);
-        return true;
+    if (options.authImplSkStrDef != null) {
+      s += getSystemPropertyFormatted(Authenticator.authImplProperty, options.authImplSkStrDef, escaped);
     }
 
-    private String _generateNodeStartCommand(ClassVars classVars, SKAdminOptions options, ReapPolicy reapPolicy, boolean escaped){
-        String reapPolicyOptions;
+    s += " " + options.startNodeExtraJVMOptions;
 
-        if (escaped) {
-            reapPolicyOptions = "-reapPolicy "+ escapeStr + ObjectDefParser2.toClassAndDefString(reapPolicy) + escapeStr;
-        } else {
-            // non-escaped path is for generation of commands to run through e.g. zapp
-            reapPolicyOptions = "-reapPolicy " + ObjectDefParser2.toClassAndDefString(reapPolicy);
-        }
+    return s;
+  }
 
-        return getJavaCmdStart(options, classVars, escaped)
-                +" " + options.mainClass
-                +" " + options.extraMainClassArgs
-                +" " + reapPolicyOptions
-                +" -n "+ gc.getClientDHTConfiguration().getName()
-                +" -z "+ gc.getClientDHTConfiguration().getZKConfig()
-                +" -into "+ options.inactiveNodeTimeoutSeconds
-                ;
+  private String createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
+    String cmdFile;
+
+    cmdFile = "/tmp/cmd." + System.currentTimeMillis();
+    return "echo \"" + _createStartCommand(dhtConfig, classVars,
+        options) + "\" > " + cmdFile + "; chmod +x " + cmdFile + "; nohup " + cmdFile + " 1> /dev/null 2>&1 < " +
+        "/dev/null &";
+  }
+
+  // FUTURE - make os specific commands generic
+  private String _createStartCommand(DHTConfiguration dhtConfig, ClassVars classVars, SKAdminOptions options) {
+    String daemonLogDir;
+    String daemonLogFile;
+    String prevDaemonLogFile;
+    boolean destructive;
+    ReapPolicy reapPolicy;
+
+    destructive = options.destructive;
+    daemonLogDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
+    daemonLogFile = daemonLogDir + "/" + DHTConstants.daemonLogFile;
+    prevDaemonLogFile = daemonLogDir + "/" + DHTConstants.prevDaemonLogFile;
+    reapPolicy = options.getReapPolicy();
+    return (destructive ? "" : "netstat -tulpn | grep tcp.*:" + dhtConfig.getPort() + " ; ") + (destructive ?
+        "" :
+        "if [ \\$? -ne 0 ]; then { ") + (destructive ?
+        createStopCommand(dhtConfig, classVars) + "; " :
+        "") + "mkdir -p " + daemonLogDir + "; " + "rm " + getHeapDumpFile(
+        classVars) + "; " + "mv " + daemonLogFile + " " + prevDaemonLogFile + "; " + getPreJavaCommand(
+        classVars) + " " + getNodeEnv(classVars) + getTaskset(options) + _generateNodeStartCommand(classVars, options,
+        reapPolicy, true) + (destructive ?
+        (" 1>" + daemonLogFile + " 2>&1 &") :
+        (" 1>" + daemonLogFile + "; 2>&1; } & fi"));
+  }
+
+  private boolean generateSingleNodeStartCommand(SKAdminOptions options) throws IOException, KeeperException {
+    ClassVars serverClassVars;
+    String thisServer;
+
+    Set<String> activeHostGroupNames;
+    Map<String, ClassVars> hostGroupToClassVars;
+    HostGroupTable hostGroupTable;
+    String hostGroupTableName;
+    Set<String> passiveNodeHostGroupNames;
+    Set<String> targetServers;
+    String generatedCmd;
+    ReapPolicy reapPolicy;
+
+    targetServers = CollectionUtil.parseSet(options.targets, ",");
+
+    if (targetServers.size() > 1) {
+      throw new IllegalArgumentException(
+          "generation of single node start command should only be passed a single target, got " + targetServers.toString());
+    } else if (targetServers.isEmpty()) {
+      throw new IllegalArgumentException("target server for start command generation must be provided via -t");
     }
-    
-    private String getTaskset(SKAdminOptions options) {
-        if (options.pinToNICLocalCPUs != null) {
-            String    nic;
-            
-            nic = options.pinToNICLocalCPUs;
+
+    thisServer = targetServers.iterator().next();
+    Log.warning("Generating start command for target " + thisServer);
+
+    activeHostGroupNames = dhtConfig.getHostGroups();
+    Log.warning("hostGroupNames: ", CollectionUtil.toString(activeHostGroupNames));
+    hostGroupToClassVars = getHostGroupToClassVarsMap(dhtConfig);
+    Log.warning("hostGroupToClassVars: ", CollectionUtil.mapToString(hostGroupToClassVars));
+    Log.warning("ringConfig: ", ringConfig);
+    hostGroupTableName = ringConfig.getCloudConfiguration().getHostGroupTableName();
+    Log.warning("hostGroupTableName: ", hostGroupTableName);
+    hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
+    Log.warning("HostGroupTable: " + hostGroupTable.toString());
+
+    passiveNodeHostGroupNames = dhtConfig.getPassiveNodeHostGroupsAsSet();
+    Log.warning("passiveNodeHostGroupNames: ", CollectionUtil.toString(passiveNodeHostGroupNames));
+
+    serverClassVars = getServerClassVars(thisServer, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames,
+        hostGroupToClassVars);
+
+    reapPolicy = options.getReapPolicy();
+    generatedCmd = _generateNodeStartCommand(serverClassVars, options, reapPolicy, false);
+    Log.warning("Command generated for target " + thisServer);
+
+    System.out.println(generatedCmd);
+    return true;
+  }
+
+  private String _generateNodeStartCommand(ClassVars classVars, SKAdminOptions options, ReapPolicy reapPolicy,
+      boolean escaped) {
+    String reapPolicyOptions;
+
+    if (escaped) {
+      reapPolicyOptions = "-reapPolicy " + escapeStr + ObjectDefParser2.toClassAndDefString(reapPolicy) + escapeStr;
+    } else {
+      // non-escaped path is for generation of commands to run through e.g. zapp
+      reapPolicyOptions = "-reapPolicy " + ObjectDefParser2.toClassAndDefString(reapPolicy);
+    }
+
+    return getJavaCmdStart(options, classVars,
+        escaped) + " " + options.mainClass + " " + options.extraMainClassArgs + " " + reapPolicyOptions + " -n " + gc.getClientDHTConfiguration().getName() + " -z " + gc.getClientDHTConfiguration().getZKConfig() + " -into " + options.inactiveNodeTimeoutSeconds;
+  }
+
+  private String getTaskset(SKAdminOptions options) {
+    if (options.pinToNICLocalCPUs != null) {
+      String nic;
+
+      nic = options.pinToNICLocalCPUs;
             /*
             try {
                 return ProcessUtil.getPinCPUCommandFromCPUList(NICUtil.getLocalCPUList(options.pinToNICLocalCPUs)) +" ";
@@ -547,953 +557,982 @@ public class SKAdmin {
                 Log.logErrorWarning(ioe, "Unable to pin CPUs. Ignoring pin.");
             }
             */
-            return "taskset -c `cat /sys/class/net/"+ nic +"/device/local_cpulist` ";
-            //return "export cpuList=`cat /sys/class/net/"+ nic +"/device/local_cpulist`; "
-            //        +"taskset -c $cpuList ";
-        }
-        return "";
+      return "taskset -c `cat /sys/class/net/" + nic + "/device/local_cpulist` ";
+      //return "export cpuList=`cat /sys/class/net/"+ nic +"/device/local_cpulist`; "
+      //        +"taskset -c $cpuList ";
     }
+    return "";
+  }
 
-    private String getNodeEnv(ClassVars classVars) {
-        String    ipAliasMapFile;
-        
-        ipAliasMapFile = classVars.getVarMap().get(DHTConstants.ipAliasMapFileVar);
-        if (ipAliasMapFile != null && ipAliasMapFile.trim().length() > 0) {
-            return "export "+ DHTConstants.ipAliasMapFileEnvVar +"="+ ipAliasMapFile.trim() +"; ";
-        } else {
-            return "";
-        }
-    }
+  private String getNodeEnv(ClassVars classVars) {
+    String ipAliasMapFile;
 
-    private String createStopCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
-        return classVars.getVarMap().get(DHTConstants.killCommandVar) +" "+ gc.getClientDHTConfiguration().getName();
+    ipAliasMapFile = classVars.getVarMap().get(DHTConstants.ipAliasMapFileVar);
+    if (ipAliasMapFile != null && ipAliasMapFile.trim().length() > 0) {
+      return "export " + DHTConstants.ipAliasMapFileEnvVar + "=" + ipAliasMapFile.trim() + "; ";
+    } else {
+      return "";
     }
-    
-    private String createCheckSKFSCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
-        String    logDir;
-        String    logFile;
-        
-        logDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
-        logFile = logDir +"/"+ DHTConstants.checkSKFSLogFile;        
-        return  "mkdir -p "+ logDir +"; "
-                +getCheckSKFSBaseCommand(classVars, "CheckSKFS")
-                +" -C "+ options.compression
-                +" -l "+ options.logLevel
-                +(options.coreLimit == null ? "" : " -L "+ options.coreLimit)
-                +(options.checkSKFSOptions == null ? "" : " "+ translateOptionEncoding(options.checkSKFSOptions))
-                //+" -n "+ options.fsNativeOnlyFile
-                +" 1>"+ logFile +" 2>&1 &";
-    }
-    
-    private String translateOptionEncoding(String o) {
-        return o.replace('~', '-').replace('_', ' ').replace('#', '"');
-    }
+  }
 
-    private String createStopSKFSCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
-        String    logDir;
-        String    logFile;
-        
-        logDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
-        logFile = logDir +"/"+ DHTConstants.stopSKFSLogFile;        
-        return "mkdir -p "+ logDir +"; "
-                +getCheckSKFSBaseCommand(classVars, "StopSKFS")
-                +" 1>"+ logFile +" 2>&1 &";
-    }
-    
-    private String createClearDataCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
-        StringBuffer    sBuf;
-        String[]        dirs;
-        
-        sBuf = new StringBuffer();
-        dirs = getDataDir(classVars).split(DHTConstants.dataBasePathDelimiter);
-        for (String dir : dirs) {
-            sBuf.append(classVars.getVarMap().get(DHTConstants.clearDataCommandVar) +" "+ dir +";");
-        }
-        return sBuf.toString();
-    }
-    
-    private String getPreJavaCommand(ClassVars classVars) {
-        return classVars.getVarMap().get(DHTConstants.skDaemonJavaCommandHeaderVar);
-    }
-    
-    private Pair<String,String> getHeapLimits(ClassVars classVars) {
-        String    initialHeapSize;
-        String    maxHeapSize;
-        
-        initialHeapSize = checkForLegacyHeapDef(classVars.getVarMap().get(DHTConstants.initialHeapSizeVar));
-        maxHeapSize = checkForLegacyHeapDef(classVars.getVarMap().get(DHTConstants.maxHeapSizeVar));
-        return new Pair<>(initialHeapSize, maxHeapSize);
-    }
-    
-    /*
-     * Previous heap definitions allowed unit-less quantities to be treated as MB. 
-     * Do that here for smaller unit-less quantities
-     */
-    private String checkForLegacyHeapDef(String def) {
-        def = def.trim();
-        if (Character.isDigit(def.charAt(def.length() - 1))) {
-            Long    val;
-            
-            val = Long.parseLong(def);
-            if (val < 1024 * 1024) {
-                def = def +"M";
-            }
-        }
-        return def;
-    }
-    
-    private String getDataDir(ClassVars classVars) {
-        return classVars.getVarMap().get(DHTConstants.dataBaseVar)
-                    +"/"+ gc.getClientDHTConfiguration().getName();
-    }
-    
-    private String getCheckSKFSBaseCommand(ClassVars classVars, String command) {
-        return (skGlobalCodebase == null ? "" : "export skGlobalCodebase="+ skGlobalCodebase +"; ")
-                +"export "+ GridConfiguration.defaultBaseEnvVar +"="+ 
-                    (options.gridConfigBase == null ? GridConfiguration.getDefaultBase() : new File(options.gridConfigBase).getAbsolutePath()) +"; " 
-                +"export "+ DHTConstants.jaceHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.jaceHomeEnv, UndefinedAction.ExceptionOnUndefined) +"; "
-                +"export "+ DHTConstants.javaHomeEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.javaHomeEnv, getSystemJavaHome()) +"; "
-                +"export "+ DHTConstants.classpathEnv +"="+ PropertiesHelper.envHelper.getString(DHTConstants.classpathEnv, System.getProperty(DHTConstants.classpathProperty)) +"; "
-                +getTaskset(options)
-                +classVars.getVarMap().get(DHTConstants.checkSKFSCommandVar)
-                    +" -g "+ gc.getName() +" -z "+ gc.getClientDHTConfiguration().getZKConfig()
-                    +" -c "+ command +" -f "+ options.forceSKFSDirectoryCreation
-                    + skfsTimeoutOption("skfsEntryTimeoutSecs", options.skfsEntryTimeoutSecs)
-                    + skfsTimeoutOption("skfsAttrTimeoutSecs", options.skfsAttrTimeoutSecs)
-                    + skfsTimeoutOption("skfsNegativeTimeoutSecs", options.skfsNegativeTimeoutSecs);
-    }
-    
-    
-    
-    private String skfsTimeoutOption(String name, int timeout) {
-        if (timeout == SKAdminOptions.skfsTimeoutNotSet) {
-            return "";
-        } else {
-            String    ch;
-            
-            switch (name) {
-            case "skfsEntryTimeoutSecs": ch = "E"; break;
-            case "skfsAttrTimeoutSecs": ch = "A"; break;
-            case "skfsNegativeTimeoutSecs": ch = "N"; break;
-            default: throw new RuntimeException("panic");
-            }
-            
-            return " -"+ ch +" "+ timeout;
-        }
-    }
+  private String createStopCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
+    return classVars.getVarMap().get(DHTConstants.killCommandVar) + " " + gc.getClientDHTConfiguration().getName();
+  }
 
-    private String getSystemJavaHome() {
-        String    jhProp;
-        
-        jhProp = System.getProperty(DHTConstants.javaHomeProperty);
-        if (jhProp.endsWith(jreSuffix)) {
-            jhProp = jhProp.substring(0, jhProp.length() - jreSuffix.length());
-        }
-        return jhProp;
-    }
+  private String createCheckSKFSCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
+    String logDir;
+    String logFile;
 
-    public boolean execCommand(SKAdminCommand[] commands) throws IOException, KeeperException, ClientException {
-        boolean    result;
-        SKAdminCommand[][]    commandGroups;
-        
-        commandGroups = createCommandGroups(commands);
-        result = true;
-        for (SKAdminCommand[] commandGroup : commandGroups) {
-            boolean    _result;
-            
-            if (commandGroup[0].isClusterCommand()) {
-                _result = execClusterCommandGroup(commandGroup);
-            } else {
-                _result = execAdminCommandGroup(commandGroup);
-            }
-            if (!_result) {
-                return false;
-            }
-        }
-        return result;
-    }
+    logDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
+    logFile = logDir + "/" + DHTConstants.checkSKFSLogFile;
+    return "mkdir -p " + logDir + "; " + getCheckSKFSBaseCommand(classVars,
+        "CheckSKFS") + " -C " + options.compression + " -l " + options.logLevel + (options.coreLimit == null ?
+        "" :
+        " -L " + options.coreLimit) + (options.checkSKFSOptions == null ? "" : " " + translateOptionEncoding(
+        options.checkSKFSOptions))
+        //+" -n "+ options.fsNativeOnlyFile
+        + " 1>" + logFile + " 2>&1 &";
+  }
 
-    /**
-     * Split commands into contiguous groups of cluster or admin commands.
-     * Each group is of only one type. The order of the original array
-     * is maintained.
-     * @param commands list of commands
-     * @return commands grouped by command type
-     */
-    private SKAdminCommand[][] createCommandGroups(SKAdminCommand[] commands) {
-        List<List<SKAdminCommand>>    _commandGroups;
-        List<SKAdminCommand>    _currentGroup;
-        SKAdminCommand[][]    commandGroups;
-        
-        _commandGroups = new ArrayList<>();
-        _currentGroup = new ArrayList<>();
-        for (SKAdminCommand command : commands) {
-            if (_currentGroup.size() == 0) {
-                _currentGroup.add(command);
-            } else {
-                if (_currentGroup.get(0).isClusterCommand() == command.isClusterCommand()) {
-                    _currentGroup.add(command);
-                } else {
-                    _commandGroups.add(_currentGroup);
-                    _currentGroup = new ArrayList<>();
-                    _currentGroup.add(command);
-                }
-            }
-        }
-        if (_currentGroup.size() > 0) {
-            _commandGroups.add(_currentGroup);
-        }
-        _currentGroup = null;
-        
-        commandGroups = new SKAdminCommand[_commandGroups.size()][];
-        for (int i = 0; i < _commandGroups.size(); i++) {
-            commandGroups[i] = _commandGroups.get(i).toArray(new SKAdminCommand[0]);
-        }
-        return commandGroups;
-    }
+  private String translateOptionEncoding(String o) {
+    return o.replace('~', '-').replace('_', ' ').replace('#', '"');
+  }
 
-    private boolean execAdminCommandGroup(SKAdminCommand[] commands) throws IOException, KeeperException, ClientException {
-        boolean    result;
-        
-        result = true;
-        for (SKAdminCommand command : commands) {
-            boolean    _result;
-            
-            if (!options.displayOnly) {
-                Log.warning("Executing admin command: ", command);
-                switch (command) {
-                case CreateSKFSns:
-                    _result = execCreateSKFSns();
-                    break;
-                case ClearInstanceExclusions:
-                    _result = clearInstanceExclusions();
-                    break;
-                case SetInstanceExclusions:
-                    _result = setInstanceExclusions();
-                    break;
-                case AddToInstanceExclusions:
-                    _result = addToInstanceExclusions();
-                    break;
-                case RemoveFromInstanceExclusions:
-                    _result = removeFromInstanceExclusions();
-                    break;
-                case GetInstanceExclusions:
-                    _result = displayInstanceExclusions();
-                    break;
-                case GetActiveDaemons:
-                    _result = getActiveDaemons();
-                    break;
-                case EnsureNoActiveDaemons:
-                    _result = ensureNoActiveDaemons();
-                    break;
-                case SetRingHealth:
-                    _result = setRingHealth();
-                    break;
-                case GetRingHealth:
-                    _result = displayRingHealth();
-                    break;
-                case GenerateNodeStartCmd:
-                    _result = generateSingleNodeStartCommand(options);
-                    break;
-                default:
-                    throw new RuntimeException("panic");
-                }
-                result = result && _result;
-            } else {
-                Log.warning("Admin command: ", command);
-            }
-        }
-        return result;
-    }
-    
-    private boolean clearInstanceExclusions() throws KeeperException, IOException {
-        InstanceExclusionZK    instanceExclusionZK;
-        
-        instanceExclusionZK = new InstanceExclusionZK(dhtMC);
-        instanceExclusionZK.writeToZK(ExclusionSet.emptyExclusionSet(0));
-        return true;
-    }
+  private String createStopSKFSCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
+    String logDir;
+    String logFile;
 
-    private boolean setInstanceExclusions() throws KeeperException, IOException {
-        return setInstanceExclusions(options.targets != null ? ExclusionSet.parse(options.targets) : ExclusionSet.emptyExclusionSet(VersionedDefinition.NO_VERSION));
-    }
-    
-    private boolean setInstanceExclusions(ExclusionSet exclusionSet) throws KeeperException, IOException {
-        InstanceExclusionZK    instanceExclusionZK;
-        
-        instanceExclusionZK = new InstanceExclusionZK(dhtMC);
-        instanceExclusionZK.writeToZK(exclusionSet);
-        return true;
-    }
-    
-    private boolean displayInstanceExclusions() throws KeeperException, IOException {
-        System.out.println(getInstanceExclusions());
-        return true;
-    }
-    
-    private ExclusionSet getInstanceExclusions() throws KeeperException, IOException {
-        InstanceExclusionZK    instanceExclusionZK;
-        ExclusionSet        exclusions;
-        
-        instanceExclusionZK = new InstanceExclusionZK(dhtMC);
-        exclusions = instanceExclusionZK.readFromZK(VersionedDefinition.NO_VERSION, null);
-        return exclusions;
-    }
-    
-    private void changeInstanceExclusions(Set<IPAndPort> serversToChange, SKAdminCommand command) throws KeeperException, IOException {
-        ExclusionSet    exclusionSet;
-        ExclusionSet    newExclusionSet;
-        
-        exclusionSet = getInstanceExclusions();
-        if (command == SKAdminCommand.RemoveFromInstanceExclusions) {
-            newExclusionSet = exclusionSet.removeByIPAndPort(serversToChange);
-        } else {
-            newExclusionSet = exclusionSet.addByIPAndPort(serversToChange);
-        }
-        setInstanceExclusions(newExclusionSet);
-        System.out.println("............................");
-        System.out.println(newExclusionSet);
-        System.out.println("----------------------------");
-        displayInstanceExclusions();
-        System.out.println("============================");
-    }
-    
-    private boolean addToInstanceExclusions() throws KeeperException, IOException {
-        if (options.targets != null) {
-            changeInstanceExclusions(ExclusionSet.parse(options.targets).asIPAndPortSet(gc.getClientDHTConfiguration().getPort()), SKAdminCommand.AddToInstanceExclusions);            
-        }
-        return true;
-    }
-    
-    private boolean removeFromInstanceExclusions() throws KeeperException, IOException {
-        if (options.targets != null) {
-            changeInstanceExclusions(ExclusionSet.parse(options.targets).asIPAndPortSet(gc.getClientDHTConfiguration().getPort()), SKAdminCommand.RemoveFromInstanceExclusions);            
-        }
-        return true;
-    }
-    
-    private Pair<Boolean,Set<IPAndPort>> _getActiveDaemons() {
-        try {
-            Set<IPAndPort>    activeDaemons;
-            
-            activeDaemons = suspectsZK.readActiveNodesFromZK();
-            for (IPAndPort daemon : activeDaemons) {
-                System.out.printf("%s\n", daemon.getIPAsString());
-            }
-            return new Pair<>(true, activeDaemons);
-        } catch (KeeperException ke) {
-            Log.logErrorWarning(ke);
-            return new Pair(false, ImmutableSet.of());
-        }
-    }
-    
-    private boolean getActiveDaemons() {
-        return _getActiveDaemons().getV1();
-    }
-    
-    private boolean ensureNoActiveDaemons() {
-        Pair<Boolean,Set<IPAndPort>>    result;
-        
-        result = _getActiveDaemons();
-        return result.getV1() && result.getV2().size() == 0;
-    }
-    
-    private boolean setRingHealth() throws KeeperException, IOException {
-        return setRingHealth(options.ringHealth);
-    }
-    
-    private boolean setRingHealth(RingHealth ringHealth) throws KeeperException, IOException {
-        RingHealthZK    ringHealthZK;
-        DHTRingCurTargetZK    dhtRingCurTargetZK;
-        
-        dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
-        ringHealthZK = new RingHealthZK(dhtMC, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
-        ringHealthZK.writeHealth(ringHealth);
-        return true;
-    }
-    
-    private boolean displayRingHealth() throws KeeperException, IOException {
-        RingHealth    ringHealth;
-        
-        ringHealth = getRingHealth();
-        System.out.printf("ringHealth:\t%s\n", ringHealth);
-        return true;
-    }
-    
-    private RingHealth getRingHealth() throws KeeperException, IOException {
-        RingHealthZK    ringHealthZK;
-        DHTRingCurTargetZK    dhtRingCurTargetZK;
-        
-        dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
-        ringHealthZK = new RingHealthZK(dhtMC, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
-        return ringHealthZK.readHealth();
-    }
-    
-    private boolean execCreateSKFSns() throws IOException, ClientException, KeeperException {
-        SKFSNamespaceCreator    nsCreator;
-        String                    preferredServer;
-        Pair<RingConfiguration,InstantiatedRingTree>    ringConfigAndTree;
-        HostGroupTable            hostGroupTable;
-        String                    hostGroupTableName;
-        
-        ringConfigAndTree = getRing(dhtConfig, dhtMC);
-        Log.warning("ringConfig: ", ringConfigAndTree.getV1());
-        hostGroupTableName = ringConfigAndTree.getV1().getCloudConfiguration().getHostGroupTableName();
-        Log.warning("hostGroupTableName: ", hostGroupTableName);
-        hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
-        
-        if (options.preferredServer == null) {
-            preferredServer = findArbitraryActiveServer(dhtConfig.getHostGroups(), hostGroupTable);
-        } else {
-            preferredServer = options.preferredServer;
-        }
-        Log.warning("Using preferredServer ", preferredServer);
-        nsCreator = new SKFSNamespaceCreator(gc.getClientDHTConfiguration(), preferredServer);
-        nsCreator.createNamespaces(skfsNamespaces, skfsNSOptions);
-        nsCreator.createNamespaces(skfsMutableNamespaces, skfsMutableNSOptions);
-        nsCreator.createNamespaces(skfsFileBlockNamespaces, skfsFileBlockNSOptions);
-        nsCreator.createNamespaces(skfsDirNamespaces, skfsDirNSOptions);
-        return true;
-    }
-    
-    private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers, Set<String> _targetServers, HostGroupTable hostGroupTable) {
-        Set<String>    _servers;
-        Set<String>    targetServers;
-        boolean        retainExclusions;
-        
-        _servers = new HashSet<>(servers);
-        
-        retainExclusions = false;
-        targetServers = new HashSet<>();
-        for (String s : _targetServers) {
-            if (IPAddrUtil.isValidIP(s)) {
-                targetServers.add(s);
-            } else {
-                if (options.isReservedTarget(s)) {
-                    if (s.equalsIgnoreCase(SKAdminOptions.activeDaemonsTarget)) {
-                        targetServers.addAll(IPAndPort.copyServerIPsAsMutableSet(_getActiveDaemons().getV2()));
-                        retainExclusions = true;
-                    } else if (s.equalsIgnoreCase(SKAdminOptions.exclusionsTarget)) {
-                        targetServers.addAll(exclusionSet.getServers());
-                        retainExclusions = true;
-                    } else {
-                        throw new RuntimeException("Panic");
-                    }
-                } else {
-                    for (InetAddress addr : hostGroupTable.getHosts(s)) {
-                        targetServers.add(addr.getHostAddress());
-                    }
-                }
-            }
-        }
-        
-        if (!options.includeExcludedHosts && !retainExclusions) {
-            _servers.removeAll(exclusionSet.getServers());
-        }
-        
-        if (options.targets != null) {
-            _servers.retainAll(targetServers);
-        }
-        return _servers;
-    }
-    
-    private void verifyServerEligibility(Set<String> servers, SKAdminCommand[] commands) throws KeeperException {
-        if (Arrays.contains(commands, SKAdminCommand.StartNodes)) {
-            Set<String>            candidateServers;
-            Set<String>            ineligibleServers;
-            DHTRingCurTargetZK    dhtRingCurTargetZK;
-            InstanceExclusionZK    instanceExclusionZK;
-            
-            dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
-            instanceExclusionZK = new InstanceExclusionZK(dhtMC);
-            Log.warning("Verifying server eligibility for start");
-            candidateServers = new HashSet<>(servers);
-            ineligibleServers = HealthMonitor.removeIneligibleServers(candidateServers, dhtRingCurTargetZK, instanceExclusionZK);
-            if (ineligibleServers.size() > 0) {
-                for (String ineligibleServer : ineligibleServers) {
-                    Log.warning("Ineligible server: ", ineligibleServer);
-                }
-                if (!options.forceInclusionOfUnsafeExcludedServers) {
-                    throw new IneligibleServerException("Attempted to start ineligible servers: "+ CollectionUtil.toString(ineligibleServers, ','));
-                } else {
-                    Log.countdownWarning("*** Including unsafe excluded servers. This may result in data loss ***", options.unsafeWarningCountdownSecs);
-                }
-            } else {
-                Log.warning("Server eligibility verified");
-            }
-        }        
-    }    
-    
-    public InstantiatedRingTree readCurrentTree() throws KeeperException, IOException {
-        DHTRingCurTargetZK    curTargetZK;
-        Triple<String,Long,Long>    curRingAndVersionPair;
-        InstantiatedRingTree    ringTree;
-        
-        curTargetZK = new DHTRingCurTargetZK(dhtMC, dhtConfig);
-        curRingAndVersionPair = curTargetZK.getCurRingAndVersionPair();
-        ringTree = SingleRingZK.readTree(new com.ms.silverking.cloud.toporing.meta.MetaClient(
-                new NamedRingConfiguration(dhtConfig.getRingName(), ringConfig), dhtMC.getZooKeeper().getZKConfig()), curRingAndVersionPair.getTail());
-        return ringTree;
-    }
-    
+    logDir = DHTConstants.getSKInstanceLogDir(classVars, gc);
+    logFile = logDir + "/" + DHTConstants.stopSKFSLogFile;
+    return "mkdir -p " + logDir + "; " + getCheckSKFSBaseCommand(classVars, "StopSKFS") + " 1>" + logFile + " 2>&1 &";
+  }
 
-    private boolean execClusterCommandGroup(SKAdminCommand[] commands) throws IOException, KeeperException {
-        /*
-         * Each DHT consists of active + passive nodes
-         * Filter active&passive by particular host groups
-         *     any servers that aren't in the included host groups won't be used
-         * Fetch all host group tables
-         * Fetch all class variables for the host groups
-         * For ChecSKFS, fetch the skfs environment
-         * Wait for all fetches to complete
-         * Create map of servers->commands to run
-         * Pass the command map to TwoLevelParallelSSH and run
-         * Run/wait until complete
-         */
-        //Map<String,HostGroupTable>    hostGroupTables;
-        //hostGroupTables = getHostGroupTables(hostGroups, dhtMC.getZooKeeper().getZKConfig());
-        
-        Set<String>                activeHostGroupNames;
-        Map<String,ClassVars>    hostGroupToClassVars;
-        HostGroupTable            hostGroupTable;
-        Set<String>                validActiveServers;
-        Set<String>                validPassiveServers;
-        String                    hostGroupTableName;
-        Map<String,String[]>    serverCommands;
-        Set<String>                passiveNodeHostGroupNames;
-        boolean                    result;
-        Set<String>                targetServers;
-        Set<String>                passiveTargetServers;
-        
-        targetServers = CollectionUtil.parseSet(options.targets, ",");        
-        
-        activeHostGroupNames = dhtConfig.getHostGroups();
-        Log.warning("hostGroupNames: ", CollectionUtil.toString(activeHostGroupNames));        
-        hostGroupToClassVars = getHostGroupToClassVarsMap(dhtConfig);
-        Log.warning("hostGroupToClassVars: ", CollectionUtil.mapToString(hostGroupToClassVars));
-        Log.warning("ringConfig: ", ringConfig);
-        hostGroupTableName = ringConfig.getCloudConfiguration().getHostGroupTableName();
-        Log.warning("hostGroupTableName: ", hostGroupTableName);
-        hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
-        
-        // FUTURE - Do more validation of configuration. E.g. prevent a server from being both
-        // active and passive, the ring from containing servers without class vars, etc.
-        
-        validActiveServers = findValidActiveServers(activeHostGroupNames, hostGroupTable, ringTree);
-        validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers, hostGroupTable);
-        verifyServerEligibility(validActiveServers, commands);
-        Log.warning("validActiveServers: ", CollectionUtil.toString(validActiveServers));
-        
-        // Allow StopNodes with empty validActiveServers if the target is activeDaemons
-        if (options.targetsEqualsActiveDaemonsTarget() && validActiveServers.isEmpty()) {
-            boolean    exitOK;
-            
-            exitOK = true;
-            for (SKAdminCommand command : commands) {
-                if (command != SKAdminCommand.StopNodes) {
-                    exitOK = false;
-                }
-            }
-            if (exitOK) {
-                return true;
-            }
-        }
-        
-        passiveTargetServers = new HashSet<>();
-        passiveTargetServers.addAll(targetServers);
-        passiveTargetServers.removeAll(validActiveServers);
-        
-        passiveNodeHostGroupNames = dhtConfig.getPassiveNodeHostGroupsAsSet();
-        Log.warning("passiveNodeHostGroupNames: ", CollectionUtil.toString(passiveNodeHostGroupNames));
-        
-        if (passiveTargetServers.size() > 0) {
-            validPassiveServers = ImmutableSet.copyOf(passiveTargetServers);
-        } else {
-            validPassiveServers = findValidPassiveServers(passiveNodeHostGroupNames, hostGroupTable);
-        }
-        validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers, hostGroupTable);
-        Log.warning("validPassiveServers: ", CollectionUtil.toString(validPassiveServers));
-        
-        if (Arrays.contains(commands, SKAdminCommand.ClearData) && !options.targetsEqualsExclusionsTarget()) {
-            Log.countdownWarning("*** Clearing ALL data ***", options.unsafeWarningCountdownSecs);
-        }
-        
-        result = true;
-        for (SKAdminCommand command : commands) {
-            boolean    _result;
-            
-            Log.warning("Executing cluster command: ", command);            
-            serverCommands = createServerCommands(command, validActiveServers, validPassiveServers, 
-                                                hostGroupTable, hostGroupToClassVars, 
-                                                activeHostGroupNames, passiveNodeHostGroupNames);
-            displayCommandMap(serverCommands);
-            if (!options.displayOnly) {
-                _result = execCommandMap(serverCommands, validActiveServers.size() > 0 ? validActiveServers : validPassiveServers, hostGroupTable);
-                result = result && _result;
-                if (!result) {
-                    break;
-                }
-            }
-            if (command.equals(SKAdminCommand.StartNodes)) {
-                int[]    timeouts;
-                boolean    running;
-                int        attemptIndex;
-                
-                Log.warning("Waiting for nodes to enter running state...");
-                timeouts = NumUtil.parseIntArray(options.timeoutSeconds, ",");
-                running = false;
-                attemptIndex = 0;
-                do {
-                    Pair<Set<IPAndPort>,Boolean>    waitResult;
-                    Set<IPAndPort>    failedServers;
-                    
-                    Log.warningf("attemptIndex: %d\ttimeout: %d", attemptIndex, timeouts[attemptIndex]);                    
+  private String createClearDataCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
+    StringBuffer sBuf;
+    String[] dirs;
 
-                    if (replicaSetExcludedByExclusions(exclusionSet)) {
-                        return false;
-                    }
-                    
-                    waitResult = waitUntilRunning(IPAndPort.set(validActiveServers, dhtConfig.getPort()), timeouts[attemptIndex]);
-                    failedServers = waitResult.getV1();
-                    if (waitResult.getV2()) {
-                        running = true;
-                    } else {
-                        ++attemptIndex;
-                        if (attemptIndex < timeouts.length) {
-                            Log.warningf("Adding to instance exclusion set: %s", failedServers);
-                            if (options.excludeInstanceExclusions) {
-                                exclusionSet = exclusionSet.addByIPAndPort(failedServers);
-                            }
-                            changeInstanceExclusions(failedServers, SKAdminCommand.AddToInstanceExclusions);
-                            validActiveServers = removeServers(validActiveServers, failedServers);
-                        }
-                    }
-                } while (!running && attemptIndex < timeouts.length);
-                if (!running) {
-                    return false;
-                }
-            }
-        }
-        return result;
+    sBuf = new StringBuffer();
+    dirs = getDataDir(classVars).split(DHTConstants.dataBasePathDelimiter);
+    for (String dir : dirs) {
+      sBuf.append(classVars.getVarMap().get(DHTConstants.clearDataCommandVar) + " " + dir + ";");
     }
-    
-    private boolean replicaSetExcludedByExclusions(ExclusionSet es) throws KeeperException, IOException {
-        InstantiatedRingTree    curTree;
-        ResolvedReplicaMap        replicaMap;
-        List<Set<IPAndPort>>    excludedReplicaSets;
-        
-        curTree = readCurrentTree();
-        replicaMap = curTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());
-        excludedReplicaSets = replicaMap.getExcludedReplicaSets(es.asIPAndPortSet(0));
-        if (excludedReplicaSets.size() != 0) {
-            Log.warning("Exclusion set excludes at least one replica set:");
-            for (Set<IPAndPort> s : excludedReplicaSets) {
-                Log.warningf("%s", s);
-            }
-            return true;
-        }
+    return sBuf.toString();
+  }
+
+  private String getPreJavaCommand(ClassVars classVars) {
+    return classVars.getVarMap().get(DHTConstants.skDaemonJavaCommandHeaderVar);
+  }
+
+  private Pair<String, String> getHeapLimits(ClassVars classVars) {
+    String initialHeapSize;
+    String maxHeapSize;
+
+    initialHeapSize = checkForLegacyHeapDef(classVars.getVarMap().get(DHTConstants.initialHeapSizeVar));
+    maxHeapSize = checkForLegacyHeapDef(classVars.getVarMap().get(DHTConstants.maxHeapSizeVar));
+    return new Pair<>(initialHeapSize, maxHeapSize);
+  }
+
+  /*
+   * Previous heap definitions allowed unit-less quantities to be treated as MB.
+   * Do that here for smaller unit-less quantities
+   */
+  private String checkForLegacyHeapDef(String def) {
+    def = def.trim();
+    if (Character.isDigit(def.charAt(def.length() - 1))) {
+      Long val;
+
+      val = Long.parseLong(def);
+      if (val < 1024 * 1024) {
+        def = def + "M";
+      }
+    }
+    return def;
+  }
+
+  private String getDataDir(ClassVars classVars) {
+    return classVars.getVarMap().get(DHTConstants.dataBaseVar) + "/" + gc.getClientDHTConfiguration().getName();
+  }
+
+  private String getCheckSKFSBaseCommand(ClassVars classVars, String command) {
+    return (skGlobalCodebase == null ?
+        "" :
+        "export skGlobalCodebase=" + skGlobalCodebase + "; ") + "export " + GridConfiguration.defaultBaseEnvVar + "=" + (
+        options.gridConfigBase == null ?
+            GridConfiguration.getDefaultBase() :
+            new File(
+                options.gridConfigBase).getAbsolutePath()) + "; " + "export " + DHTConstants.jaceHomeEnv + "=" + PropertiesHelper.envHelper.getString(
+        DHTConstants.jaceHomeEnv,
+        UndefinedAction.ExceptionOnUndefined) + "; " + "export " + DHTConstants.javaHomeEnv + "=" + PropertiesHelper.envHelper.getString(
+        DHTConstants.javaHomeEnv,
+        getSystemJavaHome()) + "; " + "export " + DHTConstants.classpathEnv + "=" + PropertiesHelper.envHelper.getString(
+        DHTConstants.classpathEnv, System.getProperty(DHTConstants.classpathProperty)) + "; " + getTaskset(
+        options) + classVars.getVarMap().get(
+        DHTConstants.checkSKFSCommandVar) + " -g " + gc.getName() + " -z " + gc.getClientDHTConfiguration().getZKConfig() + " -c " + command + " -f " + options.forceSKFSDirectoryCreation + skfsTimeoutOption(
+        "skfsEntryTimeoutSecs", options.skfsEntryTimeoutSecs) + skfsTimeoutOption("skfsAttrTimeoutSecs",
+        options.skfsAttrTimeoutSecs) + skfsTimeoutOption("skfsNegativeTimeoutSecs", options.skfsNegativeTimeoutSecs);
+  }
+
+  private String skfsTimeoutOption(String name, int timeout) {
+    if (timeout == SKAdminOptions.skfsTimeoutNotSet) {
+      return "";
+    } else {
+      String ch;
+
+      switch (name) {
+      case "skfsEntryTimeoutSecs":
+        ch = "E";
+        break;
+      case "skfsAttrTimeoutSecs":
+        ch = "A";
+        break;
+      case "skfsNegativeTimeoutSecs":
+        ch = "N";
+        break;
+      default:
+        throw new RuntimeException("panic");
+      }
+
+      return " -" + ch + " " + timeout;
+    }
+  }
+
+  private String getSystemJavaHome() {
+    String jhProp;
+
+    jhProp = System.getProperty(DHTConstants.javaHomeProperty);
+    if (jhProp.endsWith(jreSuffix)) {
+      jhProp = jhProp.substring(0, jhProp.length() - jreSuffix.length());
+    }
+    return jhProp;
+  }
+
+  public boolean execCommand(SKAdminCommand[] commands) throws IOException, KeeperException, ClientException {
+    boolean result;
+    SKAdminCommand[][] commandGroups;
+
+    commandGroups = createCommandGroups(commands);
+    result = true;
+    for (SKAdminCommand[] commandGroup : commandGroups) {
+      boolean _result;
+
+      if (commandGroup[0].isClusterCommand()) {
+        _result = execClusterCommandGroup(commandGroup);
+      } else {
+        _result = execAdminCommandGroup(commandGroup);
+      }
+      if (!_result) {
         return false;
+      }
     }
-    
-    private Set<String> removeServers(Set<String> originalServers, Set<IPAndPort> serversToRemove) {
-        Set<String>    newServers;
-        
-        newServers = new HashSet<>();
-        newServers.addAll(originalServers);
-        newServers.removeAll(IPAndPort.copyServerIPsAsMutableSet(serversToRemove));
-        return ImmutableSet.copyOf(newServers);
-    }
+    return result;
+  }
 
-    private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts, HostGroupTable hostGroups) throws IOException {
-        TwoLevelParallelSSHMaster    sshMaster;
-        boolean    result;
-        String        localServer;
-        String[]    localCommand;
-        
-        localServer = null;
-        localCommand = null;
-        Log.warningf("serverCommands.size() %d", serverCommands.size());
-        if (serverCommands.size() == 1) {
-            Entry<String,String[]>    entry;
-            
-            entry = serverCommands.entrySet().iterator().next();
-            localServer = entry.getKey();
-            localCommand = entry.getValue();
-        }
-        if (isLocalServer(localServer)) { // if this command is solely for the local server
-            ProcessExecutor    pExec;
-            
-            pExec = ProcessExecutor.bashExecutor(localCommand, options.workerTimeoutSeconds);
-            pExec.execute();
-            result = pExec.getExitCode() != localCommandErrorCode;
+  /**
+   * Split commands into contiguous groups of cluster or admin commands.
+   * Each group is of only one type. The order of the original array
+   * is maintained.
+   *
+   * @param commands list of commands
+   * @return commands grouped by command type
+   */
+  private SKAdminCommand[][] createCommandGroups(SKAdminCommand[] commands) {
+    List<List<SKAdminCommand>> _commandGroups;
+    List<SKAdminCommand> _currentGroup;
+    SKAdminCommand[][] commandGroups;
+
+    _commandGroups = new ArrayList<>();
+    _currentGroup = new ArrayList<>();
+    for (SKAdminCommand command : commands) {
+      if (_currentGroup.size() == 0) {
+        _currentGroup.add(command);
+      } else {
+        if (_currentGroup.get(0).isClusterCommand() == command.isClusterCommand()) {
+          _currentGroup.add(command);
         } else {
-            sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts), options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
-            Log.warning("Starting workers");
-            sshMaster.startWorkers(hostGroups);
-            Log.warning("Waiting for workers");
-            result = sshMaster.waitForWorkerCompletion();
-            sshMaster.terminate();
-            Log.warning("Workers complete");
+          _commandGroups.add(_currentGroup);
+          _currentGroup = new ArrayList<>();
+          _currentGroup.add(command);
         }
-        return result;
+      }
     }
-    
-    private boolean isLocalServer(String ip) {
-        return ip != null && ip.equals(IPAddrUtil.localIPString());
+    if (_currentGroup.size() > 0) {
+      _commandGroups.add(_currentGroup);
     }
+    _currentGroup = null;
 
-    private Map<String, ClassVars> getHostGroupToClassVarsMap(DHTConfiguration dhtConfig) throws KeeperException {
-        Map<String,String>    hostGroupToClassVarNames;
-        Map<String,ClassVars>    hostGroupToClassVars;
-        
-        hostGroupToClassVars = new HashMap<>();
-        hostGroupToClassVarNames = dhtConfig.getHostGroupToClassVarsMap();
-        for (Map.Entry<String,String> hostGroupAndClassVarsName : hostGroupToClassVarNames.entrySet()) {
-            hostGroupToClassVars.put(hostGroupAndClassVarsName.getKey(), classVarsZK.getClassVars(hostGroupAndClassVarsName.getValue()));
+    commandGroups = new SKAdminCommand[_commandGroups.size()][];
+    for (int i = 0; i < _commandGroups.size(); i++) {
+      commandGroups[i] = _commandGroups.get(i).toArray(new SKAdminCommand[0]);
+    }
+    return commandGroups;
+  }
+
+  private boolean execAdminCommandGroup(SKAdminCommand[] commands)
+      throws IOException, KeeperException, ClientException {
+    boolean result;
+
+    result = true;
+    for (SKAdminCommand command : commands) {
+      boolean _result;
+
+      if (!options.displayOnly) {
+        Log.warning("Executing admin command: ", command);
+        switch (command) {
+        case CreateSKFSns:
+          _result = execCreateSKFSns();
+          break;
+        case ClearInstanceExclusions:
+          _result = clearInstanceExclusions();
+          break;
+        case SetInstanceExclusions:
+          _result = setInstanceExclusions();
+          break;
+        case AddToInstanceExclusions:
+          _result = addToInstanceExclusions();
+          break;
+        case RemoveFromInstanceExclusions:
+          _result = removeFromInstanceExclusions();
+          break;
+        case GetInstanceExclusions:
+          _result = displayInstanceExclusions();
+          break;
+        case GetActiveDaemons:
+          _result = getActiveDaemons();
+          break;
+        case EnsureNoActiveDaemons:
+          _result = ensureNoActiveDaemons();
+          break;
+        case SetRingHealth:
+          _result = setRingHealth();
+          break;
+        case GetRingHealth:
+          _result = displayRingHealth();
+          break;
+        case GenerateNodeStartCmd:
+          _result = generateSingleNodeStartCommand(options);
+          break;
+        default:
+          throw new RuntimeException("panic");
         }
-        return hostGroupToClassVars;
+        result = result && _result;
+      } else {
+        Log.warning("Admin command: ", command);
+      }
     }
+    return result;
+  }
 
-    private Map<String,String[]> createServerCommands(SKAdminCommand command, Set<String> validActiveServers, 
-                                        Set<String> validPassiveServers, HostGroupTable hostGroupTable, Map<String,ClassVars> hostGroupToClassVars,
-                                        Set<String> activeHostGroupNames, Set<String> passiveNodeHostGroupNames) {
-        Map<String,String[]>    serverCommands;
-        Set<String>                allServers;
-        
-        allServers = new HashSet<>();
-        
-        if (command == SKAdminCommand.ClearInstanceExclusionsData) {
-            try {
-                ExclusionSet    e;
-                
-                e = getInstanceExclusions();                    
-                if (replicaSetExcludedByExclusions(e)) {
-                    Log.warning("Can't clear instance exclusions data. At least one replica set is entirely excluded.");
-                    throw new RuntimeException("Entire replica set excluded");
-                } else {
-                    Log.warning("Servers to clear data from:\n", e);
-                    Log.countdownWarning("*** Clearing instance exclusions data ***", options.unsafeWarningCountdownSecs);
-                    allServers.addAll(e.getServers());
-                }
-            } catch (KeeperException | IOException e) {
-                throw new RuntimeException("Exception calling getInstanceExclusions()", e);
-            }
+  private boolean clearInstanceExclusions() throws KeeperException, IOException {
+    InstanceExclusionZK instanceExclusionZK;
+
+    instanceExclusionZK = new InstanceExclusionZK(dhtMC);
+    instanceExclusionZK.writeToZK(ExclusionSet.emptyExclusionSet(0));
+    return true;
+  }
+
+  private boolean setInstanceExclusions() throws KeeperException, IOException {
+    return setInstanceExclusions(options.targets != null ?
+        ExclusionSet.parse(options.targets) :
+        ExclusionSet.emptyExclusionSet(VersionedDefinition.NO_VERSION));
+  }
+
+  private boolean setInstanceExclusions(ExclusionSet exclusionSet) throws KeeperException, IOException {
+    InstanceExclusionZK instanceExclusionZK;
+
+    instanceExclusionZK = new InstanceExclusionZK(dhtMC);
+    instanceExclusionZK.writeToZK(exclusionSet);
+    return true;
+  }
+
+  private boolean displayInstanceExclusions() throws KeeperException, IOException {
+    System.out.println(getInstanceExclusions());
+    return true;
+  }
+
+  private ExclusionSet getInstanceExclusions() throws KeeperException, IOException {
+    InstanceExclusionZK instanceExclusionZK;
+    ExclusionSet exclusions;
+
+    instanceExclusionZK = new InstanceExclusionZK(dhtMC);
+    exclusions = instanceExclusionZK.readFromZK(VersionedDefinition.NO_VERSION, null);
+    return exclusions;
+  }
+
+  private void changeInstanceExclusions(Set<IPAndPort> serversToChange, SKAdminCommand command)
+      throws KeeperException, IOException {
+    ExclusionSet exclusionSet;
+    ExclusionSet newExclusionSet;
+
+    exclusionSet = getInstanceExclusions();
+    if (command == SKAdminCommand.RemoveFromInstanceExclusions) {
+      newExclusionSet = exclusionSet.removeByIPAndPort(serversToChange);
+    } else {
+      newExclusionSet = exclusionSet.addByIPAndPort(serversToChange);
+    }
+    setInstanceExclusions(newExclusionSet);
+    System.out.println("............................");
+    System.out.println(newExclusionSet);
+    System.out.println("----------------------------");
+    displayInstanceExclusions();
+    System.out.println("============================");
+  }
+
+  private boolean addToInstanceExclusions() throws KeeperException, IOException {
+    if (options.targets != null) {
+      changeInstanceExclusions(
+          ExclusionSet.parse(options.targets).asIPAndPortSet(gc.getClientDHTConfiguration().getPort()),
+          SKAdminCommand.AddToInstanceExclusions);
+    }
+    return true;
+  }
+
+  private boolean removeFromInstanceExclusions() throws KeeperException, IOException {
+    if (options.targets != null) {
+      changeInstanceExclusions(
+          ExclusionSet.parse(options.targets).asIPAndPortSet(gc.getClientDHTConfiguration().getPort()),
+          SKAdminCommand.RemoveFromInstanceExclusions);
+    }
+    return true;
+  }
+
+  private Pair<Boolean, Set<IPAndPort>> _getActiveDaemons() {
+    try {
+      Set<IPAndPort> activeDaemons;
+
+      activeDaemons = suspectsZK.readActiveNodesFromZK();
+      for (IPAndPort daemon : activeDaemons) {
+        System.out.printf("%s\n", daemon.getIPAsString());
+      }
+      return new Pair<>(true, activeDaemons);
+    } catch (KeeperException ke) {
+      Log.logErrorWarning(ke);
+      return new Pair(false, ImmutableSet.of());
+    }
+  }
+
+  private boolean getActiveDaemons() {
+    return _getActiveDaemons().getV1();
+  }
+
+  private boolean ensureNoActiveDaemons() {
+    Pair<Boolean, Set<IPAndPort>> result;
+
+    result = _getActiveDaemons();
+    return result.getV1() && result.getV2().size() == 0;
+  }
+
+  private boolean setRingHealth() throws KeeperException, IOException {
+    return setRingHealth(options.ringHealth);
+  }
+
+  private boolean setRingHealth(RingHealth ringHealth) throws KeeperException, IOException {
+    RingHealthZK ringHealthZK;
+    DHTRingCurTargetZK dhtRingCurTargetZK;
+
+    dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
+    ringHealthZK = new RingHealthZK(dhtMC, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
+    ringHealthZK.writeHealth(ringHealth);
+    return true;
+  }
+
+  private boolean displayRingHealth() throws KeeperException, IOException {
+    RingHealth ringHealth;
+
+    ringHealth = getRingHealth();
+    System.out.printf("ringHealth:\t%s\n", ringHealth);
+    return true;
+  }
+
+  private RingHealth getRingHealth() throws KeeperException, IOException {
+    RingHealthZK ringHealthZK;
+    DHTRingCurTargetZK dhtRingCurTargetZK;
+
+    dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
+    ringHealthZK = new RingHealthZK(dhtMC, dhtRingCurTargetZK.getCurRingAndVersionPair(new Stat()));
+    return ringHealthZK.readHealth();
+  }
+
+  private boolean execCreateSKFSns() throws IOException, ClientException, KeeperException {
+    SKFSNamespaceCreator nsCreator;
+    String preferredServer;
+    Pair<RingConfiguration, InstantiatedRingTree> ringConfigAndTree;
+    HostGroupTable hostGroupTable;
+    String hostGroupTableName;
+
+    ringConfigAndTree = getRing(dhtConfig, dhtMC);
+    Log.warning("ringConfig: ", ringConfigAndTree.getV1());
+    hostGroupTableName = ringConfigAndTree.getV1().getCloudConfiguration().getHostGroupTableName();
+    Log.warning("hostGroupTableName: ", hostGroupTableName);
+    hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
+
+    if (options.preferredServer == null) {
+      preferredServer = findArbitraryActiveServer(dhtConfig.getHostGroups(), hostGroupTable);
+    } else {
+      preferredServer = options.preferredServer;
+    }
+    Log.warning("Using preferredServer ", preferredServer);
+    nsCreator = new SKFSNamespaceCreator(gc.getClientDHTConfiguration(), preferredServer);
+    nsCreator.createNamespaces(skfsNamespaces, skfsNSOptions);
+    nsCreator.createNamespaces(skfsMutableNamespaces, skfsMutableNSOptions);
+    nsCreator.createNamespaces(skfsFileBlockNamespaces, skfsFileBlockNSOptions);
+    nsCreator.createNamespaces(skfsDirNamespaces, skfsDirNSOptions);
+    return true;
+  }
+
+  private Set<String> retainOnlySpecifiedAndNonExcludedServers(Set<String> servers, Set<String> _targetServers,
+      HostGroupTable hostGroupTable) {
+    Set<String> _servers;
+    Set<String> targetServers;
+    boolean retainExclusions;
+
+    _servers = new HashSet<>(servers);
+
+    retainExclusions = false;
+    targetServers = new HashSet<>();
+    for (String s : _targetServers) {
+      if (IPAddrUtil.isValidIP(s)) {
+        targetServers.add(s);
+      } else {
+        if (options.isReservedTarget(s)) {
+          if (s.equalsIgnoreCase(SKAdminOptions.activeDaemonsTarget)) {
+            targetServers.addAll(IPAndPort.copyServerIPsAsMutableSet(_getActiveDaemons().getV2()));
+            retainExclusions = true;
+          } else if (s.equalsIgnoreCase(SKAdminOptions.exclusionsTarget)) {
+            targetServers.addAll(exclusionSet.getServers());
+            retainExclusions = true;
+          } else {
+            throw new RuntimeException("Panic");
+          }
         } else {
-            allServers.addAll(validActiveServers);
-            allServers.addAll(validPassiveServers);
+          for (InetAddress addr : hostGroupTable.getHosts(s)) {
+            targetServers.add(addr.getHostAddress());
+          }
         }
-        
-        serverCommands = new HashMap<>();
-        for (String server : allServers) {
-            String        rawServerCommand;
-            String[]    serverCommand;
-            ClassVars    serverClassVars;
-            
-            serverClassVars = getServerClassVars(server, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames, hostGroupToClassVars);
-            if (serverClassVars != null) {
-                switch (command) {
-                case StartNodes:
-                    rawServerCommand = createStartCommand(dhtConfig, serverClassVars, options);
-                    break;
-                case StopNodes:
-                    rawServerCommand = createStopCommand(dhtConfig, serverClassVars);
-                    break;
-                case ClearInstanceExclusionsData:
-                case ClearData:
-                    clearNamespaceOptionsData();
-                    rawServerCommand = createClearDataCommand(dhtConfig, serverClassVars);
-                    break;
-                case StartSKFS:
-                    if (options.destructive) {
-                        throw new RuntimeException("Destructive StartSKFS not supported");
-                    }
-                case CheckSKFS:
-                    rawServerCommand = createCheckSKFSCommand(dhtConfig, serverClassVars);
-                    break;
-                case StopSKFS:
-                    rawServerCommand = createStopSKFSCommand(dhtConfig, serverClassVars);
-                    break;
-                default:
-                    throw new RuntimeException("Unsupported command: "+ command);
-                }
-                serverCommand = rawServerCommand.split("\\s+");
-                serverCommands.put(server, serverCommand);
-            }
-        }
-        return serverCommands;
+      }
     }
 
-    private void clearNamespaceOptionsData() {
-        NamespaceOptionsMode mode = dhtConfig.getNamespaceOptionsMode();
-        switch (mode) {
-            case ZooKeeper:
-                try {
-                    new NamespaceOptionsClientZKImpl(gc).obliterateAllNsProperties();
-                } catch (Exception e) {
-                    throw new RuntimeException("Execution of ClearData fails: cannot clear namespace options data in mode [" + mode + "]", e);
-                }
-                break;
-            case MetaNamespace:
-                // Do nothing for this impl
-                break;
-            default:
-                throw new RuntimeException("Unhandled nsOptionsMode: " + mode);
-        }
+    if (!options.includeExcludedHosts && !retainExclusions) {
+      _servers.removeAll(exclusionSet.getServers());
     }
 
-    private void displayCommandMap(Map<String,String[]> cmdMap) {
-        for (Map.Entry<String, String[]> cmdEntry : cmdMap.entrySet()) {
-            System.out.printf("%s\t%s\n", cmdEntry.getKey(), ArrayUtil.toString(cmdEntry.getValue(), ' '));
-        }
+    if (options.targets != null) {
+      _servers.retainAll(targetServers);
     }
-    
-    private ClassVars getServerClassVars(String server, HostGroupTable hostGroupTable, Set<String> activeHostGroupNames,
-                                         Set<String> passiveNodeHostGroupNames,
-                                         Map<String,ClassVars> hostGroupToClassVars) {
-        if (options.explicitClassVarDef != null) {
-            return defaultClassVars.overrideWith(ClassVars.parse(options.explicitClassVarDef.replace(',', '\n'), 0));
+    return _servers;
+  }
+
+  private void verifyServerEligibility(Set<String> servers, SKAdminCommand[] commands) throws KeeperException {
+    if (Arrays.contains(commands, SKAdminCommand.StartNodes)) {
+      Set<String> candidateServers;
+      Set<String> ineligibleServers;
+      DHTRingCurTargetZK dhtRingCurTargetZK;
+      InstanceExclusionZK instanceExclusionZK;
+
+      dhtRingCurTargetZK = new DHTRingCurTargetZK(dhtMC, dhtMC.getDHTConfiguration());
+      instanceExclusionZK = new InstanceExclusionZK(dhtMC);
+      Log.warning("Verifying server eligibility for start");
+      candidateServers = new HashSet<>(servers);
+      ineligibleServers = HealthMonitor.removeIneligibleServers(candidateServers, dhtRingCurTargetZK,
+          instanceExclusionZK);
+      if (ineligibleServers.size() > 0) {
+        for (String ineligibleServer : ineligibleServers) {
+          Log.warning("Ineligible server: ", ineligibleServer);
+        }
+        if (!options.forceInclusionOfUnsafeExcludedServers) {
+          throw new IneligibleServerException(
+              "Attempted to start ineligible servers: " + CollectionUtil.toString(ineligibleServers, ','));
         } else {
-            Set<String>    serverHostGroups;
-            Set<String>    acceptableHostGroups;
-            String        serverHostGroup;
-            Set<String>    activeAndPassiveHostGroupNames;
-            ClassVars    serverClassVars;
-            
-            serverHostGroups = hostGroupTable.getHostGroups(server);
-            acceptableHostGroups = new HashSet<>(serverHostGroups);
-            activeAndPassiveHostGroupNames = new HashSet<>();
-            activeAndPassiveHostGroupNames.addAll(activeHostGroupNames);
-            activeAndPassiveHostGroupNames.addAll(passiveNodeHostGroupNames);
-            acceptableHostGroups.retainAll(activeAndPassiveHostGroupNames);
-            if (acceptableHostGroups.size() == 1) {
-                serverHostGroup = acceptableHostGroups.iterator().next();
-            } else if (acceptableHostGroups.size() > 1) {
-                // FUTURE - Could select a "best". For now, just pick the first.
-                Log.warning(server +" has more than one valid host group ");
-                serverHostGroup = acceptableHostGroups.iterator().next();
-            } else {
-                Log.warning(server +" has no valid host group ");
-                return defaultClassVars;
-            }
-            serverClassVars = hostGroupToClassVars.get(serverHostGroup);
-            if (serverClassVars != null) {
-                return defaultClassVars.overrideWith(serverClassVars);
-            } else {
-                Log.warning(server +" has no ClassVars for group "+ serverHostGroup);
-                return defaultClassVars;
-            }
+          Log.countdownWarning("*** Including unsafe excluded servers. This may result in data loss ***",
+              options.unsafeWarningCountdownSecs);
         }
+      } else {
+        Log.warning("Server eligibility verified");
+      }
     }
-    
-    ///////////////////////////////////////////
-    
-    public Pair<Set<IPAndPort>,Boolean> waitUntilRunning(Set<IPAndPort> activeNodes, int timeoutSeconds) {
-        DaemonStateZK                daemonStateZK;
-        Map<IPAndPort, DaemonState>    daemonState;
-        
-        daemonStateZK = new DaemonStateZK(dhtMC);
-        daemonState = daemonStateZK.waitForQuorumState(activeNodes, DaemonState.RUNNING, timeoutSeconds, true);
-        Log.warningf("daemonState: %s", daemonState);
-        if (daemonState.isEmpty()) {
-            return new Pair<>(ImmutableSet.of(), true);
-        } else {
-            HashSet<IPAndPort>    failedDaemons;
-            boolean                running;
+  }
 
+  public InstantiatedRingTree readCurrentTree() throws KeeperException, IOException {
+    DHTRingCurTargetZK curTargetZK;
+    Triple<String, Long, Long> curRingAndVersionPair;
+    InstantiatedRingTree ringTree;
+
+    curTargetZK = new DHTRingCurTargetZK(dhtMC, dhtConfig);
+    curRingAndVersionPair = curTargetZK.getCurRingAndVersionPair();
+    ringTree = SingleRingZK.readTree(new com.ms.silverking.cloud.toporing.meta.MetaClient(
+            new NamedRingConfiguration(dhtConfig.getRingName(), ringConfig), dhtMC.getZooKeeper().getZKConfig()),
+        curRingAndVersionPair.getTail());
+    return ringTree;
+  }
+
+  private boolean execClusterCommandGroup(SKAdminCommand[] commands) throws IOException, KeeperException {
+    /*
+     * Each DHT consists of active + passive nodes
+     * Filter active&passive by particular host groups
+     *     any servers that aren't in the included host groups won't be used
+     * Fetch all host group tables
+     * Fetch all class variables for the host groups
+     * For ChecSKFS, fetch the skfs environment
+     * Wait for all fetches to complete
+     * Create map of servers->commands to run
+     * Pass the command map to TwoLevelParallelSSH and run
+     * Run/wait until complete
+     */
+    //Map<String,HostGroupTable>    hostGroupTables;
+    //hostGroupTables = getHostGroupTables(hostGroups, dhtMC.getZooKeeper().getZKConfig());
+
+    Set<String> activeHostGroupNames;
+    Map<String, ClassVars> hostGroupToClassVars;
+    HostGroupTable hostGroupTable;
+    Set<String> validActiveServers;
+    Set<String> validPassiveServers;
+    String hostGroupTableName;
+    Map<String, String[]> serverCommands;
+    Set<String> passiveNodeHostGroupNames;
+    boolean result;
+    Set<String> targetServers;
+    Set<String> passiveTargetServers;
+
+    targetServers = CollectionUtil.parseSet(options.targets, ",");
+
+    activeHostGroupNames = dhtConfig.getHostGroups();
+    Log.warning("hostGroupNames: ", CollectionUtil.toString(activeHostGroupNames));
+    hostGroupToClassVars = getHostGroupToClassVarsMap(dhtConfig);
+    Log.warning("hostGroupToClassVars: ", CollectionUtil.mapToString(hostGroupToClassVars));
+    Log.warning("ringConfig: ", ringConfig);
+    hostGroupTableName = ringConfig.getCloudConfiguration().getHostGroupTableName();
+    Log.warning("hostGroupTableName: ", hostGroupTableName);
+    hostGroupTable = getHostGroupTable(hostGroupTableName, dhtMC.getZooKeeper().getZKConfig());
+
+    // FUTURE - Do more validation of configuration. E.g. prevent a server from being both
+    // active and passive, the ring from containing servers without class vars, etc.
+
+    validActiveServers = findValidActiveServers(activeHostGroupNames, hostGroupTable, ringTree);
+    validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers, hostGroupTable);
+    verifyServerEligibility(validActiveServers, commands);
+    Log.warning("validActiveServers: ", CollectionUtil.toString(validActiveServers));
+
+    // Allow StopNodes with empty validActiveServers if the target is activeDaemons
+    if (options.targetsEqualsActiveDaemonsTarget() && validActiveServers.isEmpty()) {
+      boolean exitOK;
+
+      exitOK = true;
+      for (SKAdminCommand command : commands) {
+        if (command != SKAdminCommand.StopNodes) {
+          exitOK = false;
+        }
+      }
+      if (exitOK) {
+        return true;
+      }
+    }
+
+    passiveTargetServers = new HashSet<>();
+    passiveTargetServers.addAll(targetServers);
+    passiveTargetServers.removeAll(validActiveServers);
+
+    passiveNodeHostGroupNames = dhtConfig.getPassiveNodeHostGroupsAsSet();
+    Log.warning("passiveNodeHostGroupNames: ", CollectionUtil.toString(passiveNodeHostGroupNames));
+
+    if (passiveTargetServers.size() > 0) {
+      validPassiveServers = ImmutableSet.copyOf(passiveTargetServers);
+    } else {
+      validPassiveServers = findValidPassiveServers(passiveNodeHostGroupNames, hostGroupTable);
+    }
+    validPassiveServers = retainOnlySpecifiedAndNonExcludedServers(validPassiveServers, passiveTargetServers,
+        hostGroupTable);
+    Log.warning("validPassiveServers: ", CollectionUtil.toString(validPassiveServers));
+
+    if (Arrays.contains(commands, SKAdminCommand.ClearData) && !options.targetsEqualsExclusionsTarget()) {
+      Log.countdownWarning("*** Clearing ALL data ***", options.unsafeWarningCountdownSecs);
+    }
+
+    result = true;
+    for (SKAdminCommand command : commands) {
+      boolean _result;
+
+      Log.warning("Executing cluster command: ", command);
+      serverCommands = createServerCommands(command, validActiveServers, validPassiveServers, hostGroupTable,
+          hostGroupToClassVars, activeHostGroupNames, passiveNodeHostGroupNames);
+      displayCommandMap(serverCommands);
+      if (!options.displayOnly) {
+        _result = execCommandMap(serverCommands,
+            validActiveServers.size() > 0 ? validActiveServers : validPassiveServers, hostGroupTable);
+        result = result && _result;
+        if (!result) {
+          break;
+        }
+      }
+      if (command.equals(SKAdminCommand.StartNodes)) {
+        int[] timeouts;
+        boolean running;
+        int attemptIndex;
+
+        Log.warning("Waiting for nodes to enter running state...");
+        timeouts = NumUtil.parseIntArray(options.timeoutSeconds, ",");
+        running = false;
+        attemptIndex = 0;
+        do {
+          Pair<Set<IPAndPort>, Boolean> waitResult;
+          Set<IPAndPort> failedServers;
+
+          Log.warningf("attemptIndex: %d\ttimeout: %d", attemptIndex, timeouts[attemptIndex]);
+
+          if (replicaSetExcludedByExclusions(exclusionSet)) {
+            return false;
+          }
+
+          waitResult = waitUntilRunning(IPAndPort.set(validActiveServers, dhtConfig.getPort()), timeouts[attemptIndex]);
+          failedServers = waitResult.getV1();
+          if (waitResult.getV2()) {
             running = true;
-            failedDaemons = new HashSet<>();
-            for (IPAndPort activeNode : activeNodes) {
-                DaemonState    ds;
-                
-                ds = daemonState.get(activeNode);
-                System.out.printf("Node: %s\tstate: %s\n", activeNode, ds);
-                if (ds == null) {
-                    failedDaemons.add(activeNode);
-                    running = false;
-                } else {
-                    if (ds != DaemonState.RUNNING) {
-                        running = false;
-                    }
-                }
+          } else {
+            ++attemptIndex;
+            if (attemptIndex < timeouts.length) {
+              Log.warningf("Adding to instance exclusion set: %s", failedServers);
+              if (options.excludeInstanceExclusions) {
+                exclusionSet = exclusionSet.addByIPAndPort(failedServers);
+              }
+              changeInstanceExclusions(failedServers, SKAdminCommand.AddToInstanceExclusions);
+              validActiveServers = removeServers(validActiveServers, failedServers);
             }
-            return new Pair<>(failedDaemons, running);
+          }
+        } while (!running && attemptIndex < timeouts.length);
+        if (!running) {
+          return false;
         }
+      }
+    }
+    return result;
+  }
+
+  private boolean replicaSetExcludedByExclusions(ExclusionSet es) throws KeeperException, IOException {
+    InstantiatedRingTree curTree;
+    ResolvedReplicaMap replicaMap;
+    List<Set<IPAndPort>> excludedReplicaSets;
+
+    curTree = readCurrentTree();
+    replicaMap = curTree.getResolvedMap(ringConfig.getRingParentName(), new ReplicaNaiveIPPrioritizer());
+    excludedReplicaSets = replicaMap.getExcludedReplicaSets(es.asIPAndPortSet(0));
+    if (excludedReplicaSets.size() != 0) {
+      Log.warning("Exclusion set excludes at least one replica set:");
+      for (Set<IPAndPort> s : excludedReplicaSets) {
+        Log.warningf("%s", s);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private Set<String> removeServers(Set<String> originalServers, Set<IPAndPort> serversToRemove) {
+    Set<String> newServers;
+
+    newServers = new HashSet<>();
+    newServers.addAll(originalServers);
+    newServers.removeAll(IPAndPort.copyServerIPsAsMutableSet(serversToRemove));
+    return ImmutableSet.copyOf(newServers);
+  }
+
+  private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts,
+      HostGroupTable hostGroups) throws IOException {
+    TwoLevelParallelSSHMaster sshMaster;
+    boolean result;
+    String localServer;
+    String[] localCommand;
+
+    localServer = null;
+    localCommand = null;
+    Log.warningf("serverCommands.size() %d", serverCommands.size());
+    if (serverCommands.size() == 1) {
+      Entry<String, String[]> entry;
+
+      entry = serverCommands.entrySet().iterator().next();
+      localServer = entry.getKey();
+      localCommand = entry.getValue();
+    }
+    if (isLocalServer(localServer)) { // if this command is solely for the local server
+      ProcessExecutor pExec;
+
+      pExec = ProcessExecutor.bashExecutor(localCommand, options.workerTimeoutSeconds);
+      pExec.execute();
+      result = pExec.getExitCode() != localCommandErrorCode;
+    } else {
+      sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts),
+          options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
+      Log.warning("Starting workers");
+      sshMaster.startWorkers(hostGroups);
+      Log.warning("Waiting for workers");
+      result = sshMaster.waitForWorkerCompletion();
+      sshMaster.terminate();
+      Log.warning("Workers complete");
+    }
+    return result;
+  }
+
+  private boolean isLocalServer(String ip) {
+    return ip != null && ip.equals(IPAddrUtil.localIPString());
+  }
+
+  private Map<String, ClassVars> getHostGroupToClassVarsMap(DHTConfiguration dhtConfig) throws KeeperException {
+    Map<String, String> hostGroupToClassVarNames;
+    Map<String, ClassVars> hostGroupToClassVars;
+
+    hostGroupToClassVars = new HashMap<>();
+    hostGroupToClassVarNames = dhtConfig.getHostGroupToClassVarsMap();
+    for (Map.Entry<String, String> hostGroupAndClassVarsName : hostGroupToClassVarNames.entrySet()) {
+      hostGroupToClassVars.put(hostGroupAndClassVarsName.getKey(),
+          classVarsZK.getClassVars(hostGroupAndClassVarsName.getValue()));
+    }
+    return hostGroupToClassVars;
+  }
+
+  private Map<String, String[]> createServerCommands(SKAdminCommand command, Set<String> validActiveServers,
+      Set<String> validPassiveServers, HostGroupTable hostGroupTable, Map<String, ClassVars> hostGroupToClassVars,
+      Set<String> activeHostGroupNames, Set<String> passiveNodeHostGroupNames) {
+    Map<String, String[]> serverCommands;
+    Set<String> allServers;
+
+    allServers = new HashSet<>();
+
+    if (command == SKAdminCommand.ClearInstanceExclusionsData) {
+      try {
+        ExclusionSet e;
+
+        e = getInstanceExclusions();
+        if (replicaSetExcludedByExclusions(e)) {
+          Log.warning("Can't clear instance exclusions data. At least one replica set is entirely excluded.");
+          throw new RuntimeException("Entire replica set excluded");
+        } else {
+          Log.warning("Servers to clear data from:\n", e);
+          Log.countdownWarning("*** Clearing instance exclusions data ***", options.unsafeWarningCountdownSecs);
+          allServers.addAll(e.getServers());
+        }
+      } catch (KeeperException | IOException e) {
+        throw new RuntimeException("Exception calling getInstanceExclusions()", e);
+      }
+    } else {
+      allServers.addAll(validActiveServers);
+      allServers.addAll(validPassiveServers);
     }
 
-    ///////////////////////////////////////////
-    /**
-     * The exposed function to run SKAdmin's real business logic, this method is the entry point for user who wishes to use SKAdmin as library
-     * @param options the <b>parsed<b/> SKAdminOptions object
-     * @param skConfigOverride the SKGridConfiguration object used for SKAdmin; if <b>null</b>, then SKAdmin will try to parse SKGridConfiguration from a config file defined in SKAdminOptions.gridConfigBase/gridConfig
-     */
-    public static void runWithParsedOptions(SKAdminOptions options, SKGridConfiguration skConfigOverride) {
-        boolean            success;
+    serverCommands = new HashMap<>();
+    for (String server : allServers) {
+      String rawServerCommand;
+      String[] serverCommand;
+      ClassVars serverClassVars;
 
-        success = false;
-        try {
-            SKAdmin            skAdmin;
-            SKGridConfiguration    gc;
-            SKAdminCommand[]    commands;
-
-            LWTPoolProvider.createDefaultWorkPools();
-            LWTThreadUtil.setLWTThread();
-
-            options.fillDefaultOptions();
-            options.sanityCheckOptions();
-
-            if (skConfigOverride != null) {
-                gc = skConfigOverride;
-            } else if (options.gridConfigBase != null) {
-                gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
-            } else {
-                gc = SKGridConfiguration.parseFile(options.gridConfig);
-            }
-            // For now, redirection is handled by the launching script.
-            // We will probably move this to use below in the future.
-            //LogStreamConfig.configureLogStreams(gc, logFileName);
-
-            if (options.forceInclusionOfUnsafeExcludedServers) {
-                Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss", options.unsafeWarningCountdownSecs);
-            }
-
-            skAdmin = new SKAdmin(gc, options);
-            commands = SKAdminCommand.parseCommands(options.commands);
-            success = skAdmin.execCommand(commands);
-
-            Log.warning("SKAdmin exiting success="+ success);
-            
-            if (options.sleepForeverOnCompletion) {
-                System.out.println("sleeping forever");
-                ThreadUtil.sleepForever();
-            }
-        } catch (IneligibleServerException ise) {
-            throw ise;
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(-1);
+      serverClassVars = getServerClassVars(server, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames,
+          hostGroupToClassVars);
+      if (serverClassVars != null) {
+        switch (command) {
+        case StartNodes:
+          rawServerCommand = createStartCommand(dhtConfig, serverClassVars, options);
+          break;
+        case StopNodes:
+          rawServerCommand = createStopCommand(dhtConfig, serverClassVars);
+          break;
+        case ClearInstanceExclusionsData:
+        case ClearData:
+          clearNamespaceOptionsData();
+          rawServerCommand = createClearDataCommand(dhtConfig, serverClassVars);
+          break;
+        case StartSKFS:
+          if (options.destructive) {
+            throw new RuntimeException("Destructive StartSKFS not supported");
+          }
+        case CheckSKFS:
+          rawServerCommand = createCheckSKFSCommand(dhtConfig, serverClassVars);
+          break;
+        case StopSKFS:
+          rawServerCommand = createStopSKFSCommand(dhtConfig, serverClassVars);
+          break;
+        default:
+          throw new RuntimeException("Unsupported command: " + command);
         }
-        
-        if (exitOnCompletion) {
-            System.exit(success ? 0 : -1);
-        }
+        serverCommand = rawServerCommand.split("\\s+");
+        serverCommands.put(server, serverCommand);
+      }
     }
-    
-    /**
-     * This main method is the entry point for user who wishes to use SKAdmin as commandLine tool
-     * @param args commandLine args
-     */
-    public static void main(String[] args) {
-        SKAdminOptions    options = new SKAdminOptions();
-        CmdLineParser    parser = new CmdLineParser(options);
+    return serverCommands;
+  }
 
-        try {
-            parser.parseArgument(args);
-        } catch (CmdLineException cle) {
-            System.err.println(cle.getMessage());
-            parser.printUsage(System.err);
-            System.exit(-1);
-        }
-
-        runWithParsedOptions(options, null);
+  private void clearNamespaceOptionsData() {
+    NamespaceOptionsMode mode = dhtConfig.getNamespaceOptionsMode();
+    switch (mode) {
+    case ZooKeeper:
+      try {
+        new NamespaceOptionsClientZKImpl(gc).obliterateAllNsProperties();
+      } catch (Exception e) {
+        throw new RuntimeException(
+            "Execution of ClearData fails: cannot clear namespace options data in mode [" + mode + "]", e);
+      }
+      break;
+    case MetaNamespace:
+      // Do nothing for this impl
+      break;
+    default:
+      throw new RuntimeException("Unhandled nsOptionsMode: " + mode);
     }
+  }
+
+  private void displayCommandMap(Map<String, String[]> cmdMap) {
+    for (Map.Entry<String, String[]> cmdEntry : cmdMap.entrySet()) {
+      System.out.printf("%s\t%s\n", cmdEntry.getKey(), ArrayUtil.toString(cmdEntry.getValue(), ' '));
+    }
+  }
+
+  private ClassVars getServerClassVars(String server, HostGroupTable hostGroupTable, Set<String> activeHostGroupNames,
+      Set<String> passiveNodeHostGroupNames, Map<String, ClassVars> hostGroupToClassVars) {
+    if (options.explicitClassVarDef != null) {
+      return defaultClassVars.overrideWith(ClassVars.parse(options.explicitClassVarDef.replace(',', '\n'), 0));
+    } else {
+      Set<String> serverHostGroups;
+      Set<String> acceptableHostGroups;
+      String serverHostGroup;
+      Set<String> activeAndPassiveHostGroupNames;
+      ClassVars serverClassVars;
+
+      serverHostGroups = hostGroupTable.getHostGroups(server);
+      acceptableHostGroups = new HashSet<>(serverHostGroups);
+      activeAndPassiveHostGroupNames = new HashSet<>();
+      activeAndPassiveHostGroupNames.addAll(activeHostGroupNames);
+      activeAndPassiveHostGroupNames.addAll(passiveNodeHostGroupNames);
+      acceptableHostGroups.retainAll(activeAndPassiveHostGroupNames);
+      if (acceptableHostGroups.size() == 1) {
+        serverHostGroup = acceptableHostGroups.iterator().next();
+      } else if (acceptableHostGroups.size() > 1) {
+        // FUTURE - Could select a "best". For now, just pick the first.
+        Log.warning(server + " has more than one valid host group ");
+        serverHostGroup = acceptableHostGroups.iterator().next();
+      } else {
+        Log.warning(server + " has no valid host group ");
+        return defaultClassVars;
+      }
+      serverClassVars = hostGroupToClassVars.get(serverHostGroup);
+      if (serverClassVars != null) {
+        return defaultClassVars.overrideWith(serverClassVars);
+      } else {
+        Log.warning(server + " has no ClassVars for group " + serverHostGroup);
+        return defaultClassVars;
+      }
+    }
+  }
+
+  ///////////////////////////////////////////
+
+  public Pair<Set<IPAndPort>, Boolean> waitUntilRunning(Set<IPAndPort> activeNodes, int timeoutSeconds) {
+    DaemonStateZK daemonStateZK;
+    Map<IPAndPort, DaemonState> daemonState;
+
+    daemonStateZK = new DaemonStateZK(dhtMC);
+    daemonState = daemonStateZK.waitForQuorumState(activeNodes, DaemonState.RUNNING, timeoutSeconds, true);
+    Log.warningf("daemonState: %s", daemonState);
+    if (daemonState.isEmpty()) {
+      return new Pair<>(ImmutableSet.of(), true);
+    } else {
+      HashSet<IPAndPort> failedDaemons;
+      boolean running;
+
+      running = true;
+      failedDaemons = new HashSet<>();
+      for (IPAndPort activeNode : activeNodes) {
+        DaemonState ds;
+
+        ds = daemonState.get(activeNode);
+        System.out.printf("Node: %s\tstate: %s\n", activeNode, ds);
+        if (ds == null) {
+          failedDaemons.add(activeNode);
+          running = false;
+        } else {
+          if (ds != DaemonState.RUNNING) {
+            running = false;
+          }
+        }
+      }
+      return new Pair<>(failedDaemons, running);
+    }
+  }
+
+  ///////////////////////////////////////////
+
+  /**
+   * The exposed function to run SKAdmin's real business logic, this method is the entry point for user who wishes
+   * to use SKAdmin as library
+   *
+   * @param options          the <b>parsed<b/> SKAdminOptions object
+   * @param skConfigOverride the SKGridConfiguration object used for SKAdmin; if <b>null</b>, then SKAdmin will try
+   *                        to parse SKGridConfiguration from a config file defined in SKAdminOptions
+   *                         .gridConfigBase/gridConfig
+   */
+  public static void runWithParsedOptions(SKAdminOptions options, SKGridConfiguration skConfigOverride) {
+    boolean success;
+
+    success = false;
+    try {
+      SKAdmin skAdmin;
+      SKGridConfiguration gc;
+      SKAdminCommand[] commands;
+
+      LWTPoolProvider.createDefaultWorkPools();
+      LWTThreadUtil.setLWTThread();
+
+      options.fillDefaultOptions();
+      options.sanityCheckOptions();
+
+      if (skConfigOverride != null) {
+        gc = skConfigOverride;
+      } else if (options.gridConfigBase != null) {
+        gc = SKGridConfiguration.parseFile(new File(options.gridConfigBase), options.gridConfig);
+      } else {
+        gc = SKGridConfiguration.parseFile(options.gridConfig);
+      }
+      // For now, redirection is handled by the launching script.
+      // We will probably move this to use below in the future.
+      //LogStreamConfig.configureLogStreams(gc, logFileName);
+
+      if (options.forceInclusionOfUnsafeExcludedServers) {
+        Log.countdownWarning("Options requesting unsafe excluded servers. This may result in data loss",
+            options.unsafeWarningCountdownSecs);
+      }
+
+      skAdmin = new SKAdmin(gc, options);
+      commands = SKAdminCommand.parseCommands(options.commands);
+      success = skAdmin.execCommand(commands);
+
+      Log.warning("SKAdmin exiting success=" + success);
+
+      if (options.sleepForeverOnCompletion) {
+        System.out.println("sleeping forever");
+        ThreadUtil.sleepForever();
+      }
+    } catch (IneligibleServerException ise) {
+      throw ise;
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.exit(-1);
+    }
+
+    if (exitOnCompletion) {
+      System.exit(success ? 0 : -1);
+    }
+  }
+
+  /**
+   * This main method is the entry point for user who wishes to use SKAdmin as commandLine tool
+   *
+   * @param args commandLine args
+   */
+  public static void main(String[] args) {
+    SKAdminOptions options = new SKAdminOptions();
+    CmdLineParser parser = new CmdLineParser(options);
+
+    try {
+      parser.parseArgument(args);
+    } catch (CmdLineException cle) {
+      System.err.println(cle.getMessage());
+      parser.printUsage(System.err);
+      System.exit(-1);
+    }
+
+    runWithParsedOptions(options, null);
+  }
 }

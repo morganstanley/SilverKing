@@ -8,7 +8,7 @@ import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.util.PropertiesHelper;
 
 /**
- * Central repository for storage subsystem configuration parameters. 
+ * Central repository for storage subsystem configuration parameters.
  */
 public class StoreConfiguration {
     /*
@@ -31,45 +31,43 @@ public class StoreConfiguration {
     public static final int fileSegmentPKCTotalEntries = 1024;
     public static final int dataSegmentSizeBytes = 4 * 1024;
     */
-    
-    /**/
-    // production
-    
-    public static final int fileSegmentCacheCapacity;
-    public static final int ramSegmentSizeBytes = 64 * 1024 * 1024;
-    public static final int ramSegmentPKCSubTables = 4;
-    public static final int ramSegmentPKCEntriesPerBucket = 4;
-    //public static final int ramSegmentPKCTotalEntries = 1024;
-    public static final int ramSegmentPKCTotalEntries = 512 * 1024; // FIXME temp
-    public static final int ramSegmentPKCCuckooLimit = 128;
-    // long for the partial key 2 longs for the full ket in the vt + the value in the vt
-    public static final int indexSizeBytes = // verify
-            PKCReaderWriter.overheadBytes + SVTReaderWriter.overheadBytes + 
-            ramSegmentPKCTotalEntries * (3 * NumConversion.BYTES_PER_LONG + NumConversion.BYTES_PER_INT);
 
-    public static final WritableCuckooConfig   ramInitialCuckooConfig = 
-            new WritableCuckooConfig(ramSegmentPKCTotalEntries, ramSegmentPKCSubTables, 
-                                     ramSegmentPKCEntriesPerBucket, ramSegmentPKCCuckooLimit);
-    
-    public static final int fileSegmentPKCSubTables = 4;
-    public static final int fileSegmentPKCEntriesPerBucket = 4;
-    public static final int fileSegmentPKCTotalEntries = 1024;
-    public static final int fileSegmentPKCCuckooLimit = 128;
-    
-    public static final WritableCuckooConfig   fileInitialCuckooConfig = 
-            new WritableCuckooConfig(fileSegmentPKCTotalEntries, fileSegmentPKCSubTables, 
-                                     fileSegmentPKCEntriesPerBucket, fileSegmentPKCCuckooLimit);
-    
-    public static final int dataSegmentSizeBytes = 64 * 1024 * 1024;
-    
-    static {
-        int _fileSegmentCacheCapacity;
-        
-        _fileSegmentCacheCapacity = PropertiesHelper.systemHelper.getInt(DHTConstants.fileSegmentCacheCapacityProperty, DHTConstants.defaultFileSegmentCacheCapacity);
-        if (_fileSegmentCacheCapacity == DHTConstants.noCapacityLimit) {
-            fileSegmentCacheCapacity = Integer.MAX_VALUE;
-        } else {
-            fileSegmentCacheCapacity = _fileSegmentCacheCapacity;
-        }
+  /**/
+  // production
+
+  public static final int fileSegmentCacheCapacity;
+  public static final int ramSegmentSizeBytes = 64 * 1024 * 1024;
+  public static final int ramSegmentPKCSubTables = 4;
+  public static final int ramSegmentPKCEntriesPerBucket = 4;
+  //public static final int ramSegmentPKCTotalEntries = 1024;
+  public static final int ramSegmentPKCTotalEntries = 512 * 1024; // FIXME temp
+  public static final int ramSegmentPKCCuckooLimit = 128;
+  // long for the partial key 2 longs for the full ket in the vt + the value in the vt
+  public static final int indexSizeBytes = // verify
+      PKCReaderWriter.overheadBytes + SVTReaderWriter.overheadBytes + ramSegmentPKCTotalEntries * (3 * NumConversion.BYTES_PER_LONG + NumConversion.BYTES_PER_INT);
+
+  public static final WritableCuckooConfig ramInitialCuckooConfig = new WritableCuckooConfig(ramSegmentPKCTotalEntries,
+      ramSegmentPKCSubTables, ramSegmentPKCEntriesPerBucket, ramSegmentPKCCuckooLimit);
+
+  public static final int fileSegmentPKCSubTables = 4;
+  public static final int fileSegmentPKCEntriesPerBucket = 4;
+  public static final int fileSegmentPKCTotalEntries = 1024;
+  public static final int fileSegmentPKCCuckooLimit = 128;
+
+  public static final WritableCuckooConfig fileInitialCuckooConfig = new WritableCuckooConfig(
+      fileSegmentPKCTotalEntries, fileSegmentPKCSubTables, fileSegmentPKCEntriesPerBucket, fileSegmentPKCCuckooLimit);
+
+  public static final int dataSegmentSizeBytes = 64 * 1024 * 1024;
+
+  static {
+    int _fileSegmentCacheCapacity;
+
+    _fileSegmentCacheCapacity = PropertiesHelper.systemHelper.getInt(DHTConstants.fileSegmentCacheCapacityProperty,
+        DHTConstants.defaultFileSegmentCacheCapacity);
+    if (_fileSegmentCacheCapacity == DHTConstants.noCapacityLimit) {
+      fileSegmentCacheCapacity = Integer.MAX_VALUE;
+    } else {
+      fileSegmentCacheCapacity = _fileSegmentCacheCapacity;
     }
+  }
 }

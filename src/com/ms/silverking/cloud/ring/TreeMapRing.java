@@ -1,6 +1,5 @@
 package com.ms.silverking.cloud.ring;
 
-
 public class TreeMapRing<K, T> {//implements Ring<K, T> {
     /*
     private final TreeMap<K, T>    ringMap;

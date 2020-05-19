@@ -1,9 +1,9 @@
 package com.ms.silverking.cloud.dht.common;
 
-
 public interface Put {
-    public DHTKey getKey();
-    public Version getVersion();
+  public DHTKey getKey();
+
+  public Version getVersion();
     /*
     private final Namespace ns;
     private final DHTKey    key;

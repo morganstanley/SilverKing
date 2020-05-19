@@ -10,12 +10,19 @@ import com.ms.silverking.net.IPAndPort;
  * Provides external non-protocol specific functionality that is required by Operations.
  */
 public interface OperationContainer {
-    public IPAndPort localIPAndPort();
-    public boolean isLocalReplica(IPAndPort replica);
-    public boolean containsLocalReplica(List<IPAndPort> replicas);
-    public StorageModule getStorage();
-    public long getContext();
-    public byte[] getValueCreator();
-    public int getNumEntries();
-    public OpResult getOpResult();
+  public IPAndPort localIPAndPort();
+
+  public boolean isLocalReplica(IPAndPort replica);
+
+  public boolean containsLocalReplica(List<IPAndPort> replicas);
+
+  public StorageModule getStorage();
+
+  public long getContext();
+
+  public byte[] getValueCreator();
+
+  public int getNumEntries();
+
+  public OpResult getOpResult();
 }

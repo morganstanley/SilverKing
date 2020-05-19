@@ -10,14 +10,14 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 
 public class EnumValues {
-    public static final VersionConstraint.Mode[]    versionConstraint_Mode = VersionConstraint.Mode.values();
-    public static final ChecksumType[]  checksumType = ChecksumType.values();
-    public static final Compression[]  compression = Compression.values();
-    public static final MessageType[]  messageType = MessageType.values();
-    public static final OpResult[]  opResult = OpResult.values();
-    public static final ForwardingMode[]  forwardingMode = ForwardingMode.values();
-    public static final ConsistencyProtocol[]  consistencyProtocol = ConsistencyProtocol.values();
-    public static final RetrievalType[]  retrievalType = RetrievalType.values();
-    public static final WaitMode[]  waitMode = WaitMode.values();
-    public static final OwnerQueryMode[]  ownerQueryMode = OwnerQueryMode.values();
+  public static final VersionConstraint.Mode[] versionConstraint_Mode = VersionConstraint.Mode.values();
+  public static final ChecksumType[] checksumType = ChecksumType.values();
+  public static final Compression[] compression = Compression.values();
+  public static final MessageType[] messageType = MessageType.values();
+  public static final OpResult[] opResult = OpResult.values();
+  public static final ForwardingMode[] forwardingMode = ForwardingMode.values();
+  public static final ConsistencyProtocol[] consistencyProtocol = ConsistencyProtocol.values();
+  public static final RetrievalType[] retrievalType = RetrievalType.values();
+  public static final WaitMode[] waitMode = WaitMode.values();
+  public static final OwnerQueryMode[] ownerQueryMode = OwnerQueryMode.values();
 }

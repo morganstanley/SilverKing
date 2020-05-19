@@ -2,101 +2,97 @@ package com.ms.silverking.cloud.dht.collection;
 
 import com.ms.silverking.numeric.NumConversion;
 
-
 final class SimpleValueTable implements ValueTable {
-    private final long[]    keys;
-    private final int[]     values;
-    private int nextEntry;
-    
-    private static final int    mslOffset = 0;
-    private static final int    lslOffset = 1;
-    private static final int    entrySize = 2;
-    
-    SimpleValueTable(long[] keys, int[] values) {
-        this.keys = keys;
-        this.values = values;
-    }
-    
-    public SimpleValueTable(int numKeys) {
-        this(new long[numKeys * entrySize], 
-             new int[numKeys]);
-    }
-    
-    @Override
-    public int getSizeBytes() {
-        return keys.length * NumConversion.BYTES_PER_LONG
-             + values.length * NumConversion.BYTES_PER_INT;
-    }
-    
-    public void clear() {
-        for (int i = 0; i < values.length; i++) {
-            values[i] = 0;
-            keys[i * 2] = 0;
-            keys[i * 2 + 1] = 0;
-        }
-        nextEntry = 0;
-    }
-    
-    @Override
-    public int add(long msl, long lsl, int value) {
-        int index;
-        
-        index = nextEntry++;
-        store(index, msl, lsl, value);
-        return index;
-    }
-    
-    @Override
-    public void store(int index, long msl, long lsl, int value) {
-        int baseOffset;
-        
-        baseOffset = index * entrySize;
-        keys[baseOffset + mslOffset] = msl;
-        keys[baseOffset + lslOffset] = lsl;
-        values[index] = value;
-        //System.out.printf("store values[%d]\t%d\n", index, values[index]);
-    }
+  private final long[] keys;
+  private final int[] values;
+  private int nextEntry;
 
-    @Override
-    public int matches(int index, long msl, long lsl) {
-        int baseOffset;
-        
-        baseOffset = index * entrySize;
-        if (keys[baseOffset + mslOffset] == msl
-            && keys[baseOffset + lslOffset] == lsl) {
-          return values[index];  
-        } else {
-            return noMatch;
-        }
-    }
+  private static final int mslOffset = 0;
+  private static final int lslOffset = 1;
+  private static final int entrySize = 2;
 
-    @Override
-    public long getMSL(int index) {
-        int baseOffset;
-        
-        baseOffset = index * entrySize;
-        return keys[baseOffset + mslOffset];
-    }
+  SimpleValueTable(long[] keys, int[] values) {
+    this.keys = keys;
+    this.values = values;
+  }
 
-    @Override
-    public long getLSL(int index) {
-        int baseOffset;
-        
-        baseOffset = index * entrySize;
-        return keys[baseOffset + lslOffset];
+  public SimpleValueTable(int numKeys) {
+    this(new long[numKeys * entrySize], new int[numKeys]);
+  }
+
+  @Override
+  public int getSizeBytes() {
+    return keys.length * NumConversion.BYTES_PER_LONG + values.length * NumConversion.BYTES_PER_INT;
+  }
+
+  public void clear() {
+    for (int i = 0; i < values.length; i++) {
+      values[i] = 0;
+      keys[i * 2] = 0;
+      keys[i * 2 + 1] = 0;
     }
-    
-    @Override
-    public int getValue(int index) {
-        //System.out.printf("getValue values[%d]\t%d\n", index, values[index]);
-        return values[index];
+    nextEntry = 0;
+  }
+
+  @Override
+  public int add(long msl, long lsl, int value) {
+    int index;
+
+    index = nextEntry++;
+    store(index, msl, lsl, value);
+    return index;
+  }
+
+  @Override
+  public void store(int index, long msl, long lsl, int value) {
+    int baseOffset;
+
+    baseOffset = index * entrySize;
+    keys[baseOffset + mslOffset] = msl;
+    keys[baseOffset + lslOffset] = lsl;
+    values[index] = value;
+    //System.out.printf("store values[%d]\t%d\n", index, values[index]);
+  }
+
+  @Override
+  public int matches(int index, long msl, long lsl) {
+    int baseOffset;
+
+    baseOffset = index * entrySize;
+    if (keys[baseOffset + mslOffset] == msl && keys[baseOffset + lslOffset] == lsl) {
+      return values[index];
+    } else {
+      return noMatch;
     }
-    
-    long[] getKeys() {
-        return keys;
-    }
-    
-    int[] getValues() {
-        return values;
-    }
+  }
+
+  @Override
+  public long getMSL(int index) {
+    int baseOffset;
+
+    baseOffset = index * entrySize;
+    return keys[baseOffset + mslOffset];
+  }
+
+  @Override
+  public long getLSL(int index) {
+    int baseOffset;
+
+    baseOffset = index * entrySize;
+    return keys[baseOffset + lslOffset];
+  }
+
+  @Override
+  public int getValue(int index) {
+    //System.out.printf("getValue values[%d]\t%d\n", index, values[index]);
+    return values[index];
+  }
+
+  long[] getKeys() {
+    return keys;
+  }
+
+  int[] getValues() {
+    return values;
+  }
 }
