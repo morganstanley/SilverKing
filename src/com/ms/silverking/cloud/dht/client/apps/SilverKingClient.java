@@ -40,8 +40,6 @@ import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.SimpleSessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.StoredValue;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
-import com.ms.silverking.cloud.dht.client.apps.SilverKingClient.ValueFormat;
-import com.ms.silverking.cloud.dht.client.apps.SilverKingClient.ValueMapDisplay;
 import com.ms.silverking.cloud.dht.client.crypto.AESEncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
