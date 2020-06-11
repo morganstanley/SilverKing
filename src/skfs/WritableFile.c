@@ -179,13 +179,13 @@ void wf_create_attribute(FileAttr *fa, mode_t mode) {
     fa->stat.st_blksize = SRFS_BLOCK_SIZE;
 }
 
-WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
-                     AttrWriter *aw, FileAttr *fa, PartialBlockReader *pbr,
-                     int *retryFlag) {
+WFCreationResult wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
+                     AttrWriter *aw, FileAttr *fa, int64_t createdVersion, 
+                     PartialBlockReader *pbr, int *retryFlag) {
     WritableFile    *wf;
+    WFCreationResult    wfcr;
     struct timespec tp;
     struct fuse_context    *fuseContext;    
-    SKOperationState::SKOperationState    awResult;
     time_t  curEpochTimeSeconds;
     long    curTimeNanos;
     pthread_mutexattr_t mutexAttr;
@@ -201,6 +201,7 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
     wf->magic = WF_MAGIC;
     wf->path = str_dup(path);
     wf->htl = htl;
+    wf->createdVersion = createdVersion;
     
     if (clock_gettime(CLOCK_REALTIME, &tp)) {
         fatalError("clock_gettime failed", __FILE__, __LINE__);
@@ -208,12 +209,26 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
     curEpochTimeSeconds = tp.tv_sec;
     curTimeNanos = tp.tv_nsec;
     
-    if (fa == NULL) {            
+    if (fa == NULL) {       
+        // In this case, we will set wf->createdVersion = awResult.storedVersion below
+        if (createdVersion != 0) {
+            fatalError("fa == NULL, but createdVersion != 0");
+        }
         wf_create_attribute(&wf->fa, mode);
         wf_new_block(wf);
         wf->blockList = abl_new(WF_INITIAL_BLOCK_SIZE, WF_MAX_BLOCK_SIZE, WF_BLOCK_INCREMENT, TRUE);
         wf_sanityCheckNumBlocks(wf, __FILE__, __LINE__);
     } else {
+        // In this case, we set (above) wf->createdVersion = createdVersion passed in
+        if (createdVersion == 0) {
+            fatalError("fa != NULL, but createdVersion == 0");
+        }
+        if (createdVersion == WF_IGNORE_CREATED_VERSION) {
+            // Exceptional case:
+            // only used for cases where a file was created externally, but
+            // we don't have creation information
+            createdVersion = 0;
+        }
         memcpy(&wf->fa, fa, sizeof(FileAttr));
         wf->numBlocks = wf->fa.stat.st_size / SRFS_BLOCK_SIZE + 1;
         
@@ -226,7 +241,10 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
             if (retryFlag != NULL) {
                 *retryFlag = TRUE;
             }
-            return NULL; // FIXME - FREE RESOURCES...
+            wfcr.wf = NULL;
+            wfcr.createdVersion = 0;
+            return wfcr; // FIXME - FREE RESOURCES - UPDATE: shouldn't be needed 
+                         // as this block should never be encountered. see above
         }
         wf->blockList = abl_new(WF_INITIAL_BLOCK_SIZE, WF_MAX_BLOCK_SIZE, WF_BLOCK_INCREMENT, TRUE);
         wf_init_blockList(wf, wf->numBlocks - 1);
@@ -246,24 +264,33 @@ WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl,
     if (ar_store_attr_in_cache_static((char *)wf->path, &wf->fa, TRUE, curSKTimeNanos(),
             SKFS_DEF_ATTR_TIMEOUT_SECS * 1000) != CACHE_STORE_SUCCESS) {
         wf_delete(&wf); // sets wf to NULL
-    }
-    
-    if (fa == NULL) {
-        SKFailureCause::SKFailureCause  awFailureCause;
-        
-        // We are creating a new file; acquire a lock
-        awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, NULL, 1 /* one write attempt*/, 
-                                        &awFailureCause, 
-                                        SKPutOptions::previousVersionNonexistentOrInvalid(),
-                                        _WF_UPDATE_LOCK_SECONDS);
-        if (awResult != SKOperationState::SUCCEEDED) {
-            srfsLog(LOG_ERROR, "Couldn't write attribute for %s due to %d %d", path, awResult, awFailureCause);
-            wf_delete(&wf); // sets wf to NULL
+    } else {    
+        if (fa == NULL) {
+            SKFailureCause::SKFailureCause  awFailureCause;
+            AWWriteResult    awResult;
+            
+            // We are creating a new file; acquire a lock
+            awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, NULL, 1 /* one write attempt*/, 
+                                            &awFailureCause, 
+                                            SKPutOptions::previousVersionNonexistentOrInvalid(),
+                                            _WF_UPDATE_LOCK_SECONDS);
+            if (awResult.operationState != SKOperationState::SUCCEEDED) {
+                srfsLog(LOG_ERROR, "Couldn't write attribute for %s due to %d %d", path, awResult.operationState, awFailureCause);
+                wf_delete(&wf); // sets wf to NULL
+            } else {
+                wf->createdVersion = awResult.storedVersion;
+            }
+        } else {
+            // We have been given an fa; therefore, a lock has already been acquired
         }
-    } else {
-        // We have been given an fa; therefore, a lock has already been acquired
     }
-    return wf;
+    wfcr.wf = wf;
+    if (wf != NULL) {
+        wfcr.createdVersion = wf->createdVersion;
+    } else {
+        wfcr.createdVersion = 0;
+    }
+    return wfcr;
 }
 
 static int wf_init_cur_block(WritableFile *wf, PartialBlockReader *pbr) {
@@ -729,7 +756,7 @@ static int _wf_flush(WritableFile *wf, AttrWriter *aw, FileBlockWriter *fbw, Att
 }
 
 static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int cacheOnly, int lockSeconds) {
-    SKOperationState::SKOperationState    awResult;
+    AWWriteResult    awResult;
     time_t    curTimeSeconds;
     long    curTimeNanos;
     struct timespec tp;
@@ -766,10 +793,10 @@ static int wf_update_attr(WritableFile *wf, AttrWriter *aw, AttrCache *ac, int c
         //aw_write_attr(aw, wf->path, &wf->fa); // old queued async write
         // Write out attribute information & wait for the write to complete
         awResult = aw_write_attr_direct(aw, wf->path, &wf->fa, ac, WF_ATTR_WRITE_MAX_ATTEMPTS, NULL, AW_NO_REQUIRED_PREV_VERSION, lockSeconds);
-        srfsLog(LOG_FINE, "wf_update_attr %s aw_write result %d\n", wf->path, awResult);
-        if (awResult != SKOperationState::SUCCEEDED) {
+        srfsLog(LOG_FINE, "wf_update_attr %s awResult.operationState result %d\n", wf->path, awResult.operationState);
+        if (awResult.operationState != SKOperationState::SUCCEEDED) {
             result = EIO;
-        }    
+        }
     }
    
     return result;

@@ -31,7 +31,7 @@
 ////////////
 // defines
 
-#define DDR_UPDATE_INTERVAL_MILLIS    (1 * 1000)
+#define DDR_UPDATE_INTERVAL_MILLIS    (10)
 #define _DDR_UPDATE_OP_TIMEOUT_MS (5 * 60 * 1000)
 #define _DDR_READ_OP_TIMEOUT_MS (20 * 60 * 1000)
 

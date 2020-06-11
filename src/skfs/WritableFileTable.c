@@ -75,12 +75,14 @@ static HashTableAndLock *wft_get_htl(WritableFileTable *wft, const char *path) {
     return &(wft->htl[stringHash((void *)path) % WFT_NUM_HT]);
 }
 
-WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *name, mode_t mode, 
-                                      FileAttr *fa, PartialBlockReader *pbr, int *retryFlag) {
+WFT_WFCreationResult wft_create_new_file(WritableFileTable *wft, const char *name, mode_t mode, 
+                                      FileAttr *fa, int64_t createdVersion, PartialBlockReader *pbr, int *retryFlag) {
     HashTableAndLock    *htl;
     WritableFile        *existingWF;
     WritableFileReference    *wf_userRef;
+    WFT_WFCreationResult    wft_wfcr;
     
+    wft_wfcr.wfr = NULL;
     wf_userRef = NULL;
     htl = wft_get_htl(wft, name);
     pthread_rwlock_wrlock(&htl->rwLock);
@@ -88,16 +90,20 @@ WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *n
     if (existingWF != NULL) {
         srfsLog(LOG_INFO, "Found existing wft entry %s", name);
         wf_userRef = NULL;
+        wft_wfcr.createdVersion = 0;
     } else {        
-        WritableFile        *createdWF;
+        WFCreationResult  wfcr;
     
         // wf_new can issue remove ops; we must drop the wft lock 
         // to avoid blocking wft access while the op proceeds
         pthread_rwlock_unlock(&htl->rwLock);
-        createdWF = wf_new(name, mode, htl, wft->aw, fa, pbr, retryFlag);
-        if (createdWF == NULL) {
+        wfcr = wf_new(name, mode, htl, wft->aw, fa, createdVersion, pbr, retryFlag);
+        wft_wfcr.createdVersion = wfcr.createdVersion;
+        if (wfcr.wf == NULL) {
             // creation failed; no lock held; exit
-            return NULL;
+            wft_wfcr.wfr = NULL;
+            wft_wfcr.createdVersion = 0;
+            return wft_wfcr;
         } else {
             // We must now reacquire the lock and check to see if 
             // the wf was placed in while we didn't have the lock
@@ -105,18 +111,19 @@ WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *n
             existingWF = (WritableFile *)hashtable_search(htl->ht, (void *)name); 
             if (existingWF != NULL) {
                 srfsLog(LOG_INFO, "Found existing wft entry on recheck %s", name);
-                wf_delete(&createdWF); // delete directly as no refs exist
+                wf_delete(&wfcr.wf); // delete directly as no refs exist
             } else {
-                // No existingWF found on recheck; use the createdWF
-                srfsLog(LOG_INFO, "Inserting new wft entry ht %llx name %s createdWF %llx", 
-                                  htl->ht, name, createdWF);
-                hashtable_insert(htl->ht, (void *)str_dup_no_dbg(name), createdWF);
-                wf_userRef = wf_add_reference(createdWF, __FILE__, __LINE__);
+                // No existingWF found on recheck; use the wfcr.wf
+                srfsLog(LOG_INFO, "Inserting new wft entry ht %llx name %s wfcr.wf %llx", 
+                                  htl->ht, name, wfcr.wf);
+                hashtable_insert(htl->ht, (void *)str_dup_no_dbg(name), wfcr.wf);
+                wf_userRef = wf_add_reference(wfcr.wf, __FILE__, __LINE__);
             }
         }
     }
     pthread_rwlock_unlock(&htl->rwLock);
-    return wf_userRef;
+    wft_wfcr.wfr = wf_userRef;
+    return wft_wfcr;
 }
 
 WritableFileReference *wft_get(WritableFileTable *wft, const char *name) {
@@ -194,7 +201,7 @@ WritableFileReference *wft_remove(WritableFileTable *wft, const char *name) {
 // FUTURE - Consider moving this out of wft. No wft is currently used,
 // but wft contains locks for controlling file creation.
 int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt, int deleteBlocks) {
-    SKOperationState::SKOperationState    awResult;
+    AWWriteResult    awResult;
     int result;    
     FileAttr _fa;
     FileAttr *fa;
@@ -239,11 +246,41 @@ int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt,
                     }
                 }
                 
+                // In present approach, we don't need to hold a lock during directory update as the attribute is definitive. 
+                // If the attribute write succeeds, then we must update the directory to match the attribute - using the
+                // stored attribute version.
+                awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS,
+                                                &skFailureCause, arReadAttrDirectResult.metaData->getVersion(), 0);
+                if (awResult.operationState != SKOperationState::SUCCEEDED) {
+                    srfsLog(LOG_WARNING, "awResult.operationState != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult.operationState, skFailureCause, __FILE__, __LINE__);
+                    // Handle failure
+                    if (skFailureCause == SKFailureCause::INVALID_VERSION) {
+                        result = -ENOLCK;
+                    } else if (skFailureCause == SKFailureCause::LOCKED) {
+                        result = -ENOLCK;
+                    } else {
+                        result = -EIO;
+                    }
+                } else {
+                    // Remove from the parent directory
+                    if (odt_rm_entry_from_parent_dir(odt, (char *)name, awResult.storedVersion)) {
+                        // Couldn't remove the entry in the parent. Allow the lock to timeout (rather than immediately unlocking)
+                        // FUTURE - consider attempting to backout the deletion
+                        srfsLog(LOG_WARNING, "Couldn't rm entry in parent for %s  %s %d", name, __FILE__, __LINE__);
+                        result = -EIO;
+                    } else {
+                        result = 0;
+                    }
+                }
+                
+                
+                /*
+                Deprecated. Remove when new code is stable.
                 // Write lock the attr so that we can both delete the attribute and remove the directory entry
                 awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS,
                                                 &skFailureCause, arReadAttrDirectResult.metaData->getVersion(), WFT_DELETION_OP_LOCK_SECONDS);
-                if (awResult != SKOperationState::SUCCEEDED) {
-                    srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, skFailureCause, __FILE__, __LINE__);
+                if (awResult.operationState != SKOperationState::SUCCEEDED) {
+                    srfsLog(LOG_WARNING, "awResult.operationState != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult.operationState, skFailureCause, __FILE__, __LINE__);
                     // Handle failure
                     if (skFailureCause == SKFailureCause::INVALID_VERSION) {
                         result = -ENOLCK;
@@ -254,7 +291,7 @@ int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt,
                     }
                 } else {
                     // We have a lock on the attribute. Remove from the parent directory
-                    if (odt_rm_entry_from_parent_dir(odt, (char *)name)) {
+                    if (odt_rm_entry_from_parent_dir(odt, (char *)name, awResult.storedVersion)) {
                         // Couldn't remove the entry in the parent. Allow the lock to timeout (rather than immediately unlocking)
                         // FUTURE - consider attempting to backout the deletion
                         srfsLog(LOG_WARNING, "Couldn't rm entry in parent for %s  %s %d", name, __FILE__, __LINE__);
@@ -265,9 +302,9 @@ int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt,
                         // Not specifying required previous version as we already have a lock.
                         // (Getting the actual previous version would entail another attribute fetch.)
                         awResult = aw_write_attr_direct(wft->aw, name, fa_get_deletion_fa(), wft->ac, WFT_ATTR_WRITE_MAX_ATTEMPTS, &skFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
-                        srfsLog(LOG_FINE, "wft_delete_file %s aw_write result %d\n", name, awResult);
-                        if (awResult != SKOperationState::SUCCEEDED) {
-                            srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, skFailureCause, __FILE__, __LINE__);
+                        srfsLog(LOG_FINE, "wft_delete_file %s aw_write result %d\n", name, awResult.operationState);
+                        if (awResult.operationState != SKOperationState::SUCCEEDED) {
+                            srfsLog(LOG_WARNING, "awResult.operationState != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult.operationState, skFailureCause, __FILE__, __LINE__);
                             result = -EIO;
                         } else {
                             if (deleteBlocks) {
@@ -278,6 +315,7 @@ int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt,
                         }
                     }
                 }
+                */
             }
         }        
     }

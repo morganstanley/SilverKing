@@ -68,7 +68,7 @@ static QueueProcessor    *logQP;
 ///////////////////////
 // private prototypes
 
-static void cv_wait_abs_given_time(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline, uint64_t currentTime);
+static int cv_wait_abs_given_time(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline, uint64_t currentTime);
 static void log_process_batch(void **logEntries, int numLogEntries, int curThreadIndex);
 
 
@@ -497,12 +497,12 @@ void cv_destroy(pthread_cond_t **cvPtr) {
     *cvPtr = NULL;
 }
 
-void cv_wait_rel(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t interval) {
-    cv_wait_abs(mutex, cv, curTimeMillis() + interval);
+int cv_wait_rel(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t interval) {
+    return cv_wait_abs(mutex, cv, curTimeMillis() + interval);
 }
 
-void cv_wait_abs(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline) {
-    cv_wait_abs_given_time(mutex, cv, deadline, curTimeMillis());
+int cv_wait_abs(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline) {
+    return cv_wait_abs_given_time(mutex, cv, deadline, curTimeMillis());
 }
 
 static void millis_to_timespec(struct timespec *ts, uint64_t millis) {
@@ -511,16 +511,21 @@ static void millis_to_timespec(struct timespec *ts, uint64_t millis) {
     ts->tv_nsec = (millis % 1000) * 1000000;
 }
 
-static void cv_wait_abs_given_time(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline, uint64_t currentTime) {
+static int cv_wait_abs_given_time(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline, uint64_t currentTime) {
+    int rVal;
+    
     srfsLog(LOG_FINE, "cv_wait_abs %llu %llu", deadline, currentTime);
     if (deadline > currentTime) {
         struct timespec    ts;
 
         millis_to_timespec(&ts, deadline);
         srfsLog(LOG_FINE, "pthread_cond_timedwait %d %d", ts.tv_sec, ts.tv_nsec);
-        pthread_cond_timedwait(cv, mutex, &ts);
+        rVal = pthread_cond_timedwait(cv, mutex, &ts);
+    } else {
+        rVal = -ETIMEDOUT;
     }
     srfsLog(LOG_FINE, "out cv_wait_abs");
+    return rVal;
 }
 
 // string utilities

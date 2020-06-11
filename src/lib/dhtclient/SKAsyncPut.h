@@ -1,10 +1,3 @@
-/**
-*
-* $Header: $
-* $Change: $
-* $DateTime: $
-*/
-
 #ifndef SKASYNCPUT_H
 #define SKASYNCPUT_H
 
@@ -24,9 +17,11 @@ class SKAsyncPut: public SKAsyncKeyedOperation
 public:
     SKAPI virtual ~SKAsyncPut();
 
-       SKAsyncPut(AsyncPut * pAsyncPut);
+    SKAsyncPut(AsyncPut * pAsyncPut);
     void * getPImpl();
+    SKAPI virtual int64_t getStoredVersion();
 protected:
+    AsyncPut * pImpl;
     SKAsyncPut();
     SKAsyncPut(const SKAsyncPut & );
     const SKAsyncPut& operator= (const SKAsyncPut & );

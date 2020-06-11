@@ -214,10 +214,10 @@ static void aw_process_dht_batch(void **requests, int numRequests, int curThread
     srfsLog(LOG_FINE, "out aw_process_dht_batch");
 }
 
-SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, 
+AWWriteResult aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, 
                                         AttrCache *ac, int maxAttempts, SKFailureCause::SKFailureCause *cause, 
                                         int64_t requiredPreviousVersion, int16_t lockSeconds) {
-    SKOperationState::SKOperationState    result;
+    AWWriteResult    result;
     SKVal        *pVal;
     SKAsyncPut    *pPut;
     int            attempt;
@@ -227,9 +227,10 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
     SKPutOptions    *putOptions = NULL;
     SKInvalidationOptions    *invalidationOptions = NULL;
     
+    result.operationState = SKOperationState::FAILED;
+    result.storedVersion = 0;
     seedp = 0;
     srfsLog(LOG_FINE, "in aw_write_attr_direct");
-    pPut = NULL;
     pVal = sk_create_val();
     sk_set_val_zero_copy(pVal, sizeof(FileAttr), (void *)fa);
     srfsLog(LOG_FINE, "aw_write_attr_direct path %s pVal->m_len %u", path, pVal->m_len);    
@@ -238,6 +239,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
     invalidVersion = FALSE;
     
     do {
+        pPut = NULL;
         try {
             if (fa != fa_get_deletion_fa()) {
                 if (lockSeconds > 0 || requiredPreviousVersion != AW_NO_REQUIRED_PREV_VERSION) {
@@ -269,10 +271,11 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
                 }
             }
             pPut->waitForCompletion();
-            result = pPut->getState();
+            result.operationState = pPut->getState();
+            result.storedVersion = pPut->getStoredVersion();
         } catch (exception &e) {
             srfsLog(LOG_WARNING, "aw_write_attr_direct exception %s", e.what());
-            result = SKOperationState::FAILED;
+            result.operationState = SKOperationState::FAILED;
             if (cause != NULL) {
                 *cause = pPut->getFailureCause();
                 if (*cause == SKFailureCause::INVALID_VERSION) {
@@ -283,8 +286,9 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
         }    
         if (pPut) {
             delete pPut;
+            pPut = NULL;
         }
-        if (result != SKOperationState::SUCCEEDED) {
+        if (result.operationState != SKOperationState::SUCCEEDED) {
             if (attempt > 1) {
                 int    minSleepMillis;
                 int    maxSleepMillis;
@@ -304,17 +308,17 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
             }
         }
         ++attempt;
-    } while (result != SKOperationState::SUCCEEDED && !invalidVersion && attempt < maxAttempts);
+    } while (result.operationState != SKOperationState::SUCCEEDED && !invalidVersion && attempt < maxAttempts);
     pVal->m_pVal = NULL;
     sk_destroy_val(&pVal);
-    if (result == SKOperationState::SUCCEEDED && ac != NULL) {
+    if (result.operationState == SKOperationState::SUCCEEDED && ac != NULL) {
         CacheStoreResult    acResult;
         
         acResult = ac_store_raw_data(ac, (char *)path, fa_dup(fa), TRUE, 
                                 writeTimeNanos, SKFS_DEF_ATTR_TIMEOUT_SECS * 1000);
         if (acResult != CACHE_STORE_SUCCESS) {
             srfsLog(LOG_ERROR, "ac_store_raw_data_failed with %d for %s at %s %d", acResult, path, __FILE__, __LINE__);
-            result = SKOperationState::FAILED;
+            result.operationState = SKOperationState::FAILED;
         }
     }
     if (putOptions != NULL) {
@@ -323,7 +327,7 @@ SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const ch
     if (invalidationOptions != NULL) {
         delete invalidationOptions;
     }
-    srfsLog(LOG_FINE, "out aw_write_attr_direct %d", result);
+    srfsLog(LOG_FINE, "out aw_write_attr_direct %d %l", result.operationState, result.storedVersion);
     return result;
 }
 

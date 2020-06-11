@@ -34,6 +34,11 @@ typedef struct AttrWriter {
     SKInvalidationOptions *defaultInvalidationOptions;
 } AttrWriter;
 
+typedef struct AWWriteResult {
+    SKOperationState::SKOperationState  operationState;
+    int64_t storedVersion;
+} AWWriteResult;
+
 
 ///////////////
 // prototypes
@@ -41,7 +46,7 @@ typedef struct AttrWriter {
 AttrWriter *aw_new(SRFSDHT *sd);
 void aw_delete(AttrWriter **aw);
 void aw_write_attr(AttrWriter *aw, const char *path, FileAttr *fa);
-SKOperationState::SKOperationState aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, 
+AWWriteResult aw_write_attr_direct(AttrWriter *aw, const char *path, FileAttr *fa, 
                                         AttrCache *ac = NULL, int maxAttempts = 1, SKFailureCause::SKFailureCause *cause = NULL,
                                         int64_t requiredPreviousVersion = AW_NO_REQUIRED_PREV_VERSION, int16_t lockSeconds = 0);
 

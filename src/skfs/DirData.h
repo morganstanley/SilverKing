@@ -67,7 +67,7 @@ DirData *dd_new_empty();
 DirData *dd_new(SKVal *skVal);
 void dd_delete(DirData **dd);
 int dd_sanity_check(DirData *dd, int fatalErrorOnFailure = TRUE);
-int dd_sanity_check_full(DirData *dd, int fatalErrorOnFailure = TRUE);
+int dd_sanity_check_full(DirData *dd, int fatalErrorOnFailure = TRUE, int fullCheck = FALSE);
 size_t dd_length_with_header_and_index(DirData *dd);
 DirData *dd_fuse_fi_fh_to_dd(struct fuse_file_info *fi);
 DirData *dd_add_entries(DirData *dd, char **names, int numEntries);

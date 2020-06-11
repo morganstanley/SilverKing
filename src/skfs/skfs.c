@@ -186,6 +186,7 @@ typedef struct LockAttributeResult {
     int         result;
     FileAttrState        faState;
     FileAttr    fa;
+    int64_t     lockedVersion;
 } LockAttributeResult;
 
 typedef struct RenamePhase1Results {
@@ -784,13 +785,13 @@ static int _modify_file_attr(const char *path, char *fnName, mode_t *mode, uid_t
                     }
                     //srfsLog(LOG_WARNING, "%s %d", __FILE__, __LINE__);
                     
-                    SKOperationState::SKOperationState  writeResult;
+                    AWWriteResult  writeResult;
                     
                     writeResult = aw_write_attr_direct(aw, path, &fa, ar->attrCache,
                                         1, &skFailureCause,
                                         arReadAttrDirectResult.metaData->getVersion(), 0);
                     ar_delete_direct_read_result_contents(&arReadAttrDirectResult);
-                    if (writeResult != SKOperationState::SUCCEEDED) {
+                    if (writeResult.operationState != SKOperationState::SUCCEEDED) {
                         srfsLog(LOG_ERROR, "aw_write_attr_direct failed in %s %s %d", fnName, path, skFailureCause);
                         if (skFailureCause == SKFailureCause::INVALID_VERSION) {
                             return -ENOLCK;
@@ -860,8 +861,11 @@ static int skfs_truncate(const char *path, off_t size
         if (lar.result != 0) {
             return lar.result;
         } else {
+            WFT_WFCreationResult    wft_wfcr;
+        
             openedForTruncation = TRUE;
-            wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666, &lar.fa, pbr);
+            wft_wfcr = wft_create_new_file(wft, path, S_IFREG | 0666, &lar.fa, lar.lockedVersion, pbr);
+            wf_ref = wft_wfcr.wfr;
             if (wf_ref == NULL) {
                 return -EIO;
             }
@@ -1105,7 +1109,7 @@ static int skfs_rename(const char *oldpath, const char *newpath
 LockAttributeResult _skfs_lock_file_attribute(const char *name, AttributeExistenceRequirement fer, bool forceNewAttribute, NoAttribute_LockAction nola, mode_t mode) {
     LockAttributeResult lockAttributeResult;
     ARReadAttrDirectResult  arReadAttrDirectResult;
-    SKOperationState::SKOperationState  awResult;
+    AWWriteResult  awResult;
     SKFailureCause::SKFailureCause      awFailureCause;
     FileAttr    *lockFA;
     uint64_t    requiredPrevVersion;
@@ -1116,6 +1120,7 @@ LockAttributeResult _skfs_lock_file_attribute(const char *name, AttributeExisten
     lockFA = NULL;
     lockAttributeResult.result = 0;
     lockAttributeResult.faState = FAS_NoSuchAttr;
+    lockAttributeResult.lockedVersion = 0;
     memset(&lockAttributeResult.fa, 0, sizeof(FileAttr));
     arReadAttrDirectResult = ar_read_attr_direct(ar, name);
     if (arReadAttrDirectResult.opState != SKOperationState::SUCCEEDED) {
@@ -1215,9 +1220,9 @@ LockAttributeResult _skfs_lock_file_attribute(const char *name, AttributeExisten
                         &awFailureCause, 
                         requiredPrevVersion,
                         _SKFS_RENAME_LOCK_SECONDS);
-    if (awResult != SKOperationState::SUCCEEDED) {
-        srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %d  %s %d", 
-                awResult, awFailureCause, 
+    if (awResult.operationState != SKOperationState::SUCCEEDED) {
+        srfsLog(LOG_WARNING, "awResult.operationState != SKOperationState::SUCCEEDED  %d %d  %d  %s %d", 
+                awResult.operationState, awFailureCause, 
                 requiredPrevVersion,
                 __FILE__, __LINE__);
         // Handle failure
@@ -1231,6 +1236,7 @@ LockAttributeResult _skfs_lock_file_attribute(const char *name, AttributeExisten
         ar_delete_direct_read_result_contents(&arReadAttrDirectResult);
         return lockAttributeResult;
     }
+    lockAttributeResult.lockedVersion = awResult.storedVersion;
     // We now have a lock on the target
     // lockAttributeResult.fa is only guaranteed to be non-null
     // if AER_AttrExists was specified
@@ -1431,7 +1437,8 @@ static int _skfs_rename_phase2_b(const char *source, const char *target,
     FileAttr    fa;
     time_t      curEpochTimeSeconds;
     long        curTimeNanos;
-    SKOperationState::SKOperationState  awResult;
+    AWWriteResult  awNewFileResult;
+    AWWriteResult  awOldFileResult;
     SKFailureCause::SKFailureCause      awFailureCause;
     int         result;
     
@@ -1441,22 +1448,6 @@ static int _skfs_rename_phase2_b(const char *source, const char *target,
     curEpochTimeSeconds = tp.tv_sec;
     curTimeNanos = tp.tv_nsec;
     
-    if (!isDir) {
-        // Create a directory entry for the new file
-        if (odt_add_entry_to_parent_dir(odt, (char *)target)) {
-            srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", target);
-            // FUTURE - for now we rely on the lock timeout to unlock
-            return -EIO;
-        }
-    }
-    
-    // Remove the source directory entry
-    if (odt_rm_entry_from_parent_dir(odt, (char *)source)) {
-        srfsLog(LOG_WARNING, "Couldn't rm entry in parent for %s  %s %d", source, __FILE__, __LINE__);
-        // FUTURE - for now we rely on the lock timeout to unlock
-        return -EIO;
-    }
-    
     // Link the new file to the old file blocks
     memcpy(&fa, &source_fa, sizeof(FileAttr));
     
@@ -1464,20 +1455,38 @@ static int _skfs_rename_phase2_b(const char *source, const char *target,
     fa.stat.st_ctime = curEpochTimeSeconds;
     fa.stat.st_ctim.tv_nsec = curTimeNanos;
     // (This write will link the blocks [for files] and unlock the target)
-    awResult = aw_write_attr_direct(aw, target, &fa, ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
-    if (awResult != SKOperationState::SUCCEEDED) {
-        srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
+    awNewFileResult = aw_write_attr_direct(aw, target, &fa, ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
+    if (awNewFileResult.operationState != SKOperationState::SUCCEEDED) {
+        srfsLog(LOG_WARNING, "awNewFileResult.operationState != SKOperationState::SUCCEEDED  %d %d  %s %d", awNewFileResult.operationState, awFailureCause, __FILE__, __LINE__);
         result = -EIO;
     } else {
         // Delete the old file (releases the lock on the old file)
         awFailureCause = SKFailureCause::ERROR; // default value; should be unused
-        awResult = aw_write_attr_direct(aw, source, fa_get_deletion_fa(), ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
-        srfsLog(LOG_FINE, "_skfs_rename %s aw_write result %d\n", source, awResult);
-        if (awResult != SKOperationState::SUCCEEDED) {
-            srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
+        awOldFileResult = aw_write_attr_direct(aw, source, fa_get_deletion_fa(), ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
+        srfsLog(LOG_FINE, "_skfs_rename %s awOldFileResult.operationState %d\n", source, awOldFileResult.operationState);
+        if (awOldFileResult.operationState != SKOperationState::SUCCEEDED) {
+            srfsLog(LOG_WARNING, "awOldFileResult.operationState != SKOperationState::SUCCEEDED  %d %d  %s %d", awOldFileResult.operationState, awFailureCause, __FILE__, __LINE__);
             result = -EIO;
         } else {
             // Deletion was successful
+        }
+    }
+    
+    if (result == 0) {
+        if (!isDir) { // parent directory entry handled elsewhere for directories
+            // Create a directory entry for the new file
+            if (odt_add_entry_to_parent_dir(odt, (char *)target, awNewFileResult.storedVersion)) {
+                srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", target);
+                // FUTURE - for now we rely on the lock timeout to unlock
+                result = -EIO;
+            }
+        }
+        
+        // Remove the source directory entry
+        if (odt_rm_entry_from_parent_dir(odt, (char *)source, awOldFileResult.storedVersion)) {
+            srfsLog(LOG_WARNING, "Couldn't rm entry in parent for %s  %s %d", source, __FILE__, __LINE__);
+            // FUTURE - for now we rely on the lock timeout to unlock
+            result = -EIO;
         }
     }
     
@@ -1489,7 +1498,7 @@ static int _skfs_rename_phase2_b(const char *source, const char *target,
 }
 
 int _skfs_unlock_lar(const char *name, LockAttributeResult lockAttributeResult) {
-    SKOperationState::SKOperationState  awResult;
+    AWWriteResult  awResult;
     SKFailureCause::SKFailureCause      awFailureCause;
     
     // Write the old attribute if there was one.
@@ -1498,11 +1507,11 @@ int _skfs_unlock_lar(const char *name, LockAttributeResult lockAttributeResult) 
                         lockAttributeResult.faState == FAS_AttrFound ? &lockAttributeResult.fa : fa_get_deletion_fa(), 
                         ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, // one write attempt
                         &awFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
-    if (awResult != SKOperationState::SUCCEEDED) {
+    if (awResult.operationState != SKOperationState::SUCCEEDED) {
         int result;
         
         result = 0;
-        srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
+        srfsLog(LOG_WARNING, "awResult.operationState != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult.operationState, awFailureCause, __FILE__, __LINE__);
         // Handle failure
         if (awFailureCause == SKFailureCause::INVALID_VERSION) {
             result = -ENOLCK;
@@ -1638,6 +1647,7 @@ static int _skfs_open_native(const char *path, struct fuse_file_info *fi, mode_t
     return 0;
 }
 
+// This function is only used if locking is disabled
 static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) {
     SKFSOpenFile    *sof;
     
@@ -1709,6 +1719,7 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
             parentDir = NULL;
             existing_wf_ref = wft_get(wft, path);
             if (existing_wf_ref == NULL) {
+                int64_t     createdVersion;
                 // File does not exist in the wft
                 
                 if (((fi->flags & O_CREAT) != 0) && ((fi->flags & O_EXCL) != 0)) {
@@ -1721,6 +1732,7 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
                         sof_delete(&sof);
                         return lar.result;
                     }
+                    createdVersion = lar.lockedVersion;
                 } else {
                     if (args->lockOnWrite) {
                         LockAttributeResult lar;
@@ -1732,11 +1744,16 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
                             sof_delete(&sof);
                             return lar.result;
                         }
+                        createdVersion = lar.lockedVersion;
+                    } else {
+                        fatalError("lockOnWrite must be true"); // open() is presently only used for lockOnWrite as false
                     }
                 }
+                // target is now locked (unless lockOnWrite is false)
                 
                 if ((fi->flags & O_TRUNC) != 0) {
                     WritableFileReference    *wf_ref;
+                    WFT_WFCreationResult    wft_wfcr;
                     
                     // O_TRUNC specified; use a new wf since we don't care about the old data blocks
                     /*
@@ -1754,7 +1771,8 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
                         }
                     }
                     */
-                    wf_ref = wft_create_new_file(wft, path, S_IFREG | 0666);
+                    wft_wfcr = wft_create_new_file(wft, path, S_IFREG | 0666);
+                    wf_ref = wft_wfcr.wfr;
                     if (wf_ref != NULL) {
                         wf_set_parent_dir(wfr_get_wf(wf_ref), parentDir, parentDirUpdateTimeMillis);
                         result = skfs_associate_new_file(path, fi, wf_ref);
@@ -1811,10 +1829,12 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
                                 } else {
                                 */
                                     WritableFileReference    *wf_ref;
+                                    WFT_WFCreationResult    wft_wfcr;
                                     int retryFlag;
                                     
                                     retryFlag = FALSE;
-                                    wf_ref = wft_create_new_file(wft, path, mode, &fa, pbr, &retryFlag);
+                                    wft_wfcr = wft_create_new_file(wft, path, mode, &fa, WF_IGNORE_CREATED_VERSION, pbr, &retryFlag);
+                                    wf_ref = wft_wfcr.wfr;
                                     if (!retryFlag) {
                                         if (wf_ref != NULL) {
                                             result = skfs_associate_new_file(path, fi, wf_ref);
@@ -1833,11 +1853,14 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
                                 //}
                             } else {
                                 WritableFileReference    *wf_ref;
+                                WFT_WFCreationResult    wft_wfcr;
                                 
                                 // File does not exist; create new file
-                                wf_ref = wft_create_new_file(wft, path, mode);
+                                wft_wfcr = wft_create_new_file(wft, path, mode);
+                                wf_ref = wft_wfcr.wfr;
                                 if (wf_ref != NULL) {
                                     result = skfs_associate_new_file(path, fi, wf_ref);
+                                    createdVersion = wft_wfcr.createdVersion;
                                 } else {
                                     srfsLog(LOG_ERROR, "EIO from %s %d", __FILE__, __LINE__);
                                     sof_delete(&sof);
@@ -1848,7 +1871,7 @@ static int _skfs_open(const char *path, struct fuse_file_info *fi, mode_t mode) 
                     } while (!complete && ++attempt < _MAX_FILE_CREATION_ATTEMPTS);
                 }
                 if (result == 0) {
-                    if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
+                    if (odt_add_entry_to_parent_dir(odt, (char *)path, createdVersion, &parentDir)) {
                         srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
                     }
                 }
@@ -1937,6 +1960,7 @@ static int _skfs_open_wfs_writable(const char *path, struct fuse_file_info *fi, 
         bool        exclusiveCreation;
         bool        forceNewAttribute;
         WritableFileReference    *wf_ref;
+        WFT_WFCreationResult    wft_wfcr;
         int         retryFlag;
         
         parentDir = NULL;
@@ -1963,7 +1987,8 @@ static int _skfs_open_wfs_writable(const char *path, struct fuse_file_info *fi, 
         }
         
         retryFlag = FALSE;
-        wf_ref = wft_create_new_file(wft, path, mode, &lar.fa, pbr, &retryFlag);
+        wft_wfcr = wft_create_new_file(wft, path, mode, &lar.fa, lar.lockedVersion, pbr, &retryFlag);
+        wf_ref = wft_wfcr.wfr;
         if (wf_ref != NULL) {
             if (!retryFlag) {
                 wf_set_parent_dir(wfr_get_wf(wf_ref), parentDir, parentDirUpdateTimeMillis);
@@ -2019,7 +2044,7 @@ static int _skfs_open_wfs_writable(const char *path, struct fuse_file_info *fi, 
         }
         */
         if (result == 0) {
-            if (odt_add_entry_to_parent_dir(odt, (char *)path, &parentDir)) {
+            if (odt_add_entry_to_parent_dir(odt, (char *)path, wft_wfcr.createdVersion, &parentDir)) {
                 srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", path);
             }
         }
@@ -2448,41 +2473,37 @@ static int skfs_symlink(const char* to, const char* from) {
         lar = _skfs_lock_file_attribute(from, AER_AttrDoesNotExist, true, NOLA_LockNewFileAttr, S_IFLNK | 0666);
         if (lar.result != 0) {
             return lar.result;
-        } else {
-            if (odt_add_entry_to_parent_dir(odt, (char *)from)) {
-                SKOperationState::SKOperationState  awResult;
-                SKFailureCause::SKFailureCause      awFailureCause;
-                
-                srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", from);
-                // release lock
-                awResult = aw_write_attr_direct(aw, from, &lar.fa, ar->attrCache, _ATTR_DIRECT_WRITE_ATTEMPTS, &awFailureCause, AW_NO_REQUIRED_PREV_VERSION, 0);
-                if (awResult != SKOperationState::SUCCEEDED) {
-                    srfsLog(LOG_WARNING, "awResult != SKOperationState::SUCCEEDED  %d %d  %s %d", awResult, awFailureCause, __FILE__, __LINE__);
-                }
+        } else {        
+            WritableFileReference *wf_ref;
+            WFT_WFCreationResult    wft_wfcr;
+            
+            wft_wfcr = wft_create_new_file(wft, from, S_IFLNK | 0666, &lar.fa, lar.lockedVersion);
+            wf_ref = wft_wfcr.wfr;
+            if (wf_ref == NULL) {
                 return -EIO;
             } else {
-                WritableFileReference *wf_ref;
+                WritableFile *wf;
+                int          writeResult;
+                int          wfrDeletionResult;
                 
-                wf_ref = wft_create_new_file(wft, from, S_IFLNK | 0666, &lar.fa);
-                if (wf_ref == NULL) {
-                    return -EIO;
+                wf = wfr_get_wf(wf_ref);
+                writeResult = wf_write(wf, to, strlen(to) + 1, 0, fbwSKFS, pbr, fbr->fileBlockCache);
+                srfsLog(LOG_FINE, "writeResult %d", writeResult);
+                wfrDeletionResult = wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
+                // reference deletion results in lock release
+                srfsLog(LOG_FINE, "wfrDeletionResult %d", wfrDeletionResult);
+                if (writeResult != -1) {
+                    //return 0;
                 } else {
-                    WritableFile *wf;
-                    int          writeResult;
-                    int          wfrDeletionResult;
-                    
-                    wf = wfr_get_wf(wf_ref);
-                    writeResult = wf_write(wf, to, strlen(to) + 1, 0, fbwSKFS, pbr, fbr->fileBlockCache);
-                    srfsLog(LOG_FINE, "writeResult %d", writeResult);
-                    wfrDeletionResult = wfr_delete(&wf_ref, aw, fbwSKFS, ar->attrCache);
-                    // reference deletion results in lock release
-                    srfsLog(LOG_FINE, "wfrDeletionResult %d", wfrDeletionResult);
-                    if (writeResult != -1) {
-                        return 0;
-                    } else {
-                        return -1;
-                    }
+                    return -1;
                 }
+            }
+        
+            if (odt_add_entry_to_parent_dir(odt, (char *)from, wft_wfcr.createdVersion)) {
+                srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", from);
+                return -EIO;
+            } else {
+                return 0;
             }
         }
     }
@@ -3083,7 +3104,7 @@ void initDirs() {
     if (odt_opendir(odt, SKFS_WRITE_BASE, NULL) != 0) {
         fatalError("odt_openDir skfs failed", __FILE__, __LINE__);
     }    
-    if (odt_add_entry(odt, SKFS_BASE, SKFS_WRITE_BASE_NO_SLASH)) {
+    if (odt_add_entry(odt, SKFS_BASE, SKFS_WRITE_BASE_NO_SLASH, 0)) {
         srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", SKFS_WRITE_BASE_NO_SLASH);
         fatalError("Couldn't create dir", __FILE__, __LINE__);
     }

@@ -17,9 +17,11 @@ class SKAsyncInvalidation : public SKAsyncPut
 public:
     SKAPI virtual ~SKAsyncInvalidation();
 
-       SKAsyncInvalidation(AsyncInvalidation * pAsyncInvalidation);
+    SKAsyncInvalidation(AsyncInvalidation * pAsyncInvalidation);
     void * getPImpl();
+    SKAPI int64_t getStoredVersionI();
 protected:
+    AsyncInvalidation * pImpl;
     SKAsyncInvalidation();
     SKAsyncInvalidation(const SKAsyncInvalidation & );
     const SKAsyncInvalidation& operator= (const SKAsyncInvalidation & );

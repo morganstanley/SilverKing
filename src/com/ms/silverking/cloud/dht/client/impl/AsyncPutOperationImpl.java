@@ -59,7 +59,7 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
 
   private static final boolean debug = false;
   private static final boolean verboseToString = true;
-
+  
   AsyncPutOperationImpl(PutOperation<K, V> putOperation, ClientNamespace namespace,
       NamespacePerspectiveOptionsImpl<K, V> nspoImpl, long curTimeMillis, byte[] originator,
       VersionProvider versionProvider) {
@@ -74,7 +74,6 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
     this.opResults = new ConcurrentHashMap<>();
     this.activePutListeners = namespace.getActivePutListeners();
     opUUIDs = new LinkedList<>();
-
     //Log.warning(namespace.getOptions().getVersionMode() +" "+ versionProvider
     //		+" "+ (versionProvider != null ? versionProvider.getVersion() : ""));
   }
@@ -122,6 +121,11 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
       resolvedVersion.compareAndSet(DHTConstants.noSuchVersion, v);
     }
   }
+  
+  @Override
+  public long getStoredVersion() {
+    return getResolvedVersion();
+  }
 
   @Override
   ProtoMessageGroup createProtoMG(MessageEstimate estimate) {
@@ -136,7 +140,7 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
     OperationUUID opUUID;
     ConcurrentMap<DHTKey, ActiveKeyedOperationResultListener<OpResult>> newMap;
     long resolvedVersion;
-
+ 
     resolvedVersion = getResolvedVersion();
     opUUID = activePutListeners.newOpUUIDAndMap();
     return new ProtoPutMessageGroup<>(opUUID, context.contextAsLong(), estimate.getNumKeys(), estimate.getNumBytes(),

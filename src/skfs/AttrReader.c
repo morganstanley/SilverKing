@@ -838,7 +838,7 @@ void ar_create_alias_dirs(AttrReader *ar, OpenDirTable *odt) {
     srfsLog(LOG_INFO, "ar_create_alias_dirs");
     for (i = 0; i < ar->numNFSAliases; i++) {
         srfsLog(LOG_INFO, "create alis dir %s", ar->nfsLocalAliases[i]);
-        if (odt_add_entry(odt, SKFS_BASE, (ar->nfsLocalAliases[i] + 1))) { // +1 is to skip the leading slash, which entries do not contain
+        if (odt_add_entry(odt, SKFS_BASE, (ar->nfsLocalAliases[i] + 1), 0)) { // +1 is to skip the leading slash, which entries do not contain
             srfsLog(LOG_WARNING, "Couldn't create new entry in parent for %s", ar->nfsLocalAliases[i]);
             fatalError("Couldn't create dir", __FILE__, __LINE__);
         }

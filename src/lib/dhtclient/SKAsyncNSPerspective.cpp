@@ -319,8 +319,8 @@ SKAsyncInvalidation *SKAsyncNSPerspective::invalidate(SKVector<string> const *dh
         //Log::fine(string("adding key to set : ") + dhtKeys->at(i));
         keys.add(String(dhtKeys->at(i)));
     }    
-    AsyncInvalidation *pAsyncInvalidation = new AsyncInvalidation(((AsynchronousNamespacePerspective*)pImpl)->invalidate(keys));
-    return new SKAsyncInvalidation(pAsyncInvalidation);
+    AsyncPut *pAsyncInvalidation = new AsyncPut(((AsynchronousNamespacePerspective*)pImpl)->invalidate(keys));
+    return (SKAsyncInvalidation*)new SKAsyncPut(pAsyncInvalidation);
 }
 
 SKAsyncInvalidation * SKAsyncNSPerspective::invalidate(const char *key, SKInvalidationOptions *invalidationOptions){
@@ -328,8 +328,8 @@ SKAsyncInvalidation * SKAsyncNSPerspective::invalidate(const char *key, SKInvali
         return NULL;
     } else {
         InvalidationOptions *pInvalidationOptions = (InvalidationOptions*)invalidationOptions->getPImpl();
-        AsyncInvalidation *pAsyncInvalidation = new AsyncInvalidation(((AsynchronousNamespacePerspective*)pImpl)->invalidate(java_new<String>((char *)key), *pInvalidationOptions));
-        return new SKAsyncInvalidation(pAsyncInvalidation);
+        AsyncPut *pAsyncInvalidation = new AsyncPut(((AsynchronousNamespacePerspective*)pImpl)->invalidate(java_new<String>((char *)key), *pInvalidationOptions));
+        return (SKAsyncInvalidation*)new SKAsyncPut(pAsyncInvalidation);
     }
 }
 
@@ -345,8 +345,8 @@ SKAsyncInvalidation *SKAsyncNSPerspective::invalidate(const char *key) {
     if (!key) {
         return NULL;
     } else {
-        AsyncInvalidation *pAsyncInvalidation = new AsyncInvalidation(((AsynchronousNamespacePerspective*)pImpl)->invalidate(java_new<String>((char *)key)) );
-        return new SKAsyncInvalidation(pAsyncInvalidation);
+        AsyncPut *pAsyncInvalidation = new AsyncPut(((AsynchronousNamespacePerspective*)pImpl)->invalidate(java_new<String>((char *)key)) );
+        return (SKAsyncInvalidation*)new SKAsyncPut(pAsyncInvalidation);
     }
 }
 

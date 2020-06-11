@@ -44,8 +44,8 @@ void dei_init(DirEntryIndex *dei, uint32_t numEntries) {
 
 int dei_sanity_check(DirEntryIndex *dei, int fatalErrorOnFailure) {
     if (dei->magic != DEI_MAGIC) {
+        srfsLog(LOG_ERROR, "dei->magic != DEI_MAGIC  dei %llx dei->magic %x != %x", dei, dei->magic, DEI_MAGIC);
         if (fatalErrorOnFailure) {
-            srfsLog(LOG_ERROR, "dei->magic != DEI_MAGIC  dei %llx dei->magic %x != %x", dei, dei->magic, DEI_MAGIC);
             fatalError("dei->magic != DEI_MAGIC", __FILE__, __LINE__);
         }
         return FALSE;
@@ -152,13 +152,30 @@ void dei_add_numEntries_and_reindex(DirEntryIndex *dei, DirData *dd, uint32_t nu
  * Given a DirEntryIndex, and an index entry number return the DirEntry
  * in the given DirData.
  */
-DirEntry *dei_get_dir_entry(DirEntryIndex *dei, DirData *dd, uint32_t index) {
+DirEntry *dei_get_dir_entry(DirEntryIndex *dei, DirData *dd, uint32_t index, int fatalErrorOnFailure) {
     DirEntry    *de;
+    int rc;
     
-    dei_sanity_check(dei);
-    dd_sanity_check(dd);
+    rc = dei_sanity_check(dei, fatalErrorOnFailure);
+    if (rc != TRUE) {
+        return NULL;
+    }
+    rc = dd_sanity_check(dd, fatalErrorOnFailure);
+    if (rc != TRUE) {
+        return NULL;
+    }
     de = (DirEntry *)offset_to_ptr(dd->data, dei->entries[index]);
-    de_sanity_check(de);
+    if ((uint64_t)de > (uint64_t)dd->data + (uint64_t)dd->dataLength) {
+        srfsLog(LOG_ERROR, "de > dd->data + dd->dataLength %s %d", __FILE__, __LINE__);
+        if (fatalErrorOnFailure) {
+            fatalError("de > dd->data + dd->dataLength");
+        }
+        return NULL;
+    }
+    rc = de_sanity_check(de, fatalErrorOnFailure);
+    if (rc != TRUE) {
+        return NULL;
+    }
     return de;
 }
 

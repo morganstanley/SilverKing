@@ -33,6 +33,7 @@
 // public globals
 
 OpenDirWriter    *od_odw;
+OpenDirWriter    *od_ddw;
 
 
 //////////////////////

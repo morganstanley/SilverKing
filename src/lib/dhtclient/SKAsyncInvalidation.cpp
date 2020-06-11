@@ -10,7 +10,7 @@ using namespace jace;
 using jace::proxy::com::ms::silverking::cloud::dht::client::AsyncInvalidation;
 
 /* protected */
-SKAsyncInvalidation::SKAsyncInvalidation(){};
+SKAsyncInvalidation::SKAsyncInvalidation() : pImpl(NULL) {};
 
 /* public */
 SKAsyncInvalidation::SKAsyncInvalidation(AsyncInvalidation * pAsyncInvalidation){
@@ -20,11 +20,17 @@ void *SKAsyncInvalidation::getPImpl() {
     return pImpl;
 }
 
+int64_t SKAsyncInvalidation::getStoredVersionI()
+{
+    return (int64_t)pImpl->getStoredVersion();
+}
+
 SKAsyncInvalidation::~SKAsyncInvalidation() { 
+/*
     if (pImpl) {
-        AsyncInvalidation * pInvalidation = dynamic_cast<AsyncInvalidation*>(pImpl);
         pImpl = NULL;
-        delete pInvalidation;
+        delete pImpl;
     }
+    */
 };
 

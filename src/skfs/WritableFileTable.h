@@ -39,14 +39,18 @@ typedef struct WritableFileTable {
     HashTableAndLock    htl[WFT_NUM_HT];
 } WritableFileTable;
 
+typedef struct WFT_WFCreationResult {
+    WritableFileReference *wfr;
+    int64_t createdVersion;
+} WFT_WFCreationResult;
 
 //////////////////////
 // public prototypes
 
 WritableFileTable *wft_new(const char *name, AttrWriter *aw, AttrCache *ac, AttrReader *ar, FileBlockWriter *fbw);
 void wft_delete(WritableFileTable **wft);
-WritableFileReference *wft_create_new_file(WritableFileTable *wft, const char *name, mode_t mode, 
-                                    FileAttr *fa = NULL, PartialBlockReader *pbr = NULL, int *retryFlag = NULL);
+WFT_WFCreationResult wft_create_new_file(WritableFileTable *wft, const char *name, mode_t mode, 
+                                    FileAttr *fa = NULL, int64_t createdVersion = 0, PartialBlockReader *pbr = NULL, int *retryFlag = NULL);
 int wft_contains(WritableFileTable *wft, const char *name);
 WritableFileReference *wft_get(WritableFileTable *wft, const char *name);
 int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt, int deleteBlocks = TRUE);

@@ -78,8 +78,8 @@ void dd_delete(DirData **dd) {
 
 int dd_sanity_check(DirData *dd, int fatalErrorOnFailure) {
     if (dd->magic != DD_MAGIC) {
+        srfsLog(LOG_ERROR, "dd->magic != DD_MAGIC  dd %llx dd->magic %x != %x", dd, dd->magic, DD_MAGIC);
         if (fatalErrorOnFailure) {
-            srfsLog(LOG_ERROR, "dd->magic != DD_MAGIC  dd %llx dd->magic %x != %x", dd, dd->magic, DD_MAGIC);
             fatalError("dd->magic != DD_MAGIC", __FILE__, __LINE__);
         }
         return FALSE;
@@ -88,7 +88,27 @@ int dd_sanity_check(DirData *dd, int fatalErrorOnFailure) {
     }
 }
 
-int dd_sanity_check_full(DirData *dd, int fatalErrorOnFailure) {
+static int _dd_sanity_check_de(DirData *dd, DirEntryIndex *dei, uint32_t index, int fatalErrorOnFailure) {
+    DirEntry    *de;
+    int         checkResult;
+    
+    de = dei_get_dir_entry(dei, dd, index, fatalErrorOnFailure);
+    if (de == NULL) {
+        return FALSE;
+    }
+    if ((uint64_t)de > (uint64_t)dd->data + (uint64_t)dd->dataLength) {
+        srfsLog(LOG_ERROR, "de > dd->data + dd->dataLength %s %d", __FILE__, __LINE__);
+        if (fatalErrorOnFailure) {
+            fatalError("de > dd->data + dd->dataLength");
+        }
+        checkResult = FALSE;
+    } else {
+        checkResult = de_sanity_check(de, fatalErrorOnFailure);
+    }
+    return checkResult;
+}
+
+int dd_sanity_check_full(DirData *dd, int fatalErrorOnFailure, int fullCheck) {
     if (dd_sanity_check(dd, fatalErrorOnFailure)) {
         DirEntryIndex   *dei;
         uint32_t i;
@@ -102,18 +122,28 @@ int dd_sanity_check_full(DirData *dd, int fatalErrorOnFailure) {
                 return FALSE;
             }
         }
-        if (DD_CHECK_ALL_ENTRIES_ON_FULL) {
+        if (fullCheck) {
             // sanity check each entry
             for (i = 0; i < dd->numEntries; i++) {
-                de_sanity_check(dei_get_dir_entry(dei, dd, i), fatalErrorOnFailure);
+                int checkResult;
+                
+                checkResult = de_sanity_check(dei_get_dir_entry(dei, dd, i, fatalErrorOnFailure), fatalErrorOnFailure);
+                if (!checkResult) {
+                    return FALSE;
+                }
             }
         } else {
             // spot check first and last entries
             if (dei->numEntries > 0) {
-                de_sanity_check(dei_get_dir_entry(dei, dd, 0), fatalErrorOnFailure);
-                if (dei->numEntries > 1) {
-                    de_sanity_check(dei_get_dir_entry(dei, dd, dei->numEntries - 1), fatalErrorOnFailure);
+                int checkResult;
+                
+                //checkResult = de_sanity_check(dei_get_dir_entry(dei, dd, 0), fatalErrorOnFailure);
+                checkResult = _dd_sanity_check_de(dd, dei, 0, fatalErrorOnFailure);
+                if (checkResult && dei->numEntries > 1) {
+                    //de_sanity_check(dei_get_dir_entry(dei, dd, dei->numEntries - 1), fatalErrorOnFailure);
+                    checkResult = _dd_sanity_check_de(dd, dei, dei->numEntries - 1, fatalErrorOnFailure);
                 }
+                return checkResult;
             }
         }
         return TRUE;
@@ -332,13 +362,20 @@ MergeResult dd_merge(DirData *dd0, DirData *dd1) {
     DEIndexEntry    *su_nextIndexEntry;
     uint32_t    i0;
     uint32_t    i1;
+    int sanityCheckGood;
 
-    dd_sanity_check_full(dd0);
-    dd_sanity_check_full(dd1);
+    memset(&m, 0, sizeof(MergeResult));    
+    
+    dd_sanity_check_full(dd0); // fatal error if present data not good
+    // we tolerate errors in incoming data by refusing to merge
+    sanityCheckGood = dd_sanity_check_full(dd1, FALSE, FALSE);
+    if (!sanityCheckGood) {
+        srfsLog(LOG_WARNING, "dd_merge() failed dd sanity check of incoming data");
+        return m;
+    }
     srfsLog(LOG_FINE, "merge %llx %llx", dd0, dd1);
     srfsLog(LOG_FINE, "%d %d", dd0->numEntries, dd1->numEntries);
 
-    memset(&m, 0, sizeof(MergeResult));    
     i0 = 0;
     i1 = 0;
     tddNumEntries = 0;
@@ -557,33 +594,33 @@ void dd_display(DirData *dd, FILE *file) {
         DirEntry    *de;
         void        *limit;
     
-        fprintf(file, "DirData {\n");
+        fprintf(file, "DirData {\n"); fflush(0);
         limit = offset_to_ptr(dd->data, dd->indexOffset);
         de = de_initial(dd->data, (DirEntry *)limit);
-        printf("de_1 %llx\n", (unsigned long long)de);
+        printf("de_1 %llx\n", (unsigned long long)de);  fflush(0);
         while (de) {
             de_display(de);
             de = de_next(de, (DirEntry *)limit);
-            printf("de_2 %llx\n", (unsigned long long)de);
+            printf("de_2 %llx\n", (unsigned long long)de);  fflush(0);
         }
-        fprintf(file, "}\n\n");
+        fprintf(file, "}\n\n"); fflush(0);
     }
 }
 
 void dd_display_ordered(DirData *dd, FILE *file) {
     if (dd == NULL) {
-        fprintf(file, "DirData {NULL}\n");
+        fprintf(file, "DirData {NULL}\n"); fflush(0);
     } else {
         DirEntry    *de;
         void        *limit;
         uint32_t    i;
     
-        fprintf(file, "DirData {\n");
+        fprintf(file, "DirData {\n"); fflush(0);
         for (i = 0; i < dd->numEntries; i++) {
             de = dd_get_entry(dd, i);
             de_display(de);
         }
-        fprintf(file, "}\n\n");
+        fprintf(file, "}\n\n"); fflush(0);
     }
 }
 

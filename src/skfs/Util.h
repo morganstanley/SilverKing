@@ -94,8 +94,8 @@ void spinlock_init(pthread_spinlock_t *spinlock, pthread_spinlock_t **spinlockPt
 void cv_init(pthread_cond_t *cv, pthread_cond_t **cvPtr);
 void mutex_destroy(pthread_mutex_t **mutexPtr);
 void cv_destroy(pthread_cond_t **cvPtr);
-void cv_wait_rel(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t interval);
-void cv_wait_abs(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline);
+int cv_wait_rel(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t interval);
+int cv_wait_abs(pthread_mutex_t *mutex, pthread_cond_t *cv, uint64_t deadline);
 
 unsigned int stringHash(void *s);
 int suffixMatches(const char *s, const char *suffix);

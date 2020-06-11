@@ -42,7 +42,7 @@ typedef struct DirEntryIndex {
 void dei_init(DirEntryIndex *dei, uint32_t numEntries);
 int dei_sanity_check(DirEntryIndex *dei, int fatalErrorOnFailure = TRUE);
 DEIndexEntry *deie_set(DEIndexEntry *indexEntry, DirData *dd, DirEntry *de);
-DirEntry *dei_get_dir_entry(DirEntryIndex *dei, DirData *dd, uint32_t index);
+DirEntry *dei_get_dir_entry(DirEntryIndex *dei, DirData *dd, uint32_t index, int fatalErrorOnFailure = TRUE);
 uint32_t dei_locate(DirEntryIndex *dei, DirData *dd, const char *name);
 void dei_reindex(DirEntryIndex *dei, DirData *dd);
 void dei_add_numEntries_and_reindex(DirEntryIndex *dei, DirData *dd, uint32_t numNewEntries);

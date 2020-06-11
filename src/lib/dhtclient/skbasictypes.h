@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <cstdio>
+#include <stdint.h>
 
 
 #ifdef __cplusplus

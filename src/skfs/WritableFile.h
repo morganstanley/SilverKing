@@ -29,6 +29,7 @@
 #define WFR_MAX_REFS    128
 #define WFR_RECYCLE_THRESHOLD    64
 // WFR_RECYCLE_THRESHOLD must be < WFR_MAX_REFS for reference number recycling to be active
+#define WF_IGNORE_CREATED_VERSION -1
 
 
 //////////
@@ -53,6 +54,7 @@ typedef struct PendingRename {
 typedef struct WritableFile {
     uint16_t    magic;    
     const char  *path;
+    uint64_t    createdVersion;
     PendingRename   *pendingRename;
     OpenDir     *parentDir;
     uint64_t    parentDirUpdateTimeMillis;
@@ -67,12 +69,17 @@ typedef struct WritableFile {
     uint8_t kvAttrStale;
 } WritableFile;
 
+typedef struct WFCreationResult {
+    WritableFile    *wf;
+    int64_t         createdVersion;
+} WFCreationResult;
+
 
 //////////////////////
 // public prototypes
 
-WritableFile *wf_new(const char *path, mode_t mode, HashTableAndLock *htl, AttrWriter *aw, 
-                     FileAttr *fa = NULL, PartialBlockReader *pbr = NULL, int *retryFlag = NULL);
+WFCreationResult wf_new(const char *path, mode_t mode, HashTableAndLock *htl, AttrWriter *aw, 
+                     FileAttr *fa = NULL, int64_t createdVersion = 0, PartialBlockReader *pbr = NULL, int *retryFlag = NULL);
 void wf_delete(WritableFile **wf);
 void wf_create_attribute(FileAttr *fa, mode_t mode);
 void wf_set_parent_dir(WritableFile *, OpenDir *parentDir, uint64_t parentDirUpdateTimeMillis);

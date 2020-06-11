@@ -310,7 +310,7 @@ f_printSubSection "Renaming '$tmpfile' -> '$tmpfileConf'"
 grep -v "^null$" $tmpfile > $tmpfileConf
 chmod 755 $tmpfileConf
 source $tmpfileConf
-rm -v $tmpfile
+#rm -v $tmpfile
 
 #source from config environment
 if [[ -n "${SKFS_DHT_OP_MIN_TIMEOUT_MS}" ]] ; then 
@@ -576,12 +576,12 @@ fi
 
 f_printSubSection "Writing to tmpFile"
 tmpFile=/tmp/$$.skfs.fuse.tmp
-rm -v $tmpFile 
+#rm -v $tmpFile 
 echo "writing to tmpFile: $tmpFile"
 echo "export PATH=${SK_JAVA_HOME}/bin:${PATH}:${fuseBin}:">> $tmpFile
 #echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}">> $tmpFile  
 #echo "export MALLOC_ARENA_MAX=4">> $tmpFile
-#echo "export CLASSPATH=${CLASSPATH}">> $tmpFile
+echo "export CLASSPATH=${CLASSPATH}">> $tmpFile
 # note -d option is currently in skfs.c
 echo "nohup $FS_EXEC --mount=${skfsMount} --verbose=${verbosity} --host=localhost --gcname=${GCName} --zkLoc=${zkEnsemble} \\" >> $tmpFile
 echo "--compression=${Compression} --nfsMapping=${nfsMapping} --permanentSuffixes=${permanentSuffixes} \\" >> $tmpFile

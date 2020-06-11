@@ -109,8 +109,8 @@ DirEntry *de_initial(const char *blob, DirEntry *limit) {
 
 int de_sanity_check(DirEntry *de, int fatalErrorOnFailure) {
     if (de->magic != DE_MAGIC) {
+        srfsLog(LOG_ERROR, "de->magic != DE_MAGIC  de %llx de->magic %x != %x", de, de->magic, DE_MAGIC);
         if (fatalErrorOnFailure) {
-            srfsLog(LOG_ERROR, "de->magic != DE_MAGIC  de %llx de->magic %x != %x", de, de->magic, DE_MAGIC);
             fatalError("de->magic != DE_MAGIC", __FILE__, __LINE__);
         }
         return FALSE;
@@ -150,9 +150,9 @@ const char *de_get_name(DirEntry *de) {
 void de_display(DirEntry *de, FILE *file) {
     if (de) {
         //printf("%llx\n", de);
-        fprintf(file, "\t%x %d %s %s\n", de->magic, de->dataSize, de->data, fs_to_string(&de->status));
+        fprintf(file, "\t%x %d %s %s\n", de->magic, de->dataSize, de->data, fs_to_string(&de->status)); fflush(0);
     } else {
-        fprintf(file, "NULL DirEntry\n");
+        fprintf(file, "NULL DirEntry\n"); fflush(0);
     }
 }
 

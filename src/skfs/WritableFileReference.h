@@ -28,7 +28,7 @@ typedef struct WritableFileReference {
 
 WritableFileReference *wfr_new(WritableFile *wf, char *file, int line);
 int wfr_delete(WritableFileReference **fr, AttrWriter *aw, FileBlockWriter *fbw, AttrCache *ac);
-WritableFile *wfr_get_wf(WritableFileReference *fr);
+WritableFile *wfr_get_wf(WritableFileReference *wfr);
 void wfr_sanity_check(WritableFileReference *wfr);
 
 #endif

@@ -16,22 +16,27 @@ using namespace jace;
 #include "jace/proxy/com/ms/silverking/cloud/dht/client/AsyncPut.h"
 using jace::proxy::com::ms::silverking::cloud::dht::client::AsyncPut;
 
+
 /* protected */
-SKAsyncPut::SKAsyncPut(){};
+SKAsyncPut::SKAsyncPut() : pImpl(NULL) {};
 
 /* public */
 SKAsyncPut::SKAsyncPut(AsyncPut * pAsyncPut){
     pImpl = pAsyncPut;
 }
+
 void * SKAsyncPut::getPImpl() {
     return pImpl;
 }
 
+int64_t SKAsyncPut::getStoredVersion()
+{
+    return (int64_t)pImpl->getStoredVersion();
+}
+
 SKAsyncPut::~SKAsyncPut() { 
-    if(pImpl ) {
-        AsyncPut * pPut = dynamic_cast<AsyncPut*>(pImpl);
+    if (pImpl) {
+        delete pImpl;
         pImpl = NULL;
-        delete pPut;
     }
 };
-

@@ -10,6 +10,7 @@
 #include "AttrWriter.h"
 #include "DirData.h"
 #include "DirDataReader.h"
+#include "DirDataWriter.h"
 #include "OpenDirCache.h"
 #include "OpenDirWriter.h"
 
@@ -25,6 +26,7 @@ typedef struct OpenDirTable {
     OpenDirCache    *odc;
     DirDataReader    *ddr;
     OpenDirWriter    *odw;
+    DirDataWriter     *ddw;
     AttrWriter        *aw;
     AttrReader        *ar;
     uint64_t        lastGetAttr;
@@ -46,9 +48,9 @@ int odt_readdir(OpenDirTable *odt, const char *path, void *buf, fuse_fill_dir_t 
                        off_t offset, struct fuse_file_info *fi);
 int odt_releasedir(OpenDirTable *odt, const char* path, struct fuse_file_info *fi);
 DirData *odt_get_DirData(OpenDirTable *odt, char *path);
-int odt_rm_entry_from_parent_dir(OpenDirTable *odt, char *path);
-int odt_add_entry_to_parent_dir(OpenDirTable *odt, char *path, OpenDir **od = NULL);
-int odt_add_entry(OpenDirTable *odt, char *path, char *child, OpenDir **_od = NULL);
+int odt_rm_entry_from_parent_dir(OpenDirTable *odt, char *path, uint64_t version);
+int odt_add_entry_to_parent_dir(OpenDirTable *odt, char *path, uint64_t version, OpenDir **od = NULL);
+int odt_add_entry(OpenDirTable *odt, char *path, char *child, uint64_t version, OpenDir **_od = NULL);
 int odt_mkdir(OpenDirTable *odt, char *path, mode_t mode);
 int odt_mkdir_base(OpenDirTable *odt);
 int odt_rmdir(OpenDirTable *odt, char *path);
