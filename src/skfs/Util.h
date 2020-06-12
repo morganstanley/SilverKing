@@ -40,7 +40,6 @@ typedef enum {LOG_ERROR, LOG_WARNING, LOG_OPS, LOG_INFO, LOG_FINE} LogLevel;
 // public globals
 
 extern char zeroBlock[SRFS_BLOCK_SIZE];
-extern uint64_t    myValueCreator;
 
 
 /////////////////////

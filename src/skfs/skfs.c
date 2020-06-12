@@ -336,6 +336,9 @@ static SKSession    *pUtilSession;
 static SKSyncNSPerspective *systemNSP;
 static bool direct_io_enabled = false;
 
+static uint64_t    myFIDBase;
+
+
 
 ///////////////////
 // implementation
@@ -2636,7 +2639,7 @@ static void *skfs_init(struct fuse_conn_info *conn
     
     install_handler();
     initDHT();
-    fid_module_init(myValueCreator);
+    fid_module_init(myFIDBase);
     initReaders();
     init_util_sk();
     initDirs();
@@ -2915,12 +2918,19 @@ void initDHT() {
         
         vc = pClient->getValueCreator();
         if (vc != NULL) {
+            uint64_t    myValueCreator;
+            uint64_t    cTimeSecs;
+            
             myValueCreator = getValueCreatorAsUint64(vc);
+            cTimeSecs = curTimeMillis() / 1000;
+            myFIDBase = (myValueCreator << 32) | (cTimeSecs & 0x00000000ffffffffL);
+            srfsLog(LOG_WARNING, "myValueCreator %llx", myValueCreator);
+            srfsLog(LOG_WARNING, "cTimeSecs %llx", cTimeSecs);
+            srfsLog(LOG_WARNING, "myFIDBase %llx", myFIDBase);            
             delete vc;
         } else {
             fatalError("NULL pClient->getValueCreator()", __FILE__, __LINE__);
         }
-        srfsLog(LOG_WARNING, "myValueCreator %llx", myValueCreator);
 
         SKGridConfiguration * pGC = SKGridConfiguration::parseFile(args->gcname);
         SKClientDHTConfiguration * pCdc = pGC->getClientDHTConfiguration();

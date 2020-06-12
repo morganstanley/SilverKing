@@ -76,7 +76,6 @@ static void log_process_batch(void **logEntries, int numLogEntries, int curThrea
 // public globals
 
 char zeroBlock[SRFS_BLOCK_SIZE];
-uint64_t    myValueCreator;
 
 
 ////////////////////
