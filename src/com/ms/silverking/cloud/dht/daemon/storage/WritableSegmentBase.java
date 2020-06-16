@@ -51,7 +51,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
   protected static final int dataOffset = SegmentFormat.headerSize;
 
   private static final boolean debug = false;
-  private static final boolean debugCompaction = false;
+  private static final boolean debugRetention = false;
 
   // called from openReadOnly
   WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, CuckooBase keyToOffset,
@@ -439,9 +439,10 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         } else {
           storedLength = 0;
         }
-        //Log.warningf("%s %d %d %d %s", entry.getKey(), offset,
-        //getCreationTime(offset), curTimeNanos,
-        //isInvalidated(offset));
+        if (debugRetention) {
+          Log.warningf("%s %d %d %d %s", entry.getKey(), offset,
+              0/*getCreationTime(offset)*/, curTimeNanos, isInvalidation(offset));
+        }
         // FUTURE - the isInvalidated() call below may touch disk and dramatically increase the
         // execution time. Not a huge deal for segments that will be modified, but
         // a dramatic increase in time for segments that won't.
@@ -450,11 +451,15 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
             storedLength) && ringMaster.iAmPotentialReplicaFor(entryKey)) {
           ++numRetained;
           retainedOffsets.add(offset);
-          //Log.warningf("Retained %s\t%d", entry.getKey(), offset);
+          if (debugRetention) {
+            Log.warningf("Retained %s\t%d", entry.getKey(), offset);
+          }
         } else {
           ++numDiscarded;
           discardedOffsets.add(offset);
-          //Log.warningf("Discarded %s\t%d", entry.getKey(), offset);
+          if (debugRetention) {
+            Log.warningf("Discarded %s\t%d", entry.getKey(), offset);
+          }
         }
       }
     }
