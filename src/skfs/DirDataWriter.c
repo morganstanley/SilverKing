@@ -212,8 +212,10 @@ static void ddw_process_dht_batch(void **requests, int numRequests, int curThrea
             //srfsLog(LOG_WARNING, "merge %llx %llx", ddwr->dirData, existingDD);
             mr = dd_merge(ddwr->dirData, existingDD);
             //srfsLog(LOG_WARNING, "mr.dd %llx", mr.dd);
-            // existingDD freed in the below call
-            sk_set_val_zero_copy(existingVal, dd_length_with_header_and_index(mr.dd), (void *)(mr.dd));
+            if (mr.dd != NULL) {
+                // existingDD freed in the below call
+                sk_set_val_zero_copy(existingVal, dd_length_with_header_and_index(mr.dd), (void *)(mr.dd));
+            }
         } else {
             SKVal    *pval;
             
