@@ -10,4 +10,6 @@ public interface AddrAndPort {
   public static final String multipleDefDelimiter = ",";
 
   public InetSocketAddress toInetSocketAddress() throws UnknownHostException;
+
+  public IPAndPort toIPAndPort() throws UnknownHostException;
 }

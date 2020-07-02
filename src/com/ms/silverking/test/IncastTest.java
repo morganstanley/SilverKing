@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
+import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.StorageType;

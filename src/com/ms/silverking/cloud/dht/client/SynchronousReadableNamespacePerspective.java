@@ -78,7 +78,9 @@ public interface SynchronousReadableNamespacePerspective<K, V> extends BaseNames
    * options are set to throw an exception for non-existence
    * @throws RetrievalException
    */
-  public StoredValue<V> retrieve(K key) throws RetrievalException;
+  default public StoredValue<V> retrieve(K key) throws RetrievalException {
+    return retrieve(key, getOptions().getDefaultGetOptions());
+  }
 
   // get - do not wait for key-value pairs to exist
 
@@ -122,7 +124,9 @@ public interface SynchronousReadableNamespacePerspective<K, V> extends BaseNames
    * are set to throw and exception for non-existence.
    * @throws RetrievalException
    */
-  public V get(K key) throws RetrievalException;
+  default public V get(K key) throws RetrievalException {
+    return get(key, getOptions().getDefaultGetOptions());
+  }
 
   // waitFor - wait on non-existent key-value pairs
 
@@ -164,5 +168,7 @@ public interface SynchronousReadableNamespacePerspective<K, V> extends BaseNames
    * are set to throw and exception for non-existence.
    * @throws RetrievalException
    */
-  public V waitFor(K key) throws RetrievalException;
+  default public V waitFor(K key) throws RetrievalException {
+    return waitFor(key, getOptions().getDefaultWaitOptions());
+  }
 }

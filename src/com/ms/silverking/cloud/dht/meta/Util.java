@@ -9,7 +9,7 @@ public class Util {
   static final int portMin = 4_000;
   static final int portMax = 10_000;
 
-  static int getFreePort() {
+  public static int getFreePort() {
     return getFreePort(portMin, portMax);
   }
 

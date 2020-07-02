@@ -362,6 +362,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
   }
 
   /**
+   * Adds multiple completion listeners. For any listener that is already complete, the callback will be
    * Adds multiple listeners. If the operation is already complete, the callback will be
    * immediately executed, possibly in the calling thread.
    * Updates of completion will occur exactly once. Updates of other states may
@@ -380,6 +381,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
     _listenStates = CollectionUtil.arrayToEnumSet(listenStates);
     lock.lock();
     try {
+      // Trigger immediate updates for completion, but only for completion
       opState = getState();
       if (_listenStates.contains(opState)) {
         notifyListeners = true;

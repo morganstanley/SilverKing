@@ -11,6 +11,15 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.cloud.meta.ExclusionSet;
+import com.ms.silverking.util.SafeTimerTask;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooKeeper.States;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
@@ -22,13 +31,6 @@ import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
-import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooKeeper.States;
 
 public class DaemonStateZK implements Watcher {
   private final MetaClient mc;
@@ -242,6 +244,11 @@ public class DaemonStateZK implements Watcher {
     }
   }
 
+  protected ExclusionSet readNewExclusion() throws KeeperException {
+    InstanceExclusionZK exclusionZK = new InstanceExclusionZK(mc);
+    return exclusionZK.readLatestFromZK();
+  }
+
   public Map<IPAndPort, DaemonState> waitForQuorumState(Set<IPAndPort> members, DaemonState targetState,
       int inactiveNodeTimeoutSeconds, boolean exitOnTimeout) {
     boolean targetReached;
@@ -251,9 +258,11 @@ public class DaemonStateZK implements Watcher {
     Stopwatch sw;
     Set<IPAndPort> completeMembers;
     Set<IPAndPort> incompleteMembers;
+    ExclusionSet currentExclusion = ExclusionSet.emptyExclusionSet(0);
 
     completeMembers = new HashSet<>();
     incompleteMembers = new HashSet<>(members);
+
     if (verbose) {
       System.out.printf("Waiting for quorum state: %s\n", targetState);
     }
@@ -266,6 +275,9 @@ public class DaemonStateZK implements Watcher {
 
       sb = new StringBuilder();
       try {
+        // update exclusions each time we retry
+        currentExclusion = readNewExclusion();
+
         if (mc.getZooKeeper().getState() == States.CONNECTED) {
           Map<IPAndPort, DaemonState> quorumState;
           Stopwatch qsSW;
@@ -285,37 +297,47 @@ public class DaemonStateZK implements Watcher {
           newlyCompleteMembers = new HashSet<>();
           for (IPAndPort incompleteMember : incompleteMembers) {
             DaemonState memberState;
+            boolean excluded = currentExclusion.contains(incompleteMember.getIPAsString());
 
             memberState = quorumState.get(incompleteMember);
-            if (verbose && allRead) {
-              sb.append(String.format("%s\t%s\n", incompleteMember, memberState));
-            }
-            if (memberState == null) {
-              if (allRead) {
-                ++inactiveCount;
-                if ((int) sw.getSplitSeconds() < inactiveNodeTimeoutSeconds) {
-                  ++notReadyCount;
-                  targetReached = false;
-                } else {
-                  sb.append(String.format("%s\t%s\tinactive node timed out\n", incompleteMember, memberState));
-                  if (exitOnTimeout) {
-                    Map<IPAndPort, DaemonState> stateMap;
 
-                    System.out.print(sb);
-                    Log.warningf("Timeout: %s", incompleteMember);
-                    stateMap = fetchAndDisplayIncompleteState(incompleteMembers, targetState);
-                    fillStateMapWithComplete(stateMap, completeMembers, targetState);
-                    return stateMap;
-                  }
-                }
-              } else {
-                targetReached = false;
-              }
-            } else if (memberState.ordinal() < targetState.ordinal()) {
-              targetReached = false;
-              ++notReadyCount;
-            } else {
+            if (excluded) {
+              Log.warningf("Member %s has been excluded; quorum will ignore this node!", incompleteMember);
               newlyCompleteMembers.add(incompleteMember);
+            }
+
+            if (verbose && allRead) {
+              String maybeExcludedTag = excluded ? "\t[EXCLUDED]" : "";
+              sb.append(String.format("%s\t%s%s\n", incompleteMember, memberState, maybeExcludedTag));
+            }
+            if (!excluded) {
+              if (memberState == null) {
+                if (allRead) {
+                  ++inactiveCount;
+                  if ((int) sw.getSplitSeconds() < inactiveNodeTimeoutSeconds) {
+                    ++notReadyCount;
+                    targetReached = false;
+                  } else {
+                    sb.append(String.format("%s\t%s\tinactive node timed out\n", incompleteMember, memberState));
+                    if (exitOnTimeout) {
+                      Map<IPAndPort, DaemonState> stateMap;
+
+                      System.out.print(sb);
+                      Log.warningf("Timeout: %s", incompleteMember);
+                      stateMap = fetchAndDisplayIncompleteState(incompleteMembers, targetState, currentExclusion);
+                      fillStateMapWithComplete(stateMap, completeMembers, targetState);
+                      return stateMap;
+                    }
+                  }
+                } else {
+                  targetReached = false;
+                }
+              } else if (memberState.ordinal() < targetState.ordinal()) {
+                targetReached = false;
+                ++notReadyCount;
+              } else {
+                newlyCompleteMembers.add(incompleteMember);
+              }
             }
           }
           completeMembers.addAll(newlyCompleteMembers);
@@ -345,7 +367,7 @@ public class DaemonStateZK implements Watcher {
 
             Log.warningf("Timeout in targetState: %s", targetState);
             try {
-              stateMap = fetchAndDisplayIncompleteState(incompleteMembers, targetState);
+              stateMap = fetchAndDisplayIncompleteState(incompleteMembers, targetState, currentExclusion);
             } catch (KeeperException e) {
               e.printStackTrace();
               stateMap = ImmutableMap.of();
@@ -366,13 +388,15 @@ public class DaemonStateZK implements Watcher {
       }
     }
     if (verbose) {
-      System.out.printf("Quorum state reached: %s\n", targetState);
+      String maybeExclusionTag = currentExclusion.getServers().isEmpty() ? "" : String.format("\t[%d Exclusion(s)]",
+          currentExclusion.getServers().size());
+      System.out.printf("Quorum state reached: %s%s\n", targetState, maybeExclusionTag);
     }
     return ImmutableMap.of();
   }
 
-  private Map<IPAndPort, DaemonState> fetchAndDisplayIncompleteState(Set<IPAndPort> members, DaemonState targetState)
-      throws KeeperException {
+  private Map<IPAndPort, DaemonState> fetchAndDisplayIncompleteState(Set<IPAndPort> members, DaemonState targetState,
+      ExclusionSet exclusions) throws KeeperException {
     Pair<Boolean, Map<IPAndPort, DaemonState>> sp;
     Map<IPAndPort, DaemonState> qs;
 
@@ -382,7 +406,9 @@ public class DaemonStateZK implements Watcher {
       DaemonState state;
 
       state = qs.get(im);
-      if (state == null || state != targetState) {
+      if (exclusions.contains(im.getIPAsString())) {
+        System.out.printf("Excluded:\t%s\t%s\n", im, state);
+      } else if (state == null || state != targetState) {
         System.out.printf("Incomplete:\t%s\t%s\n", im, state);
       }
     }

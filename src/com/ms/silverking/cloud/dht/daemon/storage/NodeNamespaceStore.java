@@ -42,7 +42,7 @@ class NodeNamespaceStore extends MetricsNamespaceStore implements JVMMemoryObser
   }
 
   private void storeSystemKVPairs(MessageGroupBase mgBase, long curTimeMillis) {
-    storeStaticKVPair(mgBase, curTimeMillis, nodeIDKey, IPAddrUtil.addrAndPortToString(mgBase.getIPAndPort()));
+    storeStaticKVPair(mgBase, curTimeMillis, nodeIDKey, mgBase.getIPAndPort().toString());
   }
 
   private boolean isFilteredNamespace(NamespaceStore nsStore) {
@@ -56,7 +56,7 @@ class NodeNamespaceStore extends MetricsNamespaceStore implements JVMMemoryObser
     if (key.equals(nodeIDKey)) {
       value = IPAddrUtil.localIPString().getBytes();
     } else if (key.equals(bytesFreeKey)) {
-      value = Long.toString(bytesFree).getBytes();
+        value = Long.toString(bytesFree).getBytes();
     } else if (key.equals(totalNamespacesKey)) {
       long totalNamespaces;
 
@@ -68,15 +68,15 @@ class NodeNamespaceStore extends MetricsNamespaceStore implements JVMMemoryObser
       }
       value = Long.toString(totalNamespaces).getBytes();
     } else if (key.equals(namespacesKey)) {
-      StringBuilder sb;
+        StringBuilder sb;
 
-      sb = new StringBuilder();
+        sb = new StringBuilder();
       for (NamespaceStore nsStore : namespaces.values()) {
         if (!isFilteredNamespace(nsStore)) {
           sb.append(String.format("%x\n", nsStore.getNamespace()));
+          }
         }
-      }
-      value = sb.toString().getBytes();
+        value = sb.toString().getBytes();
     } else if (NamespaceMetricsNamespaceStore.isMetricKey(key)) {
       NamespaceMetrics aggregateMetrics;
 
@@ -84,8 +84,8 @@ class NodeNamespaceStore extends MetricsNamespaceStore implements JVMMemoryObser
       for (NamespaceStore nsStore : namespaces.values()) {
         if (!isFilteredNamespace(nsStore)) {
           aggregateMetrics = NamespaceMetrics.aggregate(aggregateMetrics, nsStore.getNamespaceMetrics());
-        }
       }
+    }
       value = aggregateMetrics.getMetric(NamespaceMetricsNamespaceStore.keyToName(key)).toString().getBytes();
     }
     return value;

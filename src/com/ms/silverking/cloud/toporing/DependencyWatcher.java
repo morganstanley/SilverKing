@@ -9,6 +9,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.zookeeper.KeeperException;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.ms.silverking.cloud.config.HostGroupTable;
 import com.ms.silverking.cloud.dht.common.DHTUtil;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
@@ -36,9 +40,6 @@ import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * Watches ring dependencies and builds a new ring if any changes are detected.

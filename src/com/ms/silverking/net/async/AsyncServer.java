@@ -31,6 +31,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
       throws IOException {
     super(port, numSelectorControllers, controllerClass, acceptor, connectionCreator, readerLWTPool, writerLWTPool,
         selectionThreadWorkLimit, debug);
+
     this.incomingConnectionListener = incomingConnectionListener;
     this.enabled = enabled;
     this.debug = debug;
@@ -74,8 +75,10 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
 
   public void shutdown() {
     try {
-      serverChannel.close();
-      serverChannel = null;
+      if (serverChannel != null) {
+        serverChannel.close();
+        serverChannel = null;
+      }
     } catch (IOException ioe) {
       Log.logErrorWarning(ioe);
     }

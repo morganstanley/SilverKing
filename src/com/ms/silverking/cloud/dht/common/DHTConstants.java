@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.common;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +28,7 @@ import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
 import com.ms.silverking.cloud.dht.client.crypto.AESEncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.ClassVars;
@@ -41,6 +43,7 @@ public class DHTConstants {
   public static final long unspecifiedVersion = 0;
 
   public static final byte[] emptyByteArray = new byte[0];
+  public static final ByteBuffer emptyByteBuffer = ByteBuffer.wrap(emptyByteArray);
 
   public static final StorageType defaultStorageType = StorageType.FILE;
   public static final ConsistencyProtocol defaultConsistencyProtocol = ConsistencyProtocol.TWO_PHASE_COMMIT;
@@ -78,6 +81,8 @@ public class DHTConstants {
   public static final String systemClassBase = "com.ms.silverking";
   public static final String daemonPackageBase = systemClassBase + ".cloud.dht.daemon";
 
+  public static final String heapDumpOnOOMProp = systemClassBase + ".heapDumpOnOOM";
+
   public static final String daemonLogFile = "Daemon.out";
   public static final String stopSKFSLogFile = "StopSKFS.out";
   public static final String checkSKFSLogFile = "CheckSKFS.out";
@@ -113,10 +118,14 @@ public class DHTConstants {
   public static final String enablePendingPutsProperty = daemonPackageBase + ".EnablePendingPuts";
   public static final String maxUnfinalizedDeletedBytesProperty = daemonPackageBase + ".MaxUnfinalizedDeletedBytes";
   public static final String verboseReapLogInfoProperty = daemonPackageBase + ".VerboseReapLogInfo";
+  public static final String defaultCompactionThresholdProperty = daemonPackageBase + ".DefaultCompactionThreshold";
 
   public static final String verboseGlobalFinalizationProperty = systemClassBase + ".VerboseGlobalFinalization";
   public static final String jvmMonitorMaxIntervalMillisProperty = systemClassBase + ".JvmMonitorMaxIntervalMillis";
   public static final String jvmMonitorMinIntervalMillisProperty = systemClassBase + ".JvmMonitorMinIntervalMillis";
+  public static final String internalRelTimeoutMillisProp = systemClassBase + ".InternalRelTimeoutMillisProp";
+
+  public static final String exclusionSetRetainedVersionsProperty = systemClassBase + ".ExclusionSetRetainedVersions";
 
   public static final String ssSubDirName = "ss";
   public static final String ssTempSubDirName = "ssTemp";
@@ -125,6 +134,7 @@ public class DHTConstants {
   public static final String classpathProperty = "java.class.path";
   public static final String jaceHomeEnv = "SK_JACE_HOME";
   public static final String defaultNamespaceOptionsModeEnv = "SK_DEFAULT_NS_OPTIONS_MODE";
+  public static final String defaultEnableMsgGroupTraceEnv = "SK_ENABLE_MSG_GROUP_TRACE";
   public static final String javaHomeEnv = SKConstants.javaHomeEnv;
   public static final String javaHomeProperty = "java.home";
 
@@ -167,7 +177,12 @@ public class DHTConstants {
         DHTConstants.skInstanceLogBaseVar) + "/" + gc.getClientDHTConfiguration().getName();
   }
 
+  public static Boolean getHeapDumpOnOutOfMemory() {
+    return Boolean.parseBoolean(System.getProperty(heapDumpOnOOMProp, "true"));
+  }
+
   public static final Set<SecondaryTarget> noSecondaryTargets = null;
+  public static final TraceIDProvider defaultTraceIDProvider = TraceIDProvider.noTraceIDProvider;
   public static final OpTimeoutController standardTimeoutController = new OpSizeBasedTimeoutController();
   public static final OpTimeoutController standardWaitForTimeoutController = new WaitForTimeoutController();
   /**
@@ -247,4 +262,7 @@ public class DHTConstants {
     // Above code has error. Below removes this error and ensures no skew across runs/instances
     nanoOriginTimeInMillis = 946684800000L;
   }
+
+  public static final int noPortOverride = -1;
+  public static final int uninitializedPort = -1;
 }

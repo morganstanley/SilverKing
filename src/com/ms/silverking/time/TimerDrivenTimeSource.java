@@ -23,6 +23,7 @@ public final class TimerDrivenTimeSource extends TimerTask implements RelNanosAb
   }
 
   public TimerDrivenTimeSource(SafeTimer timer, long periodMillis) {
+    updateTimes();
     this.timer = timer;
     timer.scheduleAtFixedRate(new SafeTimerTask(this), 0, periodMillis);
   }
@@ -60,6 +61,10 @@ public final class TimerDrivenTimeSource extends TimerTask implements RelNanosAb
 
   @Override
   public void run() {
+    updateTimes();
+  }
+
+  private void updateTimes() {
     relTimeNanos = System.nanoTime();
     absTimeMillis = System.currentTimeMillis();
   }

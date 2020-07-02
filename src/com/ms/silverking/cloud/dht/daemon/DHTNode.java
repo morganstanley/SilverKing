@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.daemon;
 
+import java.net.InetAddress;
 import java.util.Timer;
 
 import com.ms.silverking.cloud.dht.common.DHTConstants;
@@ -8,16 +9,22 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergenceController2;
+import com.ms.silverking.cloud.dht.daemon.storage.management.ManagedStorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.BaseOperation;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.BaseRetrievalEntryState;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DaemonStateZK;
+import com.ms.silverking.cloud.dht.meta.IpAliasConfiguration;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
-import com.ms.silverking.cloud.dht.net.MessageGroupBase;
-import com.ms.silverking.cloud.meta.ExclusionSetAddressStatusProvider;
+import com.ms.silverking.cloud.dht.net.ExclusionSetAddressStatusProvider;
+import com.ms.silverking.cloud.dht.net.IPAliasMap;
+import com.ms.silverking.cloud.dht.net.IPAliasingUtil;
+import com.ms.silverking.cloud.dht.trace.TracerFactory;
+import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AsyncGlobals;
 import com.ms.silverking.net.async.OutgoingData;
@@ -27,8 +34,6 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.SafeTimer;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * Daemon that implements primary DHT functionality.
@@ -42,15 +47,25 @@ public class DHTNode {
   private final DaemonStateZK daemonStateZK;
   private final NodeInfoZK nodeInfoZK;
   private final MetaClient mc;
+  private final boolean enableMsgGroupTrace;
 
   private boolean running;
 
   // FUTURE - make port non-static
   // also possibly make it a per-node rather than per-DHT notion
-  private static int serverPort;
+  private static volatile int actualPort = DHTConstants.uninitializedPort;
+  private static volatile int dhtPort = DHTConstants.uninitializedPort;
 
-  public static int getServerPort() {
-    return serverPort;
+  // this is the port fixed in DHT config, though the server may really be listening on another port
+  // this port forms the identity of the node. For a node to run on a different port to this,
+  // alias mapping must be used - See MessageModuleBase for a comment describing this feature
+  public static int getDhtPort() {
+    return dhtPort;
+  }
+
+  // The port the server is listening on, which may != dhtPort, if overridden in constructor
+  public static int getActualPort() {
+    return actualPort;
   }
 
   // FUTURE - Make meta data updates use triggers and raise this interval, or
@@ -82,26 +97,84 @@ public class DHTNode {
   }
 
   public DHTNode(String dhtName, ZooKeeperConfig zkConfig, DHTNodeConfiguration nodeConfig,
-      int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy) {
+      int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy, int overridePort, String daemonIP) {
     try {
       running = true;
-      IPAndPort daemonIPAndPort;
       //DHTRingCurTargetWatcher    dhtRingCurTargetWatcher;
       DHTConfiguration dhtConfig;
+      IpAliasConfiguration aliasConfig;
       ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider;
+      IPAliasMap aliasMap;
+      IPAndPort daemonIPAndPort;
+      IPAndPort baseInterfaceIPAndPort;
 
       Log.warning("LogLevel: ", Log.getLevel());
       this.dhtName = dhtName;
       mc = new MetaClient(dhtName, zkConfig);
       dhtConfig = mc.getDHTConfiguration();
       Log.warning("DHTConfiguration: ", dhtConfig);
-      serverPort = dhtConfig.getPort();
-      daemonIPAndPort = MessageGroupBase.createLocalIPAndPort(serverPort);
-      exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName);
+      aliasConfig = mc.getIpAliasConfiguration(dhtConfig.getIpAliasMapName());
+      aliasMap = IPAliasingUtil.readAliases(dhtConfig, aliasConfig);
+
+      dhtPort = dhtConfig.getPort();
+      ResolvedReplicaMap.setDHTPort(dhtConfig.getPort());
+
+      // Determine daemonIPAndPort and interface ip and port
+      daemonIPAndPort = null;
+      baseInterfaceIPAndPort = null;
+      if (daemonIP != null && overridePort != DHTConstants.noPortOverride) {
+        throw new RuntimeException("Only one of daemonIP and overridePort may be set");
+      }
+      if (daemonIP != null) { // daemon ip specified
+        Log.info("daemonIP specified");
+        daemonIPAndPort = new IPAndPort(daemonIP, dhtConfig.getPort());
+        baseInterfaceIPAndPort = (IPAndPort)aliasMap.daemonToInterface(daemonIPAndPort);
+        if (baseInterfaceIPAndPort == null) {
+          baseInterfaceIPAndPort = daemonIPAndPort;
+        }
+      } else if (overridePort != DHTConstants.noPortOverride) { // override port specified
+        Log.info("overridePort specified");
+        baseInterfaceIPAndPort = new IPAndPort(InetAddress.getLocalHost().getHostAddress(), overridePort);
+        daemonIPAndPort = aliasMap.interfaceToDaemon(baseInterfaceIPAndPort);
+        if (daemonIPAndPort == null) {
+          throw new RuntimeException("Alias map has no entry for interface: "+ baseInterfaceIPAndPort);
+        }
+      } else { // neither daemon ip nor override port specified
+        Log.info("Neither daemonIP nor overridePort specified");
+        // Check if the local interface ip happens to uniquely identify a daemon
+        daemonIPAndPort = aliasMap.interfaceIPToDaemon_ifUnique(InetAddress.getLocalHost().getHostAddress());
+        if (daemonIPAndPort != null) {
+          Log.infof("Found unique alias for ip %s", InetAddress.getLocalHost().getHostAddress());
+          baseInterfaceIPAndPort = (IPAndPort)aliasMap.daemonToInterface(daemonIPAndPort);
+        } else {
+          // use default ip : dht port for both daemon and interface
+          Log.infof("No unique alias found for ip; setting daemonIP to interfaceIP %s",
+              InetAddress.getLocalHost().getHostAddress());
+          baseInterfaceIPAndPort = new IPAndPort(InetAddress.getLocalHost().getHostAddress(), dhtConfig.getPort());
+          daemonIPAndPort = baseInterfaceIPAndPort;
+        }
+      }
+      Log.infof("daemonIPAndPort: %s", daemonIPAndPort);
+      Log.infof("baseInterfaceIPAndPort: %s", baseInterfaceIPAndPort);
+      if (!IPAndPort.equalIPs(daemonIPAndPort, baseInterfaceIPAndPort)) {
+        IPAddrUtil.ensureLocalIP(daemonIPAndPort.getIPAsString());
+      }
+      IPAndPort configuredLocalPort = new IPAndPort(IPAddrUtil.localIP(), dhtPort);
+      if (!daemonIPAndPort.equals(configuredLocalPort)) {
+        throw new RuntimeException("Daemon ip and port " + daemonIPAndPort.toString() + " did not match local configured address " + configuredLocalPort.toString());
+      }
+      actualPort = baseInterfaceIPAndPort.getPort();
+
+      this.enableMsgGroupTrace = dhtConfig.getEnableMsgGroupTrace();
+      Log.warning("EnableMsgGroupTrace: ", enableMsgGroupTrace);
+      if (enableMsgGroupTrace) {
+        TracerFactory.ensureTracerInitialized();
+      }
+
+      exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName, aliasMap);
       ringMaster = new NodeRingMaster2(dhtName, zkConfig, daemonIPAndPort);
       ringMaster.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
       //dmw.addListener(ringMaster);
-      Log.warning("Using port: " + serverPort);
       Log.warning("ReapPolicy: ", reapPolicy);
       daemonStateZK = new DaemonStateZK(mc, daemonIPAndPort, daemonStateTimer);
       daemonStateZK.setState(DaemonState.INITIAL_MAP_WAIT);
@@ -118,8 +191,9 @@ public class DHTNode {
       nodeInfoZK = new NodeInfoZK(mc, nodeConfig, daemonIPAndPort, daemonStateTimer);
       memoryManager = new MemoryManager();
       storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy,
-          memoryManager.getJVMMonitor());
-      msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer, serverPort, mc);
+          memoryManager.getJVMMonitor(), enableMsgGroupTrace);
+      msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer,
+          baseInterfaceIPAndPort.getPort(), daemonIPAndPort, mc,aliasMap, enableMsgGroupTrace);
       msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
       daemonStateZK.setState(DaemonState.QUORUM_WAIT);
       daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT,
@@ -141,6 +215,15 @@ public class DHTNode {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public DHTNode(DHTNodeOptions options) {
+    this(options.dhtName, new ZooKeeperConfig(options.zkConfig), new DHTNodeConfiguration(),
+        options.inactiveNodeTimeoutSeconds, options.getReapPolicy(), options.daemonPortOverride, options.daemonIP);
+  }
+
+  public final boolean getEnableMsgGroupTrace() {
+    return enableMsgGroupTrace;
   }
 
   public void stop() {
@@ -185,50 +268,71 @@ public class DHTNode {
     Log.warning("DHTNode.test() complete");
   }
 
+  public ManagedStorageModule getManagedStorageModule() {
+    return msgModule.getStorage();
+  }
+
+  public static void preSetup() {
+    LWTPoolProvider.createDefaultWorkPools();
+    Log.initAsyncLogging();
+  }
+
+  public static void postRun(boolean cleanReturn) {
+    if (cleanReturn) {
+      Log.warning("DHTNode run() returned cleanly");
+      System.exit(0);
+    } else {
+      System.exit(-1);
+    }
+  }
+
+  @FunctionalInterface
+  public interface DHTNodeRunner {
+    /**
+     * @param givenNode     initialized DHTNode
+     * @param givenNodePort the port used by the given node
+     * @return true if the DHTNode::run() has clean return; false otherwise
+     */
+    boolean runDHTNode(DHTNode givenNode, int givenNodePort);
+  }
+
+  public static void withDhtNodeAndPort(DHTNodeOptions parsedOptions, DHTNodeRunner runner) {
+    boolean cleanReturn;
+
+    cleanReturn = false;
+    try {
+      DHTNode dhtNode;
+
+      preSetup();
+      dhtNode = new DHTNode(parsedOptions);
+      cleanReturn = runner.runDHTNode(dhtNode, DHTNode.getActualPort());
+    } catch (Throwable t) {
+      Log.logErrorWarning(t);
+      t.printStackTrace();
+    } finally {
+      Log.warning("DHTNode leaving withDhtNodeAndPort()");
+    }
+
+    postRun(cleanReturn);
+  }
+
   /**
    * @param args
    */
   public static void main(String[] args) {
-    try {
-      DHTNode dhtNode;
-      String dhtName;
-      ZooKeeperConfig zkConfig;
-      DHTNodeOptions options;
-      CmdLineParser parser;
+    DHTNodeOptions options;
 
-      LWTPoolProvider.createDefaultWorkPools();
-
-      options = new DHTNodeOptions();
-      parser = new CmdLineParser(options);
+    options = DHTNodeOptions.initialize(args);
+    withDhtNodeAndPort(options, (givenNode, givenNodePort) -> {
       try {
-        parser.parseArgument(args);
-
-        dhtName = options.dhtName;
-        zkConfig = new ZooKeeperConfig(options.zkConfig);
-        dhtNode = new DHTNode(dhtName, zkConfig, new DHTNodeConfiguration(), options.inactiveNodeTimeoutSeconds,
-            options.getReapPolicy());
-        //Log.setLevelAll();
-        Log.initAsyncLogging();
-        dhtNode.run();
-        Log.warning("DHTNode run() returned cleanly");
-        System.exit(0);
-      } catch (CmdLineException cle) {
-        Log.logErrorWarning(cle);
-        System.err.println(cle.getMessage());
-        parser.printUsage(System.err);
-        return;
-      } catch (Exception e) {
-        Log.logErrorWarning(e);
-        e.printStackTrace();
+        Log.warning("About to call DHTNode::run(), which uses port: " + givenNodePort);
+        givenNode.run();
+        return true;
       } catch (Throwable t) {
-        Log.logErrorWarning(t);
+        Log.logErrorWarning(t, "Encountered exception during DHTNode::run()");
         t.printStackTrace();
-      } finally {
-        Log.warning("DHTNode leaving main()");
+        return false;
       }
-    } catch (Exception e) {
-      Log.logErrorWarning(e);
-    }
-    System.exit(-1);
+    });
   }
 }

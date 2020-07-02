@@ -35,6 +35,8 @@ import com.ms.silverking.cloud.dht.net.ProtoKeyedMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoValueMessageGroup;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
+import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
@@ -58,11 +60,11 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
 
   private static final int resultListInitialSize = 10;
 
-  ActiveProxyRetrieval(MessageGroup message, MessageGroupConnectionProxy connection, MessageModule messageModule,
-      StorageModule storage, InternalRetrievalOptions retrievalOptions, RetrievalProtocol retrievalProtocol,
-      long absDeadlineMillis) {
-    super(connection, message, messageModule, absDeadlineMillis, true);
-    this.retrievalOptions = getRetrievalOptions(message, retrievalOptions);
+  ActiveProxyRetrieval(MessageGroup message, ByteBuffer optionsByteBuffer, MessageGroupConnectionProxy connection,
+      MessageModule messageModule, StorageModule storage, InternalRetrievalOptions retrievalOptions,
+      RetrievalProtocol retrievalProtocol, long absDeadlineMillis) {
+    super(connection, message, optionsByteBuffer, messageModule, absDeadlineMillis, true);
+    this.retrievalOptions = getRetrievalOptions(message, retrievalOptions, getMaybeTraceID());
     this.retrievalOperation = retrievalProtocol.createRetrievalOperation(
         message.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()), this, getForwardingMode(message));
     secondaryTargets = retrievalOptions.getRetrievalOptions().getSecondaryTargets();
@@ -70,9 +72,10 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   }
 
   private static InternalRetrievalOptions getRetrievalOptions(MessageGroup message,
-      InternalRetrievalOptions retrievalOptions) {
+      InternalRetrievalOptions retrievalOptions, byte[] maybeTraceID) {
     return StorageModule.isDynamicNamespace(message.getContext()) ? retrievalOptions.retrievalOptions(
-        retrievalOptions.getRetrievalOptions().forwardingMode(ForwardingMode.DO_NOT_FORWARD)) : retrievalOptions;
+        retrievalOptions.getRetrievalOptions().forwardingMode(ForwardingMode.DO_NOT_FORWARD)).maybeTraceID(
+        maybeTraceID) : retrievalOptions.maybeTraceID(maybeTraceID);
   }
 
   //protected OpVirtualCommunicator<DHTKey,RetrievalResult> createCommunicator() {
@@ -108,11 +111,12 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
 
   private class RetrievalForwardCreator implements ForwardCreator<DHTKey> {
     @Override
-    public MessageGroup createForward(List<DHTKey> destEntries, ByteBuffer optionsByteBuffer) {
+    public MessageGroup createForward(List<DHTKey> destEntries, ByteBuffer optionsByteBuffer,
+        byte[] traceIDInFinalReplica) {
       ProtoKeyedMessageGroup protoMG;
 
       protoMG = new ProtoRetrievalMessageGroup(uuid, namespace, retrievalOptions, originator, destEntries,
-          messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis));
+          messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis), traceIDInFinalReplica);
       return protoMG.toMessageGroup();
     }
   }
@@ -120,6 +124,10 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   @Override
   protected void localOp(List<? extends DHTKey> destEntries, OpCommunicator<DHTKey, RetrievalResult> comm) {
     List<ByteBuffer> results;
+
+    if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
+      TracerFactory.getTracer().onLocalHandleRetrievalRequest(maybeTraceID);
+    }
 
     results = getStorage().retrieve(getContext(), destEntries, // entry can act as a key
         getRetrievalOptions(), uuid);
@@ -156,11 +164,14 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
           retrievalResult = new RetrievalResult(entry, OpResult.CORRUPT, null);
         }
       }
+      // Complete operations are removed in bulk by MessageModule.Cleaner
+      if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
+        TracerFactory.getTracer().onLocalEnqueueRetrievalResult(maybeTraceID);
+      }
       if (retrievalResult != null) {
         // retrievalOperation.update((DHTKey)entry, localIPAndPort(), retrievalResult, rComm);
         rComm.sendResult(retrievalResult);
       }
-      // Complete operations are removed in bulk by MessageModule.Cleaner
     }
   }
 
@@ -203,7 +214,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
       IPAndPort replica;
 
-      replica = new IPAndPort(message.getOriginator(), DHTNode.getServerPort());
+      replica = new IPAndPort(message.getOriginator(), DHTNode.getDhtPort());
       if (debug) {
         System.out.println("replica: " + replica);
       }
@@ -261,7 +272,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   /**
    * Send responses for all locally completed operations
    *
-   * @param retrievalOperation
+   * @param results
    */
   protected void sendResults(List<RetrievalResult> results) {
     if (debug) {
@@ -291,7 +302,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
 
           groupLength = RetrievalResult.totalResultLength(resultGroup);
           pmg = new ProtoValueMessageGroup(uuid, namespace, results.size(), groupLength, _originator,
-              messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis));
+              messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis), maybeTraceID);
           for (RetrievalResult result : resultGroup) {
             DHTKey key;
             ByteBuffer value;
@@ -312,6 +323,9 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
             }
           }
           messageGroup = pmg.toMessageGroup();
+          if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
+            TracerFactory.getTracer().onBothDequeueAndAsyncSendRetrievalResult(maybeTraceID);
+          }
           connection.sendAsynchronous(messageGroup,
               messageGroup.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()));
         }
@@ -330,6 +344,14 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     } catch (IOException ioe) {
       ioe.printStackTrace();
     }
+  }
+
+  protected void sendErrorResults() {
+    List<RetrievalResult> results = new ArrayList<>();
+    this.message.getKeyIterator().forEach(k -> {
+      results.add(new RetrievalResult(k, OpResult.ERROR, null));
+    });
+    sendResults(results);
   }
 
   //////////////////////
@@ -386,8 +408,9 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
       System.out.printf("value %s\n", value);
       System.out.printf("valueBytes %d valueLength %d\n", valueBytes, valueLength);
     }
+    // TODO: consider using a child of traceID for replica update
     pmg = new ProtoValueMessageGroup(new UUIDBase(), message.getContext(), 1, valueBytes, creator.getBytes(),
-        DHTConstants.defaultSecondaryReplicaUpdateTimeoutMillis);
+        DHTConstants.defaultSecondaryReplicaUpdateTimeoutMillis, maybeTraceID);
     pmg.addValue(result.getKey(), value, valueLength, true);
     return pmg;
   }

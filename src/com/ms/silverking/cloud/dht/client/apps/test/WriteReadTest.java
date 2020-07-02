@@ -37,7 +37,7 @@ public class WriteReadTest implements Runnable {
 
   private static final boolean verbose = false;
 
-  public WriteReadTest(SKGridConfiguration gridConfig, PrintStream out, PrintStream err, int numThreads,
+  public WriteReadTest(DHTSession session, PrintStream out, PrintStream err, int numThreads,
       int keysPerThread, int updatesPerKey) throws ClientException, IOException {
     String nsName;
     NamespaceOptions nsOptions;
@@ -48,7 +48,7 @@ public class WriteReadTest implements Runnable {
     this.numThreads = numThreads;
     this.keysPerThread = keysPerThread;
     this.updatesPerKey = updatesPerKey;
-    session = new DHTClient().openSession(gridConfig);
+    this.session = session;
     nsOptions = session.getDefaultNamespaceOptions().versionMode(NamespaceVersionMode.SYSTEM_TIME_NANOS).storageType(
         StorageType.FILE).consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT).defaultPutOptions(
         session.getDefaultPutOptions().compression(Compression.NONE).checksumType(ChecksumType.NONE));
@@ -133,7 +133,7 @@ public class WriteReadTest implements Runnable {
         numThreads = Integer.parseInt(args[1]);
         keysPerThread = Integer.parseInt(args[2]);
         updatesPerKey = Integer.parseInt(args[3]);
-        wrt = new WriteReadTest(SKGridConfiguration.parseFile(gridConfig), System.out, System.err, numThreads,
+        wrt = new WriteReadTest(new DHTClient().openSession(SKGridConfiguration.parseFile(gridConfig)), System.out, System.err, numThreads,
             keysPerThread, updatesPerKey);
         wrt.doTest();
       }

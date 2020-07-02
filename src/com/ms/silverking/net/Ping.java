@@ -2,9 +2,10 @@ package com.ms.silverking.net;
 
 import java.io.IOException;
 
+import org.apache.zookeeper.Shell.ExitCodeException;
+
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.process.ProcessExecutor;
-import org.apache.zookeeper.Shell.ExitCodeException;
 
 public class Ping {
   private static final String ping = "/bin/ping";

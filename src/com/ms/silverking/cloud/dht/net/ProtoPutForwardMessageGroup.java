@@ -9,6 +9,7 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.net.protocol.KeyedMessageFormat;
 import com.ms.silverking.cloud.dht.net.protocol.PutMessageFormat;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 
@@ -17,11 +18,12 @@ import com.ms.silverking.log.Log;
  */
 public final class ProtoPutForwardMessageGroup extends ProtoValueMessageGroupBase {
   public ProtoPutForwardMessageGroup(UUIDBase uuid, long context, byte[] originator, ByteBuffer optionsByteBuffer,
-      List<MessageGroupKeyEntry> destEntries, ChecksumType checksumType, int deadlineRelativeMillis) {
-    super(MessageType.PUT, uuid, context, destEntries.size(), totalLength(destEntries),
-        (ByteBuffer) optionsByteBuffer.asReadOnlyBuffer(),
+      List<MessageGroupKeyEntry> destEntries, ChecksumType checksumType, int deadlineRelativeMillis,
+      byte[] maybeTraceID) {
+    super(TraceIDProvider.isValidTraceID(maybeTraceID) ? MessageType.PUT_TRACE : MessageType.PUT, uuid, context,
+        destEntries.size(), totalLength(destEntries), (ByteBuffer) optionsByteBuffer.asReadOnlyBuffer(),
         PutMessageFormat.size(checksumType) - KeyedMessageFormat.baseBytesPerKeyEntry, originator,
-        deadlineRelativeMillis, ForwardingMode.DO_NOT_FORWARD);
+        deadlineRelativeMillis, ForwardingMode.DO_NOT_FORWARD, maybeTraceID);
     if (debug) {
       System.out.println("\toptionsByteBuffer " + optionsByteBuffer + "\t last " + (bufferList.size() - 1));
     }
@@ -156,9 +158,14 @@ public final class ProtoPutForwardMessageGroup extends ProtoValueMessageGroupBas
     //displayForDebug();
   }
 
+  @Override
   public MessageGroup toMessageGroup() {
+    if (hasTraceID) {
+      // Try to consume traceTraceID before gets flipped
+      tryConsumeTraceID();
+    }
     for (int i = 0; i < bufferList.size(); i++) {
-      if (i != optionBufferIndex) {
+      if (i != ProtoValueMessageGroupBase.getOptionsByteBufferBaseOffset(hasTraceID)) {
         bufferList.get(i).flip();
       }
     }

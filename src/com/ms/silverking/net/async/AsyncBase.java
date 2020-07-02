@@ -17,7 +17,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
-import com.ms.silverking.net.security.AuthenticationFailError;
+import com.ms.silverking.net.security.AuthResult;
+import com.ms.silverking.net.security.AuthFailure;
 import com.ms.silverking.net.security.Authenticator;
 import com.ms.silverking.net.security.ConnectionAbsorbException;
 import com.ms.silverking.net.security.NoopAuthenticatorImpl;
@@ -30,7 +31,7 @@ import com.ms.silverking.thread.lwt.LWTThreadUtil;
  * Base class for implementing an asynchronous TCP/IP server.
  * Maintains persistent connections with peers.
  */
-public class AsyncBase<T extends Connection> {
+public abstract class AsyncBase<T extends Connection> {
   private final List<SelectorController<T>> selectorControllers;
 
   private SuspectAddressListener suspectAddressListener;
@@ -87,8 +88,7 @@ public class AsyncBase<T extends Connection> {
     defAuthenticationTimeoutInMillisecond = setProperty(defAuthenticationTimeoutProperty,
         _defaultAuthenticationTimeoutInMillisecond);
 
-    String authSkDef = System.getProperty(Authenticator.authImplProperty);
-    _defAuthenticator = Authenticator.getAuthenticator(authSkDef);
+    _defAuthenticator = Authenticator.getAuthenticator();
     if (_defAuthenticator instanceof NoopAuthenticatorImpl) {
       Log.info(
           "Authenticator: No authentication operation will be performed; Back-ended by [" + _defAuthenticator.getName() + "]");
@@ -145,6 +145,7 @@ public class AsyncBase<T extends Connection> {
       selectorControllers.add(new SelectorController(acceptWorker, null/*ConnecctWorker*/, new Reader(readerWorkPool),
           new Writer(writerWorkPool), controllerClass, selectionThreadWorkLimit, debug));
     }
+
     if (Connection.statsEnabled) {
       File statsBaseDir;
 
@@ -360,7 +361,7 @@ public class AsyncBase<T extends Connection> {
     channel.socket().setSoTimeout(defSocketReadTimeout); // (for auth as the rest is non-blocking)
 
     String connInfo = channel.socket() != null ? channel.socket().toString() : "nullSock";
-    Authenticator.AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside,
+    AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside,
         defAuthenticationTimeoutInMillisecond);
     if (authResult.isFailed()) {
       switch (authResult.getFailedAction()) {
@@ -370,9 +371,9 @@ public class AsyncBase<T extends Connection> {
         String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ?
             "ServerSide" :
             "ClientSide");
-        throw authResult.getFailCause().isPresent() ? new AuthenticationFailError(msg,
-            authResult.getFailCause().get()) : new AuthenticationFailError(msg);
-      case ABSORB_CONNECTION:
+        throw authResult.getFailCause().isPresent() ? new AuthFailure(msg,
+            authResult.getFailCause().get()) : new AuthFailure(msg);
+      case ABSORB:
         throw new ConnectionAbsorbException(channel, connInfo, listener, serverside,
             authResult.getFailCause().orElse(null));
       default:
@@ -384,9 +385,9 @@ public class AsyncBase<T extends Connection> {
     }
 
     if (logConnections) {
-      Log.warningf("AsyncBase addConnection: %s sBuf %d rBuf %d", channel, channel.socket().getSendBufferSize(),
-          channel.socket().getReceiveBufferSize());
+      Log.warningf("AsyncBase addConnection: %s sBuf %d rBuf %d", channel, channel.socket().getSendBufferSize(), channel.socket().getReceiveBufferSize());
     }
+
     try {
       channel.configureBlocking(false);
     } catch (IOException ioe) {
@@ -400,7 +401,7 @@ public class AsyncBase<T extends Connection> {
       Log.info("Authenticator: authId[" + authResult.getAuthId().get() + "] is obtained in [" + (serverside ?
           "ServerSide" :
           "ClientSide") + "] by [" + authenticator.getName() + "] for connection " + connInfo);
-      connection.setAuthResult(authResult);
+      connection.setAuthenticationResult(authResult);
     }
     connection.start();
     if (Connection.statsEnabled) {

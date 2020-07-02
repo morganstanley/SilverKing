@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.config.HostGroupTable;
@@ -35,7 +37,6 @@ import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
 
 public class CentralConvergenceController extends ConvergenceControllerBase implements RequestController {
   private final String curRingName;

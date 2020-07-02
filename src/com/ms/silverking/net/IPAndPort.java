@@ -27,16 +27,23 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
   public static final IPAndPort emptyIPAndPort = new IPAndPort(0, 0);
 
   public static final List<IPAndPort> emptyList = ImmutableList.of();
+  public static final IPAndPort[] emptyArray = new IPAndPort[0];
 
   private IPAndPort(long ipAndPort) {
     this.ipAndPort = ipAndPort;
   }
 
   public IPAndPort(int ip, int port) {
+    if (port < 0) {
+      throw new RuntimeException("port < 0: "+ port);
+    }
     this.ipAndPort = (ip << 32) | port;
   }
 
   public IPAndPort(byte[] ip, int offset, int port) {
+    if (port < 0) {
+      throw new RuntimeException("port < 0: "+ port);
+    }
     this.ipAndPort = ((long) IPAddrUtil.addrToInt(ip, offset) << 32) | (long) port;
   }
 
@@ -56,6 +63,9 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
   }
 
   public IPAndPort(String s, int port) {
+    if (port < 0) {
+      throw new RuntimeException("port < 0: "+ port);
+    }
     this.ipAndPort = ((long) IPAddrUtil.addrToInt(IPAddrUtil.stringToAddr(s)) << 32) | (long) port;
   }
 
@@ -173,6 +183,10 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     return IPAddrUtil.addrToString(getIP()) + ":" + getPort();
   }
 
+  public static boolean equalIPs(IPAndPort ip0, IPAndPort ip1) {
+    return ip0.getIPAsInt() == ip1.getIPAsInt();
+  }
+
   public static String arrayToString(IPAndPort[] ips) {
     StringBuilder sb;
 
@@ -263,59 +277,27 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
     System.out.println(new IPAndPort("1.2.3.4:9999"));
   }
 
-  public static AddrAndPort[] parseToArray(String s) {
+  public static IPAndPort[] parseToArray(String s) {
     return parseToArray(s, defaultMultipleAddrDelimiter);
   }
 
-  public static AddrAndPort[] parseToArray(String s, String delimiter) {
+  public static IPAndPort[] parseToArray(String s, String delimiter) {
     String[] toks;
-    AddrAndPort[] a;
+    IPAndPort[] a;
 
     toks = s.split(delimiter);
-    a = new AddrAndPort[toks.length];
+    a = new IPAndPort[toks.length];
     for (int i = 0; i < a.length; i++) {
       a[i] = new IPAndPort(toks[i]);
     }
     return a;
   }
 
-  public static AddrAndPort[] parseToArray(String s, int port) {
+  public static IPAndPort[] parseToArray(String s, int port) {
     return parseToArray(s, port, defaultMultipleAddrDelimiter);
   }
 
-  public static AddrAndPort[] parseToArray(String s, int port, String delimiter) {
-    String[] toks;
-    AddrAndPort[] a;
-
-    toks = s.split(delimiter);
-    a = new AddrAndPort[toks.length];
-    for (int i = 0; i < a.length; i++) {
-      a[i] = new IPAndPort(toks[i], port);
-    }
-    return a;
-  }
-
-  public static IPAndPort[] parseToIPArray(String s) {
-    return parseToIPArray(s, defaultMultipleAddrDelimiter);
-  }
-
-  public static IPAndPort[] parseToIPArray(String s, String delimiter) {
-    String[] toks;
-    IPAndPort[] a;
-
-    toks = s.split(delimiter);
-    a = new IPAndPort[toks.length];
-    for (int i = 0; i < a.length; i++) {
-      a[i] = new IPAndPort(toks[i]);
-    }
-    return a;
-  }
-
-  public static IPAndPort[] parseToIPArray(String s, int port) {
-    return parseToIPArray(s, port, defaultMultipleAddrDelimiter);
-  }
-
-  public static IPAndPort[] parseToIPArray(String s, int port, String delimiter) {
+  public static IPAndPort[] parseToArray(String s, int port, String delimiter) {
     String[] toks;
     IPAndPort[] a;
 
@@ -325,5 +307,9 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
       a[i] = new IPAndPort(toks[i], port);
     }
     return a;
+  }
+
+  public IPAndPort toIPAndPort() {
+    return this;
   }
 }

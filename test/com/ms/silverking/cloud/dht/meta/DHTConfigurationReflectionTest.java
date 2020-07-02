@@ -49,7 +49,9 @@ public class DHTConfigurationReflectionTest {
                 NamespaceOptionsMode.ZooKeeper,
                 0,
                 0,
-                "Golden_Wind"
+                "Golden_Wind",
+                null,
+                false
         );
         assertTrue(getTestMessage("newFieldShallBeIncluded", "reflection string shall have [namespaceOptionsMode] field"),
                 dhtCfg.toString().contains("namespaceOptionsMode=ZooKeeper"));

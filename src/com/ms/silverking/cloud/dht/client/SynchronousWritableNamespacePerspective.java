@@ -28,7 +28,9 @@ public interface SynchronousWritableNamespacePerspective<K, V> extends BaseNames
    * @param values map of key-value pairs to store
    * @throws PutException TODO
    */
-  public void put(Map<? extends K, ? extends V> values) throws PutException;
+  default public void put(Map<? extends K, ? extends V> values) throws PutException {
+    put(values, getOptions().getDefaultPutOptions());
+  }
 
   /**
    * Single-value Put operation.
@@ -47,7 +49,9 @@ public interface SynchronousWritableNamespacePerspective<K, V> extends BaseNames
    * @param value value to store
    * @throws PutException TODO
    */
-  public void put(K key, V value) throws PutException;
+  default public void put(K key, V value) throws PutException {
+    put(key, value, getOptions().getDefaultPutOptions());
+  }
 
   /**
    * Multi-value Invalidation operation
@@ -64,7 +68,9 @@ public interface SynchronousWritableNamespacePerspective<K, V> extends BaseNames
    * @param keys keys to invalidate
    * @throws InvalidationException TODO
    */
-  public void invalidate(Set<? extends K> keys) throws InvalidationException;
+  default public void invalidate(Set<? extends K> keys) throws InvalidationException {
+    invalidate(keys, getOptions().getDefaultInvalidationOptions());
+  }
 
   /**
    * Single-value Invalidation operation.
@@ -81,7 +87,9 @@ public interface SynchronousWritableNamespacePerspective<K, V> extends BaseNames
    * @param key key to invalidate
    * @throws InvalidationException TODO
    */
-  public void invalidate(K key) throws InvalidationException;
+  default public void invalidate(K key) throws InvalidationException {
+    invalidate(key, getOptions().getDefaultInvalidationOptions());
+  }
     
     /*
      * snapshots deprecated for now    

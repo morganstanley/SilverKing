@@ -49,9 +49,11 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
   private final long msg_context;
   private final int msg_deadline;
 
-  ActiveProxyPut(MessageGroup message, MessageGroupConnectionProxy connection, MessageModule messageModule,
-      StorageProtocol storageProtocol, long absDeadlineMillis, boolean local, NamespaceOptions nsOptions) {
-    super(connection, message, messageModule, absDeadlineMillis, local || storageProtocol.sendResultsDuringStart());
+  ActiveProxyPut(MessageGroup message, ByteBuffer optionsByteBuffer, MessageGroupConnectionProxy connection,
+      MessageModule messageModule, StorageProtocol storageProtocol, long absDeadlineMillis, boolean local,
+      NamespaceOptions nsOptions) {
+    super(connection, message, optionsByteBuffer, messageModule, absDeadlineMillis,
+        local || storageProtocol.sendResultsDuringStart());
     long _version;
     SystemTimeSource systemTimeSource;
 
@@ -115,12 +117,13 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
 
   class PutForwardCreator implements ForwardCreator<MessageGroupKeyEntry> {
     @Override
-    public MessageGroup createForward(List<MessageGroupKeyEntry> destEntries, ByteBuffer optionsByteBuffer) {
+    public MessageGroup createForward(List<MessageGroupKeyEntry> destEntries, ByteBuffer optionsByteBuffer,
+        byte[] traceIDInFinalReplica) {
       ProtoPutForwardMessageGroup protoMG;
 
       protoMG = new ProtoPutForwardMessageGroup(uuid, namespace, originator, optionsByteBuffer, destEntries,
           PutMessageFormat.getChecksumType(optionsByteBuffer),
-          messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis));
+          messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis), traceIDInFinalReplica);
       return protoMG.toMessageGroup();
     }
   }
@@ -133,11 +136,12 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     }
 
     @Override
-    public MessageGroup createForward(List<MessageGroupKeyOrdinalEntry> destEntries, ByteBuffer optionsByteBuffer) {
+    public MessageGroup createForward(List<MessageGroupKeyOrdinalEntry> destEntries, ByteBuffer optionsByteBuffer,
+        byte[] traceIDInFinalReplica) {
       ProtoPutUpdateMessageGroup protoMG;
 
       protoMG = new ProtoPutUpdateMessageGroup(uuid, namespace, version, destEntries, originator, storageState,
-          messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis));
+          messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis), traceIDInFinalReplica);
       return protoMG.toMessageGroup();
     }
   }
@@ -221,7 +225,7 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     for (MessageGroupKeyOrdinalEntry entry : message.getKeyOrdinalIterator()) {
       IPAndPort replica;
 
-      replica = new IPAndPort(message.getOriginator(), DHTNode.getServerPort());
+      replica = new IPAndPort(message.getOriginator(), DHTNode.getDhtPort());
       if (debug) {
         System.out.println("replica: " + replica);
       }
@@ -255,7 +259,15 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
   protected void sendResults(List<PutResult> results) {
     // FUTURE - remove this method from ActiveOperation?
     messageModule.sendPutResults(msg_uuid, msg_context, version, connection, results,
-        StorageProtocolUtil.initialStorageStateOrdinal, msg_deadline);
+        StorageProtocolUtil.initialStorageStateOrdinal, msg_deadline, maybeTraceID);
+  }
+
+  protected void sendErrorResults() {
+    List<PutResult> results = new ArrayList<>();
+    this.message.getKeyIterator().forEach(k -> {
+      results.add(new PutResult(k, OpResult.ERROR));
+    });
+    sendResults(results);
   }
 
   /////////////////////////////////////////

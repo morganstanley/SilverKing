@@ -27,7 +27,7 @@ public class StartOfCurrentExclusionTest {
         server = args[1];
         mc = new MetaClient(SKGridConfiguration.parseFile(gcName));
         ieZK = new InstanceExclusionZK(mc);
-        exclusionSetStartMap = ieZK.getStartOfCurrentExclusion(ImmutableSet.of(server));
+        exclusionSetStartMap = ieZK.getStartOfCurrentWorrisome(ImmutableSet.of(server));
         v = exclusionSetStartMap.get(server);
         System.out.printf("StartOfCurrentExclusionTest: %s\n", v);
         System.out.printf("mzxid: %d\n", ieZK.getVersionMzxid(v));

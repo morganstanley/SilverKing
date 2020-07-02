@@ -38,8 +38,8 @@ public class ChecksumTreeDebug implements MessageGroupReceiver {
   }
 
   public ChecksumTreeDebug() throws IOException {
-    mgBase = new MessageGroupBase(0, this, SystemTimeUtil.skSystemTimeSource,
-        PersistentAsyncServer.defaultNewConnectionTimeoutController, null, queueLimit, 1, "");
+    mgBase = MessageGroupBase.newClientMessageGroupBase(0, this, SystemTimeUtil.skSystemTimeSource,
+        PersistentAsyncServer.defaultNewConnectionTimeoutController, null, queueLimit, 1, "", null);
     mgBase.enable();
   }
 
@@ -54,6 +54,7 @@ public class ChecksumTreeDebug implements MessageGroupReceiver {
   public void receive(MessageGroup messageGroup, MessageGroupConnection connection) {
     switch (messageGroup.getMessageType()) {
     case RETRIEVE_RESPONSE:
+    case RETRIEVE_RESPONSE_TRACE:
       incomingSyncRetrievalResponse(messageGroup);
       break;
     case CHECKSUM_TREE:

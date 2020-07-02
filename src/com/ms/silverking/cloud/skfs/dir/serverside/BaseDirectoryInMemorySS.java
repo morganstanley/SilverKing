@@ -360,9 +360,9 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
     }
     synchronized (sd) {
       if (!sd.isPersisted()) {
-        persist(sd.getStorageParameters(), sd.getSerializedDir());
-        sd.setPersisted();
-      }
+    persist(sd.getStorageParameters(), sd.getSerializedDir());
+    sd.setPersisted();
+  }
     }
   }
 

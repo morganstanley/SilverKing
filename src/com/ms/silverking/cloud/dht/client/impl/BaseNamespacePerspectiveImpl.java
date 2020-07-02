@@ -22,6 +22,8 @@ import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.impl.ClientNamespace.OpLWTMode;
 import com.ms.silverking.cloud.dht.client.serialization.BufferDestSerializer;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 
 class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, V> {
@@ -95,6 +97,7 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
       OpLWTMode opLWTMode) throws RetrievalException {
     AsyncRetrievalOperationImpl<K, V> opImpl;
 
+    clientNamespace.validateOpOptions(retrievalOptions);
     opImpl = new AsyncRetrievalOperationImpl(new RetrievalOperation<>(clientNamespace, keys, retrievalOptions),
         clientNamespace, nspoImpl, clientNamespace.getAbsMillisTimeSource().absTimeMillis(),
         clientNamespace.getOriginator());
@@ -123,6 +126,8 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
             }
         }
         */
+
+    clientNamespace.validateOpOptions(putOptions);
     clientNamespace.validatePutOptions(putOptions);
     opImpl = new AsyncPutOperationImpl<>(new PutOperation<>(clientNamespace, values, putOptions), clientNamespace,
         nspoImpl, clientNamespace.getAbsMillisTimeSource().absTimeMillis(), clientNamespace.getOriginator(),
@@ -140,6 +145,7 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
       BufferDestSerializer<V> valueSerializer, OpLWTMode oplwtmode) {
     ImmutableMap.Builder<K, V> values;
 
+    clientNamespace.validateOpOptions(invalidationOptions);
     values = ImmutableMap.builder();
     for (K k : keys) {
       values.put(k, valueSerializer.emptyObject());
@@ -155,6 +161,8 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
     AsyncSnapshotOperationImpl asyncSnapshotImpl;
 
     snapshotOperation = new SnapshotOperation(clientNamespace, version);
+    // FIXME: Snapshot is not supported in a server who enables traceID feature
+    clientNamespace.validateOpOptions(snapshotOperation.options);
     asyncSnapshotImpl = new AsyncSnapshotOperationImpl(snapshotOperation, clientNamespace.getContext(),
         clientNamespace.getAbsMillisTimeSource().absTimeMillis(), clientNamespace.getOriginator());
     clientNamespace.getActiveVersionedBasicOperations().addOp(asyncSnapshotImpl);
@@ -170,6 +178,8 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
     AsyncSyncRequestOperationImpl asyncSyncRequestOperationImpl;
 
     syncRequestOperation = new SyncRequestOperation(clientNamespace, version);
+    // FIXME: SyncRequest is not supported in a server who enables traceID feature
+    clientNamespace.validateOpOptions(syncRequestOperation.options);
     asyncSyncRequestOperationImpl = new AsyncSyncRequestOperationImpl(syncRequestOperation,
         clientNamespace.getContext(), clientNamespace.getAbsMillisTimeSource().absTimeMillis(),
         clientNamespace.getOriginator());

@@ -18,6 +18,7 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.InetSocketAddressComparator;
+import com.ms.silverking.net.security.AuthResult;
 import com.ms.silverking.net.security.Authenticable;
 import com.ms.silverking.net.security.Authenticator;
 
@@ -105,16 +106,18 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
   //////////////////////////////////////////////////////////////////////
   // Authentication and Authorization
   // * Authenticable
-  private Authenticator.AuthResult authResult = null;
+  protected AuthResult authenticationResult = null;
+  protected Optional<String> authenticatedUser;
 
   @Override
-  public void setAuthResult(Authenticator.AuthResult authResult) {
-    this.authResult = authResult;
+  public void setAuthenticationResult(AuthResult authenticationResult) {
+    this.authenticationResult = authenticationResult;
+    this.authenticatedUser = authenticationResult.getAuthId();
   }
 
   @Override
-  public Optional<Authenticator.AuthResult> getAuthResult() {
-    return Optional.ofNullable(authResult);
+  public Optional<AuthResult> getAuthenticationResult() {
+    return Optional.ofNullable(authenticationResult);
   }
   //////////////////////////////////////////////////////////////////////
 
@@ -588,5 +591,9 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
 
   public long getQueueLength() {
     return 0;
+  }
+
+  public Optional<String> getAuthenticatedUser() {
+    return this.authenticatedUser;
   }
 }

@@ -1,10 +1,11 @@
 package com.ms.silverking.cloud.management;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.meta.MetaClientBase;
 import com.ms.silverking.cloud.meta.MetaPathsBase;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 
 public abstract class MetaToolModuleBase<T, M extends MetaPathsBase> implements MetaToolModule<T> {
   protected final MetaClientBase<M> mc;

@@ -1,8 +1,8 @@
 package com.ms.silverking.net.security;
 
-import java.net.Socket;
-
 import com.ms.silverking.text.ObjectDefParser2;
+
+import java.net.Socket;
 
 public class NoopAuthenticatorImpl extends Authenticator {
   static {
@@ -11,7 +11,7 @@ public class NoopAuthenticatorImpl extends Authenticator {
 
   @Override
   public String getName() {
-    return "[SilverkingDefaultAuthenticator]" + NoopAuthenticatorImpl.class.getCanonicalName();
+    return "[SilverKingDefaultAuthenticator]" + NoopAuthenticatorImpl.class.getCanonicalName();
   }
 
   @Override

@@ -1,11 +1,12 @@
 package com.ms.silverking.cloud.dht.client.apps.test;
 
+import org.kohsuke.args4j.Option;
+
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.StorageType;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
-import org.kohsuke.args4j.Option;
 
 class BulkThroughputOptions {
   BulkThroughputOptions() {

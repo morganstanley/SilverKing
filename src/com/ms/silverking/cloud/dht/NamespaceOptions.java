@@ -555,13 +555,13 @@ public class NamespaceOptions {
     System.out.printf("revisionMode == oNamespaceOptions.revisionMode %s\n",
         revisionMode == oNamespaceOptions.revisionMode);
     System.out.printf("defaultPutOptions.equals(oNamespaceOptions.defaultPutOptions) %s\n",
-        defaultPutOptions.equals(oNamespaceOptions.defaultPutOptions));
+        ObjectUtil.equal(defaultPutOptions, oNamespaceOptions.defaultPutOptions));
     System.out.printf("defaultInvalidationOptions.equals(oNamespaceOptions.defaultInvalidationOptions) %s\n",
-        defaultInvalidationOptions.equals(oNamespaceOptions.defaultInvalidationOptions));
+        ObjectUtil.equal(defaultInvalidationOptions,oNamespaceOptions.defaultInvalidationOptions));
     System.out.printf("defaultGetOptions.equals(oNamespaceOptions.defaultGetOptions) %s\n",
-        defaultGetOptions.equals(oNamespaceOptions.defaultGetOptions));
+        ObjectUtil.equal(defaultGetOptions, oNamespaceOptions.defaultGetOptions));
     System.out.printf("defaultWaitOptions.equals(oNamespaceOptions.defaultWaitOptions) %s\n",
-        defaultWaitOptions.equals(oNamespaceOptions.defaultWaitOptions));
+        ObjectUtil.equal(defaultWaitOptions, oNamespaceOptions.defaultWaitOptions));
     System.out.printf("secondarySyncIntervalSeconds == oNamespaceOptions.secondarySyncIntervalSeconds %s\n",
         secondarySyncIntervalSeconds == oNamespaceOptions.secondarySyncIntervalSeconds);
     System.out.printf("segmentSize == oNamespaceOptions.segmentSize %s\n",
@@ -569,12 +569,12 @@ public class NamespaceOptions {
     System.out.printf("maxValueSize == oNamespaceOptions.maxValueSize %s\n",
         maxValueSize == oNamespaceOptions.maxValueSize);
     System.out.printf("allowLinks == oNamespaceOptions.allowLinks %s\n", allowLinks == oNamespaceOptions.allowLinks);
-    System.out.printf("storageFormat == oNamespaceOptions.storageFormat %s\n",
-        storageFormat == oNamespaceOptions.storageFormat);
+    System.out.printf("storageFormat equals oNamespaceOptions.storageFormat %s\n",
+        ObjectUtil.equal(storageFormat, oNamespaceOptions.storageFormat));
     System.out.printf("valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy); %s\n",
-        valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy));
+        ObjectUtil.equal(valueRetentionPolicy,oNamespaceOptions.valueRetentionPolicy));
     System.out.printf("namespaceServerSideCode.equals(oNamespaceOptions.namespaceServerSideCode); %s\n",
-        namespaceServerSideCode.equals(oNamespaceOptions.namespaceServerSideCode));
+        ObjectUtil.equal(namespaceServerSideCode, oNamespaceOptions.namespaceServerSideCode));
   }
 
   @Override

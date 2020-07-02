@@ -1,9 +1,6 @@
 package com.ms.silverking.time;
 
-import static com.ms.silverking.time.TimeUtils.checkTooManyMillis;
-import static com.ms.silverking.time.TimeUtils.nanos2millisLong;
-import static com.ms.silverking.time.TimeUtils.nanos2seconds;
-import static com.ms.silverking.time.TimeUtils.nanos2secondsBD;
+import static com.ms.silverking.time.TimeUtils.*;
 
 import java.math.BigDecimal;
 

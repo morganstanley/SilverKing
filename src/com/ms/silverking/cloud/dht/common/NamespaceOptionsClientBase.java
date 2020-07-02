@@ -409,26 +409,26 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
     if (nsName.startsWith(Namespace.namespaceMetricsBaseName)) {
       nsProperties = DHTConstants.metricsNamespaceProperties;
     } else {
-      nsContext = NamespaceUtil.nameToContext(nsName);
-      nsProperties = getNamespacePropertiesWithTimeout(nsContext, getDefaultRelTimeoutMillis());
-      if (nsProperties == null) {
-        ensureNSCreationOptionsSet();
-        if (debug) {
-          System.out.printf("canBeAutoCreated %s\n", nsCreationOptions.canBeAutoCreated(nsName));
+    nsContext = NamespaceUtil.nameToContext(nsName);
+    nsProperties = getNamespacePropertiesWithTimeout(nsContext, getDefaultRelTimeoutMillis());
+    if (nsProperties == null) {
+      ensureNSCreationOptionsSet();
+      if (debug) {
+        System.out.printf("canBeAutoCreated %s\n", nsCreationOptions.canBeAutoCreated(nsName));
+      }
+      if (nsCreationOptions.canBeAutoCreated(nsName)) {
+        try {
+          storeNamespaceProperties(nsName, new NamespaceProperties(nsCreationOptions.getDefaultNamespaceOptions()),
+              false);
+        } catch (NamespaceCreationException | NamespaceModificationException e) {
+          throw new RuntimeException("Failure autocreating namespace", e);
         }
-        if (nsCreationOptions.canBeAutoCreated(nsName)) {
-          try {
-            storeNamespaceProperties(nsName, new NamespaceProperties(nsCreationOptions.getDefaultNamespaceOptions()),
-                false);
-          } catch (NamespaceCreationException | NamespaceModificationException e) {
-            throw new RuntimeException("Failure autocreating namespace", e);
-          }
-          nsProperties = getNamespacePropertiesWithTimeout(nsContext, getDefaultRelTimeoutMillis());
-          if (nsProperties == null) {
-            throw new RuntimeException("Failure autocreating namespace. null nsProperties");
-          }
+        nsProperties = getNamespacePropertiesWithTimeout(nsContext, getDefaultRelTimeoutMillis());
+        if (nsProperties == null) {
+          throw new RuntimeException("Failure autocreating namespace. null nsProperties");
         }
       }
+    }
     }
     return nsProperties;
   }

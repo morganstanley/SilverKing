@@ -1,71 +1,40 @@
 package com.ms.silverking.net.security;
 
-import java.net.Socket;
-import java.util.Optional;
-
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
+import com.ms.silverking.util.PropertiesHelper;
+
+import java.net.Socket;
 
 public abstract class Authenticator {
   public static final String authImplProperty = Authenticator.class.getPackage().getName() + ".AuthImplSKDef";
+  private static Authenticator singleton;
+  private static final String emptyDef = "";
 
   static {
     ObjectDefParser2.addParserWithExclusions(Authenticator.class, null, FieldsRequirement.ALLOW_INCOMPLETE, null);
+    String def = PropertiesHelper.systemHelper.getString(authImplProperty, "");
+    setAuthenticator(def);
   }
 
   public String toSKDef() {
     return ObjectDefParser2.toClassAndDefString(this);
   }
 
-  public static Authenticator parseSKDef(String skDef) {
+  static Authenticator parseSKDef(String skDef) {
     return ObjectDefParser2.parse(skDef, Authenticator.class.getPackage());
   }
 
-  public static Authenticator getAuthenticator(String property) {
-    if (property == null) {
-      return new NoopAuthenticatorImpl();
+  public static void setAuthenticator(String def) {
+    if (def == null || def.equals(emptyDef)) {
+      singleton = new NoopAuthenticatorImpl();
     } else {
-      return parseSKDef(property);
+      singleton = parseSKDef(def);
     }
   }
 
-  public static class AuthResult {
-    private String authId;
-    // We encapsulate AuthFailedAction in AuthResult so that Authenticator can define different actions for different
-    // authentication situation
-    // this action currently is only used if <i>isFailed()</i> returns true
-    private AuthFailedAction failedAction;
-    private Throwable cause;
-
-    /**
-     * @param authId AuthenticationId; <b>null</b> if authentication fails
-     * @param action action for Silverking to take when authentication fails
-     */
-    private AuthResult(String authId, AuthFailedAction action, Throwable cause) {
-      this.authId = authId;
-      this.failedAction = action;
-      this.cause = cause;
-    }
-
-    public boolean isSuccessful() {
-      return getAuthId().isPresent();
-    }
-
-    public boolean isFailed() {
-      return !isSuccessful();
-    }
-
-    public Optional<String> getAuthId() {
-      return Optional.ofNullable(authId);
-    }
-
-    public AuthFailedAction getFailedAction() {
-      return failedAction;
-    }
-
-    public Optional<Throwable> getFailCause() {
-      return Optional.ofNullable(cause);
-    }
+  public static Authenticator getAuthenticator() {
+    return singleton;
   }
 
   private static AuthFailedAction defAction = AuthFailedAction.THROW_ERROR;
@@ -81,29 +50,8 @@ public abstract class Authenticator {
     return new AuthResult(null, action, cause);
   }
 
-  public static AuthResult createAuthFailResult(AuthFailedAction action) {
+  static AuthResult createAuthFailResult(AuthFailedAction action) {
     return createAuthFailResult(action, null);
-  }
-
-  /**
-   * The behaviour for Silverking when authentication fails for a connection
-   */
-  public enum AuthFailedAction {
-    /**
-     * Silverking will throw <i>AuthenticationFailError</i>, currently Silverking will <b>NOT</b> handle this error
-     * (May be used for the clientside behaviour)
-     */
-    THROW_ERROR,
-    /**
-     * Silverking will continue to work without authentication
-     * (May be used if authentication is not a must, and this is Silverking's current default behaviour)
-     */
-    GO_WITHOUT_AUTH,
-    /**
-     * Silverking will absorb/give up this connection, and will still working
-     * (May be used for the serverside behaviour)
-     */
-    ABSORB_CONNECTION
   }
 
   /**

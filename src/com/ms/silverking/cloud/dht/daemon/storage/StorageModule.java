@@ -42,6 +42,9 @@ import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
 import com.ms.silverking.cloud.dht.daemon.RingMapState2;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
+import com.ms.silverking.cloud.dht.daemon.storage.management.ManagedNamespaceNotCreatedException;
+import com.ms.silverking.cloud.dht.daemon.storage.management.ManagedNamespaceStore;
+import com.ms.silverking.cloud.dht.daemon.storage.management.ManagedStorageModule;
 import com.ms.silverking.cloud.dht.meta.LinkCreationListener;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
 import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
@@ -71,7 +74,7 @@ import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 import com.ms.silverking.util.SafeTimerTask;
 import com.ms.silverking.util.memory.JVMMonitor;
 
-public class StorageModule implements LinkCreationListener {
+public class StorageModule implements LinkCreationListener, ManagedStorageModule {
   private final NodeRingMaster2 ringMaster;
   private final ConcurrentMap<Long, NamespaceStore> namespaces;
   private final ConcurrentMap<Long, NamespaceMetricsNamespaceStore> nsMetricsNamespaces;
@@ -93,6 +96,7 @@ public class StorageModule implements LinkCreationListener {
   private final NodeInfoZK nodeInfoZK;
   private final ReapPolicy reapPolicy;
   private final File trashManualDir;
+  private final boolean enableMsgGroupTrace;
   private SafeTimerTask cleanerTask;
   private SafeTimerTask reapTask;
   private JVMMonitor jvmMonitor;
@@ -153,7 +157,7 @@ public class StorageModule implements LinkCreationListener {
   }
 
   public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig,
-      NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy, JVMMonitor jvmMonitor) {
+      NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy, JVMMonitor jvmMonitor, boolean enableMsgGroupTrace) {
     ClientDHTConfiguration clientDHTConfiguration;
 
     Constraint.ensureNotNull(ringMaster);
@@ -164,6 +168,7 @@ public class StorageModule implements LinkCreationListener {
     Constraint.ensureNotNull(reapPolicy);
     Constraint.ensureNotNull(jvmMonitor);
 
+    this.enableMsgGroupTrace = enableMsgGroupTrace;
     baseNamespaces.add(NamespaceUtil.metaInfoNamespace.contextAsLong());
 
     this.timer = timer;
@@ -213,6 +218,15 @@ public class StorageModule implements LinkCreationListener {
     }
   }
 
+  public final boolean getEnableMsgGroupTrace() {
+    return enableMsgGroupTrace;
+  }
+
+  @Override
+  public File getBaseDir() {
+    return baseDir;
+  }
+
   public void setMessageGroupBase(MessageGroupBase mgBase) {
     this.mgBase = mgBase;
   }
@@ -256,6 +270,7 @@ public class StorageModule implements LinkCreationListener {
         try {
           metricsObserver = (StorageMetricsObserver) Class.forName(metricsObserverName).newInstance();
           metricsObserver.initialize(metricsNamespaceStores);
+          Log.info("Initialized StorageMetricsObserver: " + metricsObserverName);
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
           Log.logErrorWarning(e, "Unable to instantiate StorageMetricsObserver: " + metricsObserverName);
         }
@@ -448,6 +463,15 @@ public class StorageModule implements LinkCreationListener {
         addDirAndParents(sorted, parentDir);
       }
       sorted.add(childDir);
+    }
+  }
+
+  @Override
+  public ManagedNamespaceStore getManagedNamespaceStore(String nsName) throws ManagedNamespaceNotCreatedException {
+    try {
+      return getNamespaceStore(NamespaceUtil.nameToContext(nsName), NSCreationMode.CreateIfAbsent);
+    } catch (NamespaceNotCreatedException nnce) {
+      throw new ManagedNamespaceNotCreatedException(nnce);
     }
   }
 
@@ -769,6 +793,7 @@ public class StorageModule implements LinkCreationListener {
   }
 
   public void handleNamespaceResponse(MessageGroup message, MessageGroupConnection connection) {
+    NamespaceRequest nsRequest;
     List<Long> nsList;
 
     if (debugNSRequests) {

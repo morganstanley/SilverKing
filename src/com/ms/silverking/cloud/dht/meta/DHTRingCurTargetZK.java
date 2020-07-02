@@ -10,11 +10,8 @@ import org.apache.zookeeper.data.Stat;
 
 public class DHTRingCurTargetZK {
   private final MetaClient mc;
-  private final DHTConfiguration dhtConfig;
 
   public enum NodeType {Current, Target, Master}
-
-  ;
 
   private static final int retries = 4;
   private static final int retrySleepMS = 2 * 1000;
@@ -23,8 +20,11 @@ public class DHTRingCurTargetZK {
   private static final boolean debug = true;
 
   public DHTRingCurTargetZK(MetaClient mc, DHTConfiguration dhtConfig) throws KeeperException {
+    this(mc);
+  }
+
+  public DHTRingCurTargetZK(MetaClient mc) throws KeeperException {
     this.mc = mc;
-    this.dhtConfig = dhtConfig;
     ensureBasePathExists();
     ensureDataNodesExist();
   }

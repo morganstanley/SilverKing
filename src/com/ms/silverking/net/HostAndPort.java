@@ -196,11 +196,11 @@ public final class HostAndPort implements Comparable<HostAndPort>, Serializable,
 
   /////////////////////////////////////////////////////////////////
 
-  public HostAndPort toIPAndPort() throws UnknownHostException {
+  public IPAndPort toIPAndPort() throws UnknownHostException {
     String ip;
 
     ip = InetAddress.getByName(hostName).getHostAddress();
-    return new HostAndPort(ip, port);
+    return new IPAndPort(ip, port);
   }
 
   //public static void main(String[] args) {

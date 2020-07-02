@@ -5,7 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.ms.silverking.cloud.dht.ValueCreator;
+import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
+import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.id.UUIDBase;
@@ -40,8 +42,6 @@ public final class MessageGroup {
   private static final int keyBufferIndex = 0;
   private static final int keyBufferMetaDataLength = NumConversion.BYTES_PER_SHORT;
 
-  private static final int putResponseKeyBufferIndex = 1;
-
   private static final boolean debug = false;
   private static final boolean debugShortTimeout = false;
   private static final int shortTimeoutLimit = 1000;
@@ -74,9 +74,13 @@ public final class MessageGroup {
     //}
     switch (messageType) {
     case PUT:
+    case PUT_TRACE:
     case RETRIEVE:
+    case RETRIEVE_TRACE:
     case RETRIEVE_RESPONSE:
+    case RETRIEVE_RESPONSE_TRACE:
     case PUT_UPDATE:
+    case PUT_UPDATE_TRACE:
       //System.out.printf("buffers[keyBufferIndex] %s\n", StringUtil.byteBufferToHexString(buffers[keyBufferIndex]));
       // System.out.flush();
       bytesPerKeyEntry = buffers[keyBufferIndex].getShort(0);
@@ -84,6 +88,7 @@ public final class MessageGroup {
       assert bytesPerKeyEntry > 0;
       break;
     case PUT_RESPONSE:
+    case PUT_RESPONSE_TRACE:
       bytesPerKeyEntry = buffers[keyBufferIndex].getShort(0);
       //assert bytesPerKeyEntry == 0;
       break;
@@ -400,12 +405,16 @@ public final class MessageGroup {
     return new KeyOrdinalIterator();
   }
 
+  private int getPutResponseKeyBufferIndex() {
+    return ProtoPutResponseMessageGroup.getKeyBufferIndex(this);
+  }
+
   class KeyOrdinalIterator implements Iterator<MessageGroupKeyOrdinalEntry>, Iterable<MessageGroupKeyOrdinalEntry> {
     private final ByteBuffer putResponseKeyBuffer;
     private int curKey;
 
     KeyOrdinalIterator() {
-      putResponseKeyBuffer = buffers[putResponseKeyBufferIndex].duplicate();
+      putResponseKeyBuffer = buffers[getPutResponseKeyBufferIndex()].duplicate();
     }
 
     @Override

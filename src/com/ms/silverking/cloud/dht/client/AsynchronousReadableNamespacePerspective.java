@@ -98,7 +98,9 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @return an AsyncValueRetrieval object representing the operation
    * @throws RetrievalException
    */
-  public AsyncValueRetrieval<K, V> get(Set<? extends K> keys) throws RetrievalException;
+  default public AsyncValueRetrieval<K, V> get(Set<? extends K> keys) throws RetrievalException {
+    return (AsyncValueRetrieval<K, V>) get(keys, getOptions().getDefaultGetOptions());
+  }
   // single-value
 
   /**
@@ -118,7 +120,9 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @return an AsyncSingleValueRetrieval object representing the operation
    * @throws RetrievalException
    */
-  public AsyncSingleValueRetrieval<K, V> get(K key) throws RetrievalException;
+  default public AsyncSingleValueRetrieval<K, V> get(K key) throws RetrievalException {
+    return (AsyncSingleValueRetrieval<K, V>) get(key, getOptions().getDefaultGetOptions());
+  }
 
   // waitFor - wait on non-existent key-value pairs
   // multi-value
@@ -140,7 +144,9 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @return an AsyncValueRetrieval object representing the operation
    * @throws RetrievalException
    */
-  public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys) throws RetrievalException;
+  default public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys) throws RetrievalException {
+    return (AsyncValueRetrieval<K, V>) waitFor(keys, getOptions().getDefaultWaitOptions());
+  }
   // single-value
 
   /**
@@ -160,5 +166,7 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @return an AsyncSingleValueRetrieval object representing the operation
    * @throws RetrievalException
    */
-  public AsyncSingleValueRetrieval<K, V> waitFor(K key) throws RetrievalException;
+  default public AsyncSingleValueRetrieval<K, V> waitFor(K key) throws RetrievalException {
+    return (AsyncSingleValueRetrieval<K, V>) waitFor(key, getOptions().getDefaultWaitOptions());
+  }
 }

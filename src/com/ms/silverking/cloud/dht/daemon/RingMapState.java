@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.daemon.storage.NCGListener;
@@ -41,7 +43,6 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.SafeTimer;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Tracks state used during transition from one ring to another,

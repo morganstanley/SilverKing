@@ -6,6 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.ClassVars;
@@ -13,7 +15,6 @@ import com.ms.silverking.cloud.dht.meta.ClassVarsZK;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Enable redirection of stdout/stderr within the JVM

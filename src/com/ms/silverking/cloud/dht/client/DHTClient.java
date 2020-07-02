@@ -4,10 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.zookeeper.KeeperException;
 
 import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.ValueCreator;
@@ -24,6 +22,8 @@ import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
 import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
+import com.ms.silverking.cloud.dht.net.IPAliasMap;
+import com.ms.silverking.cloud.dht.net.IPAliasingUtil;
 import com.ms.silverking.cloud.toporing.TopoRingConstants;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
@@ -34,15 +34,12 @@ import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Base client interface to DHT functionality. Provides sessions
  * to specific DHT instances.
  */
 public class DHTClient {
-  private final Lock sessionCreationLock;
-  private final Map<String, DHTSession> dhtNameToSessionMap;
   private final SerializationRegistry serializationRegistry;
 
   private static final double concurrentExtraThreadFactor = 1.25;
@@ -95,20 +92,18 @@ public class DHTClient {
   /**
    * Construct DHTClient with the specified SerializationRegistry.
    *
-   * @param serializationRegistry TODO
-   * @throws IOException TODO
+   * @param serializationRegistry
+   * @throws IOException
    */
   @OmitGeneration
   public DHTClient(SerializationRegistry serializationRegistry) throws IOException {
-    sessionCreationLock = new ReentrantLock();
-    dhtNameToSessionMap = new HashMap<>();
     this.serializationRegistry = serializationRegistry;
   }
 
   /**
    * Construct DHTClient with default SerializationRegistry.
    *
-   * @throws IOException TODO
+   * @throws IOException
    */
   public DHTClient() throws IOException {
     this(SerializationRegistry.createDefaultRegistry());
@@ -119,7 +114,7 @@ public class DHTClient {
    *
    * @param dhtConfigProvider specifies the SilverKing DHT instance
    * @return a new session to the given instance
-   * @throws ClientException TODO
+   * @throws ClientException
    */
   public DHTSession openSession(ClientDHTConfigurationProvider dhtConfigProvider) throws ClientException {
     return openSession(new SessionOptions(dhtConfigProvider.getClientDHTConfiguration()));
@@ -130,24 +125,33 @@ public class DHTClient {
    *
    * @param sessionOptions options specifying the SilverKing DHT instance and the parameters of this session
    * @return a new session to the given instance
-   * @throws ClientException TODO
+   * @throws ClientException
    */
   public DHTSession openSession(SessionOptions sessionOptions) throws ClientException {
     ClientDHTConfiguration dhtConfig;
     String preferredServer;
     NamespaceOptionsMode nsOptionsMode;
+    boolean enableMsgGroupTrace;
+    DHTSession session;
+    int serverPort;
 
     dhtConfig = sessionOptions.getDHTConfig();
     preferredServer = sessionOptions.getPreferredServer();
 
     if (preferredServer != null) {
+      // Handle cases where a reserved preferredServer is used to indicate that an embedded SK
+      // instance is desired
       if (preferredServer.equals(SessionOptions.EMBEDDED_PASSIVE_NODE)) {
         embedPassiveNode(dhtConfig);
         // Assumption: There will be DHTConfig registered in ZK for this EMBEDDED_PASSIVE_NODE
         try {
-          nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+          DHTConfiguration dhtGlobalConfig;
+
+          dhtGlobalConfig = new MetaClient(dhtConfig).getDHTConfiguration();
+          nsOptionsMode = dhtGlobalConfig.getNamespaceOptionsMode();
+          enableMsgGroupTrace = dhtGlobalConfig.getEnableMsgGroupTrace();
         } catch (KeeperException | IOException e) {
-          throw new ClientException("Cannot get NamespaceOptionsMode", e);
+          throw new ClientException("Failed to read global DHTConfiguration", e);
         }
         preferredServer = null;
       } else if (preferredServer.equals(SessionOptions.EMBEDDED_KVS)) {
@@ -157,12 +161,13 @@ public class DHTClient {
         // Assumption: There could be no DHTConfig registered in ZK for this EMBEDDED_KVS
         // NOTE: if Embedded is created via openSession API, default nsOptionsMode is used
         nsOptionsMode = DHTConfiguration.defaultNamespaceOptionsMode;
-        dhtConfig = embedKVS(nsOptionsMode);
+        enableMsgGroupTrace = DHTConfiguration.defaultEnableMsgGroupTrace;
+        dhtConfig = embedKVS(nsOptionsMode, enableMsgGroupTrace);
         try {
           gcBase = Files.createTempDirectory("embeddedSKGC").toFile(); // FIXME - make user configurable
           gcBase.deleteOnExit();
         } catch (IOException ioe) {
-          throw new ClientException("Fail to create temp directory for EMBEDDED_KVS", ioe);
+          throw new ClientException("Failed to create temp directory for EMBEDDED_KVS", ioe);
         }
         gcName = "GC_" + dhtConfig.getName();
         try {
@@ -176,66 +181,94 @@ public class DHTClient {
       } else {
         // Normal openSession must have nsOptionsMode
         try {
-          nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+          DHTConfiguration dhtGlobalConfig;
+
+          dhtGlobalConfig = new MetaClient(dhtConfig).getDHTConfiguration();
+          nsOptionsMode = dhtGlobalConfig.getNamespaceOptionsMode();
+          enableMsgGroupTrace = dhtGlobalConfig.getEnableMsgGroupTrace();
         } catch (KeeperException | IOException e) {
-          throw new ClientException("Cannot get NamespaceOptionsMode", e);
+          throw new ClientException("Failed to read global DHTConfiguration", e);
         }
       }
     } else {
+      // This is a typical openSession - not embedded
       // Normal openSession must have nsOptionsMode
       try {
-        nsOptionsMode = new MetaClient(dhtConfig).getDHTConfiguration().getNamespaceOptionsMode();
+        DHTConfiguration dhtGlobalConfig;
+
+        dhtGlobalConfig = new MetaClient(dhtConfig).getDHTConfiguration();
+        nsOptionsMode = dhtGlobalConfig.getNamespaceOptionsMode();
+        enableMsgGroupTrace = dhtGlobalConfig.getEnableMsgGroupTrace();
       } catch (KeeperException | IOException e) {
-        throw new ClientException("Cannot get NamespaceOptionsMode", e);
+        throw new ClientException("Failed to read global DHTConfiguration", e);
       }
     }
 
-    sessionCreationLock.lock();
+    // Determine the serverPort
     try {
-      DHTSession session;
+      if (dhtConfig.hasPort()) { // Best to avoid zk if possible
+        serverPort = dhtConfig.getPort();
+      } else { // not specified, must contact zk
+        MetaClient mc;
+        MetaPaths mp;
+        long latestConfigVersion;
 
-      if (preferredServer == null) {
-        preferredServer = IPAddrUtil.localIPString();
+        Log.warning("dhtConfig.getZkLocs(): " + dhtConfig.getZKConfig());
+        mc = new MetaClient(dhtConfig);
+        mp = mc.getMetaPaths();
+
+        Log.warning("getting latest version: " + mp.getInstanceConfigPath());
+        latestConfigVersion = mc.getZooKeeper().getLatestVersion(mp.getInstanceConfigPath());
+        Log.warning("latestConfigVersion: " + latestConfigVersion);
+        serverPort = new DHTConfigurationZK(mc).readFromZK(latestConfigVersion, null).getPort();
       }
-      //session = dhtNameToSessionMap.get(dhtConfig.getName());
-      session = null; // FUTURE - this forces a new session
-      // think about whether we want to use multiple or cache to common
-      if (session == null) {
-        int serverPort;
-
-        try {
-          if (dhtConfig.hasPort()) {
-            serverPort = dhtConfig.getPort();
-          } else {
-            MetaClient mc;
-            MetaPaths mp;
-            long latestConfigVersion;
-
-            Log.warning("dhtConfig.getZkLocs(): " + dhtConfig.getZKConfig());
-            mc = new MetaClient(dhtConfig);
-            mp = mc.getMetaPaths();
-
-            Log.warning("getting latest version: " + mp.getInstanceConfigPath());
-            latestConfigVersion = mc.getZooKeeper().getLatestVersion(mp.getInstanceConfigPath());
-            Log.warning("latestConfigVersion: " + latestConfigVersion);
-            serverPort = new DHTConfigurationZK(mc).readFromZK(latestConfigVersion, null).getPort();
-          }
-        } catch (Exception e) {
-          throw new ClientException(e);
-        }
-        try {
-          session = new DHTSessionImpl(dhtConfig,
-              new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort), absMillisTimeSource,
-              serializationRegistry, sessionOptions.getTimeoutController(), nsOptionsMode);
-        } catch (IOException ioe) {
-          throw new ClientException(ioe);
-        }
-        Log.info("session returned: ", session);
-      }
-      return session;
-    } finally {
-      sessionCreationLock.unlock();
+    } catch (Exception e) {
+      throw new ClientException(e);
     }
+
+    // Now determine the daemon ip and port, and open a session
+    try {
+      IPAndPort   preferredServerAndPort;
+      IPAndPort   resolvedServer;
+      IPAliasMap  aliasMap;
+
+      // See IPAliasMap for discussion of the aliasing, daemon ip:port, and interface ip:port
+
+      aliasMap = IPAliasingUtil.readAliases(dhtConfig);
+
+      // Handle case of no preferred server explicitly specified
+      if (preferredServer == null) {
+        // When no preferred server is specified, we default to the local host
+        preferredServer = IPAddrUtil.localIPString();
+        Log.infof("No preferred server specified. Using: %s", preferredServer);
+        // If any aliases are defined for the local server, randomly select one
+        resolvedServer = aliasMap.interfaceIPToRandomDaemon(preferredServer);
+        if (resolvedServer != null) {
+          Log.infof("Found alias(es) for local server; randomly selected: %s", resolvedServer);
+        } else {
+          resolvedServer = new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort);
+        }
+      } else {
+        // A preferred server was explicitly specified
+        preferredServerAndPort = new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort);
+        Log.infof("preferredServerAndPort: %s", preferredServerAndPort);
+        // Check if we need to resolve this daemon to an interface
+        resolvedServer = (IPAndPort)aliasMap.daemonToInterface(preferredServerAndPort);
+        if (resolvedServer != preferredServerAndPort) {
+          Log.infof("Found alias for %s -> %s", preferredServerAndPort, resolvedServer);
+        }
+      }
+
+      Log.infof("Opening session to resolvedServer: %s", resolvedServer);
+      session = new DHTSessionImpl(dhtConfig,
+          resolvedServer, absMillisTimeSource,
+          serializationRegistry, sessionOptions.getTimeoutController(), nsOptionsMode, enableMsgGroupTrace,
+          aliasMap);
+    } catch (IOException ioe) {
+      throw new ClientException(ioe);
+    }
+    Log.info("session returned: ", session);
+    return session;
   }
 
   private void embedPassiveNode(ClientDHTConfiguration dhtConfig) {
@@ -253,10 +286,11 @@ public class DHTClient {
 
     DHTNodeConfiguration nodeConfig = new DHTNodeConfiguration(skDir.getAbsolutePath() + "/data");
     embeddedNode = new DHTNode(dhtConfig.getName(), dhtConfig.getZKConfig(), nodeConfig,
-        defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance);
+        defaultInactiveNodeTimeoutSeconds, NeverReapPolicy.instance, dhtConfig.getPort(), null);
   }
 
-  private ClientDHTConfiguration embedKVS(NamespaceOptionsMode nsOptionsMode) {
-    return EmbeddedSK.createEmbeddedSKInstance(new EmbeddedSKConfiguration().namespaceOptionsMode(nsOptionsMode));
+  private ClientDHTConfiguration embedKVS(NamespaceOptionsMode nsOptionsMode, boolean enableMsgGroupTrace) {
+    return EmbeddedSK.createEmbeddedSKInstance(
+        new EmbeddedSKConfiguration().namespaceOptionsMode(nsOptionsMode).enableMsgGroupTrace(enableMsgGroupTrace));
   }
 }

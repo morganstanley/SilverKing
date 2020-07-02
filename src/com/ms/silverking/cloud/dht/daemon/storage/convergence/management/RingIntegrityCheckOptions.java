@@ -3,9 +3,10 @@ package com.ms.silverking.cloud.dht.daemon.storage.convergence.management;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.kohsuke.args4j.Option;
+
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.collection.Pair;
-import org.kohsuke.args4j.Option;
 
 public class RingIntegrityCheckOptions {
   RingIntegrityCheckOptions() {

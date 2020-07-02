@@ -65,7 +65,7 @@ public class RingEntry {
 
     replicas = new IPAndPort[replicaNodes.size()];
     for (int i = 0; i < replicas.length; i++) {
-      replicas[i] = new IPAndPort(replicaNodes.get(i).getIDString(), DHTNode.getServerPort());
+      replicas[i] = new IPAndPort(replicaNodes.get(i).getIDString(), DHTNode.getDhtPort());
     }
     return replicas;
   }

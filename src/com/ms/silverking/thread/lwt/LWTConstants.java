@@ -21,6 +21,8 @@ public class LWTConstants {
   public static final int defaultIdleThreadThreshold;
   static final String defaultIdleThreadThresholdProperty = propertyBase + ".DefaultIdleThreadThreshold";
 
+  static final String lwtControllerCheckInterval = propertyBase + ".LWTControllerCheckInterval";
+
   static final String enableLoggingProperty = propertyBase + ".EnableLogging";
   private static final boolean _enableLogging = false;
   public static final boolean enableLogging;

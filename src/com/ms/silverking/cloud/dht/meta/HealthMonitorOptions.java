@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.meta;
 
+import com.ms.silverking.cloud.meta.ExclusionZKBase;
 import org.kohsuke.args4j.Option;
 
 public class HealthMonitorOptions {
@@ -25,6 +26,8 @@ public class HealthMonitorOptions {
   public boolean disableAddition;
   @Option(name = "-m", usage = "minUpdateIntervalSeconds", required = false)
   public int minUpdateIntervalSeconds = 10;
+  @Option(name = "-retainedExclusionSets", usage = "retainedExclusionSets", required = false)
+  public int retainedExclusionSets = ExclusionZKBase.noRetainedVersionsLimit;
 
   public boolean doctorRequested() {
     return doctorRoundIntervalSeconds != NO_DOCTOR;

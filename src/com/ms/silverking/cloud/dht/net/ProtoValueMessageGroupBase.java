@@ -34,8 +34,6 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
   // buffers, possibly with zero-copy
   protected static final int dedicatedBufferSizeThreshold = 16 * 1024;
 
-  protected static final int optionBufferIndex = KeyValueMessageFormat.optionBufferIndex;
-
   static {
     // Values without dedicated buffers need to be able to fit into the shared buffer
     if (dedicatedBufferSizeThreshold > valueBufferSize) {
@@ -45,9 +43,9 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
 
   public ProtoValueMessageGroupBase(MessageType type, UUIDBase uuid, long context, int opSize, int valueBytes,
       ByteBuffer optionsByteBuffer, int additionalBytesPerKey, byte[] originator, int deadlineRelativeMillis,
-      ForwardingMode forward) {
+      ForwardingMode forward, byte[] maybeTraceID) {
     super(type, uuid, context, optionsByteBuffer, opSize, additionalBytesPerKey, originator, deadlineRelativeMillis,
-        forward);
+        forward, maybeTraceID);
     this.opSize = opSize;
     bufferList.add(optionsByteBuffer);
         /*
@@ -69,6 +67,11 @@ abstract class ProtoValueMessageGroupBase extends ProtoKeyedMessageGroup {
         */
     valueBuffer = null;
     curMultiValueBufferIndex = -1;
+  }
+
+  static int getOptionsByteBufferBaseOffset(boolean hasTraceID) {
+    // No extra thing is added at this layer, so baseOffset = 0 + previousLayerOffset
+    return 0 + ProtoKeyedMessageGroup.getOptionsByteBufferBaseOffset(hasTraceID);
   }
 
   public boolean canBeAdded(int valueSize) {

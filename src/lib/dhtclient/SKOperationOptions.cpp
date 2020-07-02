@@ -12,6 +12,8 @@ using jace::java_cast;
 using namespace jace;
 #include "jace/proxy/types/JBoolean.h"
 using jace::proxy::types::JBoolean;
+#include "jace/proxy/types/JInt.h"
+using jace::proxy::types::JInt;
 
 #include "jace/proxy/java/util/Set.h"
 using jace::proxy::java::util::Set;
@@ -106,7 +108,8 @@ SKOperationOptions::SKOperationOptions(SKOpTimeoutController * opTimeoutControll
         }
     }
 
-    pImpl = new OperationOptions(java_new<OperationOptions>( *pTimeoutCtrl, targets )); 
+    //pImpl = new OperationOptions(java_new<OperationOptions>( *pTimeoutCtrl, targets, (JInt)0 ));
+    pImpl = NULL; // not supported presently 
 }
 
 SKOperationOptions::SKOperationOptions(void * pOpt) : pImpl(pOpt) {};  //FIXME: make protected ?

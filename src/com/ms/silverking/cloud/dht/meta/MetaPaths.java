@@ -23,6 +23,7 @@ public class MetaPaths extends MetaPathsBase {
   public static final String instancesBase = dhtGlobalBase + "/instances";
   public static final String passiveNodesBase = dhtGlobalBase + "/passiveNodes";
   public static final String classVarsBase = dhtGlobalBase + "/classVars";
+  public static final String ipAliasesBase = dhtGlobalBase + "/ipAliases";
 
   private static final String configNodeName = "config";
   private static final String nsLinkNodeName = "nsLink";
@@ -100,6 +101,7 @@ public class MetaPaths extends MetaPathsBase {
         }
         */
     listBuilder.add(classVarsBase);
+    listBuilder.add(ipAliasesBase);
 
     pathList = listBuilder.build();
       
@@ -223,5 +225,13 @@ public class MetaPaths extends MetaPathsBase {
 
   public String getClassVarsBasePath() {
     return classVarsBase;
+  }
+
+  public static String getIpAliasesBase() {
+    return ipAliasesBase;
+  }
+
+  public static String getIpAliasMapPath(String mapName) {
+    return getIpAliasesBase() + "/" + mapName;
   }
 }

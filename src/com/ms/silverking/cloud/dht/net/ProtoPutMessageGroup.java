@@ -18,6 +18,7 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.net.protocol.KeyedMessageFormat;
 import com.ms.silverking.cloud.dht.net.protocol.PutMessageFormat;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.compression.CodecProvider;
 import com.ms.silverking.compression.Compressor;
 import com.ms.silverking.id.UUIDBase;
@@ -40,10 +41,11 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
 
   public ProtoPutMessageGroup(UUIDBase uuid, long context, int putOpSize, int valueBytes, long version,
       BufferDestSerializer<V> bdSerializer, PutOptions putOptions, ChecksumType checksumType, byte[] originator,
-      byte[] creator, int deadlineRelativeMillis, EncrypterDecrypter encrypterDecrypter) {
-    super(MessageType.PUT, uuid, context, putOpSize, valueBytes, ByteBuffer.allocate(optionBufferLength(putOptions)),
+      byte[] creator, int deadlineRelativeMillis, EncrypterDecrypter encrypterDecrypter, byte[] maybeTraceID) {
+    super(TraceIDProvider.isValidTraceID(maybeTraceID) ? MessageType.PUT_TRACE : MessageType.PUT, uuid, context,
+        putOpSize, valueBytes, ByteBuffer.allocate(optionBufferLength(putOptions)),
         PutMessageFormat.size(checksumType) - KeyedMessageFormat.baseBytesPerKeyEntry, originator,
-        deadlineRelativeMillis, ForwardingMode.FORWARD);
+        deadlineRelativeMillis, ForwardingMode.FORWARD, maybeTraceID);
     Set<SecondaryTarget> secondaryTargets;
 
     this.bdSerializer = bdSerializer;
@@ -68,6 +70,9 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     if (putOptions.getUserData() != null) {
       optionsByteBuffer.put(putOptions.getUserData());
     }
+
+    // TODO - an authorizationUser field needs to be added to puts, as for PutRetrievals
+
     checksumCompressedValues = putOptions.getChecksumCompressedValues();
     this.encrypterDecrypter = encrypterDecrypter;
     this.fragmentationThreshold = putOptions.getFragmentationThreshold();
@@ -319,26 +324,35 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
 
   /////////////////
 
+  public static ByteBuffer getOptionBuffer(MessageGroup mg) {
+    int startIdx;
+
+    // This protocol appends the optionBuffer to its baseClass(ProtoValueMessageGroupBase)'s bufferList
+    startIdx = ProtoValueMessageGroupBase.getOptionsByteBufferBaseOffset(
+        TraceIDProvider.hasTraceID(mg.getMessageType()));
+    return mg.getBuffers()[startIdx];
+  }
+
   public static void setPutVersion(MessageGroup mg, long version) {
-    mg.getBuffers()[optionBufferIndex].putLong(PutMessageFormat.versionOffset, version);
+    getOptionBuffer(mg).putLong(PutMessageFormat.versionOffset, version);
   }
 
   public static long getPutVersion(MessageGroup mg) {
     //System.out.println(mg.getBuffers()[optionBufferIndex]);
-    return mg.getBuffers()[optionBufferIndex].getLong(PutMessageFormat.versionOffset);
+    return getOptionBuffer(mg).getLong(PutMessageFormat.versionOffset);
   }
 
   public static long getPutRequiredPreviousVersion(MessageGroup mg) {
-    return mg.getBuffers()[optionBufferIndex].getLong(PutMessageFormat.requiredPreviousVersionOffset);
+    return getOptionBuffer(mg).getLong(PutMessageFormat.requiredPreviousVersionOffset);
   }
 
   public static short getLockSeconds(MessageGroup mg) {
-    return mg.getBuffers()[optionBufferIndex].getShort(PutMessageFormat.lockSecondsOffset);
+    return getOptionBuffer(mg).getShort(PutMessageFormat.lockSecondsOffset);
   }
 
   public static short getCCSS(MessageGroup mg) {
     //System.out.println("obb\t: "+ mg.getBuffers()[optionBufferIndex]);
-    return mg.getBuffers()[optionBufferIndex].getShort(PutMessageFormat.ccssOffset);
+    return getOptionBuffer(mg).getShort(PutMessageFormat.ccssOffset);
   }
 
   public static ChecksumType getChecksumType(MessageGroup mg) {
@@ -349,8 +363,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     byte[] vc;
 
     vc = new byte[ValueCreator.BYTES];
-    System.arraycopy(mg.getBuffers()[optionBufferIndex].array(), PutMessageFormat.valueCreatorOffset, vc, 0,
-        ValueCreator.BYTES);
+    System.arraycopy(getOptionBuffer(mg).array(), PutMessageFormat.valueCreatorOffset, vc, 0, ValueCreator.BYTES);
     return vc;
   }
 
@@ -359,7 +372,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
     ByteBuffer optionsBuffer;
     int userDataLength;
 
-    optionsBuffer = mg.getBuffers()[optionBufferIndex];
+    optionsBuffer = getOptionBuffer(mg);
     userDataLength = optionsBuffer.capacity() - PutMessageFormat.userDataOffset(stLength);
     if (userDataLength == 0) {
       userData = ArrayUtil.emptyByteArray;
@@ -377,7 +390,7 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
   }
 
   public static int getSTLength(MessageGroup mg) {
-    return mg.getBuffers()[optionBufferIndex].getShort(PutMessageFormat.stDataOffset);
+    return getOptionBuffer(mg).getShort(PutMessageFormat.stDataOffset);
   }
 
   public static Set<SecondaryTarget> getSecondaryTargets(MessageGroup mg) {
@@ -389,8 +402,8 @@ public final class ProtoPutMessageGroup<V> extends ProtoValueMessageGroupBase {
       return null;
     } else {
       stDef = new byte[stLength];
-      System.arraycopy(mg.getBuffers()[optionBufferIndex].array(),
-          PutMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT, stDef, 0, stLength);
+      System.arraycopy(getOptionBuffer(mg).array(), PutMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT,
+          stDef, 0, stLength);
       return SecondaryTargetSerializer.deserialize(stDef);
     }
   }

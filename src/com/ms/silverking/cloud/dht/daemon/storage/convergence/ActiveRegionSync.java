@@ -35,6 +35,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.cloud.dht.net.ProtoChecksumTreeRequestMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
@@ -315,7 +316,8 @@ public class ActiveRegionSync implements KeyedOpResultListener {
     retrievalOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE_AND_META_DATA, WaitMode.GET,
         checksumVersionConstraint(srr.dataVersion));
     mg = new ProtoRetrievalMessageGroup(srr.uuid, namespace, new InternalRetrievalOptions(retrievalOptions),
-        mgBase.getMyID(), srr.outstandingKeys, convergenceRelativeDeadlineMillis).toMessageGroup();
+        mgBase.getMyID(), srr.outstandingKeys, convergenceRelativeDeadlineMillis,
+        TraceIDProvider.noTraceID).toMessageGroup();
     mgBase.send(mg, srr.connection.getRemoteIPAndPort());
   }
 

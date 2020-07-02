@@ -45,6 +45,7 @@ import com.ms.silverking.cloud.dht.common.TimeoutException;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.NamespaceLinksZK;
+import com.ms.silverking.cloud.dht.net.IPAliasMap;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
@@ -75,6 +76,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
   private final NamespaceCreator namespaceCreator;
   private final NamespaceOptionsMode nsOptionsMode;
   private final NamespaceOptionsClientCS nsOptionsClient;
+  private final boolean enableMsgGroupTrace;
+
   private NamespaceLinkMeta nsLinkMeta;
   private SafeTimerTask timeoutCheckTask;
   private AsynchronousNamespacePerspective<String, String> systemNSP;
@@ -116,25 +119,27 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
   private static final int numSelectorControllers = 1;
   private static final String selectorControllerClass = "DHTSessionImpl";
 
-  public DHTSessionImpl(ClientDHTConfiguration dhtConfig, AddrAndPort preferredServer,
-      AbsMillisTimeSource absMillisTimeSource, SerializationRegistry serializationRegistry,
-      SessionEstablishmentTimeoutController timeoutController, NamespaceOptionsMode nsOptionsMode) throws IOException {
-    mgBase = new MessageGroupBase(0, this, absMillisTimeSource,
+  public DHTSessionImpl(ClientDHTConfiguration dhtConfig, AddrAndPort server, AbsMillisTimeSource absMillisTimeSource, 
+      SerializationRegistry serializationRegistry, SessionEstablishmentTimeoutController timeoutController, 
+      NamespaceOptionsMode nsOptionsMode, boolean enableMsgGroupTrace, IPAliasMap aliasMap) throws IOException {
+    mgBase = MessageGroupBase.newClientMessageGroupBase(0, this, absMillisTimeSource,
         new NewConnectionTimeoutControllerWrapper(timeoutController), this, connectionQueueLimit,
-        numSelectorControllers, selectorControllerClass);
+        numSelectorControllers, selectorControllerClass, aliasMap);
     mgBase.enable();
-    server = preferredServer;
+
+    this.server = server;
     // Eagerly create the connection so that failures occur here, rather than after the session object is returned
     if (!DHTConstants.isDaemon) {
-      mgBase.ensureConnected(preferredServer);
+      mgBase.ensureConnected(server);
     }
     this.dhtConfig = dhtConfig;
     this.absMillisTimeSource = absMillisTimeSource;
     this.serializationRegistry = serializationRegistry;
     this.nsOptionsMode = nsOptionsMode;
+    this.enableMsgGroupTrace = enableMsgGroupTrace;
 
-    myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getPort());
-    Log.info("Session IP:Port ", IPAddrUtil.addrAndPortToString(myIPAndPort));
+    myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getInterfacePort());
+    Log.finef("Session IP:Port %s", IPAddrUtil.addrAndPortToString(myIPAndPort));
 
     clientNamespaces = new ConcurrentHashMap<>();
     clientNamespaceList = new CopyOnWriteArrayList<>();
@@ -166,6 +171,19 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
   }
 
   @Override
+  public AddrAndPort getServer() {
+    return server;
+  }
+
+  @Override
+  public boolean isServerTraceEnabled() {
+    return enableMsgGroupTrace;
+  }
+
+  public ClientDHTConfiguration getDhtConfig() {
+    return dhtConfig;
+  }
+
   public ClientDHTConfigurationProvider getDHTConfigProvider() {
     return dhtConfig;
   }
@@ -341,7 +359,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     } else {
       /* We let this early failure here, since for now only ZK impl supports mutability
        * (Without this check, the modification request will still fail at server side and return back here which will
-       *  take longer)
+       * take longer)
        */
       if (nsOptionsMode != NamespaceOptionsMode.ZooKeeper) {
         throw new NamespaceModificationException(
@@ -571,7 +589,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         Log.warning("exclusionSetHasChanged() failed to read exclusion set. Presuming empty");
         newExclusionSet = ExclusionSet.emptyExclusionSet(ExclusionSet.NO_VERSION);
       }
-      exclusionSetHasChanged = !exclusionSet.equals(newExclusionSet);
+      exclusionSetHasChanged = !getExclusionSet().equals(newExclusionSet);
       setExclusionSet(newExclusionSet);
 
       return exclusionSetHasChanged;

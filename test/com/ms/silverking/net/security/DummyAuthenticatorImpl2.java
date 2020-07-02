@@ -1,8 +1,8 @@
 package com.ms.silverking.net.security;
 
-import com.ms.silverking.text.ObjectDefParser2;
-
 import java.net.Socket;
+
+import com.ms.silverking.text.ObjectDefParser2;
 
 public class DummyAuthenticatorImpl2 extends Authenticator {
     static {
@@ -12,7 +12,7 @@ public class DummyAuthenticatorImpl2 extends Authenticator {
     static String constructName() {
         return DummyAuthenticatorImpl2.class.getCanonicalName() + "()";
     }
-    final static Authenticator.AuthFailedAction failedAction = Authenticator.AuthFailedAction.GO_WITHOUT_AUTH;
+    final static AuthFailedAction failedAction = AuthFailedAction.GO_WITHOUT_AUTH;
 
     public DummyAuthenticatorImpl2() {
     }
@@ -29,7 +29,7 @@ public class DummyAuthenticatorImpl2 extends Authenticator {
 
     @Override
     public AuthFailedAction onAuthTimeout(boolean serverside) {
-        return Authenticator.AuthFailedAction.GO_WITHOUT_AUTH;
+        return AuthFailedAction.GO_WITHOUT_AUTH;
     }
 
     @Override

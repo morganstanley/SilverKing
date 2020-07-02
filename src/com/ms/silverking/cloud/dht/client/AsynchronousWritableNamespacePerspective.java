@@ -28,7 +28,9 @@ public interface AsynchronousWritableNamespacePerspective<K, V> extends BaseName
    * @param values map of key-value pairs to store
    * @return an AsyncPut object representing this operation
    */
-  public AsyncPut<K> put(Map<? extends K, ? extends V> values);
+  default public AsyncPut<K> put(Map<? extends K, ? extends V> values) {
+    return put(values, getOptions().getDefaultPutOptions());
+  }
 
   /**
    * Single-value Put operation.
@@ -47,7 +49,9 @@ public interface AsynchronousWritableNamespacePerspective<K, V> extends BaseName
    * @param value value to store
    * @return an AsyncPut object representing this operation
    */
-  public AsyncPut<K> put(K key, V value);
+  default public AsyncPut<K> put(K key, V value) {
+    return put(key, value, getOptions().getDefaultPutOptions());
+  }
 
   /**
    * Multi-value Invalidation operation
@@ -64,7 +68,9 @@ public interface AsynchronousWritableNamespacePerspective<K, V> extends BaseName
    * @param keys keys to invalidate
    * @return an AsyncInvalidation object representing this operation
    */
-  public AsyncInvalidation<K> invalidate(Set<? extends K> keys);
+  default public AsyncInvalidation<K> invalidate(Set<? extends K> keys) {
+    return invalidate(keys, getOptions().getDefaultInvalidationOptions());
+  }
 
   /**
    * Single-value Invalidation operation.
@@ -81,7 +87,9 @@ public interface AsynchronousWritableNamespacePerspective<K, V> extends BaseName
    * @param key key to invalidate
    * @return an AsyncInvalidation object representing this operation
    */
-  public AsyncInvalidation<K> invalidate(K key);
+  default public AsyncInvalidation<K> invalidate(K key) {
+    return invalidate(key, getOptions().getDefaultInvalidationOptions());
+  }
     
     /*
     public AsyncSnapshot snapshot(long version);

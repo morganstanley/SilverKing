@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht.management;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +42,8 @@ import com.ms.silverking.cloud.dht.meta.IneligibleServerException;
 import com.ms.silverking.cloud.dht.meta.InstanceExclusionZK;
 import com.ms.silverking.cloud.dht.meta.RingHealthZK;
 import com.ms.silverking.cloud.dht.meta.SuspectsZK;
+import com.ms.silverking.cloud.dht.net.IPAliasMap;
+import com.ms.silverking.cloud.dht.net.IPAliasingUtil;
 import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 import com.ms.silverking.cloud.meta.CloudConfiguration;
 import com.ms.silverking.cloud.meta.ExclusionSet;
@@ -62,6 +70,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.security.Authenticator;
+import com.ms.silverking.net.security.Authorizer;
 import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.process.ProcessExecutor;
 import com.ms.silverking.pssh.TwoLevelParallelSSHMaster;
@@ -73,10 +82,6 @@ import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.Arrays;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * <p>Tool responsible for executing most administrative SilverKing commands.
@@ -92,6 +97,7 @@ public class SKAdmin {
   private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
   private final com.ms.silverking.cloud.meta.MetaClient cloudMC;
   private final DHTConfiguration dhtConfig;
+  private final IPAliasMap  aliasMap;
   private final ClassVarsZK classVarsZK;
   private final ClassVars defaultClassVars;
   private final SuspectsZK suspectsZK;
@@ -136,6 +142,12 @@ public class SKAdmin {
     this.options = options;
     dhtMC = new com.ms.silverking.cloud.dht.meta.MetaClient(gc);
     dhtConfig = dhtMC.getDHTConfiguration();
+    if (dhtConfig.getIpAliasMapName() != null) {
+      aliasMap = IPAliasingUtil.readAliases(gc.getClientDHTConfiguration());
+    } else {
+      aliasMap = null;
+    }
+    Log.warningf("aliasMap %s", aliasMap);
     suspectsZK = new SuspectsZK(dhtMC);
 
     ringConfigAndTree = getRing(dhtConfig, dhtMC);
@@ -193,14 +205,13 @@ public class SKAdmin {
     opOptions = "defaultPutOptions={compression=" + options.compression + ",checksumType=MURMUR3_32," +
         "checksumCompressedValues=false,version=0," + opTimeoutController + "}," + "defaultInvalidationOptions={" + opTimeoutController + "}," + "defaultGetOptions={nonExistenceResponse=NULL_VALUE," + opTimeoutController + "}";
     dirNSOpOptions = "defaultPutOptions={compression=" + options.compression + ",checksumType=MURMUR3_32," +
-        "checksumCompressedValues=false,version=0," + dirNSPutTimeoutController + "}," + "defaultInvalidationOptions" +
-        "={" + opTimeoutController + "}," + "defaultGetOptions={nonExistenceResponse=NULL_VALUE," + opTimeoutController + "}";
+        "checksumCompressedValues=false,version=0," + dirNSPutTimeoutController + "}," + "defaultInvalidationOptions" + "={" + opTimeoutController + "}," + "defaultGetOptions={nonExistenceResponse=NULL_VALUE," + opTimeoutController + "}";
     dirNSSSOptions = ",namespaceServerSideCode={putTrigger=com.ms.silverking.cloud.skfs.dir.serverside" +
         ".DirectoryServer,retrieveTrigger=com.ms.silverking.cloud.skfs.dir.serverside.DirectoryServer}";
     //dirNSSSOptions = "";
 
-    dirNSValueRetentionPolicy = "valueRetentionPolicy=<TimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=1," +
-        "timeSpanSeconds=86400}";
+    dirNSValueRetentionPolicy =
+        "valueRetentionPolicy=<TimeAndVersionRetentionPolicy>{mode=wallClock,minVersions=1," + "timeSpanSeconds=86400}";
     fileBlockNSValueRetentionPolicy = options.fileBlockNSValueRetentionPolicy != null ?
         "," + options.fileBlockNSValueRetentionPolicy :
         "";
@@ -216,7 +227,7 @@ public class SKAdmin {
 
   }
 
-  private static Pair<RingConfiguration, InstantiatedRingTree> getRing(DHTConfiguration dhtConfig,
+  public static Pair<RingConfiguration, InstantiatedRingTree> getRing(DHTConfiguration dhtConfig,
       com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) throws IOException, KeeperException {
     String ringName;
     Pair<Long, Long> ringVersion;
@@ -338,12 +349,16 @@ public class SKAdmin {
   private String getJavaCmdStart(SKAdminOptions options, ClassVars classVars, boolean escaped) {
     return options.javaBinary + " -cp " + options.classPath + " " + options.assertionOption + " " + getHeapDumpOptions(
         classVars) + " " + getProfilingOptions(options) + " " + getJVMMemoryOptions(classVars) + " " + getDHTOptions(
-        options, classVars) + " " + getExtraOptions(options, classVars, escaped) + " " + getRawJVMOptions(options,
+        options, classVars) +" "+ getExtraOptions(options, classVars, escaped) + " " + getRawJVMOptions(options,
         classVars);
   }
 
   private String getHeapDumpOptions(ClassVars classVars) {
-    return "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=" + getHeapDumpFile(classVars);
+    if (DHTConstants.getHeapDumpOnOutOfMemory()) {
+      return "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=" + getHeapDumpFile(classVars);
+    } else {
+      return "";
+    }
   }
 
   private String getHeapDumpFile(ClassVars classVars) {
@@ -438,8 +453,12 @@ public class SKAdmin {
           classVars.getVarMap().get(BaseDirectoryInMemorySS.compressionProperty));
     }
 
-    if (options.authImplSkStrDef != null) {
-      s += getSystemPropertyFormatted(Authenticator.authImplProperty, options.authImplSkStrDef, escaped);
+    if (options.authenticationImplSkStrDef != null) {
+      s += getSystemPropertyFormatted(Authenticator.authImplProperty, options.authenticationImplSkStrDef, escaped);
+    }
+
+    if (options.authorizationImplSkStrDef != null) {
+      s += getSystemPropertyFormatted(Authorizer.authorizerImplProperty, options.authorizationImplSkStrDef, escaped);
     }
 
     s += " " + options.startNodeExtraJVMOptions;
@@ -542,7 +561,10 @@ public class SKAdmin {
     }
 
     return getJavaCmdStart(options, classVars,
-        escaped) + " " + options.mainClass + " " + options.extraMainClassArgs + " " + reapPolicyOptions + " -n " + gc.getClientDHTConfiguration().getName() + " -z " + gc.getClientDHTConfiguration().getZKConfig() + " -into " + options.inactiveNodeTimeoutSeconds;
+        escaped) + " " + options.mainClass + " " + options.extraMainClassArgs + " " + reapPolicyOptions + " -n " + gc.getClientDHTConfiguration().getName() + " -z " + gc.getClientDHTConfiguration().getZKConfig() + " -into " + options.inactiveNodeTimeoutSeconds + (
+        options.overridePort >= 0 ?
+            String.format(" -port %s", options.overridePort) :
+            "");
   }
 
   private String getTaskset(SKAdminOptions options) {
@@ -565,14 +587,20 @@ public class SKAdmin {
   }
 
   private String getNodeEnv(ClassVars classVars) {
-    String ipAliasMapFile;
+    return "";
+    /*
+    This is where we can put environment variables. e.g. if we have any variables that we need to
+    translate from classvars into environment variables we would do something like the below:
 
-    ipAliasMapFile = classVars.getVarMap().get(DHTConstants.ipAliasMapFileVar);
-    if (ipAliasMapFile != null && ipAliasMapFile.trim().length() > 0) {
-      return "export " + DHTConstants.ipAliasMapFileEnvVar + "=" + ipAliasMapFile.trim() + "; ";
+    String myValue;
+
+    myValue = classVars.getVarMap().get(DHTConstants.myClassVar);
+    if (myValue != null && myValue.trim().length() > 0) {
+      return "export " + DHTConstants.myEnvVar + "=" + myValue.trim() + "; ";
     } else {
       return "";
     }
+     */
   }
 
   private String createStopCommand(DHTConfiguration dhtConfig, ClassVars classVars) {
@@ -650,7 +678,13 @@ public class SKAdmin {
   }
 
   private String getDataDir(ClassVars classVars) {
-    return classVars.getVarMap().get(DHTConstants.dataBaseVar) + "/" + gc.getClientDHTConfiguration().getName();
+    // May be overridden by JVM opt inserted to SKAdmin, e.g. if multiple nodes share a physical host
+    String overridePath = System.getProperty(DHTConstants.dataBasePathProperty, "");
+    if (overridePath.isEmpty()) {
+      return classVars.getVarMap().get(DHTConstants.dataBaseVar) + "/" + gc.getClientDHTConfiguration().getName();
+    } else {
+      return overridePath;
+    }
   }
 
   private String getCheckSKFSBaseCommand(ClassVars classVars, String command) {
@@ -1232,6 +1266,20 @@ public class SKAdmin {
     return ImmutableSet.copyOf(newServers);
   }
 
+  private Set<String> resolveServers(Set<String> servers) {
+    Set<String> resolvedServers;
+
+    resolvedServers = new HashSet<>(servers.size());
+    for (String server : servers) {
+      try {
+        resolvedServers.add(aliasMap == null ? server : aliasMap.daemonToInterface(new IPAndPort(server, dhtConfig.getPort())).toIPAndPort().getIPAsString());
+      } catch (UnknownHostException uhe) {
+        throw new RuntimeException(uhe);
+      }
+    }
+    return resolvedServers;
+  }
+
   private boolean execCommandMap(Map<String, String[]> serverCommands, Set<String> workerCandidateHosts,
       HostGroupTable hostGroups) throws IOException {
     TwoLevelParallelSSHMaster sshMaster;
@@ -1256,7 +1304,7 @@ public class SKAdmin {
       pExec.execute();
       result = pExec.getExitCode() != localCommandErrorCode;
     } else {
-      sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(workerCandidateHosts),
+      sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(resolveServers(workerCandidateHosts)),
           options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
       Log.warning("Starting workers");
       sshMaster.startWorkers(hostGroups);
@@ -1319,6 +1367,7 @@ public class SKAdmin {
       String rawServerCommand;
       String[] serverCommand;
       ClassVars serverClassVars;
+      String  resolvedServer;
 
       serverClassVars = getServerClassVars(server, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames,
           hostGroupToClassVars);
@@ -1349,7 +1398,13 @@ public class SKAdmin {
           throw new RuntimeException("Unsupported command: " + command);
         }
         serverCommand = rawServerCommand.split("\\s+");
-        serverCommands.put(server, serverCommand);
+
+        try {
+          resolvedServer = aliasMap == null ? server : aliasMap.daemonToInterface(new IPAndPort(server, dhtConfig.getPort())).toIPAndPort().getIPAsString();
+        } catch (UnknownHostException uhe) {
+          throw new RuntimeException(uhe);
+        }
+        serverCommands.put(resolvedServer, serverCommand);
       }
     }
     return serverCommands;
@@ -1460,7 +1515,7 @@ public class SKAdmin {
    *
    * @param options          the <b>parsed<b/> SKAdminOptions object
    * @param skConfigOverride the SKGridConfiguration object used for SKAdmin; if <b>null</b>, then SKAdmin will try
-   *                        to parse SKGridConfiguration from a config file defined in SKAdminOptions
+   *                         to parse SKGridConfiguration from a config file defined in SKAdminOptions
    *                         .gridConfigBase/gridConfig
    */
   public static void runWithParsedOptions(SKAdminOptions options, SKGridConfiguration skConfigOverride) {

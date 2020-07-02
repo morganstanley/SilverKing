@@ -3,13 +3,16 @@ package com.ms.silverking.cloud.dht.daemon;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
@@ -18,9 +21,12 @@ import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
+import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
+import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.EnumValues;
+import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.NamespaceMetaStore.NamespaceOptionsRetrievalMode;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.cloud.dht.common.OpResult;
@@ -35,22 +41,27 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.SingleWriterConsisten
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocol;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
+import com.ms.silverking.cloud.dht.net.IPAliasMap;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyEntry;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
 import com.ms.silverking.cloud.dht.net.ProtoChecksumTreeRequestMessageGroup;
+import com.ms.silverking.cloud.dht.net.ProtoKeyedMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoNopMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoOpResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPingAckMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPingMessageGroup;
+import com.ms.silverking.cloud.dht.net.ProtoPutMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPutResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPutUpdateMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoSnapshotMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoVersionedBasicOpMessageGroup;
 import com.ms.silverking.cloud.dht.net.PutResult;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
+import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
@@ -61,6 +72,8 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AddressStatusProvider;
 import com.ms.silverking.net.async.PersistentAsyncServer;
+import com.ms.silverking.net.security.AuthResult;
+import com.ms.silverking.net.security.Authorizer;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
@@ -83,6 +96,7 @@ import org.apache.zookeeper.KeeperException;
 public class MessageModule implements MessageGroupReceiver, StorageReplicaProvider {
   private final NodeRingMaster2 ringMaster;
   private final MessageGroupBase mgBase;
+  private final IPAliasMap  aliasMap;
   private final StorageModule storage;
   private final AbsMillisTimeSource absMillisTimeSource;
   private final Worker worker;
@@ -93,6 +107,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   private final Set<IPAndPort> systemNamespaceReplicas;
   private final PeerHealthMonitor peerHealthMonitor;
   private final SafeTimerTask cleanerTask;
+  private final byte[]  myIPAndPortAsOriginator; // special case for ping messages
   //private final Timer    pingTimer;
   //private final GlobalCommandServer globalCommandServer;
 
@@ -144,11 +159,18 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   public static final String nodePingerThreadName = "NodePinger";
   private Pinger pingerThread;
 
+  private final boolean enableMsgGroupTrace;
+
   public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, AbsMillisTimeSource absMillisTimeSource,
-      Timer timer, int serverPort, MetaClient mc) throws IOException {
-    mgBase = new MessageGroupBase(serverPort, incomingConnectionBacklog, this, absMillisTimeSource,
-        PersistentAsyncServer.defaultNewConnectionTimeoutController, null, Integer.MAX_VALUE, numSelectorControllers,
-        selectorControllerClass, ConvergenceController2.mqListener, ConvergenceController2.mqUUID);
+      Timer timer, int serverPort, IPAndPort myIPAndPort, MetaClient mc, IPAliasMap aliasMap, boolean enableMsgGroupTrace)
+      throws IOException {
+
+    this.enableMsgGroupTrace = enableMsgGroupTrace;
+    mgBase = MessageGroupBase.newServerMessageGroupBase(serverPort, myIPAndPort, incomingConnectionBacklog, this,
+        absMillisTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, null, Integer.MAX_VALUE,
+        numSelectorControllers, selectorControllerClass, ConvergenceController2.mqListener,
+        ConvergenceController2.mqUUID, aliasMap);
+    this.aliasMap = aliasMap;
     this.ringMaster = ringMaster;
     this.storage = storage;
     this.absMillisTimeSource = absMillisTimeSource;
@@ -160,9 +182,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     activePuts = new ConcurrentHashMap<>();
     activeRetrievals = new ConcurrentHashMap<>();
 
-    myIPAndPort = mgBase._getIPAndPort();
+    this.myIPAndPort = myIPAndPort;
     myIPAndPortArray = new IPAndPort[1];
     myIPAndPortArray[0] = myIPAndPort;
+    myIPAndPortAsOriginator = new byte[ValueCreator.BYTES];
+    System.arraycopy(myIPAndPort.toByteArray(), 0, myIPAndPortAsOriginator, 0, myIPAndPort.toByteArray().length);
 
     storage.setMessageGroupBase(mgBase);
     storage.setActiveRetrievals(activeRetrievals);
@@ -194,7 +218,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     //pingTimer = new SafeTimer(pingTimerName);
     //globalCommandServer = null;
     try {
-      peerHealthMonitor = new PeerHealthMonitor(mc, myIPAndPort);
+      peerHealthMonitor = new PeerHealthMonitor(mc, myIPAndPort, aliasMap);
     } catch (KeeperException ke) {
       throw new RuntimeException("Exception creating PeerHealthMonitor", ke);
     }
@@ -203,6 +227,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     ringMaster.setPeerHealthMonitor(peerHealthMonitor);
     NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
     DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
+  }
+
+  public final boolean getEnableMsgGroupTrace() {
+    return enableMsgGroupTrace;
   }
 
   public void enable() {
@@ -250,6 +278,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     int maxDirectCallDepth;
     NamespaceProperties nsProperties;
 
+    if (enableMsgGroupTrace) {
+      ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
+        TracerFactory.getTracer().onBothReceiveRequest(traceID);
+      });
+    }
+
     nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.LocalCheckOnly);
     if (nsProperties == null) {
       // If we're using a SelectorThread to do this work, we can't allow this thread to block since we
@@ -295,18 +329,23 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       }
       switch (message.getMessageType()) {
       case PUT:
+      case PUT_TRACE:
         handlePut(message, connection);
         break;
       case PUT_RESPONSE:
+      case PUT_RESPONSE_TRACE:
         handlePutResponse(message, connection);
         break;
       case PUT_UPDATE:
+      case PUT_UPDATE_TRACE:
         handlePutUpdate(message, connection);
         break;
       case RETRIEVE:
+      case RETRIEVE_TRACE:
         handleRetrieve(message, connection);
         break;
       case RETRIEVE_RESPONSE:
+      case RETRIEVE_RESPONSE_TRACE:
         handleRetrieveResponse(message, connection);
         break;
       case SNAPSHOT:
@@ -407,11 +446,13 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.FetchRemotely);
     nsOptions = nsProperties.getOptions();
     if (message.getForwardingMode().forwards()) {
-      new ActiveProxyPut(message, connection, this, getStorageProtocol(nsOptions),
-          message.getDeadlineAbsMillis(absMillisTimeSource), false, nsOptions).startOperation();
+      new ActiveProxyPut(message, ProtoPutMessageGroup.getOptionBuffer(message), connection, this,
+          getStorageProtocol(nsOptions), message.getDeadlineAbsMillis(absMillisTimeSource), false,
+          nsOptions).startOperation();
     } else {
-      new ActiveProxyPut(message, connection, this, getLocalStorageProtocol(nsOptions),
-          message.getDeadlineAbsMillis(absMillisTimeSource), true, nsOptions).startOperation();
+      new ActiveProxyPut(message, ProtoPutMessageGroup.getOptionBuffer(message), connection, this,
+          getLocalStorageProtocol(nsOptions), message.getDeadlineAbsMillis(absMillisTimeSource), true,
+          nsOptions).startOperation();
     }
   }
 
@@ -426,20 +467,54 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   }
 
   private void handleRetrieve(MessageGroup message, MessageGroupConnectionProxy connection) {
-    NamespaceProperties nsProperties;
+    ActiveProxyRetrieval retrieval;
     RetrievalProtocol retrievalProtocol;
 
+    if (enableMsgGroupTrace) {
+      ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
+        TracerFactory.getTracer().onBothHandleRetrievalRequest(traceID);
+      });
+    }
+
+    InternalRetrievalOptions retrieveOpts = ProtoRetrievalMessageGroup.getRetrievalOptions(message);
+    AuthResult authorization = null;
+
+    if (Authorizer.isEnabled()) {
+      byte[] requestedUser = retrieveOpts.getAuthorizationUser();
+      Optional<String> authenticatedUser = connection.getAuthenticatedUser();
+      authorization = Authorizer.getPlugin().syncAuthorize(authenticatedUser, requestedUser);
+      if (authorization.isSuccessful() && retrieveOpts.getAuthorizationUser() == RetrievalOptions.noAuthorizationUser && authenticatedUser.isPresent()) {
+        // if no client user was specified and authorization passed, we can use the authenticated user
+        // n.b. that a proxy forward will not further change this field as it'll already be set by the time it sees the message
+        // either by the client originally, or the upstream node that handled the initial request
+        // including the case where we forward to the same node. Hence after this point this field is certain
+        // to match the client's requested or authenticated ID and known to be a successful authorization
+        String authenticated = authenticatedUser.get();
+        retrieveOpts = retrieveOpts.authorizedAs(authenticated.getBytes());
+      }
+    }
+
     try {
+      NamespaceProperties nsProperties;
+
       nsProperties = storage.getNamespaceProperties(message.getContext(), NamespaceOptionsRetrievalMode.FetchRemotely);
       retrievalProtocol = getRetrievalProtocol(nsProperties);
     } catch (NamespaceNotCreatedException nnce) {
       // Allows metrics ns retrievals to return not found without requiring
       // the ns creation on servers where no values are stored
       retrievalProtocol = consistencyModeToRetrievalProtocol[ConsistencyProtocol.LOOSE.ordinal()];
+    }		
+
+    retrieval = new ActiveProxyRetrieval(message,
+        ProtoRetrievalMessageGroup.getOptionBuffer(message), connection, this, storage, retrieveOpts,
+        retrievalProtocol, message.getDeadlineAbsMillis(absMillisTimeSource));
+
+    if (authorization != null && !authorization.isSuccessful()) {
+      // We might throw in here if the failure action is to do so,
+      // in which case the operation will not be started below
+      retrieval.handleAuthorizationFailure(authorization);
     }
-    new ActiveProxyRetrieval(message, connection, this, storage,
-        ProtoRetrievalMessageGroup.getRetrievalOptions(message), retrievalProtocol,
-        message.getDeadlineAbsMillis(absMillisTimeSource)).startOperation();
+    retrieval.startOperation();
   }
 
   /**
@@ -469,9 +544,21 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         if (debugCompletion) {
           //_complete.incrementAndGet();
         }
+
+        if (enableMsgGroupTrace) {
+          ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
+            TracerFactory.getTracer().onProxyHandleRetrievalResultComplete(traceID);
+          });
+        }
       } else {
         if (debugCompletion) {
           //_incomplete.incrementAndGet();
+        }
+
+        if (enableMsgGroupTrace) {
+          ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
+            TracerFactory.getTracer().onProxyHandleRetrievalResultIncomplete(traceID);
+          });
         }
       }
     } else {
@@ -551,19 +638,27 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   // and after the below FUTUREs have been resolved
   protected void sendPutResults(MessageGroup message, long version, MessageGroupConnectionProxy connection,
       List<PutResult> results, byte storageState, int deadlineRelativeMillis) {
+    byte[] maybeTraceID;
+
+    if (enableMsgGroupTrace) {
+      maybeTraceID = ProtoKeyedMessageGroup.unsafeGetTraceIDCopy(message);
+    } else {
+      maybeTraceID = TraceIDProvider.noTraceID;
+    }
+
     sendPutResults(message.getUUID(), message.getContext(), version, connection, results, storageState,
-        deadlineRelativeMillis);
+        deadlineRelativeMillis, maybeTraceID);
   }
 
   protected void sendPutResults(UUIDBase uuid, long context, long version, MessageGroupConnectionProxy connection,
-      List<PutResult> results, byte storageState, int deadlineRelativeMillis) {
+      List<PutResult> results, byte storageState, int deadlineRelativeMillis, byte[] maybeTraceID) {
     ProtoPutResponseMessageGroup response;
 
     if (results.size() > 0) {
       response = new ProtoPutResponseMessageGroup(uuid, context, version,
           // FUTURE - does ProtoPutResponseMessageGroup really need version when we're using the uuid now?
-          results.size(), mgBase.getMyID(), storageState,
-          deadlineRelativeMillis); // FUTURE - allow constructor without this?
+          results.size(), mgBase.getMyID(), storageState, deadlineRelativeMillis,
+          maybeTraceID); // FUTURE - allow constructor without this?
       if (debug) {
         Log.warningAsyncf("results.size: %d", results.size());
       }
@@ -822,8 +917,21 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     if (connection instanceof MessageGroupConnectionProxyRemote) {
       MessageGroupConnectionProxyRemote c;
       ProtoPingAckMessageGroup ack;
+      IPAndPort source;
 
-      ack = new ProtoPingAckMessageGroup(mgBase.getMyID(), message.getUUID());
+      // Ensure that the alias map can map from a remote interface back to the daemon IP
+      source = new IPAndPort(message.getOriginator());
+      aliasMap.addInterfaceToDaemon(connection.getConnection().getRemoteIPAndPort(), source);
+      if (ringMaster.getInstanceExclusionSet().contains(source.getIPAsString())) {
+        if (pingerThread != null) {
+          Log.infof("Requesting ping of excluded daemon: %s", source);
+          pingerThread.requestPing(source);
+        } else {
+          Log.infof("No pinger thread available, not requesting ping of excluded daemon: %s", source);
+        }
+      }
+      // Special case for ping messages - we send ip and port as originator
+      ack = new ProtoPingAckMessageGroup(myIPAndPortAsOriginator, message.getUUID());
       c = (MessageGroupConnectionProxyRemote) connection;
       try {
         c.sendAsynchronous(ack.toMessageGroup(), Long.MAX_VALUE);
@@ -897,8 +1005,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
   }
 
-  private static final int workerPoolTargetSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
-  private static final int workerPoolMaxSize = Math.max(Runtime.getRuntime().availableProcessors() / 2, 2);
+  private static final int workerPoolTargetSize = PropertiesHelper.systemHelper.getInt(
+      MessageModule.class.getCanonicalName() + ".WorkerPoolTargetSize",
+      Math.max(Runtime.getRuntime().availableProcessors() / 2, 2));
+  private static final int workerPoolMaxSize = PropertiesHelper.systemHelper.getInt(
+      MessageModule.class.getCanonicalName() + ".WorkerPoolMaxSize",
+      Math.max(Runtime.getRuntime().availableProcessors() / 2, 2));
 
   class Worker extends BaseWorker<MessageAndConnection> {
     Worker(LWTPool workerPool) {
@@ -962,12 +1074,17 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       if (debugCompletion) {
         System.out.printf("c %d\ti %d\tn %d\n", _complete.get(), _incomplete.get(), _notFound.get());
       }
-      Log.info("Cleaning MessageModule maps");
+
+      if (debugCleanup) {
+        Log.info("Cleaning MessageModule maps");
+      }
       //System.out.println(activePuts.size());
       absTimeMillis = absMillisTimeSource.absTimeMillis();
       cleanupMap(activePuts, absTimeMillis);
       cleanupMap(activeRetrievals, absTimeMillis);
-      Log.info("Done cleaning MessageModule maps");
+      if (debugCleanup) {
+        Log.info("Done cleaning MessageModule maps");
+      }
     }
 
     private void cleanupMap(ConcurrentMap<UUIDBase, ? extends ActiveProxyOperation<?, ?>> map, long absTimeMillis) {
@@ -1005,9 +1122,15 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   }
 
   class Pinger extends TimerTask {
+    private final Set<IPAndPort> pingRequests;
     private boolean running = true;
 
     Pinger() {
+      pingRequests = new ConcurrentSkipListSet<>();
+    }
+
+    public void requestPing(IPAndPort replica) {
+      pingRequests.add(replica);
     }
 
     @Override
@@ -1024,11 +1147,21 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
 
     private void pingReplicas() {
+      Set<IPAndPort>  _pingRequests;
+      Set<IPAndPort>  pingTargets;
+
       Log.fine("Pinging replicas");
-      for (IPAndPort replica : ringMaster.getAllCurrentAndTargetNonExcludedNonLocalReplicaServers()) {
-        mgBase.send(new ProtoPingMessageGroup(mgBase.getMyID()).toMessageGroup(), replica);
+      _pingRequests = ImmutableSet.copyOf(pingRequests);
+      pingRequests.removeAll(_pingRequests);
+      pingTargets = new HashSet<>(ringMaster.getAllCurrentAndTargetNonExcludedNonLocalReplicaServers());
+      pingTargets.addAll(_pingRequests);
+      for (IPAndPort replica : pingTargets) {
+        Log.finef("Pinging %s", replica);
+        // Special case for ping messages - we send ip and port as originator
+        mgBase.send(new ProtoPingMessageGroup(myIPAndPortAsOriginator).toMessageGroup(), replica);
         ThreadUtil.sleep(interPingDelayMillis);
       }
+      ThreadUtil.sleep(interPingDelayMillis);
     }
 
     private void stop() {

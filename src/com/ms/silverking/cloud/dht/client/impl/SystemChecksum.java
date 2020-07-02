@@ -56,4 +56,9 @@ public class SystemChecksum implements Checksum {
   public static boolean isInvalidationChecksum(byte[] actualChecksum) {
     return Arrays.equals(actualChecksum, invalidationChecksum);
   }
+
+  public static byte[] getInvalidationChecksum() {
+    return invalidationChecksum;
+  }
+
 }

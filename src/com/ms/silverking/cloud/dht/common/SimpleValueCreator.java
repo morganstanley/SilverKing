@@ -31,20 +31,16 @@ public class SimpleValueCreator implements ValueCreator {
   }
 
   public static SimpleValueCreator forLocalProcess() {
-    try {
-      byte[] ip;
-      int pid;
-      byte[] bytes;
+    byte[] ip;
+    int pid;
+    byte[] bytes;
 
-      pid = Integer.parseInt(ManagementFactory.getRuntimeMXBean().getName().split("\\@")[0]);
-      ip = InetAddress.getLocalHost().getAddress();
-      bytes = new byte[IPAddrUtil.IPV4_BYTES + NumConversion.BYTES_PER_INT];
-      System.arraycopy(ip, 0, bytes, ipOffset, ip.length);
-      NumConversion.intToBytes(pid, bytes, idOffset);
-      return new SimpleValueCreator(bytes);
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
+    pid = Integer.parseInt(ManagementFactory.getRuntimeMXBean().getName().split("\\@")[0]);
+    ip = IPAddrUtil.localIP();
+    bytes = new byte[IPAddrUtil.IPV4_BYTES + NumConversion.BYTES_PER_INT];
+    System.arraycopy(ip, 0, bytes, ipOffset, ip.length);
+    NumConversion.intToBytes(pid, bytes, idOffset);
+    return new SimpleValueCreator(bytes);
   }
 
   @Override

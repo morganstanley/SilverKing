@@ -100,12 +100,12 @@ public class OptionsHelper {
    */
   public static RetrievalOptions newRetrievalOptions(RetrievalType retrievalType, WaitMode waitMode,
       VersionConstraint versionConstraint, boolean updateSecondariesOnMiss, Set<SecondaryTarget> secondaryTargets,
-      byte[] userOptions) {
+      byte[] userOptions, byte[] authorizationUser) {
     return new RetrievalOptions(waitMode == WaitMode.GET ?
         DHTConstants.standardTimeoutController :
         DHTConstants.standardWaitForTimeoutController, secondaryTargets, retrievalType, waitMode, versionConstraint,
         NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, updateSecondariesOnMiss,
-        userOptions);
+        userOptions, authorizationUser);
   }
 
   /**

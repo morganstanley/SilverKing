@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.ms.silverking.collection.ConcurrentMap;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 
@@ -31,8 +30,6 @@ public class ConcurrentMapTest {
       return new ConcurrentHashMap<Integer, Integer>();
     case ConcurrentSkipListMap:
       return new ConcurrentSkipListMap<Integer, Integer>();
-    case ConcurrentMap:
-      return new ConcurrentMap<Integer, Integer>(numThreads * 4);
     case HashMap:
       return new HashMap<Integer, Integer>();
     case TreeMap:

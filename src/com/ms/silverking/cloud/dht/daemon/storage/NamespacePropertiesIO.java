@@ -1,8 +1,5 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
-import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,6 +8,9 @@ import com.google.common.base.Preconditions;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
+
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class NamespacePropertiesIO {
   private static final String propertiesFileName = "properties";

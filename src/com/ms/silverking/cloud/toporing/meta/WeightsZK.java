@@ -5,10 +5,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import com.ms.silverking.cloud.management.MetaToolModuleBase;
-import com.ms.silverking.cloud.management.MetaToolOptions;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+
+import com.ms.silverking.cloud.management.MetaToolModuleBase;
+import com.ms.silverking.cloud.management.MetaToolOptions;
 
 public class WeightsZK extends MetaToolModuleBase<WeightSpecifications, MetaPaths> {
   // Below must agree with WeightSpecifications.parse

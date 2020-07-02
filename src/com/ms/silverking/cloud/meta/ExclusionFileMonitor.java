@@ -4,6 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import org.apache.zookeeper.KeeperException;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.management.LogStreamConfig;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
@@ -11,9 +15,6 @@ import com.ms.silverking.cloud.toporing.meta.NamedRingConfigurationUtil;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 public class ExclusionFileMonitor {
   private ExclusionZK exclusionZK;

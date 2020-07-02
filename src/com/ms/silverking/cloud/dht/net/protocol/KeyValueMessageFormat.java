@@ -12,6 +12,4 @@ public class KeyValueMessageFormat extends KeyedMessageFormat {
   public static final int size = KeyedMessageFormat.size + bufferIndexSize + bufferOffsetSize;
 
   // buffer format
-
-  public static final int optionBufferIndex = 1;
 }

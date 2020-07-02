@@ -18,20 +18,22 @@ import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.protocol.KeyedMessageFormat;
 import com.ms.silverking.cloud.dht.net.protocol.RetrievalMessageFormat;
 import com.ms.silverking.cloud.dht.net.protocol.RetrievalResponseMessageFormat;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.numeric.NumConversion;
 
 public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
-  private static final int optionBufferIndex = 1;
 
   public ProtoRetrievalMessageGroup(UUIDBase uuid, long context, InternalRetrievalOptions retrievalOptions,
-      byte[] originator, int size, int deadlineRelativeMillis, ForwardingMode forward) {
-    super(MessageType.RETRIEVE, uuid, context,
+      byte[] originator, int size, int deadlineRelativeMillis, ForwardingMode forward, byte[] maybeTraceID) {
+    super(TraceIDProvider.isValidTraceID(maybeTraceID) ? MessageType.RETRIEVE_TRACE : MessageType.RETRIEVE, uuid,
+        context,
         ByteBuffer.allocate(RetrievalMessageFormat.getOptionsBufferLength(retrievalOptions.getRetrievalOptions())),
         size, RetrievalMessageFormat.size - KeyedMessageFormat.baseBytesPerKeyEntry, originator, deadlineRelativeMillis,
-        forward);
+        forward, maybeTraceID);
     Set<SecondaryTarget> secondaryTargets;
     byte[] userOptions;
+    byte[] authorizationUser;
 
     // FUTURE - merge with ProtoValueMessagGroup code?
     bufferList.add(optionsByteBuffer);
@@ -66,6 +68,15 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
       optionsByteBuffer.putInt(userOptions.length);
       optionsByteBuffer.put(userOptions);
     }
+
+    authorizationUser = retrievalOptions.getAuthorizationUser();
+    if (authorizationUser == null) {
+      optionsByteBuffer.putInt(0);
+      optionsByteBuffer.put(DHTConstants.emptyByteArray);
+    } else {
+      optionsByteBuffer.putInt(authorizationUser.length);
+      optionsByteBuffer.put(authorizationUser);
+    }
   }
     
     /*
@@ -80,12 +91,20 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
     */
 
   public ProtoRetrievalMessageGroup(UUIDBase uuid, long context, InternalRetrievalOptions retrievalOptions,
-      byte[] originator, Collection<DHTKey> keys, int deadlineRelativeMillis) {
+      byte[] originator, Collection<DHTKey> keys, int deadlineRelativeMillis, byte[] maybeTraceID) {
     this(uuid, context, retrievalOptions, originator, keys.size(), deadlineRelativeMillis,
-        ForwardingMode.DO_NOT_FORWARD);
+        ForwardingMode.DO_NOT_FORWARD, maybeTraceID);
     for (DHTKey key : keys) {
       addKey(key);
     }
+  }
+
+  public static ByteBuffer getOptionBuffer(MessageGroup mg) {
+    int startIdx;
+
+    // This protocol appends the optionBuffer to its baseClass(ProtoKeyedMessageGroup)'s bufferList
+    startIdx = ProtoKeyedMessageGroup.getOptionsByteBufferBaseOffset(TraceIDProvider.hasTraceID(mg.getMessageType()));
+    return mg.getBuffers()[startIdx];
   }
 
   public static InternalRetrievalOptions getRetrievalOptions(MessageGroup mg) {
@@ -98,7 +117,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
     boolean verifyIntegrity;
     boolean updateSecondariesOnMiss;
 
-    optionBuffer = mg.getBuffers()[optionBufferIndex];
+    optionBuffer = getOptionBuffer(mg);
     retrievalWaitByte = optionBuffer.get(RetrievalResponseMessageFormat.retrievalTypeWaitModeOffset);
     // begin retrievalType, waitMode decoding
     // see ProtoRetrievalMessageGroup() for encoding
@@ -114,11 +133,11 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
         optionBuffer.getLong(RetrievalResponseMessageFormat.vcMaxStorageTimeOffset));
     return new InternalRetrievalOptions(
         OptionsHelper.newRetrievalOptions(retrievalType, waitMode, vc, updateSecondariesOnMiss, getSecondaryTargets(mg),
-            getUserOptions(mg)), verifyIntegrity);
+            getUserOptions(mg), getAuthorizationUser(mg)), verifyIntegrity);
   }
 
   public static int getSTLength(MessageGroup mg) {
-    return mg.getBuffers()[optionBufferIndex].getShort(RetrievalMessageFormat.stDataOffset);
+    return getOptionBuffer(mg).getShort(RetrievalMessageFormat.stDataOffset);
   }
 
   private static Set<SecondaryTarget> getSecondaryTargets(MessageGroup mg) {
@@ -130,19 +149,28 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
       return DHTConstants.noSecondaryTargets;
     } else {
       stDef = new byte[stLength];
-      System.arraycopy(mg.getBuffers()[optionBufferIndex].array(),
-          RetrievalMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT, stDef, 0, stLength);
+      System.arraycopy(getOptionBuffer(mg).array(), RetrievalMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT,
+          stDef, 0, stLength);
       return SecondaryTargetSerializer.deserialize(stDef);
     }
   }
 
-  public static int getUOStart(MessageGroup mg) {
+  private static int getUOStart(MessageGroup mg) {
     return RetrievalMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT + getSTLength(mg);
   }
 
-  public static int getUOLength(MessageGroup mg) {
+  private static int getAUStart(MessageGroup mg){
+    return getUOStart(mg) + NumConversion.BYTES_PER_INT + getUOLength(mg);
+  }
+
+  private static int getUOLength(MessageGroup mg) {
     int start = getUOStart(mg);
-    return mg.getBuffers()[optionBufferIndex].getInt(start);
+    return getOptionBuffer(mg).getInt(start);
+  }
+
+  private static int getAULength(MessageGroup mg){
+    int start = getAUStart(mg);
+    return getOptionBuffer(mg).getInt(start);
   }
 
   private static byte[] getUserOptions(MessageGroup mg) {
@@ -156,9 +184,26 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
       return RetrievalOptions.noUserOptions;
     } else {
       uo = new byte[uoLength];
-      System.arraycopy(mg.getBuffers()[optionBufferIndex].array(), uoStartPos + NumConversion.BYTES_PER_INT, uo, 0,
-          uoLength);
+      ByteBuffer opts = getOptionBuffer(mg);
+      opts.position(uoStartPos+NumConversion.BYTES_PER_INT);
+      opts.get(uo, 0, uoLength);
       return uo;
+    }
+  }
+
+  private static byte[] getAuthorizationUser(MessageGroup mg) {
+    byte[] au;
+    int auLength = getAULength(mg);
+    int auStartPos = getAUStart(mg);
+
+    if (auLength == 0){
+      return RetrievalOptions.noAuthorizationUser;
+    } else {
+      au = new byte[auLength];
+      ByteBuffer opts = getOptionBuffer(mg);
+      opts.position(auStartPos+NumConversion.BYTES_PER_INT);
+      opts.get(au, 0, auLength);
+      return au;
     }
   }
 

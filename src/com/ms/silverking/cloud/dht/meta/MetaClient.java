@@ -2,13 +2,15 @@ package com.ms.silverking.cloud.dht.meta;
 
 import java.io.IOException;
 
+import com.ms.silverking.log.Log;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
+
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.meta.MetaClientBase;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 
 public class MetaClient extends MetaClientBase<MetaPaths> {
   private final String dhtName;
@@ -53,6 +55,28 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     zkid = zk.getStat(latestPath).getMzxid();
     //System.out.printf("\tzkid %x\n", zkid);
     return DHTConfiguration.parse(def, version, zkid);
+  }
+
+  public IpAliasConfiguration getIpAliasConfiguration(String ipAliasMapName) throws KeeperException {
+    if (ipAliasMapName != null) {
+      String fullPath = MetaPaths.getIpAliasMapPath(ipAliasMapName);
+      Log.finef("ipAliasMapName %s", ipAliasMapName);
+      Log.finef("fullPath %s", fullPath);
+      ZooKeeperExtended zk = getZooKeeper();
+      if (zk.exists(MetaPaths.ipAliasesBase) && zk.exists(fullPath)) {
+        String latestPath = zk.getLatestVersionPath(fullPath);
+        long version = zk.getLatestVersionFromPath(latestPath);
+        String def = zk.getString(latestPath);
+        Log.finef("def %s", def);
+        return IpAliasConfiguration.parse(def, version);
+      } else {
+        Log.finef("emptyTemplate 1");
+        return IpAliasConfiguration.emptyTemplate;
+      }
+    } else {
+      Log.finef("emptyTemplate 2");
+      return IpAliasConfiguration.emptyTemplate;
+    }
   }
     
     /*

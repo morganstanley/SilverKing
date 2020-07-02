@@ -7,6 +7,9 @@ import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
+
+import java.util.Optional;
 
 /**
  * Adds internally useful information to RetrievalOptions that should not be exposed to
@@ -17,12 +20,19 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
   private final boolean verifyIntegrity;
   private final ConsistencyProtocol cpSSToVerify; // ConsistencyProtocol to verify storage state against
   // non-null value implies that state should be verified
+  private final byte[] maybeTraceID;
 
   public InternalRetrievalOptions(RetrievalOptions retrievalOptions, boolean verifyIntegrity,
-      ConsistencyProtocol cpSSToVerify) {
+      ConsistencyProtocol cpSSToVerify, byte[] maybeTraceID) {
     this.retrievalOptions = retrievalOptions;
     this.verifyIntegrity = verifyIntegrity;
     this.cpSSToVerify = cpSSToVerify;
+    this.maybeTraceID = maybeTraceID;
+  }
+
+  public InternalRetrievalOptions(RetrievalOptions retrievalOptions, boolean verifyIntegrity,
+      ConsistencyProtocol cpSSToVerify) {
+    this(retrievalOptions, verifyIntegrity, cpSSToVerify, TraceIDProvider.noTraceID);
   }
 
   public InternalRetrievalOptions(RetrievalOptions retrievalOptions, boolean verifyIntegrity) {
@@ -41,7 +51,7 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
 
       retrievalOptions = new RetrievalOptions(null, null, options.getRetrievalType(), WaitMode.GET,
           options.getVersionConstraint(), null, options.getVerifyIntegrity(), options.getReturnInvalidations(), null,
-          false, null);
+          false, null, null);
       return new InternalRetrievalOptions(retrievalOptions, options.getVerifyIntegrity());
     }
   }
@@ -58,6 +68,7 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
     return retrievalOptions;
   }
 
+  @Override
   public boolean getVerifyIntegrity() {
     return verifyIntegrity;
   }
@@ -78,6 +89,7 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
   /**
    * @return
    */
+  @Override
   public RetrievalType getRetrievalType() {
     return retrievalOptions.getRetrievalType();
   }
@@ -96,6 +108,7 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
    *
    * @return
    */
+  @Override
   public final VersionConstraint getVersionConstraint() {
     return retrievalOptions.getVersionConstraint();
   }
@@ -114,8 +127,28 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
    *
    * @return
    */
+  @Override
   public final byte[] getUserOptions() {
     return retrievalOptions.getUserOptions();
+  }
+
+  @Override
+  public final byte[] getAuthorizationUser() {
+    return retrievalOptions.getAuthorizationUser();
+  }
+
+  public final InternalRetrievalOptions authorizedAs(byte[] user) {
+    RetrievalOptions opt = retrievalOptions.authorizationUser(user);
+    return new InternalRetrievalOptions(opt, verifyIntegrity, cpSSToVerify, maybeTraceID);
+  }
+
+  @Override
+  public Optional<byte[]> getTraceID() {
+    if (TraceIDProvider.isValidTraceID(maybeTraceID)) {
+      return Optional.of(maybeTraceID);
+    } else {
+      return Optional.empty();
+    }
   }
 
   /**
@@ -125,27 +158,33 @@ public class InternalRetrievalOptions implements SSRetrievalOptions {
    * @return
    */
   public InternalRetrievalOptions versionConstraint(VersionConstraint vc) {
-    return new InternalRetrievalOptions(retrievalOptions.versionConstraint(vc), verifyIntegrity, cpSSToVerify);
+    return new InternalRetrievalOptions(retrievalOptions.versionConstraint(vc), verifyIntegrity, cpSSToVerify,
+        maybeTraceID);
   }
 
   /**
    * Return copy of this object with modified WaitMode
    *
-   * @param vc
+   * @param waitMode
    * @return
    */
   public InternalRetrievalOptions waitMode(WaitMode waitMode) {
-    return new InternalRetrievalOptions(retrievalOptions.waitMode(waitMode), verifyIntegrity, cpSSToVerify);
+    return new InternalRetrievalOptions(retrievalOptions.waitMode(waitMode), verifyIntegrity, cpSSToVerify,
+        maybeTraceID);
   }
 
   /**
    * Return copy of this object with modified verifyStorageState
    *
-   * @param vc
+   * @param cpSSToVerify
    * @return
    */
   public InternalRetrievalOptions cpSSToVerify(ConsistencyProtocol cpSSToVerify) {
-    return new InternalRetrievalOptions(retrievalOptions, verifyIntegrity, cpSSToVerify);
+    return new InternalRetrievalOptions(retrievalOptions, verifyIntegrity, cpSSToVerify, maybeTraceID);
+  }
+
+  public InternalRetrievalOptions maybeTraceID(byte[] maybeTraceID) {
+    return new InternalRetrievalOptions(retrievalOptions, verifyIntegrity, cpSSToVerify, maybeTraceID);
   }
 
   @Override

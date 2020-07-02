@@ -39,7 +39,9 @@ public abstract class MessageGroupKVEntry extends MessageGroupKeyEntry {
           }
         }
 
-        if (!buffers[bufferIndex].hasArray()) {
+        if (buffers[bufferIndex].isDirect()) {
+          //if (buffers[bufferIndex].isDirect() || buffers[bufferIndex].isReadOnly()) { // second clause is TEMP
+          // Think about why we can't use for read only. Ideally we would like to reduce copies
           int length;
 
           length = storedLength;

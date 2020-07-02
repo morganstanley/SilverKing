@@ -3,25 +3,14 @@ package com.ms.silverking.cloud.meta;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
-import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.net.IPAndPort;
 
-public class ExclusionSet extends ServerSetExtension implements ZKVersionedDefinition {
-  private final long mzxid;
-
-  public static final String singleLineDelimiter = ",";
-
-  private static final long INVALID_ZXID = -1;
-
-  public ExclusionSet(ServerSet serverSet, long mzxid) {
+public class ExclusionSet extends ServerSetExtension {
+  private ExclusionSet(ServerSet serverSet, long mzxid) {
     super(serverSet);
     this.mzxid = mzxid;
   }
@@ -31,94 +20,38 @@ public class ExclusionSet extends ServerSetExtension implements ZKVersionedDefin
   }
 
   private ExclusionSet(long version) {
-    this(new ServerSet(new HashSet<String>(), version));
+    this(new ServerSet(new HashSet<>(), version));
   }
 
   public ExclusionSet(Set<String> excludedEntities, long version, long mzxid) {
     this(new ServerSet(excludedEntities, version), mzxid);
   }
 
-  @Override
-  public long getMzxid() {
-    return mzxid;
-  }
-
   public static ExclusionSet emptyExclusionSet(long version) {
     return new ExclusionSet(version);
   }
 
+  @Override
+  public ExclusionSet addByIPAndPort(Set<IPAndPort> newExcludedEntities) {
+    return (ExclusionSet) super.addByIPAndPort(newExcludedEntities);
+  }
+
+  @Override
   public ExclusionSet add(Set<String> newExcludedEntities) {
     return new ExclusionSet(serverSet.add(newExcludedEntities));
   }
 
-  public ExclusionSet addByIPAndPort(Set<IPAndPort> newExcludedEntities) {
-    Set<String> s;
-
-    s = new HashSet<>();
-    for (IPAndPort e : newExcludedEntities) {
-      s.add(e.getIPAsString());
-    }
-    return add(s);
+  @Override
+  public ExclusionSet removeByIPAndPort(Set<IPAndPort> newExcludedEntities) {
+    return (ExclusionSet) super.removeByIPAndPort(newExcludedEntities);
   }
 
-  public Set<IPAndPort> asIPAndPortSet(int port) {
-    Set<IPAndPort> s;
-
-    s = new HashSet<>();
-    for (String server : serverSet.getServers()) {
-      s.add(new IPAndPort(server, port));
-    }
-    return ImmutableSet.copyOf(s);
-  }
-
+  @Override
   public ExclusionSet remove(Set<String> newExcludedEntities) {
     return new ExclusionSet(serverSet.remove(newExcludedEntities));
   }
 
-  public ExclusionSet removeByIPAndPort(Set<IPAndPort> newExcludedEntities) {
-    Set<String> s;
-
-    s = new HashSet<>();
-    for (IPAndPort e : newExcludedEntities) {
-      s.add(e.getIPAsString());
-    }
-    return remove(s);
-  }
-
-  public List<Node> filter(List<Node> raw) {
-    List<Node> filtered;
-
-    filtered = new ArrayList<>(raw.size());
-    for (Node node : raw) {
-      if (!getServers().contains(node.getIDString())) {
-        filtered.add(node);
-      }
-    }
-    return filtered;
-  }
-
-  public List<IPAndPort> filterByIP(Collection<IPAndPort> raw) {
-    List<IPAndPort> filtered;
-
-    filtered = new ArrayList<>(raw.size());
-    for (IPAndPort node : raw) {
-      boolean excluded;
-
-      excluded = false;
-      for (String server : getServers()) {
-        if (node.getIPAsString().equals(server)) {
-          excluded = true;
-          break;
-        }
-      }
-      if (!excluded) {
-        filtered.add(node);
-      }
-    }
-    return filtered;
-  }
-
-  public static ExclusionSet parse(String def) throws IOException {
+  public static ExclusionSet parse(String def) {
     return new ExclusionSet(
         new ServerSet(CollectionUtil.parseSet(def, singleLineDelimiter), VersionedDefinition.NO_VERSION));
   }

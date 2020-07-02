@@ -1,24 +1,42 @@
 package com.ms.silverking.cloud.dht;
 
+import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
 
 public class OperationOptions {
   private final OpTimeoutController opTimeoutController;
   private final Set<SecondaryTarget> secondaryTargets;
+  private final TraceIDProvider traceIDProvider;
 
   static {
     ObjectDefParser2.addParserWithExclusions(OperationOptions.class, null, FieldsRequirement.ALLOW_INCOMPLETE, null);
   }
 
-  public OperationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets) {
+  public OperationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
+      TraceIDProvider traceIDProvider) {
     Preconditions.checkNotNull(opTimeoutController);
+    Preconditions.checkNotNull(traceIDProvider);
     this.opTimeoutController = opTimeoutController;
     this.secondaryTargets = secondaryTargets;
+    this.traceIDProvider = traceIDProvider;
+  }
+
+  public final boolean hasTraceID() {
+    return traceIDProvider.isEnabled();
+  }
+
+  public OperationOptions traceIDProvider(TraceIDProvider traceIDProvider) {
+    return new OperationOptions(opTimeoutController, secondaryTargets, traceIDProvider);
+  }
+
+  public TraceIDProvider getTraceIDProvider() {
+    return traceIDProvider;
   }
 
   public OpTimeoutController getOpTimeoutController() {
@@ -45,26 +63,7 @@ public class OperationOptions {
     OperationOptions oOptions;
 
     oOptions = (OperationOptions) other;
-    if (!opTimeoutController.equals(oOptions.opTimeoutController)) {
-      return false;
-    } else {
-      if (this.secondaryTargets != null) {
-        if (oOptions.secondaryTargets != null) {
-          if (!this.secondaryTargets.equals(oOptions.secondaryTargets)) {
-            return false;
-          } else {
-            return true;
-          }
-        } else {
-          return false;
-        }
-      } else {
-        if (oOptions.secondaryTargets != null) {
-          return false;
-        } else {
-          return true;
-        }
-      }
-    }
+    return Objects.equals(opTimeoutController, oOptions.opTimeoutController) && Objects.equals(secondaryTargets,
+        oOptions.secondaryTargets) && Objects.equals(traceIDProvider, oOptions.traceIDProvider);
   }
 }

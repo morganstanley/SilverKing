@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 
@@ -17,4 +18,6 @@ interface MessageGroupConnectionProxy {
   String getConnectionID();
 
   MessageGroupConnection getConnection();
+
+  Optional<String> getAuthenticatedUser();
 }

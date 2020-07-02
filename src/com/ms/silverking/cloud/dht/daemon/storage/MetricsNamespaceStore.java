@@ -25,7 +25,7 @@ public abstract class MetricsNamespaceStore extends DynamicNamespaceStore {
 
   private static final RetrievalOptions defaultMetricsRetrievalOptions = new RetrievalOptions(
       new SimpleTimeoutController(1, 60 * 1000), null, RetrievalType.VALUE, WaitMode.GET, VersionConstraint.greatest,
-      NonExistenceResponse.NULL_VALUE, false, false, ForwardingMode.DO_NOT_FORWARD, false, null);
+      NonExistenceResponse.NULL_VALUE, false, false, ForwardingMode.DO_NOT_FORWARD, false, null, null);
 
   MetricsNamespaceStore(String name, MessageGroupBase mgBase, NodeRingMaster2 ringMaster,
       ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals, Map<DHTKey, String> keyToNameMap) {

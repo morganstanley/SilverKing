@@ -1,102 +1,83 @@
 package com.ms.silverking.cloud.dht.daemon;
 
 import java.net.InetSocketAddress;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
+import org.apache.zookeeper.KeeperException;
+
+import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.SuspectsZK;
+import com.ms.silverking.cloud.dht.net.IPAliasMap;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.SuspectAddressListener;
 import com.ms.silverking.net.async.SuspectProblem;
-import org.apache.zookeeper.KeeperException;
 
 public class PeerHealthMonitor implements SuspectAddressListener {
-  private Set<IPAndPort> currentSuspects;
-  private Set<IPAndPort> currentWeakSuspects;
-  private Set<IPAndPort> missingInZKSuspects;
-  private Set<IPAndPort> communicationSuspects;
-  private SuspectsZK suspectsZK;
-  private IPAndPort localIPAndPort;
-  private ConcurrentMap<IPAndPort, Long> lastWeakErrorTimes;
+  /*
+   For all peers, we store a health status by the daemon IPAndPort.
+   A peer that is unhealthy is a "suspect". We divide suspects into two classes:
+    1) Strong suspects. High confidence that they are in a bad state.
+    2) Weak suspects. Not acting normally, but are not known to be in a bad state. E.g. slow peers.
+   Code that uses the term "suspect" without qualification, refers to strong suspects.
+   */
+  private final ConcurrentMap<IPAndPort,PeerHealthStatus> healthStatusMap;
+  private final IPAliasMap  aliasMap;
+  private final IPAndPort localIPAndPort;
+  private final SuspectsZK suspectsZK;
 
   /*
    * Weak suspects are still members of the system. They are simply de-prioritized for reads.
    * Any truly bad member needs to be added as a suspect proper, which may trigger a topology change.
    */
 
-  // FUTURE - make configurable, or update algorithm
-  private static final long weakErrorTimeoutMillis = 5 * 60 * 1000;
-
   private static final boolean verbose = true;
+  private static final boolean debug = false;
 
-  public PeerHealthMonitor(MetaClient mc, IPAndPort localIPAndPort) throws KeeperException {
-    currentSuspects = new ConcurrentSkipListSet<>();
-    currentWeakSuspects = new ConcurrentSkipListSet<>();
-    missingInZKSuspects = new ConcurrentSkipListSet<>();
-    communicationSuspects = new ConcurrentSkipListSet<>();
-    lastWeakErrorTimes = new ConcurrentHashMap<>();
+  public PeerHealthMonitor(MetaClient mc, IPAndPort localIPAndPort, IPAliasMap aliasMap)
+      throws KeeperException {
     if (mc != null) {
       suspectsZK = new SuspectsZK(mc);
     } else {
       Log.warning("PeerHealthMonitor in unit test mode");
       suspectsZK = null;
     }
+    healthStatusMap = new ConcurrentHashMap<>();
     this.localIPAndPort = localIPAndPort;
+    this.aliasMap = aliasMap;
   }
 
   public void initialize() {
     updateZK();
   }
 
-  public boolean isSuspect(IPAndPort peer) {
-    if (currentSuspects.contains(peer)) {
-      return true;
-    } else {
-      if (currentWeakSuspects.contains(peer)) {
-        Long lastWeakErrorTime;
+  // only used by testing and replicahealthprioritizer presently...
+  public boolean isStrongSuspect(IPAndPort peer) {
+    PeerHealthStatus  peerHealthStatus;
 
-        lastWeakErrorTime = lastWeakErrorTimes.get(peer);
-        if (lastWeakErrorTime != null && SystemTimeUtil.skSystemTimeSource.absTimeMillis() - lastWeakErrorTime <= weakErrorTimeoutMillis) {
-          return true;
-        } else {
-          // possibly take action
-          return false;
-        }
-      } else {
-        return false;
-      }
-    }
+    peerHealthStatus = healthStatusMap.get(peer);
+    return peerHealthStatus != null && peerHealthStatus.isStrongSuspect();
   }
 
-  public long getLastWeakErrorTime(IPAndPort peer) {
-    Long t;
-
-    t = lastWeakErrorTimes.get(peer);
-    if (t == null) {
-      return Long.MAX_VALUE;
-    } else {
-      if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() - t <= weakErrorTimeoutMillis) {
-        return t;
-      } else {
-        return Long.MAX_VALUE;
-      }
-    }
-  }
-
+  // used by networking code
   @Override
-  public void addSuspect(InetSocketAddress peer, Object rawCause) {
+  public void addSuspect(InetSocketAddress peerInterfaceAddr, Object rawCause) {
     PeerHealthIssue issue;
+    IPAndPort peerIPAndPort;
 
+    // First, we convert any network module SuspectProblems
+    // into dht module PeerHealthIssues
     if (rawCause instanceof PeerHealthIssue) {
-      issue = (PeerHealthIssue) rawCause;
+      issue = (PeerHealthIssue)rawCause;
     } else if (rawCause instanceof SuspectProblem) {
-      switch ((SuspectProblem) rawCause) {
+      switch ((SuspectProblem)rawCause) {
       case ConnectionEstablishmentFailed:
         issue = PeerHealthIssue.CommunicationError;
         break;
@@ -109,107 +90,117 @@ public class PeerHealthMonitor implements SuspectAddressListener {
     } else {
       throw new RuntimeException("Panic");
     }
-    addSuspect(new IPAndPort(peer), issue);
+    // Now ensure that we convert any interface ip:port into a daemon IP where necessary
+    peerIPAndPort = aliasMap.interfaceToDaemon(peerInterfaceAddr);
+    addSuspect(peerIPAndPort, issue);
   }
 
   public void addSelfAsSuspect(PeerHealthIssue issue) {
     addSuspect(localIPAndPort, issue);
   }
 
+  private PeerHealthStatus getOrCreatePeerHealthStatus(IPAndPort peer) {
+    PeerHealthStatus  peerHealthStatus;
+
+    peerHealthStatus = healthStatusMap.get(peer);
+    if (peerHealthStatus == null) {
+      PeerHealthStatus  _peerHealthStatus;
+
+      peerHealthStatus = new PeerHealthStatus();
+      _peerHealthStatus = healthStatusMap.putIfAbsent(peer, peerHealthStatus);
+      if (_peerHealthStatus != null) {
+        peerHealthStatus = _peerHealthStatus;
+      }
+    }
+    return peerHealthStatus;
+  }
+
   public void addSuspect(IPAndPort peer, PeerHealthIssue issue) {
-    Log.warning("addSuspect: " + peer + " " + issue);
-    switch (issue) {
-    case ReplicaTimeout:
-      // For now, only treat replica timeouts as a weak suspect hint
-      addWeakSuspect(peer);
-      //communicationSuspects.add(peer);
-      //checkForStrongSuspect(peer);
-      break;
-    case MissingInZooKeeperAfterTimeout:
-      // fall through
-    case MissingInZooKeeper:
-      addWeakSuspect(peer);
-      missingInZKSuspects.add(peer);
-      checkForStrongSuspect(peer);
-      break;
-    case CommunicationError:
-      // fall through
-    case StorageError:
-      // fall through
-    default:
-      addStrongSuspect(peer, issue.toString());
-      break;
+    long  curTimeMillis;
+    PeerHealthStatus  peerHealthStatus;
+
+    Log.warningf("PeerHealthMonitor.addSuspect: %s %s", peer, issue);
+    curTimeMillis = SystemTimeUtil.timerDrivenTimeSource.absTimeMillis();
+    peerHealthStatus = getOrCreatePeerHealthStatus(peer);
+    if (debug) {
+      Log.warningf("addIssue %s %d", issue, curTimeMillis);
     }
+    peerHealthStatus.addIssue(issue, curTimeMillis);
+    updateZK();
   }
 
-  private void addWeakSuspect(IPAndPort peer) {
-    currentWeakSuspects.add(peer);
-    lastWeakErrorTimes.put(peer, SystemTimeUtil.skSystemTimeSource.absTimeMillis());
-  }
-
-  private void addStrongSuspect(IPAndPort peer, String cause) {
-    if (verbose) {
-      Log.warningAsync("PeerHealthMonitor.addSuspect (strong): " + peer + " " + cause);
-    }
-    if (currentSuspects.add(peer)) {
-      updateZK();
-    }
-  }
-
-  private void checkForStrongSuspect(IPAndPort peer) {
-    if (missingInZKSuspects.contains(peer) && communicationSuspects.contains(peer)) {
-      //if (communicationSuspects.contains(peer)) {
-      addStrongSuspect(peer, "checkForStrongSuspect");
-    }
-  }
-
+  // called when a new connection is made
   @Override
-  public void removeSuspect(InetSocketAddress addr) {
-    removeSuspect(new IPAndPort(addr).port(DHTNode.getServerPort()));
+  public void removeSuspect(InetSocketAddress peerInterfaceAddr) {
+    IPAndPort peer;
+
+    peer = aliasMap.interfaceToDaemon(peerInterfaceAddr);
+    removeSuspect(peer);
   }
 
+  // (in addition to above) called when a ping ack is received
   public void removeSuspect(IPAndPort peer) {
-    boolean removed;
+    long  curTimeMillis;
+    PeerHealthStatus  peerHealthStatus;
 
     if (verbose) {
-      Log.fineAsync("PeerHealthMonitor.removeSuspect ", peer);
+      if (isStrongSuspect(peer)) {
+        Log.warningf("PeerHealthMonitor.removeSuspect %s", peer);
+      }
     }
-    missingInZKSuspects.remove(peer);
-    communicationSuspects.remove(peer);
-    currentWeakSuspects.remove(peer);
-    if (currentSuspects.remove(peer)) {
-      updateZK();
-      removed = true;
-    } else {
-      removed = false;
-    }
-    if (removed && verbose) {
-      Log.warningAsync("PeerHealthMonitor.removeSuspect, removed: " + peer);
-    }
+    curTimeMillis = SystemTimeUtil.timerDrivenTimeSource.absTimeMillis();
+    peerHealthStatus = getOrCreatePeerHealthStatus(peer);
+    peerHealthStatus.setHealthy(curTimeMillis);
+    refreshZK();
   }
 
   /**
    * Ensure that ZK is up to date with local state. Read and verify before writing
-   *
-   * @throws KeeperException
    */
-  public void refreshZK() throws KeeperException {
-    Set<IPAndPort> zkSuspects;
+  public void refreshZK() {
+    try {
+      Set<IPAndPort> zkSuspects;
+      Set<IPAndPort> localSuspects;
 
-    zkSuspects = suspectsZK.readSuspectsFromZK(localIPAndPort);
-    if (zkSuspects == null || !zkSuspects.equals(currentSuspects)) {
-      updateZK();
+      zkSuspects = suspectsZK.readSuspectsFromZK(localIPAndPort);
+      localSuspects = computeCurrentStrongSuspects();
+      if (zkSuspects == null || !zkSuspects.equals(localSuspects)) {
+        updateZK(localSuspects);
+      }
+    } catch (KeeperException ke) {
+      Log.logErrorWarning(ke);
     }
   }
 
   private void updateZK() {
+    updateZK(computeCurrentStrongSuspects());
+  }
+
+  private void updateZK(Set<IPAndPort> suspects) {
     try {
       if (suspectsZK != null) {
-        suspectsZK.writeSuspectsToZK(localIPAndPort, currentSuspects);
-        Log.warning("Current Suspects: ", CollectionUtil.toString(currentSuspects));
+        suspectsZK.writeSuspectsToZK(localIPAndPort, suspects);
+        Log.warning("Current Suspects: ", CollectionUtil.toString(suspects));
       }
     } catch (Exception e) {
       Log.logErrorWarning(e);
     }
+  }
+
+  // for testing only
+  Set<IPAndPort> getCurrentSuspects() {
+    return computeCurrentStrongSuspects();
+  }
+
+  private Set<IPAndPort> computeCurrentStrongSuspects() {
+    Set<IPAndPort>  strongSuspects;
+
+    strongSuspects = new HashSet<>();
+    for (Map.Entry<IPAndPort,PeerHealthStatus> entry : healthStatusMap.entrySet()) {
+      if (entry.getValue().isStrongSuspect()) {
+        strongSuspects.add(entry.getKey());
+      }
+    }
+    return ImmutableSet.copyOf(strongSuspects);
   }
 }

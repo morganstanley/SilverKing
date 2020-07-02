@@ -12,11 +12,11 @@ import com.ms.silverking.net.async.OutgoingData;
 import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.numeric.RingInteger;
-import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.TimerDrivenTimeSource;
+import com.ms.silverking.thread.ThreadUtil;
 
 public class PingPongTest implements BufferedDataReceiver {
   private final InetSocketAddress serverAddr;

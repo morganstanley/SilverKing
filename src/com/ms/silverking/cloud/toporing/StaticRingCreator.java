@@ -3,6 +3,8 @@ package com.ms.silverking.cloud.toporing;
 import java.io.IOException;
 import java.util.Set;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.config.HostGroupTable;
 import com.ms.silverking.cloud.dht.client.EmbeddedSK;
@@ -26,7 +28,6 @@ import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Simplifies creation of a static ring. Intended for use by simplistic DHT instances

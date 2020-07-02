@@ -14,6 +14,9 @@ class StaticDHTCreatorOptions {
   @Option(name = "-f", usage = "serverFile", required = false)
   String serverFile;
 
+  @Option(name = "-a", usage = "aliasMapNameAndFile", required = false)
+  String aliasMapNameAndFile;
+
   @Option(name = "-s", usage = "servers", required = false)
   String servers;
 
@@ -58,4 +61,7 @@ class StaticDHTCreatorOptions {
 
   @Option(name = "-m", usage = "nsOptionsMode", required = false)
   String nsOptionsMode;
+
+  @Option(name = "-t", usage = "enableMsgGroupTrace", required = false)
+  boolean enableMsgGroupTrace;
 }

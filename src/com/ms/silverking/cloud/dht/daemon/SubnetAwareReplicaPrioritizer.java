@@ -108,7 +108,7 @@ public class SubnetAwareReplicaPrioritizer implements ReplicaPrioritizer {
       IPAndPort localIP;
       IPAndPort[] ips;
 
-      localIP = MessageGroupBase.createLocalIPAndPort(0);
+      localIP = new IPAndPort(IPAddrUtil.localIP(), 0);
       ips = new IPAndPort[args.length];
       for (int i = 0; i < args.length; i++) {
         ips[i] = new IPAndPort(args[i]);

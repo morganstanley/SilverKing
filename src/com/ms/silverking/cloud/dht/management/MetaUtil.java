@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.zookeeper.KeeperException;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.config.HostGroupTable;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
@@ -30,9 +34,6 @@ import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.io.IOUtil;
-import org.apache.zookeeper.KeeperException;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /*
  * Given a DHT name, this utility can provide:

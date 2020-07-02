@@ -1,11 +1,12 @@
 package com.ms.silverking.cloud.dht.meta;
 
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
+
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingState;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 
 /**
  * Write/Reads state for a particular instance of a particular ring for a particular DHT.

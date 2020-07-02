@@ -27,6 +27,11 @@ public interface Namespace {
   public NamespaceOptions getOptions();
 
   /**
+   * @return if trace feature is enabled
+   */
+  public boolean isServerTraceEnabled();
+
+  /**
    * Get the default NamespacePerspectiveOptions for this namespace
    *
    * @param <K>        type of the keyClass

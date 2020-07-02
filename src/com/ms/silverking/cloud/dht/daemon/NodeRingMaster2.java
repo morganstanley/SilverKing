@@ -11,6 +11,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -34,7 +36,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.ProtoOpResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoSetConvergenceStateMessageGroup;
 import com.ms.silverking.cloud.meta.ExclusionSet;
-import com.ms.silverking.cloud.meta.ExclusionSetAddressStatusProvider;
+import com.ms.silverking.cloud.dht.net.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.cloud.toporing.RingEntry;
@@ -46,7 +48,6 @@ import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * NodeRingMaster is responsible for responding to new target and current rings
@@ -417,47 +418,27 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     }
   }
 
-  // sorts putting suspects at last
-  private IPAndPort[] _getReplicasSorted(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType opType) {
-    Set<IPAndPort> replicas;
-    IPAndPort[] sorted;
-    int goodIndex;
-    int suspectIndex;
-
-    replicas = _getReplicas(key, oqm, opType);
-    sorted = new IPAndPort[replicas.size()];
-    goodIndex = 0;
-    suspectIndex = sorted.length - 1;
-    for (IPAndPort replica : replicas) {
-      if (!peerHealthMonitor.isSuspect(replica)) {
-        sorted[goodIndex] = replica;
-        ++goodIndex;
-      } else {
-        sorted[suspectIndex] = replica;
-        --suspectIndex;
-      }
-    }
-    assert goodIndex == suspectIndex + 1;
-    return sorted;
+  private IPAndPort[] _getReplicas(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType opType) {
+    return _getReplicaSet(key, oqm, opType).toArray(IPAndPort.emptyArray);
   }
 
-  public boolean iAmPotentialReplicaFor(DHTKey key) {
-    return isPotentialReplicaFor(key, nodeID);
+  public boolean iAmPotentialReplicaFor(DHTKey key, boolean discountExcludedNodes) {
+    return isPotentialReplicaFor(key, nodeID, discountExcludedNodes);
   }
 
-  private boolean isPotentialReplicaFor(DHTKey key, IPAndPort replica) {
+  private boolean isPotentialReplicaFor(DHTKey key, IPAndPort replica, boolean discountExcludedNodes) {
     RingMapState2 _targetMapState;
 
     _targetMapState = targetMapState;
     if (_targetMapState != null && _targetMapState != curMapState) {
-      if (_targetMapState.getResolvedReplicaMap().getReplicaSet(key, OwnerQueryMode.All).contains(replica)) {
+      if (_targetMapState.getResolvedReplicaMap(discountExcludedNodes).getReplicaSet(key, OwnerQueryMode.All).contains(replica)) {
         return true;
       }
     }
-    return curMapState.getResolvedReplicaMap().getReplicaSet(key, OwnerQueryMode.All).contains(replica);
+    return curMapState.getResolvedReplicaMap(discountExcludedNodes).getReplicaSet(key, OwnerQueryMode.All).contains(replica);
   }
 
-  private Set<IPAndPort> _getReplicas(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType opType) {
+  private Set<IPAndPort> _getReplicaSet(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType opType) {
     RingMapState2 _targetMapState;
 
     _targetMapState = targetMapState;
@@ -492,7 +473,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
 
     _targetMapState = targetMapState;
     if (_targetMapState != null && _targetMapState != curMapState) {
-      return _getReplicasSorted(key, oqm, opType);
+      return _getReplicas(key, oqm, opType);
     } else {
       return curMapState.getResolvedReplicaMap().getReplicas(key, oqm);
     }
@@ -503,7 +484,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
 
     _targetMapState = targetMapState;
     if (_targetMapState != null && _targetMapState != curMapState) {
-      return ImmutableList.copyOf(_getReplicasSorted(key, oqm, opType));
+      return ImmutableList.copyOf(_getReplicas(key, oqm, opType));
     } else {
       return curMapState.getResolvedReplicaMap().getReplicaList(key, oqm);
     }
@@ -511,7 +492,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
 
   // currently unused
   public Set<IPAndPort> getReplicaSet(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType opType) {
-    return _getReplicas(key, oqm, opType);
+    return _getReplicaSet(key, oqm, opType);
   }
 
   public PrimarySecondaryIPListPair getReplicaListPair(DHTKey key, RingOwnerQueryOpType opType) {
@@ -559,6 +540,10 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
 
   public ExclusionSet getCurrentExclusionSet() {
     return curMapState.getCurrentExclusionSet();
+  }
+
+  public ExclusionSet getInstanceExclusionSet() {
+    return curMapState.getInstanceExclusionSet();
   }
 
   public RingHealth getRingHealth() {

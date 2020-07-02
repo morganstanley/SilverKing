@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
@@ -73,6 +74,15 @@ public class ClientDHTConfiguration implements ClientDHTConfigurationProvider {
     return new ClientDHTConfiguration(envMap.get(nameVar),
         envMap.get(portVar) == null ? portInZKOnly : Integer.parseInt(envMap.get(portVar)),
         new ZooKeeperConfig(envMap.get(zkLocVar)));
+  }
+
+  public Map<String, String> getEnvMap() {
+    ImmutableMap.Builder<String, String> ret;
+    ret = ImmutableMap.builder();
+    ret.put(portVar, "" + getPort());
+    ret.put(nameVar, getName());
+    ret.put(zkLocVar, getZKConfig().getConnectString());
+    return ret.build();
   }
 
   public String getName() {

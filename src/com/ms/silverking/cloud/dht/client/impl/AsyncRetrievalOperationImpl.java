@@ -203,12 +203,14 @@ public class AsyncRetrievalOperationImpl<K, V> extends AsyncKVOperationImpl<K, V
 
   private ProtoRetrievalMessageGroup createProtoRetrievalMG(MessageEstimate estimate, boolean verifyIntegrity) {
     OperationUUID opUUID;
+    byte[] maybeTraceID;
     ConcurrentMap<DHTKey, List<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>> newMap;
     KeyedMessageEstimate keyedMessageEstimate;
     int relDeadline;
 
     keyedMessageEstimate = (KeyedMessageEstimate) estimate;
     opUUID = activeRetrievalListeners.newOpUUID();
+    maybeTraceID = retrievalOptions().getTraceIDProvider().traceID();
     relDeadline = operation.getTimeoutController().getMaxRelativeTimeoutMillis(this);
     if (debugShortTimeout) {
       if (relDeadline < shortTimeoutLimit) {
@@ -220,7 +222,8 @@ public class AsyncRetrievalOperationImpl<K, V> extends AsyncKVOperationImpl<K, V
     }
     return new ProtoRetrievalMessageGroup(opUUID, context.contextAsLong(),
         new InternalRetrievalOptions(retrievalOperation.retrievalOptions(), verifyIntegrity), originator,
-        keyedMessageEstimate.getNumKeys(), relDeadline, retrievalOperation.retrievalOptions().getForwardingMode());
+        keyedMessageEstimate.getNumKeys(), relDeadline, retrievalOperation.retrievalOptions().getForwardingMode(),
+        maybeTraceID);
   }
 
   @Override

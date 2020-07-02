@@ -102,7 +102,7 @@ public class RingTree {
       if (debug) {
         System.out.println(node);
       }
-      replicas.add(new IPAndPort(node.getIDString() + ":" + DHTNode.getServerPort()));
+      replicas.add(new IPAndPort(node.getIDString() + ":" + DHTNode.getDhtPort()));
     }
     return ImmutableSet.copyOf(replicas);
   }

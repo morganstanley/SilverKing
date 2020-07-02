@@ -2,6 +2,9 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
@@ -137,6 +140,24 @@ public class FileSegmentCompactorImpl implements FileSegmentCompactor {
   }
 
   @Override
+  public List<Integer> getTrashSegments(File nsDir) throws IOException {
+    try {
+      return getSegments(getTrashDir(nsDir));
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
+  @Override
+  public List<Integer> getCompactSegments(File nsDir) throws IOException {
+    try {
+      return getSegments(getCompactionDir(nsDir));
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
+  @Override
   public HashedSetMap<DHTKey, Triple<Long, Integer, Long>> compact(File nsDir, int segmentNumber,
       NamespaceOptions nsOptions, EntryRetentionCheck retentionCheck, boolean logCompaction) throws IOException {
     FileSegment compactedSegment;
@@ -193,10 +214,41 @@ public class FileSegmentCompactorImpl implements FileSegmentCompactor {
     return totalDeleted;
   }
 
+  @Override
+  public int forceEmptyTrashAndCompaction(File nsDir) throws IOException {
+    int totalDeleted;
+
+    totalDeleted = 0;
+    totalDeleted += forceEmptyDir(getTrashDir(nsDir));
+    totalDeleted += forceEmptyDir(getCompactionDir(nsDir));
+    return totalDeleted;
+  }
+
+  private static List<Integer> getSegments(File segmentsDir) throws IOException {
+    List<Integer> segments;
+
+    segments = new LinkedList<Integer>();
+    Files.list(segmentsDir.toPath()).forEach(path -> {
+      try {
+        Integer segmentNum;
+
+        segmentNum = Integer.parseInt(path.toFile().getName());
+        segments.add(segmentNum);
+      } catch (NumberFormatException nfe) {
+        Log.logErrorWarning(nfe, "Invalid segment file found: " + path);
+      }
+    });
+
+    return segments;
+  }
+
   private static int emptyDir(File dir) {
     File[] files;
 
     files = dir.listFiles();
+    if (files == null) {
+      throw new RuntimeException("[" + dir + "] is not a dir or I/O Exception happened during dir.listFiles()");
+    }
     for (File file : files) {
       if (!file.delete()) {
         Log.warning("Failed to delete", file);
@@ -204,6 +256,24 @@ public class FileSegmentCompactorImpl implements FileSegmentCompactor {
     }
     // Can be inaccurate if we can't delete some; not important here
     return files.length;
+  }
+
+  private static int forceEmptyDir(File dir) throws IOException {
+    int filesDeleted;
+    File[] files;
+
+    filesDeleted = 0;
+    files = dir.listFiles();
+    if (files == null) {
+      throw new IOException("[" + dir + "] is not a dir or I/O Exception happened during dir.listFiles()");
+    }
+    for (File file : files) {
+      // Will throw an IOException with diagnostic reporting, when a file cannot be deleted
+      Files.delete(file.toPath());
+      filesDeleted++;
+    }
+
+    return filesDeleted;
   }
 
   public static void main(String[] args) {

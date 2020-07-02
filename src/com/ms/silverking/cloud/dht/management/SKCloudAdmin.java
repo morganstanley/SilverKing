@@ -1,16 +1,8 @@
 package com.ms.silverking.cloud.dht.management;
 
-import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.checkCommands;
-import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.notALaunchCommand;
-import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.parseCommands;
-import static com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher.ipsFilename;
 import static com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher.privateKeyFilename;
-import static com.ms.silverking.cloud.dht.management.aws.Util.USER_HOME;
-import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
-import static com.ms.silverking.cloud.dht.management.aws.Util.readFile;
-import static com.ms.silverking.cloud.dht.management.aws.Util.writeToFile;
 import static com.ms.silverking.process.ProcessExecutor.runBashCmd;
 import static com.ms.silverking.process.ProcessExecutor.runCmd;
 import static com.ms.silverking.process.ProcessExecutor.scpFile;
@@ -18,14 +10,29 @@ import static com.ms.silverking.process.ProcessExecutor.ssh;
 
 import java.util.List;
 
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
+
+import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.parseCommands;
+import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.checkCommands;
+import static com.ms.silverking.cloud.dht.management.SKCloudAdminCommand.notALaunchCommand;
+
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher;
+
+import static com.ms.silverking.cloud.dht.management.aws.MultiInstanceLauncher.ipsFilename;
+
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceStarter;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceStopper;
 import com.ms.silverking.cloud.dht.management.aws.MultiInstanceTerminator;
 import com.ms.silverking.cloud.dht.management.aws.Util;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
+
+import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
+import static com.ms.silverking.cloud.dht.management.aws.Util.readFile;
+import static com.ms.silverking.cloud.dht.management.aws.Util.writeToFile;
+import static com.ms.silverking.cloud.dht.management.aws.Util.USER_HOME;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
 
 /**
  * <p>Tool responsible for executing most administrative SilverKing cloud commands.

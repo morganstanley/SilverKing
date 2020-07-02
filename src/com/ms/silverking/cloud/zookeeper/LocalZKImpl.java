@@ -4,15 +4,18 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.ms.silverking.log.Log;
+import org.apache.zookeeper.server.LocalZookeeperServerMain;
+import org.apache.zookeeper.server.ServerConfig;
+import org.apache.zookeeper.server.ZooKeeperServerMain;
+import org.apache.zookeeper.server.admin.AdminServer;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
-import org.apache.zookeeper.server.LocalZookeeperServerMain;
-import org.apache.zookeeper.server.ServerConfig;
-import org.apache.zookeeper.server.admin.AdminServer;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 public class LocalZKImpl {
   private static final int presumedSuccessTimeMillis = 2 * 1000;
@@ -30,6 +33,7 @@ public class LocalZKImpl {
   static {
     zkPort = PropertiesHelper.systemHelper.getInt(zkPortProperty, defaultZKPort,
         ParseExceptionAction.RethrowParseException);
+    System.setProperty("zookeeper.admin.enableServer", "false");
   }
 
   public static int startLocalZK(String dataDirBase) {
@@ -93,6 +97,7 @@ public class LocalZKImpl {
       args = new String[2];
       args[0] = Integer.toString(port);
       args[1] = dataDir;
+      Log.warningf("startLocalZK %d %s", port, dataDir);
       mainZkServer = new LocalZookeeperServerMain();
       ServerConfig config = new ServerConfig();
       config.parse(args);

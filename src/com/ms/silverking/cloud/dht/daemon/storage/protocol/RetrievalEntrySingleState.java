@@ -96,7 +96,7 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
 
     prevReplicaIndex = replicaIndex;
     if (replicaIndex < 0) {
-      incrementReplicaTimeout();
+      computeNextReplicaTimeout();
       replicaIndex = 0;
       if (secondaryReplicas.size() > 0) {
         // Try one secondary replica if any exist
@@ -117,7 +117,7 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
           replicaIndex++;
         }
       }
-      incrementReplicaTimeout();
+      computeNextReplicaTimeout();
       return primaryReplicas.get(replicaIndex - secondaryReplicas.size());
     }
   }

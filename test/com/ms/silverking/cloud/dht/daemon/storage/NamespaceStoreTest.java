@@ -206,6 +206,7 @@ public class NamespaceStoreTest {
                 includeInvalidations,
                 ForwardingMode.DO_NOT_FORWARD,
                 false,
+                new byte[0],
                 new byte[0]);
         SSRetrievalOptions options = new InternalRetrievalOptions(ro, false);
 

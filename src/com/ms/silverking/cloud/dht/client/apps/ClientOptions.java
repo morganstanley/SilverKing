@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.Option;
+
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.TimeoutResponse;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.Option;
 
 class ClientOptions {
   private static final byte[] emptyValue = new byte[0];

@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 import com.ms.silverking.id.UUIDBase;
+import com.ms.silverking.net.security.AuthResult;
 
 /**
  * A simple default ByteBuffer-based connection.

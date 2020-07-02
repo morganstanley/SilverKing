@@ -2,9 +2,9 @@ package com.ms.silverking.cloud.dht.management;
 
 import static com.ms.silverking.cloud.dht.management.SKAdminCommand.commandDelimiter;
 
-import java.util.Arrays;
-
 import com.ms.silverking.cloud.dht.management.aws.Util;
+
+import java.util.Arrays;
 
 public enum SKCloudAdminCommand {
   LaunchInstances, StartInstances, StopInstances, TerminateInstances, StartSpark, StopSpark;

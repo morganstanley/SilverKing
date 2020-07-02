@@ -5,13 +5,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
@@ -28,21 +28,10 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
-import com.ms.silverking.util.PropertiesHelper;
-import com.ms.silverking.util.PropertiesHelper.ParseExceptionAction;
 
 public class EmbeddedSK {
   private static AtomicBoolean embeddedExist = new AtomicBoolean();
   private static ConcurrentMap<String, NamedRingConfiguration> namedRingConfigs = new ConcurrentHashMap<>();
-
-  public static final String skPortProperty = EmbeddedSK.class.getName() + ".SKPort";
-  public static final int defaultSKPort = 0;
-  private static final int skPort;
-
-  static {
-    skPort = PropertiesHelper.systemHelper.getInt(skPortProperty, defaultSKPort,
-        ParseExceptionAction.RethrowParseException);
-  }
 
   public static boolean embedded() {
     return embeddedExist.get();
@@ -60,7 +49,7 @@ public class EmbeddedSK {
     /*
      Could leave this for backwards compatibility, but best to remove
     public static ClientDHTConfiguration createEmbeddedSKInstance(String dhtName, String gridConfigName, String
-    ringName, int replication) {
+    ringName, int replication, NamespaceOptionsMode nsOptionsMode) {
         EmbeddedSKConfiguration config;
         
         config = new EmbeddedSKConfiguration(dhtName, gridConfigName, ringName, replication); 
@@ -111,17 +100,18 @@ public class EmbeddedSK {
       int dhtPort;
 
       Log.warning("Creating DHT configuration in ZK");
-      if (skPort <= 0) {
+      if (config.getDhtPort() <= 0) {
         dhtPort = ThreadLocalRandom.current().nextInt(10000, 20000); // FIXME
       } else {
-        dhtPort = skPort;
+        dhtPort = config.getDhtPort();
       }
       clientDHTConfig = new ClientDHTConfiguration(config.getDHTName(), dhtPort, zkConfig);
       dhtMC = new MetaClient(clientDHTConfig);
       dhtConfigZK = new DHTConfigurationZK(dhtMC);
       dhtConfig = DHTConfiguration.emptyTemplate.ringName(config.getRingName()).port(dhtPort).passiveNodeHostGroups(
-          "").hostGroupToClassVarsMap(new HashMap<String, String>()).namespaceOptionsMode(
-          config.getNamespaceOptionsMode());
+          "").hostGroupToClassVarsMap(config.getClassVars()).namespaceOptionsMode(
+          config.getNamespaceOptionsMode()).enableMsgGroupTrace(config.getEnableMsgGroupTrace());
+
       dhtConfigZK.writeToZK(dhtConfig, null);
       Log.warning("Created DHT configuration in ZK");
 
@@ -136,7 +126,8 @@ public class EmbeddedSK {
 
       // 4) Start DHTNode
       Log.warning("Starting DHTNode");
-      new DHTNode(config.getDHTName(), zkConfig, nodeConfig, 0, new ReapOnIdlePolicy());
+      new DHTNode(config.getDHTName(), zkConfig, nodeConfig, 0, new ReapOnIdlePolicy(), DHTConstants.noPortOverride,
+          config.getDaemonIp());
       Log.warning("DHTNode started");
 
       // 5) Return the configuration to the caller
@@ -148,16 +139,21 @@ public class EmbeddedSK {
 
     /*
      * Could leave these for backwards compatibility, but best to remove.
-    public static ClientDHTConfiguration createEmbeddedSKInstance(String id, int replication) {
-        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(id, replication));
+    public static ClientDHTConfiguration createEmbeddedSKInstance(String id, int replication, NamespaceOptionsMode
+    * nsOptionsMode) {
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(id, replication, nsOptionsMode));
     }
     
-    public static ClientDHTConfiguration createEmbeddedSKInstance(String id) {
-        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(id));
+    public static ClientDHTConfiguration createEmbeddedSKInstance(String id, NamespaceOptionsMode nsOptionsMode) {
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(id, nsOptionsMode));
     }
     
-    public static ClientDHTConfiguration createEmbeddedSKInstance(int replication) {
-        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(replication));
+    public static ClientDHTConfiguration createEmbeddedSKInstance(int replication, NamespaceOptionsMode nsOptionsMode) {
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(replication, nsOptionsMode));
+    }
+
+    public static ClientDHTConfiguration createEmbeddedSKInstance(NamespaceOptionsMode nsOptionsMode) {
+        return createEmbeddedSKInstance(new EmbeddedSKConfiguration(new UUIDBase(false).toString(), nsOptionsMode));
     }
     */
 

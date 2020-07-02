@@ -2,6 +2,8 @@ package com.ms.silverking.cloud.dht.meta;
 
 import java.io.IOException;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.dht.client.EmbeddedSK;
 import com.ms.silverking.cloud.meta.CloudConfiguration;
 import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
@@ -15,7 +17,6 @@ import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Reads new rings when necessary. Presents these as DHTMetaUpdates for compatibility with

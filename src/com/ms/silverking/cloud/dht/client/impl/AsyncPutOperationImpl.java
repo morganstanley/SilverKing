@@ -59,7 +59,7 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
 
   private static final boolean debug = false;
   private static final boolean verboseToString = true;
-  
+
   AsyncPutOperationImpl(PutOperation<K, V> putOperation, ClientNamespace namespace,
       NamespacePerspectiveOptionsImpl<K, V> nspoImpl, long curTimeMillis, byte[] originator,
       VersionProvider versionProvider) {
@@ -74,6 +74,7 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
     this.opResults = new ConcurrentHashMap<>();
     this.activePutListeners = namespace.getActivePutListeners();
     opUUIDs = new LinkedList<>();
+
     //Log.warning(namespace.getOptions().getVersionMode() +" "+ versionProvider
     //		+" "+ (versionProvider != null ? versionProvider.getVersion() : ""));
   }
@@ -121,7 +122,7 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
       resolvedVersion.compareAndSet(DHTConstants.noSuchVersion, v);
     }
   }
-  
+
   @Override
   public long getStoredVersion() {
     return getResolvedVersion();
@@ -138,16 +139,18 @@ class AsyncPutOperationImpl<K, V> extends AsyncKVOperationImpl<K, V>
 
   private ProtoPutMessageGroup<V> createProtoPutMG(PutMessageEstimate estimate, byte[] creator) {
     OperationUUID opUUID;
+    byte[] maybeTraceID;
     ConcurrentMap<DHTKey, ActiveKeyedOperationResultListener<OpResult>> newMap;
     long resolvedVersion;
- 
+
     resolvedVersion = getResolvedVersion();
     opUUID = activePutListeners.newOpUUIDAndMap();
+    maybeTraceID = putOptions().getTraceIDProvider().traceID();
     return new ProtoPutMessageGroup<>(opUUID, context.contextAsLong(), estimate.getNumKeys(), estimate.getNumBytes(),
         resolvedVersion, nspoImpl.getValueSerializer(), putOperation.putOptions().version(resolvedVersion),
         putOperation.putOptions().getChecksumType(), originator, creator,
         operation.getTimeoutController().getMaxRelativeTimeoutMillis(this),
-        nspoImpl.getNSPOptions().getEncrypterDecrypter());
+        nspoImpl.getNSPOptions().getEncrypterDecrypter(), maybeTraceID);
     // FUTURE - trim the above timeout according to the amount
     // of time that has elapsed since the start
   }

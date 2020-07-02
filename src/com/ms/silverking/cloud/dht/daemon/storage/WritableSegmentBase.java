@@ -51,6 +51,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
   protected static final int dataOffset = SegmentFormat.headerSize;
 
   private static final boolean debug = false;
+  private static final boolean debugCompaction = false;
   private static final boolean debugRetention = false;
 
   // called from openReadOnly
@@ -448,7 +449,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         // a dramatic increase in time for segments that won't.
         // Leaving for now as tracking in memory requires space
         if (vrp.retains(entryKey, version, creationTime, isInvalidation(offset), valueRetentionState, curTimeNanos,
-            storedLength) && ringMaster.iAmPotentialReplicaFor(entryKey)) {
+            storedLength) && ringMaster.iAmPotentialReplicaFor(entryKey, true)) {
           ++numRetained;
           retainedOffsets.add(offset);
           if (debugRetention) {

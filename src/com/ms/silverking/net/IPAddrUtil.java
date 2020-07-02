@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 
 public class IPAddrUtil {
@@ -16,7 +17,7 @@ public class IPAddrUtil {
 
   private static Lock classLock;
 
-  private static final String ipProperty = "com.ms.silverking.net.IP";
+  private static final String ipProperty = IPAddrUtil.class.getPackage().getName() + ".IP";
   private static volatile byte[] localIP;
   private static volatile int localIPInt;
 
@@ -26,6 +27,47 @@ public class IPAddrUtil {
 
   public static String localIPString() {
     return addrToString(localIP());
+  }
+
+  public static void ensureLocalIP(String ip) {
+    classLock.lock();
+    try {
+      if (localIPInt == 0) {
+        String ipDef;
+
+        ipDef = System.getProperty(ipProperty);
+        if (ipDef != null && !ipDef.equals(ip)) {
+          // sys prop was already set and doesn't match IP parameter to method
+          throw new RuntimeException(
+              "Cannot ensureLocalIP of " + ip + " as property " + ipProperty + " sets IP to " + ipDef);
+        } else {
+          // either the sys prop was not set or it matches the method parameter, we can continue
+          System.setProperty(ipProperty, ip);
+          initLocalIP();
+        }
+      } else {
+        int ipInt;
+
+        ipInt = addrToInt(IPAddrUtil.stringToAddr(ip));
+        if (ipInt != localIPInt) {
+          // the local IP is already initialized and does not match
+          throw new RuntimeException(
+              "Cannot ensureLocalIP of " + ip + " as IP is already initialized to " + localIPString());
+        }
+      }
+    } finally {
+      classLock.unlock();
+    }
+  }
+
+  /**
+   *  Tear down a local IP setting. Do not use in a running cluster or client;
+   *  this is primarly expected to be used to tidy up between separate test suites
+   *  with unique embedded clients
+   */
+  public static void resetLocalIP() {
+    localIPInt = 0;
+    System.clearProperty(ipProperty);
   }
 
   public static byte[] localIP() {

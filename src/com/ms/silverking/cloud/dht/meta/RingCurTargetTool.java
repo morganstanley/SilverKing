@@ -3,11 +3,12 @@ package com.ms.silverking.cloud.dht.meta;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
-import com.ms.silverking.collection.Triple;
 import org.apache.zookeeper.KeeperException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+
+import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
+import com.ms.silverking.collection.Triple;
 
 public class RingCurTargetTool {
   private final PrintStream out;

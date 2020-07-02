@@ -2,6 +2,9 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.util.logging.Level;
 
+import com.ms.silverking.cloud.dht.daemon.DHTNode;
+import org.kohsuke.args4j.Option;
+
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
@@ -14,7 +17,8 @@ import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
 import com.ms.silverking.cloud.zookeeper.SKAclProvider;
 import com.ms.silverking.net.security.Authenticator;
 import com.ms.silverking.text.ObjectDefParser2;
-import org.kohsuke.args4j.Option;
+
+import static com.ms.silverking.cloud.dht.management.SKAdmin.javaSystemPropertyFlag;
 
 public class SKAdminOptions {
   public static String exclusionsTarget = "exclusions";
@@ -40,8 +44,8 @@ public class SKAdminOptions {
   @Option(name = "-t", usage = "target(s)", required = false)
   public String targets;
 
-  @Option(name = "-rawJVMOptions", usage = "rawJVMOptions", required = false)
-  public String rawJVMOptions = "";
+  @Option(name="-rawJVMOptions", usage="rawJVMOptions", required=false)
+  public String    rawJVMOptions = "";
 
   public boolean isReservedTarget(String s) {
     return s.equalsIgnoreCase(exclusionsTarget) || s.equalsIgnoreCase(activeDaemonsTarget);
@@ -146,7 +150,10 @@ public class SKAdminOptions {
   }
 
   @Option(name = "-useAuthWithImpl", usage = "specify AuthenticatorImpl in SKObjectStringDef", required = false)
-  public String authImplSkStrDef = null;
+  public String authenticationImplSkStrDef = null;
+
+  @Option(name = "-authorizationImpl", usage = "specify Authorization impl in SKObjectStringDef", required = false)
+  public String authorizationImplSkStrDef = null;
 
   @Option(name = "-destructive", usage = "destructive", required = false)
   public boolean destructive = false;
@@ -203,6 +210,10 @@ public class SKAdminOptions {
   @Option(name = "-storageFormat", usage = "FileSegmentStorageFormat")
   public String storageFormat = DHTConstants.defaultStorageFormat;
 
+  @Option(name = "-port", usage = "Overriding port to boot the DHT Node on (rather than the one configured in ZK DHT " +
+      "Config)")
+  public int overridePort = DHTConstants.noPortOverride;
+
   public void fillDefaultOptions() {
     if (classPath == null) {
       classPath = System.getProperty("java.class.path");
@@ -214,7 +225,7 @@ public class SKAdminOptions {
 
   public void sanityCheckOptions() {
     // try to parse the following options at beginning, and RuntimeException will be thrown if wrong input given
-    Authenticator.getAuthenticator(authImplSkStrDef);
+    Authenticator.setAuthenticator(authenticationImplSkStrDef);
     checkStartNodeExtraJVMOptions();
     checkSkAclProvider();
   }

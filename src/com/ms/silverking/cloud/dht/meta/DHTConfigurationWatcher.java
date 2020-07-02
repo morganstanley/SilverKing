@@ -5,11 +5,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.meta.VersionListener;
 import com.ms.silverking.cloud.meta.VersionWatcher;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Watches for new DHTConfigurations

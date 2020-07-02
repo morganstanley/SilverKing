@@ -221,12 +221,12 @@ public class ChecksumTreeServer {
       System.out.printf("computeChecksumTreeGroup w/ regions %x\n", ns);
     }
     if (regions != null) {
-      nsStore.readLock();
+      nsStore.readLockAll();
       try {
         return TreeBuilder.build(regions, nsStore.keyAndVersionChecksumIterator(minVersion, maxVersion), entriesPerNode,
             nsStore.getTotalKeys(), absMillisTimeSource.absTimeMillis(), minVersion, maxVersion, allowRegionNotFound);
       } finally {
-        nsStore.readUnlock();
+        nsStore.readUnlockAll();
       }
     } else {
       return null;

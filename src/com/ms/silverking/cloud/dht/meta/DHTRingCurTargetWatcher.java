@@ -1,9 +1,10 @@
 package com.ms.silverking.cloud.dht.meta;
 
+import org.apache.zookeeper.data.Stat;
+
 import com.ms.silverking.cloud.meta.ValueListener;
 import com.ms.silverking.cloud.meta.ValueWatcher;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.data.Stat;
 
 public class DHTRingCurTargetWatcher implements ValueListener {
   private final String dhtName;

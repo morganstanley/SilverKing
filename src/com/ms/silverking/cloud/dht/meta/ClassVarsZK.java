@@ -4,11 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.io.FileUtil;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 
 public class ClassVarsZK extends MetaToolModuleBase<ClassVars, MetaPaths> {
   public ClassVarsZK(MetaClient mc) throws KeeperException {

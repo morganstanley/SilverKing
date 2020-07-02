@@ -1,12 +1,9 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
-import static com.ms.silverking.cloud.dht.management.aws.Util.USER_HOME;
 import static com.ms.silverking.cloud.dht.management.aws.Util.debugPrint;
 import static com.ms.silverking.cloud.dht.management.aws.Util.deleteKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
-import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
-import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
 import static com.ms.silverking.cloud.dht.management.aws.Util.isRunning;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
@@ -39,6 +36,10 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.UserIdGroupPair;
 import com.ms.silverking.cloud.dht.management.SKCloudAdmin;
+
+import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
+import static com.ms.silverking.cloud.dht.management.aws.Util.USER_HOME;
 
 public class MultiInstanceLauncher {
 

@@ -8,6 +8,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.zookeeper.KeeperException;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
@@ -48,9 +52,6 @@ import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
-import org.apache.zookeeper.KeeperException;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * Observers ZooKeeper for changes in metadata that this DHT is dependent upon.
@@ -140,9 +141,9 @@ public class DHTRingMaster
 
     dhtMetaReader = new DHTMetaReader(zkConfig, dhtName, enableLogging);
 
-    mgBase = new MessageGroupBase(mgBasePort, this, SystemTimeUtil.skSystemTimeSource,
+    mgBase = MessageGroupBase.newClientMessageGroupBase(mgBasePort, this, SystemTimeUtil.skSystemTimeSource,
         PersistentAsyncServer.defaultNewConnectionTimeoutController, null, queueLimit, numSelectorControllers,
-        selectorControllerClass);
+        selectorControllerClass, null);
     mode = Mode.Automatic;
     new RingMasterControlImpl(this);
   }
@@ -758,7 +759,7 @@ public class DHTRingMaster
 
     uuid = UUIDBase.random();
     mg = new ProtoChecksumTreeRequestMessageGroup(uuid, nsAndRegion.getV1(), targetCP, curCP, mgBase.getMyID(),
-        new RingRegion(nsAndRegion.getV2(), nsAndRegion.getV3()), mgBase._getIPAndPort(), false).toMessageGroup();
+        new RingRegion(nsAndRegion.getV2(), nsAndRegion.getV3()), mgBase.getIPAndPort(), false).toMessageGroup();
     mgBase.send(mg, owner);
   }
 

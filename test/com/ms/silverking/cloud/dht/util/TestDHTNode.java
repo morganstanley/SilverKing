@@ -11,7 +11,7 @@ public class TestDHTNode extends DHTNode {
     private DHTNodeConfiguration nodeConfig;
 
     public TestDHTNode(String dhtName, ZooKeeperConfig zkConfig, DHTNodeConfiguration nodeConfig, ClientDHTConfiguration conf, int inactiveNodeTimeoutSeconds, ReapPolicy reapPolicy) {
-        super(dhtName, zkConfig, nodeConfig, inactiveNodeTimeoutSeconds, reapPolicy);
+        super(dhtName, zkConfig, nodeConfig, inactiveNodeTimeoutSeconds, reapPolicy, 0, null);
         this.nodeConfig = nodeConfig;
         this.clientDHTConfiguration = conf;
     }

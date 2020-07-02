@@ -15,14 +15,14 @@ public class ReplicaHealthPrioritizer implements ReplicaPrioritizer {
 
   @Override
   public int compare(IPAndPort r1, IPAndPort r2) {
-    if (peerHealthMonitor.isSuspect(r1)) {
-      if (peerHealthMonitor.isSuspect(r2)) {
+    if (peerHealthMonitor.isStrongSuspect(r1)) {
+      if (peerHealthMonitor.isStrongSuspect(r2)) {
         return compareLastErrorTimes(r1, r2);
       } else {
         return 1;
       }
     } else {
-      if (peerHealthMonitor.isSuspect(r2)) {
+      if (peerHealthMonitor.isStrongSuspect(r2)) {
         return -1;
       } else {
         return compareLastErrorTimes(r1, r2);
@@ -31,6 +31,8 @@ public class ReplicaHealthPrioritizer implements ReplicaPrioritizer {
   }
 
   private int compareLastErrorTimes(IPAndPort r1, IPAndPort r2) {
+    return 0; // use of weak errors deprecated for now
+  /*
     long t1;
     long t2;
 
@@ -47,6 +49,7 @@ public class ReplicaHealthPrioritizer implements ReplicaPrioritizer {
         return 0;
       }
     }
+   */
   }
 
   public static void main(String[] args) {
@@ -57,7 +60,7 @@ public class ReplicaHealthPrioritizer implements ReplicaPrioritizer {
 
       replicas = IPAndPort.list(ImmutableList.copyOf(StringUtil.splitAndTrim(args[0], ","))).toArray(new IPAndPort[0]);
       suspects = IPAndPort.list(ImmutableList.copyOf(StringUtil.splitAndTrim(args[1], ","))).toArray(new IPAndPort[0]);
-      p = new PeerHealthMonitor(null, null);
+      p = new PeerHealthMonitor(null, null, null);
       for (IPAndPort suspect : suspects) {
         p.addSuspect(suspect, PeerHealthIssue.OpTimeout);
       }

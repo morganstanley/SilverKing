@@ -9,6 +9,7 @@ import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -58,13 +59,20 @@ public class PutOptions extends OperationOptions {
   // FUTURE - A limitation in the parser seems to require replication until we have a proper fix
   private static final OpTimeoutController standardTimeoutController = new OpSizeBasedTimeoutController();
   private static final PutOptions template = new PutOptions(standardTimeoutController, DHTConstants.noSecondaryTargets,
-      Compression.LZ4, ChecksumType.MURMUR3_32, false, defaultVersion, noVersionRequired, noLock,
-      DHTConstants.defaultFragmentationThreshold, null);
+      DHTConstants.defaultTraceIDProvider, Compression.LZ4, ChecksumType.MURMUR3_32, false, defaultVersion,
+      noVersionRequired, noLock, DHTConstants.defaultFragmentationThreshold, null);
   // end temp replicated from DHTConstants
 
   static {
     ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
     ObjectDefParser2.addSetType(PutOptions.class, "secondaryTargets", SecondaryTarget.class);
+  }
+
+  public PutOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
+      Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, long version,
+      long requiredPreviousVersion, short lockSeconds, int fragmentationThreshold, byte[] userData) {
+    this(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, compression, checksumType,
+        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
   }
 
   /**
@@ -75,6 +83,7 @@ public class PutOptions extends OperationOptions {
    * @param opTimeoutController      opTimeoutController for the operation
    * @param secondaryTargets         constrains queried secondary replicas
    *                                 to operation solely on the node that receives this operation
+   * @param traceIDProvider          trace provider for message group
    * @param compression              type of compression to use
    * @param checksumType             checksum to use for value
    * @param checksumCompressedValues controls whether or not compressed values are checksummed
@@ -87,9 +96,10 @@ public class PutOptions extends OperationOptions {
    * @param userData                 out of band data to store with value. May not exceed maxUserDataLength.
    */
   public PutOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, long version,
-      long requiredPreviousVersion, short lockSeconds, int fragmentationThreshold, byte[] userData) {
-    super(opTimeoutController, secondaryTargets);
+      TraceIDProvider traceIDProvider, Compression compression, ChecksumType checksumType,
+      boolean checksumCompressedValues, long version, long requiredPreviousVersion, short lockSeconds,
+      int fragmentationThreshold, byte[] userData) {
+    super(opTimeoutController, secondaryTargets, traceIDProvider);
     Preconditions.checkNotNull(compression);
     Preconditions.checkNotNull(checksumType);
     if (version < 0) {
@@ -120,31 +130,44 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-    return new PutOptions(opTimeoutController, getSecondaryTargets(), compression, checksumType,
+    return new PutOptions(opTimeoutController, getSecondaryTargets(), getTraceIDProvider(), compression, checksumType,
         checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
   }
 
   /**
-   * Return an InvalidationOptions instance like this instance, but with a new secondaryTargets.
+   * Return an PutOptions instance like this instance, but with a new secondaryTargets.
    *
    * @param secondaryTargets the new field value
    * @return the modified InvalidationOptions
    */
   public PutOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-    return new PutOptions(getOpTimeoutController(), secondaryTargets, getCompression(), getChecksumType(),
-        getChecksumCompressedValues(), getVersion(), requiredPreviousVersion, lockSeconds, fragmentationThreshold,
-        getUserData());
+    return new PutOptions(getOpTimeoutController(), secondaryTargets, getTraceIDProvider(), getCompression(),
+        getChecksumType(), getChecksumCompressedValues(), getVersion(), requiredPreviousVersion, lockSeconds,
+        fragmentationThreshold, getUserData());
   }
 
   /**
-   * Return an InvalidationOptions instance like this instance, but with a new secondaryTargets.
+   * Return an PutOptions instance like this instance, but with a new secondaryTargets.
    *
    * @param secondaryTarget the new field value
    * @return the modified InvalidationOptions
    */
   public PutOptions secondaryTargets(SecondaryTarget secondaryTarget) {
     Preconditions.checkNotNull(secondaryTarget);
-    return new PutOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getCompression(),
+    return new PutOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getTraceIDProvider(),
+        getCompression(), getChecksumType(), getChecksumCompressedValues(), getVersion(), requiredPreviousVersion,
+        lockSeconds, fragmentationThreshold, getUserData());
+  }
+
+  /**
+   * Return an PutOptions instance like this instance, but with a new traceIDProvider.
+   *
+   * @param traceIDProvider the new field value
+   * @return the modified InvalidationOptions
+   */
+  public PutOptions traceIDProvider(TraceIDProvider traceIDProvider) {
+    Preconditions.checkNotNull(traceIDProvider);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), traceIDProvider, getCompression(),
         getChecksumType(), getChecksumCompressedValues(), getVersion(), requiredPreviousVersion, lockSeconds,
         fragmentationThreshold, getUserData());
   }
@@ -156,8 +179,9 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions compression(Compression compression) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**
@@ -167,8 +191,9 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions checksumType(ChecksumType checksumType) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**
@@ -178,8 +203,9 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions checksumCompressedValues(boolean checksumCompressedValues) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**
@@ -189,8 +215,9 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new version.
    */
   public PutOptions version(long version) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**
@@ -200,8 +227,9 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new requiredPreviousVersion.
    */
   public PutOptions requiredPreviousVersion(long requiredPreviousVersion) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**
@@ -211,8 +239,9 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new lockSeconds.
    */
   public PutOptions lockSeconds(short lockSeconds) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**
@@ -222,8 +251,9 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new fragmentationThreshold.
    */
   public PutOptions fragmentationThreshold(int fragmentationThreshold) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**
@@ -233,8 +263,9 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with new userData.
    */
   public PutOptions userData(byte[] userData) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
+        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+        userData);
   }
 
   /**

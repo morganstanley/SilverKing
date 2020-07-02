@@ -8,6 +8,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.common.OpResult;
@@ -20,7 +23,7 @@ import com.ms.silverking.cloud.dht.meta.DHTMetaUpdate;
 import com.ms.silverking.cloud.dht.meta.RingHealthZK;
 import com.ms.silverking.cloud.dht.net.SecondaryTargetSerializer;
 import com.ms.silverking.cloud.meta.ExclusionSet;
-import com.ms.silverking.cloud.meta.ExclusionSetAddressStatusProvider;
+import com.ms.silverking.cloud.dht.net.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.meta.ExclusionZK;
 import com.ms.silverking.cloud.meta.MetaClient;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
@@ -39,8 +42,6 @@ import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 
 /**
  * Tracks state used during transition from one ring to another,
@@ -53,6 +54,7 @@ public class RingMapState2 {
   private final Triple<String, Long, Long> ringNameAndVersionPair;
   private final InstantiatedRingTree rawRingTree;
   private RingTree ringTreeMinusExclusions;
+  private ResolvedReplicaMap rawResolvedReplicaMap;
   private ResolvedReplicaMap resolvedReplicaMapMinusExclusions;
   private final ExclusionWatcher exclusionWatcher;
   private final HealthWatcher healthWatcher;
@@ -128,6 +130,8 @@ public class RingMapState2 {
     writeTargets = TransitionReplicaSources.OLD;
     readTargets = TransitionReplicaSources.OLD;
 
+    rawResolvedReplicaMap = rawRingTree.getResolvedMap(ringConfig.getRingParentName(),
+        ReplicaPrioritizerHolder.getInstance(nodeID));
     try {
       readInitialExclusions(ringMC.createCloudMC());
     } catch (KeeperException | IOException e) {
@@ -187,7 +191,7 @@ public class RingMapState2 {
       throw new RuntimeException(e);
     }
     newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(),
-        new SubnetAwareReplicaPrioritizer(nodeID));
+        ReplicaPrioritizerHolder.getInstance(nodeID));
     ringTreeMinusExclusions = newRingTree;
     resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
     if (Log.levelMet(Level.INFO)) {
@@ -322,7 +326,12 @@ public class RingMapState2 {
   }
 
   public ResolvedReplicaMap getResolvedReplicaMap() {
-    return resolvedReplicaMapMinusExclusions;
+    return getResolvedReplicaMap(true);
+  }
+
+
+  protected ResolvedReplicaMap getResolvedReplicaMap(boolean discountExcludedNodes) {
+    return discountExcludedNodes ? resolvedReplicaMapMinusExclusions : rawResolvedReplicaMap;
   }
 
   ConvergencePoint getConvergencePoint() {
@@ -331,6 +340,10 @@ public class RingMapState2 {
 
   ExclusionSet getCurrentExclusionSet() {
     return ExclusionSet.union(curExclusionSet, curInstanceExclusionSet);
+  }
+
+  ExclusionSet getInstanceExclusionSet() {
+    return curInstanceExclusionSet;
   }
 
   RingHealth getRingHealth() {
@@ -476,7 +489,7 @@ public class RingMapState2 {
         }
 
         newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(),
-            new SubnetAwareReplicaPrioritizer(nodeID));
+            ReplicaPrioritizerHolder.getInstance(nodeID));
         ringTreeMinusExclusions = newRingTree;
         resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
         if (Log.levelMet(Level.INFO)) {

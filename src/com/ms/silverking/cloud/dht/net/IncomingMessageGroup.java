@@ -201,6 +201,8 @@ public final class IncomingMessageGroup implements IncomingData {
                 throw new RuntimeException("Unexpected protocolVersion: " + MessageGroupGlobals.protocolVersion);
               }
               allocateBufferLengthsBuffer(leadingBuffer.getInt(MessageFormat.lengthOffset));
+              // TODO: Consider adding a safe msgType deserialization, and server shall return
+              //  "UnsupportedMessageErrorResult" back to client if it cannot handle the message type
               messageType = EnumValues.messageType[leadingBuffer.get(MessageFormat.typeOffset)];
               options = leadingBuffer.get(
                   MessageFormat.optionsOffset); // only support one byte of options presently; ignore the other 2

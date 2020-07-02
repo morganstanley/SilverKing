@@ -1143,24 +1143,24 @@ public class TopologyRingCreator {
       //throw new RuntimeException("Fatal: sanityCheckAllocations failed@1");
       System.exit(-1);
     }
-        
+
         /*
         for (int _i = 0; _i < nodes.size(); _i++) {
             long    regionSize;
             Node    n;
             Long    allocation;
             int        i;
-            
+
             i = shuffle.get(_i);
             n = nodes.get(i);
             regionSize = nodeRegionSizes.get(i);
             allocation = allocations.get(n.getIDString());
-            
+
             System.out.printf("sc:\t%s\t%d\t%d\n", n.getIDString(), regionSize, allocation);
-            
+
             if (allocation != null) {
                 long    _ringspaceToAllocate;
-                
+
                 _ringspaceToAllocate = i == nodeIndex ? ringspaceToAllocate : 0;
                 //System.out.printf("%s\t%d\t%d\t%d\t%d\t%d\n", n.getIDString(), regionSize, regionSize *
                 (replicaIndex + 1), allocation, regionSize * (replicaIndex + 1) - allocation, _ringspaceToAllocate);

@@ -6,15 +6,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
-import com.ms.silverking.log.Log;
-import com.ms.silverking.thread.ThreadUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.OperationTimeoutException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper.States;
+
+import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.log.Log;
+import com.ms.silverking.thread.ThreadUtil;
 
 public class MetaClientCore implements Watcher {
   protected final ZooKeeperConfig zkConfig;

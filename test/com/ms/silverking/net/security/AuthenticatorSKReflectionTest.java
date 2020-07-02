@@ -5,8 +5,6 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import com.ms.silverking.net.security.Authenticator.AuthFailedAction;
-
 public class AuthenticatorSKReflectionTest {
     
     @Test
@@ -29,7 +27,7 @@ public class AuthenticatorSKReflectionTest {
 //            checkSKDefAndParse(dummyAuthenticator);   // Authenticator needs to override equals for this to work, will just compare names for now instead
             assertEquals(authenticator.getName(), parsedAuthenticator.getName());
             
-            Authenticator.AuthResult result = parsedAuthenticator.syncAuthenticate(null, true, 0);
+            AuthResult result = parsedAuthenticator.syncAuthenticate(null, true, 0);
 
             assertEquals(getTestMessage("isSuccessful",         "impl=[" + authenticator.getClass().getCanonicalName() + "]"), expectedSuccess, result.isSuccessful());
             if (expectedId != null)

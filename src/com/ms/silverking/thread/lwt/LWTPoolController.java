@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
+import com.ms.silverking.util.PropertiesHelper;
 
 /**
  * Watches LWTThreadPools and adjusts the number of threads in each pool.
@@ -19,7 +20,8 @@ class LWTPoolController implements Runnable {
   private Lock lock;
   private Condition cv;
 
-  private static final int checkIntervalMillis = 1000;
+  private static final int checkIntervalMillis = PropertiesHelper.systemHelper.getInt(
+      LWTConstants.lwtControllerCheckInterval, 1000);
   private static final boolean debugPool = false;
 
   LWTPoolController(String name) {
@@ -30,8 +32,9 @@ class LWTPoolController implements Runnable {
     running = true;
     lock = new ReentrantLock();
     cv = lock.newCondition();
-    ThreadUtil.newDaemonThread(this, "LWTPoolController." + name).start();
-    Thread.setDefaultUncaughtExceptionHandler(new LWTUncaughtExceptionHandler());
+    Thread t = ThreadUtil.newDaemonThread(this, "LWTPoolController." + name);
+    t.setUncaughtExceptionHandler(new LWTUncaughtExceptionHandler());
+    t.start();
   }
 
   public void check(LWTPoolImpl pool) {

@@ -1,9 +1,11 @@
 package com.ms.silverking.cloud.dht.daemon;
 
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -20,12 +22,17 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.Operation;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.OperationContainer;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
+import com.ms.silverking.cloud.dht.net.ProtoKeyedMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPutMessageGroup;
-import com.ms.silverking.cloud.dht.net.protocol.KeyValueMessageFormat;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
+import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.net.security.AuthFailure;
+import com.ms.silverking.net.security.AuthResult;
+import com.ms.silverking.net.security.Authorizer;
 
 /**
  * Base class for proxy operations - operations executed by a DHTNode on behalf of a
@@ -41,6 +48,7 @@ import com.ms.silverking.net.IPAndPort;
 abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> implements OperationContainer {
   protected final UUIDBase uuid;
   protected MessageGroup message; // not final to allow forwarding to null out to enable gc
+  protected final MessageType messageType;
   protected final ForwardingMode forwardingMode;
   protected final long namespace;
   protected final byte[] originator;
@@ -50,6 +58,8 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   protected final long absDeadlineMillis;
   protected final int estimatedKeys;
   protected final boolean sendResultsDuringStart;
+  protected final boolean hasTraceID;
+  protected final byte[] maybeTraceID;
 
   // FUTURE - this class assumes keyed operations; probably create a parent without that assumption
 
@@ -57,16 +67,19 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
 
   protected static final boolean debug = false;
 
-  ActiveProxyOperation(MessageGroupConnectionProxy connection, MessageGroup message, MessageModule messageModule,
-      long absDeadlineMillis, boolean sendResultsDuringStart) {
+  ActiveProxyOperation(MessageGroupConnectionProxy connection, MessageGroup message, ByteBuffer optionsByteBuffer,
+      MessageModule messageModule, long absDeadlineMillis, boolean sendResultsDuringStart) {
     this.connection = connection;
     this.message = message;
+    this.messageType = message.getMessageType();
     forwardingMode = getForwardingMode(message);
     uuid = message.getUUID();
     namespace = message.getContext();
     originator = message.getOriginator();
     this.messageModule = messageModule;
-    this.optionsByteBuffer = message.getBuffers()[KeyValueMessageFormat.optionBufferIndex];
+    this.optionsByteBuffer = optionsByteBuffer;
+    this.hasTraceID = TraceIDProvider.hasTraceID(message.getMessageType());
+    this.maybeTraceID = ProtoKeyedMessageGroup.unsafeGetTraceIDCopy(message);
     this.absDeadlineMillis = absDeadlineMillis;
     if (debug) {
       Log.warning("Deadline: ", new java.util.Date(absDeadlineMillis));
@@ -79,6 +92,14 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
     return StorageModule.isDynamicNamespace(message.getContext()) ?
         ForwardingMode.DO_NOT_FORWARD :
         message.getForwardingMode();
+  }
+
+  public boolean hasTraceID() {
+    return hasTraceID;
+  }
+
+  public byte[] getMaybeTraceID() {
+    return maybeTraceID;
   }
 
   public int getNumEntries() {
@@ -122,13 +143,16 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   }
 
   protected abstract void sendResults(List<R> results);
+  protected abstract void sendErrorResults();
 
   // FUTURE - Consider making this a table lookup to improve speed
   private static final RingOwnerQueryOpType messageTypeToOwnerQueryOpType(MessageType messageType) {
     switch (messageType) {
     case PUT:
+    case PUT_TRACE:
       return RingOwnerQueryOpType.Write;
     case RETRIEVE:
+    case RETRIEVE_TRACE:
       return RingOwnerQueryOpType.Read;
     default:
       throw new RuntimeException("Unexpected messagetype for conversion: " + messageType);
@@ -198,9 +222,16 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
 
     if (forwardingMode.forwards()) {
       MessageGroup mg;
-
+      byte[] traceIDInFinalReplica;
       assert replica != null;
-      mg = forwardCreator.createForward(destEntries, optionsByteBuffer);
+
+      if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
+        traceIDInFinalReplica = TracerFactory.getTracer().issueForwardTraceID(maybeTraceID, replica, messageType,
+            originator);
+      } else {
+        traceIDInFinalReplica = maybeTraceID;
+      }
+      mg = forwardCreator.createForward(destEntries, optionsByteBuffer, traceIDInFinalReplica);
       if (debug) {
         System.out.println("Forwarding: " + new SimpleValueCreator(
             originator) + ":" + replica + " : " + mg + ":" + mg.getForwardingMode());
@@ -271,5 +302,43 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
 
   public Set<IPAndPort> checkForReplicaTimeouts(long curTimeMillis) {
     return ImmutableSet.of();
+  }
+
+  // TODO this is only used for retrieve; put should also be subject to authorization eventually
+  void handleAuthorizationFailure(AuthResult authorization) {
+    Socket socket = connection.getConnection().getChannel().socket();
+    String connInfo = socket != null ? socket.toString() : "nullSock";
+    StringBuilder sb = new StringBuilder();
+
+    switch (authorization.getFailedAction()) {
+    case THROW_ERROR:
+      sb.append("Authorization refused for connection ");
+      sb.append(connInfo);
+      Optional<Throwable> causeOpt = authorization.getFailCause();
+      if (causeOpt.isPresent()) {
+        throw new AuthFailure(sb.toString(), causeOpt.get());
+      } else {
+        throw new AuthFailure(sb.toString());
+      }
+    case GO_WITHOUT_AUTH:
+      // Default behaviour if no user plugin - we will continue the operation despite authorization
+      break;
+    case ABSORB:
+      // Swallow the request and respond with an error; the operation is not started
+      sendErrorResults();
+      break;
+    default:
+      sb.append("No action defined for Authorization failure result ");
+      if (authorization.getFailedAction() != null) {
+        sb.append(authorization.getFailedAction().toString());
+      } else {
+        sb.append("null");
+      }
+      sb.append(" on connection ");
+      sb.append(connInfo);
+      sb.append(" Please check behaviour of injected authorization plugin ");
+      sb.append(Authorizer.getPlugin().getName());
+      throw new RuntimeException(sb.toString());
+    }
   }
 }

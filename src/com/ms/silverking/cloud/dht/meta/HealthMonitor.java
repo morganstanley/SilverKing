@@ -9,6 +9,12 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.util.PropertiesHelper;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.ms.silverking.cloud.dht.client.ClientException;
@@ -32,10 +38,6 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.TimeUtils;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
   private final SKGridConfiguration gc;
@@ -93,6 +95,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
 
     this.gc = gc;
     dhtName = gc.getClientDHTConfiguration().getName();
+    ResolvedReplicaMap.setDHTPort(gc.getClientDHTConfiguration().getPort());
     this.guiltThreshold = guiltThreshold;
     this.zkConfig = zkConfig;
     this.watchIntervalSeconds = watchIntervalSeconds;
@@ -154,6 +157,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
       replicaMap = rawRingTree.getResolvedMap(
           dhtMetaUpdate.getNamedRingConfiguration().getRingConfiguration().getRingParentName(), null);
       activeNodesInMap = replicaMap.allReplicas();
+      Log.warningf("activeNodesInMap %s", activeNodesInMap);
       synchronized (this) {
         this.notifyAll();
       }
@@ -181,12 +185,12 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
       activeServers = IPAndPort.copyServerIPsAsMutableSet(activeNodes);
       ineligibleServers = removeIneligibleServers(activeServers, dhtRingCurTargetZK, instanceExclusionZK);
       if (!forceInclusionOfUnsafeExcludedServers) {
-        for (String ineligibleServer : ineligibleServers) {
-          IPAndPort ineligibleNode;
+      for (String ineligibleServer : ineligibleServers) {
+        IPAndPort ineligibleNode;
 
-          ineligibleNode = new IPAndPort(ineligibleServer, port);
-          activeNodes.remove(ineligibleNode);
-        }
+        ineligibleNode = new IPAndPort(ineligibleServer, port);
+        activeNodes.remove(ineligibleNode);
+      }
       } else {
         Log.warning("Ignoring server eligibility");
       }
@@ -205,7 +209,7 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
     curRingMzxid = stat.getMzxid();
     ineligibleServers = new HashSet<>();
 
-    esStarts = _instanceExclusionZK.getStartOfCurrentExclusion(servers);
+    esStarts = _instanceExclusionZK.getStartOfCurrentWorrisome(servers);
 
     for (String server : servers) {
       long startOfCurrentExclusion;
@@ -289,7 +293,9 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
       filterPassiveNodes(newlyInactiveNodes);
       // verify that all newly active nodes are eligible to return
       //verifyEligibility(newlyInactiveNodes);
-      verifyEligibility(newActiveNodes);
+      if (!forceInclusionOfUnsafeExcludedServers) {
+        verifyEligibility(newActiveNodes);
+      }
       // Store activeNodes for the next computation
       activeNodes = newActiveNodes;
 
@@ -311,7 +317,11 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
       guiltySuspects.addAll(newlyInactiveNodes);
 
       // Now look through the list of suspects for additional nodes to add to guiltySuspects
-      for (IPAndPort suspect : suspectAccusers.keySet()) {
+      Set<IPAndPort>  activeSuspects;
+
+      activeSuspects = new HashSet<>(suspectAccusers.keySet());
+      filterPassiveNodes(activeSuspects);
+      for (IPAndPort suspect : activeSuspects) {
         Set<IPAndPort> accusers;
 
         accusers = suspectAccusers.get(suspect);
@@ -625,38 +635,55 @@ public class HealthMonitor implements ChildrenListener, DHTMetaUpdateListener {
 
   //////////////////////////
 
-  public static void main(String[] args) {
+  public static HealthMonitorOptions parseHealthMonitorOptions(String[] args) {
+    CmdLineParser parser;
+    HealthMonitorOptions options;
+
+    options = new HealthMonitorOptions();
+    parser = new CmdLineParser(options);
     try {
-      CmdLineParser parser;
-      HealthMonitorOptions options;
+      parser.parseArgument(args);
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.exit(-1);
+    }
+    return options;
+  }
+
+  public static void run(HealthMonitorOptions options) {
+    try {
       HealthMonitor healthMonitor;
       SKGridConfiguration gc;
+      ConvictionLimits convictionLimits;
+      ConvictionLimits convictionWarningThresholds;
 
-      options = new HealthMonitorOptions();
-      parser = new CmdLineParser(options);
-      try {
-        ConvictionLimits convictionLimits;
-        ConvictionLimits convictionWarningThresholds;
-
-        parser.parseArgument(args);
-        gc = SKGridConfiguration.parseFile(options.gridConfig);
-        convictionLimits = ConvictionLimits.parse(options.convictionLimits);
-        if (options.convictionWarningThresholds != null) {
-          convictionWarningThresholds = ConvictionLimits.parse(options.convictionWarningThresholds);
-        } else {
-          convictionWarningThresholds = null;
-        }
-        LogStreamConfig.configureLogStreams(gc, logFileName);
-        healthMonitor = new HealthMonitor(gc, gc.getClientDHTConfiguration().getZKConfig(),
-            options.watchIntervalSeconds, options.guiltThreshold, options.doctorRoundIntervalSeconds,
-            options.forceInclusionOfUnsafeExcludedServers, convictionLimits, convictionWarningThresholds,
-            options.doctorNodeStartupTimeoutSeconds, options.disableAddition, options.minUpdateIntervalSeconds * 1000);
-        healthMonitor.monitor();
-      } catch (CmdLineException cle) {
-        System.err.println(cle.getMessage());
-        parser.printUsage(System.err);
-        System.exit(-1);
+      gc = SKGridConfiguration.parseFile(options.gridConfig);
+      convictionLimits = ConvictionLimits.parse(options.convictionLimits);
+      if (options.convictionWarningThresholds != null) {
+        convictionWarningThresholds = ConvictionLimits.parse(options.convictionWarningThresholds);
+      } else {
+        convictionWarningThresholds = null;
       }
+      healthMonitor = new HealthMonitor(gc, gc.getClientDHTConfiguration().getZKConfig(),
+          options.watchIntervalSeconds, options.guiltThreshold, options.doctorRoundIntervalSeconds,
+          options.forceInclusionOfUnsafeExcludedServers, convictionLimits, convictionWarningThresholds,
+          options.doctorNodeStartupTimeoutSeconds, options.disableAddition, options.minUpdateIntervalSeconds * 1000);
+      healthMonitor.monitor();
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.exit(-1);
+    }
+  }
+
+  public static void main(String[] args) {
+    HealthMonitorOptions options;
+    SKGridConfiguration gc;
+
+    options = parseHealthMonitorOptions(args);
+    try {
+      gc = SKGridConfiguration.parseFile(options.gridConfig);
+      LogStreamConfig.configureLogStreams(gc, logFileName);
+      run(options);
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(-1);

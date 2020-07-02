@@ -4,8 +4,6 @@ import static com.ms.silverking.cloud.dht.management.aws.Util.findStoppedInstanc
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
-import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
-import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printNoDot;
@@ -20,6 +18,9 @@ import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StartInstancesResult;
+
+import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
 
 public class MultiInstanceStarter {
 

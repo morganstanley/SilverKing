@@ -43,7 +43,8 @@ public class ArbitraryUserRetrievalOptionsTest {
         originator,
         1,
         MessageGroup.minDeadlineRelativeMillis,
-        ForwardingMode.DO_NOT_FORWARD);
+        ForwardingMode.DO_NOT_FORWARD,
+        null);
 
     RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup
         .getRetrievalOptions(message.toMessageGroup())
@@ -76,7 +77,8 @@ public class ArbitraryUserRetrievalOptionsTest {
         originator,
         1,
         MessageGroup.minDeadlineRelativeMillis,
-        ForwardingMode.DO_NOT_FORWARD);
+        ForwardingMode.DO_NOT_FORWARD,
+        null);
 
     RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup
         .getRetrievalOptions(message.toMessageGroup())
@@ -108,7 +110,8 @@ public class ArbitraryUserRetrievalOptionsTest {
         originator,
         1,
         MessageGroup.minDeadlineRelativeMillis,
-        ForwardingMode.DO_NOT_FORWARD);
+        ForwardingMode.DO_NOT_FORWARD,
+        null);
 
     RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup
         .getRetrievalOptions(message.toMessageGroup())

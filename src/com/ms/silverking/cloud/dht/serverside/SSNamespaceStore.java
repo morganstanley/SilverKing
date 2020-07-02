@@ -6,9 +6,11 @@ import java.util.concurrent.locks.ReadWriteLock;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.daemon.KeyToReplicaResolver;
+import com.ms.silverking.cloud.dht.daemon.storage.SSInvalidationParametersImpl;
 
 public interface SSNamespaceStore {
   public long getNamespaceHash();
@@ -21,6 +23,10 @@ public interface SSNamespaceStore {
 
   public OpResult put(DHTKey key, ByteBuffer value, SSStorageParametersAndRequirements storageParams, byte[] userData,
       NamespaceVersionMode nsVersionMode);
+
+  public default OpResult invalidate(DHTKey key, SSInvalidationParametersImpl invalidateParams, byte[] userData, NamespaceVersionMode nsVersionMode) {
+    return put(key, DHTConstants.emptyByteBuffer, invalidateParams, userData, nsVersionMode);
+  }
 
   public OpResult putUpdate(DHTKey key, long version, byte storageState);
 

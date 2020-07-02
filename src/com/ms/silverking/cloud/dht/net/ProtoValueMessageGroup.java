@@ -9,6 +9,7 @@ import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.net.protocol.KeyedMessageFormat;
 import com.ms.silverking.cloud.dht.net.protocol.RetrievalResponseMessageFormat;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 
@@ -20,11 +21,13 @@ public final class ProtoValueMessageGroup extends ProtoValueMessageGroupBase {
   // FUTURE - dedup wrt ProtoPutMessageGroup
 
   public ProtoValueMessageGroup(UUIDBase uuid, long context, int opSize, int valueBytes, byte[] originator,
-      int deadlineRelativeMillis) {
-    super(MessageType.RETRIEVE_RESPONSE, uuid, context, opSize, valueBytes,
+      int deadlineRelativeMillis, byte[] maybeTraceID) {
+    super(TraceIDProvider.isValidTraceID(maybeTraceID) ?
+            MessageType.RETRIEVE_RESPONSE_TRACE :
+            MessageType.RETRIEVE_RESPONSE, uuid, context, opSize, valueBytes,
         ByteBuffer.allocate(RetrievalResponseMessageFormat.optionBytesSize),
         RetrievalResponseMessageFormat.size - KeyedMessageFormat.baseBytesPerKeyEntry, originator,
-        deadlineRelativeMillis, ForwardingMode.FORWARD);
+        deadlineRelativeMillis, ForwardingMode.FORWARD, maybeTraceID);
     expectedSize = valueBytes;
   }
 

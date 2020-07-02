@@ -7,6 +7,6 @@ import java.net.InetSocketAddress;
  */
 public interface AddressStatusProvider {
   public boolean isHealthy(InetSocketAddress addr);
-
+  public boolean isAddressStatusProviderThread(String threadName);
   public boolean isAddressStatusProviderThread();
 }

@@ -2,6 +2,8 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.io.IOException;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.dht.meta.ClassVarsZK;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
@@ -12,7 +14,6 @@ import com.ms.silverking.cloud.management.MetaToolModule;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import org.apache.zookeeper.KeeperException;
 
 public class MetaTool extends MetaToolBase {
   private enum Tool {DHTConfiguration, PassiveNodes, ClassVars}

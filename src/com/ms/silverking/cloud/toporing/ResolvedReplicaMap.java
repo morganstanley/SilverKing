@@ -11,6 +11,7 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -22,6 +23,7 @@ import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.collection.HashedListMap;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
 public class ResolvedReplicaMap {
@@ -35,6 +37,18 @@ public class ResolvedReplicaMap {
   private static final boolean debug = false;
 
   private static final int initialReplicaListSize = 4; // used to reduce the size of some ArrayLists
+
+  private static int  dhtPort; // FUTURE - eliminate
+
+  public static void setDHTPort(int _dhtPort) {
+    synchronized (ResolvedReplicaMap.class) {
+      if (dhtPort != 0 && dhtPort != _dhtPort) {
+        throw new RuntimeException("Attempted to reset dhtPort");
+      } else {
+        dhtPort = _dhtPort;
+      }
+    }
+  }
 
   public ResolvedReplicaMap(Comparator<IPAndPort> replicaPrioritizer) {
     this.replicaPrioritizer = replicaPrioritizer;
@@ -179,7 +193,10 @@ public class ResolvedReplicaMap {
 
     replicas = new IPAndPort[replicaNodes.size()];
     for (int i = 0; i < replicas.length; i++) {
-      replicas[i] = new IPAndPort(replicaNodes.get(i).getIDString(), DHTNode.getServerPort());
+      replicas[i] = new IPAndPort(replicaNodes.get(i).getIDString(), dhtPort);
+      if (debug || Log.levelMet(Level.FINE)) {
+        Log.infof("*** %s\t%s\t%s\n", replicaNodes.get(i), replicaNodes.get(i).getIDString(), replicas[i]);
+      }
     }
     return replicas;
   }

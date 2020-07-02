@@ -8,12 +8,17 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
+import com.ms.silverking.log.Log;
+import org.apache.zookeeper.KeeperException;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 import com.ms.silverking.cloud.management.MetaToolOptions;
@@ -27,10 +32,6 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.StreamParser;
 import com.ms.silverking.io.StreamUtil;
-import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * Simplifies creation of a "static" DHT (a DHT which will not change in ring topology,
@@ -48,6 +49,7 @@ public class StaticDHTCreator {
   private final NamespaceCreationOptions nsCreationOptions;
   private final File gridConfigDir;
   private final NamespaceOptionsMode nsOptionsMode;
+  private final boolean enableMsgGroupTrace;
 
   private static final String dhtNameBase = "SK.";
   private static final String ringNameBase = "ring.";
@@ -55,7 +57,8 @@ public class StaticDHTCreator {
   private static final String serverDelimiter = ",";
 
   StaticDHTCreator(ZooKeeperConfig zkConfig, Set<String> servers, int replication, String dhtName, String gcName,
-      int port, NamespaceCreationOptions nsCreationOptions, String gridConfigDir, NamespaceOptionsMode nsOptionsMode) {
+      int port, NamespaceCreationOptions nsCreationOptions, String gridConfigDir, NamespaceOptionsMode nsOptionsMode,
+      boolean enableMsgGroupTrace) {
     this.zkConfig = zkConfig;
     this.servers = servers;
     this.replication = replication;
@@ -69,6 +72,7 @@ public class StaticDHTCreator {
       throw new RuntimeException(gridConfigDir + " does not exist");
     }
     this.nsOptionsMode = nsOptionsMode;
+    this.enableMsgGroupTrace = enableMsgGroupTrace;
   }
 
   private void writeSKFSConfig(String skfsConfigName, File target) throws KeeperException, IOException {
@@ -84,14 +88,31 @@ public class StaticDHTCreator {
   }
 
   public void createStaticDHT(UUIDBase uuid, int initialHeapSize, int maxHeapSize, String skInstanceLogBaseVar,
-      String dataBaseVar, String skfsConfigurationFile, String classVarsFile) throws IOException, KeeperException {
+      String dataBaseVar, String skfsConfigurationFile, String classVarsFile,
+      String aliasMapNameAndFile) throws IOException, KeeperException {
     String ringName;
     String classVarsName;
     String dhtConfigZkPath;
     RingCreationResults rcResults;
     MetaClient mc;
+    String aliasMapName;
+    String aliasMapFile;
 
     mc = new MetaClient(dhtName, zkConfig);
+
+    if (aliasMapNameAndFile != null) {
+      String[]  toks;
+
+      toks = aliasMapNameAndFile.split(":");
+      if (toks.length != 2) {
+        throw new RuntimeException("Illegal aliasMapNameAndFile: "+ aliasMapNameAndFile);
+      }
+      aliasMapName = toks[0];
+      aliasMapFile = toks[1];
+    } else {
+      aliasMapName = null;
+      aliasMapFile = null;
+    }
 
     // Create Ring
     ringName = ringNameBase + uuid.toString();
@@ -129,7 +150,8 @@ public class StaticDHTCreator {
     DHTConfiguration dhtConfig;
 
     dhtConfig = new DHTConfiguration(ringName, port, passiveNodes, nsCreationOptions,
-        ImmutableMap.of(rcResults.hostGroupName, classVarsName), nsOptionsMode, 0, Long.MIN_VALUE, null);
+        ImmutableMap.of(rcResults.hostGroupName, classVarsName), nsOptionsMode, 0, Long.MIN_VALUE, null, aliasMapName,
+        enableMsgGroupTrace);
     new DHTConfigurationZK(mc).writeToZK(dhtConfig, null);
 
     // Write out curRingAndVersion
@@ -139,6 +161,17 @@ public class StaticDHTCreator {
     // Write skfs configuration if present
     if (skfsConfigurationFile != null) {
       writeSKFSConfig(gcName, new File(skfsConfigurationFile));
+    }
+
+    // write alias map if present
+    if (aliasMapName != null) {
+      IpAliasConfigurationZk  ipAliasConfigurationZk;
+      MetaToolOptions       options;
+
+      options = new MetaToolOptions();
+      options.name = aliasMapName;
+      ipAliasConfigurationZk = new IpAliasConfigurationZk(mc);
+      ipAliasConfigurationZk.writeToZK(IpAliasConfiguration.readFromFile(aliasMapFile), options);
     }
 
     // Write GridConfig
@@ -242,9 +275,10 @@ public class StaticDHTCreator {
       }
 
       sdc = new StaticDHTCreator(new ZooKeeperConfig(options.zkEnsemble), servers, options.replication, dhtName, gcName,
-          port, nsCreationOptions, options.gridConfigDir, nsOptionsMode);
+          port, nsCreationOptions, options.gridConfigDir, nsOptionsMode, options.enableMsgGroupTrace);
       sdc.createStaticDHT(uuid, options.initialHeapSize, options.maxHeapSize, options.skInstanceLogBaseVar,
-          options.dataBaseVar, options.skfsConfigurationFile, options.classVarsFile);
+          options.dataBaseVar, options.skfsConfigurationFile, options.classVarsFile,
+          options.aliasMapNameAndFile);
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(-1);

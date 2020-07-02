@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
+import com.ms.silverking.cloud.dht.OperationOptions;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.client.AbsMillisVersionProvider;
 import com.ms.silverking.cloud.dht.client.AbsNanosVersionProvider;
@@ -117,6 +118,11 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
   }
 
   @Override
+  public boolean isServerTraceEnabled() {
+    return session.isServerTraceEnabled();
+  }
+
+  @Override
   public <K, V> NamespacePerspectiveOptions<K, V> getDefaultNSPOptions(Class<K> keyClass, Class<V> valueClass) {
     VersionProvider versionProvider;
 
@@ -189,6 +195,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
   // operation
 
   public <K, V> void startOperation(AsyncOperationImpl opImpl, OpLWTMode opLWTMode) {
+    validateOpOptions(opImpl.operation.options);
     switch (opImpl.getType()) {
     case RETRIEVE:
       retrievalSender.addWorkForGrouping(opImpl, opLWTMode.getDirectCallDepth());
@@ -212,9 +219,11 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
     }
     switch (message.getMessageType()) {
     case PUT_RESPONSE:
+    case PUT_RESPONSE_TRACE:
       activeOpTable.getActivePutListeners().receivedPutResponse(message);
       break;
     case RETRIEVE_RESPONSE:
+    case RETRIEVE_RESPONSE_TRACE:
       //activeOpTable.receivedRetrievalResponse(message);
       activeOpTable.getActiveRetrievalListeners().receivedRetrievalResponse(message);
       break;
@@ -362,6 +371,25 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
       throw new NamespaceLinkException("Namespace.linkTo() only supported for write-once namespaces");
     } else {
       nsLinkMeta.createLink(name, parentName);
+    }
+  }
+
+  public void validateOpOptions(OperationOptions opOptions) {
+        /*  Case(1) session.isServerTraceEnabled() == true:
+                Server supports both old protocol and new trace protocol
+                => So let it pass the check
+            Case(2) session.isServerTraceEnabled() == false:
+                Server could:
+                   (2.1) supports both old protocol and new trace protocol but has trace feature disabled
+                   (2.2) only supports old protocol (run in old SK version)
+               => So we let this clientside check fail if request will use new protocol (i.e. has TraceID)
+                  as server will ignore the traceID (case-2.10) or even crash and go down (case-2.2)
+         */
+    if (opOptions.hasTraceID() && !session.isServerTraceEnabled()) {
+      throw new IllegalArgumentException(String.format(
+          "Server[%s] has trace feature disabled or running in a old version, which doesn't expect to have traceID in" +
+              " the opOptions (traceIDProvider=[%s])",
+          session.getDhtConfig().toString(), opOptions.getTraceIDProvider().toString()));
     }
   }
 

@@ -1,5 +1,8 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Set;
@@ -8,8 +11,6 @@ import java.util.logging.Level;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 
 /**
  * Readable/writable OffsetList stored in RAM.
@@ -120,7 +121,7 @@ class RAMOffsetList extends OffsetListBase {
       offsetList.add(baseOffset + storageTimeMsiOffset, (int) (storageTime >>> 32));
     }
     if (debug || Log.levelMet(Level.FINE)) {
-      Thread.dumpStack();
+      //Thread.dumpStack();
       Log.warning("RAMOffsetList.addEntry ", version + " " + offset + " " + storageTime);
     }
   }

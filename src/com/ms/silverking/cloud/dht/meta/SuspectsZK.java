@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -16,8 +19,6 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Used to track nodes that are suspected of being bad. Each node in an instance may accuse other
@@ -173,11 +174,15 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
       if (debug) {
         Log.warning(accuser + "\t" + suspectsDef);
       }
-      if (!suspectsDef.equals(emptySetDef)) {
-        suspectsDef.trim();
-        suspectsDef = suspectsDef.substring(1, suspectsDef.length() - 1);
-        for (String suspect : suspectsDef.split(suspectsDelimiterString)) {
-          suspects.add(new IPAndPort(suspect));
+      if (suspectsDef == null) {
+        Log.warningf("_readSuspectsFromZK couldn't read suspects");
+      } else {
+        if (!suspectsDef.equals(emptySetDef)) {
+          suspectsDef.trim();
+          suspectsDef = suspectsDef.substring(1, suspectsDef.length() - 1);
+          for (String suspect : suspectsDef.split(suspectsDelimiterString)) {
+            suspects.add(new IPAndPort(suspect));
+          }
         }
       }
       return suspects;

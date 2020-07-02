@@ -2,7 +2,7 @@ package com.ms.silverking.numeric;
 
 import java.io.Serializable;
 
-public class Priority implements Comparable, Serializable {
+public class Priority implements Comparable<Priority>, Serializable {
   protected int priority;
 
   public Priority(int priority) {
@@ -29,13 +29,10 @@ public class Priority implements Comparable, Serializable {
     return priority >= other.priority;
   }
 
-  public int compareTo(Object other) {
-    Priority otherP;
-
-    otherP = (Priority) other;
-    if (priority < otherP.priority) {
+  public int compareTo(Priority other) {
+    if (priority < other.priority) {
       return -1;
-    } else if (priority > otherP.priority) {
+    } else if (priority > other.priority) {
       return 1;
     } else {
       return 0;

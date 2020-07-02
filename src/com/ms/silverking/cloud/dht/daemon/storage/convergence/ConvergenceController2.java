@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon.storage.convergence;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -33,6 +34,7 @@ import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.common.CorruptValueException;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
@@ -53,6 +55,8 @@ import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.cloud.dht.net.ProtoChecksumTreeRequestMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
+import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.cloud.ring.IntersectionResult;
 import com.ms.silverking.cloud.ring.RingRegion;
@@ -68,6 +72,7 @@ import com.ms.silverking.numeric.LongInterval;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.time.AbsMillisTimeSource;
+import com.ms.silverking.util.PropertiesHelper;
 
 /**
  * ConvergenceController controls replica consistency for both primary replication and secondary replication.
@@ -277,7 +282,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
   private void startPrimaryConvergence() {
     List<RingEntry> myPrimaryEntries;
 
-    myPrimaryEntries = getTargetMapReplicaEntries(mgBase._getIPAndPort(), OwnerQueryMode.Primary);
+    myPrimaryEntries = getTargetMapReplicaEntries(mgBase.getIPAndPort(), OwnerQueryMode.Primary);
     if (myPrimaryEntries != null) {
       for (RingEntry entry : myPrimaryEntries) {
         requestRemoteChecksumTreesForPrimary(entry);
@@ -292,7 +297,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
   private void startSecondaryConvergence() {
     List<RingEntry> mySecondaryEntries;
 
-    mySecondaryEntries = getCurrentMapReplicaEntries(mgBase._getIPAndPort(), OwnerQueryMode.Secondary);
+    mySecondaryEntries = getCurrentMapReplicaEntries(mgBase.getIPAndPort(), OwnerQueryMode.Secondary);
     if (mySecondaryEntries != null) {
       for (RingEntry entry : mySecondaryEntries) {
         requestRemoteChecksumTreeForSecondary(entry);
@@ -304,8 +309,8 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     for (Node node : entry.getPrimaryOwnersList()) {
       IPAndPort primary;
 
-      primary = new IPAndPort(node.getIDString(), DHTNode.getServerPort());
-      if (!primary.equals(mgBase._getIPAndPort())) {
+      primary = new IPAndPort(node.getIDString(), DHTNode.getDhtPort());
+      if (!primary.equals(mgBase.getIPAndPort())) {
         return primary;
       }
     }
@@ -319,8 +324,8 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     for (Node node : entry.getPrimaryOwnersList()) {
       IPAndPort primary;
 
-      primary = new IPAndPort(node.getIDString(), DHTNode.getServerPort());
-      if (!primary.equals(mgBase._getIPAndPort())) {
+      primary = new IPAndPort(node.getIDString(), DHTNode.getDhtPort());
+      if (!primary.equals(mgBase.getIPAndPort())) {
         pSetBuilder.add(primary);
       }
     }
@@ -359,7 +364,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
         //ExclusionSet    curExclusionSet;
 
         nonLocalOwners = new ArrayList<>(sourceEntry.getOwnersIPList(OwnerQueryMode.Primary));
-        nonLocalOwners.remove(mgBase._getIPAndPort());
+        nonLocalOwners.remove(mgBase.getIPAndPort());
 
         //curExclusionSet = ringMaster.getCurrentExclusionSet();
         //Log.warning("Filtering exclusion set: ", curExclusionSet);
@@ -423,7 +428,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
        * implementation is working for primaries and secondaries before implementing that improvement.
        */
 
-      if (!replica.equals(mgBase._getIPAndPort())) {
+      if (!replica.equals(mgBase.getIPAndPort())) {
         queuedChecksumTreeRequests.add(new ChecksumTreeRequest(targetCP, curCP, region, replica));
         //sendChecksumTreeRequest(targetCP, curCP, region, replica);
       }
@@ -627,7 +632,7 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
     retrievalOptions = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE_AND_META_DATA, WaitMode.GET,
         checksumVersionConstraint(srr.dataVersion));
     mg = new ProtoRetrievalMessageGroup(srr.uuid, ns, new InternalRetrievalOptions(retrievalOptions), mgBase.getMyID(),
-        srr.outstandingKeys, convergenceRelativeDeadlineMillis).toMessageGroup();
+        srr.outstandingKeys, convergenceRelativeDeadlineMillis, TraceIDProvider.noTraceID).toMessageGroup();
     outgoingMessages.add(new OutgoingMessage(mg, new IPAndPort(srr.connection.getRemoteSocketAddress())));
   }
 
@@ -990,8 +995,19 @@ public class ConvergenceController2 implements KeyedOpResultListener, Comparable
   }
 
   private static class MQListener implements MultipleConnectionQueueLengthListener {
+    private static final AtomicLong queueLengthLastPublishedAt = new AtomicLong(Instant.now().getEpochSecond());
+    private static final long queueLengthPublishIntervalSeconds = PropertiesHelper.systemHelper.getLong(
+        DHTConstants.systemClassBase + ".queueLengthPublishIntervalSeconds", 1L);
+
     @Override
     public void queueLength(UUIDBase uuid, int queueLength, Connection maxQueuedConnection) {
+      if (TracerFactory.isInitialized()) {
+        long epochSecond = Instant.now().getEpochSecond();
+        if (queueLengthLastPublishedAt.get() + queueLengthPublishIntervalSeconds < epochSecond) {
+          TracerFactory.getTracer().onQueueLengthInterval(queueLength);
+          queueLengthLastPublishedAt.set(epochSecond);
+        }
+      }
       if (convergencePaused || Log.levelMet(Level.INFO)) {
         Log.warning(String.format("Connections queue length:\t%d\t%s\t%d\n", queueLength, maxQueuedConnection,
             (maxQueuedConnection != null ? maxQueuedConnection.getQueueLength() : 0)));

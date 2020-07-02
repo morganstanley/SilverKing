@@ -6,6 +6,7 @@ import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.WaitOptions;
+import com.ms.silverking.net.AddrAndPort;
 
 /**
  * Represents a client's session with the DHT.
@@ -20,6 +21,11 @@ public interface DHTSession {
    * @return a ClientDHTConfigurationProvider for this session.
    */
   ClientDHTConfigurationProvider getDHTConfigProvider();
+
+  /**
+   * @return the server IP and port for this session
+   */
+  public AddrAndPort getServer();
 
   /**
    * Return the NamespaceCreationOptions specified for this DHT
@@ -55,6 +61,11 @@ public interface DHTSession {
    * @return default WaitOptions
    */
   public WaitOptions getDefaultWaitOptions();
+
+  /**
+   * @return if connected server has trace feature enabled
+   */
+  public boolean isServerTraceEnabled();
 
   /**
    * Create a namespace with default NamespaceOptions

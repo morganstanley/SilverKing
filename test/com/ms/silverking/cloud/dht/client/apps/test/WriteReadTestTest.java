@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.client.ClientException;
+import com.ms.silverking.cloud.dht.client.DHTClient;
 import com.ms.silverking.testing.Util;
 import com.ms.silverking.testing.annotations.SkLarge;
 
@@ -26,7 +27,7 @@ public class WriteReadTestTest {
             int numThreads    = testCase[0];
             int keysPerThread = testCase[1];
             int updatesPerKey = testCase[2];
-            WriteReadTest writeReadTest = new WriteReadTest( Util.getTestGridConfig(), System.out, System.err, numThreads, keysPerThread, updatesPerKey );
+            WriteReadTest writeReadTest = new WriteReadTest( new DHTClient().openSession(Util.getTestGridConfig()), System.out, System.err, numThreads, keysPerThread, updatesPerKey );
             writeReadTest.doTest();
         }
     }
