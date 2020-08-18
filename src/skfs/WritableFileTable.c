@@ -262,6 +262,11 @@ int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt,
                         result = -EIO;
                     }
                 } else {
+                    if (deleteBlocks) {
+                        srfsLog(LOG_FINE, "wft_delete_file %s invalidating %d blocks\n", name, fa->stat.st_blocks);
+                        fbw_invalidate_file_blocks(wft->fbw, &fa->fid, fa->stat.st_blocks);
+                    }
+                    result = 0;
                     // Remove from the parent directory
                     if (odt_rm_entry_from_parent_dir(odt, (char *)name, awResult.storedVersion)) {
                         // Couldn't remove the entry in the parent. Allow the lock to timeout (rather than immediately unlocking)
