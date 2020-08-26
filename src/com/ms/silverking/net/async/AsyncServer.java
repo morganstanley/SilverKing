@@ -133,7 +133,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     private AsyncServer<T> asyncServer;
 
     public Acceptor(LWTPool lwtPool) {
-      super(lwtPool, true);
+      super(lwtPool, true, 0);
     }
 
     public void setAsyncServer(AsyncServer<T> asyncServer) {
