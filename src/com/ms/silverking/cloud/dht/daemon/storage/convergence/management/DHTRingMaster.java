@@ -13,6 +13,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
+import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingIDAndVersionPair;
@@ -185,6 +186,7 @@ public class DHTRingMaster
     Log.warningAsync("Waiting for initial DHTConfiguration");
     dhtConfigWatcher.waitForDHTConfiguration();
     dhtConfig = dhtConfigWatcher.getDHTConfiguration();
+    DHTNode.setDHTPort(dhtConfig.getPort());
     Log.warningAsync("Received initial DHTConfiguration: ", dhtConfig);
     dhtConfigWatcher.addListener(this);
     newDHTConfiguration(dhtConfig);

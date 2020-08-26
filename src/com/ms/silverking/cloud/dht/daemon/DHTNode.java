@@ -53,8 +53,13 @@ public class DHTNode {
 
   // FUTURE - make port non-static
   // also possibly make it a per-node rather than per-DHT notion
-  private static volatile int actualPort = DHTConstants.uninitializedPort;
-  private static volatile int dhtPort = DHTConstants.uninitializedPort;
+  private static int actualPort = DHTConstants.uninitializedPort;
+  private static int dhtPort = DHTConstants.uninitializedPort;
+  
+  // For limited use by tooling
+  public static void setDHTPort(int _dhtPort) {
+    dhtPort = _dhtPort;
+  }
 
   // this is the port fixed in DHT config, though the server may really be listening on another port
   // this port forms the identity of the node. For a node to run on a different port to this,
@@ -64,7 +69,7 @@ public class DHTNode {
   }
 
   // The port the server is listening on, which may != dhtPort, if overridden in constructor
-  public static int getActualPort() {
+  private static int getActualPort() {
     return actualPort;
   }
 

@@ -45,7 +45,11 @@ public class MessageGroupBase {
         SelectorController.defaultSelectionThreadWorkLimit, isClient);
     myID = SimpleValueCreator.forLocalProcess();
     this.messageGroupReceiver = messageGroupReceiver;
-    this.aliasMap = aliasMap;
+    if (aliasMap != null) {
+      this.aliasMap = aliasMap;
+    } else {
+      this.aliasMap = IPAliasMap.identityMap();
+    }
     this.isClient = isClient;
   }
 

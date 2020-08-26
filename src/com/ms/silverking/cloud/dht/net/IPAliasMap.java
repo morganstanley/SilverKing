@@ -92,6 +92,10 @@ public class IPAliasMap {
       addReverseMappings(daemonToInterfaces);
     }
   }
+  
+  public static IPAliasMap identityMap() {
+    return new IPAliasMap(null);
+  }
 
   private void sanityCheckMap(Map<IPAndPort, IPAndPort[]> daemonToInterfaces) {
     ensureDaemonPortsMatch(daemonToInterfaces);
