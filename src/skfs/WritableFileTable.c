@@ -200,6 +200,7 @@ WritableFileReference *wft_remove(WritableFileTable *wft, const char *name) {
 
 // FUTURE - Consider moving this out of wft. No wft is currently used,
 // but wft contains locks for controlling file creation.
+// NOTE: This is also used by rmdir to remove directories
 int wft_delete_file(WritableFileTable *wft, const char *name, OpenDirTable *odt, int deleteBlocks) {
     AWWriteResult    awResult;
     int result;    

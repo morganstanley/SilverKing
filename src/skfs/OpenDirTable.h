@@ -53,7 +53,7 @@ int odt_add_entry_to_parent_dir(OpenDirTable *odt, char *path, uint64_t version,
 int odt_add_entry(OpenDirTable *odt, char *path, char *child, uint64_t version, OpenDir **_od = NULL);
 int odt_mkdir(OpenDirTable *odt, char *path, mode_t mode);
 int odt_mkdir_base(OpenDirTable *odt);
-int odt_rmdir(OpenDirTable *odt, char *path);
+int odt_rmdir(OpenDirTable *odt, char *path, void *wft);
 int odt_rename_dir(OpenDirTable *odt, char *oldpath, char *newpath);
 void odt_record_get_attr(OpenDirTable *odt, char *path);
 

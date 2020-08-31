@@ -1086,7 +1086,7 @@ static int skfs_rmdir(const char *path) {
         srfsLog(LOG_WARNING, "Ring is unhealthy. Unable to rmdir %s", path);
         return -EROFS;
     }
-    return odt_rmdir(odt, (char *)path);
+    return odt_rmdir(odt, (char *)path, wft);
 }
 
 /////////////////////////////////////

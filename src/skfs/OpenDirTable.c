@@ -8,6 +8,7 @@
 #include "OpenDir.h"
 #include "OpenDirTable.h"
 #include "ReconciliationSet.h"
+#include "WritableFileTable.h"
 
 #include <errno.h>
 
@@ -494,9 +495,11 @@ int odt_mkdir(OpenDirTable *odt, char *path, mode_t mode) {
     return -result;
 }
 
-int odt_rmdir(OpenDirTable *odt, char *path) {
+int odt_rmdir(OpenDirTable *odt, char *path, void *_wft) {
     DirData *dd;
+	WritableFileTable *wft;
     
+	wft = (WritableFileTable *)_wft;
     srfsLog(LOG_FINE, "in odt_rmdir %s", path);    
     dd = ddr_get_DirData(odt->ddr, path);
     if (dd == NULL) {
@@ -506,41 +509,7 @@ int odt_rmdir(OpenDirTable *odt, char *path) {
     if (!dd_is_empty(dd)) {
         return -ENOTEMPTY;
     } else {
-        int     result;
-        FileAttr    fa;
-        time_t    curEpochTimeSeconds;
-        AWWriteResult    awResult;
-        //struct fuse_context    *fuseContext;    
-        //fuseContext = fuse_get_context();
-    
-        memset(&fa, 0, sizeof(struct FileAttr));
-        
-        fid_generate_and_init_skfs(&fa.fid);
-        
-        // Fill in file stat information
-        srfsLog(LOG_FINE, "mode %o", fa.stat.st_mode);
-        fa.stat.st_nlink = 0;
-
-        //aw_write_attr(aw, wf->path, &wf->fa); // old queued async write
-        // Write out attribute information & wait for the write to complete
-        awResult = aw_write_attr_direct(odt->aw, path, &fa, ar_get_attrCache(odt->ar));
-        if (awResult.operationState != SKOperationState::SUCCEEDED) {
-            srfsLog(LOG_WARNING, "odt_rmdir aw_write_attr_direct failed %s", path);
-            result = EIO;
-        } else {
-            OpenDir *od;
-            int     result2;
-        
-            od = NULL;
-            result2 = ddr_get_OpenDir(odt->ddr, path, &od, DDR_AUTO_CREATE);
-            srfsLog(LOG_FINE, "odt_rmdir ddr_get_OpenDir %s %d", path, result);
-            if (result2 == 0) {
-                od_mark_deleted(od);
-            }
-            result = odt_rm_entry_from_parent_dir(odt, path, awResult.storedVersion);
-        }
-        srfsLog(LOG_FINE, "out odt_rmdir %s %d", path, -result);    
-        return -result;
+		return wft_delete_file(wft, path, odt, FALSE);
     }
 }
 
