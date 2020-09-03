@@ -1,9 +1,12 @@
 package com.ms.silverking.cloud.dht.management.aws;
 
+import static com.ms.silverking.cloud.dht.management.aws.Util.USER_HOME;
 import static com.ms.silverking.cloud.dht.management.aws.Util.debugPrint;
 import static com.ms.silverking.cloud.dht.management.aws.Util.deleteKeyPair;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getInstanceIds;
 import static com.ms.silverking.cloud.dht.management.aws.Util.getIps;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
+import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
 import static com.ms.silverking.cloud.dht.management.aws.Util.isRunning;
 import static com.ms.silverking.cloud.dht.management.aws.Util.print;
 import static com.ms.silverking.cloud.dht.management.aws.Util.printDone;
@@ -36,10 +39,6 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.UserIdGroupPair;
 import com.ms.silverking.cloud.dht.management.SKCloudAdmin;
-
-import static com.ms.silverking.cloud.dht.management.aws.Util.getMyIp;
-import static com.ms.silverking.cloud.dht.management.aws.Util.getUniqueKeyPairName;
-import static com.ms.silverking.cloud.dht.management.aws.Util.USER_HOME;
 
 public class MultiInstanceLauncher {
 
@@ -121,10 +120,10 @@ public class MultiInstanceLauncher {
     } catch (SdkClientException exception) {
       throw new SdkClientException(
           "No AWS credentials found. You need to attach an IAM Role to this instance that has EC2 permissions.\n" +
-              "You can do that from the aws console. Right click on this instance->Instance Settings->Attach/Replace " +
-              "IAM Role.\n" + "If you haven't created a role, you can't attach one. If you need help creating a role," +
-              " follow this guide: https://github.com/Morgan-Stanley/SilverKing/blob/master/Quick-Start-Guide" +
-              ".md#CreateIAMRole");
+              "You can do that from the aws console. Right click on this instance->Instance Settings->Attach/Replace "
+              + "IAM Role.\n" + "If you haven't created a role, you can't attach one. If you need help creating a " +
+              "role," + " follow this guide: https://github.com/Morgan-Stanley/SilverKing/blob/master/Quick-Start" +
+              "-Guide" + ".md#CreateIAMRole");
     }
   }
 
@@ -317,8 +316,7 @@ public class MultiInstanceLauncher {
 
     int numInstances = Integer.valueOf(args[0]);
     System.out.println(
-        "Attempting to launch " + (numInstances - 1) + " new instances, for a total of " + numInstances + " (this " +
-            "instance + those " + (numInstances - 1) + ")");
+        "Attempting to launch " + (numInstances - 1) + " new instances, for a total of " + numInstances + " (this " + "instance + those " + (numInstances - 1) + ")");
     MultiInstanceLauncher launcher = new MultiInstanceLauncher(AmazonEC2ClientBuilder.defaultClient(), getMyIp(),
         numInstances, null, null, true);
     launcher.run();

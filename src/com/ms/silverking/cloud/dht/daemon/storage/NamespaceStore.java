@@ -126,6 +126,7 @@ import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.jvm.Finalization;
+import org.apache.commons.lang.time.StopWatch;
 
 public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   private final long ns;
@@ -489,7 +490,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     } else {
       svpMapper = null;
     }
-
     this.finalization = finalization;
     this.fileSegmentCompactor = fileSegmentCompactor;
   }
@@ -1750,7 +1750,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     List<ByteBuffer> results;
     KeyAndInteger[] _keys;
 
-      nsMetrics.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
+    nsMetrics.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
         /*
         // We sort to attempt to group segment access
         _keys = new KeyAndInteger[keys.size()];
@@ -2243,7 +2243,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     results = new ByteBuffer[keysSegmentNumbersAndIndices.length];
     for (int i = 0; i < keysSegmentNumbersAndIndices.length; i++) {
       if (debugParent) {
-        Log.warningAsyncf("\t%s %d %d", KeyUtil.keyToString(keysSegmentNumbersAndIndices[i].getV1()),
+        Log.fineAsyncf("\t%s %d %d", KeyUtil.keyToString(keysSegmentNumbersAndIndices[i].getV1()),
             keysSegmentNumbersAndIndices[i].getV2(), keysSegmentNumbersAndIndices[i].getV3());
       }
       if (debugVersion) {
@@ -3183,7 +3183,8 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   }
 
   public void liveReap() {
-    Stopwatch sw = new SimpleStopwatch();
+    StopWatch sw = new StopWatch();
+    sw.start();
     reapLock.lock();
     try {
       if (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase, false)) {
@@ -3207,14 +3208,14 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       reapLock.unlock();
       sw.stop();
       if (TracerFactory.isInitialized()) {
-        TracerFactory.getTracer().onLocalReap(sw.getElapsedMillisLong());
+        TracerFactory.getTracer().onLocalReap(sw.getTime());
       }
     }
   }
 
   public int[] forceReap(int startSegment, int endSegment, ValueRetentionPolicy vrp, ValueRetentionState state)
       throws IOException {
-    Stopwatch sw = new SimpleStopwatch();
+    StopWatch sw = new StopWatch();
     sw.start();
     reapLock.lock();
     try {
@@ -3246,7 +3247,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       reapLock.unlock();
       sw.stop();
       if (TracerFactory.isInitialized()) {
-        TracerFactory.getTracer().onForceReap(sw.getElapsedMillisLong());
+        TracerFactory.getTracer().onForceReap(sw.getTime());
       }
     }
   }
@@ -3738,8 +3739,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   public List<Integer> listKeySegments(DHTKey key, long beforeCreationTimeNanosInclusive) throws IOException {
     if (nsOptions.getVersionMode() == NamespaceVersionMode.CLIENT_SPECIFIED || nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS) {
       throw new IOException(
-          "Currently listKeySegments(DHTKey key, long beforeCreationTimeNanos) doesn't support NamespaceVersionMode" +
-              ".CLIENT_SPECIFIED nor RevisionMode.UNRESTRICTED_REVISIONS");
+          "Currently listKeySegments(DHTKey key, long beforeCreationTimeNanos) doesn't support NamespaceVersionMode" + ".CLIENT_SPECIFIED nor RevisionMode.UNRESTRICTED_REVISIONS");
     }
 
     readLockAll();

@@ -504,7 +504,8 @@ public class Variable implements Expression {
   }
 
   private static String getReturnTypeRaw(Method m) {
-    //System.out.printf("\t###%s\t%s\t%s\n", m.getName(), m.getReturnType().getName(), m.getGenericReturnType().getTypeName());
+    //System.out.printf("\t###%s\t%s\t%s\n", m.getName(), m.getReturnType().getName(), m.getGenericReturnType()
+    // .getTypeName());
     return m.getReturnType().getName();
     //return m.getGenericReturnType().getTypeName();
   }

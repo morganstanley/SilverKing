@@ -1,5 +1,8 @@
 package com.ms.silverking.cloud.dht.common;
 
+import java.io.File;
+import java.io.IOException;
+
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
@@ -10,9 +13,6 @@ import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.StoredValue;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespacePropertiesIO;
-
-import java.io.File;
-import java.io.IOException;
 
 public class NamespaceOptionsClientNSPImpl extends NamespaceOptionsClientBase {
   private final static String implName = "MetaNamespaceStore";

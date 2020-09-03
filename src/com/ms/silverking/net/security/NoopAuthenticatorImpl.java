@@ -1,8 +1,8 @@
 package com.ms.silverking.net.security;
 
-import com.ms.silverking.text.ObjectDefParser2;
-
 import java.net.Socket;
+
+import com.ms.silverking.text.ObjectDefParser2;
 
 public class NoopAuthenticatorImpl extends Authenticator {
   static {

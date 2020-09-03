@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.MessageType;
-import com.ms.silverking.cloud.dht.net.protocol.KeyValueMessageFormat;
 import com.ms.silverking.id.UUIDBase;
 
 /**

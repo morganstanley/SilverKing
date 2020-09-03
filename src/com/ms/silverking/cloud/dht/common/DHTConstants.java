@@ -28,10 +28,10 @@ import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
 import com.ms.silverking.cloud.dht.client.crypto.AESEncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.EncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.XOREncrypterDecrypter;
-import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.meta.ClassVars;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
@@ -126,6 +126,8 @@ public class DHTConstants {
   public static final String internalRelTimeoutMillisProp = systemClassBase + ".InternalRelTimeoutMillisProp";
 
   public static final String exclusionSetRetainedVersionsProperty = systemClassBase + ".ExclusionSetRetainedVersions";
+
+  public static final String zookeeperSessionTimeoutProperty = systemClassBase + ".ZookeeperSessionTimeout";
 
   public static final String ssSubDirName = "ss";
   public static final String ssTempSubDirName = "ssTemp";

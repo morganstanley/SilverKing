@@ -17,7 +17,6 @@ import com.ms.silverking.cloud.toporing.RingTreeRecipe;
 import com.ms.silverking.cloud.toporing.TopologyRing;
 import com.ms.silverking.cloud.toporing.TopologyRingCreator;
 import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
-import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 
 public class TestTopoRingCreator {

@@ -13,9 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.gen.LoopElement.Target;
@@ -25,6 +22,8 @@ import com.ms.silverking.collection.Quadruple;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.io.StreamUtil;
 import com.ms.silverking.text.StringUtil;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 public class WrapperGenerator {
   private final WrapperGeneratorOptions options;

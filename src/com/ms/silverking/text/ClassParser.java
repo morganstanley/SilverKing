@@ -117,8 +117,7 @@ class ClassParser<T> {
         Log.warning(ArrayUtil.toString(CPUtils.getFieldClasses(_fields)));
       }
       throw new ObjectDefParseException(
-          "Can't find constructor to initialize all fields for " + _class.getName() + ". " + "Remember order must " +
-              "match",
+          "Can't find constructor to initialize all fields for " + _class.getName() + ". " + "Remember order must " + "match",
           nsme);
     } catch (Exception e) {
       throw new ObjectDefParseException("Error creating template " + _class.getName(), e);

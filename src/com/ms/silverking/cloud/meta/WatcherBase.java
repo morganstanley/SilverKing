@@ -9,18 +9,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-
-import com.ms.silverking.util.SafeTimerTask;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.zookeeper.CancelableObserver;
 import com.ms.silverking.collection.LightLinkedBlockingQueue;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.util.SafeTimer;
+import com.ms.silverking.util.SafeTimerTask;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 public abstract class WatcherBase implements Watcher, CancelableObserver {
   protected final MetaClientCore metaClientCore;

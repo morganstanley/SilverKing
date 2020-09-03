@@ -1,8 +1,6 @@
 package com.ms.silverking.cloud.dht.common;
 
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 

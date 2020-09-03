@@ -104,8 +104,8 @@ public class OptionsHelper {
     return new RetrievalOptions(waitMode == WaitMode.GET ?
         DHTConstants.standardTimeoutController :
         DHTConstants.standardWaitForTimeoutController, secondaryTargets, retrievalType, waitMode, versionConstraint,
-        NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, updateSecondariesOnMiss,
-        userOptions, authorizationUser);
+        NonExistenceResponse.defaultResponse, true, false, ForwardingMode.FORWARD, updateSecondariesOnMiss, userOptions,
+        authorizationUser);
   }
 
   /**

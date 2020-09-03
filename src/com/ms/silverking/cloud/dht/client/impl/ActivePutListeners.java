@@ -8,11 +8,10 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
-
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.EnumValues;
+import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
@@ -20,6 +19,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupKeyOrdinalEntry;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.util.Libraries;
+import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
 
 /**
  * Maps UUIDs from active messages back to active operations.
@@ -30,7 +30,7 @@ import com.ms.silverking.util.Libraries;
  * to handle the removal of entries from the map. This removes the need to
  * perform any manual deletion.
  */
-class ActivePutListeners {
+class ActivePutListeners implements ActiveOperationListeners {
   private static final boolean enableMultipleOpsPerMessage = OpSender.opGroupingEnabled;
 
   private final ConcurrentMap<UUIDBase, ActiveKeyedOperationResultListener<OpResult>> activeOpListeners;
@@ -118,29 +118,48 @@ class ActivePutListeners {
     return ops.build();
   }
 
+  @Override
+  public boolean isResponsibleFor(UUIDBase messageId) {
+    return (activePutListeners != null && activePutListeners.containsKey(
+        messageId)) || (activeOpListeners != null && activeOpListeners.containsKey(messageId));
+  }
+
   public <K, V> void receivedPutResponse(MessageGroup message) {
     if (enableMultipleOpsPerMessage) {
-      long version;
-      ConcurrentMap<DHTKey, WeakReference<ActiveKeyedOperationResultListener<OpResult>>> listenerMap;
 
-      version = message.getBuffers()[0].getLong(0);
-      //Log.warning("receivedPutResponse version ", version);
+      ConcurrentMap<DHTKey, WeakReference<ActiveKeyedOperationResultListener<OpResult>>> listenerMap;
 
       listenerMap = activePutListeners.get(message.getUUID());
       if (listenerMap != null) {
-        for (MessageGroupKeyOrdinalEntry entry : message.getKeyOrdinalIterator()) {
-          WeakReference<ActiveKeyedOperationResultListener<OpResult>> listenerRef;
-          ActiveKeyedOperationResultListener<OpResult> listener;
+        if (message.getMessageType() == MessageType.ERROR_RESPONSE) {
+          for (DHTKey key : listenerMap.keySet()) {
+            ActiveKeyedOperationResultListener<OpResult> listener = listenerMap.get(key).get();
+            if (listener != null) {
+              listener.resultReceived(key, OpResult.ERROR);
+            } else {
+              Log.info("receivedRetrievalResponse. null listenerRef.get() for entry: ", key);
+            }
 
-          if (debug) {
-            System.out.println(new SimpleKey(entry.getKey()));
           }
-          listenerRef = listenerMap.get(entry.getKey());
-          listener = listenerRef.get();
-          if (listener != null) {
-            listener.resultReceived(entry.getKey(), EnumValues.opResult[entry.getOrdinal()]);
-          } else {
-            Log.info("receivedPutResponse. null listener ref for: ", message.getUUID() + "\t" + entry.getKey());
+        } else {
+          long version = message.getBuffers()[0].getLong(0);
+          //Log.warning("receivedPutResponse version ", version);
+
+          for (MessageGroupKeyOrdinalEntry entry : message.getKeyOrdinalIterator()) {
+            WeakReference<ActiveKeyedOperationResultListener<OpResult>> listenerRef;
+            ActiveKeyedOperationResultListener<OpResult> listener;
+
+            if (debug) {
+              System.out.println(new SimpleKey(entry.getKey()));
+            }
+            listenerRef = listenerMap.get(entry.getKey());
+            listener = listenerRef.get();
+            if (listener != null) {
+              listener.resultReceived(entry.getKey(), EnumValues.opResult[entry.getOrdinal()]);
+            } else {
+              Log.info("receivedPutResponse. null listener ref for: ", message.getUUID() + "\t" + entry.getKey());
+            }
+
           }
         }
       } else {

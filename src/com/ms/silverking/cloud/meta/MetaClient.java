@@ -3,13 +3,12 @@ package com.ms.silverking.cloud.meta;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-
 import com.ms.silverking.cloud.topology.Topology;
 import com.ms.silverking.cloud.topology.TopologyParser;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 
 public class MetaClient extends MetaClientBase<MetaPaths> implements Watcher {
   private final CloudConfiguration cloudConfig;

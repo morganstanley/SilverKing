@@ -11,8 +11,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -31,12 +29,12 @@ import com.ms.silverking.cloud.dht.meta.DHTMetaReader;
 import com.ms.silverking.cloud.dht.meta.DHTMetaUpdate;
 import com.ms.silverking.cloud.dht.meta.DHTMetaUpdateListener;
 import com.ms.silverking.cloud.dht.meta.DHTRingCurTargetZK;
+import com.ms.silverking.cloud.dht.net.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.ProtoOpResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoSetConvergenceStateMessageGroup;
 import com.ms.silverking.cloud.meta.ExclusionSet;
-import com.ms.silverking.cloud.dht.net.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.cloud.toporing.RingEntry;
@@ -48,6 +46,7 @@ import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * NodeRingMaster is responsible for responding to new target and current rings
@@ -422,20 +421,22 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     return _getReplicaSet(key, oqm, opType).toArray(IPAndPort.emptyArray);
   }
 
-  public boolean iAmPotentialReplicaFor(DHTKey key, boolean discountExcludedNodes) {
-    return isPotentialReplicaFor(key, nodeID, discountExcludedNodes);
+  public boolean iAmPotentialReplicaFor(DHTKey key, boolean includeExcludedNodes) {
+    return isPotentialReplicaFor(key, nodeID, includeExcludedNodes);
   }
 
-  private boolean isPotentialReplicaFor(DHTKey key, IPAndPort replica, boolean discountExcludedNodes) {
+  private boolean isPotentialReplicaFor(DHTKey key, IPAndPort replica, boolean includeExcludedNodes) {
     RingMapState2 _targetMapState;
 
     _targetMapState = targetMapState;
     if (_targetMapState != null && _targetMapState != curMapState) {
-      if (_targetMapState.getResolvedReplicaMap(discountExcludedNodes).getReplicaSet(key, OwnerQueryMode.All).contains(replica)) {
+      if (_targetMapState.getResolvedReplicaMap(includeExcludedNodes).getReplicaSet(key, OwnerQueryMode.All).contains(
+          replica)) {
         return true;
       }
     }
-    return curMapState.getResolvedReplicaMap(discountExcludedNodes).getReplicaSet(key, OwnerQueryMode.All).contains(replica);
+    return curMapState.getResolvedReplicaMap(includeExcludedNodes).getReplicaSet(key, OwnerQueryMode.All).contains(
+        replica);
   }
 
   private Set<IPAndPort> _getReplicaSet(DHTKey key, OwnerQueryMode oqm, RingOwnerQueryOpType opType) {

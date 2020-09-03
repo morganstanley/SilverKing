@@ -2,7 +2,6 @@ package com.ms.silverking.cloud.dht.client.example;
 
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
-import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.client.AsyncOperation;
 import com.ms.silverking.cloud.dht.client.AsyncOperationListener;
@@ -13,9 +12,7 @@ import com.ms.silverking.cloud.dht.client.DHTClient;
 import com.ms.silverking.cloud.dht.client.DHTSession;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.OperationState;
-import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
-import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 
 public class HelloCallbackDHT implements AsyncOperationListener {
@@ -26,7 +23,7 @@ public class HelloCallbackDHT implements AsyncOperationListener {
       AsynchronousNamespacePerspective<String, String> asyncNSP;
       AsyncPut<String> asyncPut;
       AsyncSingleValueRetrieval<String, String> asyncGet;
-      DHTSession  session;
+      DHTSession session;
       Namespace ns;
 
       s = new Semaphore(0);
@@ -37,16 +34,17 @@ public class HelloCallbackDHT implements AsyncOperationListener {
       asyncPut.addListener(this, OperationState.SUCCEEDED, OperationState.FAILED, OperationState.INCOMPLETE);
       s.acquire();
       s.drainPermits();
-      
+
       System.out.println("Sleeping...");
       ThreadUtil.sleep(20 * 1000);
       System.out.println("Awake");
       //Log.setLevel(Level.ALL);
-      
+
       //asyncGet = asyncNSP.get("Hello callback");
       System.out.println(asyncNSP.getOptions().getDefaultGetOptions());
       asyncGet = asyncNSP.get("Hello callback");
-      //asyncGet = asyncNSP.get("Hello callback", asyncNSP.getOptions().getDefaultGetOptions().opTimeoutController(new SimpleTimeoutController(1, 1000)));
+      //asyncGet = asyncNSP.get("Hello callback", asyncNSP.getOptions().getDefaultGetOptions().opTimeoutController
+      // (new SimpleTimeoutController(1, 1000)));
       asyncGet.addListener(this);
       s.acquire();
       return asyncGet.getValue();

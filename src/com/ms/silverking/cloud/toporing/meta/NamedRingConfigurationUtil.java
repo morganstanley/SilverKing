@@ -3,10 +3,9 @@ package com.ms.silverking.cloud.toporing.meta;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import org.apache.zookeeper.KeeperException;
 
 public class NamedRingConfigurationUtil {
   public enum Op {GetRingName}

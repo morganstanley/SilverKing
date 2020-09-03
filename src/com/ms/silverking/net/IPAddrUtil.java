@@ -5,7 +5,6 @@ import java.net.UnknownHostException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 
 public class IPAddrUtil {
@@ -61,9 +60,9 @@ public class IPAddrUtil {
   }
 
   /**
-   *  Tear down a local IP setting. Do not use in a running cluster or client;
-   *  this is primarly expected to be used to tidy up between separate test suites
-   *  with unique embedded clients
+   * Tear down a local IP setting. Do not use in a running cluster or client;
+   * this is primarly expected to be used to tidy up between separate test suites
+   * with unique embedded clients
    */
   public static void resetLocalIP() {
     localIPInt = 0;

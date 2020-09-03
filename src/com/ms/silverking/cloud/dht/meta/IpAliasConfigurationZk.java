@@ -1,14 +1,14 @@
 package com.ms.silverking.cloud.dht.meta;
 
+import java.io.File;
+import java.io.IOException;
+
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.StreamParser;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-
-import java.io.File;
-import java.io.IOException;
 
 public class IpAliasConfigurationZk extends MetaToolModuleBase<IpAliasConfiguration, MetaPaths> {
 
@@ -62,6 +62,6 @@ public class IpAliasConfigurationZk extends MetaToolModuleBase<IpAliasConfigurat
   public String writeToZK(IpAliasConfiguration instance, MetaToolOptions options) throws IOException, KeeperException {
     verifyOptions(options);
     zk.ensureCreated(base + "/" + options.name);
-    return zk.createString(base + "/" + options.name +"/", instance.toString(), CreateMode.PERSISTENT_SEQUENTIAL);
+    return zk.createString(base + "/" + options.name + "/", instance.toString(), CreateMode.PERSISTENT_SEQUENTIAL);
   }
 }

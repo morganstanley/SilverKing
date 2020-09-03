@@ -17,7 +17,7 @@ import com.ms.silverking.net.IPAndPort;
  * Background: Under "normal" operation, each SK daemon has a fixed port bound to a single IP address. The port
  * is the same for all daemons. This implies that only a single daemon may run per server. It also implies that all
  * traffic will go over a single interface.
- *
+ * <p>
  * IP aliasing allows us to overcome these limitations. IP aliasing does this in two ways:
  * 1) The aliasing feature can be used to allow a daemon to be identified by a "fake" IPAndPort. This IPAndPort is
  * used in the topology and almost all of the rest of the code as if it were a real IP. This IPAliasMap class is
@@ -26,25 +26,25 @@ import com.ms.silverking.net.IPAndPort;
  * 2) The aliasing feature allows traffic to be distributed across multiple interfaces. This is done by associating
  * multiple interfaces with an actual IPAndPort. In this case, MessageGroupBase will translate the usual IPAndPort
  * into one of the many remote interfaces in a round-robin fashion.
- *
+ * <p>
  * Terminology: for consistency in the above two cases, this class calls the IP address used to identify a daemon
  * the "daemon IP" or "daemon" for short. Note that the port is fixed to the SK instance port for this case.
  * Each of the one or more IPAndPorts associated with a daemon IP is called an "interface IP and port" or
  * "interface" for short. The "interface IP and port" are always a real IP and port. The daemon IP is "fake"
  * for case 1, but an actual IP for case 2.
- *
+ * <p>
  * For case (1) each daemon IP acts as an alias, and has a single interface IP and port to which it is associated.
  * For case (2) each daemon IP has several interface IPAndPorts with which it is associated.
- *
+ * <p>
  * Colloquially, for case (1) we can call the daemon IP an "alias". We don't do that in this code to avoid confusion
  * with case (2) where we could call the interface IP and ports aliases. (The daemon IP is real in this case.)
- *
+ * <p>
  * Notes on case (1) - setting up "aliases"/fake IP addresses for each daemon IP.
- *   - the topology, host groups, etc, must be composed of these daemon IPs, not interface IPs
- *   - the DHT config must have an ipAliasMap field in the form ipAliasMap={daemonIp=interfaceIp:port}
+ * - the topology, host groups, etc, must be composed of these daemon IPs, not interface IPs
+ * - the DHT config must have an ipAliasMap field in the form ipAliasMap={daemonIp=interfaceIp:port}
  * As mentioned previously, the vast majority of the code will use this daemon IP as if it were the actual IP.
  * In addition, users will only use the daemon IP.
- *
+ * <p>
  * All translation between daemon IP and interface IP and ports will take place in this class.
  * Clients will select a daemon IP address from the topology as their preferredServer. This is dealiased in
  * DHTSessionImpl to an interface IP and port, to which the client communicates.
@@ -53,12 +53,12 @@ import com.ms.silverking.net.IPAndPort;
  * -port N on the command line at start up in order to run on a port different to that specified in DHT config.
  * This also allows many nodes to run on the same machine; several daemon IP entries in the maps could exist,
  * which resolve to the same host, but with unique ports. Note that each daemon IP must be unique in this case
- *
+ * <p>
  * It is not required that all nodes have an alias identity, so long as it is consistent between the topology
  * and host group files, and such nodes can be omitted from the alias map. The alias resolution, when it
  * does not find an entry for such a node, would leave the address unchanged and clients/servers would proceed
  * to try and connect directly
- *
+ * <p>
  * Notes on case 2:
  * When aliasing is used to support multi-homing, each daemon IP will be associated with
  * several interface and ports, and the dht config will have an entry of the
@@ -68,9 +68,9 @@ import com.ms.silverking.net.IPAndPort;
 public class IPAliasMap {
   private final Map<IPAndPort, IPAndPort[]> daemonToInterfaces; // one-to-many
   private final Map<IPAndPort, IPAndPort> interfaceToDaemon; // many-to-one
-  private final HashedSetMap<String,IPAndPort> interfaceIPToDaemons;
+  private final HashedSetMap<String, IPAndPort> interfaceIPToDaemons;
   private final AtomicInteger interfaceIndex; // used for round-robin between aliases
-                                          // (e.g. for distributing traffic across multi-homed interfaces)
+  // (e.g. for distributing traffic across multi-homed interfaces)
 
   private static final boolean logDaemonToInterfaceMapping = true;
   private static final boolean logInterfaceToDaemonMapping = true;
@@ -116,11 +116,11 @@ public class IPAliasMap {
     }
   }
 
-  public Map<IPAndPort,IPAndPort[]> getDaemonToInterfacesMap() {
+  public Map<IPAndPort, IPAndPort[]> getDaemonToInterfacesMap() {
     return ImmutableMap.copyOf(daemonToInterfaces);
   }
 
-  public Map<IPAndPort,IPAndPort> getInterfaceToDaemonMap() {
+  public Map<IPAndPort, IPAndPort> getInterfaceToDaemonMap() {
     return ImmutableMap.copyOf(interfaceToDaemon);
   }
 
@@ -157,6 +157,7 @@ public class IPAliasMap {
    * For all entries in the daemonToInterfaces argument, update the
    * reverse map. That is, update the interfaceToDaemon map with
    * the corresponding mappings.
+   *
    * @param daemonToInterfaces the forward map to reverse
    */
   private void addReverseMappings(Map<IPAndPort, IPAndPort[]> daemonToInterfaces) {
@@ -167,7 +168,7 @@ public class IPAliasMap {
 
   // only used at startup
   private void addInterfacesToDaemon(IPAndPort[] interfaces, IPAndPort daemon) {
-    for (IPAndPort interfaceIPAndPort : interfaces ) {
+    for (IPAndPort interfaceIPAndPort : interfaces) {
       addInterfaceToDaemon(interfaceIPAndPort, daemon, false);
       addIPToDaemonMapping(interfaceIPAndPort.getIPAsString(), daemon);
     }
@@ -186,7 +187,7 @@ public class IPAliasMap {
       Log.infof("IPAliasMap adding interfaceIPAndPort=>daemonIPAndPort: %s=>%s", interfaceIPAndPort, daemonIPAndPort);
     }
     if (!allowRemapping && prev != null && !prev.equals(daemonIPAndPort)) {
-      throw new RuntimeException("Interface maps to multiple daemons: "+ interfaceIPAndPort);
+      throw new RuntimeException("Interface maps to multiple daemons: " + interfaceIPAndPort);
     }
   }
 
@@ -196,6 +197,7 @@ public class IPAliasMap {
 
   /**
    * Given an interface ip, randomly select one of the possibly many associated daemons
+   *
    * @param ip
    * @return
    */
@@ -205,6 +207,7 @@ public class IPAliasMap {
 
   /**
    * If an interface ip uniquely identifies a daemon ip, return that daemon
+   *
    * @param ip
    * @return the uniquely associated daemon
    */
@@ -221,18 +224,18 @@ public class IPAliasMap {
 
   @Override
   public String toString() {
-    StringBuffer  sb;
+    StringBuffer sb;
 
     sb = new StringBuffer();
     sb.append("{");
     for (Map.Entry<IPAndPort, IPAndPort[]> entry : daemonToInterfaces.entrySet()) {
       sb.append(String.format("%s -> [", entry.getKey()));
       for (IPAndPort _interface : entry.getValue()) {
-        sb.append(_interface +" ");
+        sb.append(_interface + " ");
       }
       sb.append("]\n");
     }
     sb.append("}");
-    return sb.toString() +"\n"+ CollectionUtil.mapToString(interfaceToDaemon);
+    return sb.toString() + "\n" + CollectionUtil.mapToString(interfaceToDaemon);
   }
 }

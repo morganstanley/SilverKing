@@ -1,12 +1,5 @@
 package com.ms.silverking.cloud.dht.collection;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
-import java.nio.channels.FileChannel.MapMode;
-
 import com.ms.silverking.numeric.NumConversion;
 
 /**

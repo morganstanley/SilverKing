@@ -12,8 +12,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import com.ms.silverking.log.Log;
-import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.text.StringUtil;
+import com.ms.silverking.thread.ThreadUtil;
 
 /**
  * <p>

@@ -16,12 +16,12 @@ import org.apache.zookeeper.data.Stat;
  * Base functionality for both cloud-level, and dht instance specific ExclusionSets
  */
 public abstract class ExclusionZKBase<M extends MetaPathsBase> extends ServerSetExtensionZKBase<ExclusionSet, M> {
-  public static final int  noRetainedVersionsLimit = 0;
-  private static final int  retainedVersions;
+  public static final int noRetainedVersionsLimit = 0;
+  private static final int retainedVersions;
 
   static {
-    retainedVersions = PropertiesHelper.systemHelper.getInt(
-        DHTConstants.exclusionSetRetainedVersionsProperty, noRetainedVersionsLimit);
+    retainedVersions = PropertiesHelper.systemHelper.getInt(DHTConstants.exclusionSetRetainedVersionsProperty,
+        noRetainedVersionsLimit);
     Log.warningf("%s %d", DHTConstants.exclusionSetRetainedVersionsProperty, retainedVersions);
   }
 
@@ -79,7 +79,7 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends ServerSet
 
   @Override
   public String writeToZK(ExclusionSet exclusionSet, MetaToolOptions options) throws IOException, KeeperException {
-    String  rVal;
+    String rVal;
 
     rVal = super.writeToZK(exclusionSet, options);
     if (retainedVersions != noRetainedVersionsLimit) {

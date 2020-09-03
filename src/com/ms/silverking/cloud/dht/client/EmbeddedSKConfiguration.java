@@ -1,12 +1,12 @@
 package com.ms.silverking.cloud.dht.client;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.util.PropertiesHelper;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class EmbeddedSKConfiguration {
   private final String dhtName;
@@ -37,7 +37,8 @@ public class EmbeddedSKConfiguration {
   }
 
   public EmbeddedSKConfiguration(String dhtName, String gridConfigName, int dhtPort, String ringName, int replication,
-      Map<String, String> classVars, NamespaceOptionsMode namespaceOptionsMode, boolean enableMsgGroupTrace, String daemonIp) {
+      Map<String, String> classVars, NamespaceOptionsMode namespaceOptionsMode, boolean enableMsgGroupTrace,
+      String daemonIp) {
     this.dhtName = dhtName;
     this.gridConfigName = gridConfigName;
     this.dhtPort = dhtPort;
@@ -101,7 +102,7 @@ public class EmbeddedSKConfiguration {
     return enableMsgGroupTrace;
   }
 
-  public String getDaemonIp(){
+  public String getDaemonIp() {
     return daemonIp;
   }
 

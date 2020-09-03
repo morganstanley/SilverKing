@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import com.ms.silverking.cloud.dht.common.MessageType;
-import com.ms.silverking.cloud.dht.net.protocol.KeyValueMessageFormat;
 import com.ms.silverking.cloud.dht.net.protocol.PutUpdateMessageFormat;
 import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.id.UUIDBase;

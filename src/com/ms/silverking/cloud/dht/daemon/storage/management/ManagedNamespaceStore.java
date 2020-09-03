@@ -1,9 +1,9 @@
 package com.ms.silverking.cloud.dht.daemon.storage.management;
 
-import com.ms.silverking.cloud.dht.common.DHTKey;
-
 import java.io.IOException;
 import java.util.List;
+
+import com.ms.silverking.cloud.dht.common.DHTKey;
 
 public interface ManagedNamespaceStore {
   PurgeResult syncPurgeKey(DHTKey keyToPurge, long purgeBeforeCreationTimeNanosInclusive) throws IOException;

@@ -1,11 +1,11 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
+import static com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType.SingleReverseSegmentWalk;
+
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
-
-import static com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType.SingleReverseSegmentWalk;
 
 /**
  * Only used in server side (within package scope)
@@ -45,7 +45,7 @@ class InternalPurgeKeyRetentionPolicy implements ValueRetentionPolicy<InternalPu
   @Override
   public InternalPurgeKeyRetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
     throw new IllegalStateException(
-        "Illegal call path: InternalPurgeKeyRetentionPolicy::createInitialState() is not allowed; This policy is for " +
-            "internal use");
+        "Illegal call path: InternalPurgeKeyRetentionPolicy::createInitialState() is not allowed; This policy is for "
+            + "internal use");
   }
 }

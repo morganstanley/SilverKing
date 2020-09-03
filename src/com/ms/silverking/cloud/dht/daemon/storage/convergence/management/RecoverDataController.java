@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ConvergencePoint;
 import com.ms.silverking.cloud.dht.meta.DHTMetaReader;
@@ -18,6 +16,7 @@ import com.ms.silverking.cloud.toporing.RingEntry;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Search all replicas for data. Currently, this will only function on relatively small-scale instances.

@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +28,13 @@ import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.text.StringUtil;
 import org.apache.zookeeper.KeeperException;
 
 /**
  * Provides information regarding the dht system as a whole
  */
-class SystemNamespaceStore extends MetricsNamespaceStore {
+class SystemNamespaceStore extends MetricsNamespaceStore implements MetricsNamespaceStoreAdapter {
   private final NodeInfoZK nodeInfoZK;
   private final NodeRingMaster2 ringMaster;
   private final DHTKey totalDiskBytesKey;
@@ -51,7 +53,6 @@ class SystemNamespaceStore extends MetricsNamespaceStore {
   private static final long nodeInfoCacheTimeExpirationMS = 4 * 60 * 1000;
 
   private static final String nsName = Namespace.systemName;
-  static final long context = getNamespace(nsName).contextAsLong();
 
   SystemNamespaceStore(MessageGroupBase mgBase, NodeRingMaster2 ringMaster,
       ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals, Iterable<NamespaceStore> nsStoreIterator,
@@ -62,15 +63,18 @@ class SystemNamespaceStore extends MetricsNamespaceStore {
     // static
     // no static keys in this namespace at present
     // dynamic
-    totalDiskBytesKey = keyCreator.createKey("totalDiskBytes");
-    usedDiskBytesKey = keyCreator.createKey("usedDiskBytes");
-    freeDiskBytesKey = keyCreator.createKey("freeDiskBytes");
-    diskBytesKey = keyCreator.createKey("diskBytes");
-    allReplicasKey = keyCreator.createKey("allReplicas");
-    allReplicasFreeDiskBytesKey = keyCreator.createKey("allReplicasFreeDiskBytes");
-    allReplicasFreeSystemDiskBytesEstimateKey = keyCreator.createKey("allReplicasFreeSystemDiskBytesEstimate");
-    exclusionSetKey = keyCreator.createKey("exclusionSet");
-    ringHealthKey = keyCreator.createKey("ringHealth");
+    totalDiskBytesKey = keyCreator.createKey(NamespaceStoreConstants.SystemConstants.totalDiskBytesVar);
+    usedDiskBytesKey = keyCreator.createKey(NamespaceStoreConstants.SystemConstants.usedDiskBytesVar);
+    freeDiskBytesKey = keyCreator.createKey(NamespaceStoreConstants.SystemConstants.freeDiskBytesVar);
+    diskBytesKey = keyCreator.createKey(NamespaceStoreConstants.SystemConstants.diskBytesVar);
+    allReplicasKey = keyCreator.createKey(NamespaceStoreConstants.SystemConstants.allReplicasVar);
+    allReplicasFreeDiskBytesKey = keyCreator.createKey(
+        NamespaceStoreConstants.SystemConstants.allReplicasFreeDiskBytesVar);
+    allReplicasFreeSystemDiskBytesEstimateKey = keyCreator.createKey(
+        NamespaceStoreConstants.SystemConstants.allReplicasFreeSystemDiskBytesEstimateVar);
+    exclusionSetKey = keyCreator.createKey(NamespaceStoreConstants.SystemConstants.exclusionSetVar);
+    ringHealthKey = keyCreator.createKey(NamespaceStoreConstants.SystemConstants.ringHealthVar);
+
     knownKeys = new HashSet<>();
     knownKeys.add(totalDiskBytesKey);
     knownKeys.add(usedDiskBytesKey);
@@ -302,5 +306,31 @@ class SystemNamespaceStore extends MetricsNamespaceStore {
       Log.logErrorWarning(ke);
       return null;
     }
+  }
+
+  @Override
+  public Map<String, Map<String, String>> getAllStats() {
+    Map<String, Map<String, String>> results = new HashMap<>();
+    String namespace = getNamespaceProperties().getName();
+    if (namespace == null)
+      namespace = Namespace.systemName;
+    try {
+      Map<String, String> thisNsResults = new HashMap<>();
+      Triple<Long, Long, Long> diskSpace = getDiskSpace();
+      thisNsResults.put(NamespaceStoreConstants.SystemConstants.totalDiskBytesVar, Long.toString(diskSpace.getV1()));
+      thisNsResults.put(NamespaceStoreConstants.SystemConstants.freeDiskBytesVar, Long.toString(diskSpace.getV2()));
+      thisNsResults.put(NamespaceStoreConstants.SystemConstants.usedDiskBytesVar, Long.toString(diskSpace.getV3()));
+      String exclusionSet = StringUtil.toString(ringMaster.getCurrentExclusionSet().getServers(), ',');
+      thisNsResults.put(NamespaceStoreConstants.SystemConstants.exclusionSetVar,
+          exclusionSet.isEmpty() ? exclusionSet : exclusionSet.substring(0, exclusionSet.length() - 1));
+      // ringMaster.getRingHealth() is null initially. See RingMapState2.getRingHealth().
+      RingHealth ringHealth = ringMaster.getRingHealth();
+      thisNsResults.put(NamespaceStoreConstants.SystemConstants.ringHealthVar,
+          (ringHealth == null) ? "null" : ringHealth.toString());
+      results.put(namespace, thisNsResults);
+    } catch (KeeperException kex) {
+      Log.logErrorWarning(kex);
+    }
+    return results;
   }
 }

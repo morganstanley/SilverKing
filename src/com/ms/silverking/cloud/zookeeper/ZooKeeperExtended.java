@@ -17,17 +17,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.ms.silverking.collection.CollectionUtil;
-import org.apache.zookeeper.AsyncCallback;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Stat;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -39,6 +28,15 @@ import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
+import org.apache.zookeeper.AsyncCallback;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 
 /**
  * Extension of the raw ZooKeeper class used to simplify some interaction.
@@ -385,15 +383,15 @@ public class ZooKeeperExtended extends ZooKeeper
   }
 
   public void deleteVersionedChildren(String parent, int numVersionsToRetain) throws KeeperException {
-    List<String>  children;
+    List<String> children;
     List<Integer> versions;
 
     children = new ArrayList<>(getChildren(parent));
     Collections.sort(children); // lexical sorting is sufficient
     for (int i = children.size() - (1 + numVersionsToRetain); i >= 0; i--) {
-      String  child;
+      String child;
 
-      child = parent +"/"+ children.get(i);
+      child = parent + "/" + children.get(i);
       Log.infof("Deleting %s", child);
       delete(child);
     }

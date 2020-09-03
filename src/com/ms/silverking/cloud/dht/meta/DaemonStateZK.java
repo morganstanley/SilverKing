@@ -11,18 +11,10 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.ms.silverking.cloud.meta.ExclusionSet;
-import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooKeeper.States;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
+import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
@@ -31,6 +23,13 @@ import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
+import com.ms.silverking.util.SafeTimerTask;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooKeeper.States;
 
 public class DaemonStateZK implements Watcher {
   private final MetaClient mc;
@@ -90,7 +89,7 @@ public class DaemonStateZK implements Watcher {
       throw new RuntimeException("Can't setState using monitorOnly DaemonStateZK");
     }
     if (verbose) {
-      System.out.printf("Local DHTNode state: %s\n", state);
+      System.out.println("Local DHTNode state: " + state);
     }
     this.state = state;
     ensureStateSet();

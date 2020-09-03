@@ -2,13 +2,12 @@ package com.ms.silverking.cloud.meta.test;
 
 import java.io.IOException;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.meta.MetaClientCore;
 import com.ms.silverking.cloud.meta.VersionListener;
 import com.ms.silverking.cloud.meta.VersionWatcher;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import org.apache.zookeeper.KeeperException;
 
 public class VersionWatcherTest implements VersionListener {
   private final ZooKeeperExtended zk;

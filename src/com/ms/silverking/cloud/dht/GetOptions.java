@@ -5,10 +5,10 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
-import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.text.ObjectDefParser2;
 
 /**
@@ -126,7 +126,8 @@ public final class GetOptions extends RetrievalOptions {
     Preconditions.checkNotNull(secondaryTarget);
     return new GetOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getTraceIDProvider(),
         getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
-        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(),
+        getAuthorizationUser());
   }
 
   /**

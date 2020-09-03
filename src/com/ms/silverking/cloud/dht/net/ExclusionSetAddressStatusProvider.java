@@ -8,7 +8,7 @@ import com.ms.silverking.net.async.AddressStatusProvider;
 
 public class ExclusionSetAddressStatusProvider implements AddressStatusProvider {
   private final String addressStatusProviderThreadName;
-  private final IPAliasMap  aliasMap;
+  private final IPAliasMap aliasMap;
   private volatile ExclusionSet exclusionSet;
 
   public ExclusionSetAddressStatusProvider(String addressStatusProviderThreadName, IPAliasMap aliasMap) {

@@ -7,8 +7,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
@@ -19,6 +17,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.SuspectAddressListener;
 import com.ms.silverking.net.async.SuspectProblem;
+import org.apache.zookeeper.KeeperException;
 
 public class PeerHealthMonitor implements SuspectAddressListener {
   /*
@@ -28,8 +27,8 @@ public class PeerHealthMonitor implements SuspectAddressListener {
     2) Weak suspects. Not acting normally, but are not known to be in a bad state. E.g. slow peers.
    Code that uses the term "suspect" without qualification, refers to strong suspects.
    */
-  private final ConcurrentMap<IPAndPort,PeerHealthStatus> healthStatusMap;
-  private final IPAliasMap  aliasMap;
+  private final ConcurrentMap<IPAndPort, PeerHealthStatus> healthStatusMap;
+  private final IPAliasMap aliasMap;
   private final IPAndPort localIPAndPort;
   private final SuspectsZK suspectsZK;
 
@@ -41,8 +40,7 @@ public class PeerHealthMonitor implements SuspectAddressListener {
   private static final boolean verbose = true;
   private static final boolean debug = false;
 
-  public PeerHealthMonitor(MetaClient mc, IPAndPort localIPAndPort, IPAliasMap aliasMap)
-      throws KeeperException {
+  public PeerHealthMonitor(MetaClient mc, IPAndPort localIPAndPort, IPAliasMap aliasMap) throws KeeperException {
     if (mc != null) {
       suspectsZK = new SuspectsZK(mc);
     } else {
@@ -60,7 +58,7 @@ public class PeerHealthMonitor implements SuspectAddressListener {
 
   // only used by testing and replicahealthprioritizer presently...
   public boolean isStrongSuspect(IPAndPort peer) {
-    PeerHealthStatus  peerHealthStatus;
+    PeerHealthStatus peerHealthStatus;
 
     peerHealthStatus = healthStatusMap.get(peer);
     return peerHealthStatus != null && peerHealthStatus.isStrongSuspect();
@@ -75,9 +73,9 @@ public class PeerHealthMonitor implements SuspectAddressListener {
     // First, we convert any network module SuspectProblems
     // into dht module PeerHealthIssues
     if (rawCause instanceof PeerHealthIssue) {
-      issue = (PeerHealthIssue)rawCause;
+      issue = (PeerHealthIssue) rawCause;
     } else if (rawCause instanceof SuspectProblem) {
-      switch ((SuspectProblem)rawCause) {
+      switch ((SuspectProblem) rawCause) {
       case ConnectionEstablishmentFailed:
         issue = PeerHealthIssue.CommunicationError;
         break;
@@ -100,11 +98,11 @@ public class PeerHealthMonitor implements SuspectAddressListener {
   }
 
   private PeerHealthStatus getOrCreatePeerHealthStatus(IPAndPort peer) {
-    PeerHealthStatus  peerHealthStatus;
+    PeerHealthStatus peerHealthStatus;
 
     peerHealthStatus = healthStatusMap.get(peer);
     if (peerHealthStatus == null) {
-      PeerHealthStatus  _peerHealthStatus;
+      PeerHealthStatus _peerHealthStatus;
 
       peerHealthStatus = new PeerHealthStatus();
       _peerHealthStatus = healthStatusMap.putIfAbsent(peer, peerHealthStatus);
@@ -116,8 +114,8 @@ public class PeerHealthMonitor implements SuspectAddressListener {
   }
 
   public void addSuspect(IPAndPort peer, PeerHealthIssue issue) {
-    long  curTimeMillis;
-    PeerHealthStatus  peerHealthStatus;
+    long curTimeMillis;
+    PeerHealthStatus peerHealthStatus;
 
     Log.warningf("PeerHealthMonitor.addSuspect: %s %s", peer, issue);
     curTimeMillis = SystemTimeUtil.timerDrivenTimeSource.absTimeMillis();
@@ -140,8 +138,8 @@ public class PeerHealthMonitor implements SuspectAddressListener {
 
   // (in addition to above) called when a ping ack is received
   public void removeSuspect(IPAndPort peer) {
-    long  curTimeMillis;
-    PeerHealthStatus  peerHealthStatus;
+    long curTimeMillis;
+    PeerHealthStatus peerHealthStatus;
 
     if (verbose) {
       if (isStrongSuspect(peer)) {
@@ -193,10 +191,10 @@ public class PeerHealthMonitor implements SuspectAddressListener {
   }
 
   private Set<IPAndPort> computeCurrentStrongSuspects() {
-    Set<IPAndPort>  strongSuspects;
+    Set<IPAndPort> strongSuspects;
 
     strongSuspects = new HashSet<>();
-    for (Map.Entry<IPAndPort,PeerHealthStatus> entry : healthStatusMap.entrySet()) {
+    for (Map.Entry<IPAndPort, PeerHealthStatus> entry : healthStatusMap.entrySet()) {
       if (entry.getValue().isStrongSuspect()) {
         strongSuspects.add(entry.getKey());
       }

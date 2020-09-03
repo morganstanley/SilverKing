@@ -6,23 +6,30 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.log.Log;
+import com.ms.silverking.thread.ThreadUtil;
+import com.ms.silverking.util.PropertiesHelper;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.OperationTimeoutException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper.States;
 
-import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
-import com.ms.silverking.log.Log;
-import com.ms.silverking.thread.ThreadUtil;
-
 public class MetaClientCore implements Watcher {
   protected final ZooKeeperConfig zkConfig;
   private ZooKeeperExtended zk; //only used if not shareZK
   private final Watcher watcher;
 
-  private static final int sessionTimeout = 4 * 60 * 1000;
+  private static final int sessionTimeout;
+
+  static {
+    sessionTimeout = PropertiesHelper.systemHelper.getInt(DHTConstants.zookeeperSessionTimeoutProperty, 4 * 60 * 1000);
+    Log.warningf("%s %d", DHTConstants.zookeeperSessionTimeoutProperty, sessionTimeout);
+  }
+
   private static final int connectAttempts = 4;
   private static final double connectionLossSleepSeconds = 5.0;
 
@@ -176,8 +183,12 @@ public class MetaClientCore implements Watcher {
   public void process(WatchedEvent event) {
     ZooKeeperExtended _zk;
 
+    boolean stateChanged = event.getPath() == null;
+    if (stateChanged)
+      Log.warning("zookeeper state changed to: " + event.getState());
+
     _zk = _getZooKeeper();
-    if (_zk == null || _zk.getState() == States.CLOSED) {
+    if ((_zk == null && event.getState() != Event.KeeperState.SyncConnected) || (_zk != null && _zk.getState() == States.CLOSED)) {
       handleSessionExpiration();
     }
     //Log.warning(event.toString());

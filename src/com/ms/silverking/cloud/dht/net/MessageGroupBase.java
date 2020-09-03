@@ -26,16 +26,17 @@ public class MessageGroupBase {
   private final AbsMillisTimeSource deadlineTimeSource;
   private final ValueCreator myID;
   private final MessageGroupReceiver messageGroupReceiver; // TEMP
-  private final IPAliasMap  aliasMap;
+  private final IPAliasMap aliasMap;
   private final boolean isClient;
 
   private static final boolean debug = false;
 
-  private MessageGroupBase(int interfacePort, IPAndPort myIPAndPort, int incomingConnectionBacklog, MessageGroupReceiver messageGroupReceiver,
-      AbsMillisTimeSource deadlineTimeSource, NewConnectionTimeoutController newConnectionTimeoutController,
-      QueueingConnectionLimitListener limitListener, int queueLimit, int numSelectorControllers, String controllerClass,
-      MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, IPAliasMap aliasMap,
-      boolean isClient) throws IOException {
+  private MessageGroupBase(int interfacePort, IPAndPort myIPAndPort, int incomingConnectionBacklog,
+      MessageGroupReceiver messageGroupReceiver, AbsMillisTimeSource deadlineTimeSource,
+      NewConnectionTimeoutController newConnectionTimeoutController, QueueingConnectionLimitListener limitListener,
+      int queueLimit, int numSelectorControllers, String controllerClass,
+      MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, IPAliasMap aliasMap, boolean isClient)
+      throws IOException {
     this.myIPAndPort = myIPAndPort;
 
     this.deadlineTimeSource = deadlineTimeSource;
@@ -57,20 +58,20 @@ public class MessageGroupBase {
       AbsMillisTimeSource deadlineTimeSource, NewConnectionTimeoutController newConnectionTimeoutController,
       QueueingConnectionLimitListener limitListener, int queueLimit, int numSelectorControllers, String controllerClass,
       IPAliasMap aliasMap) throws IOException {
-    return new MessageGroupBase(interfacePort, new IPAndPort(IPAddrUtil.localIP(), interfacePort), PersistentAsyncServer.useDefaultBacklog, messageGroupReceiver, deadlineTimeSource,
+    return new MessageGroupBase(interfacePort, new IPAndPort(IPAddrUtil.localIP(), interfacePort),
+        PersistentAsyncServer.useDefaultBacklog, messageGroupReceiver, deadlineTimeSource,
         newConnectionTimeoutController, limitListener, queueLimit, numSelectorControllers, controllerClass, null, null,
         aliasMap, true);
   }
 
-  public static MessageGroupBase newServerMessageGroupBase(int interfacePort, IPAndPort myIPAndPort, int incomingConnectionBacklog,
-      MessageGroupReceiver messageGroupReceiver, AbsMillisTimeSource deadlineTimeSource,
+  public static MessageGroupBase newServerMessageGroupBase(int interfacePort, IPAndPort myIPAndPort,
+      int incomingConnectionBacklog, MessageGroupReceiver messageGroupReceiver, AbsMillisTimeSource deadlineTimeSource,
       NewConnectionTimeoutController newConnectionTimeoutController, QueueingConnectionLimitListener limitListener,
       int queueLimit, int numSelectorControllers, String controllerClass,
-      MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, IPAliasMap aliasMap)
-      throws IOException {
-    return new MessageGroupBase(interfacePort, myIPAndPort, PersistentAsyncServer.useDefaultBacklog, messageGroupReceiver, deadlineTimeSource,
-        newConnectionTimeoutController, limitListener, queueLimit, numSelectorControllers, controllerClass, mqListener, mqUUID,
-        aliasMap, false);
+      MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, IPAliasMap aliasMap) throws IOException {
+    return new MessageGroupBase(interfacePort, myIPAndPort, PersistentAsyncServer.useDefaultBacklog,
+        messageGroupReceiver, deadlineTimeSource, newConnectionTimeoutController, limitListener, queueLimit,
+        numSelectorControllers, controllerClass, mqListener, mqUUID, aliasMap, false);
   }
 
   public void enable() {

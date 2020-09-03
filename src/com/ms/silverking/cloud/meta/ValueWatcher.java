@@ -1,11 +1,10 @@
 package com.ms.silverking.cloud.meta;
 
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.log.Log;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.data.Stat;
-
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
-import com.ms.silverking.log.Log;
 
 /**
  * Watches a single versioned ZooKeeper path for new versions.

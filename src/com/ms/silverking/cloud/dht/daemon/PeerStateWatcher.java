@@ -6,9 +6,6 @@ import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.dht.common.DHTUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingState;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
@@ -20,6 +17,8 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
+import com.ms.silverking.util.SafeTimerTask;
+import org.apache.zookeeper.KeeperException;
 
 public class PeerStateWatcher implements ChildrenListener {
   private final DHTConfiguration dhtConfig;

@@ -1,13 +1,13 @@
 package com.ms.silverking.cloud.dht.meta;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
 import com.ms.silverking.cloud.meta.VersionedDefinition;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
 
 public class IpAliasConfiguration implements VersionedDefinition {
 
@@ -36,7 +36,7 @@ public class IpAliasConfiguration implements VersionedDefinition {
   }
 
   public static IpAliasConfiguration readFromFile(File f) throws IOException {
-    String  def;
+    String def;
 
     def = FileUtil.readFileAsString(f);
     return parse(def, 0);

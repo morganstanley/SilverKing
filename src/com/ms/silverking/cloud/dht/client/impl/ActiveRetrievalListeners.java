@@ -12,14 +12,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.MapMaker;
 import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.util.Libraries;
-
 import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
 
 /**
@@ -32,7 +31,7 @@ import org.hibernate.validator.internal.util.ConcurrentReferenceHashMap;
  * to handle the removal of entries from the map. This removes the need to
  * perform any manual deletion.
  */
-class ActiveRetrievalListeners {
+class ActiveRetrievalListeners implements ActiveOperationListeners {
 
   private static final boolean enableMultipleOpsPerMessage = OpSender.opGroupingEnabled;
 
@@ -162,37 +161,62 @@ class ActiveRetrievalListeners {
     return ops.build();
   }
 
+  @Override
+  public boolean isResponsibleFor(UUIDBase messageId) {
+    return (activeRetrievalListeners != null && activeRetrievalListeners.containsKey(
+        messageId)) || (activeOpListeners != null && activeOpListeners.containsKey(messageId));
+  }
+
   void receivedRetrievalResponse(MessageGroup message) {
     if (enableMultipleOpsPerMessage) {
       //long    version;
       ConcurrentMap<DHTKey,
           List<WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>>> listenerMap;
+      ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry> listener;
 
       //version = message.getBuffers()[0].getLong(0);
       //System.out.println("receivedRetrievalResponse version "+ version);
 
       listenerMap = activeRetrievalListeners.get(message.getUUID());
       if (listenerMap != null) {
+        List<WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>> listenerList;
+
         //System.out.println("listenerMap "+ listenerMap);
-        for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
-          List<WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>> listenerList;
-
-          //System.out.println("entry:\t"+ entry);
-          listenerList = listenerMap.get(entry);
-          if (listenerList != null) {
-            for (WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>> listenerRef :
-                listenerList) {
-              ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry> listener;
-
-              listener = listenerRef.get();
-              if (listener != null) {
-                listener.resultReceived(entry, entry);
-              } else {
-                Log.info("receivedRetrievalResponse. null listenerRef.get() for entry: ", entry);
+        if (message.getMessageType() == MessageType.ERROR_RESPONSE) {
+          MessageGroupRetrievalResponseEntry errorResultAsRetrievalResult =
+              message.getRetrievalResponseValueKeyIterator().iterator().next();
+          for (DHTKey key : listenerMap.keySet()) {
+            listenerList = listenerMap.get(key);
+            if (listenerList != null) {
+              for (WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>> listenerRef
+                  : listenerList) {
+                listener = listenerRef.get();
+                if (listener != null) {
+                  listener.resultReceived(key, errorResultAsRetrievalResult);
+                } else {
+                  Log.info("receivedRetrievalResponse. null listenerRef.get() for entry: ", key);
+                }
               }
             }
-          } else {
-            Log.warning("receivedRetrievalResponse. No listener for entry: ", entry);
+          }
+        } else {
+          for (MessageGroupRetrievalResponseEntry entry : message.getRetrievalResponseValueKeyIterator()) {
+
+            //System.out.println("entry:\t"+ entry);
+            listenerList = listenerMap.get(entry);
+            if (listenerList != null) {
+              for (WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>> listenerRef
+                  : listenerList) {
+                listener = listenerRef.get();
+                if (listener != null) {
+                  listener.resultReceived(entry, entry);
+                } else {
+                  Log.info("receivedRetrievalResponse. null listenerRef.get() for entry: ", entry);
+                }
+              }
+            } else {
+              Log.warning("receivedRetrievalResponse. No listener for entry: ", entry);
+            }
           }
         }
       } else {

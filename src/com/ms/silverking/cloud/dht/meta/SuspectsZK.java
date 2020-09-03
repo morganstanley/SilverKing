@@ -6,9 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -19,6 +16,8 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Used to track nodes that are suspected of being bad. Each node in an instance may accuse other
@@ -187,7 +186,8 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
       }
       return suspects;
     } catch (KeeperException ke) {
-      Log.warning("Unable to read suspects for: ", accuser.toString());
+      String message = String.format("Unable to read suspects for: %s, zk: %s", accuser.toString(), _zk.toString());
+      Log.logErrorWarning(ke, message);
       return null;
     }
   }

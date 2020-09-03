@@ -35,8 +35,9 @@ public class ExampleTestCode {
       credentialsProvider.getCredentials();
     } catch (Exception e) {
       throw new AmazonClientException(
-          "Cannot load the credentials from the credential profiles file. " + "Please make sure that your credentials" +
-              " file is at the correct " + "location (C:\\Users\\ben-pc\\.aws\\credentials), and is in valid format.",
+          "Cannot load the credentials from the credential profiles file. " + "Please make sure that your " +
+              "credentials" + " file is at the correct " + "location (C:\\Users\\ben-pc\\.aws\\credentials), and is " +
+              "in valid format.",
           e);
     }
     ec2 = AmazonEC2ClientBuilder.standard().withRegion("us-west-2").build();

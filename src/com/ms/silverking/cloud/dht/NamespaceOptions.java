@@ -557,7 +557,7 @@ public class NamespaceOptions {
     System.out.printf("defaultPutOptions.equals(oNamespaceOptions.defaultPutOptions) %s\n",
         ObjectUtil.equal(defaultPutOptions, oNamespaceOptions.defaultPutOptions));
     System.out.printf("defaultInvalidationOptions.equals(oNamespaceOptions.defaultInvalidationOptions) %s\n",
-        ObjectUtil.equal(defaultInvalidationOptions,oNamespaceOptions.defaultInvalidationOptions));
+        ObjectUtil.equal(defaultInvalidationOptions, oNamespaceOptions.defaultInvalidationOptions));
     System.out.printf("defaultGetOptions.equals(oNamespaceOptions.defaultGetOptions) %s\n",
         ObjectUtil.equal(defaultGetOptions, oNamespaceOptions.defaultGetOptions));
     System.out.printf("defaultWaitOptions.equals(oNamespaceOptions.defaultWaitOptions) %s\n",
@@ -572,7 +572,7 @@ public class NamespaceOptions {
     System.out.printf("storageFormat equals oNamespaceOptions.storageFormat %s\n",
         ObjectUtil.equal(storageFormat, oNamespaceOptions.storageFormat));
     System.out.printf("valueRetentionPolicy.equals(oNamespaceOptions.valueRetentionPolicy); %s\n",
-        ObjectUtil.equal(valueRetentionPolicy,oNamespaceOptions.valueRetentionPolicy));
+        ObjectUtil.equal(valueRetentionPolicy, oNamespaceOptions.valueRetentionPolicy));
     System.out.printf("namespaceServerSideCode.equals(oNamespaceOptions.namespaceServerSideCode); %s\n",
         ObjectUtil.equal(namespaceServerSideCode, oNamespaceOptions.namespaceServerSideCode));
   }

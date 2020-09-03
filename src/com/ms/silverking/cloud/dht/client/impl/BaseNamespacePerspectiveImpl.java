@@ -22,8 +22,6 @@ import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.impl.ClientNamespace.OpLWTMode;
 import com.ms.silverking.cloud.dht.client.serialization.BufferDestSerializer;
-import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 
 class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, V> {

@@ -15,10 +15,10 @@ import com.ms.silverking.log.Log;
  * Tracks the health of a peer.
  */
 class PeerHealthStatus {
-  private final Map<PeerHealthIssue,Long> healthReports;
-  private long  healthyTimeMillis;
+  private final Map<PeerHealthIssue, Long> healthReports;
+  private long healthyTimeMillis;
 
-  private static final boolean  debug = false;
+  private static final boolean debug = false;
 
   /*
   As we will have an instance of this class for every replica, we make some effort to keep memory
@@ -48,7 +48,7 @@ class PeerHealthStatus {
     return getCurrentIssues(SystemTimeUtil.timerDrivenTimeSource.absTimeMillis()).getV1().size() > 0;
   }
 
-  public Pair<Set<PeerHealthIssue>,Set<PeerHealthIssue>> getCurrentIssues(long curTimeMillis) {
+  public Pair<Set<PeerHealthIssue>, Set<PeerHealthIssue>> getCurrentIssues(long curTimeMillis) {
     synchronized (this) {
       return getIssues(curTimeMillis, healthyTimeMillis + 1);
     }
@@ -57,17 +57,18 @@ class PeerHealthStatus {
   /**
    * Return issues that have occurred >= sinceTimeMillis. curTimeMillis is used to compute
    * weak error timeouts
+   *
    * @param curTimeMillis
    * @param sinceTimeMillis
    * @return
    */
-  private Pair<Set<PeerHealthIssue>,Set<PeerHealthIssue>> getIssues(long curTimeMillis, long sinceTimeMillis) {
+  private Pair<Set<PeerHealthIssue>, Set<PeerHealthIssue>> getIssues(long curTimeMillis, long sinceTimeMillis) {
     Set<PeerHealthIssue> strongIssues;
     Set<PeerHealthIssue> weakIssues;
 
     strongIssues = new HashSet<>();
     weakIssues = new HashSet<>();
-    for (Map.Entry<PeerHealthIssue,Long> report : healthReports.entrySet()) {
+    for (Map.Entry<PeerHealthIssue, Long> report : healthReports.entrySet()) {
       if (report.getValue() >= sinceTimeMillis) {
         if (report.getKey().isStrongIssue()) {
           strongIssues.add(report.getKey());
@@ -80,6 +81,6 @@ class PeerHealthStatus {
       Log.warningf("strongIssues: %s", strongIssues);
       Log.warningf("weakIssues: %s", weakIssues);
     }
-    return Pair.of(ImmutableSet.copyOf(strongIssues),ImmutableSet.copyOf(weakIssues));
+    return Pair.of(ImmutableSet.copyOf(strongIssues), ImmutableSet.copyOf(weakIssues));
   }
 }

@@ -2,9 +2,8 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.io.File;
 
-import org.kohsuke.args4j.Option;
-
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.RingMasterControlImpl;
+import org.kohsuke.args4j.Option;
 
 public class SKAdminShellOptions {
   @Option(name = "-g", usage = "GridConfig", required = true)

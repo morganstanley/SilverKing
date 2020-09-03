@@ -38,8 +38,9 @@ public final class IncomingBufferedData {
   private int lastNumRead;
   private ReadState readState;
 
-  private enum ReadState {INIT_PREAMBLE_SEARCH, PREAMBLE_SEARCH, HEADER_LENGTH, BUFFER_LENGTHS, BUFFERS, DONE,
-    CHANNEL_CLOSED}
+  private enum ReadState {
+    INIT_PREAMBLE_SEARCH, PREAMBLE_SEARCH, HEADER_LENGTH, BUFFER_LENGTHS, BUFFERS, DONE, CHANNEL_CLOSED
+  }
 
   ;
 

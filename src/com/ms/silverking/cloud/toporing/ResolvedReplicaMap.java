@@ -19,7 +19,6 @@ import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.EnumValues;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
-import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.topology.Node;
 import com.ms.silverking.collection.HashedListMap;
@@ -38,7 +37,7 @@ public class ResolvedReplicaMap {
 
   private static final int initialReplicaListSize = 4; // used to reduce the size of some ArrayLists
 
-  private static int  dhtPort; // FUTURE - eliminate
+  private static int dhtPort; // FUTURE - eliminate
 
   public static void setDHTPort(int _dhtPort) {
     synchronized (ResolvedReplicaMap.class) {

@@ -1,5 +1,14 @@
 package com.ms.silverking.cloud.dht.net;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+
 import com.google.common.collect.ImmutableMap;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
@@ -10,15 +19,6 @@ import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import org.apache.zookeeper.KeeperException;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
 
 public class IPAliasingUtil {
   public static IPAliasMap readAliases(DHTConfiguration dhtConfig, IpAliasConfiguration aliasConfig) {

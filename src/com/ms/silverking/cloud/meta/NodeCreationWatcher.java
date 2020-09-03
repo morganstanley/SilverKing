@@ -1,11 +1,10 @@
 package com.ms.silverking.cloud.meta;
 
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 
 public class NodeCreationWatcher implements Watcher {
   private final ZooKeeperExtended zk;

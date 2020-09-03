@@ -1,14 +1,13 @@
 package com.ms.silverking.cloud.dht.daemon;
 
 import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
+import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.text.ObjectDefParser2;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
-
-import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
-import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
-import com.ms.silverking.text.ObjectDefParser2;
 
 public class DHTNodeOptions {
   public static final int defaultInactiveNodeTimeoutSeconds = Integer.MAX_VALUE;
@@ -32,8 +31,9 @@ public class DHTNodeOptions {
   @Option(name = "-daemonIP", usage = "daemonIP", required = false)
   String daemonIP;
 
-  @Option(name = "-port", usage = "Port to use for this node instead of the one declared in DHTConfig. IP Aliasing " +
-      "must be used to allow other nodes to connect.")
+  @Option(name = "-port", usage =
+      "Port to use for this node instead of the one declared in DHTConfig. IP Aliasing " + "must be used to allow " +
+          "other nodes to connect.")
   public int daemonPortOverride = DHTConstants.noPortOverride;
 
   public static DHTNodeOptions initialize(String[] args) {

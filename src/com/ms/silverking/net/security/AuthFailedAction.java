@@ -16,8 +16,8 @@ public enum AuthFailedAction {
   GO_WITHOUT_AUTH,
   /**
    * Silverking will absorb this failure and:
-   *   - drop the connection (for authentication)
-   *   - respond with an error result (for authorization)
+   * - drop the connection (for authentication)
+   * - respond with an error result (for authorization)
    * (May be used for the serverside behaviour)
    */
   ABSORB

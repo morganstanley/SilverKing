@@ -29,5 +29,6 @@ package com.ms.silverking.cloud.ring;
  * We currently prevent this by normalizing all entire ringspace RingRegions
  * This type is included for completeness
  */
-public enum IntersectionType {disjoint, isomorphic, abPartial, baPartial, aSubsumesB, bSubsumesA, wrappedPartial,
-  nonIdenticalAllRingspace}
+public enum IntersectionType {
+  disjoint, isomorphic, abPartial, baPartial, aSubsumesB, bSubsumesA, wrappedPartial, nonIdenticalAllRingspace
+}

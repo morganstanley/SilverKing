@@ -1,13 +1,11 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
+import java.io.File;
+
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.common.NamespaceProperties;
-import com.ms.silverking.cloud.dht.common.NamespacePropertiesDeleteException;
-import com.ms.silverking.cloud.dht.common.NamespacePropertiesPutException;
 import com.ms.silverking.cloud.dht.common.NamespacePropertiesRetrievalException;
 import com.ms.silverking.cloud.dht.common.TimeoutException;
-
-import java.io.File;
 
 public interface NamespaceOptionsClientSS {
   ////// ====== server side internal query API (take namespace context as arg) ======

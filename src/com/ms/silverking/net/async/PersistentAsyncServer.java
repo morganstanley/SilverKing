@@ -130,7 +130,7 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     this(port, useDefaultBacklog, numSelectorControllers, controllerClass, connectionCreator,
         newConnectionTimeoutController, LWTPoolProvider.defaultConcurrentWorkPool,
         LWTPoolProvider.defaultConcurrentWorkPool, LWTPoolProvider.defaultConcurrentWorkPool, defaultConnectorPool,
-        selectionThreadWorkLimit, true, false, mqListener, mqUUID, isClient);
+        selectionThreadWorkLimit, false, false, mqListener, mqUUID, isClient);
   }
 
   //////////////////////////////////////////////////////////////////////
@@ -172,8 +172,8 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
 
   //////////////////////////////////////////////////////////////////////
 
-  public void sendAsynchronous(AddrAndPort dest, Object data, UUIDBase uuid, AsyncSendListener listener,
-      long deadline) throws UnknownHostException {
+  public void sendAsynchronous(AddrAndPort dest, Object data, UUIDBase uuid, AsyncSendListener listener, long deadline)
+      throws UnknownHostException {
     sendAsynchronous(dest.toInetSocketAddress(), data, uuid, listener, deadline);
   }
 
@@ -206,8 +206,8 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     asyncServer.informSuspectAddressListener(addr);
   }
 
-  public void sendSynchronous(AddrAndPort dest, Object data, UUIDBase uuid, AsyncSendListener listener,
-      long deadline) throws IOException {
+  public void sendSynchronous(AddrAndPort dest, Object data, UUIDBase uuid, AsyncSendListener listener, long deadline)
+      throws IOException {
     sendSynchronous(dest.toInetSocketAddress(), data, uuid, listener, deadline);
   }
 
@@ -347,8 +347,8 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
 
     backoff = null;
     while (isRunning) {
-      if (addressStatusProvider != null && !addressStatusProvider.isAddressStatusProviderThread(context)
-          && !addressStatusProvider.isHealthy(dest)) {
+      if (addressStatusProvider != null && !addressStatusProvider.isAddressStatusProviderThread(
+          context) && !addressStatusProvider.isHealthy(dest)) {
         throw new UnhealthyConnectionAttemptException("Connection attempted to unhealthy address: " + dest);
       }
 
@@ -482,7 +482,7 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     private final UUIDBase uuid;
     private final AsyncSendListener listener;
     private final long deadline;
-    private final String  context;
+    private final String context;
 
     public OutgoingAsyncMessage(InetSocketAddress dest, Object data, UUIDBase uuid, AsyncSendListener listener,
         long deadline) {

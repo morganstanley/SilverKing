@@ -11,8 +11,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
@@ -41,6 +39,7 @@ import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import org.apache.zookeeper.KeeperException;
 
 public abstract class ConvergenceControllerBase implements RequestController {
   protected final UUIDBase uuid;

@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.dht.SessionOptions;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
@@ -34,6 +32,7 @@ import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Base client interface to DHT functionality. Provides sessions
@@ -228,9 +227,9 @@ public class DHTClient {
 
     // Now determine the daemon ip and port, and open a session
     try {
-      IPAndPort   preferredServerAndPort;
-      IPAndPort   resolvedServer;
-      IPAliasMap  aliasMap;
+      IPAndPort preferredServerAndPort;
+      IPAndPort resolvedServer;
+      IPAliasMap aliasMap;
 
       // See IPAliasMap for discussion of the aliasing, daemon ip:port, and interface ip:port
 
@@ -253,17 +252,15 @@ public class DHTClient {
         preferredServerAndPort = new IPAndPort(IPAddrUtil.serverNameToAddr(preferredServer), serverPort);
         Log.infof("preferredServerAndPort: %s", preferredServerAndPort);
         // Check if we need to resolve this daemon to an interface
-        resolvedServer = (IPAndPort)aliasMap.daemonToInterface(preferredServerAndPort);
+        resolvedServer = (IPAndPort) aliasMap.daemonToInterface(preferredServerAndPort);
         if (resolvedServer != preferredServerAndPort) {
           Log.infof("Found alias for %s -> %s", preferredServerAndPort, resolvedServer);
         }
       }
 
       Log.infof("Opening session to resolvedServer: %s", resolvedServer);
-      session = new DHTSessionImpl(dhtConfig,
-          resolvedServer, absMillisTimeSource,
-          serializationRegistry, sessionOptions.getTimeoutController(), nsOptionsMode, enableMsgGroupTrace,
-          aliasMap);
+      session = new DHTSessionImpl(dhtConfig, resolvedServer, absMillisTimeSource, serializationRegistry,
+          sessionOptions.getTimeoutController(), nsOptionsMode, enableMsgGroupTrace, aliasMap);
     } catch (IOException ioe) {
       throw new ClientException(ioe);
     }

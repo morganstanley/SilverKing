@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.common;
 
+import java.util.Optional;
+
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
@@ -8,8 +10,6 @@ import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
 import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
-
-import java.util.Optional;
 
 /**
  * Adds internally useful information to RetrievalOptions that should not be exposed to

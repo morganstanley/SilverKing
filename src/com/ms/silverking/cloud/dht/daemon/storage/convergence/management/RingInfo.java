@@ -5,8 +5,6 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.client.ClientException;
 import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
@@ -22,6 +20,7 @@ import com.ms.silverking.cloud.toporing.meta.MetaClient;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.net.IPAndPort;
+import org.apache.zookeeper.KeeperException;
 
 public class RingInfo {
   private final SKGridConfiguration gc;

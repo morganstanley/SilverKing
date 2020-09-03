@@ -10,6 +10,7 @@ public interface AsyncPut<K> extends AsyncKeyedOperation<K> {
    * Block until this operation is complete.
    */
   public void waitForCompletion() throws PutException;
+
   /**
    * Return the version stored
    */

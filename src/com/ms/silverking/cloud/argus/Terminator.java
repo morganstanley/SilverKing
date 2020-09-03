@@ -14,6 +14,8 @@ import com.ms.silverking.text.StringUtil;
  * it will only log the action that it would have taken.
  */
 public class Terminator {
+  private final static String killCmd = "/usr/bin/kill";
+
   private final Mode mode;
   private final Runtime runtime;
   private final TerminatorAsyncLogger logMessageHandler;
@@ -28,8 +30,6 @@ public class Terminator {
   public enum KillType {KillTerminator, CustomTerminator}
 
   ;
-
-  private final static String killCmd = "/usr/bin/kill";
 
   private static Map<String, String> killCommands;
   private static final String PID_VARIABLE = "__PID__";

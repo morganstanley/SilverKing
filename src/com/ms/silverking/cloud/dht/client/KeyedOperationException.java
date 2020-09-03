@@ -1,11 +1,10 @@
 package com.ms.silverking.cloud.dht.client;
 
-import com.google.common.collect.ImmutableMap;
-import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
-
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
+
+import com.google.common.collect.ImmutableMap;
+import com.ms.silverking.cloud.dht.client.gen.NonVirtual;
 
 /**
  * Thrown when a keyed client-initiated operation fails. OperationState is provided

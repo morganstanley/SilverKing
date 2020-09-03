@@ -16,8 +16,7 @@ public class SimpleStoragePolicyCreator {
     String s;
 
     s = "StoragePolicyGroup:" + storagePolicyGroupName + " {\n" + "    root    Rack:" + storagePolicyName + "\n" +
-        "}\n" + "\n" + "Rack:" + storagePolicyName + " {\n" + "    primary {\n" + "        " + replication + " of " +
-        "Server\n" + "    }\n" + "}\n" + "\n";
+        "}\n" + "\n" + "Rack:" + storagePolicyName + " {\n" + "    primary {\n" + "        " + replication + " of " + "Server\n" + "    }\n" + "}\n" + "\n";
     return s;
   }
 

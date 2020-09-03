@@ -5,10 +5,10 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
-import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.net.ForwardingMode;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.text.ObjectDefParser2;
 
 /**
@@ -218,7 +218,8 @@ public final class WaitOptions extends RetrievalOptions {
   public WaitOptions nonExistenceResponse(NonExistenceResponse nonExistenceResponse) {
     return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
         getVersionConstraint(), nonExistenceResponse, getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds, threshold, timeoutResponse);
+        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds, threshold,
+        timeoutResponse);
   }
 
   /**

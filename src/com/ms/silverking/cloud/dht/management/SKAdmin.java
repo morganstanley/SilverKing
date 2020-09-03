@@ -12,11 +12,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -82,6 +77,10 @@ import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.Arrays;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * <p>Tool responsible for executing most administrative SilverKing commands.
@@ -97,7 +96,7 @@ public class SKAdmin {
   private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
   private final com.ms.silverking.cloud.meta.MetaClient cloudMC;
   private final DHTConfiguration dhtConfig;
-  private final IPAliasMap  aliasMap;
+  private final IPAliasMap aliasMap;
   private final ClassVarsZK classVarsZK;
   private final ClassVars defaultClassVars;
   private final SuspectsZK suspectsZK;
@@ -349,7 +348,7 @@ public class SKAdmin {
   private String getJavaCmdStart(SKAdminOptions options, ClassVars classVars, boolean escaped) {
     return options.javaBinary + " -cp " + options.classPath + " " + options.assertionOption + " " + getHeapDumpOptions(
         classVars) + " " + getProfilingOptions(options) + " " + getJVMMemoryOptions(classVars) + " " + getDHTOptions(
-        options, classVars) +" "+ getExtraOptions(options, classVars, escaped) + " " + getRawJVMOptions(options,
+        options, classVars) + " " + getExtraOptions(options, classVars, escaped) + " " + getRawJVMOptions(options,
         classVars);
   }
 
@@ -593,13 +592,13 @@ public class SKAdmin {
     translate from classvars into environment variables we would do something like the below:
 
     String myValue;
-
+        
     myValue = classVars.getVarMap().get(DHTConstants.myClassVar);
     if (myValue != null && myValue.trim().length() > 0) {
       return "export " + DHTConstants.myEnvVar + "=" + myValue.trim() + "; ";
-    } else {
-      return "";
-    }
+        } else {
+            return "";
+        }
      */
   }
 
@@ -1272,7 +1271,8 @@ public class SKAdmin {
     resolvedServers = new HashSet<>(servers.size());
     for (String server : servers) {
       try {
-        resolvedServers.add(aliasMap == null ? server : aliasMap.daemonToInterface(new IPAndPort(server, dhtConfig.getPort())).toIPAndPort().getIPAsString());
+        resolvedServers.add(aliasMap == null ? server : aliasMap.daemonToInterface(
+            new IPAndPort(server, dhtConfig.getPort())).toIPAndPort().getIPAsString());
       } catch (UnknownHostException uhe) {
         throw new RuntimeException(uhe);
       }
@@ -1304,8 +1304,9 @@ public class SKAdmin {
       pExec.execute();
       result = pExec.getExitCode() != localCommandErrorCode;
     } else {
-      sshMaster = new TwoLevelParallelSSHMaster(serverCommands, ImmutableList.copyOf(resolveServers(workerCandidateHosts)),
-          options.numWorkerThreads, options.workerTimeoutSeconds, options.maxAttempts, false);
+      sshMaster = new TwoLevelParallelSSHMaster(serverCommands,
+          ImmutableList.copyOf(resolveServers(workerCandidateHosts)), options.numWorkerThreads,
+          options.workerTimeoutSeconds, options.maxAttempts, false);
       Log.warning("Starting workers");
       sshMaster.startWorkers(hostGroups);
       Log.warning("Waiting for workers");
@@ -1367,7 +1368,7 @@ public class SKAdmin {
       String rawServerCommand;
       String[] serverCommand;
       ClassVars serverClassVars;
-      String  resolvedServer;
+      String resolvedServer;
 
       serverClassVars = getServerClassVars(server, hostGroupTable, activeHostGroupNames, passiveNodeHostGroupNames,
           hostGroupToClassVars);
@@ -1400,7 +1401,8 @@ public class SKAdmin {
         serverCommand = rawServerCommand.split("\\s+");
 
         try {
-          resolvedServer = aliasMap == null ? server : aliasMap.daemonToInterface(new IPAndPort(server, dhtConfig.getPort())).toIPAndPort().getIPAsString();
+          resolvedServer = aliasMap == null ? server : aliasMap.daemonToInterface(
+              new IPAndPort(server, dhtConfig.getPort())).toIPAndPort().getIPAsString();
         } catch (UnknownHostException uhe) {
           throw new RuntimeException(uhe);
         }

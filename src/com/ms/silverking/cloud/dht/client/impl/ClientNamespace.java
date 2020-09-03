@@ -230,6 +230,14 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
     case OP_RESPONSE:
       activeOpTable.getActiveVersionedBasicOperations().receivedOpResponse(message);
       break;
+    case ERROR_RESPONSE:
+      //Check if there is any active listener for the ID
+      if (activeOpTable.getActiveRetrievalListeners().isResponsibleFor(message.getUUID())) {
+        activeOpTable.getActiveRetrievalListeners().receivedRetrievalResponse(message);
+      } else if (activeOpTable.getActivePutListeners().isResponsibleFor(message.getUUID())) {
+        activeOpTable.getActivePutListeners().receivedPutResponse(message);
+      }
+      break;
     case CHECKSUM_TREE: // FUTURE - for testing, consider removing
       activeOpTable.receivedChecksumTree(message); // FUTURE - for testing, consider removing
       break;
@@ -387,8 +395,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
          */
     if (opOptions.hasTraceID() && !session.isServerTraceEnabled()) {
       throw new IllegalArgumentException(String.format(
-          "Server[%s] has trace feature disabled or running in a old version, which doesn't expect to have traceID in" +
-              " the opOptions (traceIDProvider=[%s])",
+          "Server[%s] has trace feature disabled or running in a old version, which doesn't expect to have traceID " + "in" + " the opOptions (traceIDProvider=[%s])",
           session.getDhtConfig().toString(), opOptions.getTraceIDProvider().toString()));
     }
   }
@@ -399,8 +406,7 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
       // Values > a segment are allowed. Ensure that fragmentation is set to a sane value
       if (putOptions.getFragmentationThreshold() > nsOptions.getSegmentSize() - DHTConstants.segmentSafetyMargin) {
         throw new IllegalArgumentException(
-            "Values larger than a segment are allowed, " + "but putOptions.getFragmentationThreshold() > nsOptions" +
-                ".getSegmentSize() - DHTConstants.segmentSafetyMargin");
+            "Values larger than a segment are allowed, " + "but putOptions.getFragmentationThreshold() > nsOptions" + ".getSegmentSize() - DHTConstants.segmentSafetyMargin");
       }
     } else {
       // Values can all fit in one segment

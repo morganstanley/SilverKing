@@ -2,9 +2,6 @@ package com.ms.silverking.cloud.dht.management;
 
 import java.util.logging.Level;
 
-import com.ms.silverking.cloud.dht.daemon.DHTNode;
-import org.kohsuke.args4j.Option;
-
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
@@ -17,8 +14,7 @@ import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
 import com.ms.silverking.cloud.zookeeper.SKAclProvider;
 import com.ms.silverking.net.security.Authenticator;
 import com.ms.silverking.text.ObjectDefParser2;
-
-import static com.ms.silverking.cloud.dht.management.SKAdmin.javaSystemPropertyFlag;
+import org.kohsuke.args4j.Option;
 
 public class SKAdminOptions {
   public static String exclusionsTarget = "exclusions";
@@ -44,8 +40,8 @@ public class SKAdminOptions {
   @Option(name = "-t", usage = "target(s)", required = false)
   public String targets;
 
-  @Option(name="-rawJVMOptions", usage="rawJVMOptions", required=false)
-  public String    rawJVMOptions = "";
+  @Option(name = "-rawJVMOptions", usage = "rawJVMOptions", required = false)
+  public String rawJVMOptions = "";
 
   public boolean isReservedTarget(String s) {
     return s.equalsIgnoreCase(exclusionsTarget) || s.equalsIgnoreCase(activeDaemonsTarget);
@@ -167,8 +163,9 @@ public class SKAdminOptions {
       "itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1200000}";
 
   @Option(name = "-fileBlockNSValueRetentionPolicy", usage = "fileBlockNSValueRetentionPolicy", required = false)
-  public String fileBlockNSValueRetentionPolicy = "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode" +
-      "=wallClock,minVersions=0,timeSpanSeconds=300}";
+  public String fileBlockNSValueRetentionPolicy =
+      "valueRetentionPolicy=<ValidOrTimeAndVersionRetentionPolicy>{mode" + "=wallClock,minVersions=0," +
+          "timeSpanSeconds=300}";
 
   @Option(name = "-defaultClassVars", usage = "defaultClassVars", required = false)
   public String defaultClassVars;
@@ -210,8 +207,8 @@ public class SKAdminOptions {
   @Option(name = "-storageFormat", usage = "FileSegmentStorageFormat")
   public String storageFormat = DHTConstants.defaultStorageFormat;
 
-  @Option(name = "-port", usage = "Overriding port to boot the DHT Node on (rather than the one configured in ZK DHT " +
-      "Config)")
+  @Option(name = "-port", usage = "Overriding port to boot the DHT Node on (rather than the one configured in ZK DHT "
+      + "Config)")
   public int overridePort = DHTConstants.noPortOverride;
 
   public void fillDefaultOptions() {
@@ -240,8 +237,8 @@ public class SKAdminOptions {
       // let it crash to prevent SKAdmin command to be populated
       if (!(op.startsWith("-"))) {
         throw new RuntimeException(
-            "User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall " +
-                "at least start with '-'");
+            "User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall "
+                + "at least start with '-'");
       }
     }
   }

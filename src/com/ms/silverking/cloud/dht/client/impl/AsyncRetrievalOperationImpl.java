@@ -335,6 +335,10 @@ public class AsyncRetrievalOperationImpl<K, V> extends AsyncKVOperationImpl<K, V
     return storedValueMap;
   }
 
+  public void errorReceived(DHTKey dhtKey) {
+
+  }
+
   @Override
   public void resultReceived(DHTKey dhtKey, MessageGroupRetrievalResponseEntry entry) {
     RawRetrievalResult rawResult;
@@ -362,7 +366,7 @@ public class AsyncRetrievalOperationImpl<K, V> extends AsyncKVOperationImpl<K, V
     segmented = false;
     // FUTURE - avoid the multi-step construction
     rawResult = new RawRetrievalResult(retrievalOperation.retrievalOptions().getRetrievalType());
-    opResult = entry.getOpResult();
+    opResult = entry == null ? OpResult.ERROR : entry.getOpResult();
     Log.fine("opResult: ", opResult);
     if (opResult == OpResult.SUCCEEDED) {
       try {

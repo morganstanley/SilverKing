@@ -21,9 +21,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.SKConstants;
 import com.ms.silverking.cloud.config.HostGroupTable;
@@ -33,6 +30,8 @@ import com.ms.silverking.collection.LightLinkedBlockingQueue;
 import com.ms.silverking.io.StreamParser;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.util.PropertiesHelper;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SSHMaster {
   private static final long serialVersionUID = 2826568720882391661L;

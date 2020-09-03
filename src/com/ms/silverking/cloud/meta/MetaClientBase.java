@@ -2,11 +2,10 @@ package com.ms.silverking.cloud.meta;
 
 import java.io.IOException;
 
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 
 public class MetaClientBase<T extends MetaPathsBase> extends MetaClientCore {
   protected final T metaPaths;

@@ -17,8 +17,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
-import com.ms.silverking.net.security.AuthResult;
 import com.ms.silverking.net.security.AuthFailure;
+import com.ms.silverking.net.security.AuthResult;
 import com.ms.silverking.net.security.Authenticator;
 import com.ms.silverking.net.security.ConnectionAbsorbException;
 import com.ms.silverking.net.security.NoopAuthenticatorImpl;
@@ -371,21 +371,22 @@ public abstract class AsyncBase<T extends Connection> {
         String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ?
             "ServerSide" :
             "ClientSide");
-        throw authResult.getFailCause().isPresent() ? new AuthFailure(msg,
-            authResult.getFailCause().get()) : new AuthFailure(msg);
+        throw authResult.getFailCause().isPresent() ?
+            new AuthFailure(msg, authResult.getFailCause().get()) :
+            new AuthFailure(msg);
       case ABSORB:
         throw new ConnectionAbsorbException(channel, connInfo, listener, serverside,
             authResult.getFailCause().orElse(null));
       default:
         throw new RuntimeException("Connection " + connInfo + " fails to be authenticated from " + (serverside ?
             "ServerSide" :
-            "ClientSide" + " and action for this failure has NOT been defined: " + "please check the behaviour of " +
-                "injected authenticator [" + authenticator.getName() + "]"));
+            "ClientSide" + " and action for this failure has NOT been defined: " + "please check the behaviour of " + "injected authenticator [" + authenticator.getName() + "]"));
       }
     }
 
     if (logConnections) {
-      Log.warningf("AsyncBase addConnection: %s sBuf %d rBuf %d", channel, channel.socket().getSendBufferSize(), channel.socket().getReceiveBufferSize());
+      Log.warningf("AsyncBase addConnection: %s sBuf %d rBuf %d", channel, channel.socket().getSendBufferSize(),
+          channel.socket().getReceiveBufferSize());
     }
 
     try {

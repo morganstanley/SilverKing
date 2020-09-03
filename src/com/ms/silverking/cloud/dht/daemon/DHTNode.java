@@ -28,8 +28,6 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AsyncGlobals;
 import com.ms.silverking.net.async.OutgoingData;
-import com.ms.silverking.process.LogAndExitUncaughtExceptionHandler;
-import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
@@ -53,8 +51,8 @@ public class DHTNode {
 
   // FUTURE - make port non-static
   // also possibly make it a per-node rather than per-DHT notion
-  private static int actualPort = DHTConstants.uninitializedPort;
-  private static int dhtPort = DHTConstants.uninitializedPort;
+  private static volatile int actualPort = DHTConstants.uninitializedPort;
+  private static volatile int dhtPort = DHTConstants.uninitializedPort;
   
   // For limited use by tooling
   public static void setDHTPort(int _dhtPort) {
@@ -69,7 +67,7 @@ public class DHTNode {
   }
 
   // The port the server is listening on, which may != dhtPort, if overridden in constructor
-  private static int getActualPort() {
+  public static int getActualPort() {
     return actualPort;
   }
 
@@ -98,7 +96,6 @@ public class DHTNode {
     BaseRetrievalEntryState.setAbsMillisTimeSource(absMillisTimeSource);
     BaseOperation.setAbsMillisTimeSource(absMillisTimeSource);
     ConvergenceController2.setAbsMillisTimeSource(absMillisTimeSource);
-    SafeThread.setDefaultUncaughtExceptionHandler(new LogAndExitUncaughtExceptionHandler());
   }
 
   public DHTNode(String dhtName, ZooKeeperConfig zkConfig, DHTNodeConfiguration nodeConfig,
@@ -133,7 +130,7 @@ public class DHTNode {
       if (daemonIP != null) { // daemon ip specified
         Log.info("daemonIP specified");
         daemonIPAndPort = new IPAndPort(daemonIP, dhtConfig.getPort());
-        baseInterfaceIPAndPort = (IPAndPort)aliasMap.daemonToInterface(daemonIPAndPort);
+        baseInterfaceIPAndPort = (IPAndPort) aliasMap.daemonToInterface(daemonIPAndPort);
         if (baseInterfaceIPAndPort == null) {
           baseInterfaceIPAndPort = daemonIPAndPort;
         }
@@ -142,7 +139,7 @@ public class DHTNode {
         baseInterfaceIPAndPort = new IPAndPort(InetAddress.getLocalHost().getHostAddress(), overridePort);
         daemonIPAndPort = aliasMap.interfaceToDaemon(baseInterfaceIPAndPort);
         if (daemonIPAndPort == null) {
-          throw new RuntimeException("Alias map has no entry for interface: "+ baseInterfaceIPAndPort);
+          throw new RuntimeException("Alias map has no entry for interface: " + baseInterfaceIPAndPort);
         }
       } else { // neither daemon ip nor override port specified
         Log.info("Neither daemonIP nor overridePort specified");
@@ -150,7 +147,7 @@ public class DHTNode {
         daemonIPAndPort = aliasMap.interfaceIPToDaemon_ifUnique(InetAddress.getLocalHost().getHostAddress());
         if (daemonIPAndPort != null) {
           Log.infof("Found unique alias for ip %s", InetAddress.getLocalHost().getHostAddress());
-          baseInterfaceIPAndPort = (IPAndPort)aliasMap.daemonToInterface(daemonIPAndPort);
+          baseInterfaceIPAndPort = (IPAndPort) aliasMap.daemonToInterface(daemonIPAndPort);
         } else {
           // use default ip : dht port for both daemon and interface
           Log.infof("No unique alias found for ip; setting daemonIP to interfaceIP %s",
@@ -166,7 +163,8 @@ public class DHTNode {
       }
       IPAndPort configuredLocalPort = new IPAndPort(IPAddrUtil.localIP(), dhtPort);
       if (!daemonIPAndPort.equals(configuredLocalPort)) {
-        throw new RuntimeException("Daemon ip and port " + daemonIPAndPort.toString() + " did not match local configured address " + configuredLocalPort.toString());
+        throw new RuntimeException(
+            "Daemon ip and port " + daemonIPAndPort.toString() + " did not match local configured address " + configuredLocalPort.toString());
       }
       actualPort = baseInterfaceIPAndPort.getPort();
 
@@ -176,7 +174,8 @@ public class DHTNode {
         TracerFactory.ensureTracerInitialized();
       }
 
-      exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName, aliasMap);
+      exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName,
+          aliasMap);
       ringMaster = new NodeRingMaster2(dhtName, zkConfig, daemonIPAndPort);
       ringMaster.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
       //dmw.addListener(ringMaster);
@@ -198,7 +197,7 @@ public class DHTNode {
       storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy,
           memoryManager.getJVMMonitor(), enableMsgGroupTrace);
       msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer,
-          baseInterfaceIPAndPort.getPort(), daemonIPAndPort, mc,aliasMap, enableMsgGroupTrace);
+          baseInterfaceIPAndPort.getPort(), daemonIPAndPort, mc, aliasMap, enableMsgGroupTrace);
       msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
       daemonStateZK.setState(DaemonState.QUORUM_WAIT);
       daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT,

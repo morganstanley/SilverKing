@@ -57,8 +57,9 @@ public final class IncomingMessageGroup implements IncomingData {
   private int deadlineRelativeMillis;
   private ForwardingMode forward;
 
-  private enum ReadState {INIT_PREAMBLE_SEARCH, PREAMBLE_SEARCH, HEADER_LENGTH, BUFFER_LENGTHS, BUFFERS, DONE,
-    CHANNEL_CLOSED}
+  private enum ReadState {
+    INIT_PREAMBLE_SEARCH, PREAMBLE_SEARCH, HEADER_LENGTH, BUFFER_LENGTHS, BUFFERS, DONE, CHANNEL_CLOSED
+  }
 
   ;
 

@@ -5,9 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.ms.silverking.cloud.dht.ValueCreator;
-import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
-import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.id.UUIDBase;
@@ -97,6 +95,7 @@ public final class MessageGroup {
     case CHECKSUM_TREE:
     case CHECKSUM_TREE_REQUEST:
     case OP_RESPONSE:
+    case ERROR_RESPONSE:
     case NAMESPACE_REQUEST:
     case NAMESPACE_RESPONSE:
     case OP_NOP:

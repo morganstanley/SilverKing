@@ -37,8 +37,8 @@ public class WriteReadTest implements Runnable {
 
   private static final boolean verbose = false;
 
-  public WriteReadTest(DHTSession session, PrintStream out, PrintStream err, int numThreads,
-      int keysPerThread, int updatesPerKey) throws ClientException, IOException {
+  public WriteReadTest(DHTSession session, PrintStream out, PrintStream err, int numThreads, int keysPerThread,
+      int updatesPerKey) throws ClientException, IOException {
     String nsName;
     NamespaceOptions nsOptions;
 
@@ -133,8 +133,8 @@ public class WriteReadTest implements Runnable {
         numThreads = Integer.parseInt(args[1]);
         keysPerThread = Integer.parseInt(args[2]);
         updatesPerKey = Integer.parseInt(args[3]);
-        wrt = new WriteReadTest(new DHTClient().openSession(SKGridConfiguration.parseFile(gridConfig)), System.out, System.err, numThreads,
-            keysPerThread, updatesPerKey);
+        wrt = new WriteReadTest(new DHTClient().openSession(SKGridConfiguration.parseFile(gridConfig)), System.out,
+            System.err, numThreads, keysPerThread, updatesPerKey);
         wrt.doTest();
       }
     } catch (Exception e) {

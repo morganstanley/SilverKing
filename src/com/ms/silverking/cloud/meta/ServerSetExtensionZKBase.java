@@ -62,7 +62,7 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
   }
 
   public abstract W readLatestFromZK(MetaToolOptions options) throws KeeperException;
-  
+
   public void writeToFile(File file, W worrisomeList) throws IOException {
     IOUtil.writeAsLines(file, worrisomeList.getServers());
   }
@@ -70,7 +70,7 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
   public void writeToZK(W worrisomeSet) throws IOException, KeeperException {
     writeToZK(worrisomeSet, null);
   }
-  
+
   public String writeToZK(W worrisomeSet, MetaToolOptions options) throws IOException, KeeperException {
     String vBase;
     String zkVal;
@@ -115,8 +115,8 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
     return esStarts;
   }
 
-  private long getStartOfCurrentWorrisome(String server, long latestWVersion,
-      Map<String, Set<String>> worrisomeSets) throws KeeperException {
+  private long getStartOfCurrentWorrisome(String server, long latestWVersion, Map<String, Set<String>> worrisomeSets)
+      throws KeeperException {
     long earliestServerVersion;
     Stat stat;
     long version;

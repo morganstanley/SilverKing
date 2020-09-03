@@ -1,8 +1,8 @@
 package com.ms.silverking.net.security;
 
-import com.ms.silverking.net.async.ConnectionListener;
-
 import java.nio.channels.SocketChannel;
+
+import com.ms.silverking.net.async.ConnectionListener;
 
 public class ConnectionAbsorbException extends Exception {
   // Meta information for absorb

@@ -276,7 +276,7 @@ public class PropertiesHelper {
   }
 
   // double
-  
+
   double getDouble(String name, double defaultValue, UndefinedAction undefinedAction,
       ParseExceptionAction parseExceptionAction) {
     String def;
@@ -305,16 +305,16 @@ public class PropertiesHelper {
     if (defaultValue == null) {
       throw new RuntimeException("defaultValue cannot be null for enum");
     } else {
-    String def;
+      String def;
 
-    def = prop.getProperty(name);
-    if (def != null) {
-      try {
+      def = prop.getProperty(name);
+      if (def != null) {
+        try {
           return (T) defaultValue.valueOf(defaultValue.getClass(), def);
         } catch (IllegalArgumentException iae) {
           return getExceptionValue(name, parseExceptionAction, defaultValue, iae);
-      }
-    } else {
+        }
+      } else {
         return (T) getUndefinedValue(name,
             undefinedAction != null ? undefinedAction : UndefinedAction.DefaultOnUndefined, null, defaultValue);
       }
@@ -323,7 +323,7 @@ public class PropertiesHelper {
 
   public <T extends Enum> T getEnum(String name, T defaultValue, ParseExceptionAction parseExceptionAction) {
     return getEnum(name, defaultValue, UndefinedAction.DefaultOnUndefined, parseExceptionAction);
-    }
+  }
 
   public <T extends Enum> T getEnum(String name, T defaultValue, UndefinedAction undefinedAction) {
     verifyNotDefaultOnUndefined(undefinedAction);

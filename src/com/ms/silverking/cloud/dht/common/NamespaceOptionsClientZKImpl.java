@@ -15,13 +15,6 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   private static final long nanosPerMilli = 1000000;
   private static final long defaultTimeoutMills = 30 * 1000; // 30 seconds

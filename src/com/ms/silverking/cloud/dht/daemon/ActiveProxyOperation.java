@@ -143,6 +143,7 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   }
 
   protected abstract void sendResults(List<R> results);
+
   protected abstract void sendErrorResults();
 
   // FUTURE - Consider making this a table lookup to improve speed

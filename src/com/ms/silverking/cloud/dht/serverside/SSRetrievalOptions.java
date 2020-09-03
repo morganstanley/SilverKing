@@ -1,9 +1,9 @@
 package com.ms.silverking.cloud.dht.serverside;
 
+import java.util.Optional;
+
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.VersionConstraint;
-
-import java.util.Optional;
 
 public interface SSRetrievalOptions {
   public boolean getVerifyIntegrity();

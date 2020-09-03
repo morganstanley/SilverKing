@@ -8,17 +8,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
-import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.dht.common.NamespaceOptionsMode;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.gridconfig.GridConfiguration;
 import com.ms.silverking.cloud.management.MetaToolOptions;
@@ -32,6 +27,10 @@ import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.StreamParser;
 import com.ms.silverking.io.StreamUtil;
+import com.ms.silverking.log.Log;
+import org.apache.zookeeper.KeeperException;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * Simplifies creation of a "static" DHT (a DHT which will not change in ring topology,
@@ -88,8 +87,8 @@ public class StaticDHTCreator {
   }
 
   public void createStaticDHT(UUIDBase uuid, int initialHeapSize, int maxHeapSize, String skInstanceLogBaseVar,
-      String dataBaseVar, String skfsConfigurationFile, String classVarsFile,
-      String aliasMapNameAndFile) throws IOException, KeeperException {
+      String dataBaseVar, String skfsConfigurationFile, String classVarsFile, String aliasMapNameAndFile)
+      throws IOException, KeeperException {
     String ringName;
     String classVarsName;
     String dhtConfigZkPath;
@@ -101,11 +100,11 @@ public class StaticDHTCreator {
     mc = new MetaClient(dhtName, zkConfig);
 
     if (aliasMapNameAndFile != null) {
-      String[]  toks;
+      String[] toks;
 
       toks = aliasMapNameAndFile.split(":");
       if (toks.length != 2) {
-        throw new RuntimeException("Illegal aliasMapNameAndFile: "+ aliasMapNameAndFile);
+        throw new RuntimeException("Illegal aliasMapNameAndFile: " + aliasMapNameAndFile);
       }
       aliasMapName = toks[0];
       aliasMapFile = toks[1];
@@ -165,8 +164,8 @@ public class StaticDHTCreator {
 
     // write alias map if present
     if (aliasMapName != null) {
-      IpAliasConfigurationZk  ipAliasConfigurationZk;
-      MetaToolOptions       options;
+      IpAliasConfigurationZk ipAliasConfigurationZk;
+      MetaToolOptions options;
 
       options = new MetaToolOptions();
       options.name = aliasMapName;
@@ -277,8 +276,7 @@ public class StaticDHTCreator {
       sdc = new StaticDHTCreator(new ZooKeeperConfig(options.zkEnsemble), servers, options.replication, dhtName, gcName,
           port, nsCreationOptions, options.gridConfigDir, nsOptionsMode, options.enableMsgGroupTrace);
       sdc.createStaticDHT(uuid, options.initialHeapSize, options.maxHeapSize, options.skInstanceLogBaseVar,
-          options.dataBaseVar, options.skfsConfigurationFile, options.classVarsFile,
-          options.aliasMapNameAndFile);
+          options.dataBaseVar, options.skfsConfigurationFile, options.classVarsFile, options.aliasMapNameAndFile);
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(-1);

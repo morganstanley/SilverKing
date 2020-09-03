@@ -35,7 +35,6 @@ import com.ms.silverking.cloud.dht.net.ProtoKeyedMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoValueMessageGroup;
-import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;

@@ -35,14 +35,14 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
 
   public IPAndPort(int ip, int port) {
     if (port < 0) {
-      throw new RuntimeException("port < 0: "+ port);
+      throw new RuntimeException("port < 0: " + port);
     }
     this.ipAndPort = (ip << 32) | port;
   }
 
   public IPAndPort(byte[] ip, int offset, int port) {
     if (port < 0) {
-      throw new RuntimeException("port < 0: "+ port);
+      throw new RuntimeException("port < 0: " + port);
     }
     this.ipAndPort = ((long) IPAddrUtil.addrToInt(ip, offset) << 32) | (long) port;
   }
@@ -64,7 +64,7 @@ public final class IPAndPort implements AddrAndPort, Comparable<IPAndPort> {
 
   public IPAndPort(String s, int port) {
     if (port < 0) {
-      throw new RuntimeException("port < 0: "+ port);
+      throw new RuntimeException("port < 0: " + port);
     }
     this.ipAndPort = ((long) IPAddrUtil.addrToInt(IPAddrUtil.stringToAddr(s)) << 32) | (long) port;
   }

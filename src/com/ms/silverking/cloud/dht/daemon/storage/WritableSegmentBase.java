@@ -441,15 +441,15 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
           storedLength = 0;
         }
         if (debugRetention) {
-          Log.warningf("%s %d %d %d %s", entry.getKey(), offset,
-              0/*getCreationTime(offset)*/, curTimeNanos, isInvalidation(offset));
+          Log.warningf("%s %d %d %d %s", entry.getKey(), offset, 0/*getCreationTime(offset)*/, curTimeNanos,
+              isInvalidation(offset));
         }
         // FUTURE - the isInvalidated() call below may touch disk and dramatically increase the
         // execution time. Not a huge deal for segments that will be modified, but
         // a dramatic increase in time for segments that won't.
         // Leaving for now as tracking in memory requires space
         if (vrp.retains(entryKey, version, creationTime, isInvalidation(offset), valueRetentionState, curTimeNanos,
-            storedLength) && ringMaster.iAmPotentialReplicaFor(entryKey, true)) {
+            storedLength) && ringMaster.iAmPotentialReplicaFor(entryKey, false)) {
           ++numRetained;
           retainedOffsets.add(offset);
           if (debugRetention) {

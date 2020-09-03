@@ -1,5 +1,8 @@
 package com.ms.silverking.cloud.dht;
 
+import java.util.Map;
+import java.util.Queue;
+
 import com.google.common.collect.ImmutableMap;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -10,9 +13,6 @@ import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.MutableInteger;
 import com.ms.silverking.text.ObjectDefParser2;
-
-import java.util.Map;
-import java.util.Queue;
 
 /**
  * Simple LRU value retention policy. LRU is per key.

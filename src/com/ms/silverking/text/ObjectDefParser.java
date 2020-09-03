@@ -150,8 +150,7 @@ public class ObjectDefParser<T> {
       constructor = getConstructor(_class, getFieldClasses(fields));
     } catch (NoSuchMethodException nsme) {
       throw new ObjectDefParseException(
-          "Can't find constructor to initialize all fields for " + template.getClass().getName() + ". " + "Remember " +
-              "order must match",
+          "Can't find constructor to initialize all fields for " + template.getClass().getName() + ". " + "Remember " + "order must match",
           nsme);
     } catch (Exception e) {
       throw new ObjectDefParseException("Error creating template", e);

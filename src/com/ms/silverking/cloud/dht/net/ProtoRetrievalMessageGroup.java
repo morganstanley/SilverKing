@@ -159,7 +159,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
     return RetrievalMessageFormat.stDataOffset + NumConversion.BYTES_PER_SHORT + getSTLength(mg);
   }
 
-  private static int getAUStart(MessageGroup mg){
+  private static int getAUStart(MessageGroup mg) {
     return getUOStart(mg) + NumConversion.BYTES_PER_INT + getUOLength(mg);
   }
 
@@ -168,7 +168,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
     return getOptionBuffer(mg).getInt(start);
   }
 
-  private static int getAULength(MessageGroup mg){
+  private static int getAULength(MessageGroup mg) {
     int start = getAUStart(mg);
     return getOptionBuffer(mg).getInt(start);
   }
@@ -185,7 +185,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
     } else {
       uo = new byte[uoLength];
       ByteBuffer opts = getOptionBuffer(mg);
-      opts.position(uoStartPos+NumConversion.BYTES_PER_INT);
+      opts.position(uoStartPos + NumConversion.BYTES_PER_INT);
       opts.get(uo, 0, uoLength);
       return uo;
     }
@@ -196,12 +196,12 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
     int auLength = getAULength(mg);
     int auStartPos = getAUStart(mg);
 
-    if (auLength == 0){
+    if (auLength == 0) {
       return RetrievalOptions.noAuthorizationUser;
     } else {
       au = new byte[auLength];
       ByteBuffer opts = getOptionBuffer(mg);
-      opts.position(auStartPos+NumConversion.BYTES_PER_INT);
+      opts.position(auStartPos + NumConversion.BYTES_PER_INT);
       opts.get(au, 0, auLength);
       return au;
     }

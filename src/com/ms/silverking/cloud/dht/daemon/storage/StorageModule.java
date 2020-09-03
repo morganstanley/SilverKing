@@ -26,6 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
+import com.ms.silverking.cloud.dht.client.EmbeddedSK;
 import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
@@ -323,19 +324,21 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
   }
 
   private void addNSMetricsNamespaceForNS(NamespaceStore nsStore) {
-    NamespaceMetricsNamespaceStore nsMetricsNamespaceStore;
+    if (!EmbeddedSK.embedded()) {
+      NamespaceMetricsNamespaceStore nsMetricsNamespaceStore;
 
-    Log.warningf("addNSMetricsNamespaceForNS %x", nsStore.getNamespace());
-    nsMetricsNamespaceStore = new NamespaceMetricsNamespaceStore(mgBase, ringMaster, activeRetrievals, nsStore);
-    nsMetricsNamespaces.put(nsMetricsNamespaceStore.getNamespace(), nsMetricsNamespaceStore);
-    //try {
-    Log.warningf("nsMetricsNamespaceStore.getName() %s", nsMetricsNamespaceStore.getName());
-    //nsMetaStore.getNamespaceOptionsClientCS().createNamespace(nsMetricsNamespaceStore.getName(),
-    // nsMetricsNamespaceStore.getNamespaceProperties());
-    addDynamicNamespace(nsMetricsNamespaceStore);
-    //} catch (NamespaceCreationException e) {
-    //    Log.logErrorWarning(e, "Unable to create NamespaceMetricsNamespaceStore for "+ nsStore.getNamespace());
-    //}
+      Log.warningf("addNSMetricsNamespaceForNS %x", nsStore.getNamespace());
+      nsMetricsNamespaceStore = new NamespaceMetricsNamespaceStore(mgBase, ringMaster, activeRetrievals, nsStore);
+      nsMetricsNamespaces.put(nsMetricsNamespaceStore.getNamespace(), nsMetricsNamespaceStore);
+      //try {
+      Log.warningf("nsMetricsNamespaceStore.getName() %s", nsMetricsNamespaceStore.getName());
+      //nsMetaStore.getNamespaceOptionsClientCS().createNamespace(nsMetricsNamespaceStore.getName(),
+      // nsMetricsNamespaceStore.getNamespaceProperties());
+      addDynamicNamespace(nsMetricsNamespaceStore);
+      //} catch (NamespaceCreationException e) {
+      //    Log.logErrorWarning(e, "Unable to create NamespaceMetricsNamespaceStore for "+ nsStore.getNamespace());
+      //}
+    }
   }
 
   public void recoverExistingNamespaces() {

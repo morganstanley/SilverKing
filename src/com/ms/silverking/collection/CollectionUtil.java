@@ -122,7 +122,7 @@ public class CollectionUtil {
     return EnumSet.copyOf(ImmutableSet.copyOf(a));
   }
 
-  public static <T,V> List<V> applyFunction(List<T> list, Function<T,V> function) {
+  public static <T, V> List<V> applyFunction(List<T> list, Function<T, V> function) {
     return list.stream().map(function).collect(Collectors.toList());
   }
 

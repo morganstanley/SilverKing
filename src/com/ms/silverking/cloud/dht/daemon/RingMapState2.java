@@ -8,9 +8,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
-
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.common.OpResult;
@@ -21,9 +18,9 @@ import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingIDAndVersionPa
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingState;
 import com.ms.silverking.cloud.dht.meta.DHTMetaUpdate;
 import com.ms.silverking.cloud.dht.meta.RingHealthZK;
+import com.ms.silverking.cloud.dht.net.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.dht.net.SecondaryTargetSerializer;
 import com.ms.silverking.cloud.meta.ExclusionSet;
-import com.ms.silverking.cloud.dht.net.ExclusionSetAddressStatusProvider;
 import com.ms.silverking.cloud.meta.ExclusionZK;
 import com.ms.silverking.cloud.meta.MetaClient;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
@@ -42,6 +39,8 @@ import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 
 /**
  * Tracks state used during transition from one ring to another,
@@ -326,12 +325,11 @@ public class RingMapState2 {
   }
 
   public ResolvedReplicaMap getResolvedReplicaMap() {
-    return getResolvedReplicaMap(true);
+    return resolvedReplicaMapMinusExclusions;
   }
 
-
-  protected ResolvedReplicaMap getResolvedReplicaMap(boolean discountExcludedNodes) {
-    return discountExcludedNodes ? resolvedReplicaMapMinusExclusions : rawResolvedReplicaMap;
+  public ResolvedReplicaMap getResolvedReplicaMap(boolean includeExcludedNodes) {
+    return includeExcludedNodes ? rawResolvedReplicaMap : resolvedReplicaMapMinusExclusions;
   }
 
   ConvergencePoint getConvergencePoint() {

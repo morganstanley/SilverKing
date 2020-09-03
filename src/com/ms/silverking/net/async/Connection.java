@@ -20,7 +20,6 @@ import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.InetSocketAddressComparator;
 import com.ms.silverking.net.security.AuthResult;
 import com.ms.silverking.net.security.Authenticable;
-import com.ms.silverking.net.security.Authenticator;
 
 /**
  * Connection state for TCP connection to remote socket. Specialized by subclasses

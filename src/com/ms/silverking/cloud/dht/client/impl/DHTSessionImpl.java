@@ -119,8 +119,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
   private static final int numSelectorControllers = 1;
   private static final String selectorControllerClass = "DHTSessionImpl";
 
-  public DHTSessionImpl(ClientDHTConfiguration dhtConfig, AddrAndPort server, AbsMillisTimeSource absMillisTimeSource, 
-      SerializationRegistry serializationRegistry, SessionEstablishmentTimeoutController timeoutController, 
+  public DHTSessionImpl(ClientDHTConfiguration dhtConfig, AddrAndPort server, AbsMillisTimeSource absMillisTimeSource,
+      SerializationRegistry serializationRegistry, SessionEstablishmentTimeoutController timeoutController,
       NamespaceOptionsMode nsOptionsMode, boolean enableMsgGroupTrace, IPAliasMap aliasMap) throws IOException {
     mgBase = MessageGroupBase.newClientMessageGroupBase(0, this, absMillisTimeSource,
         new NewConnectionTimeoutControllerWrapper(timeoutController), this, connectionQueueLimit,
@@ -346,8 +346,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     } else {
       // New version of code will always enrich nsProperties with name
       Preconditions.checkArgument(nsProperties.hasName(),
-          "nsProperties is not enriched to create namespace (wrong call path or wrong Silverking version is used); " +
-              "ns: " + nsProperties);
+          "nsProperties is not enriched to create namespace (wrong call path or wrong Silverking version is used); " + "ns: " + nsProperties);
       nsOptionsClient.createNamespace(namespace, nsProperties);
       return getClientNamespace(namespace);
     }

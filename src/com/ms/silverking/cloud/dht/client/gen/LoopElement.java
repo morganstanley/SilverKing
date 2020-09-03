@@ -10,8 +10,10 @@ public class LoopElement implements Statement {
 
   ;
 
-  public static enum Target {Packages, Classes, Methods, StaticMethods, Parameters, Constructors,
-    NonEmptyConstructors, ReferencedClasses, StaticFields, Enums, EnumValues, Interfaces, InheritedClasses}
+  public static enum Target {
+    Packages, Classes, Methods, StaticMethods, Parameters, Constructors, NonEmptyConstructors, ReferencedClasses,
+    StaticFields, Enums, EnumValues, Interfaces, InheritedClasses
+  }
 
   ;
 

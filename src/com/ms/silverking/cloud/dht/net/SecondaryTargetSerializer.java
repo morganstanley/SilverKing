@@ -1,8 +1,5 @@
 package com.ms.silverking.cloud.dht.net;
 
-import it.unimi.dsi.fastutil.bytes.ByteArrayList;
-import it.unimi.dsi.fastutil.bytes.ByteList;
-
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -10,6 +7,8 @@ import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.client.SecondaryTargetType;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.bytes.ByteList;
 
 public class SecondaryTargetSerializer {
 

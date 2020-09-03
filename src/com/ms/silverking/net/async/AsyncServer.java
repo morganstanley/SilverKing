@@ -53,6 +53,10 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     }
   }
 
+  public boolean isEnabled() {
+    return enabled;
+  }
+
   public AsyncServer(int port, int backlog, int numSelectorControllers, String controllerClass,
       ConnectionCreator<T> connectionCreator, IncomingConnectionListener<T> newConnectionListener,
       LWTPool readerLWTPool, LWTPool writerLWTPool, LWTPool acceptorPool, int selectionThreadWorkLimit, boolean enabled,
@@ -85,6 +89,11 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     super.shutdown();
   }
 
+  //Need to expose this for tests as socket chanell close is final and cannot be mocked
+  void closeChannel(SocketChannel socketChannel) throws IOException {
+    socketChannel.close();
+  }
+
   void accept(ServerSocketChannel channel) {
     SocketChannel socketChannel = null;
     boolean connectionSuccess = false;
@@ -94,7 +103,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
 
     try {
       socketChannel = channel.accept();
-      if (enabled) {
+      if (isEnabled()) {
         if (socketChannel != null) {
           T connection;
 
@@ -109,7 +118,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
         if (socketChannel != null) {
           // if we're not enabled, we are not yet
           // able to process incoming connections
-          socketChannel.close();
+          closeChannel(socketChannel);
         }
       }
       connectionSuccess = true;
@@ -120,7 +129,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
     } finally {
       if (!connectionSuccess && socketChannel != null) {
         try {
-          socketChannel.close();
+          closeChannel(socketChannel);
         } catch (IOException e) {
           Log.logErrorWarning(e, "Could not close socketChannel " + socketChannel);
         }

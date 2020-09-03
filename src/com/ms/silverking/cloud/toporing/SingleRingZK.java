@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
@@ -27,6 +25,7 @@ import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
+import org.apache.zookeeper.KeeperException;
 
 // FUTURE - think about this class
 

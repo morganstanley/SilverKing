@@ -2,14 +2,13 @@ package com.ms.silverking.cloud.management;
 
 import java.io.IOException;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.meta.CloudConfiguration;
 import com.ms.silverking.cloud.meta.HostGroupTableZK;
 import com.ms.silverking.cloud.meta.MetaClient;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
 import com.ms.silverking.cloud.topology.TopologyZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import org.apache.zookeeper.KeeperException;
 
 public class MetaTool extends MetaToolBase {
   private enum Tool {Topology, Exclusions, PassiveNodes, HostGroupTables}

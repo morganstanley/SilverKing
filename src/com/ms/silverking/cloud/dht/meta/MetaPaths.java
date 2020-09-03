@@ -42,19 +42,6 @@ public class MetaPaths extends MetaPathsBase {
 
   private static final String nsPropertiesNodeName = "nsProperties";
 
-    /*
-    public final String         dhtInfoBase;
-    public final String         nodesBase;
-    public final String         znodesBase;
-    public final String         bootNodesBase;
-    public final String         blacklistedNodesBase;
-    public final String         namespacesBase;
-    public final String         startTokenPath;
-    public final String         bootIdPath;
-    public final String         nodeLocalBasePathPath;
-    public final String         classBase;
-    */
-
   public MetaPaths(NamedDHTConfiguration dhtConfig) {
     ImmutableList.Builder<String> listBuilder;
 
@@ -92,31 +79,11 @@ public class MetaPaths extends MetaPathsBase {
     } else {
       passiveNodesPath = null;
     }
-        /*
-        if (passiveNodes != null) {
-            passiveNodesPath = passiveNodesBase +"/"+ passiveNodes;
-            listBuilder.add(passiveNodesPath);
-        } else {
-            passiveNodesPath = null;
-        }
-        */
+
     listBuilder.add(classVarsBase);
     listBuilder.add(ipAliasesBase);
 
     pathList = listBuilder.build();
-      
-        /*
-        dhtInfoBase = dhtGlobalBase +"/info/"+ dhtName;
-        nodesBase = dhtBase +"/nodes";
-        znodesBase = dhtBase +"/znodes";
-        bootNodesBase = dhtBase +"/bootNodes";
-        blacklistedNodesBase = dhtBase +"/blacklistedNodes";
-        namespacesBase = dhtBase +"/namespaces";
-        startTokenPath = dhtBase +"/startToken";
-        bootIdPath = dhtBase +"/bootId";
-        nodeLocalBasePathPath = dhtBase +"/nodeBasePath";
-        classBase = dhtBase +"/nodeClasses";
-        */
   }
 
   public static String getInstancePath(String dhtName) {

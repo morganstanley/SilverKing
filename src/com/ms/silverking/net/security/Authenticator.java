@@ -1,10 +1,10 @@
 package com.ms.silverking.net.security;
 
+import java.net.Socket;
+
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
 import com.ms.silverking.util.PropertiesHelper;
-
-import java.net.Socket;
 
 public abstract class Authenticator {
   public static final String authImplProperty = Authenticator.class.getPackage().getName() + ".AuthImplSKDef";
@@ -102,7 +102,7 @@ public abstract class Authenticator {
    * @param unauthNetwork        the <b>connected</b> and <b>sync</b> raw Socket between client and server, which
    *                             has been not authenticated yet
    * @param serverside           <b>true</b> if authenticating in the DHTNodes who acts like server(receives data);
-   *                            <b>false</b> in the DHTNodes
+   *                             <b>false</b> in the DHTNodes
    *                             who acts like client(send data), or DHTClient
    * @param timeoutInMillisecond the maximum time to execute this authentication;
    *                             when timeout, a corresponding AuthResult shall be returned

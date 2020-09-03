@@ -7,7 +7,6 @@ import java.util.Arrays;
 
 import com.ms.silverking.cloud.dht.client.crypto.AESEncrypterDecrypter;
 import com.ms.silverking.cloud.dht.client.crypto.Encrypter;
-import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
