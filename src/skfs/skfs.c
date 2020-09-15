@@ -2208,6 +2208,7 @@ static int skfs_read(const char *path, char *dest, size_t readSize, off_t readOf
             block = readOffset / SRFS_BLOCK_SIZE;
             if (block >= sof->nextPrereadBlock) {
                 if (args->nativeFileMode == nf_readRelay_localPreread) {
+					// ignore result below as this is only for data warming; real read will return error if one persists
                     pbr_read_given_attr(pbr, path, NULL, readSize, readOffset, sof->attr, FALSE, _PREREAD_SIZE - 1, TRUE);
                 } else {
                     br_request_remote_read(br, sof->nativePath, sof->attr, readSize, readOffset, _PREREAD_SIZE - 1);

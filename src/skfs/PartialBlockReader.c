@@ -17,8 +17,10 @@
 
 #define _PBR_MAX_NATIVE_READ_ATTEMPTS 8
 #define _PBR_NATIVE_READ_ERROR_SLEEP_MICROS 200
-#define _PBR_MAX_SKFS_BLOCK_READ_RETRIES 8
+#define _PBR_MAX_SKFS_BLOCK_READ_RETRIES_1 6
+#define _PBR_MAX_SKFS_BLOCK_READ_RETRIES_2 2
 #define _PBR_SKFS_READ_ERROR_SLEEP_MICROS (200 * 1000)
+#define _PBR_RETRYABLE_READ_ERROR -2
 
 
 ///////////////////
@@ -45,32 +47,49 @@ void pbr_delete(PartialBlockReader **pbr) {
 int pbr_read(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset, SKFSOpenFile *sof) {
     FileAttr    fa;
     FileAttr    *_fa;
+	int read_result;
     
     srfsLog(LOG_FINE, "pbr_read %s %d %d", path, readSize, readOffset);
     if (readSize == 0) {
         srfsLog(LOG_WARNING, "readFromFile ignoring zero-byte read");
         return 0;
     }
-    
+
+	read_result = -1;
     if (sof != NULL && sof->attr != NULL) {
         _fa = sof->attr;
+		read_result = pbr_read_given_attr(pbr, path, dest, readSize, readOffset, _fa, TRUE);
     } else {
-        int            result;
-        int         attrFoundInDHT;
-        
-        _fa = &fa;
-        memset(&fa, 0, sizeof(FileAttr));
-        result = ar_get_attr(pbr->ar, (char *)path, &fa);
-        if (result != 0) {
-            if (!is_writable_path(path)) {
-                srfsLog(LOG_WARNING, "Error reading %s result %d", path, result);
-                fatalError("readFromFile() failed", __FILE__, __LINE__);
-            } else {
-                return -ENOENT;
-            }
-        }
+		int	attempt;
+
+		attempt = 0;
+		while (attempt < _PBR_MAX_SKFS_BLOCK_READ_RETRIES_2) {
+			int ar_result;
+			int attrFoundInDHT;
+			
+			_fa = &fa;
+			memset(&fa, 0, sizeof(FileAttr));
+			ar_result = ar_get_attr(pbr->ar, (char *)path, &fa);
+			if (ar_result != 0) {
+				if (!is_writable_path(path)) {
+					srfsLog(LOG_WARNING, "Error reading %s ar_result %d", path, ar_result);
+					fatalError("readFromFile() failed", __FILE__, __LINE__);
+				} else {
+					return -ENOENT;
+				}
+			}
+			read_result = pbr_read_given_attr(pbr, path, dest, readSize, readOffset, _fa, TRUE);
+			if (read_result != _PBR_RETRYABLE_READ_ERROR) {
+				return read_result;
+			}
+			++attempt;
+		}
     }
-    return pbr_read_given_attr(pbr, path, dest, readSize, readOffset, _fa, TRUE);
+	if (read_result < 0) {
+		return -1;
+	} else {
+		return read_result;
+	}
 }
     
 static int _pbr_native_read(PartialBlockReader *pbr, const char *path, char *dest, size_t readSize, off_t readOffset) {
@@ -259,7 +278,7 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
                 } else {
                     int ii;
                     
-                    for (ii = 0; totalRead != actualReadSize && ii < _PBR_MAX_SKFS_BLOCK_READ_RETRIES; ii++) {
+                    for (ii = 0; totalRead != actualReadSize && ii < _PBR_MAX_SKFS_BLOCK_READ_RETRIES_1; ii++) {
                         totalRead = fbr_read(pbr->fbr, pbrrs, numBlocks, pbrrsReadAhead, numBlocksReadAhead, presumeBlocksInDHT, useNFSReadAhead);
                         srfsLog(LOG_WARNING, "skfs block read retry %d %d", totalRead, actualReadSize);
                         if (totalRead != actualReadSize) {
@@ -268,7 +287,7 @@ int pbr_read_given_attr(PartialBlockReader *pbr, const char *path, char *dest, s
                     }
                     if (totalRead != actualReadSize) {
                         srfsLog(LOG_WARNING, "writable path. pbr_read returning error");
-                        totalRead = -1;
+                        totalRead = _PBR_RETRYABLE_READ_ERROR;
                     }
                 }
             }
