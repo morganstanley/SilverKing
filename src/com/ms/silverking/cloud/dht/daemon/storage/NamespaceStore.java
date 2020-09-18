@@ -126,7 +126,6 @@ import com.ms.silverking.time.SystemTimeSource;
 import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.jvm.Finalization;
-import org.apache.commons.lang.time.StopWatch;
 
 public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   private final long ns;
@@ -3183,8 +3182,9 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   }
 
   public void liveReap() {
-    StopWatch sw = new StopWatch();
-    sw.start();
+    Stopwatch sw;
+
+    sw = new SimpleStopwatch();
     reapLock.lock();
     try {
       if (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase, false)) {
@@ -3208,15 +3208,16 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       reapLock.unlock();
       sw.stop();
       if (TracerFactory.isInitialized()) {
-        TracerFactory.getTracer().onLocalReap(sw.getTime());
+        TracerFactory.getTracer().onLocalReap(sw.getElapsedMillis());
       }
     }
   }
 
   public int[] forceReap(int startSegment, int endSegment, ValueRetentionPolicy vrp, ValueRetentionState state)
       throws IOException {
-    StopWatch sw = new StopWatch();
-    sw.start();
+    Stopwatch sw;
+
+    sw = new SimpleStopwatch();
     reapLock.lock();
     try {
       int segmentReaped;
@@ -3247,7 +3248,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       reapLock.unlock();
       sw.stop();
       if (TracerFactory.isInitialized()) {
-        TracerFactory.getTracer().onForceReap(sw.getTime());
+        TracerFactory.getTracer().onForceReap(sw.getElapsedMillis());
       }
     }
   }

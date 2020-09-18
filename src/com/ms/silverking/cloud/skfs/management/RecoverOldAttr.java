@@ -28,7 +28,7 @@ public class RecoverOldAttr {
     syncNSP = session.openSyncNamespacePerspective(namespace, String.class, byte[].class);
   }
 
-  public void recover(String file, long version) throws PutException, RetrievalException {
+  public void recover(String file, long version, String outputFile) throws PutException, RetrievalException {
     StoredValue<byte[]> oldAttrValue;
     GetOptions getOptions;
 
@@ -39,13 +39,13 @@ public class RecoverOldAttr {
       System.out.printf("Couldn't find file %s version %d\n", file, version);
     } else {
       System.out.printf("Rewriting file %s version %d\n", file, version);
-      syncNSP.put(file, oldAttrValue.getValue());
+      syncNSP.put(outputFile, oldAttrValue.getValue());
     }
   }
 
   public static void main(String[] args) {
-    if (args.length != 3 && args.length != 4) {
-      System.out.println("args: <gridConfig> <file> <version> [namespace]");
+    if (args.length < 3 || args.length > 5) {
+      System.out.println("args: <gridConfig> <file> <version> [outputFile] [namespace]");
     } else {
       try {
         RecoverOldAttr roa;
@@ -53,17 +53,23 @@ public class RecoverOldAttr {
         String file;
         long version;
         String namespace;
+        String  outputFile;
 
         gc = SKGridConfiguration.parseFile(args[0]);
         file = args[1];
         version = Long.parseLong(args[2]);
-        if (args.length == 4) {
-          namespace = args[3];
+        if (args.length >= 4) {
+          outputFile = args[3];
+        } else {
+          outputFile = file;
+        }
+        if (args.length == 5) {
+          namespace = args[4];
         } else {
           namespace = attrNamespace;
         }
         roa = new RecoverOldAttr(gc, namespace);
-        roa.recover(file, version);
+        roa.recover(file, version, outputFile);
       } catch (Exception e) {
         e.printStackTrace();
       }
