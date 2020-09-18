@@ -3,8 +3,8 @@ package com.ms.silverking.cloud.dht.client;
 import static com.ms.silverking.cloud.dht.client.TestUtil.getMaxAttempts_Null;
 import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeExclusionChangeRetryMillisForAttempt_Null;
 import static com.ms.silverking.cloud.dht.client.TestUtil.getRelativeTimeoutMillisForAttempt_Null;
-import static com.ms.silverking.cloud.dht.client.WaitForTimeoutController.defaultInternalRetryIntervalSeconds;
 import static com.ms.silverking.cloud.dht.client.WaitForTimeoutController.defaultExclusionChangeInternalRetryIntervalSeconds;
+import static com.ms.silverking.cloud.dht.client.WaitForTimeoutController.defaultInternalRetryIntervalSeconds;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
@@ -15,6 +15,9 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+
+@OmitGeneration
 public class WaitForTimeoutControllerTest {
 
     private static final int irisCopy = 20;

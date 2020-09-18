@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.client;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.text.ObjectDefParser2;
 
@@ -9,6 +10,7 @@ import com.ms.silverking.text.ObjectDefParser2;
  * constantTimeMillis + itemTimeMillis * opSizeInKeys. For non-keyed
  * operations, the nonKeyedOpMaxRelTimeout_ms is used.
  */
+@OmitGeneration
 public class OpSizeBasedTimeoutController implements OpTimeoutController {
   private final int maxAttempts;
   private final int constantTime_ms;

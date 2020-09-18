@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht.client;
 import java.util.concurrent.TimeUnit;
 
 import com.ms.silverking.cloud.dht.WaitOptions;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.text.ObjectDefParser2;
 
 /**
@@ -12,6 +13,7 @@ import com.ms.silverking.text.ObjectDefParser2;
  * parameters are either implicitly or explicitly specified in
  * the WaitOptions for the operation.
  */
+@OmitGeneration
 public class WaitForTimeoutController implements OpTimeoutController {
   private final int internalRetryIntervalSeconds;
   private final int internalExclusionChangeRetryIntervalSeconds;

@@ -35,7 +35,7 @@ public class Variable implements Expression {
     StaticFieldTypeSimple, StaticFieldTypeRaw, Enum, EnumValue, Interface, InterfacePackage, ReferencedClassSimple,
     InheritedClass, InheritedClassPackage, ImplementsInterfaces, NonVirtual, ParameterName, ParameterNameWrapped,
     ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive,
-    ParameterIsObject, ParameterIsUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive, SuperClass,
+    ParameterIsObject, ParameterIsUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive, StaticFieldTypeIsUserObjectOrEnum, SuperClass,
     SuperClassPackage, EmptyString, JNICallType
   }
 
@@ -223,6 +223,8 @@ public class Variable implements Expression {
           "false";
     case StaticFieldTypeIsPrimitive:
       return c.getField().getType() != null && (c.getField().getType().isPrimitive()) ? "true" : "false";
+    case StaticFieldTypeIsUserObjectOrEnum:
+      return isUserObjectOrEnum(c.getField().getType()) ? "true" : "false";
     case StaticFieldSignature:
       return JNIUtil.getJNISignature(c.getField());
     case StaticFieldName:
@@ -273,15 +275,40 @@ public class Variable implements Expression {
     return false;
   }
 
-  private boolean isObject(Parameter p) {
-    return p != null && (!p.getType().isPrimitive()) && (!p.getType().isArray()) && (!p.getType().isEnum()) && (!p.getType().getPackage().getName().startsWith(
-        "java"));
+  private boolean isObject(Parameter p, boolean ignoreSystemClasses) {
+    return p != null && isObject(p.getType(), ignoreSystemClasses); 
   }
 
+  private boolean isUserObject(Class c) {
+    System.out.printf("isUserObject class %s %s\n", c, c != null && isObject(c, true));
+    return c != null && isObject(c, true);
+  }
+  
+  private boolean isObject(Class c) {
+    return c != null && isObject(c, false);
+  }
+  
+  private boolean isObject(Class c, boolean ignoreSystemClasses) {
+    return (!c.isPrimitive()) && (!c.isArray()) && /*(!c.isEnum()) &&*/ (!ignoreSystemClasses || !c.getPackage().getName().startsWith("java"));
+  }
+  
+  private boolean isObjectOrEnum(Class c) {
+    return c != null && (c.isEnum()) || isObject(c, true);
+  }
+  
   private boolean isUserObject(Parameter p) {
-    return isObject(p) && !p.getType().equals(java.lang.String.class);
+    System.out.printf("isUserObject parameter %s %s\n", p, p != null && isUserObject(p.getType()));
+    return p != null && isUserObject(p.getType());
   }
 
+  private boolean isObject(Parameter p) {
+    return p != null && isObject(p.getType());
+  }
+  
+  private boolean isUserObjectOrEnum(Class c) {
+    return isObjectOrEnum(c);
+  }
+  
   private String getSuperclassPackage(Class c) {
     return getSuperclass(c).getPackage().getName();
   }
@@ -504,8 +531,7 @@ public class Variable implements Expression {
   }
 
   private static String getReturnTypeRaw(Method m) {
-    //System.out.printf("\t###%s\t%s\t%s\n", m.getName(), m.getReturnType().getName(), m.getGenericReturnType()
-    // .getTypeName());
+    //System.out.printf("\t###%s\t%s\t%s\n", m.getName(), m.getReturnType().getName(), m.getGenericReturnType().getTypeName());
     return m.getReturnType().getName();
     //return m.getGenericReturnType().getTypeName();
   }

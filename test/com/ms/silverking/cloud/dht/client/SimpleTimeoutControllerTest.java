@@ -17,8 +17,10 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 
+@OmitGeneration
 public class SimpleTimeoutControllerTest {
 
     private static final int maCopy = 5;

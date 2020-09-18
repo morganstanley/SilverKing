@@ -9,6 +9,7 @@ import com.ms.silverking.numeric.MutableInteger;
 /**
  * Per-key LRU state
  */
+@OmitGeneration
 class LRURetentionState extends CapacityBasedRetentionState {
   private final Map<DHTKey, MutableInteger> retentionMap;
 
