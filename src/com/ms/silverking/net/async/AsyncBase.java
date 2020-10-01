@@ -11,17 +11,16 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
-import com.ms.silverking.net.security.AuthFailure;
-import com.ms.silverking.net.security.AuthResult;
+import com.ms.silverking.net.security.AuthFailedException;
+import com.ms.silverking.net.security.AuthenticationResult;
 import com.ms.silverking.net.security.Authenticator;
-import com.ms.silverking.net.security.ConnectionAbsorbException;
+import com.ms.silverking.net.security.NonRetryableAuthFailedException;
 import com.ms.silverking.net.security.NoopAuthenticatorImpl;
+import com.ms.silverking.net.security.RetryableAuthFailedException;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTConstants;
 import com.ms.silverking.thread.lwt.LWTPool;
@@ -63,9 +62,9 @@ public abstract class AsyncBase<T extends Connection> {
 
   private final ChannelSelectorControllerAssigner<T> cscAssigner;
   private final ConnectionCreator<T> connectionCreator;
+  private final ConnectionManager<T> connectionManager;
   private final boolean debug;
   private final ConnectionStatsWriter connectionStatsWriter;
-  private final Set<Connection> connections;
   private final Authenticator authenticator;
 
   // favors short operations rather than attempting to parallelize
@@ -137,6 +136,7 @@ public abstract class AsyncBase<T extends Connection> {
       LWTPool writerWorkPool, int selectionThreadWorkLimit, boolean debug) throws IOException {
     this.cscAssigner = cscAssigner;
     this.connectionCreator = connectionCreator;
+    this.connectionManager = new ConnectionManager<T>();
     this.debug = debug;
 
     selectorControllers = new ArrayList<SelectorController<T>>();
@@ -154,10 +154,8 @@ public abstract class AsyncBase<T extends Connection> {
         FileUtil.cleanDirectory(statsBaseDir);
       }
       connectionStatsWriter = new ConnectionStatsWriter(statsBaseDir);
-      connections = new ConcurrentSkipListSet<>();
     } else {
       connectionStatsWriter = null;
-      connections = null;
     }
 
     this.authenticator = defAuthenticatorThreadLocal.get();
@@ -192,11 +190,7 @@ public abstract class AsyncBase<T extends Connection> {
   //////////////////////////////////////////////////////////////////////
 
   private void disconnect(Connection connection, String reason) {
-    Log.warning("AsyncBase disconnect: ", connection + " " + reason);
-    if (Connection.statsEnabled) {
-      connections.remove(connection);
-    }
-    connection.disconnect();
+    connectionManager.disconnectConnection(connection, reason);
   }
 
   public void setSuspectAddressListener(SuspectAddressListener suspectAddressListener) {
@@ -314,8 +308,7 @@ public abstract class AsyncBase<T extends Connection> {
   }
 
   ////////////////////////////////////////////////////////////////////////////////////
-  public T newOutgoingConnection(InetSocketAddress dest, ConnectionListener listener)
-      throws IOException, ConnectionAbsorbException {
+  public T newOutgoingConnection(InetSocketAddress dest, ConnectionListener listener) throws IOException, AuthFailedException {
     SocketChannel channel = null;
     boolean connectionSuccess = false;
 
@@ -342,12 +335,11 @@ public abstract class AsyncBase<T extends Connection> {
     }
   }
 
-  public T addConnection(SocketChannel channel, boolean serverside) throws SocketException, ConnectionAbsorbException {
+  public T addConnection(SocketChannel channel, boolean serverside) throws SocketException, AuthFailedException {
     return addConnection(channel, null, serverside);
   }
 
-  public T addConnection(SocketChannel channel, ConnectionListener listener, boolean serverside)
-      throws SocketException, ConnectionAbsorbException {
+  public T addConnection(SocketChannel channel, ConnectionListener listener, boolean serverside) throws SocketException, AuthFailedException {
     T connection;
     SelectorController<T> selectorController;
 
@@ -361,22 +353,23 @@ public abstract class AsyncBase<T extends Connection> {
     channel.socket().setSoTimeout(defSocketReadTimeout); // (for auth as the rest is non-blocking)
 
     String connInfo = channel.socket() != null ? channel.socket().toString() : "nullSock";
-    AuthResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside,
+    AuthenticationResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside,
         defAuthenticationTimeoutInMillisecond);
     if (authResult.isFailed()) {
+      String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ?
+          "ServerSide" :
+          "ClientSide");
       switch (authResult.getFailedAction()) {
       case GO_WITHOUT_AUTH:
         break;
-      case THROW_ERROR:
-        String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ?
-            "ServerSide" :
-            "ClientSide");
+      case THROW_NON_RETRYABLE:
         throw authResult.getFailCause().isPresent() ?
-            new AuthFailure(msg, authResult.getFailCause().get()) :
-            new AuthFailure(msg);
-      case ABSORB:
-        throw new ConnectionAbsorbException(channel, connInfo, listener, serverside,
-            authResult.getFailCause().orElse(null));
+            new NonRetryableAuthFailedException(msg, authResult.getFailCause().get()) :
+            new NonRetryableAuthFailedException(msg);
+      case THROW_RETRYABLE:
+        throw authResult.getFailCause().isPresent() ?
+            new RetryableAuthFailedException(msg, authResult.getFailCause().get()) :
+            new RetryableAuthFailedException(msg);
       default:
         throw new RuntimeException("Connection " + connInfo + " fails to be authenticated from " + (serverside ?
             "ServerSide" :
@@ -399,15 +392,13 @@ public abstract class AsyncBase<T extends Connection> {
     connection = connectionCreator.createConnection(channel, selectorController, listener, debug);
 
     if (authResult.isSuccessful()) {
-      Log.info("Authenticator: authId[" + authResult.getAuthId().get() + "] is obtained in [" + (serverside ?
+      Log.info("Authenticator: authId[" + authResult.getAuthenticatedId().get() + "] is obtained in [" + (serverside ?
           "ServerSide" :
           "ClientSide") + "] by [" + authenticator.getName() + "] for connection " + connInfo);
       connection.setAuthenticationResult(authResult);
     }
     connection.start();
-    if (Connection.statsEnabled) {
-      connections.add(connection);
-    }
+    connectionManager.addConnection(connection);
     return connection;
   }
 
@@ -427,12 +418,20 @@ public abstract class AsyncBase<T extends Connection> {
   }
 
   public void writeStats() {
-    for (Connection c : connections) {
+    for (Connection c : connectionManager.getConnections()) {
       try {
         connectionStatsWriter.writeStats(c);
       } catch (Exception e) {
         e.printStackTrace();
       }
     }
+  }
+
+  public ConnectionController getConnectionController(){
+    return connectionManager;
+  }
+
+  void registerConnectionManager(){
+    ConnectionManager.addManager(connectionManager);
   }
 }

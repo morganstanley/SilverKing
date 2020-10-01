@@ -67,6 +67,7 @@ public class RingMapState2 {
   private final RingConfiguration ringConfig;
   private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
   private ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider;
+  private SelfExclusionResponder selfExclusionResponder;
 
   /*
    * secondarySets are used to specify subsets of secondary nodes within
@@ -97,7 +98,7 @@ public class RingMapState2 {
   private static final boolean ignoreReaddition = false;    // Previously, we ignored all re-addition.
   // Leave capability to go back to that, but turn off.
 
-  private static volatile boolean localNodeIsExcluded;
+  private static volatile boolean localNodeIsExcluded = false;
 
   private static void setLocalNodeIsExcluded(boolean _localNodeIsExcluded) {
     localNodeIsExcluded = _localNodeIsExcluded;
@@ -110,7 +111,7 @@ public class RingMapState2 {
 
   RingMapState2(IPAndPort nodeID, DHTMetaUpdate dhtMetaUpdate, RingID ringID, StoragePolicyGroup storagePolicyGroup,
       com.ms.silverking.cloud.toporing.meta.MetaClient ringMC, ExclusionSet exclusionSet,
-      com.ms.silverking.cloud.dht.meta.MetaClient dhtMC) {
+      com.ms.silverking.cloud.dht.meta.MetaClient dhtMC, SelfExclusionResponder responder) {
     this.nodeID = nodeID;
     dhtConfigVersion = dhtMetaUpdate.getDHTConfig().getZKID();
     ringConfig = dhtMetaUpdate.getNamedRingConfiguration().getRingConfiguration();
@@ -118,6 +119,7 @@ public class RingMapState2 {
     this.ringIDAndVersionPair = new RingIDAndVersionPair(ringID, rawRingTree.getRingVersionPair());
     ringNameAndVersionPair = Triple.of(dhtMetaUpdate.getDHTConfig().getRingName(), rawRingTree.getRingVersionPair());
     this.dhtMC = dhtMC;
+    this.selfExclusionResponder = responder;
 
     curInstanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
     curExclusionSet = ExclusionSet.emptyExclusionSet(0);
@@ -432,6 +434,7 @@ public class RingMapState2 {
         // Read new exclusion set
         try {
           ExclusionSet candidateExclusionSet;
+          boolean localNodeIsExcludedInCandidateSet;
 
           if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath())) {
             ExclusionSet exclusionSet;
@@ -470,10 +473,24 @@ public class RingMapState2 {
             return;
           }
           curUnionExclusionSet = candidateExclusionSet;
+
+          localNodeIsExcludedInCandidateSet = candidateExclusionSet.contains(nodeID.getIPAsString());
+          if (selfExclusionResponder != null) {
+            //Node wasn't excluded but it is now
+            if (!localNodeIsExcluded() && localNodeIsExcludedInCandidateSet) {
+              selfExclusionResponder.onExclusion();
+            } else {
+              Log.warningf("SelfExclusionResponder ignored event as excluded before: %s now: %s", localNodeIsExcluded(),
+                  localNodeIsExcludedInCandidateSet);
+            }
+          } else {
+            Log.warning("SelfExclusionResponder is disabled");
+          }
+
           // Small race here between the value of curUnionExclusionSet and setLocalNodeIsExcluded()
           // and in StorageModule.liveReap() between the state of the same two. We live with this
           // for now as the impact should be rare and limited.
-          setLocalNodeIsExcluded(curUnionExclusionSet.contains(nodeID.getIPAsString()));
+          setLocalNodeIsExcluded(localNodeIsExcludedInCandidateSet);
           if (exclusionSetAddressStatusProvider != null) {
             exclusionSetAddressStatusProvider.setExclusionSet(curUnionExclusionSet);
           }
@@ -583,5 +600,9 @@ public class RingMapState2 {
   public void setExclusionSetAddressStatusProvider(
       ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider) {
     this.exclusionSetAddressStatusProvider = exclusionSetAddressStatusProvider;
+  }
+
+  public void setSelfExclusionResponder(SelfExclusionResponder responder) {
+    this.selfExclusionResponder = responder;
   }
 }

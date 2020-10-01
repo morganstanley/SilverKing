@@ -44,39 +44,33 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @param keys             a set of keys to retrieve
    * @param retrievalOptions options for the retrieval
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions)
-      throws RetrievalException;
+  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions);
 
   /**
    * Base retrieval operation - with default options
    *
    * @param keys a set of keys to retrieve
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys) throws RetrievalException;
+  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys);
 
   /**
    * Single-value retrieval operation
    *
-   * @param keys             a set of keys to retrieve
+   * @param key              a key to retrieve
    * @param retrievalOptions options for the retrieval
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncSingleRetrieval<K, V> retrieve(K key, RetrievalOptions retrievalOptions) throws RetrievalException;
+  public AsyncSingleRetrieval<K, V> retrieve(K key, RetrievalOptions retrievalOptions);
 
   /**
    * Single-value retrieval operation - with default options
    *
-   * @param keys             a set of keys to retrieve
-   * @param retrievalOptions options for the retrieval
+   * @param key a key to retrieve
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncSingleRetrieval<K, V> retrieve(K key) throws RetrievalException;
+  public AsyncSingleRetrieval<K, V> retrieve(K key);
 
   // get - do not wait for key-value pairs to exist
   // multi-value
@@ -87,18 +81,16 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @param keys       a set of keys to retrieve
    * @param getOptions options for the Get operation
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncValueRetrieval<K, V> get(Set<? extends K> keys, GetOptions getOptions) throws RetrievalException;
+  public AsyncValueRetrieval<K, V> get(Set<? extends K> keys, GetOptions getOptions);
 
   /**
    * Multiple-value Get operation using default GetOptions. For retrieving values only; not StoredValues.
    *
    * @param keys a set of keys to retrieve
    * @return an AsyncValueRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  default public AsyncValueRetrieval<K, V> get(Set<? extends K> keys) throws RetrievalException {
+  default public AsyncValueRetrieval<K, V> get(Set<? extends K> keys) {
     return (AsyncValueRetrieval<K, V>) get(keys, getOptions().getDefaultGetOptions());
   }
   // single-value
@@ -109,18 +101,16 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @param key        key to retrieve
    * @param getOptions options for the Get operation
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncSingleValueRetrieval<K, V> get(K key, GetOptions getOptions) throws RetrievalException;
+  public AsyncSingleValueRetrieval<K, V> get(K key, GetOptions getOptions);
 
   /**
    * Single-value Get operation using default GetOptions. For retrieving values only; not StoredValues.
    *
-   * @param key key to retrieve
+   * @param key a key to retrieve
    * @return an AsyncSingleValueRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  default public AsyncSingleValueRetrieval<K, V> get(K key) throws RetrievalException {
+  default public AsyncSingleValueRetrieval<K, V> get(K key) {
     return (AsyncSingleValueRetrieval<K, V>) get(key, getOptions().getDefaultGetOptions());
   }
 
@@ -133,18 +123,16 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @param keys        a set of keys to retrieve
    * @param waitOptions options for the WaitFor operation
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys, WaitOptions waitOptions) throws RetrievalException;
+  public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys, WaitOptions waitOptions);
 
   /**
    * Multi-value WaitFor operation using default WaitFor operations. For retrieving values only; not StoredValues.
    *
    * @param keys a set of keys to retrieve
    * @return an AsyncValueRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  default public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys) throws RetrievalException {
+  default public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys) {
     return (AsyncValueRetrieval<K, V>) waitFor(keys, getOptions().getDefaultWaitOptions());
   }
   // single-value
@@ -155,18 +143,16 @@ public interface AsynchronousReadableNamespacePerspective<K, V> extends BaseName
    * @param key         key to retrieve
    * @param waitOptions options for the WaitFor operation
    * @return an AsyncRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  public AsyncSingleValueRetrieval<K, V> waitFor(K key, WaitOptions waitOptions) throws RetrievalException;
+  public AsyncSingleValueRetrieval<K, V> waitFor(K key, WaitOptions waitOptions);
 
   /**
    * Single-value WaitFor operation using default WaitOptions. For retrieving values only; not StoredValues.
    *
    * @param key key to retrieve
    * @return an AsyncSingleValueRetrieval object representing the operation
-   * @throws RetrievalException
    */
-  default public AsyncSingleValueRetrieval<K, V> waitFor(K key) throws RetrievalException {
-    return (AsyncSingleValueRetrieval<K, V>) waitFor(key, getOptions().getDefaultWaitOptions());
+  default public AsyncSingleValueRetrieval<K, V> waitFor(K key) {
+    return waitFor(key, getOptions().getDefaultWaitOptions());
   }
 }

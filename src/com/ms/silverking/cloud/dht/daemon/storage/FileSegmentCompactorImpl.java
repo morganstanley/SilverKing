@@ -3,6 +3,9 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -73,10 +76,21 @@ public class FileSegmentCompactorImpl implements FileSegmentCompactor {
     return trashFile;
   }
 
+  static long readCreationTime(File file) throws IOException {
+    BasicFileAttributes view = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+    return view.creationTime().toMillis();
+  }
+
+  static void setCreationTime(File file, long millis) throws IOException {
+    Files.getFileAttributeView(file.toPath(), BasicFileAttributeView.class).setTimes(null, null, FileTime.fromMillis(millis));
+  }
+
   private static void rename(File src, File target) throws IOException {
+    long creationTime = readCreationTime(src);
     if (!src.renameTo(target)) {
       throw new IOException("Rename failed: " + src + " " + target);
     }
+    setCreationTime(target, creationTime);
   }
 
   static FileSegment createCompactedSegment(File nsDir, int segmentNumber, NamespaceOptions nsOptions, int segmentSize,

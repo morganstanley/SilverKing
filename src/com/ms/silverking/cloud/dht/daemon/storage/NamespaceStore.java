@@ -64,7 +64,6 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.DHTKeyComparator;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.JVMUtil;
-import com.ms.silverking.cloud.dht.common.KeyAndInteger;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataConstants;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
@@ -100,6 +99,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyOrdinalEntry;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
+import com.ms.silverking.cloud.dht.serverside.RetrieveCallback;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
 import com.ms.silverking.cloud.dht.serverside.SSRetrievalOptions;
@@ -922,16 +922,11 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           NonExistenceResponse.NULL_VALUE, true);
       result = _retrieve(key, new InternalRetrievalOptions(options), false);
       if (result == null) {
-        //Log.warningf("%s %d unlocked.1", KeyUtil.keyToString(key), storageParams != null ? storageParams.getVersion
-        // () : -1);
         return LockCheckResult.Unlocked;
       } else {
         short existingLockSeconds;
 
         existingLockSeconds = MetaDataUtil.getLockSeconds(result, 0);
-        //Log.warningf("%s %d %d %d %s %s", KeyUtil.keyToString(key), storageParams != null ? storageParams
-        // .getVersion() : -1, existingLockSeconds, MetaDataUtil.getVersion(result, 0), writeLock, writeLock
-        // .isHeldByCurrentThread());
         if (existingLockSeconds == PutOptions.noLock) {
           return LockCheckResult.Unlocked;
         } else {
@@ -958,7 +953,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         }
       }
     } else {
-      //Log.warningf("%s %d ignored.1", KeyUtil.keyToString(key), storageParams.getVersion());
       return LockCheckResult.Ignored;
     }
   }
@@ -1206,31 +1200,29 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   /**
    * Checks to see if this put() should be allowed to proceed on the basis that it is a duplicate of a previous
    * storage operation.
+   * <p>
+   * NB this currently disregards the userData of the operation.
    *
    * @param key
    * @param value
    * @param storageParams
-   * @param userData
    * @return
    */
   private SegmentStorageResult checkForDuplicateStore(DHTKey key, ByteBuffer value, StorageParameters storageParams,
-      byte[] userData, VersionConstraint vc) {
+      VersionConstraint vc) {
     RetrievalOptions options;
     ByteBuffer result;
-    int debug = 0;
 
     // this comparison isn't returning invalid version like it should for some cases
     options = OptionsHelper.newRetrievalOptions(RetrievalType.VALUE, WaitMode.GET, vc, NonExistenceResponse.EXCEPTION,
         true);
     result = _retrieve(key, options);
     if (result == null) {
-      debug = -1;
       // previous storage operation is not complete
       return SegmentStorageResult.previousStoreIncomplete;
     } else {
       if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
           MetaDataUtil.getStorageState(result, 0))) {
-        debug = -2;
         // previous storage operation is not complete
         return SegmentStorageResult.previousStoreIncomplete;
       } else {
@@ -1238,23 +1230,18 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         if (storageParams.getChecksumType() == MetaDataUtil.getChecksumType(result, 0)) {
           if (storageParams.getChecksumType() != ChecksumType.NONE) {
             if (Arrays.equals(MetaDataUtil.getChecksum(result, 0), storageParams.getChecksum())) {
-              debug = -10;
               return SegmentStorageResult.duplicateStore;
             } else {
-              debug = 1;
               return SegmentStorageResult.mutation;
             }
           } else {
             if (BufferUtil.equals(result, MetaDataUtil.getDataOffset(result, 0), value, 0, value.limit())) {
-              debug = -11;
               return SegmentStorageResult.duplicateStore;
             } else {
-              debug = 2;
               return SegmentStorageResult.mutation;
             }
           }
         } else {
-          debug = 3;
           return SegmentStorageResult.mutation;
         }
       }
@@ -1312,7 +1299,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       if (versionCheckResult == VersionCheckResult.Equal || (versionCheckResult != VersionCheckResult.Valid_New_Key && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION && nsOptions.getRevisionMode() == RevisionMode.NO_REVISIONS)) {
         VersionConstraint vc = versionCheckResult == VersionCheckResult.Equal ? VersionConstraint.exactMatch(
             storageParams.getVersion()) : VersionConstraint.maxBelowOrEqual(storageParams.getVersion());
-        storageResult = checkForDuplicateStore(key, value, storageParams, userData, vc);
+        storageResult = checkForDuplicateStore(key, value, storageParams, vc);
         if (debug) {
           Log.warningAsyncf("checkForDuplicateStore result %s", storageResult);
         }
@@ -1324,6 +1311,9 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         }
       }
 
+      if (TimeBasedSegmentRollOver.isEnabled && TimeBasedSegmentRollOver.needRollOverOnPut(headSegment)) {
+        newHeadSegment();
+      }
       storageSegment = headSegment;
       try {
         storageResult = storageSegment.put(key, value, storageParams, userData, nsOptions);
@@ -1640,38 +1630,41 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   private static final AtomicInteger commonSegment = new AtomicInteger();
   private static final AtomicInteger totalKeys = new AtomicInteger();
 
-  private ByteBuffer[] checkTriggerAndRetrieve(DHTKey[] keys, InternalRetrievalOptions options) {
-    ByteBuffer[] results;
-
+  private void checkTriggerAndRetrieve(DHTKey[] keys, InternalRetrievalOptions options,
+      RetrieveCallback<ByteBuffer[], Void> callback) {
     if (retrieveTrigger == null) {
       if (keys.length > 1) {
-        results = _retrieve(keys, options);
+        callback.apply(_retrieve(keys, options));
       } else {
         // special case single retrieval (for speed)
-        results = new ByteBuffer[1];
-        results[0] = _retrieve(keys[0], options);
+        _retrieve(keys[0], options, (ByteBuffer result) -> {
+          ByteBuffer[] results;
+
+          results = new ByteBuffer[1];
+          results[0] = result;
+          return callback.apply(results);
+        });
       }
     } else {
-      readLock.lock(); // Reentrant lock to scale up the critical section to cover the LRUTrigger update
-      try {
-        if (keys.length > 1) {
-          results = retrieveTrigger.retrieve(this, keys, options);
-        } else {
-          // special case single retrieval (for speed)
-          results = new ByteBuffer[1];
-          results[0] = retrieveTrigger.retrieve(this, keys[0], options);
-        }
-      } finally {
-        readLock.unlock();
-      }
+      retrieveViaTrigger(keys, options, callback);
     }
-
-    return results;
   }
 
-  public List<ByteBuffer> retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID) {
+  public void retrieve(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID,
+      RetrieveCallback<Pair<DHTKey, ByteBuffer>, Void> singleResultCallback) {
     DHTKey[] _keys;
-    ByteBuffer[] _results;
+    RetrieveCallback<ByteBuffer[], Void> callback;
+    RetrieveCallback<List<ByteBuffer>, Void> groupedCallback;
+
+    groupedCallback = (List<ByteBuffer> results) -> {
+      for (int i = 0; i < results.size(); i++) {
+        Pair<DHTKey, ByteBuffer> resultAndKey;
+
+        resultAndKey = new Pair<>(keys.get(i), results.get(i));
+        singleResultCallback.apply(resultAndKey);
+      }
+      return null;
+    };
 
     if (debugVersion) {
       Log.fineAsync("retrieve internal options: %s", options);
@@ -1682,223 +1675,245 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       _keys[i] = keys.get(i);
     }
 
-    _results = checkTriggerAndRetrieve(_keys, options);
+    callback = (ByteBuffer[] _results) -> {
+      for (int i = 0; i < _results.length; i++) {
+        if (parent != null) {
+          VersionConstraint vc;
 
-    for (int i = 0; i < _results.length; i++) {
-      if (parent != null) {
-        VersionConstraint vc;
-
-        if (debugParent) {
-          Log.warning("parent != null");
-        }
-        vc = options.getVersionConstraint();
-
-        // We look in parent if the vc could possibly be answered by the parent
-        // in a way that would override what we have from this namespace.
-
-        if (_results[i] == null) {
           if (debugParent) {
-            Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
+            Log.warning("parent != null");
           }
-          // If result from this ns is null, look in the parent.
-          _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
-          if (debugParent) {
-            if (_results[i] != null) {
-              Log.warning("Found result in parent");
-            }
-          }
-        } else {
-          // If we have a non-null value from this ns, and the vc mode is GREATEST
-          // then the value that we already have is the best.
-          // Otherwise for the LEAST case, look in the parent to see if it has a better result.
-          if (vc.getMode() == VersionConstraint.Mode.LEAST) {
-            ByteBuffer parentResult;
+          vc = options.getVersionConstraint();
 
+          // We look in parent if the vc could possibly be answered by the parent
+          // in a way that would override what we have from this namespace.
+
+          if (_results[i] == null) {
             if (debugParent) {
-              Log.warning("Non-null result, but mode LEAST. checking parent");
+              Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
             }
-            parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
-            if (parentResult != null) {
-              // if the parent had any valid result, then - by virtue of the fact
-              // that all parent versions are < child versions - the parent
-              // result is preferred
-              _results[i] = parentResult;
+            // If result from this ns is null, look in the parent.
+            _results[i] = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+            if (debugParent) {
               if (_results[i] != null) {
                 Log.warning("Found result in parent");
               }
             }
-          }
-        }
-      }
-
-      if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR && options.getVersionConstraint().getMax() > curSnapshot) {
-        // Note that since we hold the readLock, a write cannot come
-        // in while we add the pending wait for.
-        addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
-      }
-      if (options.getVerifyIntegrity()) {
-        _results[i] = verifyIntegrity(_keys[i], _results[i]);
-      }
-    }
-
-    return SKImmutableList.copyOf(_results);
-  }
-
-  public List<ByteBuffer> retrieve_nongroupedImpl(List<? extends DHTKey> keys, InternalRetrievalOptions options,
-      UUIDBase opUUID) {
-    List<ByteBuffer> results;
-    KeyAndInteger[] _keys;
-
-    nsMetrics.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
-        /*
-        // We sort to attempt to group segment access
-        _keys = new KeyAndInteger[keys.size()];
-        for (int i = 0; i < _keys.length; i++) {
-            DHTKey  k;
-
-            k = keys.get(i);
-            _keys[i] = new KeyAndInteger(k, getSegmentNumber(k, options.getVersionConstraint()));
-        }
-        Arrays.sort(_keys, KeyAndInteger.getIntegerComparator());
-
-        int prevSegment;
-        int groupStart;
-        List<KeyAndInteger[]>   keyGroups;
-
-        keyGroups = new ArrayList<>();
-        groupStart = 0;
-        prevSegment = _keys[0].getInteger();
-        for (int i = 1; i < _keys.length; i++) {
-            int curSegment;
-
-            curSegment = _keys[i].getInteger();
-            if (curSegment == prevSegment) {
-                //commonSegment.incrementAndGet();
-            } else {
-                KeyAndInteger[] keyGroup;
-
-                keyGroup = new KeyAndInteger[i - groupStart];
-                System.arraycopy(_keys, groupStart, keyGroup, 0, keyGroup.length);
-                keyGroups.add(keyGroup);
-                groupStart = i;
-            }
-            prevSegment = curSegment;
-        }
-        //totalKeys.addAndGet(_keys.length);
-        if (groupStart < _keys.length) {
-            KeyAndInteger[] keyGroup;
-
-            keyGroup = new KeyAndInteger[_keys.length - groupStart];
-            System.arraycopy(_keys, groupStart, keyGroup, 0, keyGroup.length);
-            keyGroups.add(keyGroup);
-        }
-        // temporary for analysis
-        //System.out.printf("%d %d\n", commonSegment.get(), totalKeys.get());
-        */
-
-    if (debugVersion) {
-      Log.warningAsyncf("retrieve internal options: %s", options);
-    }
-    results = new ArrayList<>(keys.size());
-    //readLock.lock();
-    //try {
-            /*
-            for (int i = 0; i < keyGroups.size(); i++) {
-                KeyAndInteger[] keyGroup;
-                ByteBuffer[]    bufferGroup;
-
-                keyGroup = keyGroups.get(i);
-                bufferGroup = _retrieve(keyGroup, options);
-                for (int j = 0; j < keyGroup.length; j++) {
-                    KeyAndInteger   key;
-
-                    key = keyGroup[j];
-            */
-
-    for (DHTKey key : keys) {
-      //for (KeyAndInteger key : _keys) {
-      ByteBuffer result;
-
-      //result = _retrieve(key, options, key.getInteger()/*the segment number*/);
-                /*
-                if (bufferGroup != null) {
-                    result = bufferGroup[j];
-                } else {
-                    result = null;
-                }
-                */
-      if (retrieveTrigger != null) {
-        readLock.lock();
-        try {
-          result = retrieveTrigger.retrieve(this, key, options);
-        } finally {
-          readLock.unlock();
-        }
-      } else {
-        result = _retrieve(key, options);
-      }
-
-      if (parent != null) {
-        VersionConstraint vc;
-
-        if (debugParent) {
-          Log.warning("parent != null");
-        }
-        vc = options.getVersionConstraint();
-
-        // We look in parent if the vc could possibly be answered by the parent
-        // in a way that would override what we have from this namespace.
-
-        if (result == null) {
-          if (debugParent) {
-            Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
-          }
-          // If result from this ns is null, look in the parent.
-          result = parent._retrieve(key, makeOptionsForNestedRetrieve(options));
-          if (debugParent) {
-            if (result != null) {
-              Log.warning("Found result in parent");
-            }
-          }
-        } else {
-          // If we have a non-null value from this ns, and the vc mode is GREATEST
-          // then the value that we already have is the best.
-          // Otherwise for the LEAST case, look in the parent to see if it has a better result.
-          if (vc.getMode() == VersionConstraint.Mode.LEAST) {
-            ByteBuffer parentResult;
-
-            if (debugParent) {
-              Log.warning("Non-null result, but mode LEAST. checking parent");
-            }
-            parentResult = parent._retrieve(key, makeOptionsForNestedRetrieve(options));
-            if (parentResult != null) {
-              // if the parent had any valid result, then - by virtue of the fact
-              // that all parent versions are < child versions - the parent
-              // result is preferred
-              result = parentResult;
+          } else {
+            // If we have a non-null value from this ns, and the vc mode is GREATEST
+            // then the value that we already have is the best.
+            // Otherwise for the LEAST case, look in the parent to see if it has a better result.
+            if (vc.getMode() == VersionConstraint.Mode.LEAST) {
               if (debugParent) {
-                Log.warning("Found result in parent");
+                Log.warning("Non-null result, but mode LEAST. checking parent");
+              }
+              ByteBuffer parentResult;
+
+              parentResult = parent._retrieve(_keys[i], makeOptionsForNestedRetrieve(options));
+              if (parentResult != null) {
+                // if the parent had any valid result, then - by virtue of the fact
+                // that all parent versions are < child versions - the parent
+                // result is preferred
+                _results[i] = parentResult;
+                if (_results[i] != null) {
+                  Log.warning("Found result in parent");
+                }
               }
             }
           }
         }
+
+        if (_results[i] == null && options.getWaitMode() == WaitMode.WAIT_FOR && options.getVersionConstraint().getMax() > curSnapshot) {
+          // Note that since we hold the readLock, a write cannot come
+          // in while we add the pending wait for.
+          addPendingWaitFor(_keys[i], options.getRetrievalOptions(), opUUID);
+        }
+        if (options.getVerifyIntegrity()) {
+          _results[i] = verifyIntegrity(_keys[i], _results[i]);
+        }
       }
 
-      if (result == null && options.getWaitMode() == WaitMode.WAIT_FOR && options.getVersionConstraint().getMax() > curSnapshot) {
-        // Note that since we hold the readLock, a write cannot come
-        // in while we add the pending wait for.
-        addPendingWaitFor(key, options.getRetrievalOptions(), opUUID);
-      }
-      if (options.getVerifyIntegrity()) {
-        result = verifyIntegrity(key, result);
-      }
-      results.add(result);
+      return groupedCallback.apply(SKImmutableList.copyOf(_results));
+    };
+
+    checkTriggerAndRetrieve(_keys, options, callback);
+  }
+
+  public void retrieve_nongroupedImpl(List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID,
+      RetrieveCallback<Pair<DHTKey, ByteBuffer>, Void> singleResultCallback) {
+    boolean shouldAcquireReadLock;
+
+    if (debugVersion) {
+      Log.warningAsyncf("retrieve internal options: %s", options);
     }
-    //}
-    //} finally {
-    //    readLock.unlock();
-    //}
-    return results;
+
+    nsMetrics.addRetrievals(keys.size(), SystemTimeUtil.timerDrivenTimeSource.absTimeMillis());
+
+    // Note that we do not acquire the read lock if this is a Callback trigger as those are expected to perform their
+    // own lock management. The read lock is acquired when there is no trigger or when the trigger implements the
+    // RetrieveTrigger.Direct interface.
+    shouldAcquireReadLock = retrieveTrigger == null || RetrieveTrigger.Direct.class.isAssignableFrom(
+        retrieveTrigger.getClass());
+
+    if (shouldAcquireReadLock) {
+      readLock.lock();
+    }
+
+    try {
+      for (DHTKey key : keys) {
+        RetrieveCallback<ByteBuffer, Void> callback;
+
+        callback = (ByteBuffer result) -> {
+          Pair<DHTKey, ByteBuffer> resultAndKey;
+
+          if (parent != null) {
+            VersionConstraint vc;
+
+            if (debugParent) {
+              Log.warning("parent != null");
+            }
+            vc = options.getVersionConstraint();
+
+            // We look in parent if the vc could possibly be answered by the parent
+            // in a way that would override what we have from this namespace.
+
+            if (result == null) {
+              if (debugParent) {
+                Log.warningf("%x null result. Checking parent %x.", ns, parent.getNamespace());
+              }
+              // If result from this ns is null, look in the parent.
+              result = parent._retrieve(key, makeOptionsForNestedRetrieve(options));
+              if (debugParent) {
+                if (result != null) {
+                  Log.warning("Found result in parent");
+                }
+              }
+            } else {
+              // If we have a non-null value from this ns, and the vc mode is GREATEST
+              // then the value that we already have is the best.
+              // Otherwise for the LEAST case, look in the parent to see if it has a better result.
+              if (vc.getMode() == VersionConstraint.Mode.LEAST) {
+                ByteBuffer parentResult;
+
+                if (debugParent) {
+                  Log.warning("Non-null result, but mode LEAST. checking parent");
+                }
+                parentResult = parent._retrieve(key, makeOptionsForNestedRetrieve(options));
+                if (parentResult != null) {
+                  // if the parent had any valid result, then - by virtue of the fact
+                  // that all parent versions are < child versions - the parent
+                  // result is preferred
+                  result = parentResult;
+                  if (debugParent) {
+                    Log.warning("Found result in parent");
+                  }
+                }
+              }
+            }
+
+            if (result == null && options.getWaitMode() == WaitMode.WAIT_FOR && options.getVersionConstraint().getMax() > curSnapshot) {
+              // Note that since we hold the readLock, a write cannot come
+              // in while we add the pending wait for.
+              addPendingWaitFor(key, options.getRetrievalOptions(), opUUID);
+            }
+            if (options.getVerifyIntegrity()) {
+              result = verifyIntegrity(key, result);
+            }
+          }
+
+          resultAndKey = new Pair<>(key, result);
+          singleResultCallback.apply(resultAndKey);
+          return null;
+        };
+
+        if (retrieveTrigger != null) {
+          if (RetrieveTrigger.Callback.class.isAssignableFrom(retrieveTrigger.getClass())) {
+            ((RetrieveTrigger.Callback) retrieveTrigger).retrieve(this, key, options, callback);
+          } else {
+            // special case single retrieval (for speed)
+            ByteBuffer result;
+
+            result = ((RetrieveTrigger.Direct) retrieveTrigger).retrieve(this, key, options);
+            callback.apply(result);
+          }
+        } else {
+          // TODO (OPTIMUS-35616): the namespace read lock remains held here while performing result processing; it
+          // should be released earlier to reduce contention.
+          _retrieve(key, options, callback);
+        }
+      }
+    } finally {
+      if (shouldAcquireReadLock) {
+        readLock.unlock();
+      }
+    }
+  }
+
+  /**
+   * Executes a retrieve of multiple {@link DHTKey}s using the trigger.
+   * <p>
+   * If the trigger implements {@link RetrieveTrigger.Direct} then the trigger's {@code retrieve} method will be be
+   * invoked on the calling thread, which will block until that method completes and then invoke the {@code callback}
+   * with the result of that retrieval. The namespace's read lock will be acquired before invoking the trigger.
+   * <p>
+   * Alternatively, if the trigger implements {@link RetrieveTrigger.Callback} then the trigger's {@code retrieve}
+   * method will be invoked on the calling thread and the {@code callback} will be passed through to the trigger. In
+   * this case the read lock is <strong>not</strong> acquired before invoking {@code retrieve}. It is the responsibility
+   * of the trigger both to perform its own lock management of the namespace lock, and also to later invoke the
+   * {@code callback}, which may happen from any thread of its choosing. As such there is no guarantee that the
+   * operation will have been completed when the {@code retrieve} call returns.
+   *
+   * @param keys     The keys to retrieve
+   * @param options  {@link RetrievalOptions} for the retrieve operation
+   * @param callback The operation to perform on the result of the retrieve.
+   */
+  private void retrieveViaTrigger(DHTKey[] keys, SSRetrievalOptions options,
+      RetrieveCallback<ByteBuffer[], Void> callback) {
+    if (retrieveTrigger == null) {
+      throw new IllegalArgumentException("Cannot retrieveViaTrigger when retrieveTrigger is null");
+    }
+    if (keys.length > 1) {
+      // Note that we do not acquire the read lock before invoking a Callback trigger as those are expected to perform
+      // their own lock management.
+      if (RetrieveTrigger.Callback.class.isAssignableFrom(retrieveTrigger.getClass())) {
+        ((RetrieveTrigger.Callback) retrieveTrigger).retrieve(this, keys, options, callback);
+      } else {
+        ByteBuffer[] results;
+
+        readLock.lock();
+        try {
+          results = ((RetrieveTrigger.Direct) retrieveTrigger).retrieve(this, keys, options);
+          callback.apply(results);
+        } finally {
+          readLock.unlock();
+        }
+      }
+    } else {
+      RetrieveCallback<ByteBuffer, Void> singleKeyCallback;
+
+      singleKeyCallback = (ByteBuffer result) -> {
+        ByteBuffer[] results;
+
+        results = new ByteBuffer[1];
+        results[0] = result;
+        return callback.apply(results);
+      };
+
+      if (RetrieveTrigger.Callback.class.isAssignableFrom(retrieveTrigger.getClass())) {
+        ((RetrieveTrigger.Callback) retrieveTrigger).retrieve(this, keys[0], options, singleKeyCallback);
+      } else {
+        // special case single retrieval (for speed)
+        ByteBuffer result;
+
+        readLock.lock();
+        try {
+          result = ((RetrieveTrigger.Direct) retrieveTrigger).retrieve(this, keys[0], options);
+          singleKeyCallback.apply(result);
+        } finally {
+          readLock.unlock();
+        }
+      }
+    }
   }
 
   /**
@@ -2036,97 +2051,10 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     }
   }
 
-  /**
-   * Called when we find a value in the middle of a write operation. We go back to the
-   * previously good stored value. Note that we may need to go back more than one value.
-   *
-   * @param key
-   * @param options
-   * @return
-   */
-    /*
-     * FUTURE - consider removal
-    protected ByteBuffer _retrievePrevious(DHTKey key, InternalRetrievalOptions options) {
-        InternalRetrievalOptions curPrevOptions;
-        boolean    found;
+  protected <T> T _retrieve(DHTKey key, InternalRetrievalOptions options, RetrieveCallback<ByteBuffer, T> callback) {
+    return callback.apply(_retrieve(key, options));
+  }
 
-        switch (options.getRetrievalType()) {
-        case VALUE:
-            curPrevOptions = options.retrievalType(RetrievalType.VALUE_AND_META_DATA);
-            break;
-        case VALUE_AND_META_DATA:
-        case META_DATA:
-            curPrevOptions = options;
-            break;
-        case EXISTENCE:
-            curPrevOptions = options.retrievalType(RetrievalType.META_DATA);
-            break;
-        default: throw new RuntimeException("Panic");
-        }
-        //options = options.clipAt();
-        while (true) {
-            ByteBuffer    result;
-
-            result = _retrieve(key, options);
-            if (result == valueStorageStateInvalidForRead) {
-
-            } else {
-                return result;
-            }
-        }
-    }
-    */
-
-    /*
-    protected ByteBuffer[] _retrieve(KeyAndInteger[] keyGroup, InternalRetrievalOptions options) {
-        ByteBuffer[]    result;
-        int             segmentNumber;
-
-        segmentNumber = keyGroup[0].getInteger(); // all of this group has the same segmentNumber
-        if (debugVersion) {
-            System.out.println("retrieve:\t" + keyGroup[0]);
-            System.out.println("RetrievalOptions:\t" + options);
-        }
-        if (segmentNumber == IntCuckooConstants.noSuchValue) {
-            return null;
-        } else {
-            if (headSegment.getSegmentNumber() == segmentNumber) {
-                // return getValueEntry(key).retrieve(options);
-                if (debugSegments) {
-                    Log.warning("Read from head segment");
-                }
-                result = headSegment.retrieve(keyGroup, options);
-                if (debugSegments) {
-                    Log.warning("Done read from head segment");
-                }
-            } else {
-                try {
-                    AbstractSegment segment;
-
-                    segment = getSegment(segmentNumber);
-                    try {
-                        if (debugSegments) {
-                            Log.warning("Read from file segment");
-                        }
-                        result = segment.retrieve(keyGroup, options);
-                        if (debugSegments) {
-                            Log.warning("Done read from file segment");
-                            Log.warning("result: " + result);
-                        }
-                    } finally {
-                        if (nsOptions.getStorageType() == StorageType.FILE) {
-                            ((FileSegment)segment).removeReference();
-                        }
-                    }
-                } catch (IOException ioe) {
-                    Log.logErrorWarning(ioe);
-                    return null;
-                }
-            }
-            return result;
-        }
-    }
-    */
   protected ByteBuffer _retrieve(DHTKey key, InternalRetrievalOptions options) {
     return _retrieve(key, options, true);
   }
@@ -2198,8 +2126,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           // FUTURE - this is a temporary workaround until the versioned storage is overhauled
           if (verifySS && !StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
               MetaDataUtil.getStorageState(result, 0))) {
-            //System.out.printf("key %s storage state: %d\n", KeyUtil.keyToString(key),
-            //        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
             switch (versionConstraint.getMode()) {
             case GREATEST:
               long newMaxVersion;
@@ -2300,8 +2226,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         }
         if (!StorageProtocolUtil.storageStateValidForRead(nsOptions.getConsistencyProtocol(),
             MetaDataUtil.getStorageState(results[i], 0))) {
-          //System.out.printf("key %s storage state: %d\n", KeyUtil.keyToString(key),
-          //        CCSSUtil.getStorageState(MetaDataUtil.getCCSS(result, 0)));
           // If we detect a failed store, simply revert to the single key retrieval code
           // which is capable of handling this situation
           results[i] = _retrieve(keysSegmentNumbersAndIndices[i].getV1(), options);
@@ -2883,29 +2807,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         if (validChecksum) {
           _next = new KeyAndVersionChecksum(vsEntry.getKey(), checksum, vsEntry.getValue());
         }
-                /*
-                ByteBuffer result;
-                long checksum;
-                 FUTURE - support bitemporal
-                 for now we have commented out checksum retrieval as we are not
-                 using the checksum
-                result = _retrieve(vsEntry, retrievalOptions);
-                // FUTURE think about above in light of new retrieval grouping
-                // checksum = new byte[checksumType.length()];
-
-                if (result != null) {
-                    checksum = MetaDataUtil.getVersion(result, 0);
-
-                    //System.out.printf("%s\n", StringUtil.byteBufferToHexString(result));
-                    //System.out.printf("%x\t%d\n", checksum, checksum);
-                    // FUTURE - need to handle this for multi-versioned values
-
-                    // checksum = MetaDataUtil.getChecksum(result, 0);
-                    // result.position(0);
-                    // result.get(checksum);
-                    _next = new KeyAndVersionChecksum(vsEntry.getKey(), checksum);
-                }
-                */
       }
       next = _next;
     }
@@ -3175,6 +3076,10 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       transitionToCompactAndDeletePhase();
       startupCompactAndDelete(defaultCompactionThreshold);
       transitionToReapPhase();
+    } else {
+      if (reapPolicy.verboseReap()) {
+        Log.warningAsync("Startup reap is not allowed.");
+      }
     }
     if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
       emptyTrashAndCompaction();
@@ -3504,7 +3409,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           }
           sw.stop();
           if (verboseReap || verboseReapLogInfo) {
-            Log.warningAsyncf("\t\t%d %f", i, sw.getElapsedSeconds());
+            Log.warningAsyncf("singleReverseSegmentWalk: processing segment %d took %f", i, sw.getElapsedSeconds());
           }
         } catch (Exception e) {
           Log.logErrorWarning(e, "Skipping segment " + i + " due to Exception..");
@@ -3580,7 +3485,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           }
           sw.stop();
           if (verboseReap || verboseReapLogInfo) {
-            Log.warningAsyncf("\t\t%d %f", curSegment, sw.getElapsedSeconds());
+            Log.warningAsyncf("compactAndDelete: processing segment %d took %f", curSegment, sw.getElapsedSeconds());
           }
         } catch (Exception e) {
           Log.logErrorWarning(e, "Skipping segment " + curSegment + " due to Exception.");

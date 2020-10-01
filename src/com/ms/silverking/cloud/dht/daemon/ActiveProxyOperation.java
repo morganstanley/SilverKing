@@ -30,9 +30,10 @@ import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import com.ms.silverking.net.security.AuthFailure;
-import com.ms.silverking.net.security.AuthResult;
+import com.ms.silverking.net.security.AuthFailedException;
+import com.ms.silverking.net.security.AuthorizationResult;
 import com.ms.silverking.net.security.Authorizer;
+import com.ms.silverking.net.security.NonRetryableAuthFailedException;
 
 /**
  * Base class for proxy operations - operations executed by a DHTNode on behalf of a
@@ -306,25 +307,27 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   }
 
   // TODO this is only used for retrieve; put should also be subject to authorization eventually
-  void handleAuthorizationFailure(AuthResult authorization) {
+  boolean handleAuthorizationFailure(AuthorizationResult authorization) throws AuthFailedException {
     Socket socket = connection.getConnection().getChannel().socket();
     String connInfo = socket != null ? socket.toString() : "nullSock";
     StringBuilder sb = new StringBuilder();
+    boolean continueOperation = false;
 
     switch (authorization.getFailedAction()) {
-    case THROW_ERROR:
+    case THROW_EXCEPTION:
       sb.append("Authorization refused for connection ");
       sb.append(connInfo);
       Optional<Throwable> causeOpt = authorization.getFailCause();
       if (causeOpt.isPresent()) {
-        throw new AuthFailure(sb.toString(), causeOpt.get());
+        throw new NonRetryableAuthFailedException(sb.toString(), causeOpt.get());
       } else {
-        throw new AuthFailure(sb.toString());
+        throw new NonRetryableAuthFailedException(sb.toString());
       }
     case GO_WITHOUT_AUTH:
       // Default behaviour if no user plugin - we will continue the operation despite authorization
+      continueOperation = true;
       break;
-    case ABSORB:
+    case RETURN_ERROR_RESPONSE:
       // Swallow the request and respond with an error; the operation is not started
       sendErrorResults();
       break;
@@ -341,5 +344,7 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
       sb.append(Authorizer.getPlugin().getName());
       throw new RuntimeException(sb.toString());
     }
+
+    return continueOperation;
   }
 }

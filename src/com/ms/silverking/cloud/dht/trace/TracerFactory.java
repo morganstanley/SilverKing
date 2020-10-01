@@ -23,4 +23,8 @@ public class TracerFactory {
   public static boolean isInitialized() {
     return singletonTracerInstance != null;
   }
+
+  public static void clear() {
+    singletonTracerInstance = null;
+  }
 }

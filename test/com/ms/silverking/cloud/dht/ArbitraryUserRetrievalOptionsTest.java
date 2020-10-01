@@ -1,5 +1,13 @@
 package com.ms.silverking.cloud.dht;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Set;
+
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.SecondaryTargetType;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
@@ -8,11 +16,9 @@ import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.protocol.RetrievalMessageFormat;
+import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.id.UUIDBase;
 import org.junit.Test;
-import static org.junit.Assert.*;
-
-import java.util.Set;
 
 public class ArbitraryUserRetrievalOptionsTest {
 
@@ -27,28 +33,21 @@ public class ArbitraryUserRetrievalOptionsTest {
     assertArrayEquals("rebuilt user options should match original bytes", expectedBytes, testUserOpts);
   }
 
-  @Test public void testUserOptionsPreserved() {
+  @Test
+  public void testUserOptionsPreserved() {
     String usrStr = "dog,123";
     byte[] usrBytes = usrStr.getBytes();
     GetOptions opts = DHTConstants.standardGetOptions.userOptions(usrBytes);
 
     InternalRetrievalOptions internalOpts = new InternalRetrievalOptions(opts);
 
-    byte[] originator = {0, 1, 2, 3, 4, 5, 6, 7};
+    byte[] originator = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-    ProtoRetrievalMessageGroup message = new ProtoRetrievalMessageGroup(
-        UUIDBase.random(),
-        1L,
-        internalOpts,
-        originator,
-        1,
-        MessageGroup.minDeadlineRelativeMillis,
-        ForwardingMode.DO_NOT_FORWARD,
-        null);
+    ProtoRetrievalMessageGroup message = new ProtoRetrievalMessageGroup(UUIDBase.random(), 1L, internalOpts, originator,
+        1, MessageGroup.minDeadlineRelativeMillis, ForwardingMode.DO_NOT_FORWARD, TraceIDProvider.noTraceID);
 
-    RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup
-        .getRetrievalOptions(message.toMessageGroup())
-        .getRetrievalOptions();
+    RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup.getRetrievalOptions(
+        message.toMessageGroup()).getRetrievalOptions();
 
     int optsLength = RetrievalMessageFormat.getOptionsBufferLength(rebuiltOpts);
     int expectedLength = RetrievalMessageFormat.getOptionsBufferLength(opts);
@@ -58,7 +57,8 @@ public class ArbitraryUserRetrievalOptionsTest {
     assertUserOptions(rebuiltUserOpts, usrStr, usrBytes);
   }
 
-  @Test public void testUserOptionsAndSecondaryTargetsPreserved() {
+  @Test
+  public void testUserOptionsAndSecondaryTargetsPreserved() {
     String usrStr = "dog,123";
     byte[] usrBytes = usrStr.getBytes();
 
@@ -69,20 +69,12 @@ public class ArbitraryUserRetrievalOptionsTest {
     GetOptions opts = DHTConstants.standardGetOptions.userOptions(usrBytes).secondaryTargets(secondaryTargets);
     InternalRetrievalOptions internalOpts = new InternalRetrievalOptions(opts);
 
-    byte[] originator = {0, 1, 2, 3, 4, 5, 6, 7};
-    ProtoRetrievalMessageGroup message = new ProtoRetrievalMessageGroup(
-        UUIDBase.random(),
-        1L,
-        internalOpts,
-        originator,
-        1,
-        MessageGroup.minDeadlineRelativeMillis,
-        ForwardingMode.DO_NOT_FORWARD,
-        null);
+    byte[] originator = { 0, 1, 2, 3, 4, 5, 6, 7 };
+    ProtoRetrievalMessageGroup message = new ProtoRetrievalMessageGroup(UUIDBase.random(), 1L, internalOpts, originator,
+        1, MessageGroup.minDeadlineRelativeMillis, ForwardingMode.DO_NOT_FORWARD, TraceIDProvider.noTraceID);
 
-    RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup
-        .getRetrievalOptions(message.toMessageGroup())
-        .getRetrievalOptions();
+    RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup.getRetrievalOptions(
+        message.toMessageGroup()).getRetrievalOptions();
 
     byte[] rebuiltUserOpts = rebuiltOpts.getUserOptions();
 
@@ -96,32 +88,25 @@ public class ArbitraryUserRetrievalOptionsTest {
     assertEquals("Rebuilt secondaries and original should match", rebuiltSecondaries, secondaryTargets);
   }
 
-  @Test public void testNullUserOptionsPreserved() {
+  @Test
+  public void testNullUserOptionsPreserved() {
     GetOptions opts = DHTConstants.standardGetOptions;
     assertNull("Standard options should have null user options", opts.getUserOptions());
 
     InternalRetrievalOptions internalOpts = new InternalRetrievalOptions(opts);
 
-    byte[] originator = {0, 1, 2, 3, 4, 5, 6, 7};
-    ProtoRetrievalMessageGroup message = new ProtoRetrievalMessageGroup(
-        UUIDBase.random(),
-        1L,
-        internalOpts,
-        originator,
-        1,
-        MessageGroup.minDeadlineRelativeMillis,
-        ForwardingMode.DO_NOT_FORWARD,
-        null);
+    byte[] originator = { 0, 1, 2, 3, 4, 5, 6, 7 };
+    ProtoRetrievalMessageGroup message = new ProtoRetrievalMessageGroup(UUIDBase.random(), 1L, internalOpts, originator,
+        1, MessageGroup.minDeadlineRelativeMillis, ForwardingMode.DO_NOT_FORWARD, TraceIDProvider.noTraceID);
 
-    RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup
-        .getRetrievalOptions(message.toMessageGroup())
-        .getRetrievalOptions();
+    RetrievalOptions rebuiltOpts = ProtoRetrievalMessageGroup.getRetrievalOptions(
+        message.toMessageGroup()).getRetrievalOptions();
 
     assertNull("Rebuilt options should still be null", rebuiltOpts.getUserOptions());
 
     int optsLength = RetrievalMessageFormat.getOptionsBufferLength(rebuiltOpts);
     int expectedLength = RetrievalMessageFormat.getOptionsBufferLength(opts);
-     assertEquals("options length should be preserved", expectedLength, optsLength);
+    assertEquals("options length should be preserved", expectedLength, optsLength);
 
   }
 

@@ -35,18 +35,18 @@ public abstract class Authorizer {
     if (isEnabled) {
       return singletonAuthorizer;
     } else {
-      throw new AuthFailure("Invalid call to getPlugin when Authorizer was not enabled!");
+      throw new RuntimeException("Invalid call to getPlugin when Authorizer was not enabled!");
     }
   }
 
-  public static AuthResult createAuthFailedResult(AuthFailedAction action, Throwable cause) {
+  public static AuthorizationResult createAuthFailedResult(AuthorizationFailedAction action, Throwable cause) {
     assert action != null;
-    return new AuthResult(null, action, cause);
+    return new AuthorizationResult(null, action, cause);
   }
 
-  public static AuthResult createAuthSuccessResult(String authorizedId) {
+  public static AuthorizationResult createAuthSuccessResult(String authorizedId) {
     assert authorizedId != null;
-    return new AuthResult(authorizedId, null, null);
+    return new AuthorizationResult(authorizedId, null, null);
   }
 
   /**
@@ -68,7 +68,7 @@ public abstract class Authorizer {
    * @param requestedUser The user to authorize
    * @return an AuthResult instance, which may define a failure action for a rejected authorization attempt
    */
-  public abstract AuthResult syncAuthorize(Optional<String> authenticated, byte[] requestedUser);
+  public abstract AuthorizationResult syncAuthorize(Optional<String> authenticated, byte[] requestedUser);
 
   public static void setAuthorizer(String authDef) {
     if (authDef == null || authDef.equals(emptyDef)) {

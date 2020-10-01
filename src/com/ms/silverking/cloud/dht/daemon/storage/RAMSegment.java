@@ -9,10 +9,14 @@ import java.nio.channels.FileChannel.MapMode;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.numeric.NumConversion;
 
 class RAMSegment extends WritableSegmentBase {
+
+  private long segmentCreationTime;
+
   static final RAMSegment create(File nsDir, int segmentNumber, int dataSegmentSize, NamespaceOptions nsOptions) {
     RandomAccessFile raFile;
     byte[] header;
@@ -37,6 +41,7 @@ class RAMSegment extends WritableSegmentBase {
   private RAMSegment(File nsDir, int segmentNumber, ByteBuffer dataBuf, int dataSegmentSize,
       NamespaceOptions nsOptions) {
     super(nsDir, segmentNumber, dataBuf, StoreConfiguration.ramInitialCuckooConfig, dataSegmentSize, nsOptions);
+    this.segmentCreationTime = SystemTimeUtil.skSystemTimeSource.absTimeMillis();
   }
 
   @Override
@@ -70,6 +75,11 @@ class RAMSegment extends WritableSegmentBase {
       raFile.close();
     }
     close();
+  }
+
+  @Override
+  long getSegmentCreationMillis() {
+    return segmentCreationTime;
   }
 
   public void close() {

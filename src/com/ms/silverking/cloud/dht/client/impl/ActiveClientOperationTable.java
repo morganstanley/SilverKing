@@ -141,6 +141,8 @@ public class ActiveClientOperationTable {
     boolean attemptHasTimedOut;
 
     attemptHasTimedOut = op.attemptHasTimedOut(curTimeMillis);
+    // TODO: rather than retrying on any exclusion, we ought to retry only if the
+    // replica to which we are communicating for a given op has been excluded
     if (attemptHasTimedOut || (exclusionSetHasChanged && op.retryOnExclusionChange(curTimeMillis))) {
       if (op.getState() == OperationState.INCOMPLETE) {
         if (debugTimeouts) {
@@ -156,12 +158,16 @@ public class ActiveClientOperationTable {
           } else {
             Log.info("Resending: ", op);
           }
+
           if (attemptHasTimedOut) {
             // only bump up attempts if the attempt has timed out
             // not if the exclusion set has changed
             op.newAttempt(curTimeMillis);
           }
-          opSender.addWork(op);
+          if (op.newAttemptAllowed()) {
+            opSender.addWork(op);
+          }
+
         } else {
           if (debugTimeouts) {
             Log.warning("Op timed out: ", op);

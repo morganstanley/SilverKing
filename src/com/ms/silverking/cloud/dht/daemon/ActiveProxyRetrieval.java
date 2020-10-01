@@ -35,7 +35,9 @@ import com.ms.silverking.cloud.dht.net.ProtoKeyedMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoValueMessageGroup;
+import com.ms.silverking.cloud.dht.serverside.RetrieveCallback;
 import com.ms.silverking.cloud.dht.trace.TracerFactory;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
@@ -120,58 +122,67 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     }
   }
 
+  private void processResult(DHTKey entry, ByteBuffer result) {
+    RetrievalResult retrievalResult;
+
+    if (debug) {
+      Log.warning("localRetrieval: ", entry);
+      System.out.printf("result %s %s\n", result, StringUtil.byteBufferToHexString(result));
+    }
+
+    // FUTURE - THIS NEEDS TO GO THROUGH THE PROTOCOL
+    // INSTEAD OF PROTOCOL SEMANTICS BEING HANDLED HERE
+
+    Log.fine(entry);
+    if (result != null && result != ValueUtil.corruptValue) {
+      retrievalResult = new RetrievalResult(entry, OpResult.SUCCEEDED, result);
+    } else {
+      if (result != ValueUtil.corruptValue) {
+        if (retrievalOptions.getWaitMode() != WaitMode.WAIT_FOR || messageModule.getReplicaList(getContext(), entry,
+            OwnerQueryMode.Secondary, RingOwnerQueryOpType.Read).contains(localIPAndPort())) {
+          retrievalResult = new RetrievalResult(entry, OpResult.NO_SUCH_VALUE, null);
+        } else {
+          retrievalResult = null;
+        }
+      } else {
+        if (debug) {
+          System.out.println("Returning corrupt result");
+        }
+        retrievalResult = new RetrievalResult(entry, OpResult.CORRUPT, null);
+      }
+    }
+    // Complete operations are removed in bulk by MessageModule.Cleaner
+    if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
+      TracerFactory.getTracer().onLocalEnqueueRetrievalResult(maybeTraceID);
+    }
+    if (retrievalResult != null) {
+      // retrievalOperation.update((DHTKey)entry, localIPAndPort(), retrievalResult, rComm);
+      rComm.sendResult(retrievalResult);
+    }
+  }
+
   @Override
   protected void localOp(List<? extends DHTKey> destEntries, OpCommunicator<DHTKey, RetrievalResult> comm) {
-    List<ByteBuffer> results;
+    RetrieveCallback<Pair<DHTKey, ByteBuffer>, Void> callback;
 
     if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
       TracerFactory.getTracer().onLocalHandleRetrievalRequest(maybeTraceID);
     }
 
-    results = getStorage().retrieve(getContext(), destEntries, // entry can act as a key
-        getRetrievalOptions(), uuid);
-    for (int i = 0; i < destEntries.size(); i++) {
-      RetrievalResult retrievalResult;
+    callback = (Pair<DHTKey, ByteBuffer> data) -> {
       ByteBuffer result;
       DHTKey entry;
 
-      entry = destEntries.get(i);
-      result = results.get(i);
-      if (debug) {
-        Log.warning("localRetrieval: ", entry);
-        System.out.printf("result %s %s\n", result, StringUtil.byteBufferToHexString(result));
-      }
+      entry = data.getV1();
+      result = data.getV2();
 
-      // FUTURE - THIS NEEDS TO GO THROUGH THE PROTOCOL
-      // INSTEAD OF PROTOCOL SEMANTICS BEING HANDLED HERE
+      processResult(entry, result);
+      return null;
+    };
 
-      Log.fine(entry);
-      if (result != null && result != ValueUtil.corruptValue) {
-        retrievalResult = new RetrievalResult(entry, OpResult.SUCCEEDED, result);
-      } else {
-        if (result != ValueUtil.corruptValue) {
-          if (retrievalOptions.getWaitMode() != WaitMode.WAIT_FOR || messageModule.getReplicaList(getContext(), entry,
-              OwnerQueryMode.Secondary, RingOwnerQueryOpType.Read).contains(localIPAndPort())) {
-            retrievalResult = new RetrievalResult(entry, OpResult.NO_SUCH_VALUE, null);
-          } else {
-            retrievalResult = null;
-          }
-        } else {
-          if (debug) {
-            System.out.println("Returning corrupt result");
-          }
-          retrievalResult = new RetrievalResult(entry, OpResult.CORRUPT, null);
-        }
-      }
-      // Complete operations are removed in bulk by MessageModule.Cleaner
-      if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
-        TracerFactory.getTracer().onLocalEnqueueRetrievalResult(maybeTraceID);
-      }
-      if (retrievalResult != null) {
-        // retrievalOperation.update((DHTKey)entry, localIPAndPort(), retrievalResult, rComm);
-        rComm.sendResult(retrievalResult);
-      }
-    }
+    getStorage().retrieve(getContext(), destEntries, // entry can act as a key
+        getRetrievalOptions(), uuid, callback);
+
   }
 
   public void waitForTriggered(DHTKey key, ByteBuffer result) {

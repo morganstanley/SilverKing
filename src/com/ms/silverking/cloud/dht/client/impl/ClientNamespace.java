@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
+import static com.ms.silverking.cloud.dht.common.OpResult.SESSION_CLOSED;
+
 import java.util.List;
 import java.util.logging.Level;
 
@@ -17,6 +19,7 @@ import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.NamespaceCreationException;
 import com.ms.silverking.cloud.dht.client.NamespaceLinkException;
 import com.ms.silverking.cloud.dht.client.NamespaceModificationException;
+import com.ms.silverking.cloud.dht.client.SessionClosedException;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
@@ -194,7 +197,8 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
 
   // operation
 
-  public <K, V> void startOperation(AsyncOperationImpl opImpl, OpLWTMode opLWTMode) {
+  public <K, V> void startOperation(AsyncOperationImpl opImpl, OpLWTMode opLWTMode) throws SessionClosedException {
+    session.assertOpen();
     validateOpOptions(opImpl.operation.options);
     switch (opImpl.getType()) {
     case RETRIEVE:
@@ -395,7 +399,8 @@ public class ClientNamespace implements QueueingConnectionLimitListener, Namespa
          */
     if (opOptions.hasTraceID() && !session.isServerTraceEnabled()) {
       throw new IllegalArgumentException(String.format(
-          "Server[%s] has trace feature disabled or running in a old version, which doesn't expect to have traceID " + "in" + " the opOptions (traceIDProvider=[%s])",
+          "Server[%s] has trace feature disabled or running in a old version, which doesn't expect to have traceID in" +
+              " the opOptions (traceIDProvider=[%s])",
           session.getDhtConfig().toString(), opOptions.getTraceIDProvider().toString()));
     }
   }

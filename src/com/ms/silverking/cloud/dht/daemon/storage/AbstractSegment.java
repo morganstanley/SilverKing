@@ -31,6 +31,8 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     this.invalidatedOffsets = invalidatedOffsets;
   }
 
+  abstract long getSegmentCreationMillis();
+
   abstract int getSegmentNumber();
 
   protected abstract int getRawOffset(DHTKey key);

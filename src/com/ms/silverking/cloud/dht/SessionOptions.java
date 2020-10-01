@@ -23,6 +23,7 @@ public final class SessionOptions {
   private final ClientDHTConfiguration dhtConfig;
   private final String preferredServer;
   private final SessionEstablishmentTimeoutController timeoutController;
+  private final SessionPolicyOnDisconnect sessionPolicyOnDisconnect;
 
   private static final String defaultTimeoutControllerProperty =
       SessionEstablishmentTimeoutController.class.getName() + ".DefaultSETimeoutController";
@@ -43,7 +44,7 @@ public final class SessionOptions {
   }
 
   private static final SessionOptions template = new SessionOptions(new SKGridConfiguration("dummygc", dummyGCMap),
-      "localhost", defaultDefaultTimeoutController);
+      "localhost", defaultDefaultTimeoutController, SessionPolicyOnDisconnect.DoNothing);
 
   static {
     ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
@@ -80,15 +81,16 @@ public final class SessionOptions {
     return defaultTimeoutController;
   }
 
-  /**
-   * Create a fully-specified SessionOptions instance
-   *
-   * @param dhtConfigProvider TODO
-   * @param preferredServer   TODO
-   * @param timeoutController TODO
-   */
   public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider, String preferredServer,
       SessionEstablishmentTimeoutController timeoutController) {
+    this(dhtConfigProvider, preferredServer, timeoutController, SessionPolicyOnDisconnect.DoNothing);
+  }
+
+  /**
+   * Create a fully-specified SessionOptions instance
+   */
+  public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider, String preferredServer,
+      SessionEstablishmentTimeoutController timeoutController, SessionPolicyOnDisconnect onDisconnect) {
     if (dhtConfigProvider == null) {
       this.preferredServer = preferredServer;
       this.dhtConfig = null;
@@ -101,16 +103,17 @@ public final class SessionOptions {
       }
     }
     this.timeoutController = timeoutController;
+    this.sessionPolicyOnDisconnect = onDisconnect;
   }
 
   /**
-   * Create a SessionOptions instance with a default timeout controller.
+   * Create a SessionOptions instance with a default timeout controller and disconnect policy.
    *
    * @param dhtConfigProvider TODO
    * @param preferredServer   TODO
    */
   public SessionOptions(ClientDHTConfigurationProvider dhtConfigProvider, String preferredServer) {
-    this(dhtConfigProvider, preferredServer, getDefaultTimeoutController());
+    this(dhtConfigProvider, preferredServer, getDefaultTimeoutController(), SessionPolicyOnDisconnect.DoNothing);
   }
 
   /**
@@ -129,7 +132,7 @@ public final class SessionOptions {
    * @return a modified SessionOptions object
    */
   public SessionOptions dhtConfig(ClientDHTConfiguration dhtConfig) {
-    return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+    return new SessionOptions(dhtConfig, preferredServer, timeoutController, sessionPolicyOnDisconnect);
   }
 
   /**
@@ -139,7 +142,7 @@ public final class SessionOptions {
    * @return a modified SessionOptions object
    */
   public SessionOptions preferredServer(String preferredServer) {
-    return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+    return new SessionOptions(dhtConfig, preferredServer, timeoutController, sessionPolicyOnDisconnect);
   }
 
   /**
@@ -149,7 +152,17 @@ public final class SessionOptions {
    * @return a modified SessionOptions object
    */
   public SessionOptions timeoutController(SessionEstablishmentTimeoutController timeoutController) {
-    return new SessionOptions(dhtConfig, preferredServer, timeoutController);
+    return new SessionOptions(dhtConfig, preferredServer, timeoutController, sessionPolicyOnDisconnect);
+  }
+
+  /**
+   * Return a new SessionOptions object with the specified sessionPolicyOnDisconnect
+   *
+   * @param sessionPolicyOnDisconnect the new sessionPolicyOnDisconnect
+   * @return a modified SessionOptions object
+   */
+  public SessionOptions sessionPolicyOnDisconnect(SessionPolicyOnDisconnect sessionPolicyOnDisconnect) {
+    return new SessionOptions(dhtConfig, preferredServer, timeoutController, sessionPolicyOnDisconnect);
   }
 
   /**
@@ -177,6 +190,15 @@ public final class SessionOptions {
    */
   public SessionEstablishmentTimeoutController getTimeoutController() {
     return timeoutController;
+  }
+
+  /**
+   * Return the sessionPolicyOnDisconnect
+   *
+   * @return the sessionPolicyOnDisconnect
+   */
+  public SessionPolicyOnDisconnect getSessionPolicyOnDisconnect() {
+    return sessionPolicyOnDisconnect;
   }
 
   @Override

@@ -16,7 +16,7 @@ public enum OpResult {
   SUCCEEDED, // success and no such value
   SUCCEEDED_AND_NO_SUCH_VALUE, // failure
   ERROR, TIMEOUT, MUTATION, NO_SUCH_VALUE, SIMULTANEOUS_PUT, MULTIPLE, INVALID_VERSION, NO_SUCH_NAMESPACE, CORRUPT,
-  LOCKED;
+  LOCKED, SESSION_CLOSED;
 
   public boolean isComplete() {
     return this != INCOMPLETE;
@@ -106,6 +106,8 @@ public enum OpResult {
       return FailureCause.INVALID_VERSION;
     case NO_SUCH_NAMESPACE:
       return FailureCause.NO_SUCH_NAMESPACE;
+    case SESSION_CLOSED:
+      return FailureCause.SESSION_CLOSED;
     default:
       throw new RuntimeException("panic");
     }
@@ -133,6 +135,8 @@ public enum OpResult {
       return MULTIPLE;
     case INVALID_VERSION:
       return INVALID_VERSION;
+    case SESSION_CLOSED:
+      return SESSION_CLOSED;
     default:
       throw new RuntimeException("panic");
     }

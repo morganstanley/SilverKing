@@ -37,13 +37,16 @@ class OpTimeoutState {
                 curAttemptIndex, timeoutController.getMaxAttempts(op), timeoutController.getMaxRelativeTimeoutMillis
                 (op));
         */
-    return curAttemptIndex >= timeoutController.getMaxAttempts(
-        op) || curTimeMillis > startTimeMillis + timeoutController.getMaxRelativeTimeoutMillis(op);
+    return curTimeMillis > startTimeMillis + timeoutController.getMaxRelativeTimeoutMillis(op);
   }
 
   boolean attemptHasTimedOut(long curTimeMillis) {
     return curTimeMillis > attemptStartTimeMillis + timeoutController.getRelativeTimeoutMillisForAttempt(op,
         curAttemptIndex);
+  }
+
+  boolean newAttemptAllowed(AsyncOperation op) {
+    return curAttemptIndex < timeoutController.getMaxAttempts(op);
   }
 
   boolean retryOnExclusionChange(long curTimeMillis) {

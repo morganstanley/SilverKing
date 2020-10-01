@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Set;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
@@ -14,6 +16,7 @@ import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.collection.CuckooBase;
 import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
 import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.FSMElementType;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentMetaData;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentStorageFormat;
@@ -26,6 +29,7 @@ public class FileSegment extends WritableSegmentBase {
   private final AccessMode accessMode;
   private RandomAccessFile raFile;
   private final FileSegmentStorageFormat storageFormat;
+  private long segmentCreationTime = 0;
 
   private static final String roFileMode = "r";
   private static final String rwFileMode = "rw";
@@ -247,6 +251,22 @@ public class FileSegment extends WritableSegmentBase {
     raFile.close();
     raFile = null;
     close();
+  }
+
+  @Override
+  long getSegmentCreationMillis() {
+    if (segmentCreationTime <= 0) {
+      try {
+        BasicFileAttributes view = Files.readAttributes(new File(nsDir, Integer.toString(segmentNumber)).toPath(), BasicFileAttributes.class);
+        segmentCreationTime = view.creationTime().toMillis();
+        return segmentCreationTime;
+      } catch (IOException ioe) {
+        Log.logErrorWarning(ioe, "Fail to get creation time of segment [" + segmentNumber + "] under " + nsDir);
+        return SystemTimeUtil.skSystemTimeSource.absTimeMillis();
+      }
+    } else {
+      return segmentCreationTime;
+    }
   }
 
   public void close() {

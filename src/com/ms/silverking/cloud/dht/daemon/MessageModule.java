@@ -25,6 +25,7 @@ import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.FailureCause;
+import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.EnumValues;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
@@ -75,7 +76,8 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AddressStatusProvider;
 import com.ms.silverking.net.async.PersistentAsyncServer;
-import com.ms.silverking.net.security.AuthResult;
+import com.ms.silverking.net.security.AuthFailedException;
+import com.ms.silverking.net.security.AuthorizationResult;
 import com.ms.silverking.net.security.Authorizer;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
@@ -164,6 +166,17 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
 
   private final boolean enableMsgGroupTrace;
 
+  public enum OnSelfExclusion {DoNothing, DisconnectAll}
+
+  private static final OnSelfExclusion onSelfExclusion;
+
+  static {
+    String value = PropertiesHelper.systemHelper.getString(DHTConstants.onSelfExclusionProperty,
+        OnSelfExclusion.DoNothing.toString());
+    Log.info("OnSelfExclusion: " + value);
+    onSelfExclusion = OnSelfExclusion.valueOf(value);
+  }
+
   public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, AbsMillisTimeSource absMillisTimeSource,
       Timer timer, int serverPort, IPAndPort myIPAndPort, MetaClient mc, IPAliasMap aliasMap,
       boolean enableMsgGroupTrace) throws IOException {
@@ -175,6 +188,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         ConvergenceController2.mqUUID, aliasMap);
     this.aliasMap = aliasMap;
     this.ringMaster = ringMaster;
+    Log.warningf("setting %s SelfExclusionResponder", onSelfExclusion);
+    if (onSelfExclusion == OnSelfExclusion.DisconnectAll) {
+      SelfExclusionResponder responder = new DisconnectAllExclusionResponder(mgBase.getConnectionController());
+      ringMaster.setSelfExclusionResponder(responder);
+    }
     this.storage = storage;
     this.absMillisTimeSource = absMillisTimeSource;
     LWTPool workerPool = LWTPoolProvider.createPool(LWTPoolParameters.create("MessageModulePool").targetSize(
@@ -193,8 +211,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
 
     storage.setMessageGroupBase(mgBase);
     storage.setActiveRetrievals(activeRetrievals);
-    storage.recoverExistingNamespaces();
-    storage.ensureMetaNamespaceStoreExists();
     cleanerTask = new SafeTimerTask(new Cleaner());
     timer.scheduleAtFixedRate(cleanerTask, cleanupPeriodMillis, cleanupPeriodMillis);
     //timer.scheduleAtFixedRate(new StatsWorker(), statsPeriodMillis, statsPeriodMillis);
@@ -454,8 +470,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         try {
           return new MessageGroupConnectionProxyRemote(
               mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
-        } catch (ConnectException ce) {
-          Log.logErrorWarning(ce, "Reverting to incoming connection for outgoing messages for " + connection);
+        } catch (AuthFailedException | ConnectException e) {
+          Log.logErrorWarning(e, "Reverting to incoming connection for outgoing messages for " + connection);
           return new MessageGroupConnectionProxyRemote(connection);
         }
       }
@@ -500,7 +516,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     }
 
     InternalRetrievalOptions retrieveOpts = ProtoRetrievalMessageGroup.getRetrievalOptions(message);
-    AuthResult authorization = null;
+    AuthorizationResult authorization = null;
 
     if (Authorizer.isEnabled()) {
       byte[] requestedUser = retrieveOpts.getAuthorizationUser();
@@ -533,11 +549,20 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         storage, retrieveOpts, retrievalProtocol, message.getDeadlineAbsMillis(absMillisTimeSource));
 
     if (authorization != null && !authorization.isSuccessful()) {
-      // We might throw in here if the failure action is to do so,
-      // in which case the operation will not be started below
-      retrieval.handleAuthorizationFailure(authorization);
+      boolean continueOperation;
+
+      try {
+        continueOperation = retrieval.handleAuthorizationFailure(authorization);
+      } catch (AuthFailedException afe) {
+        // This will be caught and be logged
+        throw new RuntimeException(afe);
+      }
+      if (continueOperation) {
+        retrieval.startOperation();
+      }
+    } else {
+      retrieval.startOperation();
     }
-    retrieval.startOperation();
   }
 
   /**

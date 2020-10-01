@@ -133,7 +133,7 @@ public class ProtoRetrievalMessageGroup extends ProtoKeyedMessageGroup {
         optionBuffer.getLong(RetrievalResponseMessageFormat.vcMaxStorageTimeOffset));
     return new InternalRetrievalOptions(
         OptionsHelper.newRetrievalOptions(retrievalType, waitMode, vc, updateSecondariesOnMiss, getSecondaryTargets(mg),
-            getUserOptions(mg), getAuthorizationUser(mg)), verifyIntegrity);
+            getUserOptions(mg), getAuthorizationUser(mg)), verifyIntegrity).originator(mg.getOriginator());
   }
 
   public static int getSTLength(MessageGroup mg) {

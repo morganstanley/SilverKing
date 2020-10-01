@@ -37,20 +37,20 @@ public abstract class Authenticator {
     return singleton;
   }
 
-  private static AuthFailedAction defAction = AuthFailedAction.THROW_ERROR;
+  private static AuthenticationFailedAction defAction = AuthenticationFailedAction.THROW_NON_RETRYABLE;
 
   // Factory constructor for AUTH_SUCCESS and AUTH_FAIL
-  public static AuthResult createAuthSuccessResult(String authId) {
+  public static AuthenticationResult createAuthSuccessResult(String authId) {
     assert authId != null;
-    return new AuthResult(authId, defAction, null);
+    return new AuthenticationResult(authId, defAction, null);
   }
 
-  public static AuthResult createAuthFailResult(AuthFailedAction action, Throwable cause) {
+  public static AuthenticationResult createAuthFailResult(AuthenticationFailedAction action, Throwable cause) {
     assert action != null;
-    return new AuthResult(null, action, cause);
+    return new AuthenticationResult(null, action, cause);
   }
 
-  static AuthResult createAuthFailResult(AuthFailedAction action) {
+  static AuthenticationResult createAuthFailResult(AuthenticationFailedAction action) {
     return createAuthFailResult(action, null);
   }
 
@@ -84,7 +84,7 @@ public abstract class Authenticator {
    *                   who acts like client(send data), or DHTClient
    * @return corresponding action for silverking to take when timeout
    */
-  public abstract AuthFailedAction onAuthTimeout(boolean serverside);
+  public abstract AuthenticationFailedAction onAuthTimeout(boolean serverside);
 
   /**
    * Allow user to inject authentication before the Silverking network communication between DHTClient and DHTNode
@@ -108,5 +108,5 @@ public abstract class Authenticator {
    *                             when timeout, a corresponding AuthResult shall be returned
    * @return a <b>String</b> id of the authentication succeeds, or an <b>empty</b> if authentication fails
    */
-  public abstract AuthResult syncAuthenticate(final Socket unauthNetwork, boolean serverside, int timeoutInMillisecond);
+  public abstract AuthenticationResult syncAuthenticate(final Socket unauthNetwork, boolean serverside, int timeoutInMillisecond);
 }

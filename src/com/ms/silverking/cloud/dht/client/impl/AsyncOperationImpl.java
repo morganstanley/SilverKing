@@ -85,6 +85,10 @@ abstract class AsyncOperationImpl implements AsyncOperation {
     return timeoutState.opHasTimedOut(curTimeMillis);
   }
 
+  boolean newAttemptAllowed() {
+    return timeoutState.newAttemptAllowed(this);
+  }
+
   boolean attemptHasTimedOut(long curTimeMillis) {
     return timeoutState.attemptHasTimedOut(curTimeMillis);
   }

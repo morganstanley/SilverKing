@@ -18,7 +18,7 @@ import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements
 import com.ms.silverking.log.Log;
 import com.ms.silverking.time.AbsNanosTimeSource;
 
-public class LRUTrigger implements PutTrigger, RetrieveTrigger, LRUStateProvider {
+public class LRUTrigger implements PutTrigger, RetrieveTrigger.Direct, LRUStateProvider {
   private LRUStateImpl impl;
   private SSNamespaceStore nsStore;
 

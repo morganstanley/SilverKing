@@ -22,7 +22,7 @@ import com.ms.silverking.cloud.dht.client.AsyncSyncRequest;
 import com.ms.silverking.cloud.dht.client.AsyncValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.OperationException;
-import com.ms.silverking.cloud.dht.client.RetrievalException;
+import com.ms.silverking.cloud.dht.client.SessionClosedException;
 import com.ms.silverking.cloud.dht.client.WaitForCompletionException;
 import com.ms.silverking.cloud.dht.client.impl.ClientNamespace.OpLWTMode;
 
@@ -43,67 +43,66 @@ class AsynchronousNamespacePerspectiveImpl<K, V> extends BaseNamespacePerspectiv
   // reads
 
   @Override
-  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions)
-      throws RetrievalException {
+  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions) {
     return baseRetrieve(keys, retrievalOptions, opLWTMode);
   }
 
   @Override
-  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys) throws RetrievalException {
+  public AsyncRetrieval<K, V> retrieve(Set<? extends K> keys) {
     return retrieve(keys, nspoImpl.getDefaultGetOptions());
   }
 
   @Override
-  public AsyncSingleRetrieval<K, V> retrieve(K key, RetrievalOptions retrievalOptions) throws RetrievalException {
+  public AsyncSingleRetrieval<K, V> retrieve(K key, RetrievalOptions retrievalOptions) {
     return (AsyncSingleRetrieval<K, V>) baseRetrieve(ImmutableSet.of(key), retrievalOptions, opLWTMode);
   }
 
   @Override
-  public AsyncSingleRetrieval<K, V> retrieve(K key) throws RetrievalException {
+  public AsyncSingleRetrieval<K, V> retrieve(K key) {
     return retrieve(key, nspoImpl.getDefaultGetOptions());
   }
 
   // gets
 
   @Override
-  public AsyncValueRetrieval<K, V> get(Set<? extends K> keys, GetOptions getOptions) throws RetrievalException {
+  public AsyncValueRetrieval<K, V> get(Set<? extends K> keys, GetOptions getOptions) {
     return (AsyncValueRetrieval<K, V>) retrieve(keys, getOptions);
   }
 
   @Override
-  public AsyncValueRetrieval<K, V> get(Set<? extends K> keys) throws RetrievalException {
+  public AsyncValueRetrieval<K, V> get(Set<? extends K> keys) {
     return get(keys, nspoImpl.getDefaultGetOptions());
   }
 
   @Override
-  public AsyncSingleValueRetrieval<K, V> get(K key, GetOptions getOptions) throws RetrievalException {
+  public AsyncSingleValueRetrieval<K, V> get(K key, GetOptions getOptions) {
     return (AsyncSingleValueRetrieval<K, V>) retrieve(ImmutableSet.of(key), getOptions);
   }
 
   @Override
-  public AsyncSingleValueRetrieval<K, V> get(K key) throws RetrievalException {
+  public AsyncSingleValueRetrieval<K, V> get(K key) {
     return get(key, nspoImpl.getDefaultGetOptions());
   }
 
   // waitfors
 
   @Override
-  public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys, WaitOptions waitOptions) throws RetrievalException {
+  public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys, WaitOptions waitOptions) {
     return (AsyncValueRetrieval<K, V>) retrieve(keys, waitOptions);
   }
 
   @Override
-  public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys) throws RetrievalException {
+  public AsyncValueRetrieval<K, V> waitFor(Set<? extends K> keys) {
     return waitFor(keys, nspoImpl.getDefaultWaitOptions());
   }
 
   @Override
-  public AsyncSingleValueRetrieval<K, V> waitFor(K key, WaitOptions waitOptions) throws RetrievalException {
+  public AsyncSingleValueRetrieval<K, V> waitFor(K key, WaitOptions waitOptions) {
     return (AsyncSingleValueRetrieval<K, V>) retrieve(ImmutableSet.of(key), waitOptions);
   }
 
   @Override
-  public AsyncSingleValueRetrieval<K, V> waitFor(K key) throws RetrievalException {
+  public AsyncSingleValueRetrieval<K, V> waitFor(K key) {
     return waitFor(key, nspoImpl.getDefaultWaitOptions());
   }
 
@@ -168,11 +167,11 @@ class AsynchronousNamespacePerspectiveImpl<K, V> extends BaseNamespacePerspectiv
     }
   }
 
-  public AsyncSyncRequest syncRequest(long version) {
+  public AsyncSyncRequest syncRequest(long version) throws SessionClosedException {
     return super.baseSyncRequest(version, this);
   }
 
-  public AsyncSyncRequest syncRequest() {
+  public AsyncSyncRequest syncRequest() throws SessionClosedException {
     return syncRequest(getAbsMillisTimeSource().absTimeMillis());
   }
 }

@@ -64,6 +64,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
   private PeerHealthMonitor peerHealthMonitor;
   private ReplicaPrioritizer replicaPrioritizer;
   private ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider;
+  private SelfExclusionResponder selfExclusionResponder;
 
   private volatile RingMapState2 curMapState;
   private volatile RingMapState2 targetMapState;
@@ -582,7 +583,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     ringMC = new com.ms.silverking.cloud.toporing.meta.MetaClient(dhtMetaUpdate.getNamedRingConfiguration(), zkConfig);
 
     return new RingMapState2(nodeID, dhtMetaUpdate, cp.getRingIDAndVersionPair().getRingID(), null, ringMC,
-        ExclusionSet.emptyExclusionSet(0), dhtMetaReader.getMetaClient());
+        ExclusionSet.emptyExclusionSet(0), dhtMetaReader.getMetaClient(), selfExclusionResponder);
   }
 
   private static final int zkReadAttempts = 90;
@@ -712,5 +713,15 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
 
   public void stopMetaReaderZk() {
     dhtMetaReader.getMetaClient().closeZkExtendeed();
+  }
+
+  public void setSelfExclusionResponder(SelfExclusionResponder responder) {
+    this.selfExclusionResponder = responder;
+    if (curMapState != null) {
+      curMapState.setSelfExclusionResponder(responder);
+    }
+    if (targetMapState != null) {
+      targetMapState.setSelfExclusionResponder(responder);
+    }
   }
 }

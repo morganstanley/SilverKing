@@ -126,6 +126,7 @@ public class DHTConstants {
   public static final String internalRelTimeoutMillisProp = systemClassBase + ".InternalRelTimeoutMillisProp";
 
   public static final String exclusionSetRetainedVersionsProperty = systemClassBase + ".ExclusionSetRetainedVersions";
+  public static final String onSelfExclusionProperty = daemonPackageBase + ".OnSelfExclusion";
 
   public static final String zookeeperSessionTimeoutProperty = systemClassBase + ".ZookeeperSessionTimeout";
 

@@ -20,12 +20,12 @@ class NewConnectionTimeoutControllerWrapper implements NewConnectionTimeoutContr
   }
 
   @Override
-  public long getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex) {
+  public int getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex) {
     return sessionEstablishmentTimeoutController.getRelativeTimeoutMillisForAttempt(null, attemptIndex);
   }
 
   @Override
-  public long getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort) {
+  public int getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort) {
     return sessionEstablishmentTimeoutController.getMaxRelativeTimeoutMillis(null);
   }
 }

@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
-import com.ms.silverking.net.security.ConnectionAbsorbException;
+import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
 
@@ -122,10 +122,8 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
         }
       }
       connectionSuccess = true;
-    } catch (ConnectionAbsorbException cae) {
-      Log.logErrorWarning(cae, cae.getAbsorbedInfoMessage());
-    } catch (IOException ioe) {
-      Log.logErrorWarning(ioe);
+    } catch (AuthFailedException | IOException e) {
+      Log.logErrorWarning(e);
     } finally {
       if (!connectionSuccess && socketChannel != null) {
         try {

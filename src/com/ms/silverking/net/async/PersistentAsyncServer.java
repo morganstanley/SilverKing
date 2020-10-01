@@ -10,13 +10,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
+import com.ms.silverking.cloud.dht.SessionPolicyOnDisconnect;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.time.RandomBackoff;
-import com.ms.silverking.net.security.ConnectionAbsorbException;
+import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
 import com.ms.silverking.thread.lwt.LWTPoolParameters;
@@ -37,10 +38,11 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
   // the server may only ever reply on the channel opened by the client
   // it will not open a new connection in reply - the client rejects such incoming connections
   private final boolean isClient;
+  private final SessionPolicyOnDisconnect sessionPolicyOnDisconnect;
 
   private AddressStatusProvider addressStatusProvider;
   private SuspectAddressListener suspectAddressListener;
-  private boolean isRunning;
+  private volatile boolean isRunning;
   private static final int connectionCreationAttemptTimeoutMS = 1000;
   private static final int connectionCreationMaximumTimeoutMS = 40 * 1000;
   private static final int maxConnectBackoffNum = 16;
@@ -72,6 +74,8 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
       new ConnectionQueueWatcher(mqListener, mqUUID);
     }
     this.isClient = false;
+    this.sessionPolicyOnDisconnect = SessionPolicyOnDisconnect.DoNothing;
+    asyncServer.registerConnectionManager();
     //new ConnectionDebugger();
   }
 
@@ -84,6 +88,16 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
       LWTPool readerLWTPool, LWTPool writerLWTPool, LWTPool acceptorPool, LWTPool connectorPool,
       int selectionThreadWorkLimit, boolean enabled, boolean debug, MultipleConnectionQueueLengthListener mqListener,
       UUIDBase mqUUID, boolean isClient) throws IOException {
+    this(port, backlog, numSelectorControllers, controllerClass, connectionCreator, newConnectionTimeoutController,
+        readerLWTPool, writerLWTPool, acceptorPool, connectorPool, selectionThreadWorkLimit, enabled, debug, mqListener,
+        mqUUID, isClient, SessionPolicyOnDisconnect.DoNothing);
+  }
+
+  public PersistentAsyncServer(int port, int backlog, int numSelectorControllers, String controllerClass,
+      ConnectionCreator<T> connectionCreator, NewConnectionTimeoutController newConnectionTimeoutController,
+      LWTPool readerLWTPool, LWTPool writerLWTPool, LWTPool acceptorPool, LWTPool connectorPool,
+      int selectionThreadWorkLimit, boolean enabled, boolean debug, MultipleConnectionQueueLengthListener mqListener,
+      UUIDBase mqUUID, boolean isClient, SessionPolicyOnDisconnect onDisconnect) throws IOException {
     isRunning = true;
     this.debug = debug;
     this.newConnectionTimeoutController = newConnectionTimeoutController;
@@ -96,6 +110,23 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
       new ConnectionQueueWatcher(mqListener, mqUUID);
     }
     this.isClient = isClient;
+    this.sessionPolicyOnDisconnect = onDisconnect;
+    Log.warningf("On disconnect PersistentAsyncServer will %s", onDisconnect);
+
+    //For server side optional logic of disconnecting all connections on node exclusion.
+    //We want to keep a track of all server side ConnectionManager objects so that local connections
+    //originated from same VM can be skipped while doing disconnect.
+    //
+    //This check will also evaluate to be true for client applications which choose to
+    //DoNothing if there is a connection disconnect. But adding the ConnectionManager
+    //in the client side should be harmless operation for now.
+    //
+    //This check depending on multiple flags is not very clean so ideally we would need
+    //some additional info e.g. context in which PersistentAsyncServer is created to
+    //figure out whether it is created in a server or client context.
+    if (isClient == false || sessionPolicyOnDisconnect == SessionPolicyOnDisconnect.DoNothing) {
+      asyncServer.registerConnectionManager();
+    }
     //new ConnectionDebugger();
   }
 
@@ -133,6 +164,17 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
         selectionThreadWorkLimit, false, false, mqListener, mqUUID, isClient);
   }
 
+  public PersistentAsyncServer(int port, ConnectionCreator<T> connectionCreator,
+      NewConnectionTimeoutController newConnectionTimeoutController, int numSelectorControllers, String controllerClass,
+      MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, int selectionThreadWorkLimit, boolean isClient,
+      SessionPolicyOnDisconnect onDisconnectPolicy) throws IOException {
+
+    this(port, useDefaultBacklog, numSelectorControllers, controllerClass, connectionCreator,
+        newConnectionTimeoutController, LWTPoolProvider.defaultConcurrentWorkPool,
+        LWTPoolProvider.defaultConcurrentWorkPool, LWTPoolProvider.defaultConcurrentWorkPool, defaultConnectorPool,
+        selectionThreadWorkLimit, false, false, mqListener, mqUUID, isClient, onDisconnectPolicy);
+  }
+
   //////////////////////////////////////////////////////////////////////
 
   public void enable() {
@@ -145,6 +187,10 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     }
     asyncServer.shutdown();
     isRunning = false;
+  }
+
+  public boolean isRunning() {
+    return isRunning;
   }
 
   //////////////////////////////////////////////////////////////////////
@@ -223,7 +269,11 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     }
     backoff = null;
     while (true) {
-      connection = getConnectionFast(dest, deadline, null);
+      try {
+        connection = getConnectionFast(dest, deadline, null);
+      } catch (AuthFailedException e) {
+        throw new IOException(e);
+      }
       try {
         connection.sendSynchronous(data, uuid, listener, deadline);
         return;
@@ -280,13 +330,13 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     return connections.get(dest);
   }
 
-  public void ensureConnected(AddrAndPort dest) throws ConnectException {
+  public void ensureConnected(AddrAndPort dest) throws ConnectException, AuthFailedException {
     getConnection(dest,
         SystemTimeUtil.skSystemTimeSource.absTimeMillis() + newConnectionTimeoutController.getMaxRelativeTimeoutMillis(
             dest));
   }
 
-  public Connection getConnection(AddrAndPort dest, long deadline) throws ConnectException {
+  public Connection getConnection(AddrAndPort dest, long deadline) throws ConnectException, AuthFailedException {
     try {
       return getConnectionFast(dest.toInetSocketAddress(), deadline, null);
     } catch (UnknownHostException uhe) {
@@ -294,7 +344,8 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     }
   }
 
-  private Connection getConnectionFast(InetSocketAddress dest, long deadline, String context) throws ConnectException {
+  private Connection getConnectionFast(InetSocketAddress dest, long deadline, String context)
+      throws ConnectException, AuthFailedException {
     Connection connection;
 
     connection = connections.get(dest);
@@ -304,7 +355,8 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     return connection;
   }
 
-  private Connection getConnectionSlow(InetSocketAddress dest, long deadline, String context) throws ConnectException {
+  private Connection getConnectionSlow(InetSocketAddress dest, long deadline, String context)
+      throws ConnectException, AuthFailedException {
     Connection connection;
     ReentrantLock destNewConnectionLock;
 
@@ -330,7 +382,8 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
    *
    * @return
    */
-  private Connection createConnection(InetSocketAddress dest, long deadline, String context) throws ConnectException {
+  private Connection createConnection(InetSocketAddress dest, long deadline, String context)
+      throws ConnectException, AuthFailedException {
     RandomBackoff backoff;
     IPAndPort _dest;
 
@@ -361,20 +414,28 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
           suspectAddressListener.removeSuspect(dest);
         }
         return connection;
-      } catch (ConnectionAbsorbException cae) {
-        Log.logErrorWarning(cae, cae.getAbsorbedInfoMessage());
-        if (backoff == null) {
-          backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue,
-              deadline);
-        }
-        if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
-          backoff.backoff();
-        } else {
-          if (suspectAddressListener != null) {
-            suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
+      } catch (AuthFailedException afe) {
+        Log.logErrorWarning(afe);
+        if (afe.isRetryable()) {
+          if (backoff == null) {
+            backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest),
+                initialConnectBackoffValue,
+                // TODO ultimately this shouldn't hard-code the 1st attempt as the value can change per attempt, but
+                // it's good enough for now.
+                newConnectionTimeoutController.getRelativeTimeoutMillisForAttempt(_dest, 1), deadline);
           }
-          throw new ConnectException(
-              "Authentication fails after run out of retries [currTime=" + SystemTimeUtil.skSystemTimeSource.absTimeMillis() + ",deadline=" + deadline + "] and " + backoff + " =>" + cae.getAbsorbedInfoMessage());
+          if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
+            backoff.backoff();
+          } else {
+            if (suspectAddressListener != null) {
+              suspectAddressListener.addSuspect(dest, SuspectProblem.ConnectionEstablishmentFailed);
+            }
+            Log.logErrorWarning(afe,
+                "Authentication fails after run out of retries [currTime=" + SystemTimeUtil.skSystemTimeSource.absTimeMillis() + ",deadline=" + deadline + "] and " + backoff);
+            throw afe;
+          }
+        } else {
+          throw afe;
         }
       } catch (ConnectException ce) {
         if (addressStatusProvider != null && addressStatusProvider.isAddressStatusProviderThread()) {
@@ -389,7 +450,9 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
         Log.logErrorWarning(ce);
         if (backoff == null) {
           backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue,
-              deadline);
+              // TODO ultimately this shouldn't hard-code the 1st attempt as the value can change per attempt, but
+              // it's good enough for now.
+              newConnectionTimeoutController.getRelativeTimeoutMillisForAttempt(_dest, 1), deadline);
         }
         if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
           backoff.backoff();
@@ -407,7 +470,9 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
         Log.logErrorWarning(ste);
         if (backoff == null) {
           backoff = new RandomBackoff(newConnectionTimeoutController.getMaxAttempts(_dest), initialConnectBackoffValue,
-              deadline);
+              // TODO ultimately this shouldn't hard-code the 1st attempt as the value can change per attempt, but
+              // it's good enough for now.
+              newConnectionTimeoutController.getRelativeTimeoutMillisForAttempt(_dest, 1), deadline);
         }
         if (SystemTimeUtil.skSystemTimeSource.absTimeMillis() < deadline && !backoff.maxBackoffExceeded()) {
           backoff.backoff();
@@ -447,6 +512,10 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
   public void disconnected(Connection connection, InetSocketAddress remoteAddr, Object disconnectionData) {
     Log.warning("disconnected " + connection + "\t" + remoteAddr);
     removeAndCloseConnection(connection);
+    if (SessionPolicyOnDisconnect.CloseSession == sessionPolicyOnDisconnect) {
+      Log.warning("shutting down PersistentAsyncServer on disconnect");
+      shutdown();
+    }
   }
 
   public void removeAndCloseConnection(Connection connection) {
@@ -550,10 +619,10 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
         if (msg.getListener() != null && msg.getUUID() != null) {
           msg.getListener().failed(msg.getUUID());
         }
-      } catch (IOException ioe) {
+      } catch (AuthFailedException | IOException e) {
         msg.failed();
-        Log.warning(ioe + " " + msg.getDest());
-        Log.logErrorWarning(ioe);
+        Log.warning(e + " " + msg.getDest());
+        Log.logErrorWarning(e);
         if (msg.getListener() != null && msg.getUUID() != null) {
           msg.getListener().failed(msg.getUUID());
         }
@@ -598,6 +667,10 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
 
   public void writeStats() {
     asyncServer.writeStats();
+  }
+
+  public ConnectionController getConnectionController() {
+    return asyncServer.getConnectionController();
   }
 
   class ConnectionQueueWatcher implements Runnable {

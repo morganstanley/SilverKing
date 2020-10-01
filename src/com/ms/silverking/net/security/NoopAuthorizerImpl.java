@@ -16,11 +16,11 @@ public class NoopAuthorizerImpl extends Authorizer {
   }
 
   @Override
-  public AuthResult syncAuthorize(Optional<String> authenticated, byte[] requestedUser) {
+  public AuthorizationResult syncAuthorize(Optional<String> authenticated, byte[] requestedUser) {
     if (authenticated.isPresent()) {
       return Authorizer.createAuthSuccessResult(authenticated.get());
     } else {
-      return Authorizer.createAuthFailedResult(AuthFailedAction.GO_WITHOUT_AUTH, null);
+      return Authorizer.createAuthFailedResult(AuthorizationFailedAction.GO_WITHOUT_AUTH, null);
     }
   }
 

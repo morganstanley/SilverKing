@@ -9,11 +9,13 @@ public class LRUReapPolicy extends BaseReapPolicy<LRUReapPolicyState> {
   private final int idleReapPauseMillis;
   private final int reapIntervalMillis;
   private final int batchLimit;
+  private final boolean enableStartupReap;
 
   private static final int defaultIdleReapPauseMillis = 5;
   private static final int defaultReapIntervalMillis = 1 * 1000;
   private static final int defaultBatchLimit = 1000;
   private static final boolean defaultLruVerboseReap = false;
+  private static final boolean defaultEnableStartupReap = true;
 
   private static final boolean debug = false;
 
@@ -25,15 +27,16 @@ public class LRUReapPolicy extends BaseReapPolicy<LRUReapPolicyState> {
 
   public LRUReapPolicy() {
     this(defaultLruVerboseReap, defaultVerboseReapPhase, defaultVerboseSegmentDeletion, defaultIdleReapPauseMillis,
-        defaultReapIntervalMillis, defaultBatchLimit);
+        defaultReapIntervalMillis, defaultBatchLimit, defaultEnableStartupReap);
   }
 
   public LRUReapPolicy(boolean verboseReap, boolean verboseReapPhase, boolean verboseSegmentDeletion,
-      int idleReapPauseMillis, int reapIntervalMillis, int batchLimit) {
+      int idleReapPauseMillis, int reapIntervalMillis, int batchLimit, boolean enableStartupReap) {
     super(verboseReap, verboseReapPhase, verboseSegmentDeletion);
     this.idleReapPauseMillis = idleReapPauseMillis;
     this.reapIntervalMillis = reapIntervalMillis;
     this.batchLimit = batchLimit;
+    this.enableStartupReap = enableStartupReap;
   }
 
   @Override
@@ -44,7 +47,7 @@ public class LRUReapPolicy extends BaseReapPolicy<LRUReapPolicyState> {
   @Override
   public boolean reapAllowed(LRUReapPolicyState state, NamespaceStore nsStore, ReapPhase reapPhase, boolean isStartup) {
     if (isStartup) {
-      return true;
+      return enableStartupReap;
     } else {
       if (reapPhase != ReapPhase.compactAndDelete) {
         return true;

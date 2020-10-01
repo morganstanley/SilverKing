@@ -46,7 +46,7 @@ import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
 
-public class DirectoryServer implements PutTrigger, RetrieveTrigger {
+public class DirectoryServer implements PutTrigger, RetrieveTrigger.Direct {
   private SSNamespaceStore nsStore;
   private final ConcurrentMap<DHTKey, BaseDirectoryInMemorySS> directories;
   private Set<DHTKey> directoriesOnDiskAtBoot;

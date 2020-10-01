@@ -68,12 +68,12 @@ public class SimpleNewConnectionTimeoutController implements NewConnectionTimeou
   }
 
   @Override
-  public long getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex) {
+  public int getRelativeTimeoutMillisForAttempt(AddrAndPort addrAndPort, int attemptIndex) {
     return attemptRelativeTimeoutMillis;
   }
 
   @Override
-  public long getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort) {
+  public int getMaxRelativeTimeoutMillis(AddrAndPort addrAndPort) {
     return maxRelativeTimeoutMillis;
   }
 

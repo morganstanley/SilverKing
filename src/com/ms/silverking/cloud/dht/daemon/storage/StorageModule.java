@@ -55,11 +55,13 @@ import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.ProtoChecksumTreeMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoNamespaceResponseMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoOpResponseMessageGroup;
+import com.ms.silverking.cloud.dht.serverside.RetrieveCallback;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicyGroup;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.code.Constraint;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
@@ -148,7 +150,7 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
 
   private static final RetrievalImplementation retrievalImplementation;
 
-  private static final String metricsObserversProperty = StorageModule.class.getCanonicalName() + ".MetricsObservers";
+  public static final String metricsObserversProperty = StorageModule.class.getCanonicalName() + ".MetricsObservers";
 
   static {
     retrievalImplementation = RetrievalImplementation.valueOf(
@@ -265,7 +267,7 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     metricsObservers = PropertiesHelper.systemHelper.getString(metricsObserversProperty,
         UndefinedAction.ZeroOnUndefined);
     if (metricsObservers != null) {
-      for (String metricsObserverName : metricsObserversProperty.split(",")) {
+      for (String metricsObserverName : metricsObservers.split(",")) {
         StorageMetricsObserver metricsObserver;
 
         try {
@@ -281,7 +283,9 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
 
   public void stop() {
     cleanerTask.cancel();
-    reapTask.cancel();
+    if (reapTask != null) {
+      reapTask.cancel();
+    }
 
     methodCallNonBlockingWorker.stopLWTPool();
     methodCallBlockingWorker.stopLWTPool();
@@ -291,6 +295,11 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     namespaces.clear();
     zk.close();
 
+  }
+
+  public void recover() {
+    recoverExistingNamespaces();
+    ensureMetaNamespaceStoreExists();
   }
 
   private void createMetaNSStore() {
@@ -618,8 +627,8 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     }
   }
 
-  public List<ByteBuffer> retrieve(long ns, List<? extends DHTKey> keys, InternalRetrievalOptions options,
-      UUIDBase opUUID) {
+  public void retrieve(long ns, List<? extends DHTKey> keys, InternalRetrievalOptions options, UUIDBase opUUID,
+      RetrieveCallback<Pair<DHTKey, ByteBuffer>, Void> callback) {
     try {
       NamespaceStore nsStore;
 
@@ -630,21 +639,20 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
       //nsStore = getNamespaceStore(ns, NSCreationMode.DoNotCreate);
       if (nsStore != null) {
         if (retrievalImplementation == RetrievalImplementation.Grouped) {
-          return nsStore.retrieve(keys, options, opUUID);
+          nsStore.retrieve(keys, options, opUUID, callback);
         } else {
-          return nsStore.retrieve_nongroupedImpl(keys, options, opUUID);
+            nsStore.retrieve_nongroupedImpl(keys, options, opUUID, callback);
         }
       } else {
-        return null;
+        callback.apply(null);
       }
     } catch (NamespaceNotCreatedException nnce) {
-      List<ByteBuffer> results;
+      for (DHTKey key : keys) {
+        Pair<DHTKey, ByteBuffer> resultAndKey;
 
-      results = new ArrayList<>(keys.size());
-      for (int i = 0; i < keys.size(); i++) {
-        results.add(null);
+        resultAndKey = new Pair<>(key, null);
+        callback.apply(resultAndKey);
       }
-      return results;
     }
   }
 

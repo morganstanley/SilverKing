@@ -19,4 +19,6 @@ public interface SSRetrievalOptions {
   public Optional<byte[]> getTraceID();
 
   public byte[] getAuthorizationUser();
+
+  public byte[] getOriginator();
 }

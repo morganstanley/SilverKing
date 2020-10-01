@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.ms.silverking.cloud.dht.SessionOptions;
+import com.ms.silverking.cloud.dht.SessionPolicyOnDisconnect;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.client.impl.DHTSessionImpl;
@@ -28,6 +29,7 @@ import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AsyncGlobals;
 import com.ms.silverking.net.async.OutgoingData;
+import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
@@ -260,9 +262,10 @@ public class DHTClient {
 
       Log.infof("Opening session to resolvedServer: %s", resolvedServer);
       session = new DHTSessionImpl(dhtConfig, resolvedServer, absMillisTimeSource, serializationRegistry,
-          sessionOptions.getTimeoutController(), nsOptionsMode, enableMsgGroupTrace, aliasMap);
-    } catch (IOException ioe) {
-      throw new ClientException(ioe);
+          sessionOptions.getTimeoutController(), nsOptionsMode, enableMsgGroupTrace, aliasMap,
+          sessionOptions.getSessionPolicyOnDisconnect());
+    } catch (IOException | AuthFailedException e) {
+      throw new ClientException(e);
     }
     Log.info("session returned: ", session);
     return session;

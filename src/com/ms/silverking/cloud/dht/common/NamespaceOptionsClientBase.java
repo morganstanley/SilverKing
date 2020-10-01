@@ -341,7 +341,10 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
       if (nsProperties != null) {
         return nsProperties;
       } else {
+        boolean success;
+
         LWTThreadUtil.setBlocked();
+        success = false;
         try {
           NamespaceOptionsClientBase.ActiveOptionsRequest request;
           boolean requestsOutstanding;
@@ -375,6 +378,7 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
                 requestList.get(i).setComplete(nsProperties);
               }
               requestList.clear();
+              success = true;
             } finally {
               activeOptionsRequestLock.unlock();
             }
@@ -389,9 +393,22 @@ public abstract class NamespaceOptionsClientBase implements NamespaceOptionsClie
             if (nsProperties == null) {
               nsProperties = retrieveFullNamespaceProperties(nsContext);
             }
+            success = true;
           }
         } finally {
           LWTThreadUtil.setNonBlocked();
+          if (!success) {
+            activeOptionsRequestLock.lock();
+            try {
+              List<NamespaceOptionsClientBase.ActiveOptionsRequest> requestList;
+              requestList = activeOptionsRequests.getList(nsContext);
+              Log.warningf("getNamespacePropertiesWithTimeout(%x) failed, clearing %d active requests", nsContext,
+                  requestList.size());
+              requestList.clear();
+            } finally {
+              activeOptionsRequestLock.unlock();
+            }
+          }
         }
         if (debug) {
           System.out.printf("getNamespaceProperties storedDef %s\n", nsProperties);

@@ -38,6 +38,7 @@ import com.ms.silverking.util.SafeTimer;
  */
 public class DHTNode {
   private final String dhtName;
+  private final DHTConfiguration dhtConfig;
   private final NodeRingMaster2 ringMaster;
   private final MessageModule msgModule;
   private final StorageModule storage;
@@ -114,6 +115,7 @@ public class DHTNode {
       this.dhtName = dhtName;
       mc = new MetaClient(dhtName, zkConfig);
       dhtConfig = mc.getDHTConfiguration();
+      this.dhtConfig = dhtConfig;
       Log.warning("DHTConfiguration: ", dhtConfig);
       aliasConfig = mc.getIpAliasConfiguration(dhtConfig.getIpAliasMapName());
       aliasMap = IPAliasingUtil.readAliases(dhtConfig, aliasConfig);
@@ -181,17 +183,6 @@ public class DHTNode {
       //dmw.addListener(ringMaster);
       Log.warning("ReapPolicy: ", reapPolicy);
       daemonStateZK = new DaemonStateZK(mc, daemonIPAndPort, daemonStateTimer);
-      daemonStateZK.setState(DaemonState.INITIAL_MAP_WAIT);
-      ringMaster.initializeMap(dhtConfig);
-
-      if (!daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT,
-          inactiveNodeTimeoutSeconds)) {
-        daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT,
-            inactiveNodeTimeoutSeconds);
-      }
-      daemonStateZK.setState(DaemonState.RECOVERY);
-      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY,
-          recoveryInactiveNodeTimeoutSeconds);
       nodeInfoZK = new NodeInfoZK(mc, nodeConfig, daemonIPAndPort, daemonStateTimer);
       memoryManager = new MemoryManager();
       storage = new StorageModule(ringMaster, dhtName, storageModuleTimer, zkConfig, nodeInfoZK, reapPolicy,
@@ -199,23 +190,6 @@ public class DHTNode {
       msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer,
           baseInterfaceIPAndPort.getPort(), daemonIPAndPort, mc, aliasMap, enableMsgGroupTrace);
       msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
-      daemonStateZK.setState(DaemonState.QUORUM_WAIT);
-      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT,
-          inactiveNodeTimeoutSeconds);
-      daemonStateZK.setState(DaemonState.ENABLING_COMMUNICATION);
-      msgModule.enable();
-      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.ENABLING_COMMUNICATION,
-          inactiveNodeTimeoutSeconds);
-      daemonStateZK.setState(DaemonState.COMMUNICATION_ENABLED);
-      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.COMMUNICATION_ENABLED,
-          inactiveNodeTimeoutSeconds);
-      daemonStateZK.setState(DaemonState.PRIMING);
-      msgModule.start();
-      cleanVM();
-      daemonStateZK.setState(DaemonState.INITIAL_REAP);
-      storage.startupReap();
-      storage.setReady();
-      daemonStateZK.setState(DaemonState.RUNNING);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -254,7 +228,44 @@ public class DHTNode {
     JVMUtil.getGlobalFinalization().forceFinalization(0);
   }
 
+  public void prepareToRun() {
+    try {
+      daemonStateZK.setState(DaemonState.INITIAL_MAP_WAIT);
+      ringMaster.initializeMap(dhtConfig);
+
+      if (!daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT,
+          inactiveNodeTimeoutSeconds)) {
+        daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.INITIAL_MAP_WAIT,
+            inactiveNodeTimeoutSeconds);
+      }
+      daemonStateZK.setState(DaemonState.RECOVERY);
+      storage.recover();
+      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.RECOVERY,
+          recoveryInactiveNodeTimeoutSeconds);
+      daemonStateZK.setState(DaemonState.QUORUM_WAIT);
+      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.QUORUM_WAIT,
+          inactiveNodeTimeoutSeconds);
+      daemonStateZK.setState(DaemonState.ENABLING_COMMUNICATION);
+      msgModule.enable();
+      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.ENABLING_COMMUNICATION,
+          inactiveNodeTimeoutSeconds);
+      daemonStateZK.setState(DaemonState.COMMUNICATION_ENABLED);
+      daemonStateZK.waitForQuorumState(ringMaster.getAllCurrentReplicaServers(), DaemonState.COMMUNICATION_ENABLED,
+          inactiveNodeTimeoutSeconds);
+      daemonStateZK.setState(DaemonState.PRIMING);
+      msgModule.start();
+      cleanVM();
+      daemonStateZK.setState(DaemonState.INITIAL_REAP);
+      storage.startupReap();
+      storage.setReady();
+      daemonStateZK.setState(DaemonState.RUNNING);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public void run() {
+    prepareToRun();
     while (running) {
       synchronized (this) {
         try {

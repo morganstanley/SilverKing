@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
 
+import com.ms.silverking.cloud.dht.SessionPolicyOnDisconnect;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
@@ -13,11 +14,13 @@ import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AddressStatusProvider;
+import com.ms.silverking.net.async.ConnectionController;
 import com.ms.silverking.net.async.MultipleConnectionQueueLengthListener;
 import com.ms.silverking.net.async.NewConnectionTimeoutController;
 import com.ms.silverking.net.async.PersistentAsyncServer;
 import com.ms.silverking.net.async.QueueingConnectionLimitListener;
 import com.ms.silverking.net.async.SelectorController;
+import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.time.AbsMillisTimeSource;
 
 public class MessageGroupBase {
@@ -35,15 +38,15 @@ public class MessageGroupBase {
       MessageGroupReceiver messageGroupReceiver, AbsMillisTimeSource deadlineTimeSource,
       NewConnectionTimeoutController newConnectionTimeoutController, QueueingConnectionLimitListener limitListener,
       int queueLimit, int numSelectorControllers, String controllerClass,
-      MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, IPAliasMap aliasMap, boolean isClient)
-      throws IOException {
+      MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, IPAliasMap aliasMap, boolean isClient,
+      SessionPolicyOnDisconnect onDisconnect) throws IOException {
     this.myIPAndPort = myIPAndPort;
 
     this.deadlineTimeSource = deadlineTimeSource;
     paServer = new PersistentAsyncServer<>(interfacePort,
         new MessageGroupConnectionCreator(messageGroupReceiver, limitListener, queueLimit),
         newConnectionTimeoutController, numSelectorControllers, controllerClass, mqListener, mqUUID,
-        SelectorController.defaultSelectionThreadWorkLimit, isClient);
+        SelectorController.defaultSelectionThreadWorkLimit, isClient, onDisconnect);
     myID = SimpleValueCreator.forLocalProcess();
     this.messageGroupReceiver = messageGroupReceiver;
     if (aliasMap != null) {
@@ -58,10 +61,19 @@ public class MessageGroupBase {
       AbsMillisTimeSource deadlineTimeSource, NewConnectionTimeoutController newConnectionTimeoutController,
       QueueingConnectionLimitListener limitListener, int queueLimit, int numSelectorControllers, String controllerClass,
       IPAliasMap aliasMap) throws IOException {
+    return newClientMessageGroupBase(interfacePort, messageGroupReceiver, deadlineTimeSource,
+        newConnectionTimeoutController, limitListener, queueLimit, numSelectorControllers, controllerClass, aliasMap,
+        SessionPolicyOnDisconnect.DoNothing);
+  }
+
+  public static MessageGroupBase newClientMessageGroupBase(int interfacePort, MessageGroupReceiver messageGroupReceiver,
+      AbsMillisTimeSource deadlineTimeSource, NewConnectionTimeoutController newConnectionTimeoutController,
+      QueueingConnectionLimitListener limitListener, int queueLimit, int numSelectorControllers, String controllerClass,
+      IPAliasMap aliasMap, SessionPolicyOnDisconnect onDisconnect) throws IOException {
     return new MessageGroupBase(interfacePort, new IPAndPort(IPAddrUtil.localIP(), interfacePort),
         PersistentAsyncServer.useDefaultBacklog, messageGroupReceiver, deadlineTimeSource,
         newConnectionTimeoutController, limitListener, queueLimit, numSelectorControllers, controllerClass, null, null,
-        aliasMap, true);
+        aliasMap, true, onDisconnect);
   }
 
   public static MessageGroupBase newServerMessageGroupBase(int interfacePort, IPAndPort myIPAndPort,
@@ -71,7 +83,7 @@ public class MessageGroupBase {
       MultipleConnectionQueueLengthListener mqListener, UUIDBase mqUUID, IPAliasMap aliasMap) throws IOException {
     return new MessageGroupBase(interfacePort, myIPAndPort, PersistentAsyncServer.useDefaultBacklog,
         messageGroupReceiver, deadlineTimeSource, newConnectionTimeoutController, limitListener, queueLimit,
-        numSelectorControllers, controllerClass, mqListener, mqUUID, aliasMap, false);
+        numSelectorControllers, controllerClass, mqListener, mqUUID, aliasMap, false, SessionPolicyOnDisconnect.DoNothing);
   }
 
   public void enable() {
@@ -79,6 +91,10 @@ public class MessageGroupBase {
   }
 
   public boolean isClient() { return this.isClient; }
+
+  public boolean isRunning() {
+    return paServer.isRunning();
+  }
 
   public AbsMillisTimeSource getAbsMillisTimeSource() {
     return deadlineTimeSource;
@@ -131,11 +147,11 @@ public class MessageGroupBase {
     }
   }
 
-  public void ensureConnected(AddrAndPort dest) throws ConnectException {
+  public void ensureConnected(AddrAndPort dest) throws ConnectException, AuthFailedException {
     paServer.ensureConnected(aliasMap.daemonToInterface(dest));
   }
 
-  public MessageGroupConnection getConnection(AddrAndPort dest, long deadline) throws ConnectException {
+  public MessageGroupConnection getConnection(AddrAndPort dest, long deadline) throws ConnectException, AuthFailedException {
     return (MessageGroupConnection) paServer.getConnection(aliasMap.daemonToInterface(dest), deadline);
   }
 
@@ -162,5 +178,9 @@ public class MessageGroupBase {
 
   public void setPeerHealthMonitor(PeerHealthMonitor peerHealthMonitor) {
     paServer.setSuspectAddressListener(peerHealthMonitor);
+  }
+
+  public ConnectionController getConnectionController() {
+    return paServer.getConnectionController();
   }
 }

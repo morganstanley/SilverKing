@@ -127,7 +127,7 @@ public class EmbeddedSK {
       // 4) Start DHTNode
       Log.warning("Starting DHTNode");
       new DHTNode(config.getDHTName(), zkConfig, nodeConfig, 0, new ReapOnIdlePolicy(), DHTConstants.noPortOverride,
-          config.getDaemonIp());
+          config.getDaemonIp()).prepareToRun();
       Log.warning("DHTNode started");
 
       // 5) Return the configuration to the caller

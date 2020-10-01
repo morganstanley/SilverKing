@@ -18,7 +18,7 @@ import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.InetSocketAddressComparator;
-import com.ms.silverking.net.security.AuthResult;
+import com.ms.silverking.net.security.AuthenticationResult;
 import com.ms.silverking.net.security.Authenticable;
 
 /**
@@ -33,6 +33,7 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
   protected final SocketChannel channel;
   private SelectionKey selectionKey;
   private final InetSocketAddress remoteSocketAddress;
+  private final InetSocketAddress localSocketAddress;
   private final SelectorController<? extends Connection> selectorController;
   private ConnectionListener connectionListener;
   private final ConcurrentMap<UUIDBase, ActiveSend> activeBlockingSends;
@@ -76,6 +77,7 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
     this.selectorController = selectorController;
     this.connectionListener = connectionListener;
     remoteSocketAddress = (InetSocketAddress) channel.socket().getRemoteSocketAddress();
+    localSocketAddress = (InetSocketAddress) channel.socket().getLocalSocketAddress();
     channelWriteLock = new ReentrantLock();
     //channelReceiveLock = new ReentrantLock();
     connectionLock = new ReentrantLock();
@@ -105,17 +107,17 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
   //////////////////////////////////////////////////////////////////////
   // Authentication and Authorization
   // * Authenticable
-  protected AuthResult authenticationResult = null;
+  protected AuthenticationResult authenticationResult = null;
   protected Optional<String> authenticatedUser;
 
   @Override
-  public void setAuthenticationResult(AuthResult authenticationResult) {
+  public void setAuthenticationResult(AuthenticationResult authenticationResult) {
     this.authenticationResult = authenticationResult;
-    this.authenticatedUser = authenticationResult.getAuthId();
+    this.authenticatedUser = authenticationResult.getAuthenticatedId();
   }
 
   @Override
-  public Optional<AuthResult> getAuthenticationResult() {
+  public Optional<AuthenticationResult> getAuthenticationResult() {
     return Optional.ofNullable(authenticationResult);
   }
   //////////////////////////////////////////////////////////////////////
@@ -136,8 +138,17 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
     return selectorController;
   }
 
+  public final InetSocketAddress getLocalSocketAddress() {
+    return localSocketAddress;
+  }
+
   public final InetSocketAddress getRemoteSocketAddress() {
     return remoteSocketAddress;
+  }
+
+
+  public final IPAndPort getLocalIPAndPort() {
+    return new IPAndPort(localSocketAddress);
   }
 
   public final IPAndPort getRemoteIPAndPort() {

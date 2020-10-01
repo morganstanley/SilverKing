@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
+import static com.ms.silverking.cloud.dht.common.OpResult.SESSION_CLOSED;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.TimerTask;
@@ -16,6 +18,7 @@ import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespacePerspectiveOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.PutOptions;
+import com.ms.silverking.cloud.dht.SessionPolicyOnDisconnect;
 import com.ms.silverking.cloud.dht.WaitOptions;
 import com.ms.silverking.cloud.dht.client.AsyncSingleValueRetrieval;
 import com.ms.silverking.cloud.dht.client.AsynchronousNamespacePerspective;
@@ -28,6 +31,7 @@ import com.ms.silverking.cloud.dht.client.NamespaceDeletionException;
 import com.ms.silverking.cloud.dht.client.NamespaceModificationException;
 import com.ms.silverking.cloud.dht.client.NamespaceRecoverException;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
+import com.ms.silverking.cloud.dht.client.SessionClosedException;
 import com.ms.silverking.cloud.dht.client.SessionEstablishmentTimeoutController;
 import com.ms.silverking.cloud.dht.client.SynchronousNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.serialization.SerializationRegistry;
@@ -55,6 +59,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.async.QueueingConnectionLimitListener;
+import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.SafeTimerTask;
@@ -82,6 +87,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
   private SafeTimerTask timeoutCheckTask;
   private AsynchronousNamespacePerspective<String, String> systemNSP;
   private ExclusionSet exclusionSet;
+  volatile private boolean closed = false;
 
   /*
    * FUTURE - This class can be improved significantly. It contains remnants of the ActiveOperation* implementation.
@@ -121,10 +127,11 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 
   public DHTSessionImpl(ClientDHTConfiguration dhtConfig, AddrAndPort server, AbsMillisTimeSource absMillisTimeSource,
       SerializationRegistry serializationRegistry, SessionEstablishmentTimeoutController timeoutController,
-      NamespaceOptionsMode nsOptionsMode, boolean enableMsgGroupTrace, IPAliasMap aliasMap) throws IOException {
+      NamespaceOptionsMode nsOptionsMode, boolean enableMsgGroupTrace, IPAliasMap aliasMap,
+      SessionPolicyOnDisconnect onDisconnect) throws IOException, AuthFailedException {
     mgBase = MessageGroupBase.newClientMessageGroupBase(0, this, absMillisTimeSource,
         new NewConnectionTimeoutControllerWrapper(timeoutController), this, connectionQueueLimit,
-        numSelectorControllers, selectorControllerClass, aliasMap);
+        numSelectorControllers, selectorControllerClass, aliasMap, onDisconnect);
     mgBase.enable();
 
     this.server = server;
@@ -253,7 +260,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
         return nsOptionsClient.getNamespacePropertiesAndTryAutoCreate(namespace);
       } catch (TimeoutException te) {
         throw new RuntimeException("Timeout retrieving namespace meta information " + Long.toHexString(
-            NamespaceUtil.nameToContext(namespace)) + " " + namespace, te);
+            NamespaceUtil.nameToContext(namespace)) + " " + namespace + ", session closed: " + closed, te);
       } catch (NamespacePropertiesRetrievalException re) {
         SynchronousNamespacePerspective<Long, String> syncNSP;
         String locations;
@@ -270,7 +277,9 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
           Log.warning("Unexpected failure attempting to find key locations " + "during failed ns retrieval processing");
         }
         Log.warning(re);
-        throw new RuntimeException("Unable to retrieve namespace meta information " + Long.toHexString(ns), re);
+        throw new RuntimeException(
+            "Unable to retrieve namespace meta information " + Long.toHexString(ns) + ", session closed: " + closed,
+            re);
       }
     }
   }
@@ -487,6 +496,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
   public void close() {
     mgBase.shutdown();
     timeoutCheckTask.cancel();
+    closed = true;
     // FUTURE - consider additional actions
   }
 
@@ -631,5 +641,24 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 
   AbsMillisTimeSource getAbsMillisTimeSource() {
     return absMillisTimeSource;
+  }
+
+  void assertOpen() throws SessionClosedException {
+    if (!mgBase.isRunning()) {
+      for (ClientNamespace namespace : clientNamespaceList) {
+        List<AsyncOperationImpl> asyncOps = namespace.getActiveAsyncOperations();
+        Log.warningf("trying to complete %d async operations on namespace %s with SESSION_CLOSED", asyncOps.size(),
+            namespace.getName());
+        for (AsyncOperationImpl op : asyncOps) {
+          op.setResult(SESSION_CLOSED);
+        }
+      }
+      close();
+      throw new SessionClosedException("session is closed");
+    }
+  }
+
+  public boolean isClosed() {
+    return closed;
   }
 }

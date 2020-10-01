@@ -1,5 +1,7 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
+import static com.ms.silverking.cloud.dht.common.OpResult.SESSION_CLOSED;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -19,6 +21,7 @@ import com.ms.silverking.cloud.dht.client.ConstantVersionProvider;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.PutException;
 import com.ms.silverking.cloud.dht.client.RetrievalException;
+import com.ms.silverking.cloud.dht.client.SessionClosedException;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.impl.ClientNamespace.OpLWTMode;
 import com.ms.silverking.cloud.dht.client.serialization.BufferDestSerializer;
@@ -92,14 +95,18 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
   // reads
 
   public AsyncRetrieval<K, V> baseRetrieve(Set<? extends K> keys, RetrievalOptions retrievalOptions,
-      OpLWTMode opLWTMode) throws RetrievalException {
+      OpLWTMode opLWTMode) {
     AsyncRetrievalOperationImpl<K, V> opImpl;
 
     clientNamespace.validateOpOptions(retrievalOptions);
     opImpl = new AsyncRetrievalOperationImpl(new RetrievalOperation<>(clientNamespace, keys, retrievalOptions),
         clientNamespace, nspoImpl, clientNamespace.getAbsMillisTimeSource().absTimeMillis(),
         clientNamespace.getOriginator());
-    clientNamespace.startOperation(opImpl, opLWTMode);
+    try {
+      clientNamespace.startOperation(opImpl, opLWTMode);
+    } catch (SessionClosedException ex) {
+      opImpl.setResult(SESSION_CLOSED);
+    }
     return opImpl;
   }
 
@@ -130,7 +137,11 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
     opImpl = new AsyncPutOperationImpl<>(new PutOperation<>(clientNamespace, values, putOptions), clientNamespace,
         nspoImpl, clientNamespace.getAbsMillisTimeSource().absTimeMillis(), clientNamespace.getOriginator(),
         nspoImpl.getNSPOptions().getDefaultVersionProvider());
-    clientNamespace.startOperation(opImpl, opLWTMode);
+    try {
+      clientNamespace.startOperation(opImpl, opLWTMode);
+    } catch (SessionClosedException ex) {
+      opImpl.setResult(SESSION_CLOSED);
+    }
     return opImpl;
   }
 
@@ -154,7 +165,7 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
   // snapshots
 
   protected AsyncSnapshot baseSnapshot(long version,
-      AsynchronousNamespacePerspectiveImpl<K, V> asynchronousNSPerspectiveImpl) {
+      AsynchronousNamespacePerspectiveImpl<K, V> asynchronousNSPerspectiveImpl) throws SessionClosedException {
     SnapshotOperation snapshotOperation;
     AsyncSnapshotOperationImpl asyncSnapshotImpl;
 
@@ -171,7 +182,7 @@ class BaseNamespacePerspectiveImpl<K, V> implements BaseNamespacePerspective<K, 
   // syncRequest
 
   protected AsyncSyncRequest baseSyncRequest(long version,
-      AsynchronousNamespacePerspectiveImpl<K, V> asynchronousNSPerspectiveImpl) {
+      AsynchronousNamespacePerspectiveImpl<K, V> asynchronousNSPerspectiveImpl) throws SessionClosedException {
     SyncRequestOperation syncRequestOperation;
     AsyncSyncRequestOperationImpl asyncSyncRequestOperationImpl;
 
