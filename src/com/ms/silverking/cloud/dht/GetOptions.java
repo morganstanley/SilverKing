@@ -59,9 +59,9 @@ public final class GetOptions extends RetrievalOptions {
       RetrievalType retrievalType, VersionConstraint versionConstraint, NonExistenceResponse nonExistenceResponse,
       boolean verifyChecksums, boolean returnInvalidations, ForwardingMode forwardingMode,
       boolean updateSecondariesOnMiss, byte[] userOptions, byte[] authorizationUser, AllReplicasExcludedResponse allReplicasExcludedResponse) {
-    this(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, retrievalType, versionConstraint,
-        nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, updateSecondariesOnMiss,
-        userOptions, authorizationUser, allReplicasExcludedResponse);
+    this(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, allReplicasExcludedResponse, retrievalType,
+        versionConstraint, nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode,
+        updateSecondariesOnMiss, userOptions, authorizationUser);
   }
 
   /**
@@ -84,13 +84,13 @@ public final class GetOptions extends RetrievalOptions {
    * @param authorizationUser       a username which may be required by an authorization plugin on the server
    */
   public GetOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      TraceIDProvider traceIDProvider, RetrievalType retrievalType, VersionConstraint versionConstraint,
-      NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, boolean returnInvalidations,
-      ForwardingMode forwardingMode, boolean updateSecondariesOnMiss, byte[] userOptions, byte[] authorizationUser,
-      AllReplicasExcludedResponse allReplicasExcludedResponse) {
-    super(opTimeoutController, secondaryTargets, traceIDProvider, retrievalType, WaitMode.GET, versionConstraint,
-        nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode, updateSecondariesOnMiss,
-        userOptions, authorizationUser, allReplicasExcludedResponse);
+      TraceIDProvider traceIDProvider, AllReplicasExcludedResponse allReplicasExcludedResponse, RetrievalType retrievalType,
+      VersionConstraint versionConstraint, NonExistenceResponse nonExistenceResponse, boolean verifyChecksums,
+      boolean returnInvalidations, ForwardingMode forwardingMode, boolean updateSecondariesOnMiss, byte[] userOptions,
+      byte[] authorizationUser) {
+    super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse, retrievalType, WaitMode.GET,
+        versionConstraint, nonExistenceResponse, verifyChecksums, returnInvalidations, forwardingMode,
+        updateSecondariesOnMiss, userOptions, authorizationUser);
   }
 
   /**
@@ -100,9 +100,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-    return new GetOptions(opTimeoutController, getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(opTimeoutController, getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -112,9 +112,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-    return new GetOptions(getOpTimeoutController(), secondaryTargets, getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), secondaryTargets, getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -126,9 +126,9 @@ public final class GetOptions extends RetrievalOptions {
   public GetOptions secondaryTargets(SecondaryTarget secondaryTarget) {
     Preconditions.checkNotNull(secondaryTarget);
     return new GetOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getTraceIDProvider(),
-        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
-        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(),
-        getAuthorizationUser(), getAllReplicasExcludedResponse());
+        getAllReplicasExcludedResponse(), getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(),
+        getVerifyChecksums(), getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(),
+        getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -139,9 +139,9 @@ public final class GetOptions extends RetrievalOptions {
    */
   public GetOptions traceIDProvider(TraceIDProvider traceIDProvider) {
     Preconditions.checkNotNull(traceIDProvider);
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), traceIDProvider, getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), traceIDProvider, getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -151,9 +151,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions retrievalType(RetrievalType retrievalType) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), retrievalType,
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        retrievalType, getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -163,9 +163,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions versionConstraint(VersionConstraint versionConstraint) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        versionConstraint, getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), versionConstraint, getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -175,9 +175,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions nonExistenceResponse(NonExistenceResponse nonExistenceResponse) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), nonExistenceResponse, getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), nonExistenceResponse, getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -187,9 +187,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions verifyChecksums(boolean verifyChecksums) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), verifyChecksums, getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), verifyChecksums,
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -199,9 +199,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions returnInvalidations(boolean returnInvalidations) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), returnInvalidations,
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        returnInvalidations, getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -211,9 +211,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions updateSecondariesOnMiss(boolean updateSecondariesOnMiss) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), updateSecondariesOnMiss, getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), updateSecondariesOnMiss, getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -223,9 +223,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions forwardingMode(ForwardingMode forwardingMode) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        forwardingMode, getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), forwardingMode, getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
 
   /**
@@ -235,9 +235,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions userOptions(byte[] userOptions) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), userOptions, getAuthorizationUser(), getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), userOptions, getAuthorizationUser());
   }
 
   /**
@@ -247,9 +247,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions authorizationUser(byte[] authorizationUser) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), authorizationUser, getAllReplicasExcludedResponse());
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), authorizationUser);
   }
 
   /**
@@ -259,9 +259,9 @@ public final class GetOptions extends RetrievalOptions {
    * @return the modified GetOptions
    */
   public GetOptions allReplicasExcludedResponse(AllReplicasExcludedResponse allReplicasExcludedResponse) {
-    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), allReplicasExcludedResponse);
+    return new GetOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), allReplicasExcludedResponse,
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getForwardingMode(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser());
   }
   
   @Override

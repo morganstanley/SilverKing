@@ -86,9 +86,9 @@ public final class WaitOptions extends RetrievalOptions {
       RetrievalType retrievalType, VersionConstraint versionConstraint, NonExistenceResponse nonExistenceResponse,
       boolean verifyChecksums, boolean returnInvalidations, boolean updateSecondariesOnMiss, byte[] userOptions,
       byte[] authorizationUser, int timeoutSeconds, int threshold, TimeoutResponse timeoutResponse) {
-    this(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, retrievalType, versionConstraint,
-        nonExistenceResponse, verifyChecksums, returnInvalidations, updateSecondariesOnMiss, userOptions,
-        authorizationUser, AllReplicasExcludedResponse.defaultResponse, timeoutSeconds, threshold, timeoutResponse);
+    this(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.defaultResponse, retrievalType,
+        versionConstraint, nonExistenceResponse, verifyChecksums, returnInvalidations, updateSecondariesOnMiss,
+        userOptions, authorizationUser, timeoutSeconds, threshold, timeoutResponse);
   }
 
   /**
@@ -99,26 +99,26 @@ public final class WaitOptions extends RetrievalOptions {
    *                                of the requested values could be retrieved
    * @param secondaryTargets        constrains queried secondary replicas
    * @param traceIDProvider         trace provider for message group
+   * @param allReplicasExcludedResponse TODO
    * @param retrievalType           what to retrieve (data, meta data, etc.)
    * @param versionConstraint       filter on the allowed versions
    * @param verifyChecksums
    * @param updateSecondariesOnMiss when true, secondary replicas queried in this operation will be updated on a miss
    * @param userOptions             specifies additional custom options from user
    * @param authorizationUser       specifies a user to be used for authorization plugins
-   * @param allReplicasExcludedResponse TODO
    * @param timeoutSeconds          return after timeoutSeconds if the values cannot be retrieved
    * @param threshold               return after a percentage of requested values are available
    * @param timeoutResponse         specifies whether or not to throw an exception when a timeout occurs before all
    */
   public WaitOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      TraceIDProvider traceIDProvider, RetrievalType retrievalType, VersionConstraint versionConstraint,
-      NonExistenceResponse nonExistenceResponse, boolean verifyChecksums, boolean returnInvalidations,
-      boolean updateSecondariesOnMiss, byte[] userOptions, byte[] authorizationUser, 
-      AllReplicasExcludedResponse allReplicasExcludedResponse, int timeoutSeconds,
+      TraceIDProvider traceIDProvider, AllReplicasExcludedResponse allReplicasExcludedResponse, RetrievalType retrievalType,
+      VersionConstraint versionConstraint, NonExistenceResponse nonExistenceResponse, boolean verifyChecksums,
+      boolean returnInvalidations, boolean updateSecondariesOnMiss, byte[] userOptions, 
+      byte[] authorizationUser, int timeoutSeconds,
       int threshold, TimeoutResponse timeoutResponse) {
-    super(opTimeoutController, secondaryTargets, traceIDProvider, retrievalType, WaitMode.WAIT_FOR, versionConstraint,
-        nonExistenceResponse, verifyChecksums, returnInvalidations, ForwardingMode.FORWARD, updateSecondariesOnMiss,
-        userOptions, authorizationUser, allReplicasExcludedResponse);
+    super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse, retrievalType, WaitMode.WAIT_FOR,
+        versionConstraint, nonExistenceResponse, verifyChecksums, returnInvalidations, ForwardingMode.FORWARD,
+        updateSecondariesOnMiss, userOptions, authorizationUser);
     Preconditions.checkArgument(timeoutSeconds >= 0);
     Preconditions.checkArgument(threshold >= 0);
     this.timeoutSeconds = timeoutSeconds;
@@ -138,9 +138,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-    return new WaitOptions(opTimeoutController, getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(opTimeoutController, getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -151,9 +151,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-    return new WaitOptions(getOpTimeoutController(), secondaryTargets, getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), secondaryTargets, getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -166,9 +166,9 @@ public final class WaitOptions extends RetrievalOptions {
   public WaitOptions secondaryTargets(SecondaryTarget secondaryTarget) {
     Preconditions.checkNotNull(secondaryTarget);
     return new WaitOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getTraceIDProvider(),
-        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
-        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(),
-        getAllReplicasExcludedResponse(), timeoutSeconds, threshold, timeoutResponse);
+        getAllReplicasExcludedResponse(), getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(),
+        getVerifyChecksums(), getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(),
+        getAuthorizationUser(), timeoutSeconds, threshold, timeoutResponse);
   }
 
   /**
@@ -179,9 +179,9 @@ public final class WaitOptions extends RetrievalOptions {
    */
   public WaitOptions traceIDProvider(TraceIDProvider traceIDProvider) {
     Preconditions.checkNotNull(traceIDProvider);
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), traceIDProvider, getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), traceIDProvider, getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -192,9 +192,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions retrievalType(RetrievalType retrievalType) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), retrievalType,
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        retrievalType, getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -205,9 +205,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions versionConstraint(VersionConstraint versionConstraint) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        versionConstraint, getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), versionConstraint, getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -218,9 +218,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions nonExistenceResponse(NonExistenceResponse nonExistenceResponse) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), nonExistenceResponse, getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), nonExistenceResponse, getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -231,9 +231,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions verifyChecksums(boolean verifyChecksums) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), verifyChecksums, getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), verifyChecksums,
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -244,9 +244,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions returnInvalidations(boolean returnInvalidations) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), returnInvalidations,
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        returnInvalidations, getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -257,9 +257,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions updateSecondariesOnMiss(boolean updateSecondariesOnMiss) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        updateSecondariesOnMiss, getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds, threshold, timeoutResponse);
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), updateSecondariesOnMiss, getUserOptions(), getAuthorizationUser(), timeoutSeconds, threshold, timeoutResponse);
   }
 
   /**
@@ -269,9 +269,9 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions timeoutSeconds(int timeoutSeconds) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
@@ -282,23 +282,23 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions threshold(int threshold) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
   public WaitOptions authorizationUser(byte[] authorizationUser) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), authorizationUser, getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), authorizationUser, timeoutSeconds,
         threshold, getTimeoutResponse());
   }
   
   public WaitOptions allReplicasExcludedResponse(AllReplicasExcludedResponse allReplicasExcludedResponse) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), allReplicasExcludedResponse, timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), allReplicasExcludedResponse,
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, getTimeoutResponse());
   }
   
@@ -309,16 +309,16 @@ public final class WaitOptions extends RetrievalOptions {
    * @return the modified WaitOptions
    */
   public WaitOptions timeoutResponse(TimeoutResponse timeoutResponse) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), getUserOptions(), getAuthorizationUser(), timeoutSeconds,
         threshold, timeoutResponse);
   }
 
   public WaitOptions userOptions(byte[] userOptions) {
-    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getRetrievalType(),
-        getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(), getReturnInvalidations(),
-        getUpdateSecondariesOnMiss(), userOptions, getAuthorizationUser(), getAllReplicasExcludedResponse(), timeoutSeconds,
+    return new WaitOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), getAllReplicasExcludedResponse(),
+        getRetrievalType(), getVersionConstraint(), getNonExistenceResponse(), getVerifyChecksums(),
+        getReturnInvalidations(), getUpdateSecondariesOnMiss(), userOptions, getAuthorizationUser(), timeoutSeconds,
         threshold, getTimeoutResponse());
   }
 

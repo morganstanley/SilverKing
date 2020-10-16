@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.common;
 
 import java.util.Set;
 
+import com.ms.silverking.cloud.dht.AllReplicasExcludedResponse;
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
 import com.ms.silverking.cloud.dht.GetOptions;
 import com.ms.silverking.cloud.dht.InvalidationOptions;
@@ -211,8 +212,9 @@ public class OptionsHelper {
 
   public static InvalidationOptions newInvalidationOptions(OpTimeoutController opTimeoutController, long version,
       long requiredPreviousVersion, short lockSeconds, Set<SecondaryTarget> secondaryTargets) {
-    return new InvalidationOptions(opTimeoutController, secondaryTargets, version, requiredPreviousVersion,
-        lockSeconds);
+    return new InvalidationOptions(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, 
+        AllReplicasExcludedResponse.EXCEPTION, version,
+        requiredPreviousVersion, lockSeconds);
   }
 
   /////////////////////

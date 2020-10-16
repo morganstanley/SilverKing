@@ -25,10 +25,11 @@ public class TestUtil {
       Compression.LZ4, ChecksumType.MURMUR3_32, false, 0, 0, PutOptions.noLock,
       DHTConstants.defaultFragmentationThreshold, null);
 
-  public static final InvalidationOptions ioCopy = new InvalidationOptions(new OpSizeBasedTimeoutController(), null, 0,
-      0, PutOptions.noLock);
+  public static final InvalidationOptions ioCopy = new InvalidationOptions(new OpSizeBasedTimeoutController(), null, 
+      DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION,
+      0, 0, PutOptions.noLock);
   public static final InvalidationOptions ioDiff = new InvalidationOptions(new WaitForTimeoutController(),
-      new HashSet<>(), 0, 0, PutOptions.noLock);
+      new HashSet<>(), DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION, 0, 0, PutOptions.noLock);
 
   public static final GetOptions goCopy = new GetOptions(new OpSizeBasedTimeoutController(), null, RetrievalType.VALUE,
       new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true,

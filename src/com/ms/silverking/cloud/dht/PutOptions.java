@@ -59,7 +59,8 @@ public class PutOptions extends OperationOptions {
   // FUTURE - A limitation in the parser seems to require replication until we have a proper fix
   private static final OpTimeoutController standardTimeoutController = new OpSizeBasedTimeoutController();
   private static final PutOptions template = new PutOptions(standardTimeoutController, DHTConstants.noSecondaryTargets,
-      DHTConstants.defaultTraceIDProvider, Compression.LZ4, ChecksumType.MURMUR3_32, false, defaultVersion,
+      DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION, 
+      Compression.LZ4, ChecksumType.MURMUR3_32, false, defaultVersion,
       noVersionRequired, noLock, DHTConstants.defaultFragmentationThreshold, null);
   // end temp replicated from DHTConstants
 
@@ -75,6 +76,15 @@ public class PutOptions extends OperationOptions {
         checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
   }
 
+  public PutOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
+      TraceIDProvider traceIDProvider, Compression compression, ChecksumType checksumType,
+      boolean checksumCompressedValues, long version, long requiredPreviousVersion, short lockSeconds,
+      int fragmentationThreshold, byte[] userData) {
+    this(opTimeoutController, secondaryTargets, traceIDProvider, AllReplicasExcludedResponse.EXCEPTION, 
+        compression, checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds,
+        fragmentationThreshold, userData);
+  }  
+  
   /**
    * Construct PutOptions from the given arguments. Usage is generally not recommended.
    * Instead of using this constructor, applications should obtain an instance
@@ -96,10 +106,11 @@ public class PutOptions extends OperationOptions {
    * @param userData                 out of band data to store with value. May not exceed maxUserDataLength.
    */
   public PutOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      TraceIDProvider traceIDProvider, Compression compression, ChecksumType checksumType,
+      TraceIDProvider traceIDProvider, AllReplicasExcludedResponse allReplicasExcludedResponse,
+      Compression compression, ChecksumType checksumType,
       boolean checksumCompressedValues, long version, long requiredPreviousVersion, short lockSeconds,
       int fragmentationThreshold, byte[] userData) {
-    super(opTimeoutController, secondaryTargets, traceIDProvider, AllReplicasExcludedResponse.EXCEPTION);
+    super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse);
     Preconditions.checkNotNull(compression);
     Preconditions.checkNotNull(checksumType);
     if (version < 0) {

@@ -63,15 +63,26 @@ public class InvalidationOptions extends PutOptions {
    * @param opTimeoutController opTimeoutController for the operation
    * @param secondaryTargets    constrains queried secondary replicas
    *                            to operation solely on the node that receives this operation
+   * @param allReplicasExcludedResponse TODO
    * @param version             version of this object
    * @param lockSeconds         seconds to lock this key
    */
-  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      long version, long requiredPreviousVersion, short lockSeconds) {
-    super(opTimeoutController, secondaryTargets, Compression.NONE, ChecksumType.SYSTEM, false, version,
+  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, TraceIDProvider traceIDProvider,
+      AllReplicasExcludedResponse allReplicasExcludedResponse, long version, long requiredPreviousVersion, short lockSeconds) {
+    super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse, 
+        Compression.NONE, ChecksumType.SYSTEM, false, version,
         requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, null);
   }
 
+  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, TraceIDProvider traceIDProvider,
+      AllReplicasExcludedResponse allReplicasExcludedResponse,
+      Compression compression, ChecksumType checksum, boolean checksumCompressedValues,
+      long version, long requiredPreviousVersion, short lockSeconds, int fragmentationThreshold, byte[] options) {
+    super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse, 
+        compression, checksum, checksumCompressedValues, version,
+        requiredPreviousVersion, lockSeconds, fragmentationThreshold, options);
+  }
+  
   /**
    * Return an InvalidationOptions instance like this instance, but with a new OpTimeoutController.
    *
