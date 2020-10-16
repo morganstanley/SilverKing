@@ -19,4 +19,8 @@ public interface RetrievalOperation extends Operation<DHTKey, RetrievalResult> {
   public void update(DHTKey key, IPAndPort replica, RetrievalResult update, RetrievalVirtualCommunicator rvComm);
 
   public Set<IPAndPort> checkForInternalTimeouts(long curTimeMillis, RetrievalVirtualCommunicator rComm);
+
+  public void replicaIncluded(IPAndPort replica, RetrievalCommunicator rComm);
+  
+  public void replicaExcluded(IPAndPort replica, RetrievalCommunicator rComm);
 }

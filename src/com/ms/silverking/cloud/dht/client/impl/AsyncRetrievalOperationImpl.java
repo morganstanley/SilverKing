@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 
+import com.ms.silverking.cloud.dht.AllReplicasExcludedResponse;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.TimeoutResponse;
@@ -386,7 +387,14 @@ public class AsyncRetrievalOperationImpl<K, V> extends AsyncKVOperationImpl<K, V
         return;
       }
     } else {
-      rawResult.setOpResult(opResult);
+      if (opResult == OpResult.REPLICA_EXCLUDED 
+          && retrievalOperation.retrievalOptions().getAllReplicasExcludedResponse() == AllReplicasExcludedResponse.IGNORE) {
+        // All replicas excluded, but options say to ignore it
+        // (I.e. wait for a replica to recover)
+        Log.warning("Ignoring replica exclusion");
+      } else {
+        rawResult.setOpResult(opResult);
+      }
     }
     if (opResult == OpResult.SUCCEEDED && segmented) {
       ByteBuffer buf;

@@ -143,8 +143,13 @@ abstract class AsyncKeyedOperationImpl<K> extends AsyncNamespaceOperationImpl im
 
   protected void failureCleanup(FailureCause failureCause) {
     for (K key : getKeys()) {
-      if (getFailureCauses().get(key) == null) {
-        getFailureCauses().put(key, failureCause);
+      OpResult  keyResult;
+      
+      keyResult = getOpResult(key); 
+      if (keyResult == null || keyResult.hasFailed()) {
+        if (getFailureCauses().get(key) == null) {
+          getFailureCauses().put(key, failureCause);
+        }
       }
     }
     super.failureCleanup(failureCause);

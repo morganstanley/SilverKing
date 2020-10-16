@@ -16,6 +16,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -70,6 +72,7 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.collection.CollectionUtil;
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
@@ -85,15 +88,11 @@ import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPool;
 import com.ms.silverking.thread.lwt.LWTPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
+import com.ms.silverking.thread.lwt.util.Broadcaster;
+import com.ms.silverking.thread.lwt.util.Listener;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
-
-//import com.ms.silverking.cloud.dht.gcmd.GlobalCommandServer;
-//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandMessageGroup;
-//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandResultMessageGroup;
-//import com.ms.silverking.cloud.dht.net.ProtoGlobalCommandUpdateMessageGroup;
 
 /**
  * DHTNode message processing module.
@@ -115,6 +114,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   private final byte[] myIPAndPortAsOriginator; // special case for ping messages
   //private final Timer    pingTimer;
   //private final GlobalCommandServer globalCommandServer;
+  private final ExclusionChangeListener exclusionChangeListener;
 
   // Note - removal of operations is done only in bulk
   private final ConcurrentMap<UUIDBase, ActiveProxyPut> activePuts;
@@ -246,6 +246,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     ringMaster.setPeerHealthMonitor(peerHealthMonitor);
     NamespaceStore.setPeerHealthMonitor(peerHealthMonitor);
     DirectoryBase.setPeerHealthMonitor(peerHealthMonitor);
+    exclusionChangeListener = new ExclusionChangeListener();
   }
 
   public final boolean getEnableMsgGroupTrace() {
@@ -1090,38 +1091,63 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       handleReceive(m.message, m.connection);
     }
   }
-
+  
   /////////////////////////////////
 
-  // deprecated in favor of one pass combining cleanup and replica timeout checks
-    /*
-    class ReplicaTimeoutChecker extends TimerTask {
-        ReplicaTimeoutChecker() {
-        }
-        
-        @Override
-        public void run() {
-            checkForTimeouts();
-        }
-        
-        private void checkForTimeouts() {
-            long    absTimeMillis;
-            
-            Log.info("Checking MessageModule maps for timeouts");
-            //System.out.println(activePuts.size());
-            absTimeMillis = absMillisTimeSource.absTimeMillis();
-            checkMap(activePuts, absTimeMillis);
-            checkMap(activeRetrievals, absTimeMillis);
-            Log.info("Done checking MessageModule maps for timeouts");
-        }
-        
-        private void checkMap(ConcurrentMap<UUIDBase, ? extends ActiveProxyOperation<?, ?>> map, long absTimeMillis) {
-            for (Map.Entry<UUIDBase, ? extends ActiveProxyOperation<?, ?>> entry : map.entrySet()) {
-                entry.getValue().checkForReplicaTimeouts(absTimeMillis);
-            }
-        }        
+  
+  public ExclusionChangeListener getExclusionChangeListener() {
+    return exclusionChangeListener;
+  }
+  
+  private class ExclusionChangeListener implements Listener<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>>, Comparable<ExclusionChangeListener> {
+    @Override
+    public void notification(Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>> broadcaster, Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>> message) {
+      notifyOfReplicaChange(message.getV2(), message.getV3());
     }
-    */
+
+    @Override
+    public int compareTo(ExclusionChangeListener o) {
+      if (o == this) {
+        return 0;
+      } else {
+        throw new RuntimeException("Only one MessageModule expected presently");
+      }
+    }
+  }
+  
+  private void notifyOfReplicaChange(Set<IPAndPort> newlyExcludedReplicas, Set<IPAndPort> newlyIncludedReplicas) {
+    long    absTimeMillis;
+
+    absTimeMillis = absMillisTimeSource.absTimeMillis(); 
+    // Note: put notification for the purpose of retrying puts would require holding on to the value in the proxy 
+    // which has been shown to cause oom-induced crashes.
+    // puts could be notified for the purpose of determining that a put has succeeded; we presently handle this
+    // case in the client
+    notifyOfReplicaChange(activeRetrievals, absTimeMillis, newlyExcludedReplicas, newlyIncludedReplicas);
+  }
+  
+  private void notifyOfReplicaChange(ConcurrentMap<UUIDBase, ? extends ActiveProxyOperation<?, ?>> map, long absTimeMillis, 
+      Set<IPAndPort> newlyExcludedReplicas, Set<IPAndPort> newlyIncludedReplicas) {
+    Log.warningf("MessageModule.notifyOfReplicaChange ex %s in %s", 
+        CollectionUtil.toString(newlyExcludedReplicas), CollectionUtil.toString(newlyIncludedReplicas));
+    if (newlyExcludedReplicas.isEmpty() && newlyIncludedReplicas.isEmpty()) {
+      return;
+    } else {
+      for (Map.Entry<UUIDBase, ? extends ActiveProxyOperation<?, ?>> entry : map.entrySet()) {
+        if (entry.getValue().hasTimedOut(
+            absTimeMillis) || entry.getValue().getOpResult().isComplete()) { // FIXME - think about failures
+          if (debugCleanup) {
+            System.out.printf("Removing %s\n", entry.getKey());
+          }
+          map.remove(entry.getKey());
+        } else {
+          entry.getValue().exclusionsChanged(newlyExcludedReplicas, newlyIncludedReplicas);
+        }
+      }
+    }
+  }
+
+  /////////////////////////////////
 
   /**
    * Cleans up complete and timed out operations.

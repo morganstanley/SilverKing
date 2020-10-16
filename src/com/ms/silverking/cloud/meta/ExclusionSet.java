@@ -68,4 +68,12 @@ public class ExclusionSet extends ServerSetExtension {
     u = u.add(s2.getServers());
     return u;
   }
+  
+  public static ExclusionSet difference(ExclusionSet s1, ExclusionSet s2) {
+    Set<String> s;
+
+    s = new HashSet<>(s1.getServers());
+    s.removeAll(s2.getServers());
+    return new ExclusionSet(s, 0, INVALID_ZXID);
+  }
 }

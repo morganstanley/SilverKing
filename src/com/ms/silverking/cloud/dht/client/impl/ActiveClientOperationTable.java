@@ -118,7 +118,8 @@ public class ActiveClientOperationTable {
 
     crs = activeRetrievalListeners.currentRetrievalSet();
     //System.out.printf("Time %d\tcurrentRetrievalSet %d\n", curTimeMillis, crs.size());
-    checkOpsForTimeouts(curTimeMillis, crs, retrievalSender, exclusionSetHasChanged);
+    checkOpsForTimeouts(curTimeMillis, crs, retrievalSender, 
+        false); // for retrievals, proxy side exclusion detection and replica failover are used instead of client-side
 
     Set<AsyncPutOperationImpl> cps;
 

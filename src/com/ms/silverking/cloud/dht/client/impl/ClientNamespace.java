@@ -1,7 +1,5 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
-import static com.ms.silverking.cloud.dht.common.OpResult.SESSION_CLOSED;
-
 import java.util.List;
 import java.util.logging.Level;
 

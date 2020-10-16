@@ -20,7 +20,6 @@ import com.ms.silverking.cloud.dht.client.BaseNamespacePerspective;
 import com.ms.silverking.cloud.dht.client.ConstantVersionProvider;
 import com.ms.silverking.cloud.dht.client.Namespace;
 import com.ms.silverking.cloud.dht.client.PutException;
-import com.ms.silverking.cloud.dht.client.RetrievalException;
 import com.ms.silverking.cloud.dht.client.SessionClosedException;
 import com.ms.silverking.cloud.dht.client.VersionProvider;
 import com.ms.silverking.cloud.dht.client.impl.ClientNamespace.OpLWTMode;

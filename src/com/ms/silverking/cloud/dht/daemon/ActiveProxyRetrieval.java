@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -37,6 +38,7 @@ import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoValueMessageGroup;
 import com.ms.silverking.cloud.dht.serverside.RetrieveCallback;
 import com.ms.silverking.cloud.dht.trace.TracerFactory;
+import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
@@ -84,11 +86,13 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   //}
 
   void startOperation() {
-    if (forwardingMode.forwards()) {
-      messageModule.addActiveRetrieval(uuid, this);
-    } else {
-      if (retrievalOptions.getWaitMode() == WaitMode.WAIT_FOR) {
+    if (!getOpResult().isComplete()) {
+      if (forwardingMode.forwards()) {
         messageModule.addActiveRetrieval(uuid, this);
+      } else {
+        if (retrievalOptions.getWaitMode() == WaitMode.WAIT_FOR) {
+          messageModule.addActiveRetrieval(uuid, this);
+        }
       }
     }
     rComm = new RetrievalCommunicator();
@@ -215,7 +219,6 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   public OpResult handleRetrievalResponse(MessageGroup message, MessageGroupConnectionProxy connection) {
     RetrievalCommunicator rComm;
     Map<IPAndPort, List<DHTKey>> destEntryMap;
-    OpResult opResult;
 
     rComm = new RetrievalCommunicator();
     if (debug) {
@@ -248,7 +251,75 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     }
     return retrievalOperation.getOpResult();
   }
+  
+  @Override
+  public OpResult exclusionsChanged(Set<IPAndPort> excludedReplicas, Set<IPAndPort> includedReplicas) {
+    OpResult  exclusionResult;
+    
+    Log.infof("ActiveProxyRetrieval.exclusionsChanged");
+    exclusionResult = replicasExcluded(excludedReplicas);
+    if (exclusionResult.isComplete()) {
+      return exclusionResult;
+    } else {
+      OpResult  inclusionResult;
+      
+      inclusionResult = replicasIncluded(includedReplicas);
+      return inclusionResult;
+    }
+  }
 
+  public OpResult replicasIncluded(Set<IPAndPort> includedReplicas) {
+    RetrievalCommunicator rComm;
+    Map<IPAndPort, List<DHTKey>> destEntryMap;
+    
+    if (Log.levelMet(Level.INFO)) { 
+      Log.infof("ActiveProxyRetrieval.replicasIncluded %s", CollectionUtil.toString(includedReplicas));
+    }
+    rComm = new RetrievalCommunicator();
+    for (IPAndPort replica : includedReplicas) {
+      replicaIncluded(replica, rComm);
+    }
+    sendResults(rComm);
+    destEntryMap = rComm.takeReplicaMessageLists();
+    if (destEntryMap != null) {
+      forwardGroupedEntries(destEntryMap, optionsByteBuffer, new RetrievalForwardCreator(), rComm);
+    }
+    return retrievalOperation.getOpResult();
+  }
+  
+  public void replicaIncluded(IPAndPort replica, RetrievalCommunicator rComm) {
+    if (Log.levelMet(Level.INFO)) { 
+      Log.infof("ActiveProxyRetrieval.replicaIncluded %s", replica);
+    }
+    retrievalOperation.replicaIncluded(replica, rComm);
+  }
+  
+  public OpResult replicasExcluded(Set<IPAndPort> excludedReplicas) {
+    RetrievalCommunicator rComm;
+    Map<IPAndPort, List<DHTKey>> destEntryMap;
+    
+    if (Log.levelMet(Level.INFO)) { 
+      Log.infof("ActiveProxyRetrieval.replicasExcluded %s", CollectionUtil.toString(excludedReplicas));
+    }
+    rComm = new RetrievalCommunicator();
+    for (IPAndPort replica : excludedReplicas) {
+      replicaExcluded(replica, rComm);
+    }
+    sendResults(rComm);
+    destEntryMap = rComm.takeReplicaMessageLists();
+    if (destEntryMap != null) {
+      forwardGroupedEntries(destEntryMap, optionsByteBuffer, new RetrievalForwardCreator(), rComm);
+    }
+    return retrievalOperation.getOpResult();
+  }
+  
+  public void replicaExcluded(IPAndPort replica, RetrievalCommunicator rComm) {
+	if (Log.levelMet(Level.INFO)) { 
+      Log.infof("ActiveProxyRetrieval.replicaExcluded %s", replica);
+	}
+    retrievalOperation.replicaExcluded(replica, rComm);
+  }
+  
   private List<List<RetrievalResult>> createResultGroups(List<RetrievalResult> results) {
     if (results.size() == 1) {
       return ImmutableList.of(results);

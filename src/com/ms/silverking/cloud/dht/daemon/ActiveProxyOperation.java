@@ -15,6 +15,7 @@ import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.KeyedResult;
 import com.ms.silverking.cloud.dht.common.MessageType;
+import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.OpCommunicator;
@@ -177,7 +178,7 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
       primaryReplicas = listPair.getPrimaryOwners();
       if (primaryReplicas.size() == 0) {
         Log.warning(String.format("No primary replicas found for %s", KeyUtil.keyToString(entry)));
-        throw new RuntimeException("No primary replica found for " + KeyUtil.keyToString(entry));
+        // no longer throw runtime exception; return error to caller
       }
       secondaryReplicas = listPair.getSecondaryOwners();
       if (debug) {
@@ -305,6 +306,8 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   public Set<IPAndPort> checkForReplicaTimeouts(long curTimeMillis) {
     return ImmutableSet.of();
   }
+  
+  public abstract OpResult exclusionsChanged(Set<IPAndPort> excludedReplicas, Set<IPAndPort> includedReplicas);
 
   // TODO this is only used for retrieve; put should also be subject to authorization eventually
   boolean handleAuthorizationFailure(AuthorizationResult authorization) throws AuthFailedException {

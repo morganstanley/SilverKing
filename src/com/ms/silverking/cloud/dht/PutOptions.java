@@ -99,7 +99,7 @@ public class PutOptions extends OperationOptions {
       TraceIDProvider traceIDProvider, Compression compression, ChecksumType checksumType,
       boolean checksumCompressedValues, long version, long requiredPreviousVersion, short lockSeconds,
       int fragmentationThreshold, byte[] userData) {
-    super(opTimeoutController, secondaryTargets, traceIDProvider);
+    super(opTimeoutController, secondaryTargets, traceIDProvider, AllReplicasExcludedResponse.EXCEPTION);
     Preconditions.checkNotNull(compression);
     Preconditions.checkNotNull(checksumType);
     if (version < 0) {

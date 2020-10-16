@@ -24,6 +24,9 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
         retrievalOperationContainer.getNumEntries());
     this.retrievalOperationContainer = retrievalOperationContainer;
   }
+  
+  protected abstract void noPrimaryReplicasForKey(DHTKey key, List<IPAndPort> primaryReplicas,
+      List<IPAndPort> secondaryReplicas, OpVirtualCommunicator<DHTKey, RetrievalResult> rvComm);
 
   /*
    * The below processInitialMessageGroupEntry is for a typical receive protocol
@@ -34,44 +37,48 @@ public abstract class BaseRetrievalOperation<S extends BaseRetrievalEntryState> 
   @Override
   public void processInitialMessageGroupEntry(DHTKey key, List<IPAndPort> primaryReplicas,
       List<IPAndPort> secondaryReplicas, OpVirtualCommunicator<DHTKey, RetrievalResult> rvComm) {
-    BaseRetrievalEntryState entryState;
-
-    if (debug) {
-      System.out.println("forwardingMode: " + forwardingMode);
-      System.out.printf("p %s s %s\n", primaryReplicas, secondaryReplicas);
-    }
-
-    // Note that we do not handle local retrievals here - even though we could -
-    // because we want to group all local retrievals so that we can
-    // handle them en masse and incur only a single lock acquisition.
-    // By "forwarding" them, they will be handled in bulk
-
-    entryState = initializeEntryState(key, primaryReplicas, secondaryReplicas);
-    if (forwardingMode.forwards()) {
-      //initializeEntryState(entry, primaryReplicas, secondaryReplicas);
-      if (retrievalOperationContainer.containsLocalReplica(
-          primaryReplicas) || retrievalOperationContainer.containsLocalReplica(secondaryReplicas)) {
-        if (debug) {
-          System.out.println("local forward");
-        }
-        rvComm.forwardEntry(operationContainer.localIPAndPort(), key);
-      } else {
-        try {
-          rvComm.forwardEntry(entryState.getInitialReplica(), key);
-        } catch (NoSuchElementException nsee) {
-          throw new RuntimeException("No replicas for: " + key);
-        }
-      }
+    if (primaryReplicas.size() == 0) {
+      noPrimaryReplicasForKey(key, primaryReplicas, secondaryReplicas, rvComm);
     } else {
-      rvComm.forwardEntry(operationContainer.localIPAndPort(), key);
-            /*
-            if (retrievalOperationContainer.containsLocalReplica(primaryReplicas)) {
-                rvComm.forwardEntry(operationContainer.localIPAndPort(), entry);
-            } else {
-                Log.warning("Unexpected non-local non-forwarded message");
-                // should be unreachable
-            }
-            */
+      BaseRetrievalEntryState entryState;
+  
+      if (debug) {
+        System.out.println("forwardingMode: " + forwardingMode);
+        System.out.printf("p %s s %s\n", primaryReplicas, secondaryReplicas);
+      }
+  
+      // Note that we do not handle local retrievals here - even though we could -
+      // because we want to group all local retrievals so that we can
+      // handle them en masse and incur only a single lock acquisition.
+      // By "forwarding" them, they will be handled in bulk
+  
+      entryState = initializeEntryState(key, primaryReplicas, secondaryReplicas);
+      if (forwardingMode.forwards()) {
+        //initializeEntryState(entry, primaryReplicas, secondaryReplicas);
+        if (retrievalOperationContainer.containsLocalReplica(
+            primaryReplicas) || retrievalOperationContainer.containsLocalReplica(secondaryReplicas)) {
+          if (debug) {
+            System.out.println("local forward");
+          }
+          rvComm.forwardEntry(operationContainer.localIPAndPort(), key);
+        } else {
+          try {
+            rvComm.forwardEntry(entryState.getInitialReplica(), key);
+          } catch (NoSuchElementException nsee) {
+            throw new RuntimeException("No replicas for: " + key);
+          }
+        }
+      } else {
+        rvComm.forwardEntry(operationContainer.localIPAndPort(), key);
+              /*
+              if (retrievalOperationContainer.containsLocalReplica(primaryReplicas)) {
+                  rvComm.forwardEntry(operationContainer.localIPAndPort(), entry);
+              } else {
+                  Log.warning("Unexpected non-local non-forwarded message");
+                  // should be unreachable
+              }
+              */
+      }
     }
   }
 

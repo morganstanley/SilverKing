@@ -24,6 +24,6 @@ public class SingleWriterConsistent implements StorageProtocol, RetrievalProtoco
 
   @Override
   public boolean sendResultsDuringStart() {
-    return false;
+    return true;
   }
 }

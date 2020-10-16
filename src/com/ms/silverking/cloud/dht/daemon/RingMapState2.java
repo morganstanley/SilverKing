@@ -36,9 +36,12 @@ import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingTree;
 import com.ms.silverking.cloud.toporing.RingTreeBuilder;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
+import com.ms.silverking.thread.lwt.util.Broadcaster;
+
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
@@ -68,6 +71,7 @@ public class RingMapState2 {
   private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
   private ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider;
   private SelfExclusionResponder selfExclusionResponder;
+  private Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>>  exclusionChangeBroadcaster;
 
   /*
    * secondarySets are used to specify subsets of secondary nodes within
@@ -111,7 +115,8 @@ public class RingMapState2 {
 
   RingMapState2(IPAndPort nodeID, DHTMetaUpdate dhtMetaUpdate, RingID ringID, StoragePolicyGroup storagePolicyGroup,
       com.ms.silverking.cloud.toporing.meta.MetaClient ringMC, ExclusionSet exclusionSet,
-      com.ms.silverking.cloud.dht.meta.MetaClient dhtMC, SelfExclusionResponder responder) {
+      com.ms.silverking.cloud.dht.meta.MetaClient dhtMC, SelfExclusionResponder responder,
+      Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>> exclusionChangeBroadcaster) {
     this.nodeID = nodeID;
     dhtConfigVersion = dhtMetaUpdate.getDHTConfig().getZKID();
     ringConfig = dhtMetaUpdate.getNamedRingConfiguration().getRingConfiguration();
@@ -120,6 +125,7 @@ public class RingMapState2 {
     ringNameAndVersionPair = Triple.of(dhtMetaUpdate.getDHTConfig().getRingName(), rawRingTree.getRingVersionPair());
     this.dhtMC = dhtMC;
     this.selfExclusionResponder = responder;
+    this.exclusionChangeBroadcaster = exclusionChangeBroadcaster;
 
     curInstanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
     curExclusionSet = ExclusionSet.emptyExclusionSet(0);
@@ -151,7 +157,7 @@ public class RingMapState2 {
       throw new RuntimeException("Exception creating ExclusionWatcher", e);
     }
   }
-
+  
   private void readInitialExclusions(MetaClient mc) throws KeeperException {
     ExclusionZK exclusionZK;
     ExclusionSet instanceExclusionSet;
@@ -435,6 +441,8 @@ public class RingMapState2 {
         try {
           ExclusionSet candidateExclusionSet;
           boolean localNodeIsExcludedInCandidateSet;
+          ExclusionSet newlyExcludedServers;
+          ExclusionSet newlyIncludedServers;
 
           if (!basePath.contains(dhtMC.getMetaPaths().getInstanceExclusionsPath())) {
             ExclusionSet exclusionSet;
@@ -472,7 +480,14 @@ public class RingMapState2 {
             Log.warning("Ignoring update due to curUnionExclusionSet.equals(candidateExclusionSet)");
             return;
           }
+          newlyExcludedServers = ExclusionSet.difference(candidateExclusionSet, curUnionExclusionSet);
+          newlyIncludedServers = ExclusionSet.difference(curUnionExclusionSet, candidateExclusionSet);
           curUnionExclusionSet = candidateExclusionSet;
+          if (exclusionChangeBroadcaster != null) {
+            exclusionChangeBroadcaster.notifyListeners(new Triple<>(curUnionExclusionSet.asIPAndPortSet(DHTNode.getDhtPort()), 
+                newlyExcludedServers.asIPAndPortSet(DHTNode.getDhtPort()),
+                newlyIncludedServers.asIPAndPortSet(DHTNode.getDhtPort())));
+          }
 
           localNodeIsExcludedInCandidateSet = candidateExclusionSet.contains(nodeID.getIPAsString());
           if (selfExclusionResponder != null) {

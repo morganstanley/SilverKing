@@ -3,13 +3,16 @@ package com.ms.silverking.cloud.dht.daemon.storage.protocol;
 import java.util.List;
 
 import com.google.common.base.Preconditions;
+import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.storagepolicy.ReplicationType;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 
 class RetrievalEntrySingleState extends BaseRetrievalEntryState {
   private final List<IPAndPort> primaryReplicas;
   private final List<IPAndPort> secondaryReplicas;
-  private RetrievalState state;
+  private boolean complete;
+  private OpResult  presentResult;
   private short replicaIndex;
   private short prevReplicaIndex;
   // 0...(secondaryReplicas.size() - 1) ==> secondary
@@ -24,7 +27,7 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
     }
     this.primaryReplicas = primaryReplicas;
     this.secondaryReplicas = secondaryReplicas;
-    state = RetrievalState.INITIAL;
+    this.presentResult = OpResult.INCOMPLETE;
     replicaIndex = -1;
     prevReplicaIndex = -1;
   }
@@ -47,6 +50,15 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
     return primaryReplicas.contains(replica);
   }
 
+  public boolean isReplica(IPAndPort replica) {
+    if (currentReplica().equals(replica)) {
+      // optimize the common case
+      return true;
+    } else {
+      return primaryReplicas.contains(replica) || secondaryReplicas.contains(replica);
+    }
+  }
+  
   private boolean currentReplicaIsSecondary() {
     return replicaIndex < secondaryReplicas.size();
   }
@@ -122,25 +134,62 @@ class RetrievalEntrySingleState extends BaseRetrievalEntryState {
     }
   }
 
-  void setState(RetrievalState state) {
-    if (!this.state.validTransition(state)) {
-      throw new RuntimeException("Invalid transition: " + this.state + " -> " + state);
-    } else {
-      this.state = state;
+  OpResult getPresentResult() {
+    return presentResult;
+  }
+  
+  void updatePresentResult(OpResult candidatePresentResult) {
+    switch (candidatePresentResult) {
+    case REPLICA_EXCLUDED:
+      if (presentResult == OpResult.INCOMPLETE) {
+        presentResult = OpResult.REPLICA_EXCLUDED;
+      }
+      break;
+    case CORRUPT:
+      if (presentResult == OpResult.INCOMPLETE || presentResult == OpResult.NO_SUCH_VALUE || presentResult == OpResult.REPLICA_EXCLUDED) {
+        presentResult = OpResult.CORRUPT;
+      }
+      break;
+    case NO_SUCH_VALUE:
+      if (presentResult == OpResult.CORRUPT) {
+        break;
+      } else {
+        // fall through to SUCCEEDED case
+      }
+    case SUCCEEDED:
+      if (presentResult == OpResult.INCOMPLETE) {
+        presentResult = candidatePresentResult;
+      } else {
+        if (presentResult != candidatePresentResult) {
+          if (complete) {
+            Log.warningf("Ignoring multiple completion %s != %s", presentResult, candidatePresentResult);
+          } else {
+            presentResult = candidatePresentResult;
+          }
+        }
+      }
+      break;
+    default: 
+      throw new RuntimeException("Unexpected candidatePresentResult: "+ candidatePresentResult);
     }
+    this.presentResult = candidatePresentResult;
+  }
+  
+  public void setComplete() {
+    this.complete = true;
   }
 
-  RetrievalState getState() {
-    return state;
-  }
-
+  /**
+   * Return where or not this entry has a complete state.
+   * This is not an indication of whether or not the proxy or client operation is complete.
+   */
   @Override
   public boolean isComplete() {
-    return state.isComplete();
+    return complete;
   }
 
   @Override
   public String toString() {
-    return primaryReplicas.toString() + ":" + secondaryReplicas.toString() + ":" + state.toString();
+    return primaryReplicas.toString() + ":" + secondaryReplicas.toString();// + ":" + state.toString();
   }
 }

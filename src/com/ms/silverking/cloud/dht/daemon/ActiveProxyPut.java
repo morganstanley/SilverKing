@@ -94,8 +94,10 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
       System.out.println(this + " " + forwardingMode + " " + storageOperation);
     }
     pComm = new PutCommunicator(this);
-    if (forwardingMode.forwards()) {
-      messageModule.addActivePut(uuid, this);
+    if (!getOpResult().isComplete()) {
+      if (forwardingMode.forwards()) {
+        messageModule.addActivePut(uuid, this);
+      }
     }
     super.startOperation(pComm, message.getPutValueKeyIterator(ProtoPutMessageGroup.getChecksumType(message)),
         new PutForwardCreator());
@@ -244,6 +246,16 @@ class ActiveProxyPut extends ActiveProxyOperation<MessageGroupKeyEntry, PutResul
     // send responses for completions
     messageModule.sendPutResults(message, version, connection, pComm.takeResults(), storageState,
         message.getDeadlineRelativeMillis());
+    return storageOperation.getOpResult();
+  }
+  
+  @Override
+  public OpResult exclusionsChanged(Set<IPAndPort> excludedReplicas, Set<IPAndPort> includedReplicas) {
+    // Note: puts do not support retransmission due to an exclusion.
+    // Doing so would require storing the value after transmission which 
+    // has been shown to produce oom induced outages in running clusters.
+    // We could add logic to realize that a storage operation is now complete.
+    // Presently, we handle that case via client retry.
     return storageOperation.getOpResult();
   }
 

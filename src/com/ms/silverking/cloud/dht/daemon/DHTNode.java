@@ -1,6 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon;
 
 import java.net.InetAddress;
+import java.util.Set;
 import java.util.Timer;
 
 import com.ms.silverking.cloud.dht.common.DHTConstants;
@@ -23,6 +24,7 @@ import com.ms.silverking.cloud.dht.net.IPAliasingUtil;
 import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
@@ -30,6 +32,7 @@ import com.ms.silverking.net.async.AsyncGlobals;
 import com.ms.silverking.net.async.OutgoingData;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
+import com.ms.silverking.thread.lwt.util.Broadcaster;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.SafeTimer;
 
@@ -110,6 +113,7 @@ public class DHTNode {
       IPAliasMap aliasMap;
       IPAndPort daemonIPAndPort;
       IPAndPort baseInterfaceIPAndPort;
+      Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>> exclusionChangeBroadcaster;
 
       Log.warning("LogLevel: ", Log.getLevel());
       this.dhtName = dhtName;
@@ -175,11 +179,12 @@ public class DHTNode {
       if (enableMsgGroupTrace) {
         TracerFactory.ensureTracerInitialized();
       }
-
+      
       exclusionSetAddressStatusProvider = new ExclusionSetAddressStatusProvider(MessageModule.nodePingerThreadName,
           aliasMap);
-      ringMaster = new NodeRingMaster2(dhtName, zkConfig, daemonIPAndPort);
-      ringMaster.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
+      exclusionChangeBroadcaster = new Broadcaster<>();      
+      ringMaster = new NodeRingMaster2(dhtName, zkConfig, daemonIPAndPort, 
+          exclusionSetAddressStatusProvider, exclusionChangeBroadcaster);
       //dmw.addListener(ringMaster);
       Log.warning("ReapPolicy: ", reapPolicy);
       daemonStateZK = new DaemonStateZK(mc, daemonIPAndPort, daemonStateTimer);
@@ -190,6 +195,7 @@ public class DHTNode {
       msgModule = new MessageModule(ringMaster, storage, absMillisTimeSource, messageModuleTimer,
           baseInterfaceIPAndPort.getPort(), daemonIPAndPort, mc, aliasMap, enableMsgGroupTrace);
       msgModule.setAddressStatusProvider(exclusionSetAddressStatusProvider);
+      exclusionChangeBroadcaster.addListener(msgModule.getExclusionChangeListener());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

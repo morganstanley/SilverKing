@@ -26,7 +26,7 @@ public class LooseConsistencyWrite extends BaseStorageOperation<SingleWriterLoos
       List<IPAndPort> secondaryReplicas) {
     setEntryState(entryKey, new SingleWriterLooseStorageEntryState(primaryReplicas));
   }
-
+  
   @Override
   public void update(DHTKey key, IPAndPort replica, byte storageState, OpResult update, PutVirtualCommunicator pvComm) {
     // FIXME - reduce or eliminate locking here
@@ -74,5 +74,5 @@ public class LooseConsistencyWrite extends BaseStorageOperation<SingleWriterLoos
 
   public byte nextStorageState(byte prevStorageState) {
     return 0;
-  }
+  }  
 }

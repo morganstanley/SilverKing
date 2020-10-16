@@ -11,6 +11,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -46,7 +48,7 @@ import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
+import com.ms.silverking.thread.lwt.util.Broadcaster;
 
 /**
  * NodeRingMaster is responsible for responding to new target and current rings
@@ -65,6 +67,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
   private ReplicaPrioritizer replicaPrioritizer;
   private ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider;
   private SelfExclusionResponder selfExclusionResponder;
+  private Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>>  exclusionChangeBroadcaster;
 
   private volatile RingMapState2 curMapState;
   private volatile RingMapState2 targetMapState;
@@ -75,7 +78,9 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
 
   private static final boolean debug = true;
 
-  public NodeRingMaster2(String dhtName, ZooKeeperConfig zkConfig, IPAndPort nodeID) {
+  public NodeRingMaster2(String dhtName, ZooKeeperConfig zkConfig, IPAndPort nodeID, 
+      ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider,
+      Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>> exclusionChangeBroadcaster) {
     this.dhtName = dhtName;
     this.zkConfig = zkConfig;
     this.nodeID = nodeID;
@@ -84,6 +89,8 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     mapCV = mapLock.newCondition();
     mapStates = new ConcurrentHashMap<>();
     latestExclusionSet = ExclusionSet.emptyExclusionSet(0);
+    this.exclusionSetAddressStatusProvider = exclusionSetAddressStatusProvider;
+    this.exclusionChangeBroadcaster = exclusionChangeBroadcaster;
     try {
       dhtMetaReader = new DHTMetaReader(zkConfig, dhtName);
     } catch (Exception e) {
@@ -98,11 +105,6 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
   public void setPeerHealthMonitor(PeerHealthMonitor peerHealthMonitor) {
     this.peerHealthMonitor = peerHealthMonitor;
     replicaPrioritizer = new ReplicaHealthPrioritizer(peerHealthMonitor);
-  }
-
-  public void setExclusionSetAddressStatusProvider(
-      ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider) {
-    this.exclusionSetAddressStatusProvider = exclusionSetAddressStatusProvider;
   }
 
   @Override
@@ -583,7 +585,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     ringMC = new com.ms.silverking.cloud.toporing.meta.MetaClient(dhtMetaUpdate.getNamedRingConfiguration(), zkConfig);
 
     return new RingMapState2(nodeID, dhtMetaUpdate, cp.getRingIDAndVersionPair().getRingID(), null, ringMC,
-        ExclusionSet.emptyExclusionSet(0), dhtMetaReader.getMetaClient(), selfExclusionResponder);
+        ExclusionSet.emptyExclusionSet(0), dhtMetaReader.getMetaClient(), selfExclusionResponder, exclusionChangeBroadcaster);
   }
 
   private static final int zkReadAttempts = 90;

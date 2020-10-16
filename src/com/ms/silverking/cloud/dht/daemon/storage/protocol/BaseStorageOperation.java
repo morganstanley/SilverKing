@@ -25,6 +25,13 @@ public abstract class BaseStorageOperation<S> extends BaseOperation<S> implement
         putOperationContainer.getNumEntries());
     this.putOperationContainer = putOperationContainer;
   }
+  
+  protected void noPrimaryReplicasForKey(DHTKey key, List<IPAndPort> primaryReplicas,
+      List<IPAndPort> secondaryReplicas, OpVirtualCommunicator<MessageGroupKeyEntry, PutResult> pvComm) {
+    initializeEntryState(key, primaryReplicas, secondaryReplicas);
+    pvComm.sendResult(new PutResult(key, OpResult.REPLICA_EXCLUDED));
+    setOpResult(OpResult.REPLICA_EXCLUDED);
+  }
 
   @Override
   public void processInitialMessageGroupEntry(MessageGroupKeyEntry _entry, List<IPAndPort> primaryReplicas,
@@ -34,24 +41,28 @@ public abstract class BaseStorageOperation<S> extends BaseOperation<S> implement
     if (debug) {
       System.out.printf("processInitialMessageGroupEntry() %d\n", primaryReplicas.size());
     }
-    entry = (MessageGroupPutEntry) _entry;
-    if (forwardingMode.forwards()) {
-      if (putOperationContainer.getSecondaryTargets() == null) {
-        // Eagerly write to secondary replicas *only* if targets have
-        // been defined. FUTURE - could change.
-        secondaryReplicas = ImmutableList.of();
-      }
-      initializeEntryState(entry, primaryReplicas, secondaryReplicas);
-      for (IPAndPort replica : primaryReplicas) {
-        pvComm.forwardEntry(replica, entry);
-      }
-      if (putOperationContainer.getSecondaryTargets() != null) {
-        for (IPAndPort replica : secondaryReplicas) {
+    if (primaryReplicas.size() == 0) {
+      noPrimaryReplicasForKey(_entry, primaryReplicas, secondaryReplicas, pvComm);
+    } else {
+      entry = (MessageGroupPutEntry) _entry;
+      if (forwardingMode.forwards()) {
+        if (putOperationContainer.getSecondaryTargets() == null) {
+          // Eagerly write to secondary replicas *only* if targets have
+          // been defined. FUTURE - could change.
+          secondaryReplicas = ImmutableList.of();
+        }
+        initializeEntryState(entry, primaryReplicas, secondaryReplicas);
+        for (IPAndPort replica : primaryReplicas) {
           pvComm.forwardEntry(replica, entry);
         }
+        if (putOperationContainer.getSecondaryTargets() != null) {
+          for (IPAndPort replica : secondaryReplicas) {
+            pvComm.forwardEntry(replica, entry);
+          }
+        }
+      } else {
+        pvComm.forwardEntry(putOperationContainer.localIPAndPort(), entry);
       }
-    } else {
-      pvComm.forwardEntry(putOperationContainer.localIPAndPort(), entry);
     }
   }
 

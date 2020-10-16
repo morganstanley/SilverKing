@@ -12,11 +12,12 @@ import com.ms.silverking.cloud.dht.client.OperationState;
  */
 public enum OpResult {
   // incomplete
-  INCOMPLETE, // success
-  SUCCEEDED, // success and no such value
-  SUCCEEDED_AND_NO_SUCH_VALUE, // failure
+  INCOMPLETE, 
+  // success
+  SUCCEEDED, 
+  // failure
   ERROR, TIMEOUT, MUTATION, NO_SUCH_VALUE, SIMULTANEOUS_PUT, MULTIPLE, INVALID_VERSION, NO_SUCH_NAMESPACE, CORRUPT,
-  LOCKED, SESSION_CLOSED;
+  LOCKED, SESSION_CLOSED, REPLICA_EXCLUDED;
 
   public boolean isComplete() {
     return this != INCOMPLETE;
@@ -108,6 +109,10 @@ public enum OpResult {
       return FailureCause.NO_SUCH_NAMESPACE;
     case SESSION_CLOSED:
       return FailureCause.SESSION_CLOSED;
+    case REPLICA_EXCLUDED:
+      // Note - we only return OpResult.REPLICA_EXCLUDED to the client
+      // when all replicas have been excluded
+      return FailureCause.ALL_REPLICAS_EXCLUDED;
     default:
       throw new RuntimeException("panic");
     }

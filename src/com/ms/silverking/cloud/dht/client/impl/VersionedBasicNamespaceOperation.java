@@ -1,5 +1,6 @@
 package com.ms.silverking.cloud.dht.client.impl;
 
+import com.ms.silverking.cloud.dht.AllReplicasExcludedResponse;
 import com.ms.silverking.cloud.dht.OperationOptions;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
 import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
@@ -13,7 +14,7 @@ class VersionedBasicNamespaceOperation extends NamespaceOperation {
 
   VersionedBasicNamespaceOperation(ClientOpType opType, ClientNamespace namespace, long version) {
     super(opType, namespace, new OperationOptions(opTimeoutController, DHTConstants.noSecondaryTargets,
-        DHTConstants.defaultTraceIDProvider));
+        DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION));
     this.version = version;
   }
 
