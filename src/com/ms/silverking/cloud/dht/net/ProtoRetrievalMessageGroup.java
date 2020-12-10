@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Set;
 
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.SecondaryTarget;

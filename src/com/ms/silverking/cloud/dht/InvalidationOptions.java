@@ -55,6 +55,14 @@ public class InvalidationOptions extends PutOptions {
         version, requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, userData);
   }
 
+  // FUTURE - added for temp skfs compatibility/legacy sk client compatibility; remove when not needed
+  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
+      long version, long requiredPreviousVersion, short lockSeconds) {
+    super(opTimeoutController, secondaryTargets, null, AllReplicasExcludedResponse.IGNORE, 
+        Compression.NONE, ChecksumType.SYSTEM, false, version,
+        requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, null);
+  }
+  
   /**
    * Construct InvalidationOptions from the given arguments. Usage is generally not recommended.
    * Instead of using this constructor, most applications should obtain an InvalidationOptions

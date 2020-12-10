@@ -3,9 +3,9 @@ package com.ms.silverking.cloud.dht.daemon.storage.protocol;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroupKeyEntry;
 import com.ms.silverking.cloud.dht.net.MessageGroupPutEntry;
 import com.ms.silverking.cloud.dht.net.PutResult;

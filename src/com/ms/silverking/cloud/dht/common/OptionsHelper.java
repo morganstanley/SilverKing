@@ -4,6 +4,7 @@ import java.util.Set;
 
 import com.ms.silverking.cloud.dht.AllReplicasExcludedResponse;
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.GetOptions;
 import com.ms.silverking.cloud.dht.InvalidationOptions;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
@@ -20,7 +21,6 @@ import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.WaitOptions;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 
 /**
  * This class contains helper methods to construct options. End-users should

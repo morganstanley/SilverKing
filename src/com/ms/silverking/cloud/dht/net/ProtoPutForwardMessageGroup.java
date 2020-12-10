@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.logging.Level;
 
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.MessageType;

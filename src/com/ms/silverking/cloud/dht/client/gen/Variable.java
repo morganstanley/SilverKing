@@ -36,7 +36,7 @@ public class Variable implements Expression {
     InheritedClass, InheritedClassPackage, ImplementsInterfaces, NonVirtual, ParameterName, ParameterNameWrapped,
     ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive,
     ParameterIsObject, ParameterIsUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive, StaticFieldTypeIsUserObjectOrEnum, SuperClass,
-    SuperClassPackage, EmptyString, JNICallType
+    SuperClassPackage, EmptyString, JNICallType, ClassIsEnum
   }
 
   ;
@@ -173,6 +173,8 @@ public class Variable implements Expression {
       return hasEmptyConstructor(c.getClass_()) ? "true" : "false";
     case ClassMD5:
       return StringUtil.trimLength(StringUtil.md5(c.getClass_().getSimpleName()).replace(':', '_'), classMD5Length);
+    case ClassIsEnum:
+      return isEnum(c.getClass_()) ? "true" : "false";
     case Package:
       return c.getPackage_().getName();
     case MethodName:
@@ -294,6 +296,10 @@ public class Variable implements Expression {
   
   private boolean isObjectOrEnum(Class c) {
     return c != null && (c.isEnum()) || isObject(c, true);
+  }
+  
+  private boolean isEnum(Class c) {
+    return c != null && (c.isEnum());
   }
   
   private boolean isUserObject(Parameter p) {

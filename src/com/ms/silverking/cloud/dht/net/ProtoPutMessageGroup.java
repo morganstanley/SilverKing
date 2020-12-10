@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.ValueCreator;

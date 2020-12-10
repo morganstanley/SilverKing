@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht.net;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.numeric.NumConversion;

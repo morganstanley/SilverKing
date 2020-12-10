@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.dht.daemon.storage.protocol;
 
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.daemon.StorageReplicaProvider;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 
 public class SingleWriterConsistent implements StorageProtocol, RetrievalProtocol {
   private final StorageReplicaProvider storageReplicaProvider;

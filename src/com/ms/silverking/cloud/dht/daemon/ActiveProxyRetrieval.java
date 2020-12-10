@@ -11,6 +11,7 @@ import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.WaitMode;
@@ -29,7 +30,6 @@ import com.ms.silverking.cloud.dht.daemon.storage.protocol.RetrievalOperationCon
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.RetrievalProtocol;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.RetrievalResult;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.SecondaryReplicasUpdate;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.MessageGroupRetrievalResponseEntry;
 import com.ms.silverking.cloud.dht.net.ProtoKeyedMessageGroup;

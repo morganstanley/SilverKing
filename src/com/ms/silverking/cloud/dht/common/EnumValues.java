@@ -2,12 +2,12 @@ package com.ms.silverking.cloud.dht.common;
 
 import com.ms.silverking.cloud.common.OwnerQueryMode;
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 
 public class EnumValues {
   public static final VersionConstraint.Mode[] versionConstraint_Mode = VersionConstraint.Mode.values();

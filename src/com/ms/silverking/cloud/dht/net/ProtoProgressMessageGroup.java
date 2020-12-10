@@ -2,6 +2,7 @@ package com.ms.silverking.cloud.dht.net;
 
 import java.nio.ByteBuffer;
 
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.common.MessageType;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;

@@ -13,7 +13,6 @@ import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 
 @OmitGeneration
 public class TestUtil {

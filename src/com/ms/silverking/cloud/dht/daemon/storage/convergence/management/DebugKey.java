@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
@@ -20,7 +21,6 @@ import com.ms.silverking.cloud.dht.daemon.ReplicaNaiveIPPrioritizer;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.dht.management.MetaUtil;
 import com.ms.silverking.cloud.dht.management.MetaUtilOptions;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;

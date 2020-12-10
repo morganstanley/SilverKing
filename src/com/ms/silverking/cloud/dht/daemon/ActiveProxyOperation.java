@@ -10,6 +10,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.SecondaryTarget;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
@@ -21,7 +22,6 @@ import com.ms.silverking.cloud.dht.daemon.storage.StorageModule;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.OpCommunicator;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.Operation;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.OperationContainer;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoKeyedMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoPutMessageGroup;

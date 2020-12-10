@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.client.SecondaryTargetType;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
-import com.ms.silverking.cloud.dht.net.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.protocol.RetrievalMessageFormat;
