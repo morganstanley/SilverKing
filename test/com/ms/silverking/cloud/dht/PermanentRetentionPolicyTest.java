@@ -11,6 +11,9 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+
+@OmitGeneration
 public class PermanentRetentionPolicyTest {
 
   private static final PermanentRetentionPolicy defaultPolicy = PermanentRetentionPolicy.template;

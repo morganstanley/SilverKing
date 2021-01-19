@@ -2,11 +2,13 @@ package com.ms.silverking.cloud.dht;
 
 import static org.junit.Assert.assertEquals;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyAndInteger;
 import com.ms.silverking.collection.Pair;
 import org.junit.Test;
 
+@OmitGeneration
 public class TimeAndVersionRetentionStateTest {
 
   @Test

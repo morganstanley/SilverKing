@@ -110,6 +110,17 @@ public class Context {
     return _enum;
   }
 
+  public int getTotalEnumValues() {
+    try {
+      Object[]  e;
+      
+      e = _enum.getEnumConstants();
+      return e.length;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
   public String getEnumValue() {
     return enumValue;
   }

@@ -13,6 +13,9 @@ import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+
+@OmitGeneration
 public class ConstantVersionProviderTest {
 
   private static final long vCopy = 0;

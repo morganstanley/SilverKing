@@ -10,11 +10,13 @@ import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.ConstantAbsMillisTimeSource;
 import org.junit.Test;
 
+@OmitGeneration
 public class AbsMillisVersionProviderTest {
 
   private static final AbsMillisTimeSource amtsCopy = new ConstantAbsMillisTimeSource(0);

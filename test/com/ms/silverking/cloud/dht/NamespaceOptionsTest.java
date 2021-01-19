@@ -41,10 +41,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.code.ConstraintViolationException;
 import com.ms.silverking.testing.Util.ExceptionChecker;
 import org.junit.Test;
 
+@OmitGeneration
 public class NamespaceOptionsTest {
 
   // *Copy: copies the values of nspOptions (copies the object values, rather than re-using the same object from

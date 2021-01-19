@@ -9,10 +9,13 @@ import static com.ms.silverking.testing.AssertFunction.test_Getters;
 import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 import static org.junit.Assert.assertEquals;
 
-import com.ms.silverking.cloud.dht.ValidOrTimeAndVersionRetentionPolicy.Mode;
-import com.ms.silverking.cloud.dht.common.DHTKey;
 import org.junit.Test;
 
+import com.ms.silverking.cloud.dht.ValidOrTimeAndVersionRetentionPolicy.Mode;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+import com.ms.silverking.cloud.dht.common.DHTKey;
+
+@OmitGeneration
 public class ValidOrTimeAndVersionRetentionPolicyTest {
 
   private static final Mode mCopy = Mode.wallClock;

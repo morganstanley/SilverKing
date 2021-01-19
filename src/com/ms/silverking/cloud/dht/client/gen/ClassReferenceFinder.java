@@ -110,7 +110,7 @@ public class ClassReferenceFinder {
         s.addAll(getImmediateReferencesFromStaticFields(c.getFields()));
 
         // Remove inner enums from references since they are handled by the enclosing class
-        s.removeAll(ImmutableSet.copyOf(JNIUtil.getInnerEnums(c)));
+        s.removeAll(JNIUtil.getInnerEnumsAsSet(c));
 
         for (Class r : s) {
           addReferencedClasses(r);
@@ -187,7 +187,7 @@ public class ClassReferenceFinder {
   public boolean allReferencesPresent(Executable e) {
     System.out.printf("Executable %s\n", e.getName());
     for (Parameter p : e.getParameters()) {
-      if (!references.contains(p.getType()) && !Variable.isMappedJavaType(p.getType().getName())) {
+      if (!references.contains(p.getType()) && !JNIUtil.getInnerEnumsAsSet(e.getDeclaringClass()).contains(p.getType()) && !Variable.isMappedJavaType(p.getType().getName())) {
         System.out.printf("\tMissing reference for parameter %s\n", p.getType());
         return false;
       }

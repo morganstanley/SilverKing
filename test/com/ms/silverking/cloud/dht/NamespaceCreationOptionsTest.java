@@ -8,9 +8,11 @@ import static com.ms.silverking.testing.Util.getTestMessage;
 import static org.junit.Assert.assertEquals;
 
 import com.ms.silverking.cloud.dht.NamespaceCreationOptions.Mode;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import org.junit.Test;
 
+@OmitGeneration
 public class NamespaceCreationOptionsTest {
 
   private static final NamespaceCreationOptions defaultOptions = NamespaceCreationOptions.defaultOptions;

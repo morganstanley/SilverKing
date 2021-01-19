@@ -160,6 +160,10 @@ public class JNIUtil {
     }
     return enums.toArray(new Class[0]);
   }
+  
+  public static Set<Class> getInnerEnumsAsSet(Class class_) {
+    return ImmutableSet.copyOf(getInnerEnums(class_));
+  }
 
   public static boolean isReferencedClass(Class c) {
     return !c.isPrimitive() && !omitReferencedClass(c);

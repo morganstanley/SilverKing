@@ -34,9 +34,9 @@ public class Variable implements Expression {
     MethodSignature, ConstructorSignature, StaticFieldSignature, StaticFieldName, StaticFieldType,
     StaticFieldTypeSimple, StaticFieldTypeRaw, Enum, EnumValue, Interface, InterfacePackage, ReferencedClassSimple,
     InheritedClass, InheritedClassPackage, ImplementsInterfaces, NonVirtual, ParameterName, ParameterNameWrapped,
-    ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive,
-    ParameterIsObject, ParameterIsUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive, StaticFieldTypeIsUserObjectOrEnum, SuperClass,
-    SuperClassPackage, EmptyString, JNICallType, ClassIsEnum
+    ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive, ParameterIsEnum,
+    ParameterIsObject, ParameterIsUserObject, ParameterIsNonEnumUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive, StaticFieldTypeIsUserObjectOrEnum, SuperClass,
+    SuperClassPackage, EmptyString, JNICallType, ClassIsEnum, TotalEnumValues
   }
 
   ;
@@ -213,12 +213,18 @@ public class Variable implements Expression {
       return c.getParameter() != null && (c.getParameter().getType().isPrimitive() || c.getParameter().getType().isEnum()) ?
           "true" :
           "false";
+    case ParameterIsEnum:
+      return c.getParameter() != null && c.getParameter().getType().isEnum() ?
+          "true" :
+          "false";
     case ParameterIsPrimitive:
       return c.getParameter() != null && (c.getParameter().getType().isPrimitive()) ? "true" : "false";
     case ParameterIsObject:
       return isObject(c.getParameter()) ? "true" : "false";
     case ParameterIsUserObject:
       return isUserObject(c.getParameter()) ? "true" : "false";
+    case ParameterIsNonEnumUserObject:
+      return isNonEnumUserObject(c.getParameter()) ? "true" : "false";
     case ReturnTypeIsPrimitive:
       return c.getMethod() != null && c.getMethod().getReturnType() != null && (c.getMethod().getReturnType().isPrimitive()) ?
           "true" :
@@ -241,6 +247,8 @@ public class Variable implements Expression {
       return c.getEnum().getSimpleName();
     case EnumValue:
       return c.getEnumValue();
+    case TotalEnumValues:
+      return Integer.toString(c.getTotalEnumValues());
     case Interface:
       return c.getInterface().getSimpleName();
     case InterfacePackage:
@@ -278,24 +286,29 @@ public class Variable implements Expression {
   }
 
   private boolean isObject(Parameter p, boolean ignoreSystemClasses) {
-    return p != null && isObject(p.getType(), ignoreSystemClasses); 
+    return p != null && isObject(p.getType(), ignoreSystemClasses, true); 
   }
 
+  private boolean isNonEnumUserObject(Class c) {
+    System.out.printf("isUserObject class %s %s\n", c, c != null && isObject(c, true, false));
+    return c != null && isObject(c, true, false);
+  }
+  
   private boolean isUserObject(Class c) {
-    System.out.printf("isUserObject class %s %s\n", c, c != null && isObject(c, true));
-    return c != null && isObject(c, true);
+    System.out.printf("isUserObject class %s %s\n", c, c != null && isObject(c, true, true));
+    return c != null && isObject(c, true, true);
   }
   
   private boolean isObject(Class c) {
-    return c != null && isObject(c, false);
+    return c != null && isObject(c, false, true);
   }
   
-  private boolean isObject(Class c, boolean ignoreSystemClasses) {
-    return (!c.isPrimitive()) && (!c.isArray()) && /*(!c.isEnum()) &&*/ (!ignoreSystemClasses || !c.getPackage().getName().startsWith("java"));
+  private boolean isObject(Class c, boolean ignoreSystemClasses, boolean allowEnum) {
+    return (!c.isPrimitive()) && (!c.isArray()) && (allowEnum || !c.isEnum()) && (!ignoreSystemClasses || !c.getPackage().getName().startsWith("java"));
   }
   
   private boolean isObjectOrEnum(Class c) {
-    return c != null && (c.isEnum()) || isObject(c, true);
+    return c != null && (c.isEnum()) || isObject(c, true, true);
   }
   
   private boolean isEnum(Class c) {
@@ -307,6 +320,11 @@ public class Variable implements Expression {
     return p != null && isUserObject(p.getType());
   }
 
+  private boolean isNonEnumUserObject(Parameter p) {
+    System.out.printf("isUserObject parameter %s %s\n", p, p != null && isNonEnumUserObject(p.getType()));
+    return p != null && isNonEnumUserObject(p.getType());
+  }
+  
   private boolean isObject(Parameter p) {
     return p != null && isObject(p.getType());
   }

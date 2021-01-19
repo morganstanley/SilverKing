@@ -3,8 +3,10 @@ package com.ms.silverking.cloud.dht.client;
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 
+@OmitGeneration
 public class TestCallbackDHT implements AsyncOperationListener {
   private Semaphore s;
 

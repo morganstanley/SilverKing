@@ -10,11 +10,13 @@ import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
 import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.time.RelNanosTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
 import org.junit.Test;
 
+@OmitGeneration
 public class RelNanosVersionProviderTest {
 
   private static final RelNanosTimeSource rntsCopy = new TimerDrivenTimeSource(1);

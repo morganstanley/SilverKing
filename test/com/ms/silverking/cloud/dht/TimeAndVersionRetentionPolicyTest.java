@@ -10,9 +10,11 @@ import static com.ms.silverking.testing.AssertFunction.test_NotEquals;
 import static org.junit.Assert.assertEquals;
 
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import org.junit.Test;
 
+@OmitGeneration
 public class TimeAndVersionRetentionPolicyTest {
 
   private static final Mode mCopy = Mode.wallClock;
