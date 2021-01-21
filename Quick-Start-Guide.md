@@ -57,7 +57,7 @@ Once the script returns, it should inform us of what command we run to start the
 
 That's it! SilverKing is up and running. You can run 'ps uxww' to see both processes - sk and skfs.
 
-You can now perform key-value operations using the skc tool ([skc usage](https://morgan-stanley.github.io/SilverKing/doc/Shell.html)):
+You can now perform key-value operations using the skc tool ([skc usage](https://morganstanley.github.io/SilverKing/doc/Shell.html)):
 ```ksh
 ~/SilverKing/bin/skc -G ~/SilverKing/bin/cloud_out -g GC_SK_cloud    
 skc> h;         # help menu
@@ -97,7 +97,7 @@ You may also build SilverKing on AWS using simplified build scripts for both Ama
 ```ksh
 sudo yum -y install git ksh
 cd ~
-git clone https://github.com/Morgan-Stanley/SilverKing.git
+git clone https://github.com/MorganStanley/SilverKing.git
 ~/SilverKing/build/aws/build_amazon_linux.sh
 ```
 
@@ -106,6 +106,6 @@ git clone https://github.com/Morgan-Stanley/SilverKing.git
 sudo apt-get -y update 
 sudo apt-get -y install git ksh    # 'apt-get update' first, or else you will get: "E: Unable to locate package ksh"
 cd ~
-git clone https://github.com/Morgan-Stanley/SilverKing.git
+git clone https://github.com/MorganStanley/SilverKing.git
 ~/SilverKing/build/aws/build_ubuntu.sh
 ```
