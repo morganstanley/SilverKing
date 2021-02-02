@@ -30,11 +30,11 @@ public class Variable implements Expression {
 
   private enum VariableType {
     Class, Package, MethodName, LoopIndex, LoopIndex_0Base, LoopElements, ClassMD5, ClassHasEmptyConstructor,
-    MethodReturnType, MethodReturnTypeSimple, MethodReturnTypeWrapper, MethodReturnTypeRaw, MethodReturnTypePackage,
+    MethodReturnType, MethodReturnTypeSimple, MethodReturnTypeWrapper, MethodReturnTypeRaw, MethodReturnTypePackage, MethodReturnTypeCPP,
     MethodSignature, ConstructorSignature, StaticFieldSignature, StaticFieldName, StaticFieldType,
     StaticFieldTypeSimple, StaticFieldTypeRaw, Enum, EnumValue, Interface, InterfacePackage, ReferencedClassSimple,
     InheritedClass, InheritedClassPackage, ImplementsInterfaces, NonVirtual, ParameterName, ParameterNameWrapped,
-    ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive, ParameterIsEnum,
+    ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterTypeCPP, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive, ParameterIsEnum,
     ParameterIsObject, ParameterIsUserObject, ParameterIsNonEnumUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive, StaticFieldTypeIsUserObjectOrEnum, SuperClass,
     SuperClassPackage, EmptyString, JNICallType, ClassIsEnum, TotalEnumValues
   }
@@ -195,6 +195,8 @@ public class Variable implements Expression {
       return getReturnTypeWrapper(c.getMethod());
     case MethodReturnTypePackage:
       return getReturnTypePackage(c.getMethod());
+    case MethodReturnTypeCPP:
+      return getCPPType(c.getMethod().getReturnType());
     case MethodSignature:
       return JNIUtil.getJNISignature(c.getMethod());
     case ConstructorSignature:
@@ -209,6 +211,8 @@ public class Variable implements Expression {
       return getParameterType(c.getParameter(), false, null);
     case ParameterTypeSimple:
       return getParameterType(c.getParameter(), true, c.getEnclosingTypeSeparator());
+    case ParameterTypeCPP:
+      return getCPPType(c.getParameter().getType());
     case ParameterIsPrimitiveOrEnum:
       return c.getParameter() != null && (c.getParameter().getType().isPrimitive() || c.getParameter().getType().isEnum()) ?
           "true" :
@@ -290,12 +294,10 @@ public class Variable implements Expression {
   }
 
   private boolean isNonEnumUserObject(Class c) {
-    System.out.printf("isUserObject class %s %s\n", c, c != null && isObject(c, true, false));
     return c != null && isObject(c, true, false);
   }
   
   private boolean isUserObject(Class c) {
-    System.out.printf("isUserObject class %s %s\n", c, c != null && isObject(c, true, true));
     return c != null && isObject(c, true, true);
   }
   
@@ -316,12 +318,10 @@ public class Variable implements Expression {
   }
   
   private boolean isUserObject(Parameter p) {
-    System.out.printf("isUserObject parameter %s %s\n", p, p != null && isUserObject(p.getType()));
     return p != null && isUserObject(p.getType());
   }
 
   private boolean isNonEnumUserObject(Parameter p) {
-    System.out.printf("isUserObject parameter %s %s\n", p, p != null && isNonEnumUserObject(p.getType()));
     return p != null && isNonEnumUserObject(p.getType());
   }
   
@@ -342,7 +342,6 @@ public class Variable implements Expression {
   }
 
   private Class getSuperclass(Class c) {
-    System.out.printf("superclass %s %s\n", c.getName(), c.getSuperclass());
     return c.getSuperclass() != null ? c.getSuperclass() : Object.class;
   }
 
@@ -470,6 +469,24 @@ public class Variable implements Expression {
     }
   }
 
+  private static String getCPPType(Class type) {
+    TypeMapping javaTypeMapping;
+    String typeName;
+
+    typeName = type.getName();
+    javaTypeMapping = javaTypeMappings.get(typeName);
+    //System.out.printf("\t***%s\t%s\n", p.getName(), javaTypeMapping == null ? "null" : javaTypeMapping
+    // .getExternalType());
+    if (javaTypeMapping == null) {
+      System.out.printf("%s\n", typeName);
+    }
+    if (javaTypeMapping == null) {
+      return getCPPTypeName(type);
+    } else {
+      return javaTypeMapping.getExternalType();
+    }
+  }
+  
   private static String getParameterType(Parameter p, boolean simple, String enclosingTypeSeparator) {
     String name;
     TypeMapping javaTypeMapping;
@@ -530,6 +547,17 @@ public class Variable implements Expression {
     }
   }
 
+  private static String getCPPTypeName(Class c) {
+    Class e;
+
+    e = c.getEnclosingClass();
+    if (e == null) {
+      return c.getPackage().getName().replaceAll("\\.", "_") +"::"+ c.getSimpleName();
+    } else {
+      return e.getPackage().getName().replaceAll("\\.", "_") +"::"+ e.getSimpleName() +"::"+ c.getSimpleName();
+    }
+  }
+  
   private static String getReturnType(Method m, boolean simple, String enclosingTypeSeparator) {
     String name;
     TypeMapping javaTypeMapping;

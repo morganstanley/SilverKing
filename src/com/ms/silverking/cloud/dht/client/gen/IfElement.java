@@ -29,7 +29,6 @@ public class IfElement implements Statement {
   public static IfElement parse(String s) {
     Type t;
 
-    //System.out.printf("\n*** %s\n", s);
     s = s.trim();
     t = EnumUtil.getEnumFromStringStart(Type.class, s);
     if (t == null) {
@@ -88,6 +87,7 @@ public class IfElement implements Statement {
   }
 
   private boolean evaluateVariable(Context c) {
+    //System.out.printf("\t###\t%s %s %s %s\n", c, variable.evaluate(c).getV2().equals(literal), variable.evaluate(c).getV2(), literal);
     return variable.evaluate(c).getV2().equals(literal);
   }
 
