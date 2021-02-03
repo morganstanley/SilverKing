@@ -208,9 +208,10 @@ public class DHTConstants {
       defaultConsistencyProtocol, defaultVersionMode, defaultRevisionMode, standardPutOptions,
       standardInvalidationOptions, standardGetOptions, standardWaitOptions, defaultSecondarySyncIntervalSeconds,
       defaultSegmentSize, defaultMaxValueSize);
+  public static final int dynamicNamespaceSegmentSize = 4 * 1024;
   public static final NamespaceOptions dynamicNamespaceOptions = defaultNamespaceOptions.storageType(
       StorageType.RAM).consistencyProtocol(ConsistencyProtocol.TWO_PHASE_COMMIT).versionMode(
-      NamespaceVersionMode.CLIENT_SPECIFIED);
+      NamespaceVersionMode.CLIENT_SPECIFIED).segmentSize(dynamicNamespaceSegmentSize);
   public static final NamespaceProperties dynamicNamespaceProperties = new NamespaceProperties(dynamicNamespaceOptions);
   public static final NamespaceProperties metricsNamespaceProperties = dynamicNamespaceProperties;
 
