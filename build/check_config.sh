@@ -299,7 +299,7 @@ function f_check_REPO_NAME {
     f_check_defined_and_equals ${!REPO_NAME} "SilverKing"
 }
 function f_check_REPO_URL {
-    f_check_defined_and_equals ${!REPO_URL} "https://github.com/Morgan-Stanley/"
+    f_check_defined_and_equals ${!REPO_URL} "https://github.com/MorganStanley/"
 }
 
 function f_check_G_TEST_HOME {
