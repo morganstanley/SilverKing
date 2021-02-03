@@ -52,8 +52,8 @@ using jace::proxy::com::ms::silverking::cloud::dht::TimeoutResponse;
 using jace::proxy::com::ms::silverking::cloud::dht::VersionConstraint_Mode;
 #include "jace/proxy/com/ms/silverking/cloud/dht/WaitMode.h"
 using jace::proxy::com::ms::silverking::cloud::dht::WaitMode;
-#include "jace/proxy/com/ms/silverking/cloud/dht/net/ForwardingMode.h"
-using jace::proxy::com::ms::silverking::cloud::dht::net::ForwardingMode;
+#include "jace/proxy/com/ms/silverking/cloud/dht/ForwardingMode.h"
+using jace::proxy::com::ms::silverking::cloud::dht::ForwardingMode;
 
 typedef JArray< jace::proxy::types::JByte > ByteArray;
 

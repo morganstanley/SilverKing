@@ -38,8 +38,8 @@ using jace::proxy::com::ms::silverking::cloud::dht::WaitMode;
 using jace::proxy::com::ms::silverking::cloud::dht::WaitOptions;
 #include "jace/proxy/com/ms/silverking/cloud/dht/client/OpTimeoutController.h"
 using jace::proxy::com::ms::silverking::cloud::dht::client::OpTimeoutController;
-#include "jace/proxy/com/ms/silverking/cloud/dht/net/ForwardingMode.h"
-using jace::proxy::com::ms::silverking::cloud::dht::net::ForwardingMode;
+#include "jace/proxy/com/ms/silverking/cloud/dht/ForwardingMode.h"
+using jace::proxy::com::ms::silverking::cloud::dht::ForwardingMode;
 #include "jace/proxy/com/ms/silverking/cloud/dht/SecondaryTarget.h"
 using jace::proxy::com::ms::silverking::cloud::dht::SecondaryTarget;
 

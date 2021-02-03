@@ -275,8 +275,8 @@ using jace::proxy::com::ms::silverking::cloud::dht::client::serialization::Strin
 #include "jace/proxy/com/ms/silverking/cloud/dht/gridconfig/SKGridConfiguration.h"
 using jace::proxy::com::ms::silverking::cloud::dht::gridconfig::SKGridConfiguration;
 
-#include "jace/proxy/com/ms/silverking/cloud/dht/net/ForwardingMode.h"
-using jace::proxy::com::ms::silverking::cloud::dht::net::ForwardingMode;
+#include "jace/proxy/com/ms/silverking/cloud/dht/ForwardingMode.h"
+using jace::proxy::com::ms::silverking::cloud::dht::ForwardingMode;
 
 #include "jace/proxy/com/ms/silverking/net/HostAndPort.h"
 using jace::proxy::com::ms::silverking::net::HostAndPort;
