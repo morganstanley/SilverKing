@@ -222,13 +222,11 @@ public class JNIUtil {
       // populate Object,Enum,etc.
       cs.add(c.getSuperclass());
     }
-    // recurse
     s = new HashSet<>();
     s.addAll(cs);
-    for (Class c_ : cs) {
-      s.addAll(getAllInheritedClasses(c_));
+    if (s.isEmpty()) {
+      s.add(Object.class);
     }
-    s.add(Object.class);
     return s;
   }
 
@@ -337,6 +335,9 @@ public class JNIUtil {
   }
 
   public static void main(String[] args) {
+    System.out.printf("%s", getAllInheritedClasses(GetOptions.class));
+    
+    /*
     //System.out.println(CollectionUtil.toString(getReferencedClasses(GetOptions.class)));
     for (Executable e : GetOptions.class.getDeclaredMethods()) {
       System.out.println(e);
@@ -348,5 +349,6 @@ public class JNIUtil {
     for (Executable e : GetOptions.class.getMethods()) {
       System.out.println(e);
     }
+    */
   }
 }
