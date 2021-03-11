@@ -193,7 +193,7 @@ public class WrapperGenerator {
 
     System.out.printf("in getStaticFieldsForGeneration %s\n", c.getName());
     fields = new ArrayList<>();
-    for (Field f : c.getFields()) {
+    for (Field f : c.getDeclaredFields()) {
       if (Modifier.isPublic(f.getModifiers()) && Modifier.isStatic(f.getModifiers()) && Modifier.isFinal(
           f.getModifiers())) {
         System.out.printf("Static field %s\n", f.getName());
