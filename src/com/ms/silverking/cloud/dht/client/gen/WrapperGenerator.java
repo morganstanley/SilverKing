@@ -209,6 +209,18 @@ public class WrapperGenerator {
   private static boolean isBaseClass(Class c) {
     return baseClasses.contains(c);
   }
+  
+  private Set<Class> passFilterBaseAndReferencedClasses(Set<Class> sourceClasses) {
+    Set<Class> ic2;
+
+    ic2 = new HashSet<>();
+    for (Class _class : sourceClasses) {
+      if (isBaseClass(_class) || referenceFinder.referencePresent(_class)) {
+        ic2.add(_class);
+      }
+    }
+    return ic2;
+  }
 
   /**
    * Loop through all ParseElements in the list.
@@ -401,16 +413,12 @@ public class WrapperGenerator {
             }
             break;
           case InheritedClasses:
+          {
             Set<Class> inheritedClasses;
             Set<Class> ic2;
 
             inheritedClasses = JNIUtil.getAllInheritedClasses(c.getClass_());
-            ic2 = new HashSet<>();
-            for (Class inheritedClass : inheritedClasses) {
-              if (isBaseClass(inheritedClass) || referenceFinder.referencePresent(inheritedClass)) {
-                ic2.add(inheritedClass);
-              }
-            }
+            ic2 = passFilterBaseAndReferencedClasses(inheritedClasses);
             _c = c.loopElements(ic2.size());
             for (Class inheritedClass : ic2) {
               Context icContext;
@@ -418,6 +426,23 @@ public class WrapperGenerator {
               icContext = _c.inheritedClass(inheritedClass);
               generate(icContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
             }
+          }
+            break;
+          case AncestorClasses:
+          {
+            Set<Class> ancestorClasses;
+            Set<Class> ic2;
+
+            ancestorClasses = JNIUtil.getAllAncestorClasses(c.getClass_());
+            ic2 = passFilterBaseAndReferencedClasses(ancestorClasses);
+            _c = c.loopElements(ic2.size());
+            for (Class ancestorClass : ic2) {
+              Context icContext;
+
+              icContext = _c.ancestorClass(ancestorClass);
+              generate(icContext, loopElements, outputDir, ++newLoopIndex, depth + 1);
+            }
+          }
             break;
           case ReferencedClasses:
             Set<Class> _referencedClasses;
@@ -514,7 +539,7 @@ public class WrapperGenerator {
       case Classes:
         return target == LoopElement.Target.Methods || target == LoopElement.Target.NonEmptyConstructors || target == LoopElement.Target.Constructors || target == LoopElement.Target.StaticMethods || target == LoopElement.Target.StaticFields || target == LoopElement.Target.Enums // Embedded enums
             || target == LoopElement.Target.EnumValues // Values of an enum class
-            || target == LoopElement.Target.ReferencedClasses || target == LoopElement.Target.Interfaces || target == LoopElement.Target.InheritedClasses;
+            || target == LoopElement.Target.ReferencedClasses || target == LoopElement.Target.Interfaces || target == LoopElement.Target.InheritedClasses || target == LoopElement.Target.AncestorClasses;
       case Methods:
         return target == LoopElement.Target.Parameters;
       case StaticMethods:

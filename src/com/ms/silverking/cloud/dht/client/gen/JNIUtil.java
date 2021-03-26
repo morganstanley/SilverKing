@@ -230,6 +230,29 @@ public class JNIUtil {
     return s;
   }
 
+  private static Set<Class> getAllAncestorClasses(Class c, Set<Class> known) {
+    Set<Class> s;
+    Set<Class> _s;
+    
+    s = new HashSet<>(); 
+    s.addAll(getAllInheritedClasses(c));
+    _s = ImmutableSet.copyOf(s);
+    for (Class p : _s) {
+      if (!known.contains(p)) {
+        Set<Class> a;
+        
+        known.add(p);
+        a = getAllAncestorClasses(p, known);
+        s.addAll(a);
+      }
+    }
+    return s;
+  }
+  
+  public static Set<Class> getAllAncestorClasses(Class c) {
+    return getAllAncestorClasses(c, new HashSet<>());
+  }
+  
   private static Set<Class> extractReferencedClasses(Class[] ca) {
     Set<Class> cs;
 

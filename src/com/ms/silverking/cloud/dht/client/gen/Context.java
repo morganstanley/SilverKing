@@ -28,12 +28,13 @@ public class Context {
   private final int loopIndex;
   private final Class referencedClass;
   private final Class inheritedClass;
+  private final Class ancestorClass;
   private final String enclosingTypeSeparator;
 
   public Context(List<GenPackageClasses> packages, GenPackageClasses genPackageClasses, File outputDir,
       String outputFileName, Class _class, Constructor constructor, Method _method, Parameter parameter, Field field,
       Class _enum, String enumValue, Class interface_, LoopElement loopElement, int loopElements, int elementIndex,
-      Class referencedClass, Class inheritedClass, String enclosingTypeSeparator) {
+      Class referencedClass, Class inheritedClass, Class ancestorClass, String enclosingTypeSeparator) {
     if (_method != null && constructor != null) {
       throw new RuntimeException("_method != null && constructor != null");
     }
@@ -54,12 +55,13 @@ public class Context {
     this.loopIndex = elementIndex;
     this.referencedClass = referencedClass;
     this.inheritedClass = inheritedClass;
+    this.ancestorClass = ancestorClass;
     this.enclosingTypeSeparator = enclosingTypeSeparator;
   }
 
   public Context(List<GenPackageClasses> packages, File outputDir) {
     this(packages, null, outputDir, null, null, null, null, null, null, null, null, null, null, -1, -1, null, null,
-        null);
+        null, null);
   }
 
   public List<GenPackageClasses> getPackages() {
@@ -153,6 +155,10 @@ public class Context {
     return inheritedClass;
   }
 
+  public Class getAncestorClass() {
+    return ancestorClass;
+  }
+
   public String getEnclosingTypeSeparator() {
     return enclosingTypeSeparator;
   }
@@ -162,97 +168,103 @@ public class Context {
   public Context genPackageClasses(GenPackageClasses genPackageClasses) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context outputFileName(String outputFileName) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context class_(Class _class) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context constructor(Constructor constructor) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context method(Method method) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context parameter(Parameter parameter) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context field(Field field) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context enum_(Class _enum) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context enumValue(String enumValue) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context interface_(Class interface_) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context loopElement(LoopElement loopElement) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context loopElements(int loopElements) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context loopIndex(int loopIndex) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context referencedClass(Class referencedClass) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Context inheritedClass(Class inheritedClass) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
+  public Context ancestorClass(Class ancestorClass) {
+    return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
+        field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
+        ancestorClass, enclosingTypeSeparator);
+  }
+  
   public Context enclosingTypeSeparator(String enclosingTypeSeparator) {
     return new Context(packages, genPackageClasses, outputDir, outputFileName, _class, constructor, method, parameter,
         field, _enum, enumValue, interface_, loopElement, loopElements, loopIndex, referencedClass, inheritedClass,
-        enclosingTypeSeparator);
+        ancestorClass, enclosingTypeSeparator);
   }
 
   public Parameter[] getActiveParameters() {

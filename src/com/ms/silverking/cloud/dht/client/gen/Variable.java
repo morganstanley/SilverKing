@@ -33,7 +33,7 @@ public class Variable implements Expression {
     MethodReturnType, MethodReturnTypeSimple, MethodReturnTypeWrapper, MethodReturnTypeRaw, MethodReturnTypePackage, MethodReturnTypeCPP,
     MethodSignature, ConstructorSignature, StaticFieldSignature, StaticFieldName, StaticFieldType,
     StaticFieldTypeSimple, StaticFieldTypeRaw, Enum, EnumValue, Interface, InterfacePackage, ReferencedClassSimple,
-    InheritedClass, InheritedClassPackage, ImplementsInterfaces, NonVirtual, ParameterName, ParameterNameWrapped,
+    InheritedClass, InheritedClassPackage, AncestorClass, AncestorClassPackage, ImplementsInterfaces, NonVirtual, ParameterName, ParameterNameWrapped,
     ParameterTypePackage, ParameterType, ParameterTypeSimple, ParameterTypeCPP, ParameterIsPrimitiveOrEnum, ParameterIsPrimitive, ParameterIsEnum,
     ParameterIsObject, ParameterIsUserObject, ParameterIsNonEnumUserObject, ReturnTypeIsPrimitive, StaticFieldTypeIsPrimitive, StaticFieldTypeIsUserObjectOrEnum, SuperClass,
     SuperClassPackage, EmptyString, JNICallType, ClassIsEnum, TotalEnumValues
@@ -263,6 +263,10 @@ public class Variable implements Expression {
       return c.getInheritedClass().getSimpleName();
     case InheritedClassPackage:
       return c.getInheritedClass().getPackage().getName();
+    case AncestorClass:
+      return c.getAncestorClass().getSimpleName();
+    case AncestorClassPackage:
+      return c.getAncestorClass().getPackage().getName();
     case SuperClass:
       return getSuperclassName(c.getClass_());
     case SuperClassPackage:
