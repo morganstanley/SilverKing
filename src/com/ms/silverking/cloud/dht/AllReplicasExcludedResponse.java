@@ -17,5 +17,5 @@ public enum AllReplicasExcludedResponse {
   /**
    * By default, throw an exception when all replicas are excluded
    */
-  public static final AllReplicasExcludedResponse defaultResponse = EXCEPTION;
+  public static final AllReplicasExcludedResponse defaultResponse = IGNORE;
 }
