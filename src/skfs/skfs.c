@@ -234,6 +234,8 @@ void _skfs_clean_p1rMap(unordered_map<string, RenamePhase1Results> *p1rMap);
 static int _skfs_rename_phase2_b(const char *source, const char *target, 
                                  bool isDir, struct timespec tp, FileAttr source_fa, FileAttr target_fa, 
                                  bool targetAttrExists);
+static int unix_access(const char *path, int mask);
+static int acl_access(const char *path, int mask);
 
 ////////////
 // globals
@@ -902,17 +904,64 @@ static int skfs_utimens(const char *path, const struct timespec ts[2]
 
 static int skfs_access(const char *path, int mask) {
     int    result;
-    struct stat stbuf;
 
     srfsLogAsync(LOG_OPS, "_a %s", path);
+	result = unix_access(path, mask);
+	if (result != 0 && !is_writable_path(path)) {
+		return acl_access(path, mask);
+	} else {
+		return result;
+	}
+}
+
+static int unix_access(const char *path, int mask) {
+    int    result;
+    struct stat stbuf;
+	
     memset(&stbuf, 0, sizeof(struct stat));
     result = ar_get_attr_stat(ar, (char *)path, &stbuf);
-    if (result == 0 && mask != F_OK) {
-        // for now we ignore the mask and just return success
-        // if we could stat it
-        // FUTURE - handle mask values
-    }
-    return -result;
+    if (result == 0) {
+		if (mask == F_OK) {
+			return 0;
+		} else {
+			int	readAllowed;
+			int	writeAllowed;
+			int	executeAllowed;
+			
+			if (get_uid() == stbuf.st_uid) { // owner
+				readAllowed = S_IRUSR(stbuf.mode);
+				writeAllowed = S_IWUSR(stbuf.mode);
+				executeAllowed = S_IXUSR(stbuf.mode);
+			} else if (get_gid() == stbuf.st_gid) { // group
+				readAllowed = S_IRGRP(stbuf.mode);
+				writeAllowed = S_IWGRP(stbuf.mode);
+				executeAllowed = S_IXGRP(stbuf.mode);
+			} else { // other
+				readAllowed = S_IROTH(stbuf.mode);
+				writeAllowed = S_IWOTH(stbuf.mode);
+				executeAllowed = S_IXOTH(stbuf.mode);
+			}
+			result = 0;
+			if (!readAllowed && (mask & R_OK)) {
+				result = EACCES;
+			} else if (!writeAllowed && (mask & W_OK)) {
+				result = EACCES;
+			} else if (!executeAllowed && (mask & X_OK)) {
+				result = EACCES;
+			}
+			return result;
+		}
+    } else {
+		return -result;
+	}
+}
+
+static int acl_access(const char *path, int mask) {
+	int	result;
+	
+	// FUTURE - implement
+	result = EACCES;
+	return result;
 }
 
 static int skfs_readlink(const char *path, char *buf, size_t size) {
@@ -2863,7 +2912,8 @@ void initFuse() {
     skfs_oper.readdir = skfs_readdir;
     skfs_oper.flush = skfs_flush;
     skfs_oper.init = skfs_init;
-    skfs_oper.access = skfs_access;
+	// FUTURE implement acl access
+    //skfs_oper.access = skfs_access;
     skfs_oper.destroy = skfs_destroy;
     
     skfs_oper.open = skfs_open;
