@@ -172,6 +172,10 @@ public class GenPackageClasses {
   public static GenPackageClasses create(File codebase, String packageName) {
     return create(codebase, packageName, null);
   }
+  
+  private static boolean isSystemPackage(String packageName) {
+    return packageName.startsWith("java");
+  }
 
   /**
    * Get a package safely. Ensure that the classloader finds the package, then return it.
@@ -181,42 +185,45 @@ public class GenPackageClasses {
    */
   private static Package getPackage(File codebase, String packageName) {
     Package _package;
-    String arbitraryPackageClassName;
-    File packageDir;
-    String[] classes;
-    int index;
-    String candidateClassName;
-
-    packageDir = new File(codebase, packageName.replace('.', '/'));
-    if (!packageDir.exists()) {
-      throw new RuntimeException("Can't find packageDir: " + packageDir);
-    }
-    classes = packageDir.list();
-    if (classes.length == 0) {
-      throw new RuntimeException("Can't find any classes in package: " + packageDir);
-    }
-    candidateClassName = null;
-    index = 0;
-    arbitraryPackageClassName = null;
-    while (arbitraryPackageClassName == null && index < classes.length) {
-      candidateClassName = classes[index];
-      if (candidateClassName.endsWith(".class")) {
-        candidateClassName = candidateClassName.substring(0, candidateClassName.length() - ".class".length());
-        try {
-          Class c;
-
-          c = Class.forName(packageName + "." + candidateClassName);
-          arbitraryPackageClassName = candidateClassName;
-        } catch (ClassNotFoundException e) {
-          if (debug) {
-            System.out.printf("candidateClassName failed: %s\n", candidateClassName);
+    
+    if (!isSystemPackage(packageName)) {
+      String arbitraryPackageClassName;
+      File packageDir;
+      String[] classes;
+      int index;
+      String candidateClassName;
+  
+      packageDir = new File(codebase, packageName.replace('.', '/'));
+      if (!packageDir.exists()) {
+        throw new RuntimeException("Can't find packageDir: " + packageDir);
+      }
+      classes = packageDir.list();
+      if (classes.length == 0) {
+        throw new RuntimeException("Can't find any classes in package: " + packageDir);
+      }
+      candidateClassName = null;
+      index = 0;
+      arbitraryPackageClassName = null;
+      while (arbitraryPackageClassName == null && index < classes.length) {
+        candidateClassName = classes[index];
+        if (candidateClassName.endsWith(".class")) {
+          candidateClassName = candidateClassName.substring(0, candidateClassName.length() - ".class".length());
+          try {
+            Class c;
+  
+            c = Class.forName(packageName + "." + candidateClassName);
+            arbitraryPackageClassName = candidateClassName;
+          } catch (ClassNotFoundException e) {
+            if (debug) {
+              System.out.printf("candidateClassName failed: %s\n", candidateClassName);
+            }
           }
         }
+        index++;
       }
-      index++;
-    }
-    if (arbitraryPackageClassName == null) {
-      throw new RuntimeException("Unable to find class in package: " + packageName);
+      if (arbitraryPackageClassName == null) {
+        throw new RuntimeException("Unable to find class in package: " + packageName);
+      }
     }
     _package = Package.getPackage(packageName);
     return _package;
