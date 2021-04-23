@@ -15,7 +15,7 @@ data constructs that support these concepts.
 <a name="SilverKing Instances"></a>
 <h2>Instances</h2>
 <p>
-This documentation will use the term instance to refer to either a distributed or
+This documentation will use the term instance to refer to either a distributed cluster or
 standalone instance of SilverKing. Each instance is identified by a name, a port,
 and a ZooKeeper ensemble definition (all metadata is stored in ZooKeeper).
 Typically, these three concepts are bound to a single Grid Configuration (described below).
@@ -85,6 +85,68 @@ failure correlation, etc. A sketch of a typical topology is shown in <b>Figure 1
 <tr><td><img src="TopologySketch.png" alt="Topology"/></td></tr>
 </table>
 
+<a name="HostGroups"></a>
+<h2>Host Groups</h2>
+
+<p>
+A Host Group maps a server to one or more logical "Host Groups". For example:
+<pre>
+192.168.1.1	GroupA
+192.168.1.2	GroupA	GroupC
+192.168.2.1	GroupB
+192.168.2.2	GroupB	GroupC
+192.168.3.1	GroupC
+192.168.3.2	GroupC
+</pre>
+</p>
+<p>
+SilverKing higher-level configuration is always specified in terms of Host Groups, and never in terms of IP addresses.
+Adding Host Groups as a layer of indirection provides much more flexible and manageable configuration.
+</p>
+
+<a name="Exclusion Sets"></a>
+<h2>Exclusion Sets</h2>
+
+<p>
+In large SilverKing instances, hardware failure becomes inevitable. While it would be possible
+to cope with hardware failures by introducing a new topology that excludes the failed server,
+SilverKing provides a much simpler means to cope with failures: an exclusion set.
+</p>
+
+<p>
+Exclusions define a list of servers that should not be included in any ring. 
+Adding a server to the exclusion list precludes data from being stored on the server. This is typically 
+done when the server is not functioning correctly or needs to be taken out of active use for some reason.
+</p>
+
+<p>
+SilverKing uses two types of exclusion sets: a server exclusion sets, and instance
+exclusion sets. 
+</p>
+
+<h3>Server Exclusion Sets</h3>
+<p>
+Server exclusion sets used to specify servers that should not be
+used for any SilverKing instance. This is where servers with hardware-level issues should
+be specified. This set is maintained outside of SilverKing typically as a flat file.
+SilverKing monitors this file for changes, and update the server exclusion set whenever
+a change is observed.
+</p>
+
+<h3>Instance Exclusion Sets</h3>
+<p>
+Each SilverKing instance also maintains an "instance exclusion set". This is a set
+of daemons that are unhealthy (e.g. were killed, crashed, etc.).
+</p>
+
+<a name="CloudConfiguration"></a>
+<h2>CloudConfiguration</h2>
+
+<p>
+A Cloud Configuration groups a Topology, a Server Exclusion Set, and a Host Group together in a common unit.
+Together, these notions allow us to refer to servers in a "Cloud" that may consist of an arbitrary physical realization.
+</p>
+
 <a name="Rings"></a>
 <h2>Rings</h2>
 
@@ -126,43 +188,9 @@ ring with only servers as members is obtained. This composed ring is actually us
 <h3>Specification</h3>
 
 <p>
-A ring is specified as a topology, an owner (node instance) for the ring within the 
-topology, an exclusion list, and two additional constructs: weights and storage policy.
-</p>
-
-<a name="Exclusion Sets"></a>
-<h2>Exclusion Sets</h2>
-
-<p>
-In large SilverKing instances, hardware failure becomes inevitable. While it would be possible
-to cope with hardware failures by introducing a new topology that excludes the failed server,
-SilverKing provides a much simpler means to cope with failures: an exclusion set.
-</p>
-
-<p>
-Exclusions define a list of servers that should not be included in any ring. 
-Adding a server to the exclusion list precludes data from being stored on the server. This is typically 
-done when the server is not functioning correctly or needs to be taken out of active use for some reason.
-</p>
-
-<p>
-SilverKing uses two types of exclusion sets: a server exclusion sets, and instance
-exclusion sets. 
-</p>
-
-<h3>Server Exclusion Sets</h3>
-<p>
-Server exclusion sets used to specify servers that should not be
-used for any SilverKing instance. This is where servers with hardware-level issues should
-be specified. This set is maintained outside of SilverKing typically as a flat file.
-SilverKing monitors this file for changes, and update the server exclusion set whenever
-a change is observed.
-</p>
-
-<h3>Instance Exclusion Sets</h3>
-<p>
-Each SilverKing instance also maintains an "instance exclusion set". This is a set
-of daemons that are unhealthy (e.g. were killed, crashed, etc.).
+A ring is specified as a Cloud Configuration, a ring parent for the ring within the 
+Topology, the names of the Host Groups used in this ring, and two additional constructs: 
+Weights and Storage Policy.
 </p>
 
 <h2>Weights</h2>
@@ -267,9 +295,14 @@ A "passive node" is a server that communicates with clients but does not activel
 <a name="SilverKingInstance"></a>
 <h2>SilverKing Instance</h2>
 
+<h3>Specification</h3>
 <p>
-The previously discussed elements comprise all that is necessary to define a SilverKing DHT instance. 
-Concretely, an instance is specified as a ring name, a ZooKeeper ensemble specification, and a passive node list name.
+Concretely, an instance is specified as a ring name, a port for client communication,
+a list of passive node host groups, the default namespace creation options, a mapping from host groups
+to class variables, NamespaceOptionsMode (whether options are stored in SK itself [more scalable], or in ZooKeeper [can be modified dynamically]),
+default class variables (for any host group that isn't mapped to class vars), 
+and less commonly used options not described here (IP alias map, and message tracing).
+a ZooKeeper ensemble specification, and a passive node list name.
 </p>
 
 <a name="NamespaceOptions"></a>
