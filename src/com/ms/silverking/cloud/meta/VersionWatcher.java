@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 
 /**
@@ -32,7 +32,7 @@ public class VersionWatcher extends WatcherBase {
   protected void _doCheck() throws KeeperException {
     Log.fine("checkVersions");
     try {
-      ZooKeeperExtended _zk;
+      SilverKingZooKeeperClient _zk;
       List<String> children;
       List<Long> currentVersions;
       long mostRecentVersion;

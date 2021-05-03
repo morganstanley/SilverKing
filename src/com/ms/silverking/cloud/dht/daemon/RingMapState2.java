@@ -36,13 +36,11 @@ import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingTree;
 import com.ms.silverking.cloud.toporing.RingTreeBuilder;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
-import com.ms.silverking.collection.Pair;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.lwt.util.Broadcaster;
-
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -261,16 +259,12 @@ public class RingMapState2 {
        * Read from old
        */
       writeTargets = TransitionReplicaSources.OLD_AND_NEW;
-      //transitionToState(RingState.READY_FOR_CONVERGENCE_1);
       break;
     case READY_FOR_CONVERGENCE_1:
-      //peerStateWatcher.setTargetState(RingState.READY_FOR_CONVERGENCE_1);
       break;
     case READY_FOR_CONVERGENCE_2:
-      //peerStateWatcher.setTargetState(RingState.READY_FOR_CONVERGENCE_2);
       break;
     case LOCAL_CONVERGENCE_COMPLETE_1:
-      //peerStateWatcher.setTargetState(RingState.LOCAL_CONVERGENCE_COMPLETE_1);
       break;
     case ALL_CONVERGENCE_COMPLETE_1:
       /*
@@ -278,7 +272,6 @@ public class RingMapState2 {
        * Quit reading from old
        */
       readTargets = TransitionReplicaSources.NEW;
-      //peerStateWatcher.setTargetState(RingState.ALL_CONVERGENCE_COMPLETE_1);
       break;
     case ALL_CONVERGENCE_COMPLETE_2:
       /*
@@ -286,11 +279,8 @@ public class RingMapState2 {
        * Quit writing to old
        */
       writeTargets = TransitionReplicaSources.NEW;
-      //peerStateWatcher.stop();
-      //transitionToState(RingState.CLOSED);
       break;
     case CLOSED:
-      //ringMapStateListener.globalConvergenceComplete(this);
       break;
     case ABANDONED:
       break;
@@ -299,16 +289,6 @@ public class RingMapState2 {
     }
   }
     
-    /*
-    public RingIDAndVersionPair getRingIDAndVersionPair() {
-        return ringIDAndVersionPair;
-    }
-    
-    public long getDHTConfigVersion() {
-        return dhtConfigVersion;
-    }
-    */
-
   public TransitionReplicaSources getReplicaSources(RingOwnerQueryOpType opType) {
     switch (opType) {
     case Write:
@@ -484,7 +464,8 @@ public class RingMapState2 {
           newlyIncludedServers = ExclusionSet.difference(curUnionExclusionSet, candidateExclusionSet);
           curUnionExclusionSet = candidateExclusionSet;
           if (exclusionChangeBroadcaster != null) {
-            exclusionChangeBroadcaster.notifyListeners(new Triple<>(curUnionExclusionSet.asIPAndPortSet(DHTNode.getDhtPort()), 
+            exclusionChangeBroadcaster.notifyListeners(
+                new Triple<>(curUnionExclusionSet.asIPAndPortSet(DHTNode.getDhtPort()),
                 newlyExcludedServers.asIPAndPortSet(DHTNode.getDhtPort()),
                 newlyIncludedServers.asIPAndPortSet(DHTNode.getDhtPort())));
           }
@@ -528,15 +509,6 @@ public class RingMapState2 {
         }
       } finally {
         Log.warningf("Signaling exclusionSetInitialized: %s", ringIDAndVersionPair);
-                /*
-                exclusionSetLock.lock();
-                try {
-                    exclusionSetInitialized = true;
-                    exclusionSetCV.signalAll();
-                } finally {
-                    exclusionSetLock.unlock();
-                }
-                */
       }
     }
   }

@@ -9,7 +9,6 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.OpSizeBasedTimeoutController;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.cloud.dht.common.OptionsHelper;
 import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
@@ -19,26 +18,63 @@ import com.ms.silverking.text.ObjectDefParser2;
  */
 public class InvalidationOptions extends PutOptions {
   private static final OpTimeoutController standardTimeoutController = new OpSizeBasedTimeoutController();
-  private static final PutOptions template = OptionsHelper.newInvalidationOptions(standardTimeoutController,
-      PutOptions.defaultVersion, PutOptions.noVersionRequired, PutOptions.noLock, DHTConstants.noSecondaryTargets);
+  private static final PutOptions template = new InvalidationOptions();
 
   static {
     ObjectDefParser2.addParser(template, FieldsRequirement.ALLOW_INCOMPLETE);
   }
 
-  // FIXME - temp until legacy instances have current defs
-  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, long version,
-      byte[] userData) {
-    super(opTimeoutController, secondaryTargets, compression, checksumType, checksumCompressedValues, version,
-        noVersionRequired, PutOptions.noLock, DHTConstants.defaultFragmentationThreshold, userData);
+  private InvalidationOptions() {
+    this(standardTimeoutController,
+         DHTConstants.noSecondaryTargets,
+         DHTConstants.defaultTraceIDProvider,
+         AllReplicasExcludedResponse.defaultResponse,
+         PutOptions.defaultVersion,
+         PutOptions.noVersionRequired,
+         PutOptions.noLock);
   }
 
-  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, long version,
-      long requiredPreviousVersion, short lockSeconds, int fragmentationThreshold, byte[] userData) {
-    this(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+  // FIXME - temp until legacy instances have current defs
+  public InvalidationOptions(OpTimeoutController opTimeoutController,
+                             Set<SecondaryTarget> secondaryTargets,
+                             Compression compression,
+                             ChecksumType checksumType,
+                             boolean checksumCompressedValues,
+                             long version,
+      byte[] userData) {
+    super(opTimeoutController,
+          secondaryTargets,
+          compression,
+          checksumType,
+          checksumCompressedValues,
+          version,
+          noVersionRequired,
+          PutOptions.noLock,
+          DHTConstants.defaultFragmentationThreshold,
+          userData);
+  }
+
+  public InvalidationOptions(OpTimeoutController opTimeoutController,
+                             Set<SecondaryTarget> secondaryTargets,
+                             Compression compression,
+                             ChecksumType checksumType,
+                             boolean checksumCompressedValues,
+                             long version,
+                             long requiredPreviousVersion,
+                             short lockSeconds,
+                             int fragmentationThreshold,
+                             byte[] userData) {
+    this(opTimeoutController,
+         secondaryTargets,
+         DHTConstants.defaultTraceIDProvider,
+         compression,
+         checksumType,
+         checksumCompressedValues,
+         version,
+         requiredPreviousVersion,
+         lockSeconds,
+         fragmentationThreshold,
+         userData);
   }
 
   /**
@@ -47,22 +83,30 @@ public class InvalidationOptions extends PutOptions {
    *
    * @param lockSeconds seconds to lock this key
    */
-  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      TraceIDProvider traceIDProvider, Compression compression, ChecksumType checksumType,
-      boolean checksumCompressedValues, long version, long requiredPreviousVersion, short lockSeconds,
-      int fragmentationThreshold, byte[] userData) {
-    super(opTimeoutController, secondaryTargets, traceIDProvider, compression, checksumType, checksumCompressedValues,
-        version, requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, userData);
+  public InvalidationOptions(OpTimeoutController opTimeoutController,
+                             Set<SecondaryTarget> secondaryTargets,
+                             TraceIDProvider traceIDProvider,
+                             Compression compression,
+                             ChecksumType checksumType,
+                             boolean checksumCompressedValues,
+                             long version,
+                             long requiredPreviousVersion,
+                             short lockSeconds,
+                             int fragmentationThreshold,
+                             byte[] userData) {
+    super(opTimeoutController,
+          secondaryTargets,
+          traceIDProvider,
+          compression,
+          checksumType,
+          checksumCompressedValues,
+          version,
+          requiredPreviousVersion,
+          lockSeconds,
+          DHTConstants.defaultFragmentationThreshold,
+          userData);
   }
 
-  // FUTURE - added for temp skfs compatibility/legacy sk client compatibility; remove when not needed
-  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, 
-      long version, long requiredPreviousVersion, short lockSeconds) {
-    super(opTimeoutController, secondaryTargets, null, AllReplicasExcludedResponse.IGNORE, 
-        Compression.NONE, ChecksumType.SYSTEM, false, version,
-        requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, null);
-  }
-  
   /**
    * Construct InvalidationOptions from the given arguments. Usage is generally not recommended.
    * Instead of using this constructor, most applications should obtain an InvalidationOptions
@@ -75,20 +119,51 @@ public class InvalidationOptions extends PutOptions {
    * @param version             version of this object
    * @param lockSeconds         seconds to lock this key
    */
-  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, TraceIDProvider traceIDProvider,
-      AllReplicasExcludedResponse allReplicasExcludedResponse, long version, long requiredPreviousVersion, short lockSeconds) {
-    super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse, 
-        Compression.NONE, ChecksumType.SYSTEM, false, version,
-        requiredPreviousVersion, lockSeconds, DHTConstants.defaultFragmentationThreshold, null);
+  public InvalidationOptions(OpTimeoutController opTimeoutController,
+                             Set<SecondaryTarget> secondaryTargets,
+                             TraceIDProvider traceIDProvider,
+                             AllReplicasExcludedResponse allReplicasExcludedResponse,
+                             long version,
+                             long requiredPreviousVersion,
+                             short lockSeconds) {
+    super(opTimeoutController,
+          secondaryTargets,
+          traceIDProvider,
+          allReplicasExcludedResponse,
+          Compression.NONE,
+          ChecksumType.SYSTEM,
+          false,
+          version,
+          requiredPreviousVersion,
+          lockSeconds,
+          DHTConstants.defaultFragmentationThreshold,
+          null);
   }
 
-  public InvalidationOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets, TraceIDProvider traceIDProvider,
+  public InvalidationOptions(OpTimeoutController opTimeoutController,
+                             Set<SecondaryTarget> secondaryTargets,
+                             TraceIDProvider traceIDProvider,
       AllReplicasExcludedResponse allReplicasExcludedResponse,
-      Compression compression, ChecksumType checksum, boolean checksumCompressedValues,
-      long version, long requiredPreviousVersion, short lockSeconds, int fragmentationThreshold, byte[] options) {
-    super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse, 
-        compression, checksum, checksumCompressedValues, version,
-        requiredPreviousVersion, lockSeconds, fragmentationThreshold, options);
+                             Compression compression,
+                             ChecksumType checksum,
+                             boolean checksumCompressedValues,
+                             long version,
+                             long requiredPreviousVersion,
+                             short lockSeconds,
+                             int fragmentationThreshold,
+                             byte[] options) {
+    super(opTimeoutController,
+          secondaryTargets,
+          traceIDProvider,
+          allReplicasExcludedResponse,
+          compression,
+          checksum,
+          checksumCompressedValues,
+          version,
+          requiredPreviousVersion,
+          lockSeconds,
+          fragmentationThreshold,
+          options);
   }
   
   /**
@@ -98,9 +173,17 @@ public class InvalidationOptions extends PutOptions {
    * @return the modified InvalidationOptions
    */
   public InvalidationOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-    return new InvalidationOptions(opTimeoutController, getSecondaryTargets(), getTraceIDProvider(), getCompression(),
-        getChecksumType(), getChecksumCompressedValues(), getVersion(), getRequiredPreviousVersion(), getLockSeconds(),
-        getFragmentationThreshold(), getUserData());
+    return new InvalidationOptions(opTimeoutController,
+                                   getSecondaryTargets(),
+                                   getTraceIDProvider(),
+                                   getCompression(),
+                                   getChecksumType(),
+                                   getChecksumCompressedValues(),
+                                   getVersion(),
+                                   getRequiredPreviousVersion(),
+                                   getLockSeconds(),
+                                   getFragmentationThreshold(),
+                                   getUserData());
   }
 
   /**
@@ -110,9 +193,17 @@ public class InvalidationOptions extends PutOptions {
    * @return the modified InvalidationOptions
    */
   public InvalidationOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-    return new InvalidationOptions(getOpTimeoutController(), secondaryTargets, getTraceIDProvider(), getCompression(),
-        getChecksumType(), getChecksumCompressedValues(), getVersion(), getRequiredPreviousVersion(), getLockSeconds(),
-        getFragmentationThreshold(), getUserData());
+    return new InvalidationOptions(getOpTimeoutController(),
+                                   secondaryTargets,
+                                   getTraceIDProvider(),
+                                   getCompression(),
+                                   getChecksumType(),
+                                   getChecksumCompressedValues(),
+                                   getVersion(),
+                                   getRequiredPreviousVersion(),
+                                   getLockSeconds(),
+                                   getFragmentationThreshold(),
+                                   getUserData());
   }
 
   /**
@@ -134,9 +225,17 @@ public class InvalidationOptions extends PutOptions {
    */
   public InvalidationOptions traceIDProvider(TraceIDProvider traceIDProvider) {
     Preconditions.checkNotNull(traceIDProvider);
-    return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), traceIDProvider, getCompression(),
-        getChecksumType(), getChecksumCompressedValues(), getVersion(), getRequiredPreviousVersion(), getLockSeconds(),
-        getFragmentationThreshold(), getUserData());
+    return new InvalidationOptions(getOpTimeoutController(),
+                                   getSecondaryTargets(),
+                                   traceIDProvider,
+                                   getCompression(),
+                                   getChecksumType(),
+                                   getChecksumCompressedValues(),
+                                   getVersion(),
+                                   getRequiredPreviousVersion(),
+                                   getLockSeconds(),
+                                   getFragmentationThreshold(),
+                                   getUserData());
   }
 
   /**
@@ -146,9 +245,17 @@ public class InvalidationOptions extends PutOptions {
    * @return the modified InvalidationOptions
    */
   public InvalidationOptions version(long version) {
-    return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(),
-        getCompression(), getChecksumType(), getChecksumCompressedValues(), version, getRequiredPreviousVersion(),
-        getLockSeconds(), getFragmentationThreshold(), getUserData());
+    return new InvalidationOptions(getOpTimeoutController(),
+                                   getSecondaryTargets(),
+                                   getTraceIDProvider(),
+                                   getCompression(),
+                                   getChecksumType(),
+                                   getChecksumCompressedValues(),
+                                   version,
+                                   getRequiredPreviousVersion(),
+                                   getLockSeconds(),
+                                   getFragmentationThreshold(),
+                                   getUserData());
   }
 
   /**
@@ -158,9 +265,17 @@ public class InvalidationOptions extends PutOptions {
    * @return the modified InvalidationOptions
    */
   public InvalidationOptions requiredPreviousVersion(long requiredPreviousVersion) {
-    return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(),
-        getCompression(), getChecksumType(), getChecksumCompressedValues(), getVersion(), requiredPreviousVersion,
-        getLockSeconds(), getFragmentationThreshold(), getUserData());
+    return new InvalidationOptions(getOpTimeoutController(),
+                                   getSecondaryTargets(),
+                                   getTraceIDProvider(),
+                                   getCompression(),
+                                   getChecksumType(),
+                                   getChecksumCompressedValues(),
+                                   getVersion(),
+                                   requiredPreviousVersion,
+                                   getLockSeconds(),
+                                   getFragmentationThreshold(),
+                                   getUserData());
   }
 
   /**
@@ -170,9 +285,17 @@ public class InvalidationOptions extends PutOptions {
    * @return the modified InvalidationOptions
    */
   public InvalidationOptions lockSeconds(short lockSeconds) {
-    return new InvalidationOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(),
-        getCompression(), getChecksumType(), getChecksumCompressedValues(), getVersion(), getRequiredPreviousVersion(),
-        lockSeconds, getFragmentationThreshold(), getUserData());
+    return new InvalidationOptions(getOpTimeoutController(),
+                                   getSecondaryTargets(),
+                                   getTraceIDProvider(),
+                                   getCompression(),
+                                   getChecksumType(),
+                                   getChecksumCompressedValues(),
+                                   getVersion(),
+                                   getRequiredPreviousVersion(),
+                                   lockSeconds,
+                                   getFragmentationThreshold(),
+                                   getUserData());
   }
 
   @Override

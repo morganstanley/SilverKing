@@ -1,9 +1,9 @@
 package com.ms.silverking.cloud.dht.meta;
 
 import com.ms.silverking.cloud.dht.daemon.RingHealth;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Triple;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
 /**
@@ -47,11 +47,11 @@ public class RingHealthZK {
   }
 
   private String getRingConfigVersionPath() {
-    return getRingHealthPathBase() + "/" + ZooKeeperExtended.padVersion(ringConfigVersion);
+    return getRingHealthPathBase() + "/" + SilverKingZooKeeperClient.padVersion(ringConfigVersion);
   }
 
   public String getRingInstanceHealthPath() {
-    return getRingConfigVersionPath() + "/" + ZooKeeperExtended.padVersion(configInstanceVersion);
+    return getRingConfigVersionPath() + "/" + SilverKingZooKeeperClient.padVersion(configInstanceVersion);
   }
 
   public void writeHealth(RingHealth health) throws KeeperException {
@@ -71,8 +71,12 @@ public class RingHealthZK {
       } else {
         return null;
       }
-    } catch (NoNodeException nne) {
+    } catch (KeeperException ke) {
+      if (ke.getCause() != null && NoNodeException.class.isAssignableFrom(ke.getCause().getClass())) {
       return null;
+      } else {
+        throw ke;
+      }
     }
   }
 }

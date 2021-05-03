@@ -1,8 +1,8 @@
 package com.ms.silverking.cloud.meta;
 
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.data.Stat;
 
@@ -28,7 +28,7 @@ public class ValueWatcher extends WatcherBase {
 
   protected void _doCheck() throws KeeperException {
     try {
-      ZooKeeperExtended _zk;
+      SilverKingZooKeeperClient _zk;
       byte[] value;
       Stat stat;
 
@@ -37,11 +37,7 @@ public class ValueWatcher extends WatcherBase {
       }
       _zk = metaClientCore.getZooKeeper();
       stat = new Stat();
-      try {
-        value = _zk.getData(basePath, this, stat);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
+      value = _zk.getByteArray(basePath, this, stat);
 
       if (stat.getMzxid() > lastNotifiedZXID) {
         listener.newValue(basePath, value, stat);

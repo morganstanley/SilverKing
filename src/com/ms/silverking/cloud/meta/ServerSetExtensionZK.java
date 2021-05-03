@@ -6,10 +6,10 @@ import java.io.IOException;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.io.IOUtil;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 
 public class ServerSetExtensionZK<M extends MetaPaths> extends MetaToolModuleBase<ServerSet, M> {
   private static final char delimiterChar = '\n';

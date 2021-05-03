@@ -17,10 +17,10 @@ import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingEntry;
 import com.ms.silverking.cloud.toporing.SingleRingZK;
 import com.ms.silverking.cloud.toporing.meta.MetaClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
 
 public class RingInfo {
   private final SKGridConfiguration gc;

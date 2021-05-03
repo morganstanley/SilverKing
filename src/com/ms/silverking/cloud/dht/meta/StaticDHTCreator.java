@@ -22,13 +22,13 @@ import com.ms.silverking.cloud.skfs.meta.SKFSConfiguration;
 import com.ms.silverking.cloud.skfs.meta.SKFSConfigurationZK;
 import com.ms.silverking.cloud.toporing.StaticRingCreator;
 import com.ms.silverking.cloud.toporing.StaticRingCreator.RingCreationResults;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.StreamParser;
 import com.ms.silverking.io.StreamUtil;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -49,6 +49,7 @@ public class StaticDHTCreator {
   private final File gridConfigDir;
   private final NamespaceOptionsMode nsOptionsMode;
   private final boolean enableMsgGroupTrace;
+  private final boolean enableMsgGroupRecorder;
 
   private static final String dhtNameBase = "SK.";
   private static final String ringNameBase = "ring.";
@@ -57,7 +58,7 @@ public class StaticDHTCreator {
 
   StaticDHTCreator(ZooKeeperConfig zkConfig, Set<String> servers, int replication, String dhtName, String gcName,
       int port, NamespaceCreationOptions nsCreationOptions, String gridConfigDir, NamespaceOptionsMode nsOptionsMode,
-      boolean enableMsgGroupTrace) {
+      boolean enableMsgGroupTrace, boolean enableMsgGroupRecorder) {
     this.zkConfig = zkConfig;
     this.servers = servers;
     this.replication = replication;
@@ -72,6 +73,7 @@ public class StaticDHTCreator {
     }
     this.nsOptionsMode = nsOptionsMode;
     this.enableMsgGroupTrace = enableMsgGroupTrace;
+    this.enableMsgGroupRecorder = enableMsgGroupRecorder;
   }
 
   private void writeSKFSConfig(String skfsConfigName, File target) throws KeeperException, IOException {
@@ -150,7 +152,7 @@ public class StaticDHTCreator {
 
     dhtConfig = new DHTConfiguration(ringName, port, passiveNodes, nsCreationOptions,
         ImmutableMap.of(rcResults.hostGroupName, classVarsName), nsOptionsMode, 0, Long.MIN_VALUE, null, aliasMapName,
-        enableMsgGroupTrace);
+        enableMsgGroupTrace, enableMsgGroupRecorder);
     new DHTConfigurationZK(mc).writeToZK(dhtConfig, null);
 
     // Write out curRingAndVersion
@@ -274,7 +276,7 @@ public class StaticDHTCreator {
       }
 
       sdc = new StaticDHTCreator(new ZooKeeperConfig(options.zkEnsemble), servers, options.replication, dhtName, gcName,
-          port, nsCreationOptions, options.gridConfigDir, nsOptionsMode, options.enableMsgGroupTrace);
+          port, nsCreationOptions, options.gridConfigDir, nsOptionsMode, options.enableMsgGroupTrace, options.enableMsgGroupRecorder);
       sdc.createStaticDHT(uuid, options.initialHeapSize, options.maxHeapSize, options.skInstanceLogBaseVar,
           options.dataBaseVar, options.skfsConfigurationFile, options.classVarsFile, options.aliasMapNameAndFile);
     } catch (Exception e) {

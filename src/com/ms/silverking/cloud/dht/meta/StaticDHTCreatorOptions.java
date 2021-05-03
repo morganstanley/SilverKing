@@ -64,4 +64,7 @@ class StaticDHTCreatorOptions {
 
   @Option(name = "-t", usage = "enableMsgGroupTrace", required = false)
   boolean enableMsgGroupTrace;
+
+  @Option(name = "-rec", usage = "enableMsgGroupRecorder", required = false)
+  boolean enableMsgGroupRecorder;
 }

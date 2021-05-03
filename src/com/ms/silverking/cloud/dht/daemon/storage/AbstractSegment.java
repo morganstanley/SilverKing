@@ -7,15 +7,13 @@ import java.util.logging.Level;
 
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.VersionConstraint;
-import com.ms.silverking.cloud.dht.collection.ExternalStore;
-import com.ms.silverking.cloud.dht.collection.IntCuckooConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
+import com.ms.silverking.collection.cuckoo.IntCuckooConstants;
 import com.ms.silverking.log.Log;
-import com.ms.silverking.numeric.NumConversion;
 
-abstract class AbstractSegment implements ReadableSegment, ExternalStore {
+abstract class AbstractSegment implements ReadableSegment {
   protected ByteBuffer dataBuf;
   protected final OffsetListStore offsetListStore;
   protected final Set<Integer> invalidatedOffsets;
@@ -97,76 +95,6 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
     return offset;
   }
 
-  /**
-   * ExternalStore implementation
-   */
-  @Override
-  public boolean entryMatches(int offset, long msl, long lsl) {
-    long entryMSL;
-    long entryLSL;
-
-    if (debugExternalStore) {
-      Log.warning("entryMatches: ", offset);
-    }
-    try {
-      offset = checkOffset(offset);
-      // perform a complete check to see if the full key matches
-      entryMSL = dataBuf.getLong(offset);
-      entryLSL = dataBuf.getLong(offset + NumConversion.BYTES_PER_LONG);
-      if (debugExternalStore) {
-        System.out.printf("%x:%x\t%x:%x\n", msl, lsl, entryMSL, entryLSL);
-      }
-      return msl == entryMSL && lsl == entryLSL;
-    } catch (InvalidOffsetListIndexException ie) {
-      Log.warningAsyncf("InvalidOffsetListIndexException segment %d checkOffset %d key %x:%x", getSegmentNumber(),
-          offset, msl, lsl);
-      // indicates that we're not looking at a valid entry
-      return false;
-    }
-  }
-    
-    /*
-     * Inuitively, below should be faster, but the most recent microbenchmarks
-     * show the above to be significantly faster. Do not use below without
-     * significant microbenchmarking to show that it's faster.
-    @Override
-    public boolean entryMatches(int offset, long msl, long lsl) {
-        long    entryMSL;
-        
-        //Log.warning("entryMatches: ", offset);
-        offset = checkOffset(offset);
-        // perform a complete check to see if the full key matches
-        entryMSL = dataBuf.getLong(offset);
-        if (msl != entryMSL) {
-            return false;
-        } else {
-            long    entryLSL;
-            
-            entryLSL = dataBuf.getLong(offset + NumConversion.BYTES_PER_LONG);
-            //System.out.printf("%x:%x\t%x:%x\n", msl, lsl, entryMSL, entryLSL);
-            return lsl == entryLSL;
-        }
-    }
-    */
-
-  @Override
-  public long getMSL(int offset) {
-    long entryMSL;
-
-    offset = checkOffset(offset);
-    entryMSL = dataBuf.getLong(offset);
-    return entryMSL;
-  }
-
-  @Override
-  public long getLSL(int offset) {
-    long entryLSL;
-
-    offset = checkOffset(offset);
-    entryLSL = dataBuf.getLong(offset + NumConversion.BYTES_PER_LONG);
-    return entryLSL;
-  }
-    
     /*
     public ByteBuffer[] retrieve(DHTKey[] keys, InternalRetrievalOptions options) {
         KeyAndInteger[] _keys;
@@ -213,7 +141,6 @@ abstract class AbstractSegment implements ReadableSegment, ExternalStore {
    * For utility use only
    *
    * @param key
-   * @param options
    * @param offset
    * @return
    */

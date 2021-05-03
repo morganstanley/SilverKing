@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.ms.silverking.cloud.dht.SessionOptions;
-import com.ms.silverking.cloud.dht.SessionPolicyOnDisconnect;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.client.impl.DHTSessionImpl;
@@ -24,6 +23,7 @@ import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
 import com.ms.silverking.cloud.dht.net.IPAliasMap;
 import com.ms.silverking.cloud.dht.net.IPAliasingUtil;
 import com.ms.silverking.cloud.toporing.TopoRingConstants;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
@@ -34,7 +34,6 @@ import com.ms.silverking.thread.lwt.DefaultWorkPoolParameters;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.time.TimerDrivenTimeSource;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Base client interface to DHT functionality. Provides sessions

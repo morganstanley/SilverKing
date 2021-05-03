@@ -13,8 +13,7 @@ public class SimpleTimeoutController implements OpTimeoutController {
   static final int defaultMaxAttempts = 5;
   static final int defaultMaxRelativeTimeoutMillis = 2 * 60 * 1000;
 
-  static final SimpleTimeoutController template = new SimpleTimeoutController(defaultMaxAttempts,
-      defaultMaxRelativeTimeoutMillis);
+  static final SimpleTimeoutController template = new SimpleTimeoutController();
 
   static {
     ObjectDefParser2.addParser(template);
@@ -30,6 +29,10 @@ public class SimpleTimeoutController implements OpTimeoutController {
     Util.checkAttempts(maxAttempts);
     this.maxAttempts = maxAttempts;
     this.maxRelativeTimeoutMillis = maxRelativeTimeoutMillis;
+  }
+
+  private SimpleTimeoutController() {
+    this(defaultMaxAttempts, defaultMaxRelativeTimeoutMillis);
   }
 
   /**
@@ -52,10 +55,14 @@ public class SimpleTimeoutController implements OpTimeoutController {
     return new SimpleTimeoutController(maxAttempts, maxRelativeTimeoutMillis);
   }
 
+  public int getMaxAttempts() { return maxAttempts; }
+
   @Override
   public int getMaxAttempts(AsyncOperation op) {
     return maxAttempts;
   }
+
+  public int getMaxRelativeTimeoutMillis() { return maxRelativeTimeoutMillis; }
 
   @Override
   public int getRelativeTimeoutMillisForAttempt(AsyncOperation op, int attemptIndex) {

@@ -13,10 +13,10 @@ import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.meta.ExclusionSet;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingEntry;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Search all replicas for data. Currently, this will only function on relatively small-scale instances.

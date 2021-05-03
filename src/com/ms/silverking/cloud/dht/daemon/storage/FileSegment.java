@@ -13,16 +13,19 @@ import java.util.Set;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
-import com.ms.silverking.cloud.dht.collection.CuckooBase;
-import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
+import com.ms.silverking.cloud.dht.collection.DHTKeyCuckooBase;
+import com.ms.silverking.cloud.dht.collection.IntArrayDHTKeyCuckoo;
 import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.FSMElementType;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentMetaData;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentStorageFormat;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.IntegerToIntegerMapElement;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.InvalidatedOffsetsElement;
-import com.ms.silverking.cloud.dht.daemon.storage.fsm.KeyToOffsetMapElement;
+import com.ms.silverking.cloud.dht.daemon.storage.fsm.KeyToIntegerMapElement;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.OffsetListsElement;
+import com.ms.silverking.collection.cuckoo.CuckooBase;
+import com.ms.silverking.collection.cuckoo.IntArrayCuckoo;
 import com.ms.silverking.log.Log;
 
 public class FileSegment extends WritableSegmentBase {
@@ -43,15 +46,9 @@ public class FileSegment extends WritableSegmentBase {
     ReadIndexOnly // Read-only access to the segment index only; data proper is not mapped
   }
 
-  ;
-
   enum SyncMode {NoSync, Sync}
 
-  ;
-
   enum SegmentPrereadMode {NoPreread, Preread}
-
-  ;
 
   private static final boolean debugMetaData = false;
 
@@ -110,7 +107,8 @@ public class FileSegment extends WritableSegmentBase {
     MapMode dataMapMode;
     FileSegmentMetaData fsm;
     InvalidatedOffsetsElement ioe;
-    KeyToOffsetMapElement ktome;
+    KeyToIntegerMapElement ktome;
+    IntegerToIntegerMapElement otlme;
     OffsetListsElement ole;
 
     //Log.warningf("open %s %d", nsDir.toString(), segmentNumber);
@@ -184,18 +182,31 @@ public class FileSegment extends WritableSegmentBase {
       Log.warningf("rawHTBuf %s", rawHTBuf);
     }
     fsm = FileSegmentMetaData.create(rawHTBuf, FileSegmentStorageFormat.parse(nsOptions.getStorageFormat()));
-    ktome = (KeyToOffsetMapElement) fsm.getElement(FSMElementType.OffsetMap);
+    ktome = (KeyToIntegerMapElement) fsm.getElement(FSMElementType.OffsetMap);
+    otlme = (IntegerToIntegerMapElement) fsm.getElement(FSMElementType.LengthMap);
     //((IntBufferCuckoo)ktome.getKeyToOffsetMap()).display();
     ole = (OffsetListsElement) fsm.getElement(FSMElementType.OffsetLists);
     //((BufferOffsetListStore)ole.getOffsetListStore(nsOptions)).displayForDebug();
     ioe = (InvalidatedOffsetsElement) fsm.getElement(FSMElementType.InvalidatedOffsets);
-    return new FileSegment(nsDir, segmentNumber, accessMode, raFile, dataBuf, ktome.getKeyToOffsetMap(),
+    return new FileSegment(nsDir, segmentNumber, accessMode, raFile, dataBuf,
+        ktome.getKeyToIntegerMap(), otlme != null ? otlme.getIntegerToIntegerMap() : null,
         ioe != null ? ioe.getInvalidatedOffsets() : null, ole.getOffsetListStore(nsOptions), dataSegmentSize,
         nsOptions);
   }
 
   static File fileForSegment(File nsDir, int segmentNumber) {
     return new File(nsDir, Integer.toString(segmentNumber));
+  }
+
+  static String segmentCreationTime(File nsDir, int segmentNumber) {
+    File seg = fileForSegment(nsDir, segmentNumber);
+    try {
+      BasicFileAttributes attr = Files.readAttributes(seg.toPath(), BasicFileAttributes.class);
+      return attr.creationTime().toString();
+    } catch (IOException e) {
+      Log.warning("Failed to read creation time of segment " + segmentNumber, e);
+      return "Unknown[IOException]";
+    }
   }
 
   public static ByteBuffer getDataSegment(File nsDir, int segmentNumber, int dataSegmentSize) throws IOException {
@@ -223,9 +234,9 @@ public class FileSegment extends WritableSegmentBase {
 
   // Open read-only or for update
   private FileSegment(File nsDir, int segmentNumber, AccessMode accessMode, RandomAccessFile raFile, ByteBuffer dataBuf,
-      CuckooBase keyToOffset, Set<Integer> invalidatedOffsets, OffsetListStore offsetListStore, int dataSegmentSize,
+      DHTKeyCuckooBase keyToOffset, CuckooBase<Integer> offsetToLength, Set<Integer> invalidatedOffsets, OffsetListStore offsetListStore, int dataSegmentSize,
       NamespaceOptions nsOptions) throws IOException {
-    super(nsDir, segmentNumber, dataBuf, keyToOffset, invalidatedOffsets, offsetListStore, dataSegmentSize);
+    super(nsDir, segmentNumber, dataBuf, keyToOffset, invalidatedOffsets, offsetToLength, offsetListStore, dataSegmentSize);
     this.accessMode = accessMode;
     if (accessMode != AccessMode.ReadOnly && accessMode != AccessMode.Update && accessMode != AccessMode.ReadIndexOnly) {
       throw new RuntimeException("Unexpected mode: " + accessMode);
@@ -238,15 +249,23 @@ public class FileSegment extends WritableSegmentBase {
   // called from Create
   private FileSegment(File nsDir, int segmentNumber, AccessMode accessMode, RandomAccessFile raFile, ByteBuffer dataBuf,
       int dataSegmentSize, NamespaceOptions nsOptions) throws IOException {
-    super(nsDir, segmentNumber, dataBuf, StoreConfiguration.fileInitialCuckooConfig, dataSegmentSize, nsOptions);
+    super(nsDir, segmentNumber, dataBuf, StoreConfiguration.fileInitialCuckooConfig, dataSegmentSize, nsOptions,
+        new FileSegmentStorageFormat(Integer.parseInt(nsOptions.getStorageFormat())).lengthsAreIndexed() ?
+            new IntArrayCuckoo(StoreConfiguration.fileInitialOffsetCuckooConfig)
+            : null);
     this.accessMode = accessMode;
     this.raFile = raFile;
     this.storageFormat = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat());
   }
 
+  public void sync() {
+    ((MappedByteBuffer)dataBuf).force();
+  }
+
   public void persist() throws IOException {
-    ((MappedByteBuffer) dataBuf).force();
-    FileSegmentMetaData.persist(storageFormat, raFile, dataSegmentSize, (IntArrayCuckoo) keyToOffset,
+    sync();
+    FileSegmentMetaData.persist(storageFormat, raFile, dataSegmentSize,
+        (IntArrayDHTKeyCuckoo) keyToOffset, (IntArrayCuckoo) offsetToLength,
         (RAMOffsetListStore) offsetListStore, invalidatedOffsets);
     raFile.close();
     raFile = null;

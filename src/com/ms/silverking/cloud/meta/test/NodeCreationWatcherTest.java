@@ -3,12 +3,12 @@ package com.ms.silverking.cloud.meta.test;
 import com.ms.silverking.cloud.meta.NodeCreationListener;
 import com.ms.silverking.cloud.meta.NodeCreationWatcher;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
 
 public class NodeCreationWatcherTest implements NodeCreationListener {
-  private final ZooKeeperExtended zk;
+  private final SilverKingZooKeeperClient zk;
 
-  public NodeCreationWatcherTest(ZooKeeperExtended zk) {
+  public NodeCreationWatcherTest(SilverKingZooKeeperClient zk) {
     this.zk = zk;
   }
 
@@ -34,7 +34,7 @@ public class NodeCreationWatcherTest implements NodeCreationListener {
         NodeCreationWatcherTest wTest;
 
         zkConfig = new ZooKeeperConfig(args[0]);
-        wTest = new NodeCreationWatcherTest(new ZooKeeperExtended(zkConfig, 2 * 60 * 1000, null));
+        wTest = new NodeCreationWatcherTest(new SilverKingZooKeeperClient(zkConfig, 2 * 60 * 1000));
         for (int i = 1; i < args.length; i++) {
           wTest.addWatch(args[i]);
         }

@@ -9,12 +9,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.NodeInfo;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Quadruple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.os.linux.fs.DF;
 import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -70,9 +70,6 @@ public class NodeInfoZK implements Watcher {
   @Override
   public void process(WatchedEvent event) {
     Log.fine(event);
-    //if (mc.getZooKeeper().getState() == States.CONNECTED) {
-    //    ensureStateSet();
-    //}
     switch (event.getType()) {
     case None:
       if (event.getState() == KeeperState.SyncConnected) {
@@ -98,8 +95,12 @@ public class NodeInfoZK implements Watcher {
 
       data = mc.getZooKeeper().getByteArray(getNodeInfoPath(node), this);
       return NodeInfo.fromArray(data);
-    } catch (NoNodeException nne) {
+    } catch (KeeperException ke) {
+      if (ke.getCause() != null && NoNodeException.class.isAssignableFrom(ke.getCause().getClass())) {
       return null;
+      } else {
+        throw ke;
+      }
     }
   }
 

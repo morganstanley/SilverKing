@@ -28,7 +28,7 @@ import com.ms.silverking.thread.lwt.LWTPoolProvider;
  */
 public class PersistentAsyncServer<T extends Connection> implements IncomingConnectionListener<T>, ConnectionListener {
   private final AsyncServer<T> asyncServer;
-  private final ConcurrentMap<InetSocketAddress, T> connections;
+  private final ConcurrentMap<InetSocketAddress, T> connections = new ConcurrentHashMap<InetSocketAddress, T>();
   private final ConcurrentMap<InetSocketAddress, ReentrantLock> newConnectionLocks;
   private final boolean debug;
   private final BaseWorker<OutgoingAsyncMessage> asyncConnector;
@@ -67,7 +67,6 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     this.debug = debug;
     this.newConnectionTimeoutController = newConnectionTimeoutController;
     this.asyncServer = asyncServer;
-    connections = new ConcurrentHashMap<InetSocketAddress, T>();
     newConnectionLocks = new ConcurrentHashMap<InetSocketAddress, ReentrantLock>();
     this.asyncConnector = asyncConnector;
     if (mqListener != null) {
@@ -82,6 +81,9 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
   // FUTURE - Make target size and max size configurable via property
   private static final LWTPool defaultConnectorPool = LWTPoolProvider.createPool(LWTPoolParameters.create(
       "ConnectorPool").targetSize(4).maxSize(16).workUnit(1));
+  public static final void shutdownConnectorPool() {
+    defaultConnectorPool.stop();
+  }
 
   public PersistentAsyncServer(int port, int backlog, int numSelectorControllers, String controllerClass,
       ConnectionCreator<T> connectionCreator, NewConnectionTimeoutController newConnectionTimeoutController,
@@ -103,7 +105,6 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     this.newConnectionTimeoutController = newConnectionTimeoutController;
     asyncServer = new AsyncServer<T>(port, backlog, numSelectorControllers, controllerClass, connectionCreator, this,
         readerLWTPool, writerLWTPool, acceptorPool, selectionThreadWorkLimit, enabled, debug);
-    connections = new ConcurrentHashMap<InetSocketAddress, T>();
     newConnectionLocks = new ConcurrentHashMap<InetSocketAddress, ReentrantLock>();
     asyncConnector = new AsyncConnector(connectorPool);
     if (mqListener != null) {
@@ -185,7 +186,9 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     for (Connection connection : connections.values()) {
       connection.close();
     }
+    if (asyncServer != null) {
     asyncServer.shutdown();
+    }
     isRunning = false;
   }
 

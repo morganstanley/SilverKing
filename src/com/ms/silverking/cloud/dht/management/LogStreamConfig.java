@@ -12,8 +12,8 @@ import com.ms.silverking.cloud.dht.meta.ClassVars;
 import com.ms.silverking.cloud.dht.meta.ClassVarsZK;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Enable redirection of stdout/stderr within the JVM

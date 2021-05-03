@@ -17,6 +17,7 @@ public class FileSegmentStorageFormat {
    * 0 - Base format. Data + offset lists
    * 1 - Adds invalidation index
    * 2 - Puts data segment in ltv format?
+   * 3 - Adds length index
    */
 
   public FileSegmentStorageFormat(int storageFormat) {
@@ -37,6 +38,10 @@ public class FileSegmentStorageFormat {
 
   public boolean invalidationsAreIndexed() {
     return storageFormat >= 1;
+  }
+
+  public boolean lengthsAreIndexed() {
+    return storageFormat >= 3;
   }
 
   ///////////////////

@@ -5,22 +5,16 @@ import java.io.IOException;
 
 import com.ms.silverking.cloud.topology.Topology;
 import com.ms.silverking.cloud.topology.TopologyParser;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 
-public class MetaClient extends MetaClientBase<MetaPaths> implements Watcher {
+public class MetaClient extends MetaClientBase<MetaPaths> {
   private final CloudConfiguration cloudConfig;
 
-  public MetaClient(CloudConfiguration cloudConfig, ZooKeeperConfig zkConfig, Watcher watcher)
-      throws IOException, KeeperException {
-    super(new MetaPaths(cloudConfig), zkConfig, watcher);
-    this.cloudConfig = cloudConfig;
-  }
-
   public MetaClient(CloudConfiguration cloudConfig, ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-    this(cloudConfig, zkConfig, null);
+    super(new MetaPaths(cloudConfig), zkConfig);
+    this.cloudConfig = cloudConfig;
   }
 
   public CloudConfiguration getCloudConfiguration() {

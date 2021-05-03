@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.dht.meta;
 
 import com.ms.silverking.cloud.meta.SuspectZKBase;
-import org.apache.zookeeper.KeeperException;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 
 /**
  * Instance-specific SuspectSet

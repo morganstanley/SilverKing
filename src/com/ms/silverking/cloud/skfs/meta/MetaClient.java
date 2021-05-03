@@ -4,22 +4,17 @@ import java.io.IOException;
 
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.meta.MetaClientBase;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 
 public class MetaClient extends MetaClientBase<MetaPaths> {
   private final String skfsConfigName;
 
-  public MetaClient(String skfsConfigName, ZooKeeperConfig zkConfig, Watcher watcher)
+  public MetaClient(String skfsConfigName, ZooKeeperConfig zkConfig)
       throws IOException, KeeperException {
-    super(new MetaPaths(skfsConfigName), zkConfig, watcher);
+    super(new MetaPaths(skfsConfigName), zkConfig);
     this.skfsConfigName = skfsConfigName;
-  }
-
-  public MetaClient(String skfsConfigName, ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-    this(skfsConfigName, zkConfig, null);
   }
 
   public MetaClient(SKGridConfiguration skGridConfig) throws IOException, KeeperException {
@@ -32,17 +27,12 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
 
   public String getSKFSConfig() throws KeeperException {
     String def;
-    //long    version;
     String latestPath;
-    //long    zxid;
-    ZooKeeperExtended zk;
+    SilverKingZooKeeperClient zk;
 
     zk = getZooKeeper();
     latestPath = zk.getLatestVersionPath(getMetaPaths().getConfigPath());
-    //version = zk.getLatestVersionFromPath(latestPath);
     def = zk.getString(latestPath);
-    //zxid = zk.getStat(latestPath).getMzxid();
-    //System.out.printf("\tzkid %x\n", zkid);
     return def;
   }
 }

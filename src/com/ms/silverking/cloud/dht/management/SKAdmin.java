@@ -57,7 +57,8 @@ import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
@@ -77,7 +78,6 @@ import com.ms.silverking.util.ArrayUtil;
 import com.ms.silverking.util.Arrays;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -437,12 +437,9 @@ public class SKAdmin {
   private String getExtraOptions(SKAdminOptions options, ClassVars classVars, boolean escaped) {
     String s;
 
-    // FUTURE - change to generic mechanism to pipe through properties
     s = "";
-    if (options.aclImplSkStrDef != null) {
-      s += getSystemPropertyFormatted(ZooKeeperExtended.aclProviderSKDefProperty, options.aclImplSkStrDef, escaped);
-    }
 
+    // FUTURE - change to generic mechanism to pipe through properties
     if (classVars.getVarMap().containsKey(DirectoryServer.modeProperty)) {
       s += getSystemPropertyFormatted(DirectoryServer.modeProperty,
           classVars.getVarMap().get(DirectoryServer.modeProperty));
@@ -499,7 +496,7 @@ public class SKAdmin {
         (" 1>" + daemonLogFile + "; 2>&1; } & fi"));
   }
 
-  private boolean generateSingleNodeStartCommand(SKAdminOptions options) throws IOException, KeeperException {
+  public String generateSingleNodeStartCommand(SKAdminOptions options) throws IOException, KeeperException {
     ClassVars serverClassVars;
     String thisServer;
 
@@ -544,6 +541,13 @@ public class SKAdmin {
     generatedCmd = _generateNodeStartCommand(serverClassVars, options, reapPolicy, false);
     Log.warning("Command generated for target " + thisServer);
 
+    return generatedCmd;
+  }
+
+  private boolean executeGenerateNodeStartCmd(SKAdminOptions options) throws IOException, KeeperException {
+    String generatedCmd;
+
+    generatedCmd = generateSingleNodeStartCommand(options);
     System.out.println(generatedCmd);
     return true;
   }
@@ -842,7 +846,7 @@ public class SKAdmin {
           _result = displayRingHealth();
           break;
         case GenerateNodeStartCmd:
-          _result = generateSingleNodeStartCommand(options);
+          _result = executeGenerateNodeStartCmd(options);
           break;
         default:
           throw new RuntimeException("panic");

@@ -3,6 +3,7 @@ package com.ms.silverking.cloud.dht.client.impl;
 import static com.ms.silverking.cloud.dht.common.OpResult.SESSION_CLOSED;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,6 +56,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
 import com.ms.silverking.cloud.meta.ExclusionSet;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAddrUtil;
@@ -63,13 +65,12 @@ import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.time.AbsMillisTimeSource;
 import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Concrete implementation of DHTSession.
  */
 public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, QueueingConnectionLimitListener {
-  private final MessageGroupBase mgBase;
+  protected final MessageGroupBase mgBase;
   private final ClientDHTConfiguration dhtConfig;
   //private final ServerPool        serverPool;
   private final ConcurrentMap<Long, ClientNamespace> clientNamespaces;
@@ -129,28 +130,28 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
       SerializationRegistry serializationRegistry, SessionEstablishmentTimeoutController timeoutController,
       NamespaceOptionsMode nsOptionsMode, boolean enableMsgGroupTrace, IPAliasMap aliasMap,
       SessionPolicyOnDisconnect onDisconnect) throws IOException, AuthFailedException {
-    mgBase = MessageGroupBase.newClientMessageGroupBase(0, this, absMillisTimeSource,
-        new NewConnectionTimeoutControllerWrapper(timeoutController), this, connectionQueueLimit,
-        numSelectorControllers, selectorControllerClass, aliasMap, onDisconnect);
-    mgBase.enable();
 
-    this.server = server;
-    // Eagerly create the connection so that failures occur here, rather than after the session object is returned
-    if (!DHTConstants.isDaemon) {
-      mgBase.ensureConnected(server);
-    }
     this.dhtConfig = dhtConfig;
     this.absMillisTimeSource = absMillisTimeSource;
     this.serializationRegistry = serializationRegistry;
     this.nsOptionsMode = nsOptionsMode;
     this.enableMsgGroupTrace = enableMsgGroupTrace;
 
-    myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getInterfacePort());
-    Log.finef("Session IP:Port %s", IPAddrUtil.addrAndPortToString(myIPAndPort));
-
     clientNamespaces = new ConcurrentHashMap<>();
     clientNamespaceList = new CopyOnWriteArrayList<>();
     namespaceCreator = new SimpleNamespaceCreator();
+    this.server = server;
+
+    mgBase = buildMessageGroupBase(timeoutController, aliasMap, onDisconnect);
+    mgBase.enable();
+
+    myIPAndPort = IPAddrUtil.createIPAndPort(IPAddrUtil.localIP(), mgBase.getInterfacePort());
+    Log.finef("Session IP:Port %s", IPAddrUtil.addrAndPortToString(myIPAndPort));
+
+    if (!isDaemon()) {
+      // Eagerly create the connection so that failures occur here, rather than after the session object is returned
+      eagerConnect();
+    }
 
     switch (nsOptionsMode) {
     case ZooKeeper:
@@ -171,6 +172,31 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     worker = new Worker();
     timeoutCheckTask = new SafeTimerTask(new TimeoutCheckTask());
     DHTUtil.timer().scheduleAtFixedRate(timeoutCheckTask, timeoutCheckIntervalMillis, timeoutCheckIntervalMillis);
+  }
+
+  public boolean isDaemon() {
+    return DHTConstants.isDaemon;
+  }
+
+  protected void eagerConnect() throws AuthFailedException, ConnectException {
+    try {
+      mgBase.ensureConnected(server);
+    } catch (AuthFailedException e) {
+      mgBase.shutdown();
+      throw e;
+    } catch (Exception e) {
+      mgBase.shutdown();
+      String msg = "Failed to connect to " + server.toString();
+      Log.logErrorWarning(e, msg);
+      throw new ConnectException(msg);
+    }
+  }
+
+  protected MessageGroupBase buildMessageGroupBase(SessionEstablishmentTimeoutController timeoutController,
+      IPAliasMap aliasMap, SessionPolicyOnDisconnect onDisconnect) throws IOException {
+    return MessageGroupBase.newClientMessageGroupBase(0, this, absMillisTimeSource,
+        new NewConnectionTimeoutControllerWrapper(timeoutController), this, connectionQueueLimit,
+        numSelectorControllers, selectorControllerClass, aliasMap, onDisconnect);
   }
 
   MessageGroupBase getMessageGroupBase() {
@@ -496,6 +522,8 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
   public void close() {
     mgBase.shutdown();
     timeoutCheckTask.cancel();
+    cancelAllActiveOps();
+    Log.warning("Cancelled all active asyncOps before shutting down.");
     closed = true;
     // FUTURE - consider additional actions
   }
@@ -617,6 +645,17 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
     }
   }
 
+  void cancelAllActiveOps() {
+    for (ClientNamespace namespace : clientNamespaceList) {
+      List<AsyncOperationImpl> asyncOps = namespace.getActiveAsyncOperations();
+      Log.warningf("trying to complete %d async operations on namespace %s with SESSION_CLOSED", asyncOps.size(),
+          namespace.getName());
+      for (AsyncOperationImpl op : asyncOps) {
+        op.setResult(SESSION_CLOSED);
+      }
+    }
+  }
+
   public class TimeoutCheckTask extends TimerTask {
     public void run() {
       try {
@@ -645,14 +684,7 @@ public class DHTSessionImpl implements DHTSession, MessageGroupReceiver, Queuein
 
   void assertOpen() throws SessionClosedException {
     if (!mgBase.isRunning()) {
-      for (ClientNamespace namespace : clientNamespaceList) {
-        List<AsyncOperationImpl> asyncOps = namespace.getActiveAsyncOperations();
-        Log.warningf("trying to complete %d async operations on namespace %s with SESSION_CLOSED", asyncOps.size(),
-            namespace.getName());
-        for (AsyncOperationImpl op : asyncOps) {
-          op.setResult(SESSION_CLOSED);
-        }
-      }
+      cancelAllActiveOps();
       close();
       throw new SessionClosedException("session is closed");
     }

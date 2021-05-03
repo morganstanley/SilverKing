@@ -9,7 +9,7 @@ import java.util.Map;
 import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
-import org.apache.zookeeper.KeeperException;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 
 public class NamespaceLinksZK extends MetaToolModuleBase<Map<String, String>, MetaPaths> {
   public NamespaceLinksZK(MetaClient mc) throws KeeperException {

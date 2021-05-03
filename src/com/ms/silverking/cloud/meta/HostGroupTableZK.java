@@ -6,8 +6,8 @@ import java.io.IOException;
 import com.ms.silverking.cloud.config.HostGroupTable;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 
 public class HostGroupTableZK extends MetaToolModuleBase<HostGroupTable, MetaPaths> {
   public HostGroupTableZK(MetaClient mc) throws KeeperException {

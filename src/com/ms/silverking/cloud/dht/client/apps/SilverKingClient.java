@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +49,7 @@ import com.ms.silverking.cloud.dht.common.DHTUtil;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceNotCreatedException;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.gridconfig.GridConfiguration;
+import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.os.OSUtil;
@@ -222,7 +224,7 @@ public class SilverKingClient {
 
     builder = ImmutableSet.builder();
     for (int i = 0; i < args.length; i++) {
-      builder.add(translateKey(args[i]));
+      builder.addAll(translateKeyDef(args[i]));
     }
     return builder.build();
   }
@@ -339,8 +341,15 @@ public class SilverKingClient {
     ImmutableMap.Builder<String, byte[]> builder;
 
     builder = ImmutableMap.builder();
-    for (int i = 0; i < args.length; i += 2) {
-      builder.put(translateKey(args[i]), translateRandomValue(args[i + 1]));
+    for (int i = 0; i < args.length - 1; i++) {
+      Set<String> keys;
+      byte[]  value;
+
+      keys = translateKeyDef(args[i]);
+      value = translateRandomValue(args[args.length - 1]);
+      for (String key : keys) {
+        builder.put(key, value);
+      }
     }
     map = builder.build();
     opMessage("Putting");
@@ -405,7 +414,7 @@ public class SilverKingClient {
 
     builder = ImmutableSet.builder();
     for (int i = 0; i < args.length; i++) {
-      builder.add(translateKey(args[i]));
+      builder.addAll(translateKeyDef(args[i]));
     }
     set = builder.build();
     opMessage("Invalidating");
@@ -423,6 +432,36 @@ public class SilverKingClient {
 
   private String translateKey(String key) {
     return key;
+  }
+
+  private Set<String> translateKeyDef(String key) {
+    if (key.startsWith("[") && key.endsWith("]") && key.contains("..")) {
+      String[]  toks;
+
+      toks = key.substring(1, key.length() - 1).split("\\.\\.");
+      if (toks.length != 2) {
+        throw new RuntimeException("Invalid key sequence: "+ key);
+      } else {
+        try {
+          int start;
+          int end;
+          Set<String> keys;
+
+          start = Integer.parseInt(toks[0]);
+          end = Integer.parseInt(toks[1]);
+          keys = new HashSet<>();
+          for (int i = start; i <= end; i++) {
+            keys.add(Integer.toString(i));
+          }
+          return keys;
+        } catch (NumberFormatException nfe) {
+          Log.logErrorWarning(nfe);
+          throw new RuntimeException("Invalid key sequence/NumberFormatException: "+ key);
+        }
+      }
+    } else {
+      return ImmutableSet.of(key);
+    }
   }
 
   private byte[] translateValue(String value) {

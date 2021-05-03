@@ -2,7 +2,7 @@ package com.ms.silverking.cloud.dht.meta;
 
 import com.ms.silverking.cloud.meta.NodeCreationListener;
 import com.ms.silverking.cloud.meta.NodeCreationWatcher;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 
@@ -10,11 +10,11 @@ public class LinkCreationWatcher implements NodeCreationListener {
   private final long child;
   private final LinkCreationListener listener;
   private final String path;
-  private final ZooKeeperExtended zk;
+  private final SilverKingZooKeeperClient zk;
 
   private static final boolean debug = false;
 
-  public LinkCreationWatcher(ZooKeeperExtended zk, String basePath, long child, LinkCreationListener listener) {
+  public LinkCreationWatcher(SilverKingZooKeeperClient zk, String basePath, long child, LinkCreationListener listener) {
     this.zk = zk;
     path = basePath + "/" + Long.toHexString(child);
     this.child = child;

@@ -10,7 +10,7 @@ public class NamespaceServerSideCode {
   private final String retrieveTrigger;
 
   // for parsing only
-  static final NamespaceServerSideCode template = new NamespaceServerSideCode("", "", "");
+  static final NamespaceServerSideCode template = new NamespaceServerSideCode();
 
   static {
     ObjectDefParser2.addParser(template);
@@ -28,6 +28,8 @@ public class NamespaceServerSideCode {
     this.putTrigger = putTrigger;
     this.retrieveTrigger = retrieveTrigger;
   }
+
+  private NamespaceServerSideCode() { this("", "", ""); }
 
   public static NamespaceServerSideCode singleTrigger(String trigger) {
     return new NamespaceServerSideCode("", trigger, trigger);

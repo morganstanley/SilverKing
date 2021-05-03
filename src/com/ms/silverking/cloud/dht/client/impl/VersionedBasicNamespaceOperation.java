@@ -14,7 +14,7 @@ class VersionedBasicNamespaceOperation extends NamespaceOperation {
 
   VersionedBasicNamespaceOperation(ClientOpType opType, ClientNamespace namespace, long version) {
     super(opType, namespace, new OperationOptions(opTimeoutController, DHTConstants.noSecondaryTargets,
-        DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION));
+        DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.defaultResponse));
     this.version = version;
   }
 

@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.collect.ImmutableMap;
-import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
@@ -16,6 +15,7 @@ import com.ms.silverking.cloud.dht.client.SimpleTimeoutController;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.daemon.ActiveProxyRetrieval;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.util.BufferUtil;

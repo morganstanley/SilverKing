@@ -1,13 +1,13 @@
 package com.ms.silverking.cloud.meta;
 
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
 public class NodeCreationWatcher implements Watcher {
-  private final ZooKeeperExtended zk;
+  private final SilverKingZooKeeperClient zk;
   private final String parent;
   private final String path;
   private final NodeCreationListener listener;
@@ -17,11 +17,11 @@ public class NodeCreationWatcher implements Watcher {
 
   private static final boolean debug = false;
 
-  public NodeCreationWatcher(ZooKeeperExtended zk, String path, NodeCreationListener listener) {
+  public NodeCreationWatcher(SilverKingZooKeeperClient zk, String path, NodeCreationListener listener) {
     this.zk = zk;
     this.path = path;
     this.listener = listener;
-    parent = ZooKeeperExtended.parentPath(path);
+    parent = SilverKingZooKeeperClient.parentPath(path);
     if (!checkForExistence()) {
       setWatch();
     }

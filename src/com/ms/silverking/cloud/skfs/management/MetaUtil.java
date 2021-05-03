@@ -7,8 +7,8 @@ import com.ms.silverking.cloud.skfs.meta.MetaClient;
 import com.ms.silverking.cloud.skfs.meta.MetaPaths;
 import com.ms.silverking.cloud.skfs.meta.SKFSConfiguration;
 import com.ms.silverking.cloud.skfs.meta.SKFSConfigurationZK;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import org.apache.zookeeper.KeeperException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 

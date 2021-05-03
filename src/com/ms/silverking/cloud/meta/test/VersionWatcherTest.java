@@ -6,16 +6,16 @@ import com.ms.silverking.cloud.meta.MetaClientCore;
 import com.ms.silverking.cloud.meta.VersionListener;
 import com.ms.silverking.cloud.meta.VersionWatcher;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
-import org.apache.zookeeper.KeeperException;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 
 public class VersionWatcherTest implements VersionListener {
-  private final ZooKeeperExtended zk;
+  private final SilverKingZooKeeperClient zk;
   private final MetaClientCore mcCore;
 
-  public VersionWatcherTest(ZooKeeperExtended zk) throws IOException, KeeperException {
+  public VersionWatcherTest(SilverKingZooKeeperClient zk) throws IOException, KeeperException {
     this.zk = zk;
-    mcCore = new MetaClientCore(zk.getZKConfig(), null);
+    mcCore = new MetaClientCore(zk.getZKConfig());
   }
 
   @Override
@@ -42,7 +42,7 @@ public class VersionWatcherTest implements VersionListener {
 
         zkConfig = new ZooKeeperConfig(args[0]);
         intervalMillis = Integer.parseInt(args[1]) * 1000;
-        vwTest = new VersionWatcherTest(new ZooKeeperExtended(zkConfig, 2 * 60 * 1000, null));
+        vwTest = new VersionWatcherTest(new SilverKingZooKeeperClient(zkConfig, 2 * 60 * 1000));
         for (int i = 2; i < args.length; i++) {
           vwTest.addWatch(args[i], intervalMillis);
         }

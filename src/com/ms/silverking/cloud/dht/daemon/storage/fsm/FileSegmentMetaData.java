@@ -7,11 +7,14 @@ import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.Set;
+import java.util.logging.Level;
 
-import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
+import com.ms.silverking.cloud.dht.collection.IntArrayDHTKeyCuckoo;
 import com.ms.silverking.cloud.dht.daemon.storage.RAMOffsetListStore;
+import com.ms.silverking.collection.cuckoo.IntArrayCuckoo;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
+import com.ms.silverking.text.StringUtil;
 
 public class FileSegmentMetaData {
   private final ByteBuffer fsmValueBuf;
@@ -40,9 +43,7 @@ public class FileSegmentMetaData {
    * V0 Format:
    */
 
-  public enum MetaDataPrereadMode {NoPrearead, Preread}
-
-  ;
+  public enum MetaDataPrereadMode {NoPrearead, Preread};
 
   private static final boolean debugPersist = false;
   private static final boolean debugCreate = false;
@@ -74,6 +75,9 @@ public class FileSegmentMetaData {
       // First parse the header; the header will have an entry
       // for each element in the FSM
       header = headerElement.toFSMHeader();
+      if (debugCreate) {
+        Log.warningf("header %s", header);
+      }
       fsmValueBuf = BufferUtil.sliceAt(fsmBuf, headerElement.getLength());
     } else {
       header = null;
@@ -87,23 +91,27 @@ public class FileSegmentMetaData {
   public LTVElement getElement(FSMElementType type) {
     ByteBuffer elementBuf;
 
-    //System.out.printf("getElement %s\n", type);
     if (fsStorageFormat.dataSegmentIsLTV()) {
       int offset;
 
       offset = header.getElementOffset(type);
       if (offset < 0) {
-        //System.out.printf("Unable to find element: %s\n", type);
         return null;
       }
       elementBuf = LTVElement.readElementBuffer(fsmValueBuf, offset);
       switch (type) {
       case OffsetMap:
-        return new KeyToOffsetMapElement(elementBuf);
+        return new KeyToIntegerMapElement(elementBuf);
       case OffsetLists:
         return new OffsetListsElement(elementBuf);
       case InvalidatedOffsets:
         return new InvalidatedOffsetsElement(elementBuf);
+      case LengthMap:
+        if (fsStorageFormat.lengthsAreIndexed()) {
+          return new IntegerToIntegerMapElement(elementBuf);
+        } else {
+          return null;
+        }
       default:
         return null;
       }
@@ -135,10 +143,11 @@ public class FileSegmentMetaData {
   ///////////////////////////////////////
 
   public static void persist(FileSegmentStorageFormat fsStorageFormat, RandomAccessFile raFile, int dataSegmentSize,
-      IntArrayCuckoo keyToOffset, RAMOffsetListStore offsetListStore, Set<Integer> invalidatedOffsets)
+      IntArrayDHTKeyCuckoo keyToOffset, IntArrayCuckoo offsetToLength, RAMOffsetListStore offsetListStore, Set<Integer> invalidatedOffsets)
       throws IOException {
     FSMHeaderElement fsmHeaderElement;
-    KeyToOffsetMapElement keyToOffsetMapElement;
+    KeyToIntegerMapElement keyToOffsetMapElement;
+    IntegerToIntegerMapElement offsetToLengthMapElement;
     OffsetListsElement offsetListsElement;
     InvalidatedOffsetsElement invalidatedOffsetsElement;
     FSMHeader fsmHeader;
@@ -146,20 +155,33 @@ public class FileSegmentMetaData {
     int fsmLength;
 
     if (fsStorageFormat.dataSegmentIsLTV()) {
-      keyToOffsetMapElement = KeyToOffsetMapElement.create(keyToOffset);
+      keyToOffsetMapElement = KeyToIntegerMapElement.create(keyToOffset);
       offsetListsElement = OffsetListsElement.create(offsetListStore);
       invalidatedOffsetsElement = InvalidatedOffsetsElement.create(invalidatedOffsets);
+      if (fsStorageFormat.lengthsAreIndexed()) {
+        offsetToLengthMapElement = IntegerToIntegerMapElement.create(offsetToLength, FSMElementType.LengthMap);
+      } else {
+        offsetToLengthMapElement = null;
+      }
     } else {
       keyToOffsetMapElement = KeyToOffsetMapElementV0.create(keyToOffset);
       offsetListsElement = OffsetListsElementV0.create(offsetListStore);
       invalidatedOffsetsElement = null;
+      offsetToLengthMapElement = null;
     }
 
     if (fsStorageFormat.containsFSMHeader()) {
+      if (fsStorageFormat.lengthsAreIndexed()) {
+        fsmHeader = FSMHeader.create(keyToOffsetMapElement, offsetListsElement, invalidatedOffsetsElement,
+                                      offsetToLengthMapElement);
+      } else {
       fsmHeader = FSMHeader.create(keyToOffsetMapElement, offsetListsElement, invalidatedOffsetsElement);
+      }
       fsmHeaderElement = FSMHeaderElement.createFromHeader(fsmHeader);
       fsmLength =
-          fsmHeaderElement.getLength() + keyToOffsetMapElement.getLength() + offsetListsElement.getLength() + invalidatedOffsetsElement.getLength();
+          fsmHeaderElement.getLength() + keyToOffsetMapElement.getLength() + offsetListsElement.getLength() +
+              + (offsetToLengthMapElement != null ? offsetToLengthMapElement.getLength() : 0)
+              + invalidatedOffsetsElement.getLength();
     } else {
       fsmHeader = null;
       fsmHeaderElement = null;
@@ -169,19 +191,27 @@ public class FileSegmentMetaData {
     fsmBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, fsmLength).order(ByteOrder.nativeOrder());
     if (fsStorageFormat.containsFSMHeader()) {
       fsmBuf.put(fsmHeaderElement.getBuffer());
-      //System.out.printf("header  %s\n", StringUtil.byteBufferToHexString(fsmHeaderElement.getBuffer()));
+      if (Log.levelMet(Level.FINE)) {
+        Log.finef("header  %s\n", StringUtil.byteBufferToHexString(fsmHeaderElement.getBuffer()));
+      }
     }
     if (fsStorageFormat.dataSegmentIsLTV()) {
-      //System.out.printf("map     %s\n", StringUtil.byteBufferToHexString(keyToOffsetMapElement.getBuffer()));
-      //System.out.printf("lists   %s\n", StringUtil.byteBufferToHexString(offsetListsElement.getBuffer()));
-      //System.out.printf("invalid %s\n", StringUtil.byteBufferToHexString(invalidatedOffsetsElement.getBuffer()));
+      if (Log.levelMet(Level.FINE)) {
+        Log.finef("map     %s\n", StringUtil.byteBufferToHexString(keyToOffsetMapElement.getBuffer()));
+        Log.finef("lists   %s\n", StringUtil.byteBufferToHexString(offsetListsElement.getBuffer()));
+        Log.finef("invalid %s\n", StringUtil.byteBufferToHexString(invalidatedOffsetsElement.getBuffer()));
+      }
       fsmBuf.put(keyToOffsetMapElement.getBuffer());
       fsmBuf.put(offsetListsElement.getBuffer());
       fsmBuf.put(invalidatedOffsetsElement.getBuffer());
+      if (fsStorageFormat.lengthsAreIndexed()) {
+        fsmBuf.put(offsetToLengthMapElement.getBuffer());
+        if (Log.levelMet(Level.FINE)) {
+          Log.warningf("lengths %s\n", StringUtil.byteBufferToHexString(offsetToLengthMapElement.getBuffer()));
+        }
+      }
     } else {
       fsmBuf.put(keyToOffsetMapElement.getValueBuffer());
-      //System.out.printf("%s\n", fsmBuf);
-      //System.out.printf("%s\n", offsetListsElement.getValueBuffer());
       fsmBuf.put(offsetListsElement.getValueBuffer());
     }
     ((MappedByteBuffer) fsmBuf).force();

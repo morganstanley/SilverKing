@@ -18,9 +18,7 @@ import com.ms.silverking.log.Log;
 import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.net.security.AuthenticationResult;
 import com.ms.silverking.net.security.Authenticator;
-import com.ms.silverking.net.security.NonRetryableAuthFailedException;
 import com.ms.silverking.net.security.NoopAuthenticatorImpl;
-import com.ms.silverking.net.security.RetryableAuthFailedException;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTConstants;
 import com.ms.silverking.thread.lwt.LWTPool;
@@ -355,27 +353,7 @@ public abstract class AsyncBase<T extends Connection> {
     String connInfo = channel.socket() != null ? channel.socket().toString() : "nullSock";
     AuthenticationResult authResult = authenticator.syncAuthenticate(channel.socket(), serverside,
         defAuthenticationTimeoutInMillisecond);
-    if (authResult.isFailed()) {
-      String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ?
-          "ServerSide" :
-          "ClientSide");
-      switch (authResult.getFailedAction()) {
-      case GO_WITHOUT_AUTH:
-        break;
-      case THROW_NON_RETRYABLE:
-        throw authResult.getFailCause().isPresent() ?
-            new NonRetryableAuthFailedException(msg, authResult.getFailCause().get()) :
-            new NonRetryableAuthFailedException(msg);
-      case THROW_RETRYABLE:
-        throw authResult.getFailCause().isPresent() ?
-            new RetryableAuthFailedException(msg, authResult.getFailCause().get()) :
-            new RetryableAuthFailedException(msg);
-      default:
-        throw new RuntimeException("Connection " + connInfo + " fails to be authenticated from " + (serverside ?
-            "ServerSide" :
-            "ClientSide" + " and action for this failure has NOT been defined: " + "please check the behaviour of " + "injected authenticator [" + authenticator.getName() + "]"));
-      }
-    }
+    Authenticator.checkForAuthFailure(authResult, connInfo, serverside, authenticator);
 
     if (logConnections) {
       Log.warningf("AsyncBase addConnection: %s sBuf %d rBuf %d", channel, channel.socket().getSendBufferSize(),

@@ -1,10 +1,10 @@
 package com.ms.silverking.cloud.dht.meta;
 
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingState;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
 /**
@@ -51,11 +51,11 @@ public class RingStateZK {
   }
 
   private String getRingConfigVersionPath() {
-    return getRingStatePathBase() + "/" + ZooKeeperExtended.padVersion(ringConfigVersion);
+    return getRingStatePathBase() + "/" + SilverKingZooKeeperClient.padVersion(ringConfigVersion);
   }
 
   public String getRingInstanceStatePath() {
-    return getRingConfigVersionPath() + "/" + ZooKeeperExtended.padVersion(configInstanceVersion);
+    return getRingConfigVersionPath() + "/" + SilverKingZooKeeperClient.padVersion(configInstanceVersion);
   }
 
   private String getRingStatePath(IPAndPort node) {
@@ -76,8 +76,12 @@ public class RingStateZK {
   public RingState readState(IPAndPort node) throws KeeperException {
     try {
       return RingState.valueOf(mc.getZooKeeper().getString(getRingStatePath(node)));
-    } catch (NoNodeException nne) {
+    } catch (KeeperException ke) {
+      if (ke.getCause() != null && NoNodeException.class.isAssignableFrom(ke.getCause().getClass())) {
       return null;
+      } else {
+        throw ke;
+      }
     }
   }
 }

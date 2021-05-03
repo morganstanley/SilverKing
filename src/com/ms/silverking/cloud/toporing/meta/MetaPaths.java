@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.toporing.meta;
 
 import com.google.common.collect.ImmutableList;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
 
 public class MetaPaths extends com.ms.silverking.cloud.meta.MetaPaths {
   // configuration instance paths
@@ -80,7 +80,7 @@ public class MetaPaths extends com.ms.silverking.cloud.meta.MetaPaths {
   }
 
   private static String getConfigInstancePath(String configPath, long configVersion) {
-    return ZooKeeperExtended.padVersionPath(configPath, configVersion) + "/instance";
+    return SilverKingZooKeeperClient.padVersionPath(configPath, configVersion) + "/instance";
   }
 
   public String getConfigInstancePath(long configVersion) {
@@ -92,7 +92,7 @@ public class MetaPaths extends com.ms.silverking.cloud.meta.MetaPaths {
   }
 
   public String getRingInstancePath(String configInstancePath, long instanceVersion) {
-    return ZooKeeperExtended.padVersionPath(configInstancePath, instanceVersion);
+    return SilverKingZooKeeperClient.padVersionPath(configInstancePath, instanceVersion);
   }
 
   public String getStoragePolicyGroupPath() {

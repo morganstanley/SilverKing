@@ -119,6 +119,7 @@ public class DHTConstants {
   public static final String maxUnfinalizedDeletedBytesProperty = daemonPackageBase + ".MaxUnfinalizedDeletedBytes";
   public static final String verboseReapLogInfoProperty = daemonPackageBase + ".VerboseReapLogInfo";
   public static final String defaultCompactionThresholdProperty = daemonPackageBase + ".DefaultCompactionThreshold";
+  public static final String forceDataSegmentLoadOnReapProperty = daemonPackageBase + ".ForceDataSegmentLoadOnReap";
 
   public static final String verboseGlobalFinalizationProperty = systemClassBase + ".VerboseGlobalFinalization";
   public static final String jvmMonitorMaxIntervalMillisProperty = systemClassBase + ".JvmMonitorMaxIntervalMillis";
@@ -138,6 +139,7 @@ public class DHTConstants {
   public static final String jaceHomeEnv = "SK_JACE_HOME";
   public static final String defaultNamespaceOptionsModeEnv = "SK_DEFAULT_NS_OPTIONS_MODE";
   public static final String defaultEnableMsgGroupTraceEnv = "SK_ENABLE_MSG_GROUP_TRACE";
+  public static final String defaultEnableMsgGroupRecorderEnv = "SK_ENABLE_MSG_GROUP_RECORDER";
   public static final String javaHomeEnv = SKConstants.javaHomeEnv;
   public static final String javaHomeProperty = "java.home";
 

@@ -1,11 +1,11 @@
 package com.ms.silverking.cloud.dht.meta;
 
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 public class DHTRingCurTargetZK {
@@ -34,8 +34,8 @@ public class DHTRingCurTargetZK {
   }
 
   private void ensureDataNodesExist() throws KeeperException {
-    mc.getZooKeeper().ensureCreated(mc.getMetaPaths().getInstanceCurRingAndVersionPairPath(mc.getDHTName()));
-    mc.getZooKeeper().ensureCreated(mc.getMetaPaths().getInstanceTargetRingAndVersionPairPath(mc.getDHTName()));
+    mc.getZooKeeper().ensureCreated(MetaPaths.getInstanceCurRingAndVersionPairPath(mc.getDHTName()));
+    mc.getZooKeeper().ensureCreated(MetaPaths.getInstanceTargetRingAndVersionPairPath(mc.getDHTName()));
   }
 
   public void setRingAndVersionPair(NodeType nodeType, String ringName, Pair<Long, Long> version)
@@ -75,15 +75,15 @@ public class DHTRingCurTargetZK {
   public void setCurRingAndVersionPair(String ringName, long ringConfigVersion, long configInstanceVersion)
       throws KeeperException {
     setRingAndVersionPair(ringName, ringConfigVersion, configInstanceVersion,
-        mc.getMetaPaths().getInstanceCurRingAndVersionPairPath(mc.getDHTName()));
+        MetaPaths.getInstanceCurRingAndVersionPairPath(mc.getDHTName()));
   }
 
   public Triple<String, Long, Long> getCurRingAndVersionPair(Stat stat) throws KeeperException {
-    return getRingAndVersion(mc.getMetaPaths().getInstanceCurRingAndVersionPairPath(mc.getDHTName()), stat);
+    return getRingAndVersion(MetaPaths.getInstanceCurRingAndVersionPairPath(mc.getDHTName()), stat);
   }
 
   public Triple<String, Long, Long> getCurRingAndVersionPair() throws KeeperException {
-    return getRingAndVersion(mc.getMetaPaths().getInstanceCurRingAndVersionPairPath(mc.getDHTName()));
+    return getRingAndVersion(MetaPaths.getInstanceCurRingAndVersionPairPath(mc.getDHTName()));
   }
 
   public void setTargetRingAndVersionPair(String ringName, Pair<Long, Long> version) throws KeeperException {
@@ -93,11 +93,11 @@ public class DHTRingCurTargetZK {
   public void setTargetRingAndVersionPair(String ringName, long ringConfigVersion, long configInstanceVersion)
       throws KeeperException {
     setRingAndVersionPair(ringName, ringConfigVersion, configInstanceVersion,
-        mc.getMetaPaths().getInstanceTargetRingAndVersionPairPath(mc.getDHTName()));
+        MetaPaths.getInstanceTargetRingAndVersionPairPath(mc.getDHTName()));
   }
 
   public Triple<String, Long, Long> getTargetRingAndVersionPair() throws KeeperException {
-    return getRingAndVersion(mc.getMetaPaths().getInstanceTargetRingAndVersionPairPath(mc.getDHTName()));
+    return getRingAndVersion(MetaPaths.getInstanceTargetRingAndVersionPairPath(mc.getDHTName()));
   }
 
   public void setMasterRingAndVersionPair(String ringName, Pair<Long, Long> version) throws KeeperException {
@@ -107,11 +107,11 @@ public class DHTRingCurTargetZK {
   public void setMasterRingAndVersionPair(String ringName, long ringConfigVersion, long configInstanceVersion)
       throws KeeperException {
     setRingAndVersionPair(ringName, ringConfigVersion, configInstanceVersion,
-        mc.getMetaPaths().getInstanceMasterRingAndVersionPairPath(mc.getDHTName()));
+        MetaPaths.getInstanceMasterRingAndVersionPairPath(mc.getDHTName()));
   }
 
   public Triple<String, Long, Long> getMasterRingAndVersionPair() throws KeeperException {
-    return getRingAndVersion(mc.getMetaPaths().getInstanceMasterRingAndVersionPairPath(mc.getDHTName()));
+    return getRingAndVersion(MetaPaths.getInstanceMasterRingAndVersionPairPath(mc.getDHTName()));
   }
 
   private void setRingAndVersionPair(String ringName, long ringConfigVersion, long configInstanceVersion, String path)

@@ -4,7 +4,6 @@ import java.util.Set;
 
 import com.ms.silverking.cloud.dht.AllReplicasExcludedResponse;
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
-import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.GetOptions;
 import com.ms.silverking.cloud.dht.InvalidationOptions;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
@@ -21,6 +20,7 @@ import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.WaitOptions;
 import com.ms.silverking.cloud.dht.client.OpTimeoutController;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 
 /**
  * This class contains helper methods to construct options. End-users should
@@ -213,7 +213,7 @@ public class OptionsHelper {
   public static InvalidationOptions newInvalidationOptions(OpTimeoutController opTimeoutController, long version,
       long requiredPreviousVersion, short lockSeconds, Set<SecondaryTarget> secondaryTargets) {
     return new InvalidationOptions(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, 
-        AllReplicasExcludedResponse.EXCEPTION, version,
+        AllReplicasExcludedResponse.defaultResponse, version,
         requiredPreviousVersion, lockSeconds);
   }
 

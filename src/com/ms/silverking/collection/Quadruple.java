@@ -106,10 +106,10 @@ public class Quadruple<T1, T2, T3, T4> extends TupleBase {
     if (other == this) {
       return true;
     } else {
-      Quadruple<T1, T2, T3, T4> oTriple;
+      Quadruple<T1, T2, T3, T4> o;
 
-      oTriple = (Quadruple<T1, T2, T3, T4>) other;
-      return v1.equals(oTriple.v1) && v2.equals(oTriple.v2) && v3.equals(oTriple.v3) && v4.equals(oTriple.v4);
+      o = (Quadruple<T1, T2, T3, T4>) other;
+      return v1.equals(o.v1) && v2.equals(o.v2) && v3.equals(o.v3) && v4.equals(o.v4);
     }
   }
 

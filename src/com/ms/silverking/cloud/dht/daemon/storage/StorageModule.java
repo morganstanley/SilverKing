@@ -59,7 +59,7 @@ import com.ms.silverking.cloud.dht.serverside.RetrieveCallback;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicyGroup;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
 import com.ms.silverking.code.Constraint;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.CollectionUtil;
@@ -90,7 +90,7 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
   private SystemNamespaceStore systemNSStore;
   private ReplicasNamespaceStore replicasNSStore;
   private Lock nsCreationLock;
-  private final ZooKeeperExtended zk;
+  private final SilverKingZooKeeperClient zk;
   private final String nsLinkBasePath;
   private final MethodCallWorker methodCallBlockingWorker;
   private final MethodCallWorker methodCallNonBlockingWorker;
@@ -214,7 +214,7 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     nsCreationLock = new ReentrantLock();
 
     try {
-      zk = new ZooKeeperExtended(zkConfig, sessionTimeoutMillis, null);
+      zk = new SilverKingZooKeeperClient(zkConfig, sessionTimeoutMillis);
       nsLinkBasePath = MetaPaths.getInstanceNSLinkPath(dhtName);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -261,7 +261,8 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     }
   }
 
-  private void initializeMetricsObservers(List<MetricsNamespaceStore> metricsNamespaceStores) {
+  // Public for testing purposes
+  public static void initializeMetricsObservers(List<MetricsNamespaceStore> metricsNamespaceStores) {
     String metricsObservers;
 
     metricsObservers = PropertiesHelper.systemHelper.getString(metricsObserversProperty,
@@ -281,7 +282,7 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     }
   }
 
-  public void stop() {
+  public void stop(boolean rolloverHeadSegments) {
     cleanerTask.cancel();
     if (reapTask != null) {
       reapTask.cancel();
@@ -292,9 +293,18 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     if (nsMetaStore != null) {
       nsMetaStore.stop();
     }
+
+    if (rolloverHeadSegments) {
+      for (NamespaceStore ns : namespaces.values()) {
+        if (!ns.isDynamic() && ns.getNamespaceHash() != NamespaceUtil.metaInfoNamespace.contextAsLong()) {
+          Log.warning("Rolling over the head segment upon stop for ns: " + ns.getNamespaceHash());
+          ns.rollOverHeadSegment(false);
+        }
+      }
+    }
+
     namespaces.clear();
     zk.close();
-
   }
 
   public void recover() {
@@ -419,7 +429,7 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
         Log.warning("\t\tDone move [" + nsDir + "] as [" + dest + "]");
       } else {
         // NOTE: We have a memory cache for nsProperties here; This cache needs to be properly updated if we support
-        // on-the-fly nsProperties modify
+        // on-the-fly nsProperties modification
         nsMetaStore.setNamespaceProperties(ns, nsProperties);
         if (nsProperties.getParent() != null) {
           long parentContext;

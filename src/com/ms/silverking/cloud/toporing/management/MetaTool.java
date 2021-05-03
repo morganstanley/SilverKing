@@ -13,8 +13,8 @@ import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.toporing.meta.StoragePolicyGroupZK;
 import com.ms.silverking.cloud.toporing.meta.WeightsZK;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import org.apache.zookeeper.KeeperException;
 
 public class MetaTool extends MetaToolBase {
   private enum Tool {Weights, RingConfiguration, StoragePolicyGroup}

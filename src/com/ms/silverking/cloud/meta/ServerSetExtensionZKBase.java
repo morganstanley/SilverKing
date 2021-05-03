@@ -9,11 +9,11 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.io.IOUtil;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -33,7 +33,7 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
 
   public String getLatestZKPath() throws KeeperException {
     long version;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     _zk = mc.getZooKeeper();
     version = _zk.getLatestVersion(worrisomesPath);
@@ -54,7 +54,7 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
 
   protected Set<String> readNodesAsSet(String path, Stat stat) throws KeeperException {
     String[] nodes;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     _zk = mc.getZooKeeper();
     nodes = _zk.getString(path, null, stat).split("\n");
@@ -74,7 +74,7 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
   public String writeToZK(W worrisomeSet, MetaToolOptions options) throws IOException, KeeperException {
     String vBase;
     String zkVal;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     _zk = mc.getZooKeeper();
     zkVal = CollectionUtil.toString(worrisomeSet.getServers(), "", "", delimiterChar, "");
@@ -91,7 +91,7 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
 
   public long getVersionMzxid(long version) throws KeeperException {
     Stat stat;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     _zk = mc.getZooKeeper();
     stat = new Stat();
@@ -103,7 +103,7 @@ public abstract class ServerSetExtensionZKBase<W extends ServerSetExtension, M e
     Map<String, Long> esStarts;
     long latestWVersion;
     Map<String, Set<String>> worrisomeSets;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     _zk = mc.getZooKeeper();
     esStarts = new HashMap<>();

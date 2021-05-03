@@ -10,12 +10,11 @@ import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Reads new rings when necessary. Presents these as DHTMetaUpdates for compatibility with
@@ -67,14 +66,9 @@ public class DHTMetaReader {
     NamedRingConfiguration namedRingConfig;
     RingConfiguration ringConfig;
     InstantiatedRingTree ringTree;
-    //        long                ringConfigVersion;
-    //        long                configInstanceVersion;
     int readAttemptIndex;
     int ringReadAttempts = 20;
     int ringReadRetryInvervalSeconds = 2;
-    ZooKeeperExtended zk;
-
-    zk = mc.getZooKeeper();
 
     if (EmbeddedSK.embedded()) {
       namedRingConfig = EmbeddedSK.getEmbeddedNamedRingConfiguration(ringName);
@@ -82,7 +76,6 @@ public class DHTMetaReader {
       // unresolved
       namedRingConfig = new NamedRingConfiguration(ringName, RingConfiguration.emptyTemplate);
       ringMC = new com.ms.silverking.cloud.toporing.meta.MetaClient(namedRingConfig, zkConfig);
-      //            ringConfigVersion = zk.getVersionPriorTo(ringMC.getMetaPaths().getConfigPath(), zkidLimit);
       try {
         ringConfig = new RingConfigurationZK(ringMC).readFromZK(ringConfigVersion, null);
       } catch (Exception e) {
@@ -98,17 +91,12 @@ public class DHTMetaReader {
     }
     ringMC = new com.ms.silverking.cloud.toporing.meta.MetaClient(namedRingConfig, zkConfig);
 
-    //        configInstanceVersion = zk.getVersionPriorTo(ringMC.getMetaPaths().getConfigInstancePath
-    //        (ringConfigVersion), zkidLimit);
     if (enableLogging) {
       Log.warning("configInstanceVersion:: " + configInstanceVersion);
     }
     if (configInstanceVersion < 0) {
       throw new RuntimeException("Invalid configInstanceVersion: " + configInstanceVersion);
     }
-    //        if (configInstanceVersion == -1) {
-    //            configInstanceVersion = 0;
-    //        }
 
     // FUTURE - we shouldn't get here unless it's valid. Think about error messages if invalid, instead of waiting.
     Log.warning("Waiting until valid " + ringMC.getMetaPaths().getConfigInstancePath(
@@ -121,7 +109,7 @@ public class DHTMetaReader {
     readAttemptIndex = 0;
     while (ringTree == null) {
       try {
-        ringTree = SingleRingZK.readTree(ringMC, ringConfigVersion, configInstanceVersion);//, weightsVersion);
+        ringTree = SingleRingZK.readTree(ringMC, ringConfigVersion, configInstanceVersion);
       } catch (Exception e) {
         if (++readAttemptIndex >= ringReadAttempts) {
           throw new RuntimeException("Ring read failed", e);
@@ -135,28 +123,4 @@ public class DHTMetaReader {
     }
     return new DHTMetaUpdate(dhtConfig, namedRingConfig, ringTree, mc);
   }
-
-    /*
-    public static void main(String[] args) {
-        try {
-            if (args.length != 3) {
-                System.out.println("args: <zkConfig> <mapConfig> <intervalSeconds>>");
-            } else {
-                ZooKeeperConfig zkConfig;
-                DHTMetaReader  dw;
-                String          dhtName;
-                long            intervalMillis;
-                
-                zkConfig = new ZooKeeperConfig(args[0]);
-                dhtName = args[1];
-                intervalMillis = Integer.parseInt(args[2]) * 1000;
-                dw = new DHTMetaReader(zkConfig, dhtName, intervalMillis);
-                dw.addListener(new RingUpdateListenerTest());
-                Thread.sleep(60 * 60 * 1000);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    */
 }

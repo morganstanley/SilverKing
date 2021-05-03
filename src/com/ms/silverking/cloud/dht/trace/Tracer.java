@@ -11,9 +11,11 @@ public interface Tracer extends HasTracerContext {
    */
 
   // Phase 0: scheduling of receiving and handling request
-  void onBothReceiveRequest(byte[] traceID);
+  void onBothReceiveRequest(byte[] traceID, MessageType msgType);
 
   void onBothHandleRetrievalRequest(byte[] traceID);
+
+  void onAuthorizationFailure(byte[] traceID);
 
   // Phase 1: if proxy is going to forward message
   byte[] issueForwardTraceID(byte[] maybeTraceID, IPAndPort replica, MessageType msgType,
@@ -36,6 +38,14 @@ public interface Tracer extends HasTracerContext {
   void onLocalReap(long elapsedTime);
 
   void onForceReap(long elapsedTime);
+
+  // On reap of a full segment via segment level retention policy
+  void onSegmentReap(int segNum, String cTime);
+
+  // On reap of a segment via key level retention policy
+  void onKeysReap(int segNum, int keys, String cTime);
+
+  void onSegmentRollover(int newSegNum);
 
   void onQueueLengthInterval(int queueLength);
 }

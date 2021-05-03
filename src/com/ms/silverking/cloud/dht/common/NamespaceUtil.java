@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.ms.silverking.cloud.dht.ConsistencyProtocol;
-import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.cloud.dht.GetOptions;
 import com.ms.silverking.cloud.dht.InvalidationOptions;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
@@ -18,6 +17,7 @@ import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.client.KeyDigestType;
 import com.ms.silverking.cloud.dht.client.impl.NamespaceCreator;
 import com.ms.silverking.cloud.dht.client.impl.SimpleNamespaceCreator;
+import com.ms.silverking.cloud.dht.ForwardingMode;
 import com.ms.silverking.numeric.NumConversion;
 
 public class NamespaceUtil {

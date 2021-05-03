@@ -2,21 +2,16 @@ package com.ms.silverking.cloud.meta;
 
 import java.io.IOException;
 
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 
 public class MetaClientBase<T extends MetaPathsBase> extends MetaClientCore {
   protected final T metaPaths;
 
-  public MetaClientBase(T metaPaths, ZooKeeperConfig zkConfig, Watcher watcher) throws IOException, KeeperException {
-    super(zkConfig, watcher);
+  public MetaClientBase(T metaPaths, ZooKeeperConfig zkConfig) throws IOException, KeeperException {
+    super(zkConfig);
     this.metaPaths = metaPaths;
-  }
-
-  public MetaClientBase(T paths, ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-    this(paths, zkConfig, null);
   }
 
   public T getMetaPaths() {
@@ -45,12 +40,6 @@ public class MetaClientBase<T extends MetaPathsBase> extends MetaClientCore {
       } else {
         throw new RuntimeException("Path doesn't exist: " + path);
       }
-    }
-  }
-
-  public void ensurePathDoesNotExist(String path) throws KeeperException {
-    if (getZooKeeper().exists(path)) {
-      throw new RuntimeException("Path exists: " + path);
     }
   }
 }

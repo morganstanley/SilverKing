@@ -2,7 +2,7 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import com.ms.silverking.cloud.dht.collection.PKCReaderWriter;
 import com.ms.silverking.cloud.dht.collection.SVTReaderWriter;
-import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
+import com.ms.silverking.collection.cuckoo.WritableCuckooConfig;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.numeric.NumConversion;
 import com.ms.silverking.util.PropertiesHelper;
@@ -56,6 +56,7 @@ public class StoreConfiguration {
 
   public static final WritableCuckooConfig fileInitialCuckooConfig = new WritableCuckooConfig(
       fileSegmentPKCTotalEntries, fileSegmentPKCSubTables, fileSegmentPKCEntriesPerBucket, fileSegmentPKCCuckooLimit);
+  public static final WritableCuckooConfig fileInitialOffsetCuckooConfig = fileInitialCuckooConfig;
 
   public static final int dataSegmentSizeBytes = 64 * 1024 * 1024;
 

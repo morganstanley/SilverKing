@@ -2,6 +2,9 @@ package com.ms.silverking.cloud.dht.daemon.storage;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -94,7 +97,17 @@ class RAMOffsetList extends OffsetListBase {
     }
   }
 
-  public void removeEntriesByMatch(Set<Triple<Long, Integer, Long>> entriesToRemove) {
+  public void removeEntriesByMatch(Set<CompactorModifiedEntry> entriesToRemove) {
+    Set<Triple<Long, Integer, Long>> _entriesToRemove;
+
+    _entriesToRemove = new HashSet<>(entriesToRemove.size());
+    for (CompactorModifiedEntry entry : entriesToRemove) {
+      _entriesToRemove.add(new Triple<>(entry.getVersion(), entry.getRawSegmentNumber(), entry.getCreationTime()));
+    }
+    _removeEntriesByMatch(_entriesToRemove);
+  }
+
+  private void _removeEntriesByMatch(Set<Triple<Long, Integer, Long>> entriesToRemove) {
     int numEntries;
 
     numEntries = getNumEntries();
@@ -104,6 +117,45 @@ class RAMOffsetList extends OffsetListBase {
       listEntry = new Triple<>(getVersion(i), getOffset(i), supportsStorageTime ? getStorageTime(i) : 0);
       if (entriesToRemove.contains(listEntry)) {
         removeEntryAt(i);
+      }
+    }
+  }
+
+  public void updateEntriesByMatch(Set<CompactorModifiedEntry> entriesToUpdate) {
+    Map<Triple<Long, Integer, Long>,Integer> _entriesToUpdate;
+
+    _entriesToUpdate = new HashMap<>();
+    for (CompactorModifiedEntry entry : entriesToUpdate) {
+      _entriesToUpdate.put(new Triple<>(entry.getVersion(), entry.getRawSegmentNumber(), entry.getCreationTime()), entry.getNewSegmentNumber());
+    }
+    _updateEntriesByMatch(_entriesToUpdate);
+  }
+
+  private void _updateEntriesByMatch(Map<Triple<Long, Integer, Long>,Integer> entriesToUpdate) {
+    int numEntries;
+
+    numEntries = getNumEntries();
+    for (int i = numEntries - 1; i >= 0; i--) {
+      Triple<Long, Integer, Long> listEntry;
+      Integer newSegmentNumber;
+
+      listEntry = new Triple<>(getVersion(i), getOffset(i), supportsStorageTime ? getStorageTime(i) : 0);
+      Log.finef("listEntry %s", listEntry);
+      newSegmentNumber = entriesToUpdate.get(listEntry);
+      if (newSegmentNumber != null) {
+        if (newSegmentNumber.intValue() == getOffset(i)) {
+          Log.finef("No update required");
+        } else {
+          Log.finef("Updating to %d", newSegmentNumber);
+          if (newSegmentNumber >= 0) {
+            int baseOffset;
+
+            baseOffset = entryBaseOffset(i);
+            offsetList.set(baseOffset + offsetOffset, newSegmentNumber.intValue());
+          } else {
+            removeEntryAt(i);
+          }
+        }
       }
     }
   }
@@ -130,7 +182,7 @@ class RAMOffsetList extends OffsetListBase {
     int baseOffset;
 
     baseOffset = entryBaseOffset(index);
-    return NumConversion.intsToLong(offsetList.get(baseOffset + msiOffset), offsetList.get(baseOffset + lsiOffset));
+    return NumConversion.intsToLong(offsetList.getInt(baseOffset + msiOffset), offsetList.getInt(baseOffset + lsiOffset));
   }
 
   @Override
@@ -140,13 +192,13 @@ class RAMOffsetList extends OffsetListBase {
     assert supportsStorageTime;
 
     baseOffset = entryBaseOffset(index);
-    return NumConversion.intsToLong(offsetList.get(baseOffset + storageTimeMsiOffset),
-        offsetList.get(baseOffset + storageTimeLsiOffset));
+    return NumConversion.intsToLong(offsetList.getInt(baseOffset + storageTimeMsiOffset),
+        offsetList.getInt(baseOffset + storageTimeLsiOffset));
   }
 
   @Override
   protected int getOffset(int index) {
-    return offsetList.get(entryBaseOffset(index) + offsetOffset);
+    return offsetList.getInt(entryBaseOffset(index) + offsetOffset);
   }
 
   @Override

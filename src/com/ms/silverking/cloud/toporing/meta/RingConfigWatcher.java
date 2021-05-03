@@ -10,11 +10,11 @@ import com.ms.silverking.cloud.meta.VersionListener;
 import com.ms.silverking.cloud.meta.VersionWatcher;
 import com.ms.silverking.cloud.toporing.SingleRingZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Watches a ring configuration for changes. Notifies listeners when changes occur.
@@ -111,7 +111,7 @@ public class RingConfigWatcher implements VersionListener {
       attemptIndex = 0;
       do {
         try {
-          creationTime = mc.getZooKeeper().getCreationTime(ZooKeeperExtended.padVersionPath(basePath, version));
+          creationTime = mc.getZooKeeper().getCreationTime(SilverKingZooKeeperClient.padVersionPath(basePath, version));
         } catch (KeeperException e) {
           Log.logErrorWarning(e);
         }

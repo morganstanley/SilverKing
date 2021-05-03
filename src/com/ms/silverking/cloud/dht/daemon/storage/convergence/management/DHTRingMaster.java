@@ -8,10 +8,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.zookeeper.KeeperException;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.DHTNode;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.ChecksumNode;
@@ -39,8 +35,9 @@ import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.meta.RingChangeListener;
 import com.ms.silverking.cloud.toporing.meta.RingConfigWatcher;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Quadruple;
 import com.ms.silverking.collection.Triple;
@@ -53,6 +50,8 @@ import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.BaseWorker;
 import com.ms.silverking.thread.lwt.LWTPoolProvider;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * Observers ZooKeeper for changes in metadata that this DHT is dependent upon.
@@ -597,7 +596,7 @@ public class DHTRingMaster
 
         basePath = com.ms.silverking.cloud.toporing.meta.MetaPaths.getRingConfigPath(ringName);
         creationTime = mc.getZooKeeper().getCreationTime(
-            ZooKeeperExtended.padVersionPath(basePath, configVersion) + "/instance/" + ZooKeeperExtended.padVersion(
+            SilverKingZooKeeperClient.padVersionPath(basePath, configVersion) + "/instance/" + SilverKingZooKeeperClient.padVersion(
                 instance));
       } catch (KeeperException e) {
         Log.logErrorWarning(e);

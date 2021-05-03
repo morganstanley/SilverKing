@@ -3,14 +3,16 @@ package com.ms.silverking.cloud.dht.daemon;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
-import com.ms.silverking.log.Log;
 import com.ms.silverking.text.ObjectDefParser2;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DHTNodeOptions {
   public static final int defaultInactiveNodeTimeoutSeconds = Integer.MAX_VALUE;
+  private static Logger log = LoggerFactory.getLogger(DHTNodeOptions.class);
 
   @Option(name = "-n", usage = "dhtName", required = true)
   public String dhtName;
@@ -31,8 +33,8 @@ public class DHTNodeOptions {
   @Option(name = "-daemonIP", usage = "daemonIP", required = false)
   String daemonIP;
 
-  @Option(name = "-port", usage =
-      "Port to use for this node instead of the one declared in DHTConfig. IP Aliasing " + "must be used to allow " +
+  @Option(name = "-port", usage = "Port to use for this node instead of the one declared in DHTConfig. IP Aliasing " +
+                                  "must be used to allow " +
           "other nodes to connect.")
   public int daemonPortOverride = DHTConstants.noPortOverride;
 
@@ -45,13 +47,13 @@ public class DHTNodeOptions {
     try {
       parser.parseArgument(args);
     } catch (CmdLineException cle) {
-      Log.logErrorWarning(cle);
+      log.error("Error while parsing command-line arguments", cle);
       System.err.println(cle.getMessage());
       parser.printUsage(System.err);
       System.exit(-1);
     }
     if (options.daemonIP != null && options.daemonPortOverride != DHTConstants.noPortOverride) {
-      Log.warning("Only one of daemonIP and daemonPortOverride may be set");
+      log.error("Only one of daemonIP and daemonPortOverride may be set");
       parser.printUsage(System.err);
       System.exit(-1);
     }

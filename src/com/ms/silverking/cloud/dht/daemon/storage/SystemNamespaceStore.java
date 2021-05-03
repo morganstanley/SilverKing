@@ -23,13 +23,13 @@ import com.ms.silverking.cloud.dht.daemon.RingHealth;
 import com.ms.silverking.cloud.dht.meta.NodeInfoZK;
 import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.meta.ExclusionSet;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.text.StringUtil;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Provides information regarding the dht system as a whole

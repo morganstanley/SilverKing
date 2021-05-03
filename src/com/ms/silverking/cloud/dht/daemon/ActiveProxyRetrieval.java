@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -41,9 +40,10 @@ import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
-import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.text.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Retrieval executed on behalf of a client.
@@ -55,6 +55,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   private final RetrievalOperation retrievalOperation;
   private final Set<SecondaryTarget> secondaryTargets;
   private RetrievalCommunicator rComm;
+  private static Logger log = LoggerFactory.getLogger(ActiveProxyOperation.class);
 
   // FUTURE - combine common functionality between this class
   // and ActiveProxyPut
@@ -63,22 +64,32 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
 
   private static final int resultListInitialSize = 10;
 
-  ActiveProxyRetrieval(MessageGroup message, ByteBuffer optionsByteBuffer, MessageGroupConnectionProxy connection,
-      MessageModule messageModule, StorageModule storage, InternalRetrievalOptions retrievalOptions,
-      RetrievalProtocol retrievalProtocol, long absDeadlineMillis) {
+  ActiveProxyRetrieval(MessageGroup message,
+                       ByteBuffer optionsByteBuffer,
+                       MessageGroupConnectionProxy connection,
+                       MessageModule messageModule,
+                       StorageModule storage,
+                       InternalRetrievalOptions retrievalOptions,
+                       RetrievalProtocol retrievalProtocol,
+                       long absDeadlineMillis) {
     super(connection, message, optionsByteBuffer, messageModule, absDeadlineMillis, true);
     this.retrievalOptions = getRetrievalOptions(message, retrievalOptions, getMaybeTraceID());
     this.retrievalOperation = retrievalProtocol.createRetrievalOperation(
-        message.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()), this, getForwardingMode(message));
+        message.getDeadlineAbsMillis(messageModule.getAbsMillisTimeSource()),
+        this,
+        getForwardingMode(message));
     secondaryTargets = retrievalOptions.getRetrievalOptions().getSecondaryTargets();
     super.setOperation(retrievalOperation);
   }
 
   private static InternalRetrievalOptions getRetrievalOptions(MessageGroup message,
-      InternalRetrievalOptions retrievalOptions, byte[] maybeTraceID) {
-    return StorageModule.isDynamicNamespace(message.getContext()) ? retrievalOptions.retrievalOptions(
-        retrievalOptions.getRetrievalOptions().forwardingMode(ForwardingMode.DO_NOT_FORWARD)).maybeTraceID(
-        maybeTraceID) : retrievalOptions.maybeTraceID(maybeTraceID);
+                                                              InternalRetrievalOptions retrievalOptions,
+                                                              byte[] maybeTraceID) {
+    return StorageModule.isDynamicNamespace(message.getContext())
+           ? retrievalOptions.retrievalOptions(retrievalOptions.getRetrievalOptions()
+                                                               .forwardingMode(ForwardingMode.DO_NOT_FORWARD))
+                             .maybeTraceID(maybeTraceID)
+           : retrievalOptions.maybeTraceID(maybeTraceID);
   }
 
   //protected OpVirtualCommunicator<DHTKey,RetrievalResult> createCommunicator() {
@@ -100,28 +111,42 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     //message = null; // free payload for GC
   }
 
-  protected void processInitialMessageGroupEntry(DHTKey entry, List<IPAndPort> primaryReplicas,
-      List<IPAndPort> secondaryReplicas, OpCommunicator<DHTKey, RetrievalResult> comm) {
+  protected void processInitialMessageGroupEntry(DHTKey entry,
+                                                 List<IPAndPort> primaryReplicas,
+                                                 List<IPAndPort> secondaryReplicas,
+                                                 OpCommunicator<DHTKey, RetrievalResult> comm) {
     List<IPAndPort> filteredSecondaryReplicas;
 
-    filteredSecondaryReplicas = getFilteredSecondaryReplicas(entry, primaryReplicas, secondaryReplicas, comm,
+    filteredSecondaryReplicas = getFilteredSecondaryReplicas(entry,
+                                                             primaryReplicas,
+                                                             secondaryReplicas,
+                                                             comm,
         secondaryTargets);
     super.processInitialMessageGroupEntry(entry, primaryReplicas, filteredSecondaryReplicas, comm);
   }
 
   protected <L extends DHTKey> void forwardGroupedEntries(Map<IPAndPort, List<L>> destEntryMap,
-      ByteBuffer optionsByteBuffer, ForwardCreator<L> forwardCreator, OpCommunicator<DHTKey, RetrievalResult> comm) {
+                                                          ByteBuffer optionsByteBuffer,
+                                                          ForwardCreator<L> forwardCreator,
+                                                          OpCommunicator<DHTKey, RetrievalResult> comm) {
     super.forwardGroupedEntries(destEntryMap, optionsByteBuffer, forwardCreator, comm);
   }
 
   private class RetrievalForwardCreator implements ForwardCreator<DHTKey> {
     @Override
-    public MessageGroup createForward(List<DHTKey> destEntries, ByteBuffer optionsByteBuffer,
+    public MessageGroup createForward(List<DHTKey> destEntries,
+                                      ByteBuffer optionsByteBuffer,
         byte[] traceIDInFinalReplica) {
       ProtoKeyedMessageGroup protoMG;
 
-      protoMG = new ProtoRetrievalMessageGroup(uuid, namespace, retrievalOptions, originator, destEntries,
-          messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis), traceIDInFinalReplica);
+      protoMG = new ProtoRetrievalMessageGroup(uuid,
+                                               namespace,
+                                               retrievalOptions,
+                                               originator,
+                                               destEntries,
+                                               messageModule.getAbsMillisTimeSource()
+                                                            .relMillisRemaining(absDeadlineMillis),
+                                               traceIDInFinalReplica);
       return protoMG.toMessageGroup();
     }
   }
@@ -130,20 +155,23 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     RetrievalResult retrievalResult;
 
     if (debug) {
-      Log.warning("localRetrieval: ", entry);
+      log.debug("localRetrieval: {}", entry);
       System.out.printf("result %s %s\n", result, StringUtil.byteBufferToHexString(result));
     }
 
     // FUTURE - THIS NEEDS TO GO THROUGH THE PROTOCOL
     // INSTEAD OF PROTOCOL SEMANTICS BEING HANDLED HERE
 
-    Log.fine(entry);
+    log.debug("{}",entry);
     if (result != null && result != ValueUtil.corruptValue) {
       retrievalResult = new RetrievalResult(entry, OpResult.SUCCEEDED, result);
     } else {
       if (result != ValueUtil.corruptValue) {
-        if (retrievalOptions.getWaitMode() != WaitMode.WAIT_FOR || messageModule.getReplicaList(getContext(), entry,
-            OwnerQueryMode.Secondary, RingOwnerQueryOpType.Read).contains(localIPAndPort())) {
+        if (retrievalOptions.getWaitMode() != WaitMode.WAIT_FOR || messageModule.getReplicaList(getContext(),
+                                                                                                entry,
+                                                                                                OwnerQueryMode.Secondary,
+                                                                                                RingOwnerQueryOpType.Read)
+                                                                                .contains(localIPAndPort())) {
           retrievalResult = new RetrievalResult(entry, OpResult.NO_SUCH_VALUE, null);
         } else {
           retrievalResult = null;
@@ -231,7 +259,9 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
       if (debug) {
         System.out.println("replica: " + replica);
       }
-      retrievalOperation.update(entry, replica, new RetrievalResult(entry, entry.getOpResult(), entry.getValue()),
+      retrievalOperation.update(entry,
+                                replica,
+                                new RetrievalResult(entry, entry.getOpResult(), entry.getValue()),
           rComm);
     }
     sendResults(rComm);
@@ -241,12 +271,12 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     }
     if (retrievalOptions.getRetrievalOptions().getUpdateSecondariesOnMiss()) {
       if (debug) {
-        Log.warning("ActiveProxyRetrieval calling sendSecondaryReplicasUpdates");
+        log.debug("ActiveProxyRetrieval calling sendSecondaryReplicasUpdates");
       }
       sendSecondaryReplicasUpdates(rComm);
     } else {
       if (debug) {
-        Log.warning("ActiveProxyRetrieval *no* sendSecondaryReplicasUpdates");
+        log.debug("ActiveProxyRetrieval *no* sendSecondaryReplicasUpdates");
       }
     }
     return retrievalOperation.getOpResult();
@@ -256,7 +286,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   public OpResult exclusionsChanged(Set<IPAndPort> excludedReplicas, Set<IPAndPort> includedReplicas) {
     OpResult  exclusionResult;
     
-    Log.infof("ActiveProxyRetrieval.exclusionsChanged");
+    log.info("ActiveProxyRetrieval.exclusionsChanged");
     exclusionResult = replicasExcluded(excludedReplicas);
     if (exclusionResult.isComplete()) {
       return exclusionResult;
@@ -272,8 +302,8 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     RetrievalCommunicator rComm;
     Map<IPAndPort, List<DHTKey>> destEntryMap;
     
-    if (Log.levelMet(Level.INFO)) { 
-      Log.infof("ActiveProxyRetrieval.replicasIncluded %s", CollectionUtil.toString(includedReplicas));
+    if (log.isInfoEnabled()) {
+      log.info("ActiveProxyRetrieval.replicasIncluded {}", CollectionUtil.toString(includedReplicas));
     }
     rComm = new RetrievalCommunicator();
     for (IPAndPort replica : includedReplicas) {
@@ -288,8 +318,8 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   }
   
   public void replicaIncluded(IPAndPort replica, RetrievalCommunicator rComm) {
-    if (Log.levelMet(Level.INFO)) { 
-      Log.infof("ActiveProxyRetrieval.replicaIncluded %s", replica);
+    if (log.isInfoEnabled()) {
+      log.info("ActiveProxyRetrieval.replicaIncluded {}", replica);
     }
     retrievalOperation.replicaIncluded(replica, rComm);
   }
@@ -298,9 +328,10 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     RetrievalCommunicator rComm;
     Map<IPAndPort, List<DHTKey>> destEntryMap;
     
-    if (Log.levelMet(Level.INFO)) { 
-      Log.infof("ActiveProxyRetrieval.replicasExcluded %s", CollectionUtil.toString(excludedReplicas));
+    if (log.isInfoEnabled()) {
+      log.info("ActiveProxyRetrieval.replicasExcluded {}", CollectionUtil.toString(excludedReplicas));
     }
+
     rComm = new RetrievalCommunicator();
     for (IPAndPort replica : excludedReplicas) {
       replicaExcluded(replica, rComm);
@@ -314,9 +345,10 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
   }
   
   public void replicaExcluded(IPAndPort replica, RetrievalCommunicator rComm) {
-	if (Log.levelMet(Level.INFO)) { 
-      Log.infof("ActiveProxyRetrieval.replicaExcluded %s", replica);
+    if(log.isInfoEnabled()) {
+      log.info("ActiveProxyRetrieval.replicaExcluded {}", replica);
 	}
+
     retrievalOperation.replicaExcluded(replica, rComm);
   }
   
@@ -357,7 +389,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
    */
   protected void sendResults(List<RetrievalResult> results) {
     if (debug) {
-      System.out.printf("ActiveProxyRetrieval.sendresults() %d\n", results.size());
+      log.debug("ActiveProxyRetrieval.sendresults() {}\n", results.size());
     }
         /*
         debugString.append("***\n");
@@ -372,9 +404,9 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
         byte[] _originator;
         List<List<RetrievalResult>> resultGroups;
 
-        _originator = ConvergenceController2.isChecksumVersionConstraint(retrievalOptions.getVersionConstraint()) ?
-            originator :
-            messageModule.getMessageGroupBase().getMyID();
+        _originator = ConvergenceController2.isChecksumVersionConstraint(retrievalOptions.getVersionConstraint())
+                      ? originator
+                      : messageModule.getMessageGroupBase().getMyID();
 
         resultGroups = createResultGroups(results);
         for (List<RetrievalResult> resultGroup : resultGroups) {
@@ -382,14 +414,19 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
           int groupLength;
 
           groupLength = RetrievalResult.totalResultLength(resultGroup);
-          pmg = new ProtoValueMessageGroup(uuid, namespace, results.size(), groupLength, _originator,
-              messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis), maybeTraceID);
+          pmg = new ProtoValueMessageGroup(uuid,
+                                           namespace,
+                                           results.size(),
+                                           groupLength,
+                                           _originator,
+                                           messageModule.getAbsMillisTimeSource().relMillisRemaining(absDeadlineMillis),
+                                           maybeTraceID);
           for (RetrievalResult result : resultGroup) {
             DHTKey key;
             ByteBuffer value;
 
             if (debug) {
-              System.out.println(result);
+              log.debug("{}",result);
             }
             key = result.getKey();
             if (retrievalOptions.getWaitMode() != WaitMode.WAIT_FOR || result.getValue() == null) {
@@ -443,7 +480,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     Set<IPAndPort> timedOutReplicas;
 
     if (debug) {
-      System.out.println("checkForReplicaTimeouts " + uuid + " " + getOpResult());
+      log.debug("checkForReplicaTimeouts {} {}", uuid, getOpResult());
     }
     timedOutReplicas = new HashSet<>();
     rComm = new RetrievalCommunicator();
@@ -451,7 +488,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
     destEntryMap = rComm.takeReplicaMessageLists();
     if (destEntryMap != null) {
       if (debug) {
-        System.out.println("forwardGroupedEntries");
+        log.debug("forwardGroupedEntries");
       }
       forwardGroupedEntries(destEntryMap, optionsByteBuffer, new RetrievalForwardCreator(), rComm);
     }
@@ -485,13 +522,18 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
 
     value = (ByteBuffer) buf.duplicate().flip();
     if (debug) {
-      System.out.printf("buf   %s\n", buf);
-      System.out.printf("value %s\n", value);
-      System.out.printf("valueBytes %d valueLength %d\n", valueBytes, valueLength);
+      log.debug("buf   {}\n", buf);
+      log.debug("value {}\n", value);
+      log.debug("valueBytes {} valueLength {}\n", valueBytes, valueLength);
     }
     // TODO: consider using a child of traceID for replica update
-    pmg = new ProtoValueMessageGroup(new UUIDBase(), message.getContext(), 1, valueBytes, creator.getBytes(),
-        DHTConstants.defaultSecondaryReplicaUpdateTimeoutMillis, maybeTraceID);
+    pmg = new ProtoValueMessageGroup(new UUIDBase(),
+                                     message.getContext(),
+                                     1,
+                                     valueBytes,
+                                     creator.getBytes(),
+                                     DHTConstants.defaultSecondaryReplicaUpdateTimeoutMillis,
+                                     maybeTraceID);
     pmg.addValue(result.getKey(), value, valueLength, true);
     return pmg;
   }
@@ -517,7 +559,7 @@ public class ActiveProxyRetrieval extends ActiveProxyOperation<DHTKey, Retrieval
       ProtoMessageGroup pmg;
 
       if (debug) {
-        Log.warning("ActiveProxyRetrieval sending secondary replicas update to ", replica);
+        log.debug("ActiveProxyRetrieval sending secondary replicas update to {}", replica);
       }
       //pmg = createPutForSecondaryReplicas(result);
       pmg = createValueMessageForSecondaryReplicas(result);

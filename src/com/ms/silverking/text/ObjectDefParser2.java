@@ -6,62 +6,142 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.google.common.collect.ImmutableSet;
-import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 
 public class ObjectDefParser2 {
   private static final ConcurrentMap<Class, ClassParser> classParserMap = new ConcurrentHashMap<>();
+  public static final ObjectMapper objectMapper;
+
+  static {
+    objectMapper = new ObjectMapper(new YAMLFactory().enable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+    objectMapper.activateDefaultTyping(new LaissezFaireSubTypeValidator(),
+                                       ObjectMapper.DefaultTyping.NON_FINAL,
+                                       JsonTypeInfo.As.PROPERTY);
+  }
 
   static final boolean debug = false;
   private static final boolean debugAddParser = false;
 
-  public static <T> void addParser(Class<T> _class, T template, FieldsRequirement fieldsRequirement,
-      NonFatalExceptionResponse nonFatalExceptionResponse, String fieldDefDelimiter, String nameValueDelimiter,
-      Set<String> optionalFields, Set<String> exclusionFields, Class[] constructorFieldClasses,
+  public static <T> void addParser(Class<T> _class,
+                                   T template,
+                                   FieldsRequirement fieldsRequirement,
+                                   NonFatalExceptionResponse nonFatalExceptionResponse,
+                                   String fieldDefDelimiter,
+                                   String nameValueDelimiter,
+                                   Set<String> optionalFields,
+                                   Set<String> exclusionFields,
+                                   Class[] constructorFieldClasses,
       String[] constructorFieldNames) {
     if (debugAddParser) {
       System.out.printf("addParser(%s)\n", _class.getName());
     }
-    classParserMap.put(_class,
-        new ClassParser<>(_class, template, fieldsRequirement, nonFatalExceptionResponse, fieldDefDelimiter,
-            nameValueDelimiter, optionalFields, exclusionFields, constructorFieldClasses, constructorFieldNames));
+    classParserMap.put(_class, new ClassParser<>(_class,
+                                                 template,
+                                                 fieldsRequirement,
+                                                 nonFatalExceptionResponse,
+                                                 fieldDefDelimiter,
+                                                 nameValueDelimiter,
+                                                 optionalFields,
+                                                 exclusionFields,
+                                                 constructorFieldClasses,
+                                                 constructorFieldNames));
   }
 
-  public static <T> void addParser(Class<T> _class, T template, FieldsRequirement fieldsRequirement,
-      NonFatalExceptionResponse nonFatalExceptionResponse, String fieldDefDelimiter, String nameValueDelimiter,
-      Set<String> optionalFields, Set<String> exclusionFields) {
-    addParser(_class, template, fieldsRequirement, nonFatalExceptionResponse, fieldDefDelimiter, nameValueDelimiter,
-        optionalFields, exclusionFields, null, null);
+  public static <T> void addParser(Class<T> _class,
+                                   T template,
+                                   FieldsRequirement fieldsRequirement,
+                                   NonFatalExceptionResponse nonFatalExceptionResponse,
+                                   String fieldDefDelimiter,
+                                   String nameValueDelimiter,
+                                   Set<String> optionalFields,
+                                   Set<String> exclusionFields) {
+    addParser(_class,
+              template,
+              fieldsRequirement,
+              nonFatalExceptionResponse,
+              fieldDefDelimiter,
+              nameValueDelimiter,
+              optionalFields,
+              exclusionFields,
+              null,
+              null);
   }
 
-  public static <T> void addParser(T template, FieldsRequirement fieldsRequirement,
-      NonFatalExceptionResponse nonFatalExceptionResponse, String fieldDefDelimiter, String nameValueDelimiter,
-      Set<String> optionalFields, Set<String> exclusionFields) {
-    addParser((Class<T>) template.getClass(), template, fieldsRequirement, nonFatalExceptionResponse, fieldDefDelimiter,
-        nameValueDelimiter, optionalFields, exclusionFields);
+  public static <T> void addParser(T template,
+                                   FieldsRequirement fieldsRequirement,
+                                   NonFatalExceptionResponse nonFatalExceptionResponse,
+                                   String fieldDefDelimiter,
+                                   String nameValueDelimiter,
+                                   Set<String> optionalFields,
+                                   Set<String> exclusionFields) {
+    addParser((Class<T>) template.getClass(),
+              template,
+              fieldsRequirement,
+              nonFatalExceptionResponse,
+              fieldDefDelimiter,
+              nameValueDelimiter,
+              optionalFields,
+              exclusionFields);
   }
 
-  public static <T> void addParser(T template, FieldsRequirement fieldsRequirement, String fieldDefDelimiter,
-      String nameValueDelimiter, Set<String> optionalFields, Set<String> exclusionFields) {
-    addParser(template, fieldsRequirement, NonFatalExceptionResponse.THROW_EXCEPTIONS, fieldDefDelimiter,
-        nameValueDelimiter, optionalFields, exclusionFields);
+  public static <T> void addParser(T template,
+                                   FieldsRequirement fieldsRequirement,
+                                   String fieldDefDelimiter,
+                                   String nameValueDelimiter,
+                                   Set<String> optionalFields,
+                                   Set<String> exclusionFields) {
+    addParser(template,
+              fieldsRequirement,
+              NonFatalExceptionResponse.THROW_EXCEPTIONS,
+              fieldDefDelimiter,
+              nameValueDelimiter,
+              optionalFields,
+              exclusionFields);
   }
 
-  public static <T> void addParser(Class<T> _class, T template, FieldsRequirement fieldsRequirement,
-      String fieldDefDelimiter, String nameValueDelimiter, Set<String> optionalFields, Set<String> exclusionFields) {
-    addParser(_class, template, fieldsRequirement, NonFatalExceptionResponse.THROW_EXCEPTIONS, fieldDefDelimiter,
-        nameValueDelimiter, optionalFields, exclusionFields);
+  public static <T> void addParser(Class<T> _class,
+                                   T template,
+                                   FieldsRequirement fieldsRequirement,
+                                   String fieldDefDelimiter,
+                                   String nameValueDelimiter,
+                                   Set<String> optionalFields,
+                                   Set<String> exclusionFields) {
+    addParser(_class,
+              template,
+              fieldsRequirement,
+              NonFatalExceptionResponse.THROW_EXCEPTIONS,
+              fieldDefDelimiter,
+              nameValueDelimiter,
+              optionalFields,
+              exclusionFields);
   }
 
   public static <T> void addParser(T template, FieldsRequirement fieldsRequirement, Set<String> optionalFields) {
     addParser(template, fieldsRequirement, null, null, optionalFields, null);
   }
 
-  public static <T> void addParser(T template, FieldsRequirement fieldsRequirement, Set<String> optionalFields,
-      Class[] constructorFieldClasses, String[] constructorFieldNames) {
-    addParser((Class<T>) template.getClass(), template, fieldsRequirement, NonFatalExceptionResponse.THROW_EXCEPTIONS,
-        null, null, optionalFields, null, constructorFieldClasses, constructorFieldNames);
+  public static <T> void addParser(T template,
+                                   FieldsRequirement fieldsRequirement,
+                                   Set<String> optionalFields,
+                                   Class[] constructorFieldClasses,
+                                   String[] constructorFieldNames) {
+    addParser((Class<T>) template.getClass(),
+              template,
+              fieldsRequirement,
+              NonFatalExceptionResponse.THROW_EXCEPTIONS,
+              null,
+              null,
+              optionalFields,
+              null,
+              constructorFieldClasses,
+              constructorFieldNames);
   }
 
   public static <T> void addParser(T template, Set<String> optionalFields, Set<String> exclusionFields) {
@@ -80,7 +160,9 @@ public class ObjectDefParser2 {
     addParser(template, FieldsRequirement.ALLOW_INCOMPLETE, null, null, null, exclusionFields);
   }
 
-  public static <T> void addParserWithExclusions(Class<T> _class, T template, FieldsRequirement fieldsRequirement,
+  public static <T> void addParserWithExclusions(Class<T> _class,
+                                                 T template,
+                                                 FieldsRequirement fieldsRequirement,
       Set<String> exclusionFields) {
     addParser(_class, template, fieldsRequirement, null, null, null, exclusionFields);
   }
@@ -97,8 +179,8 @@ public class ObjectDefParser2 {
     return "<" + o.getClass().getCanonicalName() + ">{" + ObjectDefParser2.objectToString(o) + "}";
   }
 
-  private static Pair<Class, String> getClassAndDef(String nameAndDef, Package defaultPackage) {
-    Class _class;
+  public static <T> T parse(String nameAndDef, Package defaultPackage) {
+    Class<T> _class;
     String def;
 
     nameAndDef = nameAndDef.trim();
@@ -117,26 +199,36 @@ public class ObjectDefParser2 {
         }
       }
       try {
-        _class = Class.forName(classDef);
+        _class = (Class<T>) Class.forName(classDef);
       } catch (ClassNotFoundException e) {
         throw new RuntimeException("Can't find class for: " + classDef);
       }
     } else {
       throw new RuntimeException("Bad nameAndDef. Missing <");
     }
-    return new Pair<>(_class, def);
+
+    return parse(_class, def);
   }
 
-  public static <T> T parse(String nameAndDef, Package defaultPackage) {
-    Pair<Class, String> classAndDef;
-
-    classAndDef = getClassAndDef(nameAndDef, defaultPackage);
-    return parse(classAndDef.getV1(), classAndDef.getV2());
+  public static <T> T parse(Class<T> clazz, String def) {
+    if (def.startsWith("---")) {
+      return parseFromYaml(clazz, def);
+    } else {
+      return parseFromObjDefFormat(clazz, def);
+    }
   }
 
-  public static <T> T parse(Class _class, String def) {
+  private static <T> T parseFromYaml(Class<T> clazz, String def) {
+    try {
+      return objectMapper.readValue(def, clazz);
+    } catch (JsonProcessingException e) {
+      throw new ObjectDefParseException("Could not parse value of type " + clazz.getName(), e);
+    }
+  }
+
+  private static <T> T parseFromObjDefFormat(Class<T> _class, String def) {
     ClassParser<T> cp;
-    Class type;
+    Class<T> type;
 
     if (debug) {
       Thread.dumpStack();
@@ -164,14 +256,14 @@ public class ObjectDefParser2 {
           typeName = type.getPackage().getName() + "." + typeName;
         }
         try {
-          type = Class.forName(typeName);
+          type = (Class<T>) Class.forName(typeName);
         } catch (ClassNotFoundException cnfe) {
           throw new ObjectDefParseException(cnfe);
         }
       }
 
-      if (def.startsWith(Character.toString(ClassParser.recursiveDefDelimiterStart)) && def.endsWith(
-          Character.toString(ClassParser.recursiveDefDelimiterEnd))) {
+      if (def.startsWith(Character.toString(ClassParser.recursiveDefDelimiterStart)) && def.endsWith(Character.toString(
+          ClassParser.recursiveDefDelimiterEnd))) {
         def = def.substring(1, def.length() - 1);
       } else {
         throw new ObjectDefParseException("sub def not delimited: " + def);
@@ -185,8 +277,11 @@ public class ObjectDefParser2 {
   public static <T> T parse(Class<T> _class, T template, String def) {
     ClassParser<T> cp;
 
-    cp = new ClassParser<T>(template, FieldsRequirement.ALLOW_INCOMPLETE, NonFatalExceptionResponse.THROW_EXCEPTIONS,
-        null, null);
+    cp = new ClassParser<T>(template,
+                            FieldsRequirement.ALLOW_INCOMPLETE,
+                            NonFatalExceptionResponse.THROW_EXCEPTIONS,
+                            null,
+                            null);
     return cp.parse(def);
   }
 

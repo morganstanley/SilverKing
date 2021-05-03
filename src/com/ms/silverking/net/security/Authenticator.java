@@ -37,6 +37,10 @@ public abstract class Authenticator {
     return singleton;
   }
 
+  public static boolean isNoopAuthenticator() {
+    return singleton instanceof NoopAuthenticatorImpl;
+  }
+
   private static AuthenticationFailedAction defAction = AuthenticationFailedAction.THROW_NON_RETRYABLE;
 
   // Factory constructor for AUTH_SUCCESS and AUTH_FAIL
@@ -108,5 +112,29 @@ public abstract class Authenticator {
    *                             when timeout, a corresponding AuthResult shall be returned
    * @return a <b>String</b> id of the authentication succeeds, or an <b>empty</b> if authentication fails
    */
-  public abstract AuthenticationResult syncAuthenticate(final Socket unauthNetwork, boolean serverside, int timeoutInMillisecond);
+  public abstract AuthenticationResult syncAuthenticate(final Socket unauthNetwork, boolean serverside,
+      int timeoutInMillisecond);
+
+  public static void checkForAuthFailure(AuthenticationResult authResult, String connInfo, boolean serverside,
+      Authenticator authenticator) throws NonRetryableAuthFailedException, RetryableAuthFailedException {
+    if (authResult.isFailed()) {
+      String msg = "Connection " + connInfo + " fails to be authenticated from " + (serverside ?
+          "ServerSide" :
+          "ClientSide");
+      switch (authResult.getFailedAction()) {
+      case GO_WITHOUT_AUTH:
+        break;
+      case THROW_NON_RETRYABLE:
+        throw authResult.getFailCause().isPresent() ? new NonRetryableAuthFailedException(msg,
+            authResult.getFailCause().get()) : new NonRetryableAuthFailedException(msg);
+      case THROW_RETRYABLE:
+        throw authResult.getFailCause().isPresent() ? new RetryableAuthFailedException(msg,
+            authResult.getFailCause().get()) : new RetryableAuthFailedException(msg);
+      default:
+        throw new RuntimeException("Connection " + connInfo + " fails to be authenticated from " + (serverside ?
+            "ServerSide" :
+            "ClientSide" + " and action for this failure has NOT been defined: " + "please check the behaviour of " + "injected authenticator [" + authenticator.getName() + "]"));
+      }
+    }
+  }
 }

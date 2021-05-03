@@ -1,8 +1,8 @@
 package com.ms.silverking.cloud.dht.collection.test;
 
-import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
-import com.ms.silverking.cloud.dht.collection.TableFullException;
-import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
+import com.ms.silverking.cloud.dht.collection.IntArrayDHTKeyCuckoo;
+import com.ms.silverking.collection.cuckoo.TableFullException;
+import com.ms.silverking.collection.cuckoo.WritableCuckooConfig;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 
 public class IntRehashTest {
@@ -12,15 +12,15 @@ public class IntRehashTest {
   private static final int cuckooLimit = 32;
 
   public static void rehashTest(int size) {
-    IntArrayCuckoo map;
+    IntArrayDHTKeyCuckoo map;
 
-    map = new IntArrayCuckoo(new WritableCuckooConfig(totalEntries, numSubTables, entriesPerBucket, cuckooLimit));
+    map = new IntArrayDHTKeyCuckoo(new WritableCuckooConfig(totalEntries, numSubTables, entriesPerBucket, cuckooLimit));
     for (int i = 0; i < size; i++) {
       try {
         map.put(new SimpleKey(0, i), i);
       } catch (TableFullException tfe) {
         System.out.println("rehashing");
-        map = IntArrayCuckoo.rehashAndAdd(map, new SimpleKey(0, i), i);
+        map = IntArrayDHTKeyCuckoo.rehashAndAdd(map, new SimpleKey(0, i), i);
       }
     }
   }

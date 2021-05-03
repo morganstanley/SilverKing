@@ -34,6 +34,7 @@ public class DHTConfiguration implements VersionedDefinition {
   private final String defaultClassVars;
   private final String ipAliasMapName;
   private final boolean enableMsgGroupTrace;
+  private final boolean enableMsgGroupRecorder;
 
   private static final Set<String> optionalFields;
 
@@ -44,9 +45,12 @@ public class DHTConfiguration implements VersionedDefinition {
   public static final boolean defaultEnableMsgGroupTrace = PropertiesHelper.envHelper.getBoolean(
       DHTConstants.defaultEnableMsgGroupTraceEnv, false);
 
+  public static final boolean defaultEnableMsgGroupRecorder = PropertiesHelper.envHelper.getBoolean(
+      DHTConstants.defaultEnableMsgGroupRecorderEnv, false);
+
   public static final DHTConfiguration emptyTemplate = new DHTConfiguration(null, 0, null,
       DHTConstants.defaultNamespaceCreationOptions, null, defaultNamespaceOptionsMode, VersionedDefinition.NO_VERSION,
-      VersionedDefinition.NO_VERSION, null, null, defaultEnableMsgGroupTrace);
+      VersionedDefinition.NO_VERSION, null, null, defaultEnableMsgGroupTrace, defaultEnableMsgGroupRecorder);
 
   static {
     ImmutableSet.Builder<String> builder;
@@ -59,6 +63,7 @@ public class DHTConfiguration implements VersionedDefinition {
     builder.add("defaultClassVars");
     builder.add("ipAliasMapName");
     builder.add("enableMsgGroupTrace");
+    builder.add("enableMsgGroupRecorder");
     optionalFields = builder.build();
 
     ObjectDefParser2.addParser(emptyTemplate, FieldsRequirement.REQUIRE_ALL_NONOPTIONAL_FIELDS, optionalFields);
@@ -67,7 +72,7 @@ public class DHTConfiguration implements VersionedDefinition {
   public DHTConfiguration(String ringName, int port, String passiveNodeHostGroups,
       NamespaceCreationOptions nsCreationOptions, Map<String, String> hostGroupToClassVarsMap,
       NamespaceOptionsMode namespaceOptionsMode, long version, long zkid, String defaultClassVars,
-      String ipAliasMapName, boolean enableMsgGroupTrace) {
+      String ipAliasMapName, boolean enableMsgGroupTrace, boolean enableMsgGroupRecorder) {
     this.ringName = ringName;
     this.port = port;
     this.passiveNodeHostGroups = passiveNodeHostGroups;
@@ -79,66 +84,72 @@ public class DHTConfiguration implements VersionedDefinition {
     this.defaultClassVars = defaultClassVars;
     this.ipAliasMapName = ipAliasMapName;
     this.enableMsgGroupTrace = enableMsgGroupTrace;
+    this.enableMsgGroupRecorder = enableMsgGroupRecorder;
   }
 
   public static DHTConfiguration forPassiveNodes(String passiveNodeHostGroups) {
     return new DHTConfiguration(null, Integer.MIN_VALUE, passiveNodeHostGroups, null, null, defaultNamespaceOptionsMode,
-        0, Long.MIN_VALUE, null, null, defaultEnableMsgGroupTrace);
+        0, Long.MIN_VALUE, null, null, defaultEnableMsgGroupTrace, defaultEnableMsgGroupRecorder);
   }
 
   public DHTConfiguration ringName(String ringName) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration port(int port) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration passiveNodeHostGroups(String passiveNodeHostGroups) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration nsCreationOptions(NamespaceCreationOptions nsCreationOptions) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration hostGroupToClassVarsMap(Map<String, String> hostGroupToClassVarsMap) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration version(long version) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration zkid(long zkid) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration defaultClassVars(String defaultClassVars) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration namespaceOptionsMode(NamespaceOptionsMode namespaceOptionsMode) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration ipAliasMapName(String ipAliasMapName) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public DHTConfiguration enableMsgGroupTrace(boolean enableMsgGroupTrace) {
     return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
-        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace);
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
+  }
+
+  public DHTConfiguration enableMsgGroupRecorder(boolean enableMsgGroupRecorder) {
+    return new DHTConfiguration(ringName, port, passiveNodeHostGroups, nsCreationOptions, hostGroupToClassVarsMap,
+        namespaceOptionsMode, version, zkid, defaultClassVars, ipAliasMapName, enableMsgGroupTrace, enableMsgGroupRecorder);
   }
 
   public String getRingName() {
@@ -175,6 +186,10 @@ public class DHTConfiguration implements VersionedDefinition {
 
   public boolean getEnableMsgGroupTrace() {
     return enableMsgGroupTrace;
+  }
+
+  public boolean getEnableMsgGroupRecorder() {
+    return enableMsgGroupRecorder;
   }
 
   @Override

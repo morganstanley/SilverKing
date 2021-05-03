@@ -5,11 +5,10 @@ import java.io.IOException;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
 import com.ms.silverking.cloud.meta.MetaClientBase;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 
 public class MetaClient extends MetaClientBase<MetaPaths> {
   private final String dhtName;
@@ -18,14 +17,10 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     this(new NamedDHTConfiguration(dhtName, null), zkConfig);
   }
 
-  public MetaClient(NamedDHTConfiguration dhtConfig, ZooKeeperConfig zkConfig, Watcher watcher)
+  public MetaClient(NamedDHTConfiguration dhtConfig, ZooKeeperConfig zkConfig)
       throws IOException, KeeperException {
-    super(new MetaPaths(dhtConfig), zkConfig, watcher);
+    super(new MetaPaths(dhtConfig), zkConfig);
     this.dhtName = dhtConfig.getDHTName();
-  }
-
-  public MetaClient(NamedDHTConfiguration dhtConfig, ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-    this(dhtConfig, zkConfig, null);
   }
 
   public MetaClient(ClientDHTConfiguration clientDHTConfig) throws IOException, KeeperException {
@@ -45,14 +40,13 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
     long version;
     String latestPath;
     long zkid;
-    ZooKeeperExtended zk;
+    SilverKingZooKeeperClient zk;
 
     zk = getZooKeeper();
     latestPath = zk.getLatestVersionPath(getMetaPaths().getInstanceConfigPath());
     version = zk.getLatestVersionFromPath(latestPath);
     def = zk.getString(latestPath);
     zkid = zk.getStat(latestPath).getMzxid();
-    //System.out.printf("\tzkid %x\n", zkid);
     return DHTConfiguration.parse(def, version, zkid);
   }
 
@@ -61,7 +55,7 @@ public class MetaClient extends MetaClientBase<MetaPaths> {
       String fullPath = MetaPaths.getIpAliasMapPath(ipAliasMapName);
       Log.finef("ipAliasMapName %s", ipAliasMapName);
       Log.finef("fullPath %s", fullPath);
-      ZooKeeperExtended zk = getZooKeeper();
+      SilverKingZooKeeperClient zk = getZooKeeper();
       if (zk.exists(MetaPaths.ipAliasesBase) && zk.exists(fullPath)) {
         String latestPath = zk.getLatestVersionPath(fullPath);
         long version = zk.getLatestVersionFromPath(latestPath);

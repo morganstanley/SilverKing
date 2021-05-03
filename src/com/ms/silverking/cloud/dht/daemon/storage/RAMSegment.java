@@ -8,14 +8,25 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel.MapMode;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
-import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
+import com.ms.silverking.cloud.dht.collection.IntArrayDHTKeyCuckoo;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.io.util.BufferUtil;
+import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;
+import com.ms.silverking.util.PropertiesHelper;
 
 class RAMSegment extends WritableSegmentBase {
-
   private long segmentCreationTime;
+
+  private static final boolean  allocateDirect;
+  private static final boolean  allocateDirectDefault = true;
+  private static final String   allocateDirectProperty = RAMSegment.class.getPackage().getName()
+      +"."+ RAMSegment.class.getSimpleName() +".AllocateDirect";
+
+  static {
+    allocateDirect = PropertiesHelper.systemHelper.getBoolean(allocateDirectProperty, allocateDirectDefault);
+    Log.warningf("%s: %s", allocateDirectProperty, allocateDirect);
+  }
 
   static final RAMSegment create(File nsDir, int segmentNumber, int dataSegmentSize, NamespaceOptions nsOptions) {
     RandomAccessFile raFile;
@@ -26,8 +37,16 @@ class RAMSegment extends WritableSegmentBase {
     indexOffset = dataSegmentSize;
     header = SegmentFormat.newHeader(segmentNumber, dataOffset, indexOffset);
 
-    //dataBuf = ByteBuffer.allocate(dataSegmentSize);
+    if (allocateDirect) {
+      try {
     dataBuf = ByteBuffer.allocateDirect(dataSegmentSize);
+      } catch (OutOfMemoryError oome) {
+        Log.logErrorWarning(oome, "Unable to allocate direct buffer for RAMSegment. Trying on-heap");
+        dataBuf = ByteBuffer.allocate(dataSegmentSize);
+      }
+    } else {
+      dataBuf = ByteBuffer.allocate(dataSegmentSize);
+    }
     dataBuf.put(header);
     return new RAMSegment(nsDir, segmentNumber, dataBuf, dataSegmentSize, nsOptions);
   }
@@ -36,8 +55,7 @@ class RAMSegment extends WritableSegmentBase {
     return new File(nsDir, Integer.toString(segmentNumber));
   }
 
-  // called from Create
-  //private RAMSegment(File nsDir, int segmentNumber, RandomAccessFile raFile, ByteBuffer dataBuf) throws IOException {
+  // called from create
   private RAMSegment(File nsDir, int segmentNumber, ByteBuffer dataBuf, int dataSegmentSize,
       NamespaceOptions nsOptions) {
     super(nsDir, segmentNumber, dataBuf, StoreConfiguration.ramInitialCuckooConfig, dataSegmentSize, nsOptions);
@@ -60,7 +78,7 @@ class RAMSegment extends WritableSegmentBase {
     try {
       raFile.write(dataBuf.array());
 
-      ht = ((IntArrayCuckoo) keyToOffset).getAsBytes();
+      ht = ((IntArrayDHTKeyCuckoo) keyToOffset).getAsBytes();
       htBufSize = ht.length;
       mapSize = NumConversion.BYTES_PER_INT + htBufSize + offsetStoreSize;
       htBuf = raFile.getChannel().map(MapMode.READ_WRITE, dataSegmentSize, mapSize).order(ByteOrder.nativeOrder());

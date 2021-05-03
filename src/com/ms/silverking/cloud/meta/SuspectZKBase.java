@@ -8,8 +8,8 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.management.MetaToolOptions;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
-import org.apache.zookeeper.KeeperException;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
 /**
@@ -37,7 +37,7 @@ public abstract class SuspectZKBase<M extends MetaPathsBase> extends ServerSetEx
     //List<String>    nodes;
     String[] nodes;
     Stat stat;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     _zk = mc.getZooKeeper();
     if (version == VersionedDefinition.NO_VERSION) {
@@ -58,7 +58,7 @@ public abstract class SuspectZKBase<M extends MetaPathsBase> extends ServerSetEx
   @Override
   public SuspectSet readLatestFromZK(MetaToolOptions options) throws KeeperException {
     Stat stat;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
     List<String> accusers;
     HashSet<String> suspectsSet;
 

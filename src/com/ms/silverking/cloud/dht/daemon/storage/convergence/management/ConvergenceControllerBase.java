@@ -34,12 +34,12 @@ import com.ms.silverking.cloud.toporing.RingTreeBuilder;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
 
 public abstract class ConvergenceControllerBase implements RequestController {
   protected final UUIDBase uuid;

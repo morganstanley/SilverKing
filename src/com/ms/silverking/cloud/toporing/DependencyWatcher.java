@@ -31,12 +31,12 @@ import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.toporing.meta.StoragePolicyGroupZK;
 import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
 import com.ms.silverking.cloud.toporing.meta.WeightsZK;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -122,7 +122,7 @@ public class DependencyWatcher implements VersionListener {
 
   private void triggerBuild() {
     try {
-      ZooKeeperExtended zk;
+      SilverKingZooKeeperClient zk;
 
       zk = mc.getZooKeeper();
       buildQueue.put(createBuildMap(zk));
@@ -155,7 +155,7 @@ public class DependencyWatcher implements VersionListener {
         long instanceExclusionVersion;
         long storagePolicyGroupVersion;
         RingConfiguration ringConfig;
-        ZooKeeperExtended zk;
+        SilverKingZooKeeperClient zk;
         HostGroupTable hostGroupTable;
         long hostGroupTableVersion;
         ExclusionSet mergedExclusionSet;
@@ -267,7 +267,7 @@ public class DependencyWatcher implements VersionListener {
     }
   }
 
-  private Map<String, Long> createBuildMap(ZooKeeperExtended zk) throws KeeperException {
+  private Map<String, Long> createBuildMap(SilverKingZooKeeperClient zk) throws KeeperException {
     Map<String, Long> b;
     long topologyVersion;
     long weightsVersion;

@@ -15,6 +15,10 @@ public class StorageFormat {
 
   static final int writeFailedOffset = -1;
 
+  public static int storageLengthOfFormattedValue(ByteBuffer formattedBuf) {
+    return formattedBuf.remaining() + DHTKey.BYTES_PER_KEY;
+  }
+
   public static int writeFormattedValueToBuf(DHTKey key, ByteBuffer formattedBuf, ByteBuffer buf,
       AtomicInteger nextFree, int writeLimit) {
     int writeSize;

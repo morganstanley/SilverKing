@@ -1,11 +1,13 @@
 package com.ms.silverking.cloud.dht.daemon;
 
-import com.ms.silverking.log.Log;
 import com.ms.silverking.net.async.ConnectionController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DisconnectAllExclusionResponder implements SelfExclusionResponder {
 
   ConnectionController connectionController;
+  private static Logger log = LoggerFactory.getLogger(DisconnectAllExclusionResponder.class);
 
   public DisconnectAllExclusionResponder(ConnectionController controller) {
     this.connectionController = controller;
@@ -13,7 +15,7 @@ public class DisconnectAllExclusionResponder implements SelfExclusionResponder {
 
   @Override
   public void onExclusion() {
-    Log.warning("SelfExclusionResponder detected exclusion");
+    log.warn("SelfExclusionResponder detected exclusion");
     connectionController.disconnectAll("onExclusion");
   }
 }

@@ -15,8 +15,11 @@ public enum OpResult {
   INCOMPLETE, 
   // success
   SUCCEEDED, 
+  SUCCEEDED_AND_NO_SUCH_VALUE, // DEPRECATED - left for compatibility. Do not reuse this position in the enum
   // failure
-  ERROR, TIMEOUT, MUTATION, NO_SUCH_VALUE, SIMULTANEOUS_PUT, MULTIPLE, INVALID_VERSION, NO_SUCH_NAMESPACE, CORRUPT,
+  ERROR, TIMEOUT, MUTATION, NO_SUCH_VALUE, SIMULTANEOUS_PUT,
+  MULTIPLE, // Multiple means multiple OpResults for keys in a batch (e.g. 1 Succeed, 1 Error). This is seen as a Failure for the whole batch
+  INVALID_VERSION, NO_SUCH_NAMESPACE, CORRUPT,
   LOCKED, SESSION_CLOSED, REPLICA_EXCLUDED;
 
   public boolean isComplete() {

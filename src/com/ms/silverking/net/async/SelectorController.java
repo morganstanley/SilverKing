@@ -91,7 +91,11 @@ public final class SelectorController<C extends Connection> implements Runnable 
    */
   public void shutdown() {
     running = false;
-    selector.wakeup();
+    try {
+      selector.close();
+    } catch (IOException e) {
+      Log.warning("IOException when shutting down SelectorController", e);
+    }
   }
 
   //////////////////////////////////////////////////////////////////////

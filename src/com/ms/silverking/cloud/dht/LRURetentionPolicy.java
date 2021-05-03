@@ -1,95 +1,62 @@
 package com.ms.silverking.cloud.dht;
 
-import java.util.Map;
-import java.util.Queue;
+import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
-import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUKeyedInfo;
-import com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUStateProvider;
-import com.ms.silverking.cloud.dht.serverside.PutTrigger;
-import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
-import com.ms.silverking.log.Log;
-import com.ms.silverking.numeric.MutableInteger;
 import com.ms.silverking.text.ObjectDefParser2;
 
 /**
  * Simple LRU value retention policy. LRU is per key.
  */
-public class LRURetentionPolicy extends CapacityBasedRetentionPolicy<LRURetentionState> {
-  private final int maxVersions;
-
-  static final LRURetentionPolicy template = new LRURetentionPolicy(0, 1);
+public class LRURetentionPolicy extends CapacityBasedRetentionPolicy {
+  private static final LRURetentionPolicy template;
+  private static final Set<String> optionalFields;
+  public static final int DO_NOT_PERSIST = -1;
 
   static {
-    ObjectDefParser2.addParser(template);
+    template = new LRURetentionPolicy();
+    optionalFields = Sets.newHashSet("persistenceIntervalSecs");
+    ObjectDefParser2.addParserWithOptionalFields(template, optionalFields);
   }
+
+  private final int persistenceIntervalSecs;
 
   @OmitGeneration
   public LRURetentionPolicy() {
-    this(0, 0);
+    this(0, 300);
   }
 
-  @OmitGeneration
-  public LRURetentionPolicy(long capacityBytes, int maxVersions) {
+  public LRURetentionPolicy(long capacityBytes, int persistenceIntervalSecs) {
     super(capacityBytes);
-    this.maxVersions = maxVersions;
+    this.persistenceIntervalSecs = persistenceIntervalSecs;
   }
 
-  @Override
-  public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated,
-      LRURetentionState lruRetentionState, long curTimeNanos, long storedLength) {
-    return lruRetentionState.retains(key);
-  }
-
-  @Override
-  public LRURetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
-    LRUStateProvider lruState;
-
-    //System.out.printf("createInitialState\n");
-    if (putTrigger == null) {
-      Log.warning("LRURetentionPolicy has no put trigger");
-    }
-    if (retrieveTrigger == null) {
-      Log.warning("LRURetentionPolicy has no retrieve trigger");
-    }
-    lruState = (LRUStateProvider) retrieveTrigger;
-    return new LRURetentionState(createRetentionMap(lruState.getLRUList()));
-  }
-
-  /**
-   * Returns map of key=>number of versions to retain
-   *
-   * @param lruList
-   * @return
-   */
-  private Map<DHTKey, MutableInteger> createRetentionMap(Queue<LRUKeyedInfo> lruList) {
-    long bytesRetained;
-    ImmutableMap.Builder<DHTKey, MutableInteger> retentionMap;
-
-    //System.out.printf("createRetentionMap %d\n", lruList.size());
-    retentionMap = ImmutableMap.builder();
-    bytesRetained = 0;
-    // List is sorted in ascending access time order
-    // Walk the list backwards to retain the most recently accessed first
-    while (lruList.peek() != null && bytesRetained < capacityBytes) {
-      LRUKeyedInfo lruKeyedInfo;
-
-      //System.out.printf("%d\t%d\n", i, bytesRetained);
-      // We know that remove() is safe here since we peek() above.
-      lruKeyedInfo = lruList.remove();
-      if (bytesRetained < capacityBytes) {
-        bytesRetained += lruKeyedInfo.getSize();
-        retentionMap.put(lruKeyedInfo.getKey(), new MutableInteger(maxVersions));
-      }
-    }
-    return retentionMap.build();
+  public int getPersistenceIntervalSecs() {
+    return persistenceIntervalSecs;
   }
 
   @Override
   public String toString() {
     return ObjectDefParser2.objectToString(this);
+  }
+
+  @Override
+  public int hashCode() {
+    return Longs.hashCode(capacityBytes) ^ Ints.hashCode(persistenceIntervalSecs);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null) return false;
+    if (o.getClass() != getClass()) return false;
+
+    LRURetentionPolicy other;
+
+    other = (LRURetentionPolicy) o;
+    return other.capacityBytes == capacityBytes && other.persistenceIntervalSecs == persistenceIntervalSecs;
   }
 
   public static LRURetentionPolicy parse(String def) {

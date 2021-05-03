@@ -1,6 +1,6 @@
 package com.ms.silverking.cloud.meta;
 
-import org.apache.zookeeper.KeeperException;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 
 /**
  * Cloud-level ExclusionSet

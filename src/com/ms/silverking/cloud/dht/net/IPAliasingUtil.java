@@ -15,10 +15,10 @@ import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.IpAliasConfiguration;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
 
 public class IPAliasingUtil {
   public static IPAliasMap readAliases(DHTConfiguration dhtConfig, IpAliasConfiguration aliasConfig) {

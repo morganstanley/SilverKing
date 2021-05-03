@@ -15,7 +15,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.daemon.DaemonState;
 import com.ms.silverking.cloud.meta.ExclusionSet;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
@@ -24,12 +25,10 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooKeeper.States;
 
 public class DaemonStateZK implements Watcher {
   private final MetaClient mc;
@@ -89,6 +88,7 @@ public class DaemonStateZK implements Watcher {
       throw new RuntimeException("Can't setState using monitorOnly DaemonStateZK");
     }
     if (verbose) {
+      Log.warning("Local DHTNode state: " + state);
       System.out.println("Local DHTNode state: " + state);
     }
     this.state = state;
@@ -109,9 +109,6 @@ public class DaemonStateZK implements Watcher {
   @Override
   public void process(WatchedEvent event) {
     Log.fine(event);
-    //if (mc.getZooKeeper().getState() == States.CONNECTED) {
-    //    ensureStateSet();
-    //}
     switch (event.getType()) {
     case None:
       if (event.getState() == KeeperState.SyncConnected) {
@@ -142,7 +139,7 @@ public class DaemonStateZK implements Watcher {
 
   public Set<IPAndPort> readActiveNodesFromZK() throws KeeperException {
     String basePath;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     basePath = mc.getMetaPaths().getInstanceDaemonStatePath();
     _zk = mc.getZooKeeper();
@@ -150,7 +147,7 @@ public class DaemonStateZK implements Watcher {
   }
 
   private Map<IPAndPort, DaemonState> _getQuorumState(Set<IPAndPort> members) throws KeeperException {
-    ZooKeeperExtended zk;
+    SilverKingZooKeeperClient zk;
     Set<String> daemonStatePaths;
     Map<String, Integer> daemonStates;
     Map<IPAndPort, DaemonState> quorumState;
@@ -183,8 +180,12 @@ public class DaemonStateZK implements Watcher {
 
       data = mc.getZooKeeper().getByteArray(getMemberDaemonStatePath(member), this);
       return DaemonState.values()[NumConversion.bytesToInt(data)];
-    } catch (NoNodeException nne) {
+    } catch (KeeperException ke) {
+      if (ke.getCause() != null && NoNodeException.class.isAssignableFrom(ke.getCause().getClass())) {
       return null;
+      } else {
+        throw ke;
+      }
     }
   }
 
@@ -277,7 +278,6 @@ public class DaemonStateZK implements Watcher {
         // update exclusions each time we retry
         currentExclusion = readNewExclusion();
 
-        if (mc.getZooKeeper().getState() == States.CONNECTED) {
           Map<IPAndPort, DaemonState> quorumState;
           Stopwatch qsSW;
           Set<IPAndPort> newlyCompleteMembers;
@@ -353,7 +353,6 @@ public class DaemonStateZK implements Watcher {
             }
           }
           lastNotReadyCount = notReadyCount;
-        }
       } catch (KeeperException ke) {
         Log.logErrorWarning(ke);
       }

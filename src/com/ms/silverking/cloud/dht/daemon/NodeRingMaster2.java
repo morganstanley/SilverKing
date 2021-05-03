@@ -11,8 +11,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -41,11 +39,14 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.cloud.toporing.RingEntry;
 import com.ms.silverking.cloud.toporing.meta.MetaPaths;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.thread.lwt.util.Broadcaster;
@@ -77,6 +78,8 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
   private final Condition mapCV;
 
   private static final boolean debug = true;
+
+  private static Logger log = LoggerFactory.getLogger(NodeRingMaster2.class);
 
   public NodeRingMaster2(String dhtName, ZooKeeperConfig zkConfig, IPAndPort nodeID, 
       ExclusionSetAddressStatusProvider exclusionSetAddressStatusProvider,
@@ -414,7 +417,7 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
       return mapState.getResolvedReplicaMap().getRegions();
     } else {
       if (debug) {
-        System.out.println("No MapState for: " + ringIDAndVersion);
+        log.debug("No MapState for: {}", ringIDAndVersion);
       }
       return null;
     }
@@ -564,8 +567,8 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     if (!t.getTail().equals(cp.getRingIDAndVersionPair().getRingVersionPair())) {
       t = ctZK.getTargetRingAndVersionPair();
       if (!t.getTail().equals(cp.getRingIDAndVersionPair().getRingVersionPair())) {
-        Log.warning(t.getTail());
-        Log.warning(cp.getRingIDAndVersionPair().getRingVersionPair());
+        log.warn("{}", t.getTail());
+        log.warn("{}", cp.getRingIDAndVersionPair().getRingVersionPair());
         throw new RuntimeException("cp version mismatch");
       } else {
         return t.getV1();
@@ -612,9 +615,9 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
       instanceBase = MetaPaths.getRingConfigInstancePath(ringName, configAndInstance.getV1());
       try {
         creationTime = dhtMetaReader.getMetaClient().getZooKeeper().getCreationTime(
-            ZooKeeperExtended.padVersionPath(instanceBase, configAndInstance.getV2()));
+            SilverKingZooKeeperClient.padVersionPath(instanceBase, configAndInstance.getV2()));
       } catch (KeeperException e) {
-        Log.logErrorWarning(e);
+        log.warn("Error while getting creation time from keeper",e);
       }
       if (creationTime < 0) {
         ThreadUtil.sleep(zkReadRetryIntervalMillis);
@@ -631,16 +634,16 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
   }
 
   private void setCurMapState(RingMapState2 _curMapState) {
-    Log.warningf("curMapState was %s", curMapState != null ? curMapState.getConvergencePoint() : "null");
+    log.warn("curMapState was {}", curMapState != null ? curMapState.getConvergencePoint() : "null");
     curMapState = _curMapState;
     curMapState.setExclusionSetAddressStatusProvider(exclusionSetAddressStatusProvider);
-    Log.warningf("setCurMapState %s", curMapState != null ? curMapState.getConvergencePoint() : "null");
+    log.warn("setCurMapState {}", curMapState != null ? curMapState.getConvergencePoint() : "null");
   }
 
   private void setTargetMapState(RingMapState2 _targetMapState) {
-    Log.warningf("targetMapState was %s", targetMapState != null ? targetMapState.getConvergencePoint() : "null");
+    log.warn("targetMapState was {}", targetMapState != null ? targetMapState.getConvergencePoint() : "null");
     targetMapState = _targetMapState;
-    Log.warningf("setTargetMapState %s", targetMapState != null ? targetMapState.getConvergencePoint() : "null");
+    log.warn("setTargetMapState {}", targetMapState != null ? targetMapState.getConvergencePoint() : "null");
   }
 
   public void setConvergenceState(MessageGroup message, MessageGroupConnection connection) {
@@ -653,10 +656,10 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     state = ProtoSetConvergenceStateMessageGroup.getRingState(message);
     curCP = ProtoSetConvergenceStateMessageGroup.getCurCP(message);
     targetCP = ProtoSetConvergenceStateMessageGroup.getTargetCP(message);
-    Log.warningf("setConvergenceState %s %s %s", state, curCP, targetCP);
+    log.warn("setConvergenceState {} {} {}", state, curCP, targetCP);
 
     if (!curMapState.getConvergencePoint().equals(curCP)) {
-      Log.warningf("!curMapState.getConvergencePoint().equals(curCP)");
+      log.warn("!curMapState.getConvergencePoint().equals(curCP)");
       // This is valid if the node was not in the last ring
       // in which case, nobody should be trying to read from this replica
       //result = OpResult.ERROR;
@@ -669,15 +672,15 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
           setTargetMapState(newMapState(targetCP));
           result = OpResult.SUCCEEDED;
         } catch (Exception e) {
-          Log.logErrorWarning(e);
+          log.warn("Error while setting target map state",e);
           result = OpResult.ERROR;
         }
       } else {
-        Log.warningf("targetMapState error. state %s", state);
+        log.warn("targetMapState error. state {}", state);
         if (targetMapState == null) {
-          Log.warningf("targetMapState == null");
+          log.warn("targetMapState == null");
         } else {
-          Log.warningf("!targetMapState.getConvergencePoint().equals(targetCP) %s",
+          log.warn("!targetMapState.getConvergencePoint().equals(targetCP) {}",
               !targetMapState.getConvergencePoint().equals(targetCP));
         }
         result = OpResult.ERROR;
@@ -693,14 +696,14 @@ public class NodeRingMaster2 implements DHTMetaUpdateListener, KeyToReplicaResol
     }
     //}
 
-    Log.warningf("setConvergenceState result %s", result);
+    log.warn("setConvergenceState result {}", result);
     response = new ProtoOpResponseMessageGroup(message.getUUID(), 0, result, myOriginatorID.getBytes(),
         message.getDeadlineRelativeMillis());
     try {
       connection.sendAsynchronous(response.toMessageGroup(),
           SystemTimeUtil.skSystemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
     } catch (IOException ioe) {
-      Log.logErrorWarning(ioe);
+      log.warn("Error whiles sending message",ioe);
     }
   }
 

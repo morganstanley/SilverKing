@@ -16,8 +16,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.common.OwnerQueryMode;
@@ -66,15 +64,19 @@ import com.ms.silverking.cloud.dht.net.ProtoRetrievalMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoSnapshotMessageGroup;
 import com.ms.silverking.cloud.dht.net.ProtoVersionedBasicOpMessageGroup;
 import com.ms.silverking.cloud.dht.net.PutResult;
+import com.ms.silverking.cloud.dht.record.RecorderFactory;
 import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AddressStatusProvider;
@@ -165,30 +167,34 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   private Pinger pingerThread;
 
   private final boolean enableMsgGroupTrace;
+  private final boolean enableMsgGroupRecorder;
 
   public enum OnSelfExclusion {DoNothing, DisconnectAll}
 
   private static final OnSelfExclusion onSelfExclusion;
 
+  private static Logger log = LoggerFactory.getLogger(MessageModule.class);
   static {
     String value = PropertiesHelper.systemHelper.getString(DHTConstants.onSelfExclusionProperty,
         OnSelfExclusion.DoNothing.toString());
-    Log.info("OnSelfExclusion: " + value);
+    log.info("OnSelfExclusion: {}", value);
     onSelfExclusion = OnSelfExclusion.valueOf(value);
   }
 
   public MessageModule(NodeRingMaster2 ringMaster, StorageModule storage, AbsMillisTimeSource absMillisTimeSource,
       Timer timer, int serverPort, IPAndPort myIPAndPort, MetaClient mc, IPAliasMap aliasMap,
-      boolean enableMsgGroupTrace) throws IOException {
+      boolean enableMsgGroupTrace, boolean enableMsgGroupRecorder) throws IOException {
 
     this.enableMsgGroupTrace = enableMsgGroupTrace;
+    this.enableMsgGroupRecorder = enableMsgGroupRecorder;
+
     mgBase = MessageGroupBase.newServerMessageGroupBase(serverPort, myIPAndPort, incomingConnectionBacklog, this,
         absMillisTimeSource, PersistentAsyncServer.defaultNewConnectionTimeoutController, null, Integer.MAX_VALUE,
         numSelectorControllers, selectorControllerClass, ConvergenceController2.mqListener,
         ConvergenceController2.mqUUID, aliasMap);
     this.aliasMap = aliasMap;
     this.ringMaster = ringMaster;
-    Log.warningf("setting %s SelfExclusionResponder", onSelfExclusion);
+    log.warn("setting %s SelfExclusionResponder {}", onSelfExclusion);
     if (onSelfExclusion == OnSelfExclusion.DisconnectAll) {
       SelfExclusionResponder responder = new DisconnectAllExclusionResponder(mgBase.getConnectionController());
       ringMaster.setSelfExclusionResponder(responder);
@@ -234,8 +240,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     for (int i = 0; i < consistencyModeToRetrievalProtocol.length; i++) {
       consistencyModeToRetrievalProtocol[i] = (RetrievalProtocol) consistencyModeToStorageProtocol[i];
     }
-    //pingTimer = new SafeTimer(pingTimerName);
-    //globalCommandServer = null;
     try {
       peerHealthMonitor = new PeerHealthMonitor(mc, myIPAndPort, aliasMap);
     } catch (KeeperException ke) {
@@ -274,17 +278,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   }
 
   private void startPinger() {
-        /*
-        int        numReplicas;
-        long    pingPeriodMillis;
-        
-        // FUTURE - this could change
-        numReplicas = ringMaster.getAllReplicaServers().size();
-        pingPeriodMillis = numReplicas * 1000 / targetPingsPerSecond;
-        pingPeriodMillis = Math.max(pingPeriodMillis, minPingPeriodMillis);
-        pingTimer.scheduleAtFixedRate(new Pinger(), pingPeriodMillis, pingPeriodMillis);
-        */
-    Log.warning("Starting Pinger");
+    log.warn("Starting Pinger");
     pingerThread = new Pinger();
     new SafeThread(pingerThread, nodePingerThreadName, true).start();
   }
@@ -298,10 +292,19 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     int maxDirectCallDepth;
     NamespaceProperties nsProperties;
     try {
-
       if (enableMsgGroupTrace) {
-        ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
-          TracerFactory.getTracer().onBothReceiveRequest(traceID);
+        Optional<byte[]> maybeTraceId = ProtoKeyedMessageGroup.tryGetTraceIDCopy(message);
+
+        maybeTraceId.ifPresent(traceID -> {
+          TracerFactory.getTracer().onBothReceiveRequest(traceID, message.getMessageType());
+          // Tracing must be enabled so that only client requests are recorded, not proxy->node messages.
+          if (enableMsgGroupRecorder) {
+            try {
+              RecorderFactory.getRecorder().record(message, traceID);
+            } catch(Exception ex) {
+              log.debug("Request recording failed", ex);
+            }
+          }
         });
       }
 
@@ -324,9 +327,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
                   message.getPeer())),
           maxDirectCallDepth, Integer.MAX_VALUE);
     } catch (Exception e) {
-      Log.logErrorWarning(e, String.format(
-          "Caught exception when processing message with id %s, attempting to send an error response back",
-          message.getUUID()));
+      log.warn("Caught exception when processing message with id {}, attempting to send an error response back",
+          message.getUUID());
       try {
         MessageGroupConnection conn = getConnectionForRemote(
             createProxyForConnection(connection, message.getDeadlineAbsMillis(absMillisTimeSource), message.getPeer()));
@@ -336,7 +338,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         conn.sendAsynchronous(response.toMessageGroup(),
             SystemTimeUtil.skSystemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
       } catch (IOException ioe) {
-        Log.logErrorWarning(ioe);
+        log.warn("Error while sending message",ioe);
       }
     }
   }
@@ -350,18 +352,16 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   private void handleReceive(MessageGroup message, MessageGroupConnectionProxy connection) {
     try {
       if (debugReceivedMessages) {
-        Log.warningf("\t*** Received: %s\n%s", message, Thread.currentThread().getName());
-        //message.displayForDebug(true);
+        log.warn("\t*** Received: {}\n{}", message, Thread.currentThread().getName());
       }
       if (debugShortTimeMessages) {
         if (message.getDeadlineRelativeMillis() < shortTimeWarning) {
-          Log.warning("\t*** Received short time message: ", message);
-          //message.displayForDebug(true);
+          log.warn("\t*** Received short time message: {}", message);
         }
       }
       if (message.getForwardingMode() != ForwardingMode.DO_NOT_FORWARD) {
         if (debugReceivedMessages) {
-          Log.warning("Setting message to peer: ", message.getMessageType());
+          log.warn("Setting message to peer: {}", message.getMessageType());
         }
         message.setPeer(true);
       }
@@ -420,31 +420,20 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         handleReap(message, getConnectionForRemote(connection));
       case ERROR_RESPONSE:
         handleErrorResponse(message, connection);
-                /*
-            case GLOBAL_COMMAND_NEW:
-                handleGlobalCommandNew(message, getConnectionForRemote(connection));
-                break;
-            case GLOBAL_COMMAND_UPDATE:
-                handleGlobalCommandUpdate(message, getConnectionForRemote(connection));
-                break;
-            case GLOBAL_COMMAND_RESPONSE:
-                handleGlobalCommandResponse(message, getConnectionForRemote(connection));
-                break;
-                */
       default:
         throw new RuntimeException("type not handled: " + message.getMessageType());
       }
     } catch (RuntimeException re) {
       Throwable t;
 
-      Log.warning("************************************** " + Thread.currentThread().getName());
+      log.warn("************************************** {}", Thread.currentThread().getName());
       t = re;
       while (t != null) {
-        Log.logErrorWarning(t);
+        log.warn("Error whiles handling receive",t);
         t = t.getCause();
-        Log.warning("......................................");
+        log.warn("......................................");
       }
-      Log.logErrorWarning(re, "MessageModule error processing connection: " + connection.getConnectionID());
+      log.warn("MessageModule error processing connection: {}", connection.getConnectionID(), re);
     }
   }
 
@@ -472,7 +461,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
           return new MessageGroupConnectionProxyRemote(
               mgBase.getConnection(connection.getRemoteIPAndPort().port(myIPAndPort.getPort()), deadline));
         } catch (AuthFailedException | ConnectException e) {
-          Log.logErrorWarning(e, "Reverting to incoming connection for outgoing messages for " + connection);
+          log.warn("Reverting to incoming connection for outgoing messages for {}", connection, e);
           return new MessageGroupConnectionProxyRemote(connection);
         }
       }
@@ -550,13 +539,19 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         storage, retrieveOpts, retrievalProtocol, message.getDeadlineAbsMillis(absMillisTimeSource));
 
     if (authorization != null && !authorization.isSuccessful()) {
-      boolean continueOperation;
+      boolean continueOperation = false;
 
       try {
         continueOperation = retrieval.handleAuthorizationFailure(authorization);
       } catch (AuthFailedException afe) {
         // This will be caught and be logged
         throw new RuntimeException(afe);
+      } finally {
+        if (enableMsgGroupTrace && !continueOperation) {
+          ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
+            TracerFactory.getTracer().onAuthorizationFailure(traceID);
+          });
+        }
       }
       if (continueOperation) {
         retrieval.startOperation();
@@ -574,13 +569,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
    * @param connection
    */
   void handleRetrieveResponse(MessageGroup message, MessageGroupConnectionProxy connection) {
-    Log.fine("handleRetrieveResponse");
+    log.debug("handleRetrieveResponse");
     if (debug) {
-      Log.warning("rr: " + message + " " + connection);
+      log.warn("rr: {} {}", message, connection);
     }
-    //if (Arrays.equals(message.getOriginator(), mgBase.getIPAndPort())) {
-    //storage.incomingSyncRetrievalResponse(message);
-    //} else {
+
     ActiveProxyRetrieval activeRetrieval;
 
     activeRetrieval = activeRetrievals.get(message.getUUID());
@@ -590,9 +583,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       opResult = activeRetrieval.handleRetrievalResponse(message, connection);
       if (opResult.isComplete()) { // FIXME - think about failures
         activeRetrievals.remove(message.getUUID());
-        if (debugCompletion) {
-          //_complete.incrementAndGet();
-        }
 
         if (enableMsgGroupTrace) {
           ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
@@ -600,10 +590,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
           });
         }
       } else {
-        if (debugCompletion) {
-          //_incomplete.incrementAndGet();
-        }
-
         if (enableMsgGroupTrace) {
           ProtoKeyedMessageGroup.tryGetTraceIDCopy(message).ifPresent(traceID -> {
             TracerFactory.getTracer().onProxyHandleRetrievalResultIncomplete(traceID);
@@ -611,17 +597,9 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         }
       }
     } else {
-      //storage.incomingSyncRetrievalResponse(message);
       storage.asyncInvocationNonBlocking("incomingSyncRetrievalResponse", message);
-                /*
-                Log.warning("Couldn't find activeRetrieval for ", message);
-                if (debugCompletion) {
-                    //_notFound.incrementAndGet();
                 }
-                */
     }
-    //}
-  }
 
   /**
    * Process a put response.
@@ -648,7 +626,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         }
       }
     } else {
-      Log.infoAsync("Couldn't find active put ", message.getUUID() + " " + new IPAndPort(message.getOriginator()));
+      log.info("Couldn't find active put {}", message.getUUID() + " " + new IPAndPort(message.getOriginator()));
       if (debugCompletion) {
         _notFound.incrementAndGet();
       }
@@ -668,9 +646,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
 
     version = ProtoPutUpdateMessageGroup.getPutVersion(message);
     storageState = ProtoPutUpdateMessageGroup.getStorageState(message);
-    if (debug) {
-      Log.warningAsyncf("handlePutUpdate storageState: %s ", storageState);
-    }
     results = new ArrayList<>();
     for (MessageGroupKeyEntry entry : message.getKeyIterator()) {
       OpResult opResult;
@@ -694,7 +669,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     } else {
       maybeTraceID = TraceIDProvider.noTraceID;
     }
-
     sendPutResults(message.getUUID(), message.getContext(), version, connection, results, storageState,
         deadlineRelativeMillis, maybeTraceID);
   }
@@ -709,11 +683,11 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
           results.size(), mgBase.getMyID(), storageState, deadlineRelativeMillis,
           maybeTraceID); // FUTURE - allow constructor without this?
       if (debug) {
-        Log.warningAsyncf("results.size: %d", results.size());
+        log.warn("results.size: {}", results.size());
       }
       for (PutResult result : results) {
         if (debug) {
-          Log.warningAsync(result);
+          log.warn("{}",result);
         }
         response.addResult(result.getKey(), result.getResult());
       }
@@ -721,19 +695,19 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         MessageGroup mg;
 
         mg = response.toMessageGroup();
-        if (Log.levelMet(Level.FINE)) {
-          Log.warning("sendResults: " + connection.getConnectionID());
+        if (log.isDebugEnabled()) {
+          log.warn("sendResults: {}", connection.getConnectionID());
           mg.displayForDebug(true);
         }
         connection.sendAsynchronous(mg, mg.getDeadlineAbsMillis(getAbsMillisTimeSource()));
       } catch (IOException ioe) {
-        Log.logErrorWarning(ioe);
+        log.warn("Error whiles sending message",ioe);
       }
     }
   }
 
   protected void handleErrorResponse(MessageGroup message, MessageGroupConnectionProxy connection) {
-    Log.warningf("%s %s %s", message.getUUID(), message.getMessageType(), connection.getConnectionID());
+    log.warn("{} {} {}", message.getUUID(), message.getMessageType(), connection.getConnectionID());
     //Check for active operations (puts or retrieval) corresponding to this UUID and mark the requests as failed
     //This should happen on the proxy, when it receives responses.
     ActiveProxyOperation op = null;
@@ -747,7 +721,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
         connection.sendAsynchronous(message,
             SystemTimeUtil.skSystemTimeSource.absTimeMillis() + message.getDeadlineRelativeMillis());
       } catch (IOException ioe) {
-        Log.logErrorWarning(ioe);
+        log.warn("Error whiles sending message",ioe);
       }
     }
   }
@@ -786,12 +760,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       PrimarySecondaryIPListPair replicaListPair;
 
       if (debug) {
-        Log.warningAsyncf("getReplicaListPair: %s ", key);
+        log.warn("getReplicaListPair: {} ", key);
       }
       // FUTURE - think about improvements
       replicaListPair = ringMaster.getReplicaListPair(key, ownerQueryOpType);
       if (debug) {
-        Log.fineAsyncf("%s \t %s :", key, replicaListPair);
+        log.debug("{} \t {} :", key, replicaListPair);
       }
       return replicaListPair;
     }
@@ -805,12 +779,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       List<IPAndPort> replicaList;
 
       if (debug) {
-        Log.warningAsyncf("getReplicas %s \t %s", key, oqm);
+        log.warn("getReplicas {} \t {}", key, oqm);
       }
       // FUTURE - think about improvements
       replicaList = ringMaster.getReplicaList(key, oqm, ownerQueryOpType);
       if (debug) {
-        Log.warningAsyncf("%s \t %s", key, CollectionUtil.toString(replicaList, ':'));
+        log.warn("{} \t {}", key, CollectionUtil.toString(replicaList, ':'));
       }
       return replicaList;
     }
@@ -821,12 +795,12 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     IPAndPort[] replicas;
 
     if (debug) {
-      Log.warningAsyncf("getPrimaryReplicas ", key);
+      log.warn("getPrimaryReplicas {}", key);
     }
     // FUTURE - think about improvements
     replicas = ringMaster.getReplicas(key, oqm, ownerQueryOpType);
     if (debug) {
-      Log.warningAsyncf("%s \t %s", key, IPAndPort.arrayToString(replicas));
+      log.warn("{} \t {}", key, IPAndPort.arrayToString(replicas));
     }
     return replicas;
   }
@@ -838,7 +812,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   @Override
   public boolean isLocal(IPAndPort replica) {
     if (debug) {
-      Log.warningAsyncf("#### %s %s\t%s", replica, myIPAndPort, replica.equals(myIPAndPort));
+      log.warn("#### {} {}\t{}", replica, myIPAndPort, replica.equals(myIPAndPort));
     }
     return replica.equals(myIPAndPort);
   }
@@ -854,7 +828,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     ProtoOpResponseMessageGroup response;
     OpResult result;
 
-    if (Log.levelMet(Level.FINE)) {
+    if (log.isDebugEnabled()) {
       message.displayForDebug();
     }
     version = ProtoSnapshotMessageGroup.getVersion(message);
@@ -873,10 +847,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     long version;
     ProtoOpResponseMessageGroup response;
 
-    if (Log.levelMet(Level.FINE)) {
+    if (log.isDebugEnabled()) {
       message.displayForDebug();
     }
-    Log.warning("handleSyncRequest");
+    log.warn("handleSyncRequest");
     version = ProtoVersionedBasicOpMessageGroup.getVersion(message);
     requestChecksumTree(version);
     response = new ProtoOpResponseMessageGroup(message.getUUID(), message.getContext(), OpResult.SUCCEEDED,
@@ -890,9 +864,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
 
   // used only for testing
   private void requestChecksumTree(long version) {
-    Log.warning("requestChecksumTree");
+    log.warn("requestChecksumTree");
     throw new RuntimeException("deprecated testing"); // FUTURE remove after double checking
-    //storage.requestChecksumTree(version);
   }
 
   private void handleChecksumTreeRequest(MessageGroup message, MessageGroupConnection connection) {
@@ -901,16 +874,14 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     RingRegion region;
     boolean localFlag;
 
-    if (Log.levelMet(Level.FINE)) {
-      Log.warning("handleChecksumTreeRequest");
+    if (log.isDebugEnabled()) {
+      log.warn("handleChecksumTreeRequest");
       message.displayForDebug();
     }
     targetCP = ProtoChecksumTreeRequestMessageGroup.getTargetConvergencePoint(message);
     sourceCP = ProtoChecksumTreeRequestMessageGroup.getSourceConvergencePoint(message);
     region = ProtoChecksumTreeRequestMessageGroup.getRegion(message);
     localFlag = ProtoChecksumTreeRequestMessageGroup.getLocalFlag(message);
-    //storage.getChecksumTreeForRemote(message.getContext(), message.getUUID(),
-    //                        targetCP, sourceCP, connection, message.getOriginator(), region);
     if (!localFlag) {
       storage.asyncInvocationNonBlocking("getChecksumTreeForRemote", message.getContext(), message.getUUID(), targetCP,
           sourceCP, connection, message.getOriginator(), region);
@@ -924,11 +895,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   }
 
   private void handleIncomingChecksumTree(MessageGroup message, MessageGroupConnection connection) {
-    if (Log.levelMet(Level.FINE)) {
-      Log.warning("handleIncomingChecksumTree");
+    if (log.isDebugEnabled()) {
+      log.warn("handleIncomingChecksumTree");
       message.displayForDebug();
     }
-    //storage.incomingChecksumTree(message, connection);
     storage.asyncInvocationNonBlocking("incomingChecksumTree", message, connection);
   }
 
@@ -939,7 +909,6 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   }
 
   private void handleNamespaceResponse(MessageGroup message, MessageGroupConnection connection) {
-    //storage.handleNamespaceResponse(message, connection);
     storage.asyncInvocationNonBlocking("handleNamespaceResponse", message, connection);
   }
 
@@ -953,34 +922,13 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
 
   ////////////////////////////
     
-    /*
-    private void handleGlobalCommandNew(MessageGroup message, MessageGroupConnection connectionForRemote) {
-        globalCommandServer.newGlobalCommand(ProtoGlobalCommandMessageGroup.getGlobalCommand(message), 
-                                             ProtoGlobalCommandMessageGroup.getCommandID(message),
-                                             connectionForRemote);
-    }
-    
-    private void handleGlobalCommandUpdate(MessageGroup message, MessageGroupConnection connectionForRemote) {
-        globalCommandServer.updateGlobalCommand(ProtoGlobalCommandUpdateMessageGroup.getState(message),
-                                                ProtoGlobalCommandMessageGroup.getCommandID(message));
-    }
-
-    private void handleGlobalCommandResponse(MessageGroup message, MessageGroupConnection connectionForRemote) {
-        globalCommandServer.handleCommandResponse(ProtoGlobalCommandResultMessageGroup.getGlobalCommandUpdateResult
-        (message),
-                ProtoGlobalCommandResultMessageGroup.getCommandID(message));
-    }
-    */
-
-  ////////////////////////////
-
   private void handleNop(MessageGroup message, MessageGroupConnectionProxy connection) {
-    Log.finef("%s %s", message.getMessageType(), connection.getConnectionID());
+    log.debug("{} {}", message.getMessageType(), connection.getConnectionID());
   }
 
   private void handlePing(MessageGroup message, MessageGroupConnectionProxy connection) {
-    if (Log.levelMet(Level.FINE)) {
-      Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(),
+    if (log.isDebugEnabled()) {
+      log.debug("{} {} {} {}", message.getMessageType(), connection.getConnectionID(), message.getUUID(),
           Thread.currentThread().getName());
     }
     if (connection instanceof MessageGroupConnectionProxyRemote) {
@@ -993,10 +941,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       aliasMap.addInterfaceToDaemon(connection.getConnection().getRemoteIPAndPort(), source);
       if (ringMaster.getInstanceExclusionSet().contains(source.getIPAsString())) {
         if (pingerThread != null) {
-          Log.infof("Requesting ping of excluded daemon: %s", source);
+          log.info("Requesting ping of excluded daemon: {}", source);
           pingerThread.requestPing(source);
         } else {
-          Log.infof("No pinger thread available, not requesting ping of excluded daemon: %s", source);
+          log.info("No pinger thread available, not requesting ping of excluded daemon: {}", source);
         }
       }
       // Special case for ping messages - we send ip and port as originator
@@ -1005,14 +953,14 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       try {
         c.sendAsynchronous(ack.toMessageGroup(), Long.MAX_VALUE);
       } catch (IOException ioe) {
-        Log.logErrorWarning(ioe);
+        log.warn("Error while sending message",ioe);
       }
     }
   }
 
   private void handlePingAck(MessageGroup message, MessageGroupConnectionProxy connection) {
-    if (Log.levelMet(Level.FINE)) {
-      Log.finef("%s %s %s %s", message.getMessageType(), connection.getConnectionID(), message.getUUID(),
+    if (log.isDebugEnabled()) {
+      log.debug("{} {} {} {}", message.getMessageType(), connection.getConnectionID(), message.getUUID(),
           Thread.currentThread().getName());
     }
     if (connection instanceof MessageGroupConnectionProxyRemote) {
@@ -1028,7 +976,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       ProtoNopMessageGroup nop;
 
       nop = new ProtoNopMessageGroup(mgBase.getMyID());
-      Log.warning("Priming: ", replica);
+      log.warn("Priming: {}", replica);
       mgBase.send(nop.toMessageGroup(), replica);
     }
   }
@@ -1094,14 +1042,15 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
   
   /////////////////////////////////
 
-  
   public ExclusionChangeListener getExclusionChangeListener() {
     return exclusionChangeListener;
   }
   
-  private class ExclusionChangeListener implements Listener<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>>, Comparable<ExclusionChangeListener> {
+  private class ExclusionChangeListener
+      implements Listener<Triple<Set<IPAndPort>, Set<IPAndPort>, Set<IPAndPort>>>, Comparable<ExclusionChangeListener> {
     @Override
-    public void notification(Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>> broadcaster, Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>> message) {
+    public void notification(Broadcaster<Triple<Set<IPAndPort>, Set<IPAndPort>, Set<IPAndPort>>> broadcaster,
+        Triple<Set<IPAndPort>, Set<IPAndPort>, Set<IPAndPort>> message) {
       notifyOfReplicaChange(message.getV2(), message.getV3());
     }
 
@@ -1126,10 +1075,10 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
     notifyOfReplicaChange(activeRetrievals, absTimeMillis, newlyExcludedReplicas, newlyIncludedReplicas);
   }
   
-  private void notifyOfReplicaChange(ConcurrentMap<UUIDBase, ? extends ActiveProxyOperation<?, ?>> map, long absTimeMillis, 
-      Set<IPAndPort> newlyExcludedReplicas, Set<IPAndPort> newlyIncludedReplicas) {
-    Log.warningf("MessageModule.notifyOfReplicaChange ex %s in %s", 
-        CollectionUtil.toString(newlyExcludedReplicas), CollectionUtil.toString(newlyIncludedReplicas));
+  private void notifyOfReplicaChange(ConcurrentMap<UUIDBase, ? extends ActiveProxyOperation<?, ?>> map,
+      long absTimeMillis, Set<IPAndPort> newlyExcludedReplicas, Set<IPAndPort> newlyIncludedReplicas) {
+    log.warn("MessageModule.notifyOfReplicaChange ex {} in {}", CollectionUtil.toString(newlyExcludedReplicas),
+        CollectionUtil.toString(newlyIncludedReplicas));
     if (newlyExcludedReplicas.isEmpty() && newlyIncludedReplicas.isEmpty()) {
       return;
     } else {
@@ -1170,14 +1119,13 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       }
 
       if (debugCleanup) {
-        Log.info("Cleaning MessageModule maps");
+        log.info("Cleaning MessageModule maps");
       }
-      //System.out.println(activePuts.size());
       absTimeMillis = absMillisTimeSource.absTimeMillis();
       cleanupMap(activePuts, absTimeMillis);
       cleanupMap(activeRetrievals, absTimeMillis);
       if (debugCleanup) {
-        Log.info("Done cleaning MessageModule maps");
+        log.info("Done cleaning MessageModule maps");
       }
     }
 
@@ -1209,11 +1157,8 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
           }
         }
       }
-      if (newTimeouts) {
-        //ringMaster.updateCurMapState(); deprecated method
       }
     }
-  }
 
   class Pinger extends TimerTask {
     private final Set<IPAndPort> pingRequests;
@@ -1229,7 +1174,7 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
 
     @Override
     public void run() {
-      Log.warning("Pinger running");
+      log.warn("Pinger running");
       while (running) {
         try {
           pingReplicas();
@@ -1244,13 +1189,13 @@ public class MessageModule implements MessageGroupReceiver, StorageReplicaProvid
       Set<IPAndPort> _pingRequests;
       Set<IPAndPort> pingTargets;
 
-      Log.fine("Pinging replicas");
+      log.debug("Pinging replicas");
       _pingRequests = ImmutableSet.copyOf(pingRequests);
       pingRequests.removeAll(_pingRequests);
       pingTargets = new HashSet<>(ringMaster.getAllCurrentAndTargetNonExcludedNonLocalReplicaServers());
       pingTargets.addAll(_pingRequests);
       for (IPAndPort replica : pingTargets) {
-        Log.finef("Pinging %s", replica);
+        log.debug("Pinging {}", replica);
         // Special case for ping messages - we send ip and port as originator
         mgBase.send(new ProtoPingMessageGroup(myIPAndPortAsOriginator).toMessageGroup(), replica);
         ThreadUtil.sleep(interPingDelayMillis);

@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,26 +38,27 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.KeyLevelValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
+import com.ms.silverking.cloud.dht.PermanentRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.RevisionMode;
+import com.ms.silverking.cloud.dht.SegmentLevelValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.StorageType;
-import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
+import com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.ValueRetentionState;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
-import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
-import com.ms.silverking.cloud.dht.collection.IntCuckooConstants;
-import com.ms.silverking.cloud.dht.collection.TableFullException;
-import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
+import com.ms.silverking.cloud.dht.collection.IntArrayDHTKeyCuckoo;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
 import com.ms.silverking.cloud.dht.common.CorruptValueException;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
@@ -107,12 +109,17 @@ import com.ms.silverking.cloud.dht.serverside.SSStorageParametersAndRequirements
 import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicy;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.HashedSetMap;
 import com.ms.silverking.collection.MapUtil;
 import com.ms.silverking.collection.Pair;
+import com.ms.silverking.collection.Quintuple;
 import com.ms.silverking.collection.SKImmutableList;
 import com.ms.silverking.collection.Triple;
+import com.ms.silverking.collection.cuckoo.IntCuckooConstants;
+import com.ms.silverking.collection.cuckoo.TableFullException;
+import com.ms.silverking.collection.cuckoo.WritableCuckooConfig;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.FileUtil;
 import com.ms.silverking.io.util.BufferUtil;
@@ -150,7 +157,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
    * a) the segment where the value is stored (for single value storage)
    * b) the list of segments where the value is stored
    */
-  private IntArrayCuckoo valueSegments;
+  private IntArrayDHTKeyCuckoo valueSegments;
   private final AtomicInteger nextSegmentID;
   private final OffsetListStore offsetListStore;
   private final ReadWriteLock metaRWLock;
@@ -186,6 +193,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       NamespaceStore.class.getPackage().getName() + ".SVPMapThreshold", defaultSVPMapThreshold);
 
   private final ConcurrentMap<UUIDBase, ActiveRegionSync> activeRegionSyncs;
+  private final ValueRetentionPolicyImpl vrp;
 
   private static final byte[] emptyUserData = new byte[0];
 
@@ -225,6 +233,8 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
   private static final int maxFailedStores = 1000000;
 
+  private static final boolean immediateDeletion = true;
+
   private static final long nsIdleIntervalMillis = 4 * 60 * 1000;
   private static final long minFullReapIntervalMillis = 4 * 60 * 60 * 1000;
 
@@ -234,19 +244,11 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     CreateNSDir, DoNotCreateNSDir, CreateNSDirNoPropertiesFileBootstrap
   }
 
-  ;
-
   private enum FileSegmentLoadMode {ReadWrite, ReadOnly, ReadIndexOnly}
-
-  ;
 
   private enum VersionCheckResult {Invalid, Valid, Equal, Valid_New_Key}
 
-  ;
-
   private enum LockCheckResult {Unlocked, Locked, Ignored}
-
-  ;
 
   private static final int VERSION_INDEX = 0;
   private static final int STORAGE_TIME_INDEX = 1;
@@ -255,6 +257,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   private static final int nsPrereadGB;
   private static final SegmentPrereadMode readSegmentPrereadMode = SegmentPrereadMode.NoPreread;
   private static final SegmentPrereadMode updateSegmentPrereadMode = SegmentPrereadMode.NoPreread;
+  private static final boolean forceDataSegmentLoadOnReap;
 
   public static final boolean enablePendingPuts;
 
@@ -284,12 +287,18 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
     defaultCompactionThreshold = PropertiesHelper.systemHelper.getDouble(
         DHTConstants.defaultCompactionThresholdProperty, 0.1);
+    // FUTURE - threshold disabled by default for now; alter implementation to correctly support
     Log.warningf("defaultCompactionThreshold: %f", defaultCompactionThreshold);
+
+    forceDataSegmentLoadOnReap = PropertiesHelper.systemHelper.getBoolean(
+        DHTConstants.forceDataSegmentLoadOnReapProperty, false);
+    Log.warningf("forceDataSegmentLoadOnReap: %s", forceDataSegmentLoadOnReap);
 
     Preconditions.checkState(minFinalizationIntervalMillis > 0, "minFinalizationIntervalMillis must be non-negative");
     Preconditions.checkState(maxUnfinalizedDeletedBytes > 0, "maxUnfinalizedDeletedBytes must be non-negative");
 
     verboseReapLogInfo = PropertiesHelper.systemHelper.getBoolean(DHTConstants.verboseReapLogInfoProperty, false);
+    Log.warningf("verboseReapLogInfo: %s", verboseReapLogInfo);
   }
 
   // TODO: remove these two throw-way methods below when we figure out a way to manage the binds between System
@@ -363,6 +372,10 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
   /////////////////////////////////
 
+  /**
+   * Full constructor is for testing only. FileSegmentCompactor is not normally specified.
+   * // FUTURE - consider removal
+   */
   public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
       NamespaceStore parent, MessageGroupBase mgBase, NodeRingMaster2 ringMaster, boolean isRecovery,
       ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals, ReapPolicy reapPolicy, Finalization finalization,
@@ -378,7 +391,8 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     this.parent = parent;
     this.mgBase = mgBase;
     this.ringMaster = ringMaster;
-    checksumTreeServer = new ChecksumTreeServer(this, mgBase.getAbsMillisTimeSource());
+    checksumTreeServer = new ChecksumTreeServer(this,
+        mgBase != null ? mgBase.getAbsMillisTimeSource() : SystemTimeUtil.timerDrivenTimeSource);
     this.reapPolicy = reapPolicy;
     reapPolicyState = reapPolicy.createInitialState();
     switch (dirCreationMode) {
@@ -433,12 +447,15 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     default:
       throw new RuntimeException("Panic");
     }
+    if (fileSegmentCompactor != null) {
+      fileSegmentCompactor.setFileSegmentCache(fileSegmentCache);
+    }
     if (!isRecovery) {
       createInitialHeadSegment();
     }
     //headCreationLock = new ReentrantLock();
     // valueSegments = new ConcurrentHashMap<>();
-    valueSegments = new IntArrayCuckoo(valueSegmentsConfig);
+    valueSegments = new IntArrayDHTKeyCuckoo(valueSegmentsConfig);
     offsetListStore = new RAMOffsetListStore(nsOptions);
     metaRWLock = new ReentrantReadWriteLock();
     metaReadLock = metaRWLock.readLock();
@@ -464,9 +481,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     triggers = createTriggers();
     putTrigger = triggers.getV1();
     retrieveTrigger = triggers.getV2();
-    if (!isRecovery) {
-      initializeTriggers();
-    }
     if (enablePendingPuts && putTrigger != null && putTrigger.supportsMerge()) {
       try {
         switch (svpMapperMode) {
@@ -491,6 +505,11 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     }
     this.finalization = finalization;
     this.fileSegmentCompactor = fileSegmentCompactor;
+    vrp = ValueRetentionPolicyImpl.fromPolicy(nsOptions.getValueRetentionPolicy(), this);
+    //we need to initialize trigger in the end as trigger init might depend on some property of NamespaceStore
+    if (!isRecovery) {
+      initializeTriggers();
+    }
   }
 
   public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
@@ -498,7 +517,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals, ReapPolicy reapPolicy,
       Finalization finalization) {
     this(ns, nsDir, dirCreationMode, nsProperties, null, mgBase, ringMaster, isRecovery, activeRetrievals, reapPolicy,
-        finalization, new FileSegmentCompactorImpl());
+        finalization, new NamespaceFileSegmentCompactor(nsDir, nsProperties.getOptions()));
   }
 
   public NamespaceStore(long ns, File nsDir, DirCreationMode dirCreationMode, NamespaceProperties nsProperties,
@@ -592,7 +611,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     ramSegments.put(headSegment.getSegmentNumber(), (RAMSegment) headSegment);
   }
 
-  public void startWatches(ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
+  public void startWatches(SilverKingZooKeeperClient zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
     if (parent == null && nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION && nsOptions.getAllowLinks()) {
       watchForLink(zk, nsLinkBasePath, linkCreationListener);
     }
@@ -606,7 +625,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     return SystemTimeUtil.timerDrivenTimeSource.absTimeMillis() - nsMetrics.getLastActivityMillis() > nsIdleIntervalMillis;
   }
 
-  private void watchForLink(ZooKeeperExtended zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
+  private void watchForLink(SilverKingZooKeeperClient zk, String nsLinkBasePath, LinkCreationListener linkCreationListener) {
     new LinkCreationWatcher(zk, nsLinkBasePath, ns, linkCreationListener);
   }
 
@@ -643,6 +662,10 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     return nsOptions;
   }
 
+  public ValueRetentionPolicyImpl getValueRetentionPolicyImpl() {
+    return this.vrp;
+  }
+
   protected boolean isDynamic() {
     return false;
   }
@@ -661,7 +684,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       valueSegments.put(key, value);
     } catch (TableFullException tfe) {
       Log.warningAsync(String.format("valueSegments full %x. Creating new table.", ns));
-      valueSegments = IntArrayCuckoo.rehashAndAdd(valueSegments, key, value);
+      valueSegments = IntArrayDHTKeyCuckoo.rehashAndAdd(valueSegments, key, value);
     }
   }
 
@@ -673,13 +696,15 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   }
 
   @Override
-  public void rollOverHeadSegment() {
+  public void rollOverHeadSegment(boolean force) {
+    if (force || TimeBasedSegmentRollOver.needRollOver(headSegment)) {
     writeLockAll();
     try {
       newHeadSegment(true);
     } finally {
       writeUnlockAll();
     }
+  }
   }
 
   // writeLock must be held at caller
@@ -694,6 +719,28 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     // headCreationLock is currently redundant since we already have a write lock
     // Think about whether or not we want to keep it. Would it ever be needed?
     //headCreationLock.lock();
+
+    // Persist the current head segment first, since the 'FileSegment.create' below will create the new segment file
+    // immediately, upon recovering, the new segment will be set as the head segment, which breaks the assumption that
+    // all previous segments before the head got fully flushed.
+    oldHead = headSegment;
+    if (nsOptions.getStorageType().isFileBased()) {
+      // FUTURE - persistence may be incomplete...think about this
+    try {
+        oldHead.persist();
+        if (TracerFactory.isInitialized()) {
+          TracerFactory.getTracer().onSegmentRollover(oldHead.getSegmentNumber());
+        }
+        if (verboseLogging) {
+          Log.warning("persisted segment: " + oldHead.getSegmentNumber());
+        }
+      } catch (IOException ioe) {
+        peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
+        throw new RuntimeException(ioe);
+      }
+      // FUTURE - consider persisting in another thread - would need to handle mutual exclusion, consistency, etc.
+    }
+
     try {
       WritableSegmentBase newHead;
       FileSegment.SyncMode syncMode;
@@ -717,7 +764,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       default:
         throw new RuntimeException();
       }
-      oldHead = headSegment;
+      Log.infof("newHeadSegment %d", newHead.getSegmentNumber());
       headSegment = newHead;
     } catch (IOException ioe) {
       peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
@@ -725,21 +772,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       //} finally {
       //headCreationLock.unlock();
     }
-
-    if (nsOptions.getStorageType().isFileBased()) {
-      // FUTURE - persistence may be incomplete...think about this
-      try {
-        oldHead.persist();
-        if (verboseLogging) {
-          Log.warning("persisted segment: " + oldHead.getSegmentNumber());
-        }
-      } catch (IOException ioe) {
-        peerHealthMonitor.addSelfAsSuspect(PeerHealthIssue.StorageError);
-        throw new RuntimeException(ioe);
-      }
-      // FUTURE - consider persisting in another thread - would need to handle mutual exclusion, consistency, etc.
     }
-  }
 
   public List<Integer> getKeySegments(DHTKey key) {
     metaReadLock.lock();
@@ -1311,7 +1344,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         }
       }
 
-      if (TimeBasedSegmentRollOver.isEnabled && TimeBasedSegmentRollOver.needRollOverOnPut(headSegment)) {
+      if (TimeBasedSegmentRollOver.needRollOver(headSegment)) {
         newHeadSegment();
       }
       storageSegment = headSegment;
@@ -2407,6 +2440,27 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     }
   }
 
+  private String segmentCreationTimeString(int segmentNumber) {
+    if (deletedSegments.contains(segmentNumber)) {
+      return "deleted";
+    } else {
+      if (segmentNumber < nextSegmentID.get()) {
+        switch (nsOptions.getStorageType()) {
+        case RAM:
+          return "RAM";
+        case FILE:
+          return FileSegment.segmentCreationTime(nsDir, segmentNumber);
+        default:
+          throw new RuntimeException("Panic");
+        }
+      } else {
+        throw new RuntimeException(
+            String.format("Segment number %d is outside of current head segment %d", segmentNumber,
+                nextSegmentID.get()));
+      }
+    }
+  }
+
   private boolean segmentExists(int segmentNumber) {
     if (deletedSegments.contains(segmentNumber)) {
       return false;
@@ -2459,6 +2513,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
       lastE = e;
       attemptIndex = 1;
+      Log.logErrorWarning(e);
       Log.warning(
           String.format("Treating as non fatal. %s ns %x segmentNumber %d attemptIndex %d", e, ns, segmentNumber,
               attemptIndex));
@@ -2486,6 +2541,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       SegmentPrereadMode segmentPrereadMode) throws IOException {
     FileSegment fileSegment;
 
+    Log.infof("_loadFileSegment %d %s %s", segmentNumber, fileSegmentLoadMode, segmentPrereadMode);
     // FUTURE - this implementation touches disk more than we need to
     try {
       if (fileSegmentLoadMode == FileSegmentLoadMode.ReadWrite) {
@@ -2528,8 +2584,9 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
   static NamespaceStore recoverExisting(long ns, File nsDir, NamespaceStore parent, StoragePolicy storagePolicy,
       MessageGroupBase mgBase, NodeRingMaster2 ringMaster,
-      ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals, ZooKeeperExtended zk, String nsLinkBasePath,
-      LinkCreationListener linkCreationListener, ReapPolicy reapPolicy, NamespaceProperties nsProperties) {
+      ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals, SilverKingZooKeeperClient zk, String nsLinkBasePath,
+      LinkCreationListener linkCreationListener, ReapPolicy reapPolicy, NamespaceProperties nsProperties)
+      throws IOException {
     NamespaceStore nsStore;
     int numSegmentsToPreread;
     int numSegmentsToSkipPreread;
@@ -2540,6 +2597,8 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     if (nsProperties.getOptions().getStorageType() != StorageType.RAM) {
       List<Integer> segmentNumbers;
 
+      // FUTURE - presently only NamespaceFileSegmentCompactor is supported; allow others
+      NamespaceFileSegmentCompactor.recoverOngoingCompaction(nsDir);
       segmentNumbers = FileUtil.numericFilesInDirAsSortedIntegerList(nsDir);
       if (segmentNumbers.size() > 0) {
         FileSegmentRecoverer fsr;
@@ -2943,7 +3002,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       ValueRetentionState vrState;
 
       nextSegmentNumber = headSegment.getSegmentNumber();
-      vrState = nsOptions.getValueRetentionPolicy().createInitialState(putTrigger, retrieveTrigger);
+      vrState = vrp.createInitialState();
       reapImplState.initialize(nextSegmentNumber, vrState);
     }
   }
@@ -2957,19 +3016,22 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       this.reapPhase = reapPhase;
     }
     if (reapPolicy.verboseReapPhase()) {
-      Log.warningAsync("reapPhase: " + this.reapPhase);
+      Log.warningAsyncf("reapPhase: %s %s", this.reapPhase, Long.toHexString(ns));
     }
   }
 
   private static class CompactAndDeleteImplState {
     private List<Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>>> reapResults;
+    private Set<Integer> uncompactedSegments;
 
-    void initialize(List<Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>>> reapResults) {
+    void initialize(List<Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>>> reapResults,
+        Set<Integer> uncompactedSegments) {
       if (!isClear()) {
         throw new RuntimeException("Can't initialize state. Not clear.");
       } else {
         this.reapResults = new LinkedList<>();
         this.reapResults.addAll(reapResults);
+        this.uncompactedSegments = uncompactedSegments;
       }
     }
 
@@ -3000,12 +3062,20 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         return !reapResults.isEmpty();
       }
     }
+
+    public Set<Integer> getUncompactedSegments() {
+      return uncompactedSegments;
+    }
   }
 
   private static class ReapImplState {
     private int nextSegmentNumber;
     private ValueRetentionState vrState;
     private SortedMap<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> curReapResults;
+    private Set<DHTKey> invalidatedKeys;
+    private int lastSegmentRetainedBytes;
+    private Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> lastSegmentReapResults;
+    private Set<Integer>  uncompactedSegments;
 
     ReapImplState() {
       clear();
@@ -3024,6 +3094,10 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       nextSegmentNumber = -1;
       vrState = null;
       curReapResults = new TreeMap<>();
+      invalidatedKeys = new HashSet<>();
+      lastSegmentRetainedBytes = 0;
+      lastSegmentReapResults = null;
+      uncompactedSegments = new HashSet<>();
     }
 
     boolean isClear() {
@@ -3042,8 +3116,38 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       return vrState;
     }
 
+    Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> getLastSegmentReapResults() {
+      return lastSegmentReapResults;
+    }
+
+    int getLastSegmentRetainedBytes() {
+      return lastSegmentRetainedBytes;
+    }
+
+    void setLastSegmentRetainedBytes(int lastSegmentRetainedBytes) {
+      this.lastSegmentRetainedBytes = lastSegmentRetainedBytes;
+    }
+
+    private void setlastSegmentReapResults(
+        Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> lastSegmentReapResults) {
+      this.lastSegmentReapResults = lastSegmentReapResults;
+    }
+
     void addReapResult(int segment, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>> result) {
+      uncompactedSegments.remove(segment);
+      if (curReapResults.get(segment) != null) {
+        Log.warningf("Unexpected duplicate reap results for %d", segment);
+      } else {
       curReapResults.put(segment, result);
+    }
+    }
+
+    void addUncompactedSegment(int segment) {
+      uncompactedSegments.add(segment);
+    }
+
+    Set<Integer> getUncompactedSegments() {
+      return ImmutableSet.copyOf(uncompactedSegments);
     }
 
     List<Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>>> curReapResultsToList() {
@@ -3066,13 +3170,8 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   // We need to ensure that forceReap() and liveReap() do not occur concurrently
 
   public void startupReap() {
-    if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeInitialReap || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap) {
-      emptyTrashAndCompaction();
-    }
     if (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase, true)) {
-      _reap(headSegment.getSegmentNumber(), 0,
-          nsOptions.getValueRetentionPolicy().createInitialState(putTrigger, retrieveTrigger), true,
-          defaultCompactionThreshold);
+      _reap(headSegment.getSegmentNumber(), 0, vrp.createInitialState(), true, defaultCompactionThreshold);
       transitionToCompactAndDeletePhase();
       startupCompactAndDelete(defaultCompactionThreshold);
       transitionToReapPhase();
@@ -3080,9 +3179,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       if (reapPolicy.verboseReap()) {
         Log.warningAsync("Startup reap is not allowed.");
       }
-    }
-    if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.BeforeAndAfterInitialReap || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
-      emptyTrashAndCompaction();
     }
   }
 
@@ -3097,7 +3193,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           Log.warningf("liveReap() ns %x", ns);
         }
         if (reapPhase == ReapPhase.reap) {
-          // readLock.lock(); metaReadLock.lock();
           _liveReap(defaultCompactionThreshold);
         }
         // _leaveReap() may change the phase to compactAndDelete.
@@ -3105,7 +3200,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         // allow execution to fall through immediately to that phase
         // when the change occurs.
         if (reapPhase == ReapPhase.compactAndDelete) {
-          // writeLock.lock(); metaWriteLock.lock();
           liveCompactAndDelete(defaultCompactionThreshold);
         }
       }
@@ -3118,14 +3212,14 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     }
   }
 
-  public int[] forceReap(int startSegment, int endSegment, ValueRetentionPolicy vrp, ValueRetentionState state)
+  public int[] forceReap(int startSegment, int endSegment, ValueRetentionPolicyImpl<?> vrp, ValueRetentionState state)
       throws IOException {
     Stopwatch sw;
 
     sw = new SimpleStopwatch();
     reapLock.lock();
     try {
-      int segmentReaped;
+      int segmentsReaped;
       Pair<Integer, Integer> segmentTrashedDeleted;
 
       // Pre-clean
@@ -3144,11 +3238,11 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       // PRE-CONDITION: reapPhase == ReapPhase.reap && reapImplState.isClear() && cdImplState.isClear()
       // readLock.lock(); metaReadLock.lock();
       _reap(startSegment, endSegment, vrp, state, true, 0);
-      segmentReaped = reapImplState.curReapResults.size();
+      segmentsReaped = reapImplState.curReapResults.size();
       transitionToCompactAndDeletePhase();
       // writeLock.lock(); metaWriteLock.lock();
       segmentTrashedDeleted = forceCompactAndDelete(0);
-      return new int[] { segmentReaped, segmentTrashedDeleted.getV1(), segmentTrashedDeleted.getV2() };
+      return new int[] { segmentsReaped, segmentTrashedDeleted.getV1(), segmentTrashedDeleted.getV2() };
     } finally {
       reapLock.unlock();
       sw.stop();
@@ -3180,24 +3274,11 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     }
   }
 
-  private void emptyTrashAndCompaction() {
-    updateAndCheckForceFinalization(fileSegmentCompactor.emptyTrashAndCompaction(nsDir));
-  }
-
-  private int forceEmptyTrashAndCompaction() throws IOException {
-    int segmentsDeleted;
-
-    segmentsDeleted = fileSegmentCompactor.forceEmptyTrashAndCompaction(nsDir);
-    updateAndCheckForceFinalization(segmentsDeleted);
-
-    return segmentsDeleted;
-  }
-
   private void transitionToCompactAndDeletePhase() {
     if (reapPhase != ReapPhase.reap) {
       throw new RuntimeException("Unexpected phase");
     }
-    cdImplState.initialize(reapImplState.curReapResultsToList());
+    cdImplState.initialize(reapImplState.curReapResultsToList(), reapImplState.getUncompactedSegments());
     reapImplState.clear();
     setReapPhase(ReapPhase.compactAndDelete);
   }
@@ -3238,91 +3319,121 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
   private void startupCompactAndDelete(double compactionThreshold) {
     Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> nextReapResult;
+    Set<Integer> deletedSegments;
+    HashedSetMap<DHTKey, CompactorModifiedEntry> modifiedEntries;
 
     Log.warning("startupCompactAndDelete");
+    deletedSegments = new HashSet<>();
+    modifiedEntries = new HashedSetMap<>();
     nextReapResult = cdImplState.nextReapResult();
     while (nextReapResult != null) {
-      compactAndDelete(nextReapResult.getV1(), nextReapResult.getV2(), false, compactionThreshold);
+      Pair<Set<Integer>, HashedSetMap<DHTKey, CompactorModifiedEntry>> segmentCompactionResults;
+
+      segmentCompactionResults = compactAndDelete(nextReapResult.getV1(), nextReapResult.getV2(), reapPolicy.verboseReap(),
+          compactionThreshold);
+      deletedSegments.addAll(segmentCompactionResults.getV1());
+      modifiedEntries.addAll(segmentCompactionResults.getV2());
       nextReapResult = cdImplState.nextReapResult();
     }
+    flushCompaction(deletedSegments, modifiedEntries);
   }
 
   private void liveCompactAndDelete(double compactionThreshold) {
     int currentBatchSize;
-    Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> nextReapResult;
+    Set<Integer> deletedSegments;
+    HashedSetMap<DHTKey, CompactorModifiedEntry> modifiedEntries;
+    boolean compactionCalled;
 
+    Log.infof("liveCompactAndDelete");
     currentBatchSize = 0;
+    compactionCalled = false;
     if (cdImplState.isClear()) {
       throw new RuntimeException("Unexpected cdImplState.isClear()");
     }
-    nextReapResult = null;
+    deletedSegments = new HashSet<>();
+    modifiedEntries = new HashedSetMap<>();
     while (reapPolicy.reapAllowed(reapPolicyState, this, reapPhase,
         false) && cdImplState.hasReapResults() && currentBatchSize < reapPolicy.getBatchLimit(null)) {
+      Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> nextReapResult;
+
       nextReapResult = cdImplState.nextReapResult();
-      if (nextReapResult != null) {
-        compactAndDelete(nextReapResult.getV1(), nextReapResult.getV2(), false, compactionThreshold);
+      if (nextReapResult != null && nextReapResult.getV1() < getHeadSegmentNumber()) {
+        Pair<Set<Integer>, HashedSetMap<DHTKey, CompactorModifiedEntry>> segmentCompactionResults;
+
+        compactionCalled = true;
+        segmentCompactionResults = compactAndDelete(nextReapResult.getV1(), nextReapResult.getV2(), reapPolicy.verboseReap(),
+            compactionThreshold);
         ++currentBatchSize;
+        deletedSegments.addAll(segmentCompactionResults.getV1());
+        modifiedEntries.addAll(segmentCompactionResults.getV2());
         ThreadUtil.sleep(reapPolicy.getIdleReapPauseMillis());
       }
     }
+    if (compactionCalled) {
+      flushCompaction(deletedSegments, modifiedEntries);
+    }
     if (!cdImplState.hasReapResults()) {
       reapPolicyState.fullReapComplete(this);
-      if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryFullReap || reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
-        emptyTrashAndCompaction();
-      }
       transitionToReapPhase();
     } else {
       Log.info("liveCompactAndDelete() interrupted");
-      if (reapPolicy.getEmptyTrashMode() == ReapPolicy.EmptyTrashMode.EveryPartialReap) {
-        emptyTrashAndCompaction();
       }
-    }
+    Log.infof("out liveCompactAndDelete");
   }
 
   private Pair<Integer, Integer> forceCompactAndDelete(double compactionThreshold) throws IOException {
     Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> nextReapResult;
-    int segmentsTrashed;
+    Set<Integer> deletedSegments;
+    HashedSetMap<DHTKey, CompactorModifiedEntry> modifiedEntries;
     int segmentsDeleted;
 
-    segmentsTrashed = 0;
     segmentsDeleted = 0;
     if (cdImplState.isClear()) {
       throw new IOException("Unexpected cdImplState.isClear()");
     }
+    deletedSegments = new HashSet<>();
+    modifiedEntries = new HashedSetMap<>();
+    writeLockAll();
+    try {
     while (cdImplState.hasReapResults()) {
       nextReapResult = cdImplState.nextReapResult();
       if (nextReapResult != null) {
+          Pair<Set<Integer>, HashedSetMap<DHTKey, CompactorModifiedEntry>> segmentCompactionResults;
         int curSegment;
 
         curSegment = nextReapResult.getV1();
-        if (compactAndDelete(curSegment, nextReapResult.getV2(), true, compactionThreshold)) {
-          segmentsTrashed++;
+          segmentCompactionResults = compactAndDelete(curSegment, nextReapResult.getV2(), true, compactionThreshold);
+          deletedSegments.addAll(segmentCompactionResults.getV1());
+          modifiedEntries.addAll(segmentCompactionResults.getV2());
+          if (segmentCompactionResults.getV1().size() > 0) {
+            segmentsDeleted += segmentCompactionResults.getV1().size();
         } else {
           Log.warningf(
-              "Fail to compact/delete Segment [%d] during forceCompactAndDelete() for key purge; Check the error " +
-                  "message above",
+                "Fail to compact/delete Segment [%d] during forceCompactAndDelete() for key purge; Check the error " + "message above",
               curSegment);
         }
       }
     }
+      flushCompaction(deletedSegments, modifiedEntries);
+    } finally {
+      writeUnlockAll();
+    }
     if (!cdImplState.hasReapResults()) {
       transitionToReapPhase();
-      segmentsDeleted = forceEmptyTrashAndCompaction();
     } else {
       Log.warning("forceCompactAndDelete() interrupted");
       throw new IOException("forceCompactAndDelete() interrupted");
     }
 
-    return Pair.of(segmentsTrashed, segmentsDeleted);
+    return Pair.of(0, segmentsDeleted); // FUTURE - trash no longer used; remove pair
   }
 
   private int _reap(int startSegment, int endSegment, ValueRetentionState state, boolean verboseReap,
       double compactionThreshold) {
-    return _reap(startSegment, endSegment, nsOptions.getValueRetentionPolicy(), state, verboseReap,
-        compactionThreshold);
+    return _reap(startSegment, endSegment, vrp, state, verboseReap, compactionThreshold);
   }
 
-  private int _reap(int startSegment, int endSegment, ValueRetentionPolicy vrp, ValueRetentionState state,
+  private int _reap(int startSegment, int endSegment, ValueRetentionPolicyImpl<?> vrp, ValueRetentionState state,
       boolean verboseReap, double compactionThreshold) {
     int segmentsReaped;
 
@@ -3354,22 +3465,69 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     return segmentsReaped;
   }
 
-  private <T extends ValueRetentionState> int singleReverseSegmentWalk(ValueRetentionPolicy<T> vrp,
+  private <T extends ValueRetentionState> int singleReverseSegmentWalk(ValueRetentionPolicyImpl<?> vrp,
       T valueRetentionState, long curTimeNanos, int startSegment, int endSegment, boolean verboseReap,
       double compactionThreshold) {
     int segmentsReaped;
 
     segmentsReaped = 0;
+    Log.finef("nsStore.singleReverseSegmentWalk %d %d", startSegment, endSegment);
+    if (startSegment < endSegment) {
+      throw new RuntimeException("singleReverseSegmentWalk startSegment < endSegment; order should be reverse");
+    }
     for (int i = startSegment; i >= endSegment; i--) {
+      Log.finef("nsStore.singleReverseSegmentWalk %d", i);
       if (segmentExists(i)) {
-        Triple<CompactionCheckResult, Set<Integer>, Set<Integer>> result;
+        Quintuple<CompactionCheckResult, Set<Integer>, Set<Integer>, Set<DHTKey>, Boolean> result;
         WritableSegmentBase segment;
+        String ctime = segmentCreationTimeString(i);
+
+        boolean isKeyLevelReap = false;
 
         ++segmentsReaped;
         try {
           Stopwatch sw;
+          KeyLevelValueRetentionPolicyImpl segment_klvrp;
+          ValueRetentionState segment_vrs;
 
           sw = new SimpleStopwatch();
+
+          // Determine the ValueRetentionPolicy and ValueRetentionState for key-level retention within a segment.
+          // In trivial cases, the policy on the NamespaceStore permits retaining (or reaping) entire segments at a
+          // time. Here, we set the key-level policy to be a PermanentRetentionPolcyImpl or NeverRetentionPolicyImpl
+          // (respectively), and use ValueRetentionState.EMPTY.
+          // In more complex cases, the policy on the NamespaceStore cannot make segment-level decisions, and we need
+          // a key-level retention policy and state and to decide which individual keys within a segment to retain/reap.
+          if (vrp instanceof SegmentLevelValueRetentionPolicyImpl) {
+            SegmentLevelValueRetentionPolicyImpl<T> slvrp;
+            boolean segmentRetained;
+
+            slvrp = (SegmentLevelValueRetentionPolicyImpl<T>) vrp;
+            segmentRetained = slvrp.retains(i, nsOptions.getSegmentSize(), valueRetentionState, curTimeNanos);
+            if (segmentRetained) {
+              // retain all keys in this segment
+              segment_klvrp = new PermanentRetentionPolicyImpl();
+              segment_vrs = ValueRetentionState.EMPTY;
+            } else {
+              // delete all keys in this segment
+              if (verboseReap) {
+                Log.infof("All keys in Segment %d created at %s will be reaped", i, ctime);
+              }
+              segment_klvrp = new NeverRetentionPolicyImpl();
+              segment_vrs = ValueRetentionState.EMPTY;
+              if (TracerFactory.isInitialized()) {
+                TracerFactory.getTracer().onSegmentReap(i, ctime);
+              }
+            }
+          } else {
+            // key-level level vrp; scan at key level
+            if (verboseReap) {
+              Log.infof("Keys in Segment %d created at %s will be reaped according to Key level policy", i, ctime);
+            }
+            isKeyLevelReap = true;
+            segment_klvrp = (KeyLevelValueRetentionPolicyImpl<T>) vrp;
+            segment_vrs = valueRetentionState;
+          }
 
           if (i == headSegment.getSegmentNumber()) {
             segment = headSegment;
@@ -3379,36 +3537,92 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
             } else {
               segment = fileSegmentCache.getIfPresent(i);
               if (segment == null) {
-                boolean invalidationsAreIndexed;
+                FileSegmentStorageFormat fileSegmentStorageFormat;
+                FileSegmentLoadMode fileSegmentLoadMode;
 
-                invalidationsAreIndexed = FileSegmentStorageFormat.parse(
-                    nsOptions.getStorageFormat()).invalidationsAreIndexed();
-                // Safe as we hold a write lock
+                fileSegmentStorageFormat = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat());
+                fileSegmentLoadMode =
+                    ((segment_klvrp.considersStoredLength() && !fileSegmentStorageFormat.lengthsAreIndexed()) || (segment_klvrp.considersInvalidations() && !fileSegmentStorageFormat.invalidationsAreIndexed())) || forceDataSegmentLoadOnReap ?
+                    FileSegmentLoadMode.ReadOnly :
+                    FileSegmentLoadMode.ReadIndexOnly;
+
                 // This segment will never be cached
                 // We don't use getSegment as we do not wish to pollute the cache
                 // Ideally, can reap without reading the data segment. If, however, the retention policy considers
-                // stored length, we must read the data segment as that is where that is stored
-                segment = loadFileSegment(i, (vrp.considersStoredLength() || !invalidationsAreIndexed) ?
-                    FileSegmentLoadMode.ReadOnly :
-                    FileSegmentLoadMode.ReadIndexOnly, SegmentPrereadMode.Preread);
+                // stored length and stored lengths are not indexed, we must read the data segment
+                // Likewise, if invalidations are not indexed, we must read the data segment
+                segment = loadFileSegment(i, fileSegmentLoadMode, SegmentPrereadMode.Preread);
               }
             }
           }
-          result = segment.singleReverseSegmentWalk(vrp, valueRetentionState, curTimeNanos, ringMaster);
+          Log.fine("segment.singleReverseSegmentWalk %d", i);
+
+          result = segment.singleReverseSegmentWalk(segment_klvrp, segment_vrs, curTimeNanos, ringMaster,
+              reapImplState.invalidatedKeys);
+
           if (i == headSegment.getSegmentNumber()) {
             if (verboseReap || verboseReapLogInfo) {
               Log.warningAsyncf("Retaining head segment");
             }
           } else {
             CompactionCheckResult ccr;
+            boolean subsequentCanCompactIntoThisSegment;
+
+            // FUTURE - currently not handling the case where we merge over a deleted segment
+            //   i.e. if we have partially full segments 0 and 2, and empty segment 1
+            //   in principle, we want to delete 1, and merge 2 into 0.
+            //   Presently, we will perform that merge in the next pass.
 
             ccr = result.getV1();
-            if (ccr.getValidEntries() == 0 || ccr.getInvalidFraction() > compactionThreshold) {
-              reapImplState.addReapResult(i, result);
+            if (isKeyLevelReap && ccr.getInvalidEntries() > 0 && TracerFactory.isInitialized()) {
+              TracerFactory.getTracer().onKeysReap(i, ccr.getInvalidEntries(), ctime);
+            }
+
+            subsequentCanCompactIntoThisSegment =
+                isKeyLevelReap // don't compact across segments for segment-level reap
+                && ccr.getRetainedBytes() > 0 // present segment isn't deleted
+                && reapImplState.getLastSegmentRetainedBytes() > 0 // subsequent segment has retained bytes
+                && (reapImplState.getLastSegmentRetainedBytes() + ccr.getRetainedBytes() + SegmentFormat.headerSize < nsOptions.getSegmentSize()); // and it can fit
+            Log.warningf("CompactionCheckResult %d  %s", i, ccr);
+            Log.warningf("Segment %d discarded %d keys out of %d total", i, ccr.getInvalidEntries(),
+                ccr.getTotalEntries());
+            Log.warningf("Segment %d retained bytes %d  last segment retained bytes %d", i, ccr.getRetainedBytes(),
+                reapImplState.getLastSegmentRetainedBytes());
+            Log.warningf("subsequentCanCompactIntoThisSegment %d %s", i, subsequentCanCompactIntoThisSegment);
+            if (subsequentCanCompactIntoThisSegment) {
+              Pair<Integer, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>>> lastSegmentReapResults;
+
+              lastSegmentReapResults = reapImplState.getLastSegmentReapResults();
+              if (lastSegmentReapResults != null) {
+                reapImplState.addReapResult(lastSegmentReapResults.getV1(), lastSegmentReapResults.getV2());
+            }
+          }
+
+            if (ccr.getValidEntries() == 0 // segment should be deleted
+                || (ccr.getInvalidEntries() > 0 && ccr.getInvalidFraction() >= compactionThreshold) // segment should
+                // be compacted
+                || result.getV5() // segment must be compacted to ensure consistency
+                || subsequentCanCompactIntoThisSegment) {
+              // Inform the reap implementation
+              reapImplState.addReapResult(i, result.getTripleAt1());
+              // Add all invalidated keys in this segment to invalidatedAndCompactedKeys
+              reapImplState.invalidatedKeys.addAll(result.getV4());
+              reapImplState.setLastSegmentRetainedBytes(
+                  subsequentCanCompactIntoThisSegment ? 0 : ccr.getRetainedBytes());
+              reapImplState.setlastSegmentReapResults(null);
+            } else {
+              // save state in case we can compact this into a lower segment
+              reapImplState.setLastSegmentRetainedBytes(ccr.getRetainedBytes());
+              reapImplState.setlastSegmentReapResults(new Pair<>(i, result.getTripleAt1()));
+              reapImplState.addUncompactedSegment(i);
+              // For now, this segment is uncompacted.
+              // If we actually add this saved segment to compaction,
+              // addReapResult() will remove this from uncompacted segments.
             }
           }
           sw.stop();
           if (verboseReap || verboseReapLogInfo) {
+            Log.warningAsyncf("%s %d %d", result.getV1(), result.getV2().size(), result.getV3().size());
             Log.warningAsyncf("singleReverseSegmentWalk: processing segment %d took %f", i, sw.getElapsedSeconds());
           }
         } catch (Exception e) {
@@ -3420,19 +3634,82 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     return segmentsReaped;
   }
 
-  private boolean compactAndDelete(int curSegment, Triple<CompactionCheckResult, Set<Integer>, Set<Integer>> result,
-      boolean verboseReap, double compactionThreshold) {
-    boolean deleted;
+  private int deleteSegments(Set<Integer> segmentsToDelete1, Set<Integer> segmentsToDelete2) {
+    Set<Integer> segmentsToDelete;
 
-    //Log.warning("compactAndDelete");
+    Log.infof("deleteSegments");
+    Log.infof("segmentsToDelete1 %s", CollectionUtil.toString(segmentsToDelete1));
+    Log.infof("segmentsToDelete2 %s", CollectionUtil.toString(segmentsToDelete2));
+    segmentsToDelete = new HashSet<>(segmentsToDelete1.size() + segmentsToDelete2.size());
+    segmentsToDelete.addAll(segmentsToDelete1);
+    segmentsToDelete.addAll(segmentsToDelete2);
+    return deleteSegments(segmentsToDelete);
+  }
+
+  private int deleteSegments(Set<Integer> segmentsToDelete) {
+    List<Integer> segmentsToDeleteList;
+
+    // Sort the list of segments to delete to ensure that we delete in monotonically increasing order
+    segmentsToDeleteList = new ArrayList<>(segmentsToDelete.size());
+    segmentsToDeleteList.addAll(segmentsToDelete);
+    Collections.sort(segmentsToDeleteList);
+    for (int segmentToDelete : segmentsToDeleteList) {
+      deleteSegment(segmentToDelete);
+    }
+    return segmentsToDelete.size();
+  }
+
+  private void deleteSegment(int segmentNumber) {
+    FileSegment segment;
+
+    segment = fileSegmentCache.getIfPresent(segmentNumber);
+    if (segment != null) {
+      Log.infof("Invalidating cache segment: ", segmentNumber);
+      fileSegmentCache.invalidate(segmentNumber);
+      segment.close();
+      segment = null;
+    }
+    if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
+      Log.warning("Deleting segment: ", segmentNumber);
+    }
+    FileCompactionUtil.delete(nsDir, segmentNumber);
+    if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
+      Log.warning("Done deleting segment: ", segmentNumber);
+    }
+  }
+
+  private void flushCompaction(Set<Integer> deletedSegments,
+      HashedSetMap<DHTKey, CompactorModifiedEntry> modifiedEntries) {
+    int numSegmentsDeleted;
+
+    if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
+      Log.warningf("Flush compaction %x", ns);
+    }
     writeLockAll();
-    deleted = false; // if parameter result==null, then false will be returned
     try {
-      Set<Integer> deletedSegments;
-      HashedSetMap<DHTKey, Triple<Long, Integer, Long>> removedEntries;
+      numSegmentsDeleted = deleteSegments(deletedSegments, fileSegmentCompactor.drainCurrentCompactionSourceSegments());
+      fileSegmentCompactor.flushCompaction(false);
+      updateOffsetLists(deletedSegments, modifiedEntries);
+    } finally {
+      writeUnlockAll();
+    }
+    updateAndCheckForceFinalization(numSegmentsDeleted);
+  }
 
-      removedEntries = new HashedSetMap<>();
-      deletedSegments = new HashSet<>();
+  private Pair<Set<Integer>, HashedSetMap<DHTKey, CompactorModifiedEntry>> compactAndDelete(int curSegment,
+      Triple<CompactionCheckResult, Set<Integer>, Set<Integer>> result, boolean verboseReap,
+      double compactionThreshold) {
+
+    if (verboseReap || verboseReapLogInfo) {
+      Log.warningf("compactAndDelete %d headSegment %d", curSegment, headSegment.getSegmentNumber());
+    }
+    // previous implementation locked here; present implementation avoids acquiring the lock
+    // until it's absolutely necessary
+    Set<Integer> segmentsToDelete;
+    HashedSetMap<DHTKey, CompactorModifiedEntry> modifiedEntries;
+
+    segmentsToDelete = new HashSet<>();
+    modifiedEntries = new HashedSetMap<>();
       if (result != null) {
         CompactionCheckResult ccr;
 
@@ -3445,42 +3722,22 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
             Log.warningAsyncf("Segment %3d CompactionCheckResult:\t%s", curSegment, ccr.toString());
           }
 
+        Log.finef("ccr %s", ccr);
           if (ccr.getValidEntries() == 0) {
+          segmentsToDelete.add(curSegment);
+        } else { // note that we used to check the compaction threshold here, but that check is moved into the reap
             try {
-              FileSegment segment;
+            HashedSetMap<DHTKey, CompactorModifiedEntry> compactionResult;
 
-              segment = fileSegmentCache.getIfPresent(curSegment);
-              if (segment != null) {
-                fileSegmentCache.invalidate(curSegment);
-                segment.close();
-                segment = null;
-              }
-              if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
-                Log.warning("Deleting segment: ", curSegment);
-              }
-              fileSegmentCompactor.delete(nsDir, curSegment);
-              if (reapPolicy.verboseSegmentDeletionAndCompaction()) {
-                Log.warning("Done deleting segment: ", curSegment);
-              }
-              deletedSegments.add(curSegment);
-              deleted = true;
-            } catch (IOException ioe) {
-              Log.logErrorWarning(ioe, "Failed to delete segment: " + curSegment);
-              deleted = false;
+            compactionResult = fileSegmentCompactor.compact(curSegment,
+                new RetainedOffsetMapCheck(result.getV2(), result.getV3()),
+                reapPolicy.verboseSegmentDeletionAndCompaction(), ccr.hasInvalidEntries(),
+                cdImplState.getUncompactedSegments());
+            if (compactionResult != null) {
+              modifiedEntries.addAll(compactionResult);
             }
-          } else if (ccr.getInvalidFraction() >= compactionThreshold) {
-            try {
-              HashedSetMap<DHTKey, Triple<Long, Integer, Long>> segmentRemovedEntries;
-
-              fileSegmentCache.invalidate(curSegment);
-              segmentRemovedEntries = fileSegmentCompactor.compact(nsDir, curSegment, nsOptions,
-                  new RetainedOffsetMapCheck(result.getV2(), result.getV3()),
-                  reapPolicy.verboseSegmentDeletionAndCompaction());
-              removedEntries.addAll(segmentRemovedEntries);
-              deleted = true;
             } catch (IOException ioe) {
               Log.logErrorWarning(ioe, "IOException compacting segment: " + curSegment);
-              deleted = false;
             }
           }
           sw.stop();
@@ -3490,19 +3747,13 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         } catch (Exception e) {
           Log.logErrorWarning(e, "Skipping segment " + curSegment + " due to Exception.");
           e.printStackTrace();
-          deleted = false;
         }
       }
-      updateOffsetLists(deletedSegments, removedEntries);
-      return deleted;
-    } finally {
-      writeUnlockAll();
-    }
-    //Log.warning("out compactAndDelete");
+    return new Pair<>(segmentsToDelete, modifiedEntries);
   }
 
   private void updateOffsetLists(Set<Integer> deletedSegments,
-      HashedSetMap<DHTKey, Triple<Long, Integer, Long>> removedEntries) {
+      HashedSetMap<DHTKey, CompactorModifiedEntry> modifiedEntries) {
     RAMOffsetListStore ols;
 
     ols = (RAMOffsetListStore) offsetListStore;
@@ -3531,8 +3782,8 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
       }
     }
 
-    // Now, remove references to entries deleted during compaction
-    for (DHTKey key : removedEntries.getKeys()) {
+    // Now, update references to entries deleted or moved during compaction
+    for (DHTKey key : modifiedEntries.getKeys()) {
       int rawSegmentNumber;
 
       rawSegmentNumber = valueSegments.get(key);
@@ -3540,30 +3791,39 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         if (rawSegmentNumber != IntCuckooConstants.noSuchValue) {
           RAMOffsetList ol;
 
+          if (Log.levelMet(Level.FINE)) {
+            Log.finef("Updating reference list for %s", KeyUtil.keyToString(key));
+          }
           ol = (RAMOffsetList) ols.getOffsetList(-rawSegmentNumber);
-          ol.removeEntriesByMatch(removedEntries.getSet(key));
+          ol.updateEntriesByMatch(modifiedEntries.getSet(key));
         } else {
           // No action required
         }
       } else {
-        long[] versionAndStorageTime;
-        long creationTime;
+        Set<CompactorModifiedEntry> entriesForKey;
+        CompactorModifiedEntry currentEntry;
 
-        versionAndStorageTime = segmentOldestVersion(rawSegmentNumber, key); // only one should exist
-        if (removedEntries.getSet(key).size() != 1) {
-          Log.warningAsyncf("Unexpected removedEntries.getSet(key).size() != 1");
+        entriesForKey = modifiedEntries.getSet(key);
+        if (entriesForKey.size() != 1) {
+          Log.warningAsyncf("Unexpected modifiedEntries.getSet(key).size() != 1");
         }
-        creationTime = nsOptions.getRevisionMode() == RevisionMode.UNRESTRICTED_REVISIONS ?
-            versionAndStorageTime[1] :
-            0;
-        if (removedEntries.getSet(key).contains(
-            new Triple<>(versionAndStorageTime[0], rawSegmentNumber, creationTime))) {
-          valueSegments.remove(key);
-        } else {
-          Log.warningAsyncf(
-              "Unexpected !removedEntries.getSet(key).contains(new Triple<>(versionAndStorageTime[0], " +
-                  "rawSegmentNumber, creationTime))");
-          Log.warningAsyncf("%s", new Triple<>(versionAndStorageTime[0], rawSegmentNumber, creationTime));
+        currentEntry = entriesForKey.iterator().next();
+        if (debugSegments) {
+          Log.warningf("valueSegments.remove(%s)", KeyUtil.keyToString(key));
+        }
+        valueSegments.remove(key); // key will be added back in for modified entries below
+        if (currentEntry.getNewSegmentNumber() != CompactorModifiedEntry.REMOVED) {
+          if (nsOptions.getRevisionMode() != RevisionMode.UNRESTRICTED_REVISIONS) { // FUTURE - REMOVE AFTER
+            // VERIFICATION
+            if (currentEntry.getCreationTime() != 0) {
+              Log.warningf("Unexpected currentEntry.getCreationTime() != 0");
+            }
+          }
+          // add the key that was removed above
+          if (debugSegments || Log.levelMet(Level.FINE)) {
+            Log.warningf("valueSegments.put(%s, %d)", KeyUtil.keyToString(key), currentEntry.getNewSegmentNumber());
+          }
+          valueSegments.put(key, currentEntry.getNewSegmentNumber());
         }
       }
     }
@@ -3599,7 +3859,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         Log.warningf("This node has no data for DHTKey: %s", keyToPurge.toString());
         return PurgeResult.empty();
       } else {
-        InternalPurgeKeyRetentionPolicy purgeRetentionPolicy;
+        InternalPurgeKeyRetentionPolicyImpl purgeRetentionPolicy;
         InternalPurgeKeyRetentionState purgeRetentionState;
         int[] segmentsReapedTrashedDeleted;
         int segmentsReaped, segmentsTrashed, segmentsDeleted;
@@ -3607,7 +3867,8 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
         Log.warningf("Starting to reap segment [%d] to [%d] for DHTKey: %s", startSegment, endSegment,
             keyToPurge.toString());
         purgeRetentionState = new InternalPurgeKeyRetentionState();
-        purgeRetentionPolicy = new InternalPurgeKeyRetentionPolicy(keyToPurge, purgeBeforeCreationTimeNanosInclusive);
+        purgeRetentionPolicy = new InternalPurgeKeyRetentionPolicyImpl(keyToPurge,
+            purgeBeforeCreationTimeNanosInclusive);
         segmentsReapedTrashedDeleted = forceReap(startSegment, endSegment, purgeRetentionPolicy, purgeRetentionState);
         segmentsReaped = segmentsReapedTrashedDeleted[0];
         segmentsTrashed = segmentsReapedTrashedDeleted[1];
@@ -3674,15 +3935,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     }
   }
 
-  @Override
-  public List<Integer> listTrashSegments() throws IOException {
-    return fileSegmentCompactor.getTrashSegments(nsDir);
-  }
-
-  @Override
-  public List<Integer> listCompactSegments() throws IOException {
-    return fileSegmentCompactor.getCompactSegments(nsDir);
-  }
   ////////////////////////////////////
   // SSNamespaceStore implementation
 
@@ -3691,12 +3943,22 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   private static final BlockingQueue<PendingPut> pendingPuts = new ArrayBlockingQueue<>(
       numPendingPutWorkers * maxWorkBatchSize);
 
-  static {
+  private static final ArrayList<PendingPutWorker> pendingPutWorkers = mkWorkers();
+
+  private static ArrayList<PendingPutWorker> mkWorkers() {
+    ArrayList<PendingPutWorker> ppwArray = new ArrayList<>();
     if (enablePendingPuts) {
       Log.warningf("numPendingPutWorkers: %d", numPendingPutWorkers);
       for (int i = 0; i < numPendingPutWorkers; i++) {
-        new PendingPutWorker(i, pendingPuts);
+        ppwArray.add(new PendingPutWorker(i, pendingPuts));
       }
+      }
+    return ppwArray;
+  }
+
+  public static void shutdownPendingPutWorkers() {
+    for (PendingPutWorker ppw : pendingPutWorkers) {
+      ppw.stop();
     }
   }
 
@@ -3762,15 +4024,15 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
     private boolean running;
     private final BlockingQueue<PendingPut> q;
     private final PendingPut[] work;
+    public final Thread runner;
 
     PendingPutWorker(int index, BlockingQueue<PendingPut> q) {
-      Thread t;
 
       work = new PendingPut[maxWorkBatchSize];
       this.q = q;
-      t = ThreadUtil.newDaemonThread(this, "PendingPutWorker." + index);
+      runner = ThreadUtil.newDaemonThread(this, "PendingPutWorker." + index);
       running = true;
-      t.start();
+      runner.start();
     }
 
     private int takeMultiple() throws InterruptedException {
@@ -3898,6 +4160,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
     public void stop() {
       running = false;
+      runner.interrupt();
     }
   }
 

@@ -24,13 +24,13 @@ import com.ms.silverking.cloud.toporing.meta.MetaClient;
 import com.ms.silverking.cloud.toporing.meta.MetaPaths;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfigurationUtil;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -139,7 +139,7 @@ public class MasterModeDependencyWatcher implements VersionListener {
 
   private void triggerBuild() {
     try {
-      ZooKeeperExtended zk;
+      SilverKingZooKeeperClient zk;
 
       zk = mc.getZooKeeper();
       buildQueue.put(createBuildMap(zk));
@@ -148,7 +148,7 @@ public class MasterModeDependencyWatcher implements VersionListener {
     }
   }
 
-  private Map<String, Long> createBuildMap(ZooKeeperExtended zk) throws KeeperException {
+  private Map<String, Long> createBuildMap(SilverKingZooKeeperClient zk) throws KeeperException {
     Map<String, Long> b;
     long exclusionVersion;
     long instanceExclusionVersion;
@@ -173,7 +173,7 @@ public class MasterModeDependencyWatcher implements VersionListener {
       ExclusionSet instanceExclusionSet;
       long exclusionVersion;
       long instanceExclusionVersion;
-      ZooKeeperExtended zk;
+      SilverKingZooKeeperClient zk;
       ExclusionSet mergedExclusionSet;
       RingTree newRingTree;
       String newInstancePath;

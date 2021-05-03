@@ -29,12 +29,14 @@ import com.ms.silverking.cloud.dht.trace.TraceIDProvider;
 import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.id.UUIDBase;
-import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.net.security.AuthorizationResult;
 import com.ms.silverking.net.security.Authorizer;
 import com.ms.silverking.net.security.NonRetryableAuthFailedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * Base class for proxy operations - operations executed by a DHTNode on behalf of a
@@ -63,14 +65,20 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   protected final boolean hasTraceID;
   protected final byte[] maybeTraceID;
 
+  protected static final Logger log = LoggerFactory.getLogger(ActiveProxyOperation.class);
+
   // FUTURE - this class assumes keyed operations; probably create a parent without that assumption
 
   protected Operation<K, R> operation;
 
   protected static final boolean debug = false;
 
-  ActiveProxyOperation(MessageGroupConnectionProxy connection, MessageGroup message, ByteBuffer optionsByteBuffer,
-      MessageModule messageModule, long absDeadlineMillis, boolean sendResultsDuringStart) {
+  ActiveProxyOperation(MessageGroupConnectionProxy connection,
+                       MessageGroup message,
+                       ByteBuffer optionsByteBuffer,
+                       MessageModule messageModule,
+                       long absDeadlineMillis,
+                       boolean sendResultsDuringStart) {
     this.connection = connection;
     this.message = message;
     this.messageType = message.getMessageType();
@@ -84,16 +92,16 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
     this.maybeTraceID = ProtoKeyedMessageGroup.unsafeGetTraceIDCopy(message);
     this.absDeadlineMillis = absDeadlineMillis;
     if (debug) {
-      Log.warning("Deadline: ", new java.util.Date(absDeadlineMillis));
+      log.debug("Deadline: {}", new java.util.Date(absDeadlineMillis));
     }
     this.estimatedKeys = message.estimatedKeys();
     this.sendResultsDuringStart = sendResultsDuringStart;
   }
 
   protected static ForwardingMode getForwardingMode(MessageGroup message) {
-    return StorageModule.isDynamicNamespace(message.getContext()) ?
-        ForwardingMode.DO_NOT_FORWARD :
-        message.getForwardingMode();
+    return StorageModule.isDynamicNamespace(message.getContext())
+           ? ForwardingMode.DO_NOT_FORWARD
+           : message.getForwardingMode();
   }
 
   public boolean hasTraceID() {
@@ -116,13 +124,14 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
     this.operation = operation;
   }
 
-  protected void startOperation(OpCommunicator<K, R> comm, Iterable<? extends K> iterable,
+  protected void startOperation(OpCommunicator<K, R> comm,
+                                Iterable<? extends K> iterable,
       ForwardCreator<K> forwardCreator) {
     Map<IPAndPort, List<K>> replicaMessageLists;
 
     //if (DebugUtil.delayedDebug()) {
     if (debug) {
-      System.out.println("startOperation");
+      log.debug("startOperation");
     }
     /*
      * Performs the main work of the operation; then performs any forwarding,
@@ -162,7 +171,8 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
     }
   }
 
-  protected void processInitialMessageEntries(MessageGroup update, OpCommunicator<K, R> comm,
+  protected void processInitialMessageEntries(MessageGroup update,
+                                              OpCommunicator<K, R> comm,
       Iterable<? extends K> iterable) {
     if (debug) {
       System.out.println("processInitialMessageEntries()");
@@ -173,11 +183,12 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
       List<IPAndPort> secondaryReplicas;
 
       // Find the replicas for this message entry
-      listPair = messageModule.getReplicaListPair(update.getContext(), entry,
+      listPair = messageModule.getReplicaListPair(update.getContext(),
+                                                  entry,
           messageTypeToOwnerQueryOpType(update.getMessageType()));
       primaryReplicas = listPair.getPrimaryOwners();
       if (primaryReplicas.size() == 0) {
-        Log.warning(String.format("No primary replicas found for %s", KeyUtil.keyToString(entry)));
+        if (log.isWarnEnabled()) { log.warn("No primary replicas found for {}", KeyUtil.keyToString(entry)); }
         // no longer throw runtime exception; return error to caller
       }
       secondaryReplicas = listPair.getSecondaryOwners();
@@ -189,8 +200,10 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
     }
   }
 
-  protected void processInitialMessageGroupEntry(K entry, List<IPAndPort> primaryReplicas,
-      List<IPAndPort> secondaryReplicas, OpCommunicator<K, R> comm) {
+  protected void processInitialMessageGroupEntry(K entry,
+                                                 List<IPAndPort> primaryReplicas,
+                                                 List<IPAndPort> secondaryReplicas,
+                                                 OpCommunicator<K, R> comm) {
     operation.processInitialMessageGroupEntry(entry, primaryReplicas, secondaryReplicas, comm);
   }
 
@@ -201,13 +214,15 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
    * @param optionsByteBuffer
    */
   protected <L extends DHTKey> void forwardGroupedEntries(Map<IPAndPort, List<L>> destEntryMap,
-      ByteBuffer optionsByteBuffer, ForwardCreator<L> forwardCreator, OpCommunicator<K, R> comm) {
+                                                          ByteBuffer optionsByteBuffer,
+                                                          ForwardCreator<L> forwardCreator,
+                                                          OpCommunicator<K, R> comm) {
     if (debug) {
-      System.out.println("forwardGroupedEntries " + destEntryMap.size());
+      log.debug("forwardGroupedEntries {}", destEntryMap.size());
     }
     for (Map.Entry<IPAndPort, List<L>> entry : destEntryMap.entrySet()) {
       if (debug) {
-        System.out.println(entry.getKey());
+        log.debug("{}",entry.getKey());
       }
       forwardGroup(entry.getKey(), entry.getValue(), optionsByteBuffer, forwardCreator, comm);
     }
@@ -216,12 +231,15 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   /**
    * Forward to a single replica
    *
-   * @param replica
+   * @param replica           destination
    * @param destEntries
    * @param optionsByteBuffer
    */
-  private <L extends DHTKey> void forwardGroup(IPAndPort replica, List<L> destEntries, ByteBuffer optionsByteBuffer,
-      ForwardCreator<L> forwardCreator, OpCommunicator<K, R> comm) {
+  private <L extends DHTKey> void forwardGroup(IPAndPort replica,
+                                               List<L> destEntries,
+                                               ByteBuffer optionsByteBuffer,
+                                               ForwardCreator<L> forwardCreator,
+                                               OpCommunicator<K, R> comm) {
 
     if (forwardingMode.forwards()) {
       MessageGroup mg;
@@ -229,15 +247,20 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
       assert replica != null;
 
       if (messageModule.getEnableMsgGroupTrace() && hasTraceID) {
-        traceIDInFinalReplica = TracerFactory.getTracer().issueForwardTraceID(maybeTraceID, replica, messageType,
+        traceIDInFinalReplica = TracerFactory.getTracer().issueForwardTraceID(maybeTraceID,
+                                                                              replica,
+                                                                              messageType,
             originator);
       } else {
         traceIDInFinalReplica = maybeTraceID;
       }
       mg = forwardCreator.createForward(destEntries, optionsByteBuffer, traceIDInFinalReplica);
       if (debug) {
-        System.out.println("Forwarding: " + new SimpleValueCreator(
-            originator) + ":" + replica + " : " + mg + ":" + mg.getForwardingMode());
+        log.debug("Forwarding: {} : {} : {} : {}",
+                           new SimpleValueCreator(originator),
+                           replica,
+                           mg,
+                           mg.getForwardingMode());
         mg.displayForDebug();
       }
       messageModule.getMessageGroupBase().send(mg, replica);
@@ -248,8 +271,11 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
 
   protected abstract void localOp(List<? extends DHTKey> destEntries, OpCommunicator<K, R> comm);
 
-  protected List<IPAndPort> getFilteredSecondaryReplicas(K entry, List<IPAndPort> primaryReplicas,
-      List<IPAndPort> secondaryReplicas, OpCommunicator<K, R> comm, Set<SecondaryTarget> secondaryTargets) {
+  protected List<IPAndPort> getFilteredSecondaryReplicas(K entry,
+                                                         List<IPAndPort> primaryReplicas,
+                                                         List<IPAndPort> secondaryReplicas,
+                                                         OpCommunicator<K, R> comm,
+                                                         Set<SecondaryTarget> secondaryTargets) {
     List<IPAndPort> filteredSecondaryReplicas;
 
     if (forwardingMode.forwards()) {
@@ -312,7 +338,9 @@ abstract class ActiveProxyOperation<K extends DHTKey, R extends KeyedResult> imp
   // TODO this is only used for retrieve; put should also be subject to authorization eventually
   boolean handleAuthorizationFailure(AuthorizationResult authorization) throws AuthFailedException {
     Socket socket = connection.getConnection().getChannel().socket();
-    String connInfo = socket != null ? socket.toString() : "nullSock";
+    String connInfo = socket != null
+                      ? socket.toString()
+                      : "nullSock";
     StringBuilder sb = new StringBuilder();
     boolean continueOperation = false;
 

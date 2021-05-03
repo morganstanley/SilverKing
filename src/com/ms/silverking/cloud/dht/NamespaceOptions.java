@@ -60,7 +60,7 @@ public class NamespaceOptions {
   static final boolean defaultAllowLinks = false;
 
   private static final long defaultInvalidatedRetentionIntervalSeconds = 1 * 60;
-  static final ValueRetentionPolicy<InvalidatedRetentionState> defaultRetentionPolicy = new InvalidatedRetentionPolicy(
+  static final ValueRetentionPolicy defaultRetentionPolicy = new InvalidatedRetentionPolicy(
       defaultInvalidatedRetentionIntervalSeconds);
   static final NamespaceServerSideCode defaultNamespaceServerSideCode = new NamespaceServerSideCode("", "", "");
 
@@ -157,7 +157,7 @@ public class NamespaceOptions {
         DHTConstants.defaultStorageFormat, defaultRetentionPolicy, null);
   }
 
-  private NamespaceOptions() {
+  protected NamespaceOptions() {
     this(DHTConstants.defaultStorageType, DHTConstants.defaultConsistencyProtocol, DHTConstants.defaultVersionMode,
         DHTConstants.defaultRevisionMode, DHTConstants.standardPutOptions, DHTConstants.standardInvalidationOptions,
         DHTConstants.standardGetOptions, DHTConstants.standardWaitOptions,

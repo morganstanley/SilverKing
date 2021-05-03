@@ -58,10 +58,7 @@ public class PutOptions extends OperationOptions {
   // begin temp replicated from DHTConstants
   // FUTURE - A limitation in the parser seems to require replication until we have a proper fix
   private static final OpTimeoutController standardTimeoutController = new OpSizeBasedTimeoutController();
-  private static final PutOptions template = new PutOptions(standardTimeoutController, DHTConstants.noSecondaryTargets,
-      DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION, 
-      Compression.LZ4, ChecksumType.MURMUR3_32, false, defaultVersion,
-      noVersionRequired, noLock, DHTConstants.defaultFragmentationThreshold, null);
+  private static final PutOptions template = new PutOptions();
   // end temp replicated from DHTConstants
 
   static {
@@ -69,20 +66,67 @@ public class PutOptions extends OperationOptions {
     ObjectDefParser2.addSetType(PutOptions.class, "secondaryTargets", SecondaryTarget.class);
   }
 
-  public PutOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      Compression compression, ChecksumType checksumType, boolean checksumCompressedValues, long version,
-      long requiredPreviousVersion, short lockSeconds, int fragmentationThreshold, byte[] userData) {
-    this(opTimeoutController, secondaryTargets, DHTConstants.defaultTraceIDProvider, compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+  public PutOptions(OpTimeoutController opTimeoutController,
+                    Set<SecondaryTarget> secondaryTargets,
+                    Compression compression,
+                    ChecksumType checksumType,
+                    boolean checksumCompressedValues,
+                    long version,
+                    long requiredPreviousVersion,
+                    short lockSeconds,
+                    int fragmentationThreshold,
+                    byte[] userData) {
+    this(opTimeoutController,
+         secondaryTargets,
+         DHTConstants.defaultTraceIDProvider,
+         compression,
+         checksumType,
+         checksumCompressedValues,
+         version,
+         requiredPreviousVersion,
+         lockSeconds,
+         fragmentationThreshold,
+         userData);
   }
 
-  public PutOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      TraceIDProvider traceIDProvider, Compression compression, ChecksumType checksumType,
-      boolean checksumCompressedValues, long version, long requiredPreviousVersion, short lockSeconds,
-      int fragmentationThreshold, byte[] userData) {
-    this(opTimeoutController, secondaryTargets, traceIDProvider, AllReplicasExcludedResponse.EXCEPTION, 
-        compression, checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds,
-        fragmentationThreshold, userData);
+  public PutOptions(OpTimeoutController opTimeoutController,
+                    Set<SecondaryTarget> secondaryTargets,
+                    TraceIDProvider traceIDProvider,
+                    Compression compression,
+                    ChecksumType checksumType,
+                    boolean checksumCompressedValues,
+                    long version,
+                    long requiredPreviousVersion,
+                    short lockSeconds,
+                    int fragmentationThreshold,
+                    byte[] userData) {
+    this(opTimeoutController,
+         secondaryTargets,
+         traceIDProvider,
+         AllReplicasExcludedResponse.EXCEPTION,
+         compression,
+         checksumType,
+         checksumCompressedValues,
+         version,
+         requiredPreviousVersion,
+         lockSeconds,
+         fragmentationThreshold,
+         userData);
+  }
+
+  private PutOptions() {
+    this(standardTimeoutController,
+         DHTConstants.noSecondaryTargets,
+         DHTConstants.defaultTraceIDProvider,
+         AllReplicasExcludedResponse.defaultResponse,
+         Compression.LZ4,
+         ChecksumType.MURMUR3_32,
+         false,
+         defaultVersion,
+         noVersionRequired,
+         noLock,
+         DHTConstants.defaultFragmentationThreshold,
+         null);
   }  
   
   /**
@@ -105,11 +149,18 @@ public class PutOptions extends OperationOptions {
    * @param fragmentationThreshold   values longer than this threshold will be fragmented
    * @param userData                 out of band data to store with value. May not exceed maxUserDataLength.
    */
-  public PutOptions(OpTimeoutController opTimeoutController, Set<SecondaryTarget> secondaryTargets,
-      TraceIDProvider traceIDProvider, AllReplicasExcludedResponse allReplicasExcludedResponse,
-      Compression compression, ChecksumType checksumType,
-      boolean checksumCompressedValues, long version, long requiredPreviousVersion, short lockSeconds,
-      int fragmentationThreshold, byte[] userData) {
+  public PutOptions(OpTimeoutController opTimeoutController,
+                    Set<SecondaryTarget> secondaryTargets,
+                    TraceIDProvider traceIDProvider,
+                    AllReplicasExcludedResponse allReplicasExcludedResponse,
+                    Compression compression,
+                    ChecksumType checksumType,
+                    boolean checksumCompressedValues,
+                    long version,
+                    long requiredPreviousVersion,
+                    short lockSeconds,
+                    int fragmentationThreshold,
+                    byte[] userData) {
     super(opTimeoutController, secondaryTargets, traceIDProvider, allReplicasExcludedResponse);
     Preconditions.checkNotNull(compression);
     Preconditions.checkNotNull(checksumType);
@@ -141,8 +192,17 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions opTimeoutController(OpTimeoutController opTimeoutController) {
-    return new PutOptions(opTimeoutController, getSecondaryTargets(), getTraceIDProvider(), compression, checksumType,
-        checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold, userData);
+    return new PutOptions(opTimeoutController,
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
+                          userData);
   }
 
   /**
@@ -152,9 +212,17 @@ public class PutOptions extends OperationOptions {
    * @return the modified InvalidationOptions
    */
   public PutOptions secondaryTargets(Set<SecondaryTarget> secondaryTargets) {
-    return new PutOptions(getOpTimeoutController(), secondaryTargets, getTraceIDProvider(), getCompression(),
-        getChecksumType(), getChecksumCompressedValues(), getVersion(), requiredPreviousVersion, lockSeconds,
-        fragmentationThreshold, getUserData());
+    return new PutOptions(getOpTimeoutController(),
+                          secondaryTargets,
+                          getTraceIDProvider(),
+                          getCompression(),
+                          getChecksumType(),
+                          getChecksumCompressedValues(),
+                          getVersion(),
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
+                          getUserData());
   }
 
   /**
@@ -165,9 +233,17 @@ public class PutOptions extends OperationOptions {
    */
   public PutOptions secondaryTargets(SecondaryTarget secondaryTarget) {
     Preconditions.checkNotNull(secondaryTarget);
-    return new PutOptions(getOpTimeoutController(), ImmutableSet.of(secondaryTarget), getTraceIDProvider(),
-        getCompression(), getChecksumType(), getChecksumCompressedValues(), getVersion(), requiredPreviousVersion,
-        lockSeconds, fragmentationThreshold, getUserData());
+    return new PutOptions(getOpTimeoutController(),
+                          ImmutableSet.of(secondaryTarget),
+                          getTraceIDProvider(),
+                          getCompression(),
+                          getChecksumType(),
+                          getChecksumCompressedValues(),
+                          getVersion(),
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
+                          getUserData());
   }
 
   /**
@@ -178,9 +254,17 @@ public class PutOptions extends OperationOptions {
    */
   public PutOptions traceIDProvider(TraceIDProvider traceIDProvider) {
     Preconditions.checkNotNull(traceIDProvider);
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), traceIDProvider, getCompression(),
-        getChecksumType(), getChecksumCompressedValues(), getVersion(), requiredPreviousVersion, lockSeconds,
-        fragmentationThreshold, getUserData());
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          traceIDProvider,
+                          getCompression(),
+                          getChecksumType(),
+                          getChecksumCompressedValues(),
+                          getVersion(),
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
+                          getUserData());
   }
 
   /**
@@ -190,8 +274,16 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions compression(Compression compression) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -202,8 +294,16 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions checksumType(ChecksumType checksumType) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -214,8 +314,16 @@ public class PutOptions extends OperationOptions {
    * @return the modified PutOptions instance
    */
   public PutOptions checksumCompressedValues(boolean checksumCompressedValues) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -226,8 +334,16 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new version.
    */
   public PutOptions version(long version) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -238,8 +354,16 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new requiredPreviousVersion.
    */
   public PutOptions requiredPreviousVersion(long requiredPreviousVersion) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -250,8 +374,16 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new lockSeconds.
    */
   public PutOptions lockSeconds(short lockSeconds) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -262,8 +394,16 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with a new fragmentationThreshold.
    */
   public PutOptions fragmentationThreshold(int fragmentationThreshold) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -274,8 +414,16 @@ public class PutOptions extends OperationOptions {
    * @return a PutOptions instance like this instance, but with new userData.
    */
   public PutOptions userData(byte[] userData) {
-    return new PutOptions(getOpTimeoutController(), getSecondaryTargets(), getTraceIDProvider(), compression,
-        checksumType, checksumCompressedValues, version, requiredPreviousVersion, lockSeconds, fragmentationThreshold,
+    return new PutOptions(getOpTimeoutController(),
+                          getSecondaryTargets(),
+                          getTraceIDProvider(),
+                          compression,
+                          checksumType,
+                          checksumCompressedValues,
+                          version,
+                          requiredPreviousVersion,
+                          lockSeconds,
+                          fragmentationThreshold,
         userData);
   }
 
@@ -382,7 +530,13 @@ public class PutOptions extends OperationOptions {
           return false;
         }
       }
-      return this.compression == oPutOptions.compression && this.checksumType == oPutOptions.checksumType && this.checksumCompressedValues == oPutOptions.checksumCompressedValues && this.version == oPutOptions.version && this.requiredPreviousVersion == oPutOptions.requiredPreviousVersion && this.lockSeconds == oPutOptions.lockSeconds && this.fragmentationThreshold == oPutOptions.fragmentationThreshold;
+      return this.compression == oPutOptions.compression &&
+             this.checksumType == oPutOptions.checksumType &&
+             this.checksumCompressedValues == oPutOptions.checksumCompressedValues &&
+             this.version == oPutOptions.version &&
+             this.requiredPreviousVersion == oPutOptions.requiredPreviousVersion &&
+             this.lockSeconds == oPutOptions.lockSeconds &&
+             this.fragmentationThreshold == oPutOptions.fragmentationThreshold;
     }
   }
 

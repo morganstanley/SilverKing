@@ -21,10 +21,10 @@ import com.ms.silverking.cloud.toporing.InstantiatedRingTree;
 import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.SingleRingZK;
 import com.ms.silverking.cloud.toporing.meta.MetaClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Utility to compute two things:
@@ -44,7 +44,7 @@ public class ComputeRingStats {
   private final List<IPAndPort> replicas;
 
   public ComputeRingStats(SKGridConfiguration gc, Triple<String, Long, Long> sourceRing)
-      throws IOException, KeeperException, ClientException {
+      throws IOException, KeeperException {
     this.gc = gc;
     this.out = System.out;
 

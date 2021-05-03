@@ -11,7 +11,6 @@ import com.ms.silverking.cloud.dht.daemon.storage.NeverReapPolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapMode;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapOnIdlePolicy;
 import com.ms.silverking.cloud.dht.daemon.storage.ReapPolicy;
-import com.ms.silverking.cloud.zookeeper.SKAclProvider;
 import com.ms.silverking.net.security.Authenticator;
 import com.ms.silverking.text.ObjectDefParser2;
 import org.kohsuke.args4j.Option;
@@ -197,9 +196,6 @@ public class SKAdminOptions {
   @Option(name = "-sfoc", usage = "sleepForeverOnCompletion", required = false)
   boolean sleepForeverOnCompletion = false;
 
-  @Option(name = "-useAclWithImpl", usage = "specify ZooKeeperACLImpl in SKObjectStringDef", required = false)
-  public String aclImplSkStrDef;
-
   @Option(name = "-startNodeWithExtraJVMOptions", usage = "enable user to append its customized JVM options when " +
       "starting a DHTNode")
   public String startNodeExtraJVMOptions = "";
@@ -224,7 +220,6 @@ public class SKAdminOptions {
     // try to parse the following options at beginning, and RuntimeException will be thrown if wrong input given
     Authenticator.setAuthenticator(authenticationImplSkStrDef);
     checkStartNodeExtraJVMOptions();
-    checkSkAclProvider();
   }
 
   private void checkStartNodeExtraJVMOptions() {
@@ -240,13 +235,6 @@ public class SKAdminOptions {
             "User provides the invalid JVMOptions string [" + startNodeExtraJVMOptions + "] where [" + op + "] shall "
                 + "at least start with '-'");
       }
-    }
-  }
-
-  // TODO: use or replace with ZooKeeperExtended.resolveDefaultAclProvider()
-  private void checkSkAclProvider() {
-    if (this.aclImplSkStrDef != null) {
-      SKAclProvider.parse(this.aclImplSkStrDef);
     }
   }
 }

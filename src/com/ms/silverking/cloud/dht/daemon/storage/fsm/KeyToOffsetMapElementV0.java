@@ -3,16 +3,16 @@ package com.ms.silverking.cloud.dht.daemon.storage.fsm;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.ms.silverking.cloud.dht.collection.CuckooBase;
-import com.ms.silverking.cloud.dht.collection.CuckooConfig;
-import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
+import com.ms.silverking.cloud.dht.collection.DHTKeyCuckooBase;
+import com.ms.silverking.collection.cuckoo.CuckooConfig;
+import com.ms.silverking.cloud.dht.collection.IntArrayDHTKeyCuckoo;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.numeric.NumConversion;
 
 /**
  * Mimics LTV storage format for legacy storage.
  */
-public class KeyToOffsetMapElementV0 extends KeyToOffsetMapElement {
+public class KeyToOffsetMapElementV0 extends KeyToIntegerMapElement {
   static final int legacyLengthOffset = 0;
 
   static final int headerSize = NumConversion.BYTES_PER_INT + CuckooConfig.BYTES;
@@ -61,17 +61,17 @@ public class KeyToOffsetMapElementV0 extends KeyToOffsetMapElement {
    * CuckooConfig (CuckooConfig.BYTES)
    */
 
-  public static KeyToOffsetMapElementV0 create(CuckooBase keyToOffset) {
+  public static KeyToOffsetMapElementV0 create(DHTKeyCuckooBase keyToOffset) {
     ByteBuffer elementBuf;
     byte[] elementArray;
     int mapSize;
     int legacyPersistedSize;
 
-    mapSize = ((IntArrayCuckoo) keyToOffset).persistedSizeBytes();
+    mapSize = ((IntArrayDHTKeyCuckoo) keyToOffset).persistedSizeBytes();
 
     legacyPersistedSize = headerSize + mapSize;
 
-    elementArray = ((IntArrayCuckoo) keyToOffset).getAsBytesWithHeader(headerSize);
+    elementArray = ((IntArrayDHTKeyCuckoo) keyToOffset).getAsBytesWithHeader(headerSize);
     elementBuf = ByteBuffer.wrap(elementArray);
     elementBuf = elementBuf.order(ByteOrder.nativeOrder());
 

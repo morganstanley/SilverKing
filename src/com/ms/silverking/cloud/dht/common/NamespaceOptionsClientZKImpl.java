@@ -4,16 +4,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
+import com.ms.silverking.cloud.dht.daemon.storage.NamespacePropertiesIO;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
 import com.ms.silverking.cloud.meta.MetaClientCore;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 
 public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   private static final long nanosPerMilli = 1000000;
@@ -27,28 +28,21 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
     return nsZKBasePath + "/" + versionNodeName;
   }
 
-  private static final Watcher defaultNsPropertiesWatcher = null;  // currently we don't support on-the-fly update,
-  // so don't need watcher for now
   private final long relTimeoutMillis;
   private final MetaClientCore metaZK;
   private final ClientDHTConfiguration dhtConfig;
 
-  public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider, long relTimeoutMillis,
-      Watcher watcher) throws IOException, KeeperException {
+  public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider, long relTimeoutMillis)
+      throws IOException, KeeperException {
     super(dhtConfigurationProvider);
     this.relTimeoutMillis = relTimeoutMillis;
     this.dhtConfig = dhtConfigurationProvider.getClientDHTConfiguration();
-    this.metaZK = new MetaClientCore(dhtConfig.getZKConfig(), watcher);
-  }
-
-  public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider, Watcher watcher)
-      throws IOException, KeeperException {
-    this(dhtConfigurationProvider, defaultTimeoutMills, watcher);
+    this.metaZK = new MetaClientCore(dhtConfig.getZKConfig());
   }
 
   public NamespaceOptionsClientZKImpl(ClientDHTConfigurationProvider dhtConfigurationProvider)
       throws IOException, KeeperException {
-    this(dhtConfigurationProvider, defaultTimeoutMills, defaultNsPropertiesWatcher);
+    this(dhtConfigurationProvider, defaultTimeoutMills);
   }
 
   private String getNsZKBasePath(String nsDirName) {
@@ -64,7 +58,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   }
 
   private long retrieveNsCreationTime(String versionPath) throws KeeperException {
-    ZooKeeperExtended zk;
+    SilverKingZooKeeperClient zk;
 
     zk = metaZK.getZooKeeper();
     return zk.getStat(zk.getLeastVersionPath(versionPath)).getCtime() * nanosPerMilli;
@@ -77,7 +71,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
 
   // Helper method shared by both put and delete
   private void writeNewVersion(long nsContext, String zkNodeContent) throws KeeperException {
-    ZooKeeperExtended zk;
+    SilverKingZooKeeperClient zk;
     String versionPath;
 
     zk = metaZK.getZooKeeper();
@@ -113,7 +107,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   private NamespaceProperties retrieveFullNamespaceProperties(String versionPath)
       throws NamespacePropertiesRetrievalException {
     try {
-      ZooKeeperExtended zk;
+      SilverKingZooKeeperClient zk;
       String skDef;
       NamespaceProperties nsProperties;
 
@@ -136,15 +130,11 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
         return nsProperties.creationTime(retrieveNsCreationTime(versionPath));
       }
     } catch (KeeperException ke) {
-      switch (ke.code()) {
-      case NONODE:
-        // To respect the interface behaviour: return null if no value
         return null;
-      default:
+    } catch (Exception ke) {
         throw new NamespacePropertiesRetrievalException(ke);
       }
     }
-  }
 
   @Override
   protected NamespaceProperties retrieveFullNamespaceProperties(long nsContext)
@@ -155,10 +145,21 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   @Override
   public NamespaceProperties getNsPropertiesForRecovery(File nsDir) throws NamespacePropertiesRetrievalException {
     long nsContext;
+    NamespaceProperties nsPropInZk, nsPropInFile;
 
     // Same logic as retrieveFullNamespaceProperties, this is just for backward compatibility
-    nsContext = NamespaceUtil.nameToContext(nsDir.getName());
-    return retrieveFullNamespaceProperties(nsContext);
+    nsContext = NamespaceUtil.dirNameToContext(nsDir.getName());
+    try {
+      nsPropInZk = retrieveFullNamespaceProperties(nsContext);
+      nsPropInFile = NamespacePropertiesIO.read(nsDir);
+      if (!nsPropInFile.equals(nsPropInZk)) {
+        NamespacePropertiesIO.rewrite(nsDir, nsPropInZk);
+        Log.warning("Rewrote the old nsProperties [" + nsPropInFile + "] to new one [" + nsPropInZk + "]");
+  }
+      return nsPropInZk;
+    } catch (IOException ioe) {
+      throw new NamespacePropertiesRetrievalException(ioe);
+    }
   }
 
   @Override
@@ -170,7 +171,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   public void obliterateAllNsProperties() throws NamespacePropertiesDeleteException {
     try {
       String allNsBasePath;
-      ZooKeeperExtended zk;
+      SilverKingZooKeeperClient zk;
 
       allNsBasePath = MetaPaths.getGlobalNsPropertiesBasePath(dhtConfig.getName());
       zk = metaZK.getZooKeeper();
@@ -186,7 +187,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
     try {
       Map<String, NamespaceProperties> nsNames = new HashMap<>();
       String allNsBasePath;
-      ZooKeeperExtended zk;
+      SilverKingZooKeeperClient zk;
 
       allNsBasePath = MetaPaths.getGlobalNsPropertiesBasePath(dhtConfig.getName());
       zk = metaZK.getZooKeeper();

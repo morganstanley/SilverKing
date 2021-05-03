@@ -2,6 +2,7 @@ package com.ms.silverking.log;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,6 +17,15 @@ class JavaLogDest implements LogDest {
   private PrintStream out;
   private PrintStream err;
 
+  // Extend ConsoleHandler rather than using StreamHandler so that the OutputStream (which will often be System.out)
+  // doesn't get closed during shutdown hook execution.
+  private static class NonClosingStreamHandler extends ConsoleHandler {
+    private NonClosingStreamHandler(final OutputStream out, final Formatter formatter) {
+      setOutputStream(out);
+      setFormatter(formatter);
+    }
+  }
+
   JavaLogDest() {
     err = System.err;
     out = System.out;
@@ -23,7 +33,7 @@ class JavaLogDest implements LogDest {
     logger = Logger.getLogger("com.ms.silverking");
     logger.setUseParentHandlers(false);
     formatter = new SingleLineFormatter();
-    handler = new StreamHandler(out, formatter);
+    handler = createHandler(out, formatter);
     logger.addHandler(handler);
   }
 
@@ -50,7 +60,7 @@ class JavaLogDest implements LogDest {
     setErrPrintStream(out);
     setOutPrintStream(out);
     logger.removeHandler(handler);
-    handler = new StreamHandler(out, formatter);
+    handler = createHandler(out, formatter);
     logger.addHandler(handler);
   }
 
@@ -68,6 +78,13 @@ class JavaLogDest implements LogDest {
 
   private void setOutPrintStream(PrintStream ps) {
     out = ps;
+  }
+
+  private StreamHandler createHandler(final OutputStream out, final Formatter formatter) {
+    if (out == System.out || out == System.err)
+      return new NonClosingStreamHandler(out, formatter);
+    else
+      return new StreamHandler(out, formatter);
   }
 
   @Override

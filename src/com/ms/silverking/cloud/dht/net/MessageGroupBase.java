@@ -7,6 +7,7 @@ import java.net.UnknownHostException;
 import com.ms.silverking.cloud.dht.SessionPolicyOnDisconnect;
 import com.ms.silverking.cloud.dht.ValueCreator;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
+import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.daemon.PeerHealthMonitor;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;
@@ -42,7 +43,7 @@ public class MessageGroupBase {
       SessionPolicyOnDisconnect onDisconnect) throws IOException {
     this.myIPAndPort = myIPAndPort;
 
-    this.deadlineTimeSource = deadlineTimeSource;
+    this.deadlineTimeSource = deadlineTimeSource != null ? deadlineTimeSource : SystemTimeUtil.timerDrivenTimeSource;
     paServer = new PersistentAsyncServer<>(interfacePort,
         new MessageGroupConnectionCreator(messageGroupReceiver, limitListener, queueLimit),
         newConnectionTimeoutController, numSelectorControllers, controllerClass, mqListener, mqUUID,
@@ -173,7 +174,9 @@ public class MessageGroupBase {
   }
 
   public void shutdown() {
+    if (paServer != null) {
     paServer.shutdown();
+  }
   }
 
   public void setPeerHealthMonitor(PeerHealthMonitor peerHealthMonitor) {

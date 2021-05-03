@@ -18,8 +18,10 @@ import java.util.logging.Level;
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy;
+import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionState;
 import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
+import com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
 import com.ms.silverking.cloud.dht.common.CCSSUtil;
@@ -185,14 +187,16 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
         if (vrp instanceof TimeAndVersionRetentionPolicy) {
           TimeAndVersionRetentionState rs;
           long curTimeNanos;
+          TimeAndVersionRetentionPolicyImpl tvrp;
 
           rs = new TimeAndVersionRetentionState();
+          tvrp = new TimeAndVersionRetentionPolicyImpl((TimeAndVersionRetentionPolicy) vrp);
           curTimeNanos = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
           for (long version : serializedVersions.descendingKeySet()) {
             if (greatestVersion == Long.MIN_VALUE) {
               greatestVersion = version;
             }
-            if (!vrp.retains(dirKey, version, curTimeNanos, false, rs, curTimeNanos, 0)) {
+            if (!tvrp.retains(dirKey, version, curTimeNanos, false, rs, curTimeNanos, 0)) {
               versionsToRemove.add(version);
             }
           }

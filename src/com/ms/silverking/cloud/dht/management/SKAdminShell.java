@@ -28,8 +28,9 @@ import com.ms.silverking.cloud.dht.meta.DHTConfigurationZK;
 import com.ms.silverking.cloud.dht.meta.DHTRingCurTargetZK;
 import com.ms.silverking.cloud.toporing.meta.MetaClient;
 import com.ms.silverking.cloud.toporing.meta.MetaPaths;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.FileUtil;
@@ -41,18 +42,15 @@ import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.Stopwatch.State;
 import jline.console.ConsoleReader;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * SilverKing administrative shell. This implementation is a sketch for a future, more powerful shell.
  */
-public class SKAdminShell implements Watcher {
+public class SKAdminShell {
   private final SKGridConfiguration gc;
-  private final ZooKeeperExtended zk;
+  private final SilverKingZooKeeperClient zk;
   private final ZooKeeperConfig zkConfig;
   private final BufferedReader in;
   private final PrintStream out;
@@ -80,7 +78,7 @@ public class SKAdminShell implements Watcher {
       throws NotBoundException, KeeperException, IOException {
     this.gc = gc;
     zkConfig = gc.getClientDHTConfiguration().getZKConfig();
-    zk = new ZooKeeperExtended(zkConfig, zkTimeout, this);
+    zk = new SilverKingZooKeeperClient(zkConfig, zkTimeout);
     this.in = new BufferedReader(new InputStreamReader(in));
     this.out = out;
     this.err = err;
@@ -99,10 +97,6 @@ public class SKAdminShell implements Watcher {
     latestConfigVersion = dhtMC.getZooKeeper().getLatestVersion(dhtMP.getInstanceConfigPath());
     dhtConfig = new DHTConfigurationZK(dhtMC).readFromZK(latestConfigVersion, null);
     curTargetZK = new DHTRingCurTargetZK(dhtMC, dhtConfig);
-  }
-
-  @Override
-  public void process(WatchedEvent event) {
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -251,7 +245,8 @@ public class SKAdminShell implements Watcher {
           long creationTime;
 
           creationTime = zk.getCreationTime(
-              ringConfigPath + "/" + config + "/instance/" + ZooKeeperExtended.padVersion(Long.parseLong(version)));
+              ringConfigPath + "/" + config + "/instance/" + SilverKingZooKeeperClient.padVersion(
+                  Long.parseLong(version)));
           _rings.add(new Triple<>(creationTime,
               String.format("%s,%d,%d", ringName, Long.parseLong(config), Long.parseLong(version)), label));
         }

@@ -4,33 +4,22 @@ import java.io.IOException;
 
 import com.ms.silverking.cloud.meta.CloudConfiguration;
 import com.ms.silverking.cloud.meta.MetaClientBase;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
 
-public class MetaClient extends MetaClientBase<MetaPaths> implements Watcher {
+public class MetaClient extends MetaClientBase<MetaPaths> {
   private CloudConfiguration cloudConfiguration;
 
-  private MetaClient(MetaPaths mp, CloudConfiguration cloudConfiguration, ZooKeeperConfig zkConfig, Watcher watcher)
+  private MetaClient(MetaPaths mp, CloudConfiguration cloudConfiguration, ZooKeeperConfig zkConfig)
       throws IOException, KeeperException {
-    super(mp, zkConfig, watcher);
+    super(mp, zkConfig);
     this.cloudConfiguration = cloudConfiguration;
   }
 
-  //private MetaClient(MetaPaths mp, CloudConfiguration cloudConfiguration, ZooKeeperConfig zkConfig) throws
-  // IOException, KeeperException {
-  //    this(mp, cloudConfiguration, zkConfig, null);
-  //}
-
-  public MetaClient(NamedRingConfiguration ringConfig, ZooKeeperConfig zkConfig, Watcher watcher)
-      throws IOException, KeeperException {
-    this(new MetaPaths(ringConfig), ringConfig.getRingConfiguration().getCloudConfiguration(), zkConfig, watcher);
-  }
-
   public MetaClient(NamedRingConfiguration ringConfig, ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-    this(ringConfig, zkConfig, null);
+    this(new MetaPaths(ringConfig), ringConfig.getRingConfiguration().getCloudConfiguration(), zkConfig);
   }
 
   public static MetaClient createMetaClient(String ringName, long ringVersion, ZooKeeperConfig zkConfig)
@@ -63,7 +52,7 @@ public class MetaClient extends MetaClientBase<MetaPaths> implements Watcher {
     getZooKeeper().createAllNodes(path);
     latestVersion = getZooKeeper().getLatestVersion(path);
     if (latestVersion >= 0) {
-      return path + "/" + ZooKeeperExtended.padVersion(latestVersion);
+      return path + "/" + SilverKingZooKeeperClient.padVersion(latestVersion);
     } else {
       return null;
     }

@@ -17,12 +17,10 @@ public class VersionConstraint {
    */
   public enum Mode {LEAST, GREATEST}
 
-  ;
-
   /**
    * Greatest of all existent versions
    */
-  public static final VersionConstraint greatest = new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST);
+  public static final VersionConstraint greatest = new VersionConstraint();
   /**
    * Least of all existent versions
    */
@@ -40,6 +38,10 @@ public class VersionConstraint {
 
   static {
     ObjectDefParser2.addParser(defaultConstraint);
+  }
+
+  private VersionConstraint() {
+    this(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST);
   }
 
   /**
@@ -62,7 +64,10 @@ public class VersionConstraint {
    */
   public VersionConstraint(long min, long max, Mode mode, long maxCreationTime) {
     this.min = min;
-    if (min != max && this.min != Long.MIN_VALUE && this.min > Long.MIN_VALUE + maxSpecialValues && mode != Mode.LEAST) {
+    if (min != max &&
+        this.min != Long.MIN_VALUE &&
+        this.min > Long.MIN_VALUE + maxSpecialValues &&
+        mode != Mode.LEAST) {
       throw new RuntimeException("nonmin not yet supported: " + this.min);
     }
     this.max = max;
@@ -217,7 +222,10 @@ public class VersionConstraint {
     VersionConstraint oVC;
 
     oVC = (VersionConstraint) other;
-    return this.min == oVC.min && this.max == oVC.max && this.mode == oVC.mode && this.maxCreationTime == oVC.maxCreationTime;
+    return this.min == oVC.min &&
+           this.max == oVC.max &&
+           this.mode == oVC.mode &&
+           this.maxCreationTime == oVC.maxCreationTime;
   }
 
   @Override

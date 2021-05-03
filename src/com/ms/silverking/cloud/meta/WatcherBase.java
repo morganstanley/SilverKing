@@ -11,12 +11,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.zookeeper.CancelableObserver;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.LightLinkedBlockingQueue;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.SafeThread;
 import com.ms.silverking.util.SafeTimer;
 import com.ms.silverking.util.SafeTimerTask;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;

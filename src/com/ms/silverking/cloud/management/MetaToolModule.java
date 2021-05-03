@@ -2,8 +2,9 @@ package com.ms.silverking.cloud.management;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
-import org.apache.zookeeper.KeeperException;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 
 public interface MetaToolModule<T> {
   public T readFromFile(File file, long version) throws IOException;
@@ -21,7 +22,7 @@ public interface MetaToolModule<T> {
    */
   public String writeToZK(T instance, MetaToolOptions options) throws IOException, KeeperException;
 
-  public void deleteFromZK(long version) throws KeeperException;
+  public void deleteFromZK(long version) throws KeeperException, ExecutionException, InterruptedException;
 
   public long getLatestVersion() throws KeeperException;
 }

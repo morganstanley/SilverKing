@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.RevisionMode;
-import com.ms.silverking.cloud.dht.collection.CuckooConfig;
+import com.ms.silverking.collection.cuckoo.CuckooConfig;
 import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumConversion;

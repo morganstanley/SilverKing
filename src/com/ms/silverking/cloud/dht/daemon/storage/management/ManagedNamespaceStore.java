@@ -15,9 +15,5 @@ public interface ManagedNamespaceStore {
 
   List<Integer> listKeySegments(DHTKey key, long beforeCreationTimeNanosInclusive) throws IOException;
 
-  List<Integer> listTrashSegments() throws IOException;
-
-  List<Integer> listCompactSegments() throws IOException;
-
-  void rollOverHeadSegment();
+  void rollOverHeadSegment(boolean force);
 }

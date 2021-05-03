@@ -5,9 +5,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.log.Log;
 import com.ms.silverking.util.PropertiesHelper;
 import com.ms.silverking.util.PropertiesHelper.UndefinedAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provide DHTNode specific configuration information. This is not used to specify configuration
@@ -23,17 +24,19 @@ public class DHTNodeConfiguration {
   private String dataBasePath; // The actual path in use at this node DHTConstants dataBasePath provides a list of
   // possible paths
 
+  private static Logger log = LoggerFactory.getLogger(DHTNodeConfiguration.class);
+
   private enum InvalidPathAction {Warn, ThrowException}
 
   ;
 
   public DHTNodeConfiguration() {
     if (dataBasePathPropertyValue != null && dataBasePathPropertyValue.trim().length() != 0) {
-      Log.warning("Found dataBasePathProperty " + dataBasePathPropertyValue);
+      log.warn("Found dataBasePathProperty {}", dataBasePathPropertyValue);
       setDataBasePath(dataBasePathPropertyValue.trim());
     } else {
       // Warn since a properly functioning system should have specified the property.
-      Log.warning("No dataBasePathProperty specified. Using default.");
+      log.warn("No dataBasePathProperty specified. Using default.");
       setDataBasePath(DHTConstants.defaultDataBasePath, InvalidPathAction.Warn);
     }
   }
@@ -78,7 +81,7 @@ public class DHTNodeConfiguration {
         if (Files.isWritable(Paths.get(candidatePath))) {
           ++numExistingPaths;
           existingPath = candidatePath;
-          Log.warningf("Found candidate dataBase path %s", candidatePath);
+          log.warn("Found candidate dataBase path {}", candidatePath);
         }
       }
       if (numExistingPaths > 1) {
@@ -103,12 +106,12 @@ public class DHTNodeConfiguration {
     }
     if (_dataBasePath != null) {
       this.dataBasePath = _dataBasePath;
-      Log.warning("dataBasePath: ", this.dataBasePath);
+      log.warn("dataBasePath: {}", this.dataBasePath);
     } else {
       switch (invalidPathAction) {
       case Warn:
-        Log.warning("Can't find valid dataBasePath from candidates: " + __dataBasePath);
-        Log.warning(
+          log.warn("Can't find valid dataBasePath from candidates: {}", __dataBasePath);
+          log.warn(
             "Either DHTNodeConfiguration.setDataBasePath() must be called later, or the candidates must be corrected");
         break;
       case ThrowException:

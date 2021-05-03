@@ -146,6 +146,8 @@ abstract class AsyncOperationImpl implements AsyncOperation {
     assert results.size() > 0;
 
     allResults.addAll(results);
+    // Implies the set of finished keys did not all have the same OpResult
+    // (e.g some Succeeded, some failed) - so we set Multiple, which is seen as a failure
     if (results.size() > 1) {
       setResult(OpResult.MULTIPLE);
     } else {
@@ -372,8 +374,6 @@ abstract class AsyncOperationImpl implements AsyncOperation {
    * Updates of completion will occur exactly once. Updates of other states may
    * occur multiple times and may occur in any order.
    *
-   * @param listeners    update listeners
-   * @param listenStates states to generate updates for
    */
   public void addListeners(Iterable<AsyncOperationListener> _listeners, OperationState... listenStates) {
     EnumSet<OperationState> _listenStates;
@@ -419,7 +419,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
   void _waitForCompletion() throws OperationException {
     lock.lock();
     try {
-      while (!result.isComplete()) {
+      while (!result.isComplete() && !Thread.currentThread().isInterrupted()) {
         try {
           Log.fine("activeOp awaiting ", this);
           if (!spin) {
@@ -428,6 +428,7 @@ abstract class AsyncOperationImpl implements AsyncOperation {
             cv.awaitNanos(spinDurationNanos);
           }
         } catch (InterruptedException ie) {
+          Log.warning("Interrupted while waiting for result completion");
         }
       }
       if (isFailure(result)) {

@@ -7,21 +7,17 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.cloud.dht.common.DHTConstants;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.PropertiesHelper;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.OperationTimeoutException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper.States;
 
-public class MetaClientCore implements Watcher {
+public class MetaClientCore {
   protected final ZooKeeperConfig zkConfig;
-  private ZooKeeperExtended zk; //only used if not shareZK
-  private final Watcher watcher;
+  private SilverKingZooKeeperClient zk; //only used if not shareZK
 
   private static final int sessionTimeout;
 
@@ -38,7 +34,7 @@ public class MetaClientCore implements Watcher {
 
   private static final boolean shareZK = true;
   protected static final ConcurrentMap<ZooKeeperConfig, Lock> lockMap;
-  protected static final ConcurrentMap<ZooKeeperConfig, ZooKeeperExtended> zkMap;
+  protected static final ConcurrentMap<ZooKeeperConfig, SilverKingZooKeeperClient> zkMap;
 
   static {
     if (shareZK) {
@@ -48,12 +44,6 @@ public class MetaClientCore implements Watcher {
       zkMap = null;
       lockMap = null;
     }
-  }
-
-  public MetaClientCore(ZooKeeperConfig zkConfig, Watcher watcher) throws IOException, KeeperException {
-    this.watcher = watcher;
-    this.zkConfig = zkConfig;
-    setZK(zkConfig);
   }
 
   private Lock acquireLockIfShared(ZooKeeperConfig zkConfig) {
@@ -80,7 +70,7 @@ public class MetaClientCore implements Watcher {
 
   private void setZK(ZooKeeperConfig zkConfig) throws IOException, KeeperException {
     Lock lock;
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
 
     lock = acquireLockIfShared(zkConfig);
     try {
@@ -90,9 +80,9 @@ public class MetaClientCore implements Watcher {
         _zk = null;
       }
       if (_zk == null) {
-        Log.info(String.format("Getting ZooKeeperExtended for %s\n", zkConfig));
-        zk = ZooKeeperExtended.getZooKeeperWithRetries(zkConfig, sessionTimeout, this, connectAttempts);
-        Log.info(String.format("Done getting ZooKeeperExtended for %s\n", zkConfig));
+        Log.info(String.format("Getting SilverKingZooKeeperClient for %s\n", zkConfig));
+        zk = SilverKingZooKeeperClient.getZooKeeperWithRetries(zkConfig, sessionTimeout, connectAttempts);
+        Log.info(String.format("Done getting SilverKingZooKeeperClient for %s\n", zkConfig));
         if (shareZK) {
           zkMap.putIfAbsent(zkConfig, zk);
         }
@@ -105,10 +95,11 @@ public class MetaClientCore implements Watcher {
   }
 
   public MetaClientCore(ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-    this(zkConfig, null);
+    this.zkConfig = zkConfig;
+    setZK(zkConfig);
   }
 
-  public ZooKeeperExtended _getZooKeeper() {
+  public SilverKingZooKeeperClient _getZooKeeper() {
     if (shareZK) {
       return zkMap.get(zkConfig);
     } else {
@@ -116,8 +107,8 @@ public class MetaClientCore implements Watcher {
     }
   }
 
-  public ZooKeeperExtended getZooKeeper(int getZKMaxAttempts, int getZKSleepUnit) throws KeeperException {
-    ZooKeeperExtended _zk;
+  public SilverKingZooKeeperClient getZooKeeper(int getZKMaxAttempts, int getZKSleepUnit) throws KeeperException {
+    SilverKingZooKeeperClient _zk;
     int attemptIndex;
 
     assert getZKMaxAttempts > 0;
@@ -132,72 +123,15 @@ public class MetaClientCore implements Watcher {
           ++attemptIndex;
         } else {
           Log.warning("getZooKeeper() failed after " + (attemptIndex + 1) + " attempts");
-          throw new OperationTimeoutException();
+          throw KeeperException.forMethod("getZooKeeper", new OperationTimeoutException());
         }
       }
     }
     return _zk;
   }
 
-  public ZooKeeperExtended getZooKeeper() throws KeeperException {
+  public SilverKingZooKeeperClient getZooKeeper() throws KeeperException {
     return getZooKeeper(defaultGetZKMaxAttempts, defaultGetZKSleepUnit);
-  }
-
-  private void handleSessionExpiration() {
-    Lock lock;
-
-    lock = acquireLockIfShared(zkConfig);
-
-    try {
-      boolean established;
-
-      established = false;
-      while (!established) {
-        ZooKeeperExtended _zk;
-
-        ThreadUtil.sleepSeconds(connectionLossSleepSeconds);
-        _zk = zkMap.get(zkConfig);
-        if (_zk != null && _zk.getState() != States.CLOSED) {
-          established = true;
-        } else {
-          zkMap.remove(zkConfig);
-          try {
-            Log.warning(String.format("Attempting to reestablish session %s\n", zkConfig));
-            zk = ZooKeeperExtended.getZooKeeperWithRetries(zkConfig, sessionTimeout, this, connectAttempts);
-            Log.warning(String.format("Session restablished %s\n", zkConfig));
-            established = true;
-            if (shareZK) {
-              zkMap.put(zkConfig, zk);
-            }
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-        }
-      }
-    } finally {
-      releaseLockIfShared(lock);
-    }
-  }
-
-  @Override
-  public void process(WatchedEvent event) {
-    ZooKeeperExtended _zk;
-
-    boolean stateChanged = event.getPath() == null;
-    if (stateChanged)
-      Log.warning("zookeeper state changed to: " + event.getState());
-
-    _zk = _getZooKeeper();
-    if ((_zk == null && event.getState() != Event.KeeperState.SyncConnected) || (_zk != null && _zk.getState() == States.CLOSED)) {
-      handleSessionExpiration();
-    }
-    //Log.warning(event.toString());
-    synchronized (this) {
-      this.notifyAll();
-    }
-    if (watcher != null) {
-      watcher.process(event);
-    }
   }
 
   public void closeZkExtendeed() {
@@ -205,7 +139,7 @@ public class MetaClientCore implements Watcher {
   }
 
   public static void clearZkMap() {
-    for (ZooKeeperExtended zk : zkMap.values()) {
+    for (SilverKingZooKeeperClient zk : zkMap.values()) {
       zk.close();
     }
     zkMap.clear();

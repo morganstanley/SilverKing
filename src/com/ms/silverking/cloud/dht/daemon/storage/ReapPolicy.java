@@ -1,27 +1,27 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
 public interface ReapPolicy<T extends ReapPolicyState> {
-  public enum EmptyTrashMode {Never, BeforeInitialReap, BeforeAndAfterInitialReap, EveryPartialReap, EveryFullReap}
+  @Deprecated
+  enum EmptyTrashMode {Never, BeforeInitialReap, BeforeAndAfterInitialReap, EveryPartialReap, EveryFullReap};
 
-  ;
+  T createInitialState();
 
-  public T createInitialState();
+  boolean reapAllowed(T state, NamespaceStore nsStore, ReapPhase reapPhase, boolean isStartup);
 
-  public boolean reapAllowed(T state, NamespaceStore nsStore, ReapPhase reapPhase, boolean isStartup);
+  @Deprecated
+  EmptyTrashMode getEmptyTrashMode();
 
-  public EmptyTrashMode getEmptyTrashMode();
+  int getIdleReapPauseMillis();
 
-  public int getIdleReapPauseMillis();
+  boolean supportsLiveReap();
 
-  public boolean supportsLiveReap();
+  int getReapIntervalMillis();
 
-  public int getReapIntervalMillis();
+  int getBatchLimit(ReapPhase reapPhase);
 
-  public int getBatchLimit(ReapPhase reapPhase);
+  boolean verboseReap();
 
-  public boolean verboseReap();
+  boolean verboseReapPhase();
 
-  public boolean verboseReapPhase();
-
-  public boolean verboseSegmentDeletionAndCompaction();
+  boolean verboseSegmentDeletionAndCompaction();
 }

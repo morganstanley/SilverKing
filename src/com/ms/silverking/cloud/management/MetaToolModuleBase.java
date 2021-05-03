@@ -1,14 +1,16 @@
 package com.ms.silverking.cloud.management;
 
+import java.util.concurrent.ExecutionException;
+
 import com.ms.silverking.cloud.meta.MetaClientBase;
 import com.ms.silverking.cloud.meta.MetaPathsBase;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 
 public abstract class MetaToolModuleBase<T, M extends MetaPathsBase> implements MetaToolModule<T> {
   protected final MetaClientBase<M> mc;
-  protected final ZooKeeperExtended zk;
+  protected final SilverKingZooKeeperClient zk;
   protected final M paths;
   protected final String base;
 
@@ -28,11 +30,11 @@ public abstract class MetaToolModuleBase<T, M extends MetaPathsBase> implements 
   }
 
   protected String getVersionPath(String name, long version) {
-    return ZooKeeperExtended.padVersionPath(base + "/" + name, version);
+    return SilverKingZooKeeperClient.padVersionPath(base + "/" + name, version);
   }
 
   protected String getVersionPath(long version) {
-    return ZooKeeperExtended.padVersionPath(base, version);
+    return SilverKingZooKeeperClient.padVersionPath(base, version);
   }
 
   protected String getVBase(String name, long version) throws KeeperException {
@@ -52,7 +54,7 @@ public abstract class MetaToolModuleBase<T, M extends MetaPathsBase> implements 
   }
 
   @Override
-  public void deleteFromZK(long version) throws KeeperException {
+  public void deleteFromZK(long version) throws KeeperException, InterruptedException, ExecutionException {
     zk.deleteRecursive(getVersionPath(version));
   }
 

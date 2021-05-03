@@ -7,9 +7,9 @@ import java.util.Set;
 import java.util.Timer;
 
 import com.google.common.collect.ImmutableSet;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 
 /**
@@ -41,7 +41,7 @@ public class ChildrenWatcher extends WatcherBase {
   }
 
   private Map<String, byte[]> readChildStates() throws KeeperException {
-    ZooKeeperExtended _zk;
+    SilverKingZooKeeperClient _zk;
     List<String> children;
 
     _zk = metaClientCore.getZooKeeper();

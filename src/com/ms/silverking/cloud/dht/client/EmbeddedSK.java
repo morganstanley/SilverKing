@@ -24,6 +24,7 @@ import com.ms.silverking.cloud.toporing.StaticRingCreator;
 import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.zookeeper.LocalZKImpl;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.thread.ThreadUtil;
@@ -57,7 +58,7 @@ public class EmbeddedSK {
     }
     */
 
-  public static ClientDHTConfiguration createEmbeddedSKInstance(EmbeddedSKConfiguration config) {
+  public static Pair<ClientDHTConfiguration, DHTNode> createAndRunEmbeddedSkInstance(EmbeddedSKConfiguration config) {
     try {
       int zkPort;
       Path tempDir;
@@ -126,15 +127,22 @@ public class EmbeddedSK {
 
       // 4) Start DHTNode
       Log.warning("Starting DHTNode");
-      new DHTNode(config.getDHTName(), zkConfig, nodeConfig, 0, new ReapOnIdlePolicy(), DHTConstants.noPortOverride,
-          config.getDaemonIp()).prepareToRun();
+      DHTNode node = new DHTNode(config.getDHTName(), zkConfig, nodeConfig, 0, new ReapOnIdlePolicy(),
+          DHTConstants.noPortOverride, config.getDaemonIp());
+      node.init();
       Log.warning("DHTNode started");
 
       // 5) Return the configuration to the caller
-      return clientDHTConfig;
+      return new Pair<>(clientDHTConfig, node);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  // Left for compatibility. n.b. this does not allow the DHT node to be shutdown
+  public static ClientDHTConfiguration createEmbeddedSKInstance(EmbeddedSKConfiguration config) {
+    Pair<ClientDHTConfiguration, DHTNode> pair = createAndRunEmbeddedSkInstance(config);
+    return pair.getV1();
   }
 
     /*

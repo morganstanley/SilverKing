@@ -1,12 +1,9 @@
 package com.ms.silverking.cloud.dht;
 
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
-import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.serverside.PutTrigger;
-import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.text.ObjectDefParser2;
 
-public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueRetentionState> {
+public class PermanentRetentionPolicy implements ValueRetentionPolicy {
   static final PermanentRetentionPolicy template = new PermanentRetentionPolicy();
 
   static {
@@ -18,34 +15,14 @@ public class PermanentRetentionPolicy implements ValueRetentionPolicy<ValueReten
   }
 
   @Override
-  public ImplementationType getImplementationType() {
-    return ImplementationType.RetainAll;
-  }
-
-  @Override
-  public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated,
-      ValueRetentionState state, long curTimeNanos, long storedLength) {
-    return true;
-  }
-
-  @Override
-  public ValueRetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
-    return null;
-  }
-
-  @Override
-  public boolean considersStoredLength() {
-    return false;
-  }
-
-  @Override
   public int hashCode() {
     return this.getClass().hashCode();
   }
 
   @Override
-  public boolean equals(Object o) {
-    return this.getClass() == o.getClass();
+  public boolean equals(Object other) {
+    if (other == null) return false;
+    return other.getClass().equals(getClass());
   }
 
   @Override

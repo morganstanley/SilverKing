@@ -14,26 +14,29 @@ import java.util.logging.Level;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.ms.silverking.cloud.dht.KeyLevelValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.RevisionMode;
 import com.ms.silverking.cloud.dht.StorageType;
 import com.ms.silverking.cloud.dht.ValueCreator;
-import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
 import com.ms.silverking.cloud.dht.ValueRetentionState;
 import com.ms.silverking.cloud.dht.VersionConstraint;
-import com.ms.silverking.cloud.dht.collection.CuckooBase;
+import com.ms.silverking.cloud.dht.collection.DHTKeyCuckooBase;
 import com.ms.silverking.cloud.dht.collection.DHTKeyIntEntry;
-import com.ms.silverking.cloud.dht.collection.IntArrayCuckoo;
-import com.ms.silverking.cloud.dht.collection.TableFullException;
-import com.ms.silverking.cloud.dht.collection.WritableCuckooConfig;
+import com.ms.silverking.cloud.dht.collection.IntArrayDHTKeyCuckoo;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
 import com.ms.silverking.cloud.dht.common.MetaDataUtil;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.NodeRingMaster2;
+import com.ms.silverking.collection.Quintuple;
 import com.ms.silverking.collection.Triple;
+import com.ms.silverking.collection.cuckoo.CuckooBase;
+import com.ms.silverking.collection.cuckoo.IntArrayCuckoo;
+import com.ms.silverking.collection.cuckoo.TableFullException;
+import com.ms.silverking.collection.cuckoo.WritableCuckooConfig;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.text.StringUtil;
 import com.ms.silverking.util.ArrayUtil;
@@ -43,7 +46,8 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
   protected final int dataSegmentSize;
   protected final int indexOffset;
 
-  protected CuckooBase keyToOffset;
+  protected DHTKeyCuckooBase keyToOffset;
+  protected CuckooBase<Integer> offsetToLength;
 
   protected final int segmentNumber; // zero-based
   protected final File nsDir;
@@ -55,8 +59,8 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
   private static final boolean debugRetention = false;
 
   // called from openReadOnly
-  WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, CuckooBase keyToOffset,
-      Set<Integer> invalidatedOffsets, OffsetListStore offsetListStore, int dataSegmentSize) throws IOException {
+  WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, DHTKeyCuckooBase keyToOffset,
+      Set<Integer> invalidatedOffsets, CuckooBase<Integer> offsetToLength, OffsetListStore offsetListStore, int dataSegmentSize) throws IOException {
     super(dataBuf, offsetListStore, invalidatedOffsets != null ? ImmutableSet.copyOf(invalidatedOffsets) : null);
     this.segmentNumber = segmentNumber;
     this.keyToOffset = keyToOffset;
@@ -64,6 +68,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     this.nsDir = nsDir;
     this.dataSegmentSize = dataSegmentSize;
     this.indexOffset = dataSegmentSize;
+    this.offsetToLength = offsetToLength;
     if (debug) {
       Log.warning("WritableSegmentBase created for read only: ", nsDir);
     }
@@ -71,17 +76,24 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
 
   // called from Create
   WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, WritableCuckooConfig initialCuckooConfig,
-      int dataSegmentSize, NamespaceOptions nsOptions) {
+      int dataSegmentSize, NamespaceOptions nsOptions, CuckooBase<Integer> offsetToLength) {
     super(dataBuf, new RAMOffsetListStore(nsOptions), new HashSet<>());
     this.segmentNumber = segmentNumber;
-    this.keyToOffset = new IntArrayCuckoo(initialCuckooConfig);
+    this.keyToOffset = new IntArrayDHTKeyCuckoo(initialCuckooConfig);
     nextFree = new AtomicInteger(SegmentFormat.headerSize);
     this.nsDir = nsDir;
     this.dataSegmentSize = dataSegmentSize;
     this.indexOffset = dataSegmentSize;
+    this.offsetToLength = offsetToLength;
     if (debug) {
       Log.warning("WritableSegmentBase created for writing/reading: ", nsDir);
     }
+  }
+
+  // called from RAMSegment.create
+  WritableSegmentBase(File nsDir, int segmentNumber, ByteBuffer dataBuf, WritableCuckooConfig initialCuckooConfig,
+      int dataSegmentSize, NamespaceOptions nsOptions) {
+    this(nsDir, segmentNumber, dataBuf, initialCuckooConfig, dataSegmentSize, nsOptions, null);
   }
 
   public int getDataSegmentSize() {
@@ -92,7 +104,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     return segmentNumber;
   }
 
-  public CuckooBase getPKC() {
+  public DHTKeyCuckooBase getPKC() {
     return keyToOffset;
   }
 
@@ -111,6 +123,18 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     this.nextFree.set(nextFree);
   }
 
+  public int freeStorageSpaceRaw() {
+    return dataSegmentSize - nextFree.get();
+  }
+
+  int getStoredLength(int offset) {
+    if (offsetToLength == null) {
+      return super.getStoredLength(offset);
+    } else {
+      return offsetToLength.get(offset);
+    }
+  }
+
   public SegmentStorageResult putFormattedValue(DHTKey key, ByteBuffer formattedBuf, StorageParameters storageParams,
       NamespaceOptions nsOptions) {
     int writeOffset;
@@ -120,7 +144,11 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     }
     writeOffset = StorageFormat.writeFormattedValueToBuf(key, formattedBuf, dataBuf, nextFree, dataSegmentSize);
     if (writeOffset != StorageFormat.writeFailedOffset) {
-      return _put(key, writeOffset, storageParams.getVersion(), storageParams.getValueCreator(), nsOptions);
+      SegmentStorageResult segmentStorageResult;
+
+      segmentStorageResult = _put(key, writeOffset, storageParams.getVersion(), storageParams.getValueCreator(), nsOptions);
+      processStorageResult(key, segmentStorageResult, writeOffset, storageParams);
+      return segmentStorageResult;
     } else {
       return SegmentStorageResult.segmentFull;
     }
@@ -140,14 +168,38 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
 
       segmentStorageResult = _put(key, writeOffset, storageParams.getVersion(), storageParams.getValueCreator(),
           nsOptions);
-      if (segmentStorageResult == SegmentStorageResult.stored) {
-        if (invalidatedOffsets != null && storageParams.isInvalidation()) {
-          invalidatedOffsets.add(writeOffset);
-        }
-      }
+      processStorageResult(key, segmentStorageResult, writeOffset, storageParams);
       return segmentStorageResult;
     } else {
       return SegmentStorageResult.segmentFull;
+    }
+  }
+
+  private void processStorageResult(DHTKey key, SegmentStorageResult segmentStorageResult, int writeOffset, StorageParameters storageParams) {
+      if (segmentStorageResult == SegmentStorageResult.stored) {
+      if (storageParams.isInvalidation()) {
+        if (invalidatedOffsets != null) {
+          invalidatedOffsets.add(writeOffset);
+        }
+      }
+      if (offsetToLength != null) {
+        int storedLength;
+
+        storedLength = MetaDataUtil.getStoredLength((ByteBuffer)dataBuf.duplicate(), writeOffset + DHTKey.BYTES_PER_KEY);
+        if (Log.levelMet(Level.FINE)) {
+          Log.finef("%s => %d %d", KeyUtil.keyToString(key), writeOffset, storedLength);
+        }
+        try {
+          offsetToLength.put(writeOffset, storedLength);
+        } catch (TableFullException tfe) {
+          IntArrayCuckoo _offsetToLength;
+
+          Log.finef("offsetToLength full; rehashing");
+          _offsetToLength = (IntArrayCuckoo) offsetToLength;
+          _offsetToLength.rehashAndAdd(_offsetToLength, writeOffset, storedLength);
+          offsetToLength = _offsetToLength;
+    }
+  }
     }
   }
 
@@ -161,7 +213,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
       Log.warning("segmentNumber: ", segmentNumber);
       Log.warning("existingOffset: ", existingOffset);
     }
-    if (existingOffset == CuckooBase.keyNotFound) {
+    if (existingOffset == DHTKeyCuckooBase.keyNotFound) {
       // no offset for the key; add the mapping
       if (nsOptions.getVersionMode() == NamespaceVersionMode.SINGLE_VERSION || nsOptions.getStorageType() == StorageType.RAM) {
         if (debugPut) {
@@ -176,7 +228,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
           }
         } catch (TableFullException tfe) {
           Log.warning("Segment pkc full. Creating new table");
-          keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo) keyToOffset, key, offset);
+          keyToOffset = IntArrayDHTKeyCuckoo.rehashAndAdd((IntArrayDHTKeyCuckoo) keyToOffset, key, offset);
         }
       } else {
         long creationTime;
@@ -196,7 +248,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
           keyToOffset.put(key, -((RAMOffsetList) offsetList).getIndex());
         } catch (TableFullException tfe) {
           Log.warning("Segment pkc full. Creating new table");
-          keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo) keyToOffset, key,
+          keyToOffset = IntArrayDHTKeyCuckoo.rehashAndAdd((IntArrayDHTKeyCuckoo) keyToOffset, key,
               -((RAMOffsetList) offsetList).getIndex());
         }
       }
@@ -265,7 +317,7 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
               keyToOffset.put(key, -((RAMOffsetList) offsetList).getIndex());
             } catch (TableFullException tfe) {
               Log.warning("Segment pkc full. Creating new table");
-              keyToOffset = IntArrayCuckoo.rehashAndAdd((IntArrayCuckoo) keyToOffset, key,
+              keyToOffset = IntArrayDHTKeyCuckoo.rehashAndAdd((IntArrayDHTKeyCuckoo) keyToOffset, key,
                   -((RAMOffsetList) offsetList).getIndex());
             }
           } else {
@@ -392,17 +444,25 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
     }
   }
 
-  public <T extends ValueRetentionState> Triple<CompactionCheckResult, Set<Integer>, Set<Integer>> singleReverseSegmentWalk(
-      ValueRetentionPolicy<T> vrp, T valueRetentionState, long curTimeNanos, NodeRingMaster2 ringMaster) {
+  public <T extends ValueRetentionState>
+    Quintuple<CompactionCheckResult, Set<Integer>, Set<Integer>, Set<DHTKey>, Boolean> singleReverseSegmentWalk(
+      KeyLevelValueRetentionPolicyImpl<T> vrp, T valueRetentionState, long curTimeNanos, NodeRingMaster2 ringMaster,
+      Set<DHTKey> invalidatedAndCompactedKeys) {
     int numRetained;
     int numDiscarded;
     Set<Integer> retainedOffsets;
     Set<Integer> discardedOffsets;
+    Set<DHTKey> invalidatedKeys;
+    boolean     matchedInvalidatedKeys;
+    int  retainedBytes;
 
     numRetained = 0;
     numDiscarded = 0;
+    retainedBytes = 0;
     retainedOffsets = new HashSet<>();
     discardedOffsets = new HashSet<>();
+    invalidatedKeys = new HashSet<>();
+    matchedInvalidatedKeys = false;
     // Within each segment, the backwards walking is per key.
     // The outer loop loops through the keys first.
     for (DHTKeyIntEntry entry : keyToOffset) {
@@ -428,17 +488,23 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         int offset;
         long version;
         long creationTime;
-        long storedLength;
+        int consideredLength;
+        int storedLength;
 
         offset = offsetVersionAndCreationTime.getV1();
         version = offsetVersionAndCreationTime.getV2();
         creationTime = offsetVersionAndCreationTime.getV3();
         entryKey = entry.getKey();
 
+        storedLength = getStoredLength(offset);
+
         if (vrp.considersStoredLength()) {
-          storedLength = getStoredLength(offset);
+          consideredLength = storedLength;
         } else {
-          storedLength = 0;
+          consideredLength = 0;
+        }
+        if (Log.levelMet(Level.FINE)) {
+          Log.finef("consideredLength %s %d", KeyUtil.keyToString(entry.getKey()), consideredLength);
         }
         if (debugRetention) {
           Log.warningf("%s %d %d %d %s", entry.getKey(), offset, 0/*getCreationTime(offset)*/, curTimeNanos,
@@ -449,21 +515,31 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         // a dramatic increase in time for segments that won't.
         // Leaving for now as tracking in memory requires space
         if (vrp.retains(entryKey, version, creationTime, isInvalidation(offset), valueRetentionState, curTimeNanos,
-            storedLength) && ringMaster.iAmPotentialReplicaFor(entryKey, false)) {
+            consideredLength) && (ringMaster == null || ringMaster.iAmPotentialReplicaFor(entryKey, false))) {
           ++numRetained;
           retainedOffsets.add(offset);
+          retainedBytes += storedLength;
+          if (!matchedInvalidatedKeys) {
+            if (invalidatedAndCompactedKeys.contains(entryKey)) {
+              // If we retain a key that a higher-numbered segment has marked for invalidation and compaction
+              // then we must record that fact
+              matchedInvalidatedKeys = true;
+            }
+          }
           if (debugRetention) {
             Log.warningf("Retained %s\t%d", entry.getKey(), offset);
           }
         } else {
           ++numDiscarded;
           discardedOffsets.add(offset);
+          invalidatedKeys.add(entry.getKey());
           if (debugRetention) {
             Log.warningf("Discarded %s\t%d", entry.getKey(), offset);
           }
         }
       }
     }
-    return new Triple<>(new CompactionCheckResult(numRetained, numDiscarded), retainedOffsets, discardedOffsets);
+    return Quintuple.of(new CompactionCheckResult(numRetained, numDiscarded, retainedBytes), retainedOffsets, discardedOffsets,
+        invalidatedKeys, matchedInvalidatedKeys);
   }
 }

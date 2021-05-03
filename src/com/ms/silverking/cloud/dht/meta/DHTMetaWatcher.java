@@ -17,11 +17,11 @@ import com.ms.silverking.cloud.toporing.meta.RingConfigWatcher;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Observers ZooKeeper for changes in metadata that this DHT is dependent upon.
@@ -155,7 +155,7 @@ public class DHTMetaWatcher implements VersionListener, RingChangeListener {
     int readAttemptIndex;
     int ringReadAttempts = 20;
     int ringReadRetryInvervalSeconds = 2;
-    ZooKeeperExtended zk;
+    SilverKingZooKeeperClient zk;
 
     //cloudMC = new com.ms.silverking.cloud.meta.MetaClient(ringConfig.getCloudConfiguration(),
     //                                                      zkConfig);

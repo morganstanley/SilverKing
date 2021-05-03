@@ -87,7 +87,6 @@ public class IfElement implements Statement {
   }
 
   private boolean evaluateVariable(Context c) {
-    //System.out.printf("\t###\t%s %s %s %s\n", c, variable.evaluate(c).getV2().equals(literal), variable.evaluate(c).getV2(), literal);
     return variable.evaluate(c).getV2().equals(literal);
   }
 

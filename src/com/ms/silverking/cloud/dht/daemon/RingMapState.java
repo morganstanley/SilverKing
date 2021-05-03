@@ -36,12 +36,12 @@ import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.toporing.RingTree;
 import com.ms.silverking.cloud.toporing.RingTreeBuilder;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
+import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.SafeTimer;
-import org.apache.zookeeper.KeeperException;
 
 /**
  * Tracks state used during transition from one ring to another,
@@ -68,9 +68,6 @@ public class RingMapState implements NCGListener, PeerStateListener {
   private final StoragePolicyGroup storagePolicyGroup;
   private final RingConfiguration ringConfig;
   private final com.ms.silverking.cloud.dht.meta.MetaClient dhtMC;
-  //private final Lock        exclusionSetLock;
-  //private final Condition    exclusionSetCV;
-  //private boolean    exclusionSetInitialized;
 
   /*
    * secondarySets are used to specify subsets of secondary nodes within
@@ -109,8 +106,6 @@ public class RingMapState implements NCGListener, PeerStateListener {
       com.ms.silverking.cloud.toporing.meta.MetaClient ringMC, ExclusionSet exclusionSet,
       RingMapStateListener ringMapStateListener, com.ms.silverking.cloud.dht.meta.MetaClient dhtMC,
       boolean convergenceAlreadyComplete) {
-    //RingConfiguration   ringConfig;
-
     this.nodeID = nodeID;
     dhtConfigVersion = dhtMetaUpdate.getDHTConfig().getZKID();
     ringConfig = dhtMetaUpdate.getNamedRingConfiguration().getRingConfiguration();
@@ -120,9 +115,6 @@ public class RingMapState implements NCGListener, PeerStateListener {
     this.storagePolicyGroup = storagePolicyGroup;
     this.ringMapStateListener = ringMapStateListener;
     this.dhtMC = dhtMC;
-
-    //exclusionSetLock = new ReentrantLock();
-    //exclusionSetCV = exclusionSetLock.newCondition();
 
     curInstanceExclusionSet = ExclusionSet.emptyExclusionSet(0);
     curExclusionSet = ExclusionSet.emptyExclusionSet(0);
@@ -168,7 +160,6 @@ public class RingMapState implements NCGListener, PeerStateListener {
       Log.logErrorWarning(e);
       throw new RuntimeException(e);
     }
-    //waitForExclusionSet();
     if (!convergenceAlreadyComplete) {
       transitionToState(RingState.INITIAL);
     } else {
@@ -176,24 +167,6 @@ public class RingMapState implements NCGListener, PeerStateListener {
     }
   }
     
-    /*
-    private void waitForExclusionSet() {
-        Log.warningf("waitForExclusionSet: %s", ringIDAndVersionPair);
-        exclusionSetLock.lock();
-        try {
-            while (!exclusionSetInitialized) {
-                try {
-                    exclusionSetCV.await();
-                } catch (InterruptedException e) {
-                }
-            }
-        } finally {
-            exclusionSetLock.unlock();
-        }
-        Log.warningf("out waitForExclusionSet: %s", ringIDAndVersionPair);
-    }
-    */
-
   private void readInitialExclusions(MetaClient mc) throws KeeperException {
     ExclusionZK exclusionZK;
     ExclusionSet instanceExclusionSet;
@@ -383,16 +356,6 @@ public class RingMapState implements NCGListener, PeerStateListener {
     return dhtConfigVersion;
   }
 
-    /*
-    void setMap(RingTree ringTreeMinusExclusions, ResolvedReplicaMap resolvedReplicaMapMinusExclusions) {
-        if (this.ringTreeMinusExclusions != null) {
-            throw new RuntimeException("Unexpected reset of ringTreeMinusExclusions");
-        }
-        this.ringTreeMinusExclusions = ringTreeMinusExclusions;
-        this.resolvedReplicaMapMinusExclusions = resolvedReplicaMapMinusExclusions;
-    }
-    */
-
   RingTree getRingTreeMinusExclusions() {
     return ringTreeMinusExclusions;
   }
@@ -534,18 +497,9 @@ public class RingMapState implements NCGListener, PeerStateListener {
         resolvedReplicaMapMinusExclusions.display();
       } finally {
         Log.warningf("Signaling exclusionSetInitialized: %s", ringIDAndVersionPair);
-                /*
-                exclusionSetLock.lock();
-                try {
-                    exclusionSetInitialized = true;
-                    exclusionSetCV.signalAll();
-                } finally {
-                    exclusionSetLock.unlock();
                 }
-                */
       }
     }
-  }
 
   // FUTURE - deprecate this
   public void newExclusionSet(ExclusionSet exclusionSet, ReplicaPrioritizer replicaPrioritizer)
@@ -557,11 +511,6 @@ public class RingMapState implements NCGListener, PeerStateListener {
     newResolvedReplicaMap = newRingTree.getResolvedMap(ringConfig.getRingParentName(), replicaPrioritizer);
     ringTreeMinusExclusions = newRingTree;
     resolvedReplicaMapMinusExclusions = newResolvedReplicaMap;
-        /*
-        System.out.println("\tResolved Map");
-        resolvedReplicaMapMinusExclusions.display();
-        System.out.println("\tEnd Resolved Map");
-        */
   }
 
   ///////////////
