@@ -56,7 +56,7 @@ import com.ms.silverking.cloud.dht.net.MessageGroupBase;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.cloud.dht.net.MessageGroupReceiver;
 import com.ms.silverking.cloud.meta.ExclusionSet;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.IPAddrUtil;

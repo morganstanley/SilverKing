@@ -3,7 +3,7 @@ package com.ms.silverking.cloud.management;
 import java.io.File;
 import java.io.IOException;
 
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -45,7 +45,8 @@ public abstract class MetaToolBase {
         }
         return module.readFromZK(version, options);
         } catch (Exception ex) {
-          throw KeeperException.forMethod("MetaToolModule::readFromZK", ex);
+          //throw KeeperException.forMethod("MetaToolModule::readFromZK", ex);
+          throw new RuntimeException(ex);
         }
       default:
         throw new RuntimeException("panic");
@@ -64,7 +65,8 @@ public abstract class MetaToolBase {
         try {
         module.writeToZK(instance, options);
         } catch (Exception ex) {
-          throw KeeperException.forMethod("MetaToolModule::writeToZK", ex);
+          //throw KeeperException.forMethod("MetaToolModule::writeToZK", ex);
+          throw new RuntimeException(ex);
         }
         break;
       case STDOUT:

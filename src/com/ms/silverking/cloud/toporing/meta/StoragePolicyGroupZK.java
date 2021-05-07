@@ -7,7 +7,7 @@ import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.cloud.storagepolicy.PolicyParseException;
 import com.ms.silverking.cloud.storagepolicy.StoragePolicyGroup;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.io.FileUtil;
 import org.apache.zookeeper.CreateMode;
 

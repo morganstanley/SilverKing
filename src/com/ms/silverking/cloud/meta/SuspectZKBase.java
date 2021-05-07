@@ -6,11 +6,12 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.management.MetaToolOptions;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
-import org.apache.zookeeper.data.Stat;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 
 /**
  * Base functionality for both cloud-level, and dht instance specific SuspectSets
@@ -37,7 +38,7 @@ public abstract class SuspectZKBase<M extends MetaPathsBase> extends ServerSetEx
     //List<String>    nodes;
     String[] nodes;
     Stat stat;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     _zk = mc.getZooKeeper();
     if (version == VersionedDefinition.NO_VERSION) {
@@ -58,7 +59,7 @@ public abstract class SuspectZKBase<M extends MetaPathsBase> extends ServerSetEx
   @Override
   public SuspectSet readLatestFromZK(MetaToolOptions options) throws KeeperException {
     Stat stat;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
     List<String> accusers;
     HashSet<String> suspectsSet;
 

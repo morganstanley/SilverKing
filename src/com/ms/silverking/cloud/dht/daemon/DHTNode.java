@@ -4,7 +4,9 @@ import java.net.InetAddress;
 import java.util.Set;
 import java.util.Timer;
 
-import ch.qos.logback.classic.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.JVMUtil;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
@@ -28,8 +30,6 @@ import com.ms.silverking.cloud.toporing.ResolvedReplicaMap;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.log.Log;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AsyncGlobals;
@@ -122,6 +122,8 @@ public class DHTNode {
       IPAndPort baseInterfaceIPAndPort;
       Broadcaster<Triple<Set<IPAndPort>,Set<IPAndPort>,Set<IPAndPort>>> exclusionChangeBroadcaster;
 
+      /*
+       * FIXME temporary c/o as this breaks oss build
       if(log.isTraceEnabled()){
         log.warn("LogLevel: {}", Level.TRACE);
       }
@@ -137,6 +139,7 @@ public class DHTNode {
       if(log.isErrorEnabled()){
         log.warn("LogLevel: {}", Level.ERROR);
       }
+      */
 
 
       this.dhtName = dhtName;

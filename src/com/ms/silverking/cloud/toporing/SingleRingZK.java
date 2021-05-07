@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
@@ -21,8 +23,7 @@ import com.ms.silverking.cloud.topology.TopologyZK;
 import com.ms.silverking.cloud.toporing.meta.MetaClient;
 import com.ms.silverking.cloud.toporing.meta.MetaPaths;
 import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
@@ -250,7 +251,7 @@ public class SingleRingZK extends MetaToolModuleBase<TopologyRing, MetaPaths> {
 
   public static InstantiatedRingTree readTree(MetaClient mc, long ringConfigVersion, long configInstanceVersion)
       throws KeeperException, IOException {
-    SilverKingZooKeeperClient zk;
+    ZooKeeperExtended zk;
     List<String> mapNames;
     Map<String, TopologyRing> maps;
     Topology topology;

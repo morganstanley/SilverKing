@@ -22,7 +22,7 @@ import com.ms.silverking.cloud.toporing.meta.NamedRingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.log.Log;

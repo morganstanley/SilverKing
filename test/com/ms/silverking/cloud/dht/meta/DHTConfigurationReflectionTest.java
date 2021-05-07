@@ -41,7 +41,7 @@ public class DHTConfigurationReflectionTest {
     DHTConfiguration dhtCfg = new DHTConfiguration("Steel_Ball_Run", 1996, "Stone_Ocean",
         new NamespaceCreationOptions(NamespaceCreationOptions.Mode.OptionalAutoCreation_AllowMatches, ".*",
             defaultNamespaceOptions), new HashMap<>(), NamespaceOptionsMode.ZooKeeper, 0, 0, "Golden_Wind", "Foo",
-        false);
+        false, false);
     assertTrue(getTestMessage("newFieldShallBeIncluded", "reflection string shall have [namespaceOptionsMode] field"),
         dhtCfg.toString().contains("namespaceOptionsMode=ZooKeeper"));
 

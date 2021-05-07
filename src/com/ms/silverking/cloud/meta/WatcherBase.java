@@ -11,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.zookeeper.CancelableObserver;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.collection.LightLinkedBlockingQueue;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.process.SafeThread;

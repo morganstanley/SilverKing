@@ -1,15 +1,14 @@
 package com.ms.silverking.text;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.google.common.collect.ImmutableSet;
@@ -21,9 +20,12 @@ public class ObjectDefParser2 {
 
   static {
     objectMapper = new ObjectMapper(new YAMLFactory().enable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+    /*
+     * FIXME Temporary comment out for oss release
     objectMapper.activateDefaultTyping(new LaissezFaireSubTypeValidator(),
                                        ObjectMapper.DefaultTyping.NON_FINAL,
                                        JsonTypeInfo.As.PROPERTY);
+                                       */
   }
 
   static final boolean debug = false;
@@ -221,7 +223,7 @@ public class ObjectDefParser2 {
   private static <T> T parseFromYaml(Class<T> clazz, String def) {
     try {
       return objectMapper.readValue(def, clazz);
-    } catch (JsonProcessingException e) {
+    } catch (IOException e) {
       throw new ObjectDefParseException("Could not parse value of type " + clazz.getName(), e);
     }
   }

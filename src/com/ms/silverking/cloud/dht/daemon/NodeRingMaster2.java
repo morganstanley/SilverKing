@@ -40,7 +40,7 @@ import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
 import com.ms.silverking.cloud.toporing.RingEntry;
 import com.ms.silverking.cloud.toporing.meta.MetaPaths;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Triple;

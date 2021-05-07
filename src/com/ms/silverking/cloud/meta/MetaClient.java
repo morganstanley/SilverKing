@@ -5,7 +5,7 @@ import java.io.IOException;
 
 import com.ms.silverking.cloud.topology.Topology;
 import com.ms.silverking.cloud.topology.TopologyParser;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
 

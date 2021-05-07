@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.ms.silverking.cloud.meta.VersionListener;
 import com.ms.silverking.cloud.meta.VersionWatcher;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.log.Log;
 

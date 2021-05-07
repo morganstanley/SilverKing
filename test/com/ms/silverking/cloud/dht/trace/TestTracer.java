@@ -39,7 +39,7 @@ public class TestTracer<T> implements Tracer {
   }
 
   @Override
-  public void onBothReceiveRequest(byte[] traceID) {
+  public void onBothReceiveRequest(byte[] traceID, MessageType msgType) {
     Log.info("onBothReceiveRequest: " + Thread.currentThread().getName());
     addResult(tester.testTraceID(traceID));
   }
@@ -47,6 +47,12 @@ public class TestTracer<T> implements Tracer {
   @Override
   public void onBothHandleRetrievalRequest(byte[] traceID) {
     Log.info("onBothHandleRetrievalRequest: " + Thread.currentThread().getName());
+    addResult(tester.testTraceID(traceID));
+  }
+
+  @Override
+  public void onAuthorizationFailure(byte[] traceID) {
+    Log.info("onAuthorizationFailure: " + Thread.currentThread().getName());
     addResult(tester.testTraceID(traceID));
   }
 
@@ -96,6 +102,21 @@ public class TestTracer<T> implements Tracer {
   @Override
   public void onForceReap(long elapsed) {
     Log.info("onForceReap " + getContext().getHost() + ": " + Thread.currentThread().getName());
+  }
+
+  @Override
+  public void onSegmentReap(int segNum, String cTime) {
+    Log.info("onSegmentReap " + getContext().getHost() + ": " + Thread.currentThread().getName());
+  }
+
+  @Override
+  public void onKeysReap(int segNum, int keys, String cTime) {
+    Log.info("onKeysReap " + getContext().getHost() + ": " + Thread.currentThread().getName());
+  }
+
+  @Override
+  public void onSegmentRollover(int segNum) {
+    Log.info("onSegmentRollover " + getContext().getHost() + ": " + Thread.currentThread().getName());
   }
 
   @Override

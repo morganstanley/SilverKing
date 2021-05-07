@@ -2,7 +2,7 @@ package com.ms.silverking.cloud.dht.meta;
 
 import com.ms.silverking.cloud.dht.daemon.RingHealth;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.collection.Triple;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 

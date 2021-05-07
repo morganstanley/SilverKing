@@ -2,7 +2,7 @@ package com.ms.silverking.cloud.dht.meta;
 
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.RingState;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.net.IPAndPort;
 import org.apache.zookeeper.KeeperException.NoNodeException;

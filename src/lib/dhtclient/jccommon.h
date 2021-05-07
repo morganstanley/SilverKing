@@ -134,8 +134,8 @@ using jace::proxy::com::ms::silverking::cloud::dht::WaitOptions;
 #include "jace/proxy/com/ms/silverking/cloud/dht/SecondaryTarget.h"
 using jace::proxy::com::ms::silverking::cloud::dht::SecondaryTarget;
 
-#include "jace/proxy/com/ms/silverking/cloud/dht/common/NamespaceOptionsClient.h"
-using jace::proxy::com::ms::silverking::cloud::dht::common::NamespaceOptionsClient;
+#include "jace/proxy/com/ms/silverking/cloud/dht/common/NamespaceOptionsClientBase.h"
+using jace::proxy::com::ms::silverking::cloud::dht::common::NamespaceOptionsClientBase;
 #include "jace/proxy/com/ms/silverking/cloud/dht/common/DHTUtil.h"
 using jace::proxy::com::ms::silverking::cloud::dht::common::DHTUtil;
 

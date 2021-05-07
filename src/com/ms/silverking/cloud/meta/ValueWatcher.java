@@ -1,10 +1,11 @@
 package com.ms.silverking.cloud.meta;
 
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
-import com.ms.silverking.log.Log;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.data.Stat;
+
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
+import com.ms.silverking.log.Log;
 
 /**
  * Watches a single versioned ZooKeeper path for new versions.
@@ -28,7 +29,7 @@ public class ValueWatcher extends WatcherBase {
 
   protected void _doCheck() throws KeeperException {
     try {
-      SilverKingZooKeeperClient _zk;
+      ZooKeeperExtended _zk;
       byte[] value;
       Stat stat;
 

@@ -12,7 +12,7 @@ import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.RingStateZK;
 import com.ms.silverking.cloud.meta.ChildrenListener;
 import com.ms.silverking.cloud.meta.ChildrenWatcher;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;

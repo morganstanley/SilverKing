@@ -26,12 +26,12 @@ import com.ms.silverking.cloud.dht.daemon.SelfExclusionResponder;
 import com.ms.silverking.cloud.dht.net.MessageGroupConnection;
 import com.ms.silverking.net.IPAndPort;
 
-import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.net.AddrAndPort;
 import com.ms.silverking.net.HostAndPort;
 import com.ms.silverking.net.security.AuthFailedException;
 import com.ms.silverking.net.security.RetryableAuthFailedException;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;

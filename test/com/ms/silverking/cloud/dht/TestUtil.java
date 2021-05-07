@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.HashSet;
 
-import com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType;
+import com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl.ImplementationType;
 import com.ms.silverking.cloud.dht.VersionConstraint.Mode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
@@ -25,10 +25,9 @@ public class TestUtil {
       DHTConstants.defaultFragmentationThreshold, null);
 
   public static final InvalidationOptions ioCopy = new InvalidationOptions(new OpSizeBasedTimeoutController(), null, 
-      DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION,
       0, 0, PutOptions.noLock);
   public static final InvalidationOptions ioDiff = new InvalidationOptions(new WaitForTimeoutController(),
-      new HashSet<>(), DHTConstants.defaultTraceIDProvider, AllReplicasExcludedResponse.EXCEPTION, 0, 0, PutOptions.noLock);
+      new HashSet<>(), 0, 0, PutOptions.noLock);
 
   public static final GetOptions goCopy = new GetOptions(new OpSizeBasedTimeoutController(), null, RetrievalType.VALUE,
       new VersionConstraint(Long.MIN_VALUE, Long.MAX_VALUE, Mode.GREATEST), NonExistenceResponse.NULL_VALUE, true,
@@ -45,16 +44,13 @@ public class TestUtil {
       NonExistenceResponse.NULL_VALUE, true, false, false, Integer.MAX_VALUE, 100, TimeoutResponse.EXCEPTION);
 
   public static ImplementationType getImplementationType(ValueRetentionPolicy policy) {
-    return policy.getImplementationType();
-  }
-
-  public static ValueRetentionState getInitialState(ValueRetentionPolicy policy) {
-    return policy.createInitialState(null, null);
+    return ValueRetentionPolicyImpl.fromPolicy(policy, null).getImplementationType();
   }
 
   public static void checkRetains(Object[][] testCases) {
     for (Object[] testCase : testCases) {
       ValueRetentionPolicy policy = (ValueRetentionPolicy) testCase[0];
+      ValueRetentionPolicyImpl impl = ValueRetentionPolicyImpl.fromPolicy(policy, null);
       DHTKey key = (DHTKey) testCase[1];
       long version = (long) testCase[2];
       long creationTimeNanos = (long) testCase[3];
@@ -63,11 +59,12 @@ public class TestUtil {
       long curTimeNanos = (long) testCase[6];
       boolean expected = (boolean) testCase[7];
 
-      assertEquals(expected, policy.retains(key, version, creationTimeNanos, invalidated, state, curTimeNanos, -1));
+      if (impl instanceof KeyLevelValueRetentionPolicyImpl<?>) {
+        assertEquals(expected,
+            ((KeyLevelValueRetentionPolicyImpl<ValueRetentionState>) impl).retains(key, version, creationTimeNanos,
+                invalidated, state, curTimeNanos, -1));
     }
   }
-
-  public static void main(String[] args) {
-    System.out.println(DHTConstants.defaultTraceIDProvider == null);
   }
+
 }

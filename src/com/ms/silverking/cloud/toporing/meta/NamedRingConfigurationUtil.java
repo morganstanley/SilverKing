@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import com.ms.silverking.cloud.dht.gridconfig.SKGridConfiguration;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 
 public class NamedRingConfigurationUtil {

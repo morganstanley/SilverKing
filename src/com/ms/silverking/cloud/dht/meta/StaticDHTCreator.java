@@ -22,7 +22,7 @@ import com.ms.silverking.cloud.skfs.meta.SKFSConfiguration;
 import com.ms.silverking.cloud.skfs.meta.SKFSConfigurationZK;
 import com.ms.silverking.cloud.toporing.StaticRingCreator;
 import com.ms.silverking.cloud.toporing.StaticRingCreator.RingCreationResults;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.id.UUIDBase;

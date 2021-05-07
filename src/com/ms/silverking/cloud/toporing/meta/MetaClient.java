@@ -5,7 +5,7 @@ import java.io.IOException;
 import com.ms.silverking.cloud.meta.CloudConfiguration;
 import com.ms.silverking.cloud.meta.MetaClientBase;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import org.apache.zookeeper.CreateMode;
 

@@ -2,15 +2,17 @@ package com.ms.silverking.cloud.management;
 
 import java.util.concurrent.ExecutionException;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.meta.MetaClientBase;
 import com.ms.silverking.cloud.meta.MetaPathsBase;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 
 public abstract class MetaToolModuleBase<T, M extends MetaPathsBase> implements MetaToolModule<T> {
   protected final MetaClientBase<M> mc;
-  protected final SilverKingZooKeeperClient zk;
+  protected final ZooKeeperExtended zk;
   protected final M paths;
   protected final String base;
 

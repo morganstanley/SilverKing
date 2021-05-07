@@ -13,7 +13,7 @@ import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.toporing.meta.StoragePolicyGroupZK;
 import com.ms.silverking.cloud.toporing.meta.WeightsZK;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 
 public class MetaTool extends MetaToolBase {

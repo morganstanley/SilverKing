@@ -6,18 +6,18 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.dht.common.DHTConstants;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.PropertiesHelper;
-import org.apache.zookeeper.KeeperException.OperationTimeoutException;
 
 public class MetaClientCore {
   protected final ZooKeeperConfig zkConfig;
-  private SilverKingZooKeeperClient zk; //only used if not shareZK
+  private ZooKeeperExtended zk; //only used if not shareZK
 
   private static final int sessionTimeout;
 
@@ -34,7 +34,7 @@ public class MetaClientCore {
 
   private static final boolean shareZK = true;
   protected static final ConcurrentMap<ZooKeeperConfig, Lock> lockMap;
-  protected static final ConcurrentMap<ZooKeeperConfig, SilverKingZooKeeperClient> zkMap;
+  protected static final ConcurrentMap<ZooKeeperConfig, ZooKeeperExtended> zkMap;
 
   static {
     if (shareZK) {
@@ -70,7 +70,7 @@ public class MetaClientCore {
 
   private void setZK(ZooKeeperConfig zkConfig) throws IOException, KeeperException {
     Lock lock;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     lock = acquireLockIfShared(zkConfig);
     try {
@@ -80,9 +80,9 @@ public class MetaClientCore {
         _zk = null;
       }
       if (_zk == null) {
-        Log.info(String.format("Getting SilverKingZooKeeperClient for %s\n", zkConfig));
-        zk = SilverKingZooKeeperClient.getZooKeeperWithRetries(zkConfig, sessionTimeout, connectAttempts);
-        Log.info(String.format("Done getting SilverKingZooKeeperClient for %s\n", zkConfig));
+        Log.info(String.format("Getting ZooKeeperExtended for %s\n", zkConfig));
+          zk = new ZooKeeperExtended(zkConfig, sessionTimeout, null);
+        Log.info(String.format("Done getting ZooKeeperExtended for %s\n", zkConfig));
         if (shareZK) {
           zkMap.putIfAbsent(zkConfig, zk);
         }
@@ -99,7 +99,7 @@ public class MetaClientCore {
     setZK(zkConfig);
   }
 
-  public SilverKingZooKeeperClient _getZooKeeper() {
+  public ZooKeeperExtended _getZooKeeper() {
     if (shareZK) {
       return zkMap.get(zkConfig);
     } else {
@@ -107,8 +107,8 @@ public class MetaClientCore {
     }
   }
 
-  public SilverKingZooKeeperClient getZooKeeper(int getZKMaxAttempts, int getZKSleepUnit) throws KeeperException {
-    SilverKingZooKeeperClient _zk;
+  public ZooKeeperExtended getZooKeeper(int getZKMaxAttempts, int getZKSleepUnit) throws KeeperException {
+    ZooKeeperExtended _zk;
     int attemptIndex;
 
     assert getZKMaxAttempts > 0;
@@ -123,14 +123,14 @@ public class MetaClientCore {
           ++attemptIndex;
         } else {
           Log.warning("getZooKeeper() failed after " + (attemptIndex + 1) + " attempts");
-          throw KeeperException.forMethod("getZooKeeper", new OperationTimeoutException());
+          //throw KeeperException.forMethod("getZooKeeper", new OperationTimeoutException());
         }
       }
     }
     return _zk;
   }
 
-  public SilverKingZooKeeperClient getZooKeeper() throws KeeperException {
+  public ZooKeeperExtended getZooKeeper() throws KeeperException {
     return getZooKeeper(defaultGetZKMaxAttempts, defaultGetZKSleepUnit);
   }
 
@@ -139,7 +139,7 @@ public class MetaClientCore {
   }
 
   public static void clearZkMap() {
-    for (SilverKingZooKeeperClient zk : zkMap.values()) {
+    for (ZooKeeperExtended zk : zkMap.values()) {
       zk.close();
     }
     zkMap.clear();

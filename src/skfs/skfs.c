@@ -915,6 +915,10 @@ static int skfs_access(const char *path, int mask) {
 }
 
 static int unix_access(const char *path, int mask) {
+	return 0;
+/*
+	FUTURE - implement when we have acl access support
+			 FUSE default implementation provides unix permissions support
     int    result;
     struct stat stbuf;
 	
@@ -929,17 +933,17 @@ static int unix_access(const char *path, int mask) {
 			int	executeAllowed;
 			
 			if (get_uid() == stbuf.st_uid) { // owner
-				readAllowed = S_IRUSR(stbuf.mode);
-				writeAllowed = S_IWUSR(stbuf.mode);
-				executeAllowed = S_IXUSR(stbuf.mode);
+				readAllowed = S_IRUSR(stbuf.st_mode);
+				writeAllowed = S_IWUSR(stbuf.st_mode);
+				executeAllowed = S_IXUSR(stbuf.st_mode);
 			} else if (get_gid() == stbuf.st_gid) { // group
-				readAllowed = S_IRGRP(stbuf.mode);
-				writeAllowed = S_IWGRP(stbuf.mode);
-				executeAllowed = S_IXGRP(stbuf.mode);
+				readAllowed = S_IRGRP(stbuf.st_mode);
+				writeAllowed = S_IWGRP(stbuf.st_mode);
+				executeAllowed = S_IXGRP(stbuf.st_mode);
 			} else { // other
-				readAllowed = S_IROTH(stbuf.mode);
-				writeAllowed = S_IWOTH(stbuf.mode);
-				executeAllowed = S_IXOTH(stbuf.mode);
+				readAllowed = S_IROTH(stbuf.st_mode);
+				writeAllowed = S_IWOTH(stbuf.st_mode);
+				executeAllowed = S_IXOTH(stbuf.st_mode);
 			}
 			result = 0;
 			if (!readAllowed && (mask & R_OK)) {
@@ -954,6 +958,7 @@ static int unix_access(const char *path, int mask) {
     } else {
 		return -result;
 	}
+*/
 }
 
 static int acl_access(const char *path, int mask) {

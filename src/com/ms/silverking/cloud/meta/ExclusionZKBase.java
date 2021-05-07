@@ -3,14 +3,15 @@ package com.ms.silverking.cloud.meta;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+
 import com.google.common.collect.ImmutableSet;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.management.MetaToolOptions;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.util.PropertiesHelper;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
-import org.apache.zookeeper.data.Stat;
 
 /**
  * Base functionality for both cloud-level, and dht instance specific ExclusionSets
@@ -41,7 +42,7 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends ServerSet
     //List<String>    nodes;
     String[] nodes;
     Stat stat;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     _zk = mc.getZooKeeper();
     if (version == VersionedDefinition.NO_VERSION) {
@@ -64,7 +65,7 @@ public abstract class ExclusionZKBase<M extends MetaPathsBase> extends ServerSet
     String vBase;
     long version;
     Stat stat;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     _zk = mc.getZooKeeper();
     version = _zk.getLatestVersion(worrisomesPath);

@@ -79,8 +79,8 @@ public class NamespaceOptionsTest {
   private static final String sfCopy = NamespaceOptions.templateOptions.getStorageFormat();
   private static final String sfDiff = "-1";
 
-  private static ValueRetentionPolicy<?> vrpCopy = new InvalidatedRetentionPolicy(60);
-  private static ValueRetentionPolicy<?> vrpDiff = new TimeAndVersionRetentionPolicy(Mode.mostRecentValue, 100, 1);
+  private static ValueRetentionPolicy vrpCopy = new InvalidatedRetentionPolicy(60);
+  private static ValueRetentionPolicy vrpDiff = new TimeAndVersionRetentionPolicy(Mode.mostRecentValue, 100, 1);
 
   private static NamespaceServerSideCode nsscCopy = new NamespaceServerSideCode("", "", "");
   private static NamespaceServerSideCode nsscDiff = new NamespaceServerSideCode("a", "b", "c");
@@ -146,7 +146,7 @@ public class NamespaceOptionsTest {
     return nsOptions.getAllowLinks();
   }
 
-  private ValueRetentionPolicy<?> getValueRetentionPolicy(NamespaceOptions nsOptions) {
+  private ValueRetentionPolicy getValueRetentionPolicy(NamespaceOptions nsOptions) {
     return nsOptions.getValueRetentionPolicy();
   }
 
@@ -202,7 +202,7 @@ public class NamespaceOptionsTest {
     return defaultNsOptions.allowLinks(al);
   }
 
-  private NamespaceOptions setValueRetentionPolicy(ValueRetentionPolicy<?> vrp) {
+  private NamespaceOptions setValueRetentionPolicy(ValueRetentionPolicy vrp) {
     return defaultNsOptions.valueRetentionPolicy(vrp);
   }
 

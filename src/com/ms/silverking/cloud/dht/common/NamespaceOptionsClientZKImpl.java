@@ -4,17 +4,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 
 import com.ms.silverking.cloud.dht.client.ClientDHTConfiguration;
 import com.ms.silverking.cloud.dht.client.ClientDHTConfigurationProvider;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespacePropertiesIO;
 import com.ms.silverking.cloud.dht.meta.MetaPaths;
 import com.ms.silverking.cloud.meta.MetaClientCore;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
-import org.apache.zookeeper.CreateMode;
 
 public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   private static final long nanosPerMilli = 1000000;
@@ -58,7 +58,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   }
 
   private long retrieveNsCreationTime(String versionPath) throws KeeperException {
-    SilverKingZooKeeperClient zk;
+    ZooKeeperExtended zk;
 
     zk = metaZK.getZooKeeper();
     return zk.getStat(zk.getLeastVersionPath(versionPath)).getCtime() * nanosPerMilli;
@@ -71,7 +71,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
 
   // Helper method shared by both put and delete
   private void writeNewVersion(long nsContext, String zkNodeContent) throws KeeperException {
-    SilverKingZooKeeperClient zk;
+    ZooKeeperExtended zk;
     String versionPath;
 
     zk = metaZK.getZooKeeper();
@@ -107,7 +107,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   private NamespaceProperties retrieveFullNamespaceProperties(String versionPath)
       throws NamespacePropertiesRetrievalException {
     try {
-      SilverKingZooKeeperClient zk;
+      ZooKeeperExtended zk;
       String skDef;
       NamespaceProperties nsProperties;
 
@@ -171,7 +171,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
   public void obliterateAllNsProperties() throws NamespacePropertiesDeleteException {
     try {
       String allNsBasePath;
-      SilverKingZooKeeperClient zk;
+      ZooKeeperExtended zk;
 
       allNsBasePath = MetaPaths.getGlobalNsPropertiesBasePath(dhtConfig.getName());
       zk = metaZK.getZooKeeper();
@@ -187,7 +187,7 @@ public class NamespaceOptionsClientZKImpl extends NamespaceOptionsClientBase {
     try {
       Map<String, NamespaceProperties> nsNames = new HashMap<>();
       String allNsBasePath;
-      SilverKingZooKeeperClient zk;
+      ZooKeeperExtended zk;
 
       allNsBasePath = MetaPaths.getGlobalNsPropertiesBasePath(dhtConfig.getName());
       zk = metaZK.getZooKeeper();

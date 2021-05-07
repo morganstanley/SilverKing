@@ -11,7 +11,7 @@ import com.ms.silverking.cloud.management.MetaToolBase;
 import com.ms.silverking.cloud.management.MetaToolModule;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.cloud.meta.ServerSetExtensionZK;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 
 public class MetaTool extends MetaToolBase {

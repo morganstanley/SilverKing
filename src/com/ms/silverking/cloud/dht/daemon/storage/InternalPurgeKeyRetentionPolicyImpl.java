@@ -1,27 +1,23 @@
 package com.ms.silverking.cloud.dht.daemon.storage;
 
-import static com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType.SingleReverseSegmentWalk;
-
-import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
+import com.ms.silverking.cloud.dht.KeyLevelValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.cloud.dht.serverside.PutTrigger;
-import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 
 /**
  * Only used in server side (within package scope)
  */
-class InternalPurgeKeyRetentionPolicy implements ValueRetentionPolicy<InternalPurgeKeyRetentionState> {
+class InternalPurgeKeyRetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<InternalPurgeKeyRetentionState> {
   private final DHTKey keyToPurge;
   private final long purgeBeforeCreationTimeNanos; // inclusive
 
-  InternalPurgeKeyRetentionPolicy(DHTKey keyToPurge, long purgeBeforeCreationTimeNanos) {
+  InternalPurgeKeyRetentionPolicyImpl(DHTKey keyToPurge, long purgeBeforeCreationTimeNanos) {
     this.keyToPurge = keyToPurge;
     this.purgeBeforeCreationTimeNanos = purgeBeforeCreationTimeNanos;
   }
 
   @Override
   public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated,
-      InternalPurgeKeyRetentionState state, long curTimeNanos, long storedLength) {
+      InternalPurgeKeyRetentionState state, long curTimeNanos, int storedLength) {
     if (keyToPurge.equals(key) && creationTimeNanos <= purgeBeforeCreationTimeNanos) {
       state.keyPurged(creationTimeNanos, version);
       return false;
@@ -35,15 +31,20 @@ class InternalPurgeKeyRetentionPolicy implements ValueRetentionPolicy<InternalPu
     return false;
   }
 
-  // Not allowed as this policy is used internally
   @Override
-  public ImplementationType getImplementationType() {
-    return SingleReverseSegmentWalk;
+  public boolean considersInvalidations() {
+    return true;
   }
 
   // Not allowed as this policy is used internally
   @Override
-  public InternalPurgeKeyRetentionState createInitialState(PutTrigger putTrigger, RetrieveTrigger retrieveTrigger) {
+  public ImplementationType getImplementationType() {
+    return ImplementationType.SingleReverseSegmentWalk;
+  }
+
+  // Not allowed as this policy is used internally
+  @Override
+  public InternalPurgeKeyRetentionState createInitialState() {
     throw new IllegalStateException(
         "Illegal call path: InternalPurgeKeyRetentionPolicy::createInitialState() is not allowed; This policy is for "
             + "internal use");

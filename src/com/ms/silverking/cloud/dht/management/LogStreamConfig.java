@@ -12,7 +12,7 @@ import com.ms.silverking.cloud.dht.meta.ClassVars;
 import com.ms.silverking.cloud.dht.meta.ClassVarsZK;
 import com.ms.silverking.cloud.dht.meta.DHTConfiguration;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.log.Log;
 
 /**

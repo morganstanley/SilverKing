@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.ms.silverking.cloud.dht.daemon.DHTNodeConfiguration;
 import com.ms.silverking.cloud.dht.daemon.NodeInfo;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.collection.Quadruple;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;

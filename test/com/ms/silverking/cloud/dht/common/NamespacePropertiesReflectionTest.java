@@ -24,7 +24,8 @@ public class NamespacePropertiesReflectionTest {
       NamespaceVersionMode.SYSTEM_TIME_NANOS, RevisionMode.NO_REVISIONS, NamespaceUtil.metaNSDefaultPutOptions,
       NamespaceUtil.metaNSDefaultInvalidationOptions, NamespaceUtil.metaNSDefaultGetOptions,
       DHTConstants.standardWaitOptions, 1996, 4096, 1996, false, DHTConstants.defaultStorageFormat,
-      new LRURetentionPolicy(8L * 1024L * 1024L, 1), NamespaceServerSideCode.singleTrigger(LRUTrigger.class));
+      new LRURetentionPolicy(8L * 1024L * 1024L, LRURetentionPolicy.DO_NOT_PERSIST),
+      NamespaceServerSideCode.singleTrigger(LRUTrigger.class));
 
   final private String dummyParentName = "SteelBallRun";
   final private String dummyNsName = "StoneFree";
@@ -147,12 +148,35 @@ public class NamespacePropertiesReflectionTest {
   @Test
   public void canParsePossibleSKDefWithTraceIdProvider() {
     // Possible Sk def which contains"name" and TraceIdProvider in its OperationOptions
-    String possibleSKDefWithTraceIdProvider = "options={storageType=FILE,consistencyProtocol=LOOSE," + "versionMode" +
-        "=SYSTEM_TIME_NANOS,revisionMode=NO_REVISIONS," + "defaultPutOptions={opTimeoutController" +
+    String possibleSKDefWithTraceIdProvider =
+        "options={storageType=FILE,consistencyProtocol=LOOSE," + "versionMode" + "=SYSTEM_TIME_NANOS," +
+            "revisionMode=NO_REVISIONS," + "defaultPutOptions={opTimeoutController" + "=<OpSizeBasedTimeoutController" +
+            ">{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305," + "nonKeyedOpMaxRelTimeout_ms=1500000," +
+            "exclusionChangeRetryInterval_ms=5000}," + "traceIDProvider" + "=<NoTraceIDProvider>{}," + "compression" +
+            "=NONE,checksumType=MD5,checksumCompressedValues=false,version=0," + "requiredPreviousVersion=0," +
+            "lockSeconds=0,fragmentationThreshold=10485760,}," + "defaultInvalidationOptions" +
+            "={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000," +
+            "itemTime_ms=305," + "nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," +
+            "traceIDProvider" + "=<NoTraceIDProvider>{}," + "compression=NONE,checksumType=SYSTEM," +
+            "checksumCompressedValues=false,version=0," + "requiredPreviousVersion=0,lockSeconds=0," +
+            "fragmentationThreshold=10485760,}," + "defaultGetOptions" + "={opTimeoutController" +
         "=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305," +
         "nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," + "traceIDProvider" +
-        "=<NoTraceIDProvider>{}," + "compression=NONE,checksumType=MD5,checksumCompressedValues=false,version=0," +
-        "requiredPreviousVersion=0,lockSeconds=0,fragmentationThreshold=10485760,}," + "defaultInvalidationOptions" + "={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305," + "nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," + "traceIDProvider" + "=<NoTraceIDProvider>{}," + "compression=NONE,checksumType=SYSTEM,checksumCompressedValues=false,version=0," + "requiredPreviousVersion=0,lockSeconds=0,fragmentationThreshold=10485760,}," + "defaultGetOptions" + "={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4,constantTime_ms=300000,itemTime_ms=305," + "nonKeyedOpMaxRelTimeout_ms=1500000,exclusionChangeRetryInterval_ms=5000}," + "traceIDProvider" + "=<NoTraceIDProvider>{}," + "retrievalType=VALUE,waitMode=GET,versionConstraint={min=-9223372036854775808," + "max=9223372036854775807,mode=GREATEST,maxCreationTime=9223372036854775807},nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true,returnInvalidations=false,forwardingMode=ALL,updateSecondariesOnMiss=false,}," + "defaultWaitOptions={opTimeoutController=<WaitForTimeoutController>{internalRetryIntervalSeconds=20,internalExclusionChangeRetryIntervalSeconds=2}," + "traceIDProvider=<NoTraceIDProvider>{}," + "retrievalType=VALUE,waitMode=WAIT_FOR," + "versionConstraint={min=-9223372036854775808,max=9223372036854775807,mode=GREATEST,maxCreationTime=9223372036854775807},nonExistenceResponse=NULL_VALUE,verifyChecksums=true,returnInvalidations=false," + "forwardingMode=FORWARD,updateSecondariesOnMiss=false,timeoutSeconds=2147483647,threshold=100,timeoutResponse=EXCEPTION},secondarySyncIntervalSeconds=1996,segmentSize=4096,maxValueSize=1996,allowLinks=false," + "valueRetentionPolicy=<LRURetentionPolicy>{capacityBytes=8388608,maxVersions=1},namespaceServerSideCode={url=," + "putTrigger=com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUTrigger,retrieveTrigger=com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUTrigger}}," + "parent=SteelBallRun," + "minVersion=1," + "name=" + dummyNsName;
+            "=<NoTraceIDProvider>{}," + "retrievalType=VALUE,waitMode=GET," +
+            "versionConstraint={min=-9223372036854775808," + "max=9223372036854775807,mode=GREATEST," +
+            "maxCreationTime=9223372036854775807},nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true," +
+            "returnInvalidations=false,forwardingMode=ALL,updateSecondariesOnMiss=false,}," + "defaultWaitOptions" +
+            "={opTimeoutController=<WaitForTimeoutController>{internalRetryIntervalSeconds=20," +
+            "internalExclusionChangeRetryIntervalSeconds=2}," + "traceIDProvider=<NoTraceIDProvider>{}," +
+            "retrievalType=VALUE,waitMode=WAIT_FOR," + "versionConstraint={min=-9223372036854775808," +
+            "max=9223372036854775807,mode=GREATEST,maxCreationTime=9223372036854775807}," +
+            "nonExistenceResponse=NULL_VALUE,verifyChecksums=true,returnInvalidations=false," + "forwardingMode" +
+            "=FORWARD,updateSecondariesOnMiss=false,timeoutSeconds=2147483647,threshold=100," +
+            "timeoutResponse=EXCEPTION},secondarySyncIntervalSeconds=1996,segmentSize=4096,maxValueSize=1996," +
+            "allowLinks=false," + "valueRetentionPolicy=<LRURetentionPolicy>{capacityBytes=8388608,}," +
+            "namespaceServerSideCode={url=," + "putTrigger=com.ms.silverking.cloud.dht.daemon.storage.serverside" +
+            ".LRUTrigger,retrieveTrigger=com.ms.silverking.cloud.dht.daemon.storage.serverside.LRUTrigger}}," +
+            "parent=SteelBallRun," + "minVersion=1," + "name=" + dummyNsName;
 
     NamespaceProperties parsed = NamespaceProperties.parse(possibleSKDefWithTraceIdProvider);
     String testName = "canParsePossibleSKDefWithTraceIdProvider";
@@ -175,22 +199,23 @@ public class NamespacePropertiesReflectionTest {
         "defaultInvalidationOptions={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4," +
         "constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000," +
         "exclusionChangeRetryInterval_ms=5000}," + "compression=NONE,checksumType=SYSTEM," +
-        "checksumCompressedValues=false,version=0,requiredPreviousVersion=0,lockSeconds=0," + "fragmentationThreshold" +
-        "=10485760,}," + "defaultGetOptions={opTimeoutController=<OpSizeBasedTimeoutController" + ">{maxAttempts=4," +
-        "constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000," +
+        "checksumCompressedValues=false,version=0,requiredPreviousVersion=0,lockSeconds=0," + "fragmentationThreshold"
+        + "=10485760,}," + "defaultGetOptions={opTimeoutController=<OpSizeBasedTimeoutController" + ">{maxAttempts=4,"
+        + "constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000," +
         "exclusionChangeRetryInterval_ms=5000}," + "retrievalType=VALUE,waitMode=GET," + "versionConstraint={min" +
         "=-9223372036854775808,max=9223372036854775807,mode=GREATEST," + "maxCreationTime=9223372036854775807}," +
-        "nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true," + "returnInvalidations=false,forwardingMode=ALL," +
-        "updateSecondariesOnMiss=false,}," + "defaultWaitOptions" + "={opTimeoutController=<WaitForTimeoutController" +
-        ">{internalRetryIntervalSeconds=20," + "internalExclusionChangeRetryIntervalSeconds=2},retrievalType=VALUE," +
-        "waitMode=WAIT_FOR," + "versionConstraint" + "={min=-9223372036854775808,max=9223372036854775807," +
-        "mode=GREATEST,maxCreationTime=9223372036854775807}," + "nonExistenceResponse=NULL_VALUE," +
-        "verifyChecksums=true,returnInvalidations=false," + "forwardingMode=FORWARD," + "updateSecondariesOnMiss" +
-        "=false,timeoutSeconds=2147483647,threshold=100,timeoutResponse=EXCEPTION}," + "secondarySyncIntervalSeconds" +
-        "=1996,segmentSize=4096,maxValueSize=1996,allowLinks=false," + "valueRetentionPolicy=<LRURetentionPolicy" +
-        ">{capacityBytes=8388608,maxVersions=1}," + "namespaceServerSideCode={url=," + "putTrigger=com.ms.silverking" +
-        ".cloud.dht.daemon.storage.serverside" + ".LRUTrigger,retrieveTrigger=com.ms.silverking.cloud.dht.daemon" +
-        ".storage.serverside.LRUTrigger}}," + "parent" + "=SteelBallRun," + "minVersion=1," + "name=" + dummyNsName;
+        "nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true," + "returnInvalidations=false,forwardingMode=ALL,"
+        + "updateSecondariesOnMiss=false,}," + "defaultWaitOptions" + "={opTimeoutController" +
+        "=<WaitForTimeoutController" + ">{internalRetryIntervalSeconds=20," +
+        "internalExclusionChangeRetryIntervalSeconds=2},retrievalType=VALUE," + "waitMode=WAIT_FOR," +
+        "versionConstraint" + "={min=-9223372036854775808,max=9223372036854775807," + "mode=GREATEST," +
+        "maxCreationTime=9223372036854775807}," + "nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true," +
+        "returnInvalidations=false," + "forwardingMode=FORWARD," + "updateSecondariesOnMiss" + "=false,timeoutSeconds" +
+        "=2147483647,threshold=100,timeoutResponse=EXCEPTION}," + "secondarySyncIntervalSeconds" + "=1996,segmentSize" +
+        "=4096,maxValueSize=1996,allowLinks=false," + "valueRetentionPolicy=<LRURetentionPolicy" + ">{capacityBytes" +
+        "=8388608,}," + "namespaceServerSideCode={url=," + "putTrigger=com.ms.silverking" + ".cloud.dht.daemon" +
+        ".storage.serverside" + ".LRUTrigger,retrieveTrigger=com.ms.silverking.cloud.dht.daemon" + ".storage" +
+        ".serverside.LRUTrigger}}," + "parent" + "=SteelBallRun," + "minVersion=1," + "name=" + dummyNsName;
 
     NamespaceProperties parsed = NamespaceProperties.parse(possibleSKDef);
     String testName = "canParsePossibleSkDef";
@@ -213,22 +238,23 @@ public class NamespacePropertiesReflectionTest {
         "defaultInvalidationOptions={opTimeoutController=<OpSizeBasedTimeoutController>{maxAttempts=4," +
         "constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000," +
         "exclusionChangeRetryInterval_ms=5000}," + "compression=NONE,checksumType=SYSTEM," +
-        "checksumCompressedValues=false,version=0,requiredPreviousVersion=0,lockSeconds=0," + "fragmentationThreshold" +
-        "=10485760,}," + "defaultGetOptions={opTimeoutController=<OpSizeBasedTimeoutController" + ">{maxAttempts=4," +
-        "constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000," +
+        "checksumCompressedValues=false,version=0,requiredPreviousVersion=0,lockSeconds=0," + "fragmentationThreshold"
+        + "=10485760,}," + "defaultGetOptions={opTimeoutController=<OpSizeBasedTimeoutController" + ">{maxAttempts=4,"
+        + "constantTime_ms=300000,itemTime_ms=305,nonKeyedOpMaxRelTimeout_ms=1500000," +
         "exclusionChangeRetryInterval_ms=5000}," + "retrievalType=VALUE,waitMode=GET," + "versionConstraint={min" +
         "=-9223372036854775808,max=9223372036854775807,mode=GREATEST," + "maxCreationTime=9223372036854775807}," +
-        "nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true," + "returnInvalidations=false,forwardingMode=ALL," +
-        "updateSecondariesOnMiss=false,}," + "defaultWaitOptions" + "={opTimeoutController=<WaitForTimeoutController" +
-        ">{internalRetryIntervalSeconds=20," + "internalExclusionChangeRetryIntervalSeconds=2},retrievalType=VALUE," +
-        "waitMode=WAIT_FOR," + "versionConstraint" + "={min=-9223372036854775808,max=9223372036854775807," +
-        "mode=GREATEST,maxCreationTime=9223372036854775807}," + "nonExistenceResponse=NULL_VALUE," +
-        "verifyChecksums=true,returnInvalidations=false," + "forwardingMode=FORWARD," + "updateSecondariesOnMiss" +
-        "=false,timeoutSeconds=2147483647,threshold=100,timeoutResponse=EXCEPTION}," + "secondarySyncIntervalSeconds" +
-        "=1996,segmentSize=4096,maxValueSize=1996,allowLinks=false," + "valueRetentionPolicy=<LRURetentionPolicy" +
-        ">{capacityBytes=8388608,maxVersions=1}," + "namespaceServerSideCode={url=," + "putTrigger=com.ms.silverking" +
-        ".cloud.dht.daemon.storage.serverside" + ".LRUTrigger,retrieveTrigger=com.ms.silverking.cloud.dht.daemon" +
-        ".storage.serverside.LRUTrigger}}," + "parent" + "=SteelBallRun," + "minVersion=1";
+        "nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true," + "returnInvalidations=false,forwardingMode=ALL,"
+        + "updateSecondariesOnMiss=false,}," + "defaultWaitOptions" + "={opTimeoutController" +
+        "=<WaitForTimeoutController" + ">{internalRetryIntervalSeconds=20," +
+        "internalExclusionChangeRetryIntervalSeconds=2},retrievalType=VALUE," + "waitMode=WAIT_FOR," +
+        "versionConstraint" + "={min=-9223372036854775808,max=9223372036854775807," + "mode=GREATEST," +
+        "maxCreationTime=9223372036854775807}," + "nonExistenceResponse=NULL_VALUE," + "verifyChecksums=true," +
+        "returnInvalidations=false," + "forwardingMode=FORWARD," + "updateSecondariesOnMiss" + "=false,timeoutSeconds" +
+        "=2147483647,threshold=100,timeoutResponse=EXCEPTION}," + "secondarySyncIntervalSeconds" + "=1996,segmentSize" +
+        "=4096,maxValueSize=1996,allowLinks=false," + "valueRetentionPolicy=<LRURetentionPolicy" + ">{capacityBytes" +
+        "=8388608,}," + "namespaceServerSideCode={url=," + "putTrigger=com.ms.silverking" + ".cloud.dht.daemon" +
+        ".storage.serverside" + ".LRUTrigger,retrieveTrigger=com.ms.silverking.cloud.dht.daemon" + ".storage" +
+        ".serverside.LRUTrigger}}," + "parent" + "=SteelBallRun," + "minVersion=1";
 
     NamespaceProperties parsed = NamespaceProperties.parse(legacySKDef);
     String testName = "canParseLegacySkDef";

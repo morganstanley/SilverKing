@@ -15,6 +15,10 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.zookeeper.KeeperException;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+
 import com.google.common.collect.ImmutableList;
 import com.ms.silverking.cloud.dht.client.OperationException;
 import com.ms.silverking.cloud.dht.daemon.storage.convergence.management.CentralConvergenceController;
@@ -29,8 +33,8 @@ import com.ms.silverking.cloud.dht.meta.DHTRingCurTargetZK;
 import com.ms.silverking.cloud.toporing.meta.MetaClient;
 import com.ms.silverking.cloud.toporing.meta.MetaPaths;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
 import com.ms.silverking.io.FileUtil;
@@ -41,16 +45,15 @@ import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.time.SimpleStopwatch;
 import com.ms.silverking.time.Stopwatch;
 import com.ms.silverking.time.Stopwatch.State;
+
 import jline.console.ConsoleReader;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
 
 /**
  * SilverKing administrative shell. This implementation is a sketch for a future, more powerful shell.
  */
 public class SKAdminShell {
   private final SKGridConfiguration gc;
-  private final SilverKingZooKeeperClient zk;
+  private final ZooKeeperExtended zk;
   private final ZooKeeperConfig zkConfig;
   private final BufferedReader in;
   private final PrintStream out;
@@ -78,7 +81,7 @@ public class SKAdminShell {
       throws NotBoundException, KeeperException, IOException {
     this.gc = gc;
     zkConfig = gc.getClientDHTConfiguration().getZKConfig();
-    zk = new SilverKingZooKeeperClient(zkConfig, zkTimeout);
+    zk = new ZooKeeperExtended(zkConfig, zkTimeout, null);
     this.in = new BufferedReader(new InputStreamReader(in));
     this.out = out;
     this.err = err;

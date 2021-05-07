@@ -1,8 +1,7 @@
 package com.ms.silverking.cloud.dht;
 
 import static com.ms.silverking.cloud.dht.TestUtil.getImplementationType;
-import static com.ms.silverking.cloud.dht.TestUtil.getInitialState;
-import static com.ms.silverking.cloud.dht.ValueRetentionPolicy.ImplementationType.RetainAll;
+import static com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl.ImplementationType.RetainAll;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.test_Equals;
 import static com.ms.silverking.testing.AssertFunction.test_Getters;
@@ -20,17 +19,17 @@ public class PermanentRetentionPolicyTest {
 
   @Test
   public void testGetters() {
-    Object[][] testCases = { { RetainAll, getImplementationType(defaultPolicy) }, { null, getInitialState(
-        defaultPolicy) }, };
+    Object[][] testCases = { { RetainAll, getImplementationType(defaultPolicy) },
+        { ValueRetentionState.EMPTY, new PermanentRetentionPolicyImpl().createInitialState() }, };
 
     test_Getters(testCases);
   }
 
   @Test
   public void testRetains() {
-    Object[][] testCases = { { defaultPolicy, null, 0L, 0L, false, new InvalidatedRetentionState(), 0L, true },
-        { defaultPolicy, null, 0L, 0L, true, new InvalidatedRetentionState(), 0L, true },
-        { defaultPolicy, null, -1L, -1L, true, new InvalidatedRetentionState(), -1L, true }, };
+    Object[][] testCases = { { defaultPolicy, null, 0L, 0L, false, ValueRetentionState.EMPTY, 0L, true },
+        { defaultPolicy, null, 0L, 0L, true, ValueRetentionState.EMPTY, 0L, true },
+        { defaultPolicy, null, -1L, -1L, true, ValueRetentionState.EMPTY, -1L, true }, };
 
     TestUtil.checkRetains(testCases);
   }

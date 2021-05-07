@@ -8,14 +8,17 @@ import java.util.Set;
 import com.google.common.io.Files;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
+import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.InternalRetrievalOptions;
 import com.ms.silverking.cloud.dht.common.KeyUtil;
+import com.ms.silverking.cloud.dht.common.RawRetrievalResult;
 import com.ms.silverking.cloud.dht.common.SegmentIndexLocation;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.cloud.dht.common.SimpleValueCreator;
 import com.ms.silverking.cloud.dht.daemon.storage.fsm.FileSegmentStorageFormat;
+import com.ms.silverking.io.util.BufferUtil;
 import com.ms.silverking.text.StringUtil;
 import org.junit.Test;
 
@@ -114,6 +117,21 @@ public class FileSegmentTest {
         new FileSegmentStorageFormat(2));
   }
 
+  @Test
+  public void test3() {
+    int segmentNumber;
+    int dataSegmentSize;
+    int numKeys;
+    int valuesPerKey;
+
+    segmentNumber = 1;
+    dataSegmentSize = 65536;
+    numKeys = 512;
+    valuesPerKey = 1;
+    _test(segmentNumber, "3", EnumSet.of(SegmentTest.Write, SegmentTest.Read), numKeys, dataSegmentSize, valuesPerKey,
+        new FileSegmentStorageFormat(3));
+  }
+
   private void _test(int segmentNumber, String id, Set<SegmentTest> tests, int numKeys, int dataSegmentSize,
       int valuesPerKey, FileSegmentStorageFormat storageFormat) {
     try {
@@ -125,6 +143,7 @@ public class FileSegmentTest {
       _nsOptions = nsOptions.storageFormat(storageFormat.toString());
       System.out.printf("\n\ntest %s\n", id);
       fs = FileSegment.create(nsDir, segmentNumber, dataSegmentSize, FileSegment.SyncMode.NoSync, _nsOptions);
+      System.out.printf("_nsOptions.getStorageFormat()\n", _nsOptions.getStorageFormat());
 
       keys = new DHTKey[numKeys];
       for (int i = 0; i < numKeys; i++) {
@@ -140,12 +159,16 @@ public class FileSegmentTest {
           for (int j = 0; j < valuesPerKey; j++) {
             byte[] value;
             byte[] userData;
+            SegmentStorageResult  segmentStorageResult;
 
             value = String.format("[VALUE %d.%d]", i, j).getBytes();
             storageParams = getStorageParameters(value);
             userData = new byte[0];
             System.out.printf("%s -> %s\n", key, new String(value));
-            fs.put(key, ByteBuffer.wrap(value), storageParams, userData, _nsOptions);
+            segmentStorageResult = fs.put(key, ByteBuffer.wrap(value), storageParams, userData, _nsOptions);
+            if (segmentStorageResult != SegmentStorageResult.stored) {
+              throw new RuntimeException(segmentStorageResult.toString());
+            }
           }
         }
         fs.persist();
@@ -158,10 +181,16 @@ public class FileSegmentTest {
         for (DHTKey key : keys) {
           InternalRetrievalOptions iro;
           ByteBuffer result;
+          byte[]    _result;
+          RawRetrievalResult  rr;
 
           iro = getRetrievalOptions();
           result = fs.retrieve(key, iro);
-          System.out.printf("%s => %s\n", KeyUtil.keyToString(key), StringUtil.byteBufferToString(result));
+          rr = new RawRetrievalResult(RetrievalType.VALUE_AND_META_DATA);
+          _result = new byte[result.remaining()];
+          result.get(_result);
+          rr.setStoredValue(ByteBuffer.wrap(_result), false, false, null);
+          System.out.printf("%s => %s\n", KeyUtil.keyToString(key), new String(BufferUtil.arrayCopy(rr.getValue())));
         }
         fs.close();
       }

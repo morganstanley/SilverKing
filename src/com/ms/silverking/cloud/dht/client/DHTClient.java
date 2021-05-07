@@ -23,7 +23,7 @@ import com.ms.silverking.cloud.dht.meta.StaticDHTCreator;
 import com.ms.silverking.cloud.dht.net.IPAliasMap;
 import com.ms.silverking.cloud.dht.net.IPAliasingUtil;
 import com.ms.silverking.cloud.toporing.TopoRingConstants;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;

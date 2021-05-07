@@ -36,7 +36,7 @@ import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.toporing.meta.RingChangeListener;
 import com.ms.silverking.cloud.toporing.meta.RingConfigWatcher;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.collection.Quadruple;

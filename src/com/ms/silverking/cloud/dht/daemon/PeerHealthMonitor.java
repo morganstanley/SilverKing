@@ -12,7 +12,7 @@ import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.cloud.dht.meta.MetaClient;
 import com.ms.silverking.cloud.dht.meta.SuspectsZK;
 import com.ms.silverking.cloud.dht.net.IPAliasMap;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;

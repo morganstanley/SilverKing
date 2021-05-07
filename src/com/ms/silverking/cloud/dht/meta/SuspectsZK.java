@@ -6,18 +6,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.net.IPAndPort;
-import org.apache.zookeeper.CreateMode;
 
 /**
  * Used to track nodes that are suspected of being bad. Each node in an instance may accuse other
@@ -67,7 +69,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
     String basePath;
     List<String> accusers;
     SetMultimap<String, String> accuserSuspectsMap;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     basePath = mc.getMetaPaths().getInstanceSuspectsPath();
     _zk = mc.getZooKeeper();
@@ -98,7 +100,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
     String basePath;
     List<IPAndPort> accusers;
     SetMultimap<IPAndPort, IPAndPort> accuserSuspectsMap;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     if (debug) {
       Log.warning("in readAccuserSuspectsFromZK()");
@@ -124,7 +126,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
 
   public Set<IPAndPort> readActiveNodesFromZK() throws KeeperException {
     String basePath;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     basePath = mc.getMetaPaths().getInstanceSuspectsPath();
     _zk = mc.getZooKeeper();
@@ -133,7 +135,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
 
   public void writeSuspectsToZK(IPAndPort accuser, Set<IPAndPort> suspects) throws IOException, KeeperException {
     String basePath;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
     String path;
 
     basePath = mc.getMetaPaths().getInstanceSuspectsPath();
@@ -148,7 +150,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
 
   public void clearAllZK() throws IOException, KeeperException {
     String basePath;
-    SilverKingZooKeeperClient _zk;
+    ZooKeeperExtended _zk;
 
     basePath = mc.getMetaPaths().getInstanceSuspectsPath();
     _zk = mc.getZooKeeper();
@@ -161,7 +163,7 @@ public class SuspectsZK extends MetaToolModuleBase<SetMultimap<String, String>, 
     return _readSuspectsFromZK(mc.getZooKeeper(), accuser);
   }
 
-  private Set<IPAndPort> _readSuspectsFromZK(SilverKingZooKeeperClient _zk, IPAndPort accuser) {
+  private Set<IPAndPort> _readSuspectsFromZK(ZooKeeperExtended _zk, IPAndPort accuser) {
     Set<IPAndPort> suspects;
     String suspectsDef;
     String basePath;

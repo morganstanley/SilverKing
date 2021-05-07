@@ -27,8 +27,6 @@ public class InvalidationOptions extends PutOptions {
   private InvalidationOptions() {
     this(standardTimeoutController,
          DHTConstants.noSecondaryTargets,
-         DHTConstants.defaultTraceIDProvider,
-         AllReplicasExcludedResponse.defaultResponse,
          PutOptions.defaultVersion,
          PutOptions.noVersionRequired,
          PutOptions.noLock);
@@ -115,21 +113,18 @@ public class InvalidationOptions extends PutOptions {
    * @param opTimeoutController opTimeoutController for the operation
    * @param secondaryTargets    constrains queried secondary replicas
    *                            to operation solely on the node that receives this operation
-   * @param allReplicasExcludedResponse TODO
    * @param version             version of this object
    * @param lockSeconds         seconds to lock this key
    */
   public InvalidationOptions(OpTimeoutController opTimeoutController,
                              Set<SecondaryTarget> secondaryTargets,
-                             TraceIDProvider traceIDProvider,
-                             AllReplicasExcludedResponse allReplicasExcludedResponse,
                              long version,
                              long requiredPreviousVersion,
                              short lockSeconds) {
     super(opTimeoutController,
           secondaryTargets,
-          traceIDProvider,
-          allReplicasExcludedResponse,
+          DHTConstants.defaultTraceIDProvider,
+          AllReplicasExcludedResponse.defaultResponse,
           Compression.NONE,
           ChecksumType.SYSTEM,
           false,

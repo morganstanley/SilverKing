@@ -10,7 +10,7 @@ import com.ms.silverking.cloud.management.MetaToolModuleBase;
 import com.ms.silverking.cloud.management.MetaToolOptions;
 import com.ms.silverking.cloud.meta.MetaClientBase;
 import com.ms.silverking.cloud.toporing.meta.MetaPaths;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.CreateMode;
 
 public class StoragePolicyZK extends MetaToolModuleBase<StoragePolicyGroup, MetaPaths> {

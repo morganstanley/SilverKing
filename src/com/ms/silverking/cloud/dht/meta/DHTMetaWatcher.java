@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.apache.zookeeper.KeeperException;
+
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.meta.VersionListener;
 import com.ms.silverking.cloud.meta.VersionWatcher;
@@ -17,8 +19,7 @@ import com.ms.silverking.cloud.toporing.meta.RingConfigWatcher;
 import com.ms.silverking.cloud.toporing.meta.RingConfiguration;
 import com.ms.silverking.cloud.toporing.meta.RingConfigurationZK;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient;
-import com.ms.silverking.cloud.zookeeper.SilverKingZooKeeperClient.KeeperException;
+import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
@@ -155,7 +156,7 @@ public class DHTMetaWatcher implements VersionListener, RingChangeListener {
     int readAttemptIndex;
     int ringReadAttempts = 20;
     int ringReadRetryInvervalSeconds = 2;
-    SilverKingZooKeeperClient zk;
+    ZooKeeperExtended zk;
 
     //cloudMC = new com.ms.silverking.cloud.meta.MetaClient(ringConfig.getCloudConfiguration(),
     //                                                      zkConfig);
