@@ -447,7 +447,8 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
   public <T extends ValueRetentionState>
     Quintuple<CompactionCheckResult, Set<Integer>, Set<Integer>, Set<DHTKey>, Boolean> singleReverseSegmentWalk(
       KeyLevelValueRetentionPolicyImpl<T> vrp, T valueRetentionState, long curTimeNanos, NodeRingMaster2 ringMaster,
-      Set<DHTKey> invalidatedAndCompactedKeys) {
+      Set<DHTKey> invalidatedAndCompactedKeys,
+      boolean returnStoredLength) {
     int numRetained;
     int numDiscarded;
     Set<Integer> retainedOffsets;
@@ -496,7 +497,11 @@ abstract class WritableSegmentBase extends AbstractSegment implements ReadableWr
         creationTime = offsetVersionAndCreationTime.getV3();
         entryKey = entry.getKey();
 
+        if (returnStoredLength || vrp.considersStoredLength()) {
         storedLength = getStoredLength(offset);
+        } else {
+          storedLength = 0;
+        }
 
         if (vrp.considersStoredLength()) {
           consideredLength = storedLength;

@@ -3489,7 +3489,9 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           Stopwatch sw;
           KeyLevelValueRetentionPolicyImpl segment_klvrp;
           ValueRetentionState segment_vrs;
+          boolean crossSegmentCompactionEnabled;
 
+          crossSegmentCompactionEnabled = true;
           sw = new SimpleStopwatch();
 
           // Determine the ValueRetentionPolicy and ValueRetentionState for key-level retention within a segment.
@@ -3541,6 +3543,10 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
                 FileSegmentLoadMode fileSegmentLoadMode;
 
                 fileSegmentStorageFormat = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat());
+                if (!fileSegmentStorageFormat.lengthsAreIndexed()) {
+                  // cross segment compaction can only be efficiently implemented when lengths are indexed
+                  crossSegmentCompactionEnabled = false;
+                }
                 fileSegmentLoadMode =
                     ((segment_klvrp.considersStoredLength() && !fileSegmentStorageFormat.lengthsAreIndexed()) || (segment_klvrp.considersInvalidations() && !fileSegmentStorageFormat.invalidationsAreIndexed())) || forceDataSegmentLoadOnReap ?
                     FileSegmentLoadMode.ReadOnly :
@@ -3558,7 +3564,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           Log.fine("segment.singleReverseSegmentWalk %d", i);
 
           result = segment.singleReverseSegmentWalk(segment_klvrp, segment_vrs, curTimeNanos, ringMaster,
-              reapImplState.invalidatedKeys);
+              reapImplState.invalidatedKeys, crossSegmentCompactionEnabled);
 
           if (i == headSegment.getSegmentNumber()) {
             if (verboseReap || verboseReapLogInfo) {
@@ -3580,6 +3586,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
 
             subsequentCanCompactIntoThisSegment =
                 isKeyLevelReap // don't compact across segments for segment-level reap
+                && crossSegmentCompactionEnabled
                 && ccr.getRetainedBytes() > 0 // present segment isn't deleted
                 && reapImplState.getLastSegmentRetainedBytes() > 0 // subsequent segment has retained bytes
                 && (reapImplState.getLastSegmentRetainedBytes() + ccr.getRetainedBytes() + SegmentFormat.headerSize < nsOptions.getSegmentSize()); // and it can fit
