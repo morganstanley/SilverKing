@@ -24,6 +24,27 @@ import com.google.common.io.Files;
 import com.ms.silverking.log.Log;
 
 public class FileUtil {
+  private static final String defaultTempFileSuffix = ".tmp";
+  
+  public static void writeToFileViaTemp(File file, byte[] value) throws IOException {
+    File tempFile;
+    
+    tempFile = new File(file.getPath() + defaultTempFileSuffix);
+    writeToFileViaTemp(file, tempFile, value);
+  }
+  
+  public static void writeToFileViaTemp(File file, File tempFile, byte[] value) throws IOException {
+    FileOutputStream out;
+
+    out = new FileOutputStream(tempFile);
+    try {
+      out.write(value);
+    } finally {
+      out.close();
+    }
+    tempFile.renameTo(file);
+  }
+  
   public static void writeToFile(File file, byte[] value) throws IOException {
     FileOutputStream out;
 

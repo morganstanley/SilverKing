@@ -393,7 +393,7 @@ public abstract class BaseDirectoryInMemorySS extends DirectoryInMemory {
     if (Log.levelMet(Level.INFO)) {
       Log.infof("persisting %s", fileForVersion(sp));
     }
-    FileUtil.writeToFile(fileForVersion(sp), serializedDirData);
+    FileUtil.writeToFileViaTemp(fileForVersion(sp), serializedDirData);
   }
 
   Pair<SSStorageParameters, byte[]> readFromDisk(long version) throws IOException {
