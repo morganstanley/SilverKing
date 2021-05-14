@@ -3491,7 +3491,9 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
           ValueRetentionState segment_vrs;
           boolean crossSegmentCompactionEnabled;
 
-          crossSegmentCompactionEnabled = true;
+          // cross segment compaction can only be efficiently implemented when lengths are indexed
+          crossSegmentCompactionEnabled = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat()).lengthsAreIndexed();
+          
           sw = new SimpleStopwatch();
 
           // Determine the ValueRetentionPolicy and ValueRetentionState for key-level retention within a segment.
@@ -3543,10 +3545,6 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
                 FileSegmentLoadMode fileSegmentLoadMode;
 
                 fileSegmentStorageFormat = FileSegmentStorageFormat.parse(nsOptions.getStorageFormat());
-                if (!fileSegmentStorageFormat.lengthsAreIndexed()) {
-                  // cross segment compaction can only be efficiently implemented when lengths are indexed
-                  crossSegmentCompactionEnabled = false;
-                }
                 fileSegmentLoadMode =
                     ((segment_klvrp.considersStoredLength() && !fileSegmentStorageFormat.lengthsAreIndexed()) || (segment_klvrp.considersInvalidations() && !fileSegmentStorageFormat.invalidationsAreIndexed())) || forceDataSegmentLoadOnReap ?
                     FileSegmentLoadMode.ReadOnly :
