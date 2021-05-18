@@ -308,6 +308,7 @@ public class SKAdmin {
     for (String hostGroupName : hostGroupNames) {
       candidateServers.addAll(hostGroupTable.getHostAddresses(hostGroupName));
     }
+    Log.warning("candidateServers: ", CollectionUtil.toString(candidateServers));
 
     // FIXME - think about below
     // do we want to run on all servers or not?
@@ -1143,7 +1144,9 @@ public class SKAdmin {
     // FUTURE - Do more validation of configuration. E.g. prevent a server from being both
     // active and passive, the ring from containing servers without class vars, etc.
 
+    Log.warning("activeHostGroupNames: ", CollectionUtil.toString(activeHostGroupNames));
     validActiveServers = findValidActiveServers(activeHostGroupNames, hostGroupTable, ringTree);
+    Log.warning("validActiveServers (candidate 1): ", CollectionUtil.toString(validActiveServers));
     validActiveServers = retainOnlySpecifiedAndNonExcludedServers(validActiveServers, targetServers, hostGroupTable);
     verifyServerEligibility(validActiveServers, commands);
     Log.warning("validActiveServers: ", CollectionUtil.toString(validActiveServers));

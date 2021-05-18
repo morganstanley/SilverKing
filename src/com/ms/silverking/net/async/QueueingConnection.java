@@ -340,7 +340,7 @@ public abstract class QueueingConnection<D extends OutgoingData, I extends Incom
         throw re;
       }
       if (debug) {
-        Log.fine("readResult: ", readResult);
+        Log.warning("readResult: ", readResult);
       }
       switch (readResult) {
       case CHANNEL_CLOSED:

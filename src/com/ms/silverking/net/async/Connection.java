@@ -588,7 +588,7 @@ public abstract class Connection implements ChannelRegistrationWorker, Comparabl
   //////////////////////////////////////////////////////////////////////
 
   public String toString() {
-    return "Connection:" + remoteSocketAddress + " " + channel.socket().getLocalPort();
+    return "Connection: remote[" + remoteSocketAddress + "] local[" + channel.socket().getLocalPort() +"]";
   }
 
   public String debugString() {

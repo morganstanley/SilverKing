@@ -82,7 +82,8 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
   private final ConcurrentMap<Long, NamespaceStore> namespaces;
   private final ConcurrentMap<Long, NamespaceMetricsNamespaceStore> nsMetricsNamespaces;
   private final File baseDir;
-  private final NamespaceMetaStore nsMetaStore;
+  private final ClientDHTConfiguration clientDHTConfiguration;
+  private NamespaceMetaStore nsMetaStore;
   private MessageGroupBase mgBase;
   private StoragePolicyGroup spGroup;
   private ConcurrentMap<UUIDBase, ActiveProxyRetrieval> activeRetrievals;
@@ -132,13 +133,9 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
   // think about renaming ValueStore if we don't have a different
   // ValueStore class after implementing all of Persistence.doc ideas
 
-  private enum NSCreationMode {CreateIfAbsent, DoNotCreate}
+  private enum NSCreationMode {CreateIfAbsent, DoNotCreate};
 
-  ;
-
-  public enum RetrievalImplementation {Ungrouped, Grouped}
-
-  ;
+  public enum RetrievalImplementation {Ungrouped, Grouped};
 
   private static final Set<Long> dynamicNamespaces = new ConcurrentSkipListSet<>();
   private static final Set<Long> baseNamespaces = new ConcurrentSkipListSet<>();
@@ -161,7 +158,6 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
 
   public StorageModule(NodeRingMaster2 ringMaster, String dhtName, Timer timer, ZooKeeperConfig zkConfig,
       NodeInfoZK nodeInfoZK, ReapPolicy reapPolicy, JVMMonitor jvmMonitor, boolean enableMsgGroupTrace) {
-    ClientDHTConfiguration clientDHTConfiguration;
 
     Constraint.ensureNotNull(ringMaster);
     Constraint.ensureNotNull(dhtName);
@@ -187,7 +183,7 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     //        double directory name in path
     this.trashManualDir = new File(baseDir, trashManualDirName);
     clientDHTConfiguration = new ClientDHTConfiguration(dhtName, zkConfig);
-    nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);
+    nsMetaStore = NamespaceMetaStore.createForRecovery(clientDHTConfiguration);
     //spGroup = createTestPolicy();
     spGroup = null;
     myOriginatorID = SimpleValueCreator.forLocalProcess();
@@ -312,6 +308,10 @@ public class StorageModule implements LinkCreationListener, ManagedStorageModule
     ensureMetaNamespaceStoreExists();
   }
 
+  public void communicationEnabled() {
+    nsMetaStore = NamespaceMetaStore.create(clientDHTConfiguration);    
+  }
+  
   private void createMetaNSStore() {
     long metaNS;
 

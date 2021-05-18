@@ -27,6 +27,7 @@ class JavaLogDest implements LogDest {
   }
 
   JavaLogDest() {
+    /*
     err = System.err;
     out = System.out;
 
@@ -34,6 +35,15 @@ class JavaLogDest implements LogDest {
     logger.setUseParentHandlers(false);
     formatter = new SingleLineFormatter();
     handler = createHandler(out, formatter);
+    logger.addHandler(handler);
+    */
+    err = System.err;
+    out = System.out;
+
+    logger = Logger.getLogger("com.ms.silverking");
+    logger.setUseParentHandlers(false);
+    formatter = new SingleLineFormatter();
+    handler = new StreamHandler(out, formatter);
     logger.addHandler(handler);
   }
 

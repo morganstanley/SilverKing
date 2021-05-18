@@ -34,12 +34,14 @@ public class NamespaceMetaStore {
       SessionOptions.getDefaultTimeoutController().getMaxRelativeTimeoutMillis(
       null);
 
-  public enum NamespaceOptionsRetrievalMode {FetchRemotely, LocalCheckOnly}
+  public enum NamespaceOptionsRetrievalMode {FetchRemotely, LocalCheckOnly};
 
-  ;
+  private static final boolean debug = false;
 
-  private static final boolean debug = true;
-
+  /**
+   * @param session if null, then we must be in recovery; otherwise, consult the dhtConfig for the implementation
+   * @param dhtConfigProvider
+   */
   public NamespaceMetaStore(DHTSession session, ClientDHTConfigurationProvider dhtConfigProvider) {
     this.session = session;
     try {
@@ -49,15 +51,19 @@ public class NamespaceMetaStore {
       ActiveClientOperationTable.disableFinalization();
       nsOptionsMode = new MetaClient(
           dhtConfigProvider.getClientDHTConfiguration()).getDHTConfiguration().getNamespaceOptionsMode();
-      switch (nsOptionsMode) {
-      case ZooKeeper:
-        nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfigProvider);
-        break;
-      case MetaNamespace:
-        nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
-        break;
-      default:
-        throw new RuntimeException("Unhandled nsOptionsMode: " + nsOptionsMode);
+      if (session != null) {
+        switch (nsOptionsMode) {
+        case ZooKeeper:
+          nsOptionsClient = new NamespaceOptionsClientZKImpl(dhtConfigProvider);
+          break;
+        case MetaNamespace:
+          nsOptionsClient = new NamespaceOptionsClientNSPImpl(session, dhtConfigProvider);
+          break;
+        default:
+          throw new RuntimeException("Unhandled nsOptionsMode: " + nsOptionsMode);
+        }
+      } else {
+        nsOptionsClient = new NamespaceOptionsClientPropertiesImpl(dhtConfigProvider);
       }
       nsPropertiesMap = new ConcurrentHashMap<>();
       dhtConfig = dhtConfigProvider.getClientDHTConfiguration();
@@ -79,6 +85,14 @@ public class NamespaceMetaStore {
     }
   }
 
+  public static NamespaceMetaStore createForRecovery(ClientDHTConfigurationProvider dhtConfigProvider) {
+    try {
+      return new NamespaceMetaStore(null, dhtConfigProvider);
+    } catch (Exception e) {
+      throw new RuntimeException("Unexpected exception", e);
+    }
+  }
+  
   public NamespaceProperties getNsPropertiesForRecovery(File nsDir) throws IOException {
     long nsContext;
 

@@ -14,7 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
+
+import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -70,13 +73,9 @@ import com.ms.silverking.cloud.dht.trace.TracerFactory;
 import com.ms.silverking.cloud.ring.RingRegion;
 import com.ms.silverking.cloud.skfs.dir.DirectoryBase;
 import com.ms.silverking.cloud.toporing.PrimarySecondaryIPListPair;
-import org.apache.zookeeper.KeeperException;
 import com.ms.silverking.collection.CollectionUtil;
 import com.ms.silverking.collection.Triple;
 import com.ms.silverking.id.UUIDBase;
-import com.ms.silverking.log.Log;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
 import com.ms.silverking.net.IPAddrUtil;
 import com.ms.silverking.net.IPAndPort;
 import com.ms.silverking.net.async.AddressStatusProvider;

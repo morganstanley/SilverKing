@@ -292,6 +292,7 @@ public class DHTNode {
           inactiveNodeTimeoutSeconds);
       daemonStateZK.setState(DaemonState.PRIMING);
       msgModule.start();
+      storage.communicationEnabled();
       cleanVM();
       daemonStateZK.setState(DaemonState.INITIAL_REAP);
       storage.startupReap();

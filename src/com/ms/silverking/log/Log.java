@@ -45,6 +45,7 @@ public final class Log {
   private static final String propertyBase = "com.ms.silverking.";
   private static final String logDestProperty = propertyBase + "LogDest";
   private static final String logLevelProperty = propertyBase + "Log";
+  private static final String logThreadNamesProperty = propertyBase + "LogThreadNames";
 
   private static final String logAlertLevelEnvVar = "SK_LOG_ALERT_LEVEL";
   private static final String logAlertReceiverEnvVar = "SK_LOG_ALERT_RECEIVER";
@@ -53,6 +54,9 @@ public final class Log {
   private static final String logAlertDataEnvVar = "SK_LOG_ALERT_DATA";
   private static final String defaultLogAlertContext = "SilverKing";
 
+  private static final boolean logThreadNamesDefault = false;
+  private static final boolean logThreadNames;
+  
   static {
     String val;
     String logLevel;
@@ -101,6 +105,8 @@ public final class Log {
     } else {
       Log.info("No log AlertReceiver");
     }
+    
+    logThreadNames = PropertiesHelper.systemHelper.getBoolean(logThreadNamesProperty, logThreadNamesDefault);
 
     log(Level.FINE, "Logging initialized." + logDest.getClass().getName());
 
@@ -180,7 +186,11 @@ public final class Log {
     if (alertReceiver != null && level.intValue() >= alertLevel) {
       alertReceiver.sendAlert(new Alert(alertContext, level.intValue(), alertKey != null ? alertKey : m, m, alertData));
     }
-    logDest.log(level, m);
+    if (logThreadNames) {
+      logDest.log(level, Thread.currentThread().getName() + " "+ m);
+    } else {
+      logDest.log(level, m);
+    }
   }
 
   public static void warning(String m, Object o) {
@@ -454,7 +464,7 @@ public final class Log {
 
   public static void dumpStack() {
     try {
-      throw new RuntimeException("stacktrace");
+      throw new RuntimeException("stacktrace "+ Thread.currentThread().getName());
     } catch (RuntimeException re) {
       logErrorWarning(re);
     }
