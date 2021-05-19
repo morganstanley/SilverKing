@@ -6,18 +6,22 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.zookeeper.KeeperException;
-
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperConfig;
 import com.ms.silverking.cloud.zookeeper.ZooKeeperExtended;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.thread.ThreadUtil;
 import com.ms.silverking.util.PropertiesHelper;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.OperationTimeoutException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper.States;
 
-public class MetaClientCore {
+public class MetaClientCore implements Watcher {
   protected final ZooKeeperConfig zkConfig;
   private ZooKeeperExtended zk; //only used if not shareZK
+  private final Watcher watcher;
 
   private static final int sessionTimeout;
 
@@ -44,6 +48,12 @@ public class MetaClientCore {
       zkMap = null;
       lockMap = null;
     }
+  }
+
+  public MetaClientCore(ZooKeeperConfig zkConfig, Watcher watcher) throws IOException, KeeperException {
+    this.watcher = watcher;
+    this.zkConfig = zkConfig;
+    setZK(zkConfig);
   }
 
   private Lock acquireLockIfShared(ZooKeeperConfig zkConfig) {
@@ -81,7 +91,7 @@ public class MetaClientCore {
       }
       if (_zk == null) {
         Log.info(String.format("Getting ZooKeeperExtended for %s\n", zkConfig));
-          zk = new ZooKeeperExtended(zkConfig, sessionTimeout, null);
+        zk = ZooKeeperExtended.getZooKeeperWithRetries(zkConfig, sessionTimeout, this, connectAttempts);
         Log.info(String.format("Done getting ZooKeeperExtended for %s\n", zkConfig));
         if (shareZK) {
           zkMap.putIfAbsent(zkConfig, zk);
@@ -95,8 +105,7 @@ public class MetaClientCore {
   }
 
   public MetaClientCore(ZooKeeperConfig zkConfig) throws IOException, KeeperException {
-    this.zkConfig = zkConfig;
-    setZK(zkConfig);
+    this(zkConfig, null);
   }
 
   public ZooKeeperExtended _getZooKeeper() {
@@ -123,7 +132,7 @@ public class MetaClientCore {
           ++attemptIndex;
         } else {
           Log.warning("getZooKeeper() failed after " + (attemptIndex + 1) + " attempts");
-          //throw KeeperException.forMethod("getZooKeeper", new OperationTimeoutException());
+          throw new OperationTimeoutException();
         }
       }
     }
@@ -132,6 +141,63 @@ public class MetaClientCore {
 
   public ZooKeeperExtended getZooKeeper() throws KeeperException {
     return getZooKeeper(defaultGetZKMaxAttempts, defaultGetZKSleepUnit);
+  }
+
+  private void handleSessionExpiration() {
+    Lock lock;
+
+    lock = acquireLockIfShared(zkConfig);
+
+    try {
+      boolean established;
+
+      established = false;
+      while (!established) {
+        ZooKeeperExtended _zk;
+
+        ThreadUtil.sleepSeconds(connectionLossSleepSeconds);
+        _zk = zkMap.get(zkConfig);
+        if (_zk != null && _zk.getState() != States.CLOSED) {
+          established = true;
+        } else {
+          zkMap.remove(zkConfig);
+          try {
+            Log.warning(String.format("Attempting to reestablish session %s\n", zkConfig));
+            zk = ZooKeeperExtended.getZooKeeperWithRetries(zkConfig, sessionTimeout, this, connectAttempts);
+            Log.warning(String.format("Session restablished %s\n", zkConfig));
+            established = true;
+            if (shareZK) {
+              zkMap.put(zkConfig, zk);
+            }
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    } finally {
+      releaseLockIfShared(lock);
+    }
+  }
+
+  @Override
+  public void process(WatchedEvent event) {
+    ZooKeeperExtended _zk;
+
+    boolean stateChanged = event.getPath() == null;
+    if (stateChanged)
+      Log.warning("zookeeper state changed to: " + event.getState());
+
+    _zk = _getZooKeeper();
+    if ((_zk == null && event.getState() != Event.KeeperState.SyncConnected) || (_zk != null && _zk.getState() == States.CLOSED)) {
+      handleSessionExpiration();
+    }
+    //Log.warning(event.toString());
+    synchronized (this) {
+      this.notifyAll();
+    }
+    if (watcher != null) {
+      watcher.process(event);
+    }
   }
 
   public void closeZkExtendeed() {

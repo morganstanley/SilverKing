@@ -91,10 +91,14 @@ class JavaLogDest implements LogDest {
   }
 
   private StreamHandler createHandler(final OutputStream out, final Formatter formatter) {
+    /*
+     * breaks SK tooling; must test before using
     if (out == System.out || out == System.err)
       return new NonClosingStreamHandler(out, formatter);
     else
       return new StreamHandler(out, formatter);
+    */
+    return new StreamHandler(out, formatter);
   }
 
   @Override

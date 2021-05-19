@@ -54,6 +54,7 @@ public class DependencyWatcher implements VersionListener {
   private final boolean ignoreSource;
   private final Set<String> updatesReceived;
   private final boolean exitAfterBuild;
+  private final boolean dryRun;
   private final SKGridConfiguration gridConfig;
   private Map<String, Long> lastBuild;
   private final BlockingQueue<Map<String, Long>> buildQueue;
@@ -75,6 +76,7 @@ public class DependencyWatcher implements VersionListener {
     this.options = options;
     this.gridConfig = gridConfig;
     exitAfterBuild = options.exitAfterBuild;
+    dryRun = options.dryRun;
     intervalMillis = options.watchIntervalSeconds * 1000;
     this.ignoreFeasibility = options.ignoreFeasibility;
     this.ignoreSource = options.ignoreSource;
@@ -224,8 +226,12 @@ public class DependencyWatcher implements VersionListener {
             storagePolicyGroup, ringConfig.getStoragePolicyName(), ringConfig.getRingParentName(), exclusionSet)) {
           ringTree = RingTreeBuilder.create(recipe, prevRingTree);
           //ringTree = RingTreeBuilder.create(recipe, null); // for testing without movement reduction
-          newInstancePath = mc.createConfigInstancePath(ringConfigVersion);
-          SingleRingZK.writeTree(mc, topologyVersion, newInstancePath, ringTree);
+          if (!dryRun) {
+            newInstancePath = mc.createConfigInstancePath(ringConfigVersion);
+            SingleRingZK.writeTree(mc, topologyVersion, newInstancePath, ringTree);
+          } else {
+            newInstancePath = null;
+          }
 
           if (TopoRingConstants.verbose) {
             System.out.println(".............................");
@@ -235,7 +241,9 @@ public class DependencyWatcher implements VersionListener {
             System.out.println(ringConfigVersion);
             System.out.println(configInstanceVersion);
             System.out.println(topologyVersion);
-            System.out.println(newInstancePath);
+            if (!dryRun) {
+              System.out.println(newInstancePath);
+            }
             System.out.println("Building complete");
           }
           buildOK = true;
@@ -248,7 +256,7 @@ public class DependencyWatcher implements VersionListener {
         Log.logErrorWarning(ke);
       }
       if (exitAfterBuild) {
-        if (buildOK) {
+        if (buildOK && !dryRun) {
           try {
             if (ringConfigVersion < 0) {
               throw new RuntimeException("ringConfigVersion < 0");

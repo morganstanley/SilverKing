@@ -32,6 +32,7 @@ import com.ms.silverking.cloud.topology.Topology;
 import com.ms.silverking.cloud.topology.TopologyParser;
 import com.ms.silverking.cloud.toporing.meta.WeightSpecifications;
 import com.ms.silverking.collection.CollectionUtil;
+import com.ms.silverking.collection.Pair;
 import com.ms.silverking.log.Log;
 import com.ms.silverking.numeric.NumUtil;
 import com.ms.silverking.numeric.RingInteger;
@@ -48,7 +49,7 @@ public class TopologyRingCreator {
   private final long residualRegionThreshold;
   private final Random random;
 
-  private static final boolean debug = false;
+  private static final boolean debug = true;
 
   private static final String magnitudeToleranceFactorProperty = TopologyRingCreator.class.getName() +
       ".MagnitudeToleranceFactor";
@@ -898,6 +899,34 @@ public class TopologyRingCreator {
     }
     return prList;
   }
+  
+  private Pair<List<Node>, List<Double>> filterZeroWeightedNodes(List<Node> nodes, List<Double> weights) {
+    boolean containsZeroWeight;
+
+    containsZeroWeight = false;
+    for (int i = 0; i < weights.size(); i++) {
+      if (weights.get(i) == 0.0) {
+        containsZeroWeight = true;
+        break;
+      }
+    }
+    if (!containsZeroWeight) {
+      return new Pair<>(nodes, weights);
+    } else {
+      List<Node>   filteredNodes;
+      List<Double>  filteredWeights;
+      
+      filteredNodes = new ArrayList<>(nodes.size());
+      filteredWeights = new ArrayList<>(weights.size());
+      for (int i = 0; i < nodes.size(); i++) {
+        if (weights.get(i) != 0.0) {
+          filteredNodes.add(nodes.get(i));
+          filteredWeights.add(weights.get(i));
+        }
+      }
+      return new Pair<>(filteredNodes, filteredWeights);
+    }
+  }
 
   private ProtoRegionList allocateSubPolicyMember(ProtoRegionList prList, SubPolicyMember member, RingTreeRecipe recipe,
       Node parent, ReplicationType rType) {
@@ -936,7 +965,15 @@ public class TopologyRingCreator {
     if (replicas == nodes.size()) {
       addNodesToBlankProtoRegionList(prList, nodes);
     } else {
-      nodeRegionSizes = RingRegion.allRingspace.dividedRegionSizes(recipe.weightSpecs.getWeights(nodes));
+      List<Double>  weights;
+      Pair<List<Node>, List<Double>>  filtered;
+      
+      weights = recipe.weightSpecs.getWeights(nodes);
+      filtered = filterZeroWeightedNodes(nodes, weights);
+      nodes = filtered.getV1();
+      weights = filtered.getV2();
+      
+      nodeRegionSizes = RingRegion.allRingspace.dividedRegionSizes(weights);
       if (debug) {
         System.out.println("nodeRegionSizes");
         System.out.println(CollectionUtil.toString(nodeRegionSizes, '\n'));

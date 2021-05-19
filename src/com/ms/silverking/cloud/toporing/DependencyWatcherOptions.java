@@ -24,6 +24,9 @@ public class DependencyWatcherOptions {
   @Option(name = "-x", usage = "exitAfterBuild", required = false)
   boolean exitAfterBuild = false;
 
+  @Option(name = "-d", usage = "dryRun", required = false)
+  boolean dryRun = false;
+  
   @Option(name = "-c", usage = "consecutiveUpdateGuardSeconds", required = false)
   int consecutiveUpdateGuardSeconds = 60;
 }

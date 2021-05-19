@@ -140,7 +140,7 @@ public class LongRingspace {
 
   public static void ensureInRingspace(long p) {
     if (!inRingspace(p)) {
-      throw new RuntimeException(p + " not in LongRingspace");
+      throw new RuntimeException(p + " not in LongRingspace "+ start +" "+ end);
     }
   }
 

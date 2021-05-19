@@ -246,7 +246,7 @@ public class RingRegion {
         return subRegions;
     }
     */
-
+  
   public List<RingRegion> divide(List<Double> weights) {
     List<RingRegion> subRegions;
     long subRegionStart;
@@ -260,9 +260,10 @@ public class RingRegion {
     for (int i = 0; i < numRegions; i++) {
       long subRegionEnd;
       long subRegionSize;
+      BigDecimal  weight;
 
-      //subRegionSize = (long)((double)getSize() * normalizedWeights.get(i));
-      subRegionSize = new BigDecimal(getSize(), LongRingspace.mathContext).multiply(normalizedWeights.get(i),
+      weight = normalizedWeights.get(i);
+      subRegionSize = new BigDecimal(getSize(), LongRingspace.mathContext).multiply(weight,
           LongRingspace.mathContext).longValue();
       if (i < numRegions - 1) {
         subRegionEnd = subRegionStart + (subRegionSize - 1);
@@ -272,8 +273,12 @@ public class RingRegion {
       if (Log.levelMet(Level.FINE)) {
         Log.fine(i + " " + subRegionStart + " " + subRegionEnd + " " + subRegionSize + " " + normalizedWeights.get(i));
       }
-      subRegions.add(new RingRegion(subRegionStart, subRegionEnd));
-      subRegionStart += subRegionSize;
+      if (subRegionSize != 0) {
+        subRegions.add(new RingRegion(subRegionStart, subRegionEnd));
+        subRegionStart += subRegionSize;
+      } else {
+        throw new RuntimeException("Zero-sized region. Weight zero?");
+      }
     }
     return subRegions;
   }

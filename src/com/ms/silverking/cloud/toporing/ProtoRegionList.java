@@ -195,7 +195,7 @@ class ProtoRegionList {
     int regionsExamined;
 
     if (debug) {
-      System.out.printf("nextRegion. startIndex %d node %s rType %s\n", startIndex, node.getIDString(), rType);
+      System.out.printf("nextRegion2. startIndex %d node %s rType %s\n", startIndex, node.getIDString(), rType);
     }
     assert startIndex >= 0;
     assert maxOwners > 0;
@@ -213,12 +213,12 @@ class ProtoRegionList {
     }
     if (!protoRegions.get(index).contains(node) && protoRegions.get(index).totalOwners(rType) < maxOwners) {
       if (debug) {
-        System.out.printf("nextRegion. index %d\n", index);
+        System.out.printf("nextRegion2. index %d\n", index);
       }
       return index;
     } else {
       if (debug) {
-        System.out.printf("nextRegion. Couldn't find region without node: %s\n", node.getIDString());
+        System.out.printf("nextRegion2. Couldn't find region without node: %s\n", node.getIDString());
       }
       return -1;
     }
