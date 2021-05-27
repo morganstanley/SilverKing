@@ -1,16 +1,11 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
-import com.ms.silverking.text.FieldsRequirement;
-import com.ms.silverking.text.ObjectDefParser2;
 
+@OmitGeneration
 public abstract class KeyLevelValueRetentionPolicyImpl<S extends ValueRetentionState>
     extends ValueRetentionPolicyImpl<S> {
-  static {
-    ObjectDefParser2.addParserWithExclusions(KeyLevelValueRetentionPolicyImpl.class, null, FieldsRequirement.ALLOW_INCOMPLETE,
-        null);
-  }
-
   public abstract boolean considersStoredLength();
 
   public abstract boolean considersInvalidations();

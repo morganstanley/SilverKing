@@ -1,10 +1,10 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
 public final class LruRetentionInfo {
   private final long version;
   private final int compressedSizeBytes;
 
-  LruRetentionInfo(long version, int compressedSizeBytes) {
+  public LruRetentionInfo(long version, int compressedSizeBytes) {
     this.version = version;
     this.compressedSizeBytes = compressedSizeBytes;
   }

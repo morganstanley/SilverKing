@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.dht;
 
 import static com.ms.silverking.cloud.dht.TestUtil.getImplementationType;
-import static com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl.ImplementationType.RetainAll;
+import static com.ms.silverking.cloud.dht.daemon.storage.retention.ValueRetentionPolicyImpl.ImplementationType.RetainAll;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.test_Equals;
 import static com.ms.silverking.testing.AssertFunction.test_Getters;
@@ -11,6 +11,8 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.EmptyValueRetentionState;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.PermanentRetentionPolicyImpl;
 
 @OmitGeneration
 public class PermanentRetentionPolicyTest {
@@ -20,16 +22,16 @@ public class PermanentRetentionPolicyTest {
   @Test
   public void testGetters() {
     Object[][] testCases = { { RetainAll, getImplementationType(defaultPolicy) },
-        { ValueRetentionState.EMPTY, new PermanentRetentionPolicyImpl().createInitialState() }, };
+        { new EmptyValueRetentionState(), new PermanentRetentionPolicyImpl().createInitialState() }, };
 
     test_Getters(testCases);
   }
 
   @Test
   public void testRetains() {
-    Object[][] testCases = { { defaultPolicy, null, 0L, 0L, false, ValueRetentionState.EMPTY, 0L, true },
-        { defaultPolicy, null, 0L, 0L, true, ValueRetentionState.EMPTY, 0L, true },
-        { defaultPolicy, null, -1L, -1L, true, ValueRetentionState.EMPTY, -1L, true }, };
+    Object[][] testCases = { { defaultPolicy, null, 0L, 0L, false, new EmptyValueRetentionState(), 0L, true },
+        { defaultPolicy, null, 0L, 0L, true, new EmptyValueRetentionState(), 0L, true },
+        { defaultPolicy, null, -1L, -1L, true, new EmptyValueRetentionState(), -1L, true }, };
 
     TestUtil.checkRetains(testCases);
   }

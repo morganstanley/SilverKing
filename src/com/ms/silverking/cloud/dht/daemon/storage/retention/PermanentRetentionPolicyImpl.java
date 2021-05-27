@@ -1,4 +1,4 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
 import com.ms.silverking.cloud.dht.common.DHTKey;
 
@@ -14,7 +14,7 @@ public class PermanentRetentionPolicyImpl extends FixedRetentionPolicyImpl {
 
   @Override
   public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated,
-      ValueRetentionState.Empty valueRetentionState, long curTimeNanos, int storedLength) {
+      EmptyValueRetentionState valueRetentionState, long curTimeNanos, int storedLength) {
     return true;
   }
 

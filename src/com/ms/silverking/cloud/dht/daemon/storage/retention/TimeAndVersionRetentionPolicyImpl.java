@@ -1,21 +1,17 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
+import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.SystemTimeUtil;
 import com.ms.silverking.collection.Pair;
-import com.ms.silverking.text.ObjectDefParser2;
 
-public class ValidOrTimeAndVersionRetentionPolicyImpl
-    extends KeyLevelValueRetentionPolicyImpl<TimeAndVersionRetentionState> {
-  private final ValidOrTimeAndVersionRetentionPolicy policy;
+@OmitGeneration
+public class TimeAndVersionRetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<TimeAndVersionRetentionState> {
+  private final TimeAndVersionRetentionPolicy policy;
 
-  public ValidOrTimeAndVersionRetentionPolicyImpl(ValidOrTimeAndVersionRetentionPolicy policy) {
+  public TimeAndVersionRetentionPolicyImpl(TimeAndVersionRetentionPolicy policy) {
     this.policy = policy;
-  }
-
-  @Override
-  public String toString() {
-    return ObjectDefParser2.objectToString(this);
   }
 
   @Override
@@ -33,9 +29,9 @@ public class ValidOrTimeAndVersionRetentionPolicyImpl
       return false;
     }
 
-    ValidOrTimeAndVersionRetentionPolicyImpl other;
+    TimeAndVersionRetentionPolicyImpl other;
 
-    other = (ValidOrTimeAndVersionRetentionPolicyImpl) o;
+    other = (TimeAndVersionRetentionPolicyImpl) o;
     return policy.equals(other.policy);
   }
 
@@ -56,17 +52,15 @@ public class ValidOrTimeAndVersionRetentionPolicyImpl
     vData = timeRetentionState.processValue(key, creationTimeNanos);
     totalVersions = vData.getV1();
     mostRecentCreationTimeNanos = vData.getV2();
-    if (policy.getMode() == ValidOrTimeAndVersionRetentionPolicy.Mode.wallClock) {
+    if (policy.getMode() == TimeAndVersionRetentionPolicy.Mode.wallClock) {
       spanEndTimeNanos = SystemTimeUtil.skSystemTimeSource.absTimeNanos();
     } else {
       spanEndTimeNanos = mostRecentCreationTimeNanos;
     }
     deltaNanos = spanEndTimeNanos - creationTimeNanos;
-    //System.out.printf("%s %d %s %d %d\t%d\t%d\t%s\n", key, version, invalidated, creationTimeNanos,
-    // spanEndTimeNanos, totalVersions, deltaNanos, totalVersions > 1 ? "_G_" : "_NG_");
-    return (totalVersions <= 1 && !invalidated) // retain most recent value, if it's valid; for all other values, use
-        // time and version retention policy
-        || totalVersions <= policy.getMinVersions() || deltaNanos <= policy.getTimeSpanNanos();
+    //System.out.printf("%s %d %d %d\t%d\t%d\t%s\n", key, version, creationTimeNanos, spanEndTimeNanos,
+    // totalVersions, deltaNanos, totalVersions > 1 ? "_G_" : "_NG_");
+    return totalVersions <= policy.getMinVersions() || deltaNanos <= policy.getTimeSpanNanos();
   }
 
   @Override

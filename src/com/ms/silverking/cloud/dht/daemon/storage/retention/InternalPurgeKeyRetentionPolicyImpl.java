@@ -1,16 +1,17 @@
-package com.ms.silverking.cloud.dht.daemon.storage;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
-import com.ms.silverking.cloud.dht.KeyLevelValueRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 
 /**
- * Only used in server side (within package scope)
+ * Used internally in server, not as the result of any user-specified policy
  */
-class InternalPurgeKeyRetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<InternalPurgeKeyRetentionState> {
+@OmitGeneration
+public class InternalPurgeKeyRetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<InternalPurgeKeyRetentionState> {
   private final DHTKey keyToPurge;
   private final long purgeBeforeCreationTimeNanos; // inclusive
 
-  InternalPurgeKeyRetentionPolicyImpl(DHTKey keyToPurge, long purgeBeforeCreationTimeNanos) {
+  public InternalPurgeKeyRetentionPolicyImpl(DHTKey keyToPurge, long purgeBeforeCreationTimeNanos) {
     this.keyToPurge = keyToPurge;
     this.purgeBeforeCreationTimeNanos = purgeBeforeCreationTimeNanos;
   }

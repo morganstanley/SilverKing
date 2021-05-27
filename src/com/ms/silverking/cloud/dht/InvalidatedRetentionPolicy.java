@@ -6,6 +6,7 @@ import com.ms.silverking.text.ObjectDefParser2;
 public class InvalidatedRetentionPolicy implements ValueRetentionPolicy {
   private final long invalidatedRetentionIntervalSeconds;
 
+  @OmitGeneration
   static final InvalidatedRetentionPolicy template = new InvalidatedRetentionPolicy();
 
   static {

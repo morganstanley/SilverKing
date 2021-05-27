@@ -39,20 +39,15 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.ms.silverking.cloud.dht.KeyLevelValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.NamespaceOptions;
 import com.ms.silverking.cloud.dht.NamespaceServerSideCode;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.NonExistenceResponse;
-import com.ms.silverking.cloud.dht.PermanentRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.PutOptions;
 import com.ms.silverking.cloud.dht.RetrievalOptions;
 import com.ms.silverking.cloud.dht.RetrievalType;
 import com.ms.silverking.cloud.dht.RevisionMode;
-import com.ms.silverking.cloud.dht.SegmentLevelValueRetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.StorageType;
-import com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl;
-import com.ms.silverking.cloud.dht.ValueRetentionState;
 import com.ms.silverking.cloud.dht.VersionConstraint;
 import com.ms.silverking.cloud.dht.WaitMode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
@@ -93,6 +88,15 @@ import com.ms.silverking.cloud.dht.daemon.storage.management.ManagedNamespaceSto
 import com.ms.silverking.cloud.dht.daemon.storage.management.PurgeResult;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.PutCommunicator;
 import com.ms.silverking.cloud.dht.daemon.storage.protocol.StorageProtocolUtil;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.EmptyValueRetentionState;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.InternalPurgeKeyRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.InternalPurgeKeyRetentionState;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.KeyLevelValueRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.NeverRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.PermanentRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.SegmentLevelValueRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.ValueRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.ValueRetentionState;
 import com.ms.silverking.cloud.dht.meta.LinkCreationListener;
 import com.ms.silverking.cloud.dht.meta.LinkCreationWatcher;
 import com.ms.silverking.cloud.dht.net.MessageGroup;
@@ -200,7 +204,7 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
   private static final boolean debug = PropertiesHelper.systemHelper.getBoolean(
       NamespaceStore.class.getCanonicalName() + ".debug", false);
   private static final boolean debugConvergence = false || debug;
-  private static final boolean debugParent = false || debug;
+  private static final boolean debugParent = true || debug;
   private static final boolean debugVersion = false || debug;
   private static final boolean debugSegments = false || debug;
   private static final boolean debugWaitFor = false || debug;
@@ -3511,14 +3515,14 @@ public class NamespaceStore implements SSNamespaceStore, ManagedNamespaceStore {
             if (segmentRetained) {
               // retain all keys in this segment
               segment_klvrp = new PermanentRetentionPolicyImpl();
-              segment_vrs = ValueRetentionState.EMPTY;
+              segment_vrs = new EmptyValueRetentionState();
             } else {
               // delete all keys in this segment
               if (verboseReap) {
                 Log.infof("All keys in Segment %d created at %s will be reaped", i, ctime);
               }
               segment_klvrp = new NeverRetentionPolicyImpl();
-              segment_vrs = ValueRetentionState.EMPTY;
+              segment_vrs = new EmptyValueRetentionState();
               if (TracerFactory.isInitialized()) {
                 TracerFactory.getTracer().onSegmentReap(i, ctime);
               }

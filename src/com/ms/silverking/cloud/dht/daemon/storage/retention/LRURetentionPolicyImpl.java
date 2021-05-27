@@ -1,4 +1,4 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,20 +19,24 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.io.FileUtils;
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.ms.silverking.cloud.dht.LRURetentionPolicy;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.NamespaceUtil;
 import com.ms.silverking.cloud.dht.common.SimpleKey;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceStore;
 import com.ms.silverking.log.Log;
-import org.apache.commons.io.FileUtils;
-import org.checkerframework.checker.index.qual.NonNegative;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class LRURetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<ValueRetentionState.Empty> {
+@OmitGeneration
+public class LRURetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<EmptyValueRetentionState> {
   private static final String stateFileName;
   private static final String stateFileCurrentPointerName;
   private static Weigher<DHTKey, LruRetentionInfo> cacheWeigher;
@@ -289,7 +293,7 @@ public class LRURetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<Val
 
   @Override
   public boolean retains(DHTKey key, long version, long creationTimeNanos, boolean invalidated,
-      ValueRetentionState.Empty lruRetentionState, long curTimeNanos, int storedLength) {
+      EmptyValueRetentionState lruRetentionState, long curTimeNanos, int storedLength) {
     LruRetentionInfo retentionInfo;
 
     // we getIfPresentQuietly in order to avoid affecting the retention of a key when SK calls in to check if it should
@@ -301,8 +305,8 @@ public class LRURetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<Val
   }
 
   @Override
-  public ValueRetentionState.Empty createInitialState() {
-    return ValueRetentionState.EMPTY;
+  public EmptyValueRetentionState createInitialState() {
+    return EMPTY;
   }
 
   public void markRead(DHTKey key) {

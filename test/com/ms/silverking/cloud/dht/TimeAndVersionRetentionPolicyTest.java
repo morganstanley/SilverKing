@@ -1,7 +1,7 @@
 package com.ms.silverking.cloud.dht;
 
 import static com.ms.silverking.cloud.dht.TestUtil.getImplementationType;
-import static com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl.ImplementationType.SingleReverseSegmentWalk;
+import static com.ms.silverking.cloud.dht.daemon.storage.retention.ValueRetentionPolicyImpl.ImplementationType.SingleReverseSegmentWalk;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeEquals;
 import static com.ms.silverking.testing.AssertFunction.checkHashCodeNotEquals;
 import static com.ms.silverking.testing.AssertFunction.test_FirstEqualsSecond_FirstNotEqualsThird;
@@ -12,6 +12,8 @@ import static org.junit.Assert.assertEquals;
 import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy.Mode;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.TimeAndVersionRetentionState;
+
 import org.junit.Test;
 
 @OmitGeneration

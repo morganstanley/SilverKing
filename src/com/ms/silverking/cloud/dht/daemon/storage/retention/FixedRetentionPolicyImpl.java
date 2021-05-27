@@ -1,11 +1,11 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.text.FieldsRequirement;
 import com.ms.silverking.text.ObjectDefParser2;
 
 @OmitGeneration
-public abstract class FixedRetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<ValueRetentionState.Empty> {
+public abstract class FixedRetentionPolicyImpl extends KeyLevelValueRetentionPolicyImpl<EmptyValueRetentionState> {
   static {
     ObjectDefParser2.addParserWithExclusions(FixedRetentionPolicyImpl.class, null, FieldsRequirement.ALLOW_INCOMPLETE,
         null);
@@ -15,8 +15,8 @@ public abstract class FixedRetentionPolicyImpl extends KeyLevelValueRetentionPol
   }
 
   @Override
-  public ValueRetentionState.Empty createInitialState() {
-    return ValueRetentionState.EMPTY;
+  public EmptyValueRetentionState createInitialState() {
+    return EMPTY;
   }
 
   @Override

@@ -1,4 +1,4 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
 /**
  * Base class for use by retention policies that consider a (per server) capacity limit.

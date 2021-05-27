@@ -1,19 +1,23 @@
-package com.ms.silverking.cloud.dht;
+package com.ms.silverking.cloud.dht.daemon.storage.retention;
 
+import com.ms.silverking.cloud.dht.InvalidatedRetentionPolicy;
+import com.ms.silverking.cloud.dht.LRURetentionPolicy;
+import com.ms.silverking.cloud.dht.LRWRetentionPolicy;
+import com.ms.silverking.cloud.dht.NanosVersionRetentionPolicy;
+import com.ms.silverking.cloud.dht.PermanentRetentionPolicy;
+import com.ms.silverking.cloud.dht.TimeAndVersionRetentionPolicy;
+import com.ms.silverking.cloud.dht.ValidOrTimeAndVersionRetentionPolicy;
+import com.ms.silverking.cloud.dht.ValueRetentionPolicy;
+import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceStore;
 import com.ms.silverking.cloud.dht.daemon.storage.NeverRetentionPolicy;
-import com.ms.silverking.cloud.dht.daemon.storage.NeverRetentionPolicyImpl;
-import com.ms.silverking.text.FieldsRequirement;
-import com.ms.silverking.text.ObjectDefParser2;
 
+@OmitGeneration
 public abstract class ValueRetentionPolicyImpl<T extends ValueRetentionState> {
   public enum ImplementationType {SingleReverseSegmentWalk, RetainAll};
 
-  static {
-    ObjectDefParser2.addParserWithExclusions(ValueRetentionPolicyImpl.class, null, FieldsRequirement.ALLOW_INCOMPLETE,
-        null);
-  }
-
+  public EmptyValueRetentionState  EMPTY = new EmptyValueRetentionState();
+  
   public abstract ImplementationType getImplementationType();
   public abstract T createInitialState();
 

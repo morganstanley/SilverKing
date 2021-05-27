@@ -114,7 +114,9 @@ class ClassParser<T> {
         Log.warning("************************************");
         Log.warning("***    Can't find constructor    ***");
         Log.warning("************************************");
-        Log.warning(ArrayUtil.toString(CPUtils.getFieldClasses(_fields)));
+        Log.warningf("Class: %s", _class.getName());
+        Log.warningf("Field classes: %s", ArrayUtil.toString(CPUtils.getFieldClasses(_fields)));
+        Log.dumpStack();
       }
       throw new ObjectDefParseException(
           "Can't find constructor to initialize all fields for " + _class.getName() + ". " + "Remember order must " + "match",

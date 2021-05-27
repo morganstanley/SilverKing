@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.HashSet;
 
-import com.ms.silverking.cloud.dht.ValueRetentionPolicyImpl.ImplementationType;
 import com.ms.silverking.cloud.dht.VersionConstraint.Mode;
 import com.ms.silverking.cloud.dht.client.ChecksumType;
 import com.ms.silverking.cloud.dht.client.Compression;
@@ -13,6 +12,10 @@ import com.ms.silverking.cloud.dht.client.WaitForTimeoutController;
 import com.ms.silverking.cloud.dht.client.gen.OmitGeneration;
 import com.ms.silverking.cloud.dht.common.DHTConstants;
 import com.ms.silverking.cloud.dht.common.DHTKey;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.KeyLevelValueRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.ValueRetentionPolicyImpl;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.ValueRetentionState;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.ValueRetentionPolicyImpl.ImplementationType;
 
 @OmitGeneration
 public class TestUtil {

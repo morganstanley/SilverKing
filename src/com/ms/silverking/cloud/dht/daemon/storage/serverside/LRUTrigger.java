@@ -5,12 +5,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.ms.silverking.cloud.dht.LRURetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.NamespaceVersionMode;
 import com.ms.silverking.cloud.dht.common.DHTKey;
 import com.ms.silverking.cloud.dht.common.OpResult;
 import com.ms.silverking.cloud.dht.daemon.storage.NamespaceStore;
 import com.ms.silverking.cloud.dht.daemon.storage.StorageValueAndParameters;
+import com.ms.silverking.cloud.dht.daemon.storage.retention.LRURetentionPolicyImpl;
 import com.ms.silverking.cloud.dht.serverside.PutTrigger;
 import com.ms.silverking.cloud.dht.serverside.RetrieveTrigger;
 import com.ms.silverking.cloud.dht.serverside.SSNamespaceStore;
