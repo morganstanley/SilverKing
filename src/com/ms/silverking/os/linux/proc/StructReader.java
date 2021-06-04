@@ -67,7 +67,7 @@ public class StructReader<T> {
     try {
       StructReader<ProcessStat> reader;
 
-      reader = new StructReader<ProcessStat>(ProcessStat.class);
+      reader = new StructReader<>(ProcessStat.class);
       reader.read(new File("/proc/1/stat"));
     } catch (Exception e) {
       e.printStackTrace();

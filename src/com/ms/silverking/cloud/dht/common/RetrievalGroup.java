@@ -48,7 +48,7 @@ public class RetrievalGroup {
         ArrayList<Retrieval> rList;
         boolean replaced;
 
-        rList = new ArrayList<Retrieval>(2);
+        rList = new ArrayList<>(2);
         rList.add((Retrieval) previous);
         rList.add(retrieval);
         replaced = retrievals.replace(retrieval.getVersionConstraint(), previous, rList);

@@ -19,7 +19,7 @@ import com.ms.silverking.io.StreamParser;
 public class ProcReader {
   private final StructReader<ProcessStat> reader;
 
-  private static final List<String> emptyList = new ArrayList<String>(0);
+  private static final List<String> emptyList = new ArrayList<>(0);
   private static final String proc = "/proc";
   private static final File procDir = new File(proc);
   private static final String memFileName = proc + "/meminfo";
@@ -50,7 +50,7 @@ public class ProcReader {
   private static final String rawRAMToken = "MemFree:";
 
   public ProcReader() {
-    reader = new StructReader<ProcessStat>(ProcessStat.class);
+    reader = new StructReader<>(ProcessStat.class);
   }
 
   public List<ProcessStat> activeProcessStats() {

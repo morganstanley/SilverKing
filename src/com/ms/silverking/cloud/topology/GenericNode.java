@@ -12,7 +12,7 @@ public class GenericNode extends Node {
   }
 
   public GenericNode(NodeClass nodeClass, String id) {
-    this(nodeClass, id, new ArrayList<Node>(0));
+    this(nodeClass, id, new ArrayList<>(0));
   }
 
   public static GenericNode create(String def, List<Node> children) throws TopologyParseException {

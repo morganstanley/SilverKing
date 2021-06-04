@@ -87,7 +87,7 @@ public class MultiDHTExample {
     protected Set<String> createKeys(int iteration, int numKeys) {
       Set<String> keys;
 
-      keys = new HashSet<String>();
+      keys = new HashSet<>();
       for (int i = 0; i < numKeys; i++) {
         keys.add("key." + workID + "." + iteration + "." + i);
       }

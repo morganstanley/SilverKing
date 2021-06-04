@@ -134,10 +134,10 @@ public abstract class AsyncBase<T extends Connection> {
       LWTPool writerWorkPool, int selectionThreadWorkLimit, boolean debug) throws IOException {
     this.cscAssigner = cscAssigner;
     this.connectionCreator = connectionCreator;
-    this.connectionManager = new ConnectionManager<T>();
+    this.connectionManager = new ConnectionManager<>();
     this.debug = debug;
 
-    selectorControllers = new ArrayList<SelectorController<T>>();
+    selectorControllers = new ArrayList<>();
     running = true;
     for (int i = 0; i < numSelectorControllers; i++) {
       selectorControllers.add(new SelectorController(acceptWorker, null/*ConnecctWorker*/, new Reader(readerWorkPool),
@@ -164,7 +164,7 @@ public abstract class AsyncBase<T extends Connection> {
       ConnectionCreator<T> connectionCreator, LWTPool readerLWTPool, LWTPool writerLWTPool,
       int selectionThreadWorkLimit, boolean debug) throws IOException {
     this(port, numSelectorControllers, controllerClass, acceptWorker, connectionCreator,
-        new LocalGroupingCSCA<T>(numSelectorControllers / 4), readerLWTPool, writerLWTPool, selectionThreadWorkLimit,
+        new LocalGroupingCSCA<>(numSelectorControllers / 4), readerLWTPool, writerLWTPool, selectionThreadWorkLimit,
         debug);
     // FUTURE allow more than just the fixed fraction of local selector controllers
     //new RandomChannelSelectorControllerAssigner<T>(), lwtPool, debug);

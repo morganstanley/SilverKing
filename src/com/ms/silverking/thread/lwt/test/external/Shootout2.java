@@ -17,7 +17,7 @@ public class Shootout2 {
 
   // The scheduler for cooperative Multithreading
   static class Scheduler extends Thread {
-    private final List<CooperativeThread> threads = Collections.synchronizedList(new ArrayList<CooperativeThread>());
+    private final List<CooperativeThread> threads = Collections.synchronizedList(new ArrayList<>());
     private int rrIndex = -1;
 
     public void start(CooperativeThread t) {

@@ -43,5 +43,5 @@ public class ArgusOptions {
   static final int defaultRSSPrioritizationThreshold = 1 * 1024 * 1024;
 
   @Argument
-  List<String> arguments = new ArrayList<String>();
+  List<String> arguments = new ArrayList<>();
 }

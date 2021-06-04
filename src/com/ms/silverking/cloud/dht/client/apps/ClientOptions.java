@@ -82,7 +82,7 @@ class ClientOptions {
   String nsOptions;
 
   @Argument
-  List<String> arguments = new ArrayList<String>();
+  List<String> arguments = new ArrayList<>();
 
   @Override
   public String toString() {

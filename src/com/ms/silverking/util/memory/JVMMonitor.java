@@ -59,7 +59,7 @@ public class JVMMonitor implements Runnable {
     cleanupHinted = new AtomicBoolean(false);
     finalizationSW = new SimpleStopwatch();
     sw = new SimpleStopwatch();
-    memoryObservers = new Vector<JVMMemoryObserver>();
+    memoryObservers = new Vector<>();
     this.finalization = finalization;
     new Thread(this, "JVMMonitor").start();
   }

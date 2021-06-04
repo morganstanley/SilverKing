@@ -48,7 +48,7 @@ public class ConcurrentMap<K, V> implements Map<K, V> {
   public Set<Entry<K, V>> entrySet() {
     Set<Entry<K, V>> set;
 
-    set = new HashSet<Entry<K, V>>();
+    set = new HashSet<>();
     for (int i = 0; i < maps.length; i++) {
       set.addAll(maps[i].entrySet());
     }
@@ -74,7 +74,7 @@ public class ConcurrentMap<K, V> implements Map<K, V> {
   public Set<K> keySet() {
     Set<K> set;
 
-    set = new HashSet<K>();
+    set = new HashSet<>();
     for (int i = 0; i < maps.length; i++) {
       set.addAll(maps[i].keySet());
     }
@@ -113,7 +113,7 @@ public class ConcurrentMap<K, V> implements Map<K, V> {
   public Collection<V> values() {
     Set<V> set;
 
-    set = new HashSet<V>();
+    set = new HashSet<>();
     for (int i = 0; i < maps.length; i++) {
       set.addAll(maps[i].values());
     }

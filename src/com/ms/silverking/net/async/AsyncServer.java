@@ -61,7 +61,7 @@ public class AsyncServer<T extends Connection> extends AsyncBase<T> {
       ConnectionCreator<T> connectionCreator, IncomingConnectionListener<T> newConnectionListener,
       LWTPool readerLWTPool, LWTPool writerLWTPool, LWTPool acceptorPool, int selectionThreadWorkLimit, boolean enabled,
       boolean debug) throws IOException {
-    this(port, backlog, numSelectorControllers, controllerClass, new Acceptor<T>(acceptorPool), connectionCreator,
+    this(port, backlog, numSelectorControllers, controllerClass, new Acceptor<>(acceptorPool), connectionCreator,
         newConnectionListener, readerLWTPool, writerLWTPool, selectionThreadWorkLimit, enabled, debug);
   }
 

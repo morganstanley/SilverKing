@@ -5,7 +5,7 @@ package com.ms.silverking.thread.lwt;
  */
 public class WorkerGroupProvider {
   public static <I> WorkerGroup<I> createWorkerGroup(String name, int maxDirectCallDepth, int idleThreadThreshold) {
-    return new WorkerGroupImpl<I>(name, maxDirectCallDepth, idleThreadThreshold);
+    return new WorkerGroupImpl<>(name, maxDirectCallDepth, idleThreadThreshold);
   }
 
   public static <I> WorkerGroup<I> createWorkerGroup() {

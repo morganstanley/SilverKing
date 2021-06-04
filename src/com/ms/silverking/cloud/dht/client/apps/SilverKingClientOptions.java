@@ -100,7 +100,7 @@ class SilverKingClientOptions {
   String logLevel = Level.WARNING.toString();
 
   @Argument
-  List<String> arguments = new ArrayList<String>();
+  List<String> arguments = new ArrayList<>();
 
   @Override
   public String toString() {

@@ -43,7 +43,7 @@ public class DHTSessionImplTest {
     doCallRealMethod().when(session).checkForTimeouts();
     when(session.getAbsMillisTimeSource()).thenReturn(mock(AbsMillisTimeSource.class));
     when(session.getAbsMillisTimeSource().absTimeMillis()).thenReturn(timestamp);
-    List<ClientNamespace> clientNamespaceList = new ArrayList<ClientNamespace>();
+    List<ClientNamespace> clientNamespaceList = new ArrayList<>();
     ClientNamespace namespace = mock(ClientNamespace.class);
     for (int i = 0; i < namespaceCount; i++) {
       clientNamespaceList.add(namespace);
@@ -130,7 +130,7 @@ public class DHTSessionImplTest {
 
     MessageGroupBase msgGrpBase = mock(MessageGroupBase.class);
 
-    List<Exception> possibleExceptions = new ArrayList<Exception>();
+    List<Exception> possibleExceptions = new ArrayList<>();
     possibleExceptions.add(new ConnectException("injected fault"));
     possibleExceptions.add(new NonRetryableAuthFailedException("injected fault"));
     possibleExceptions.add(new RuntimeException("injected arbitrary runtime exception types"));

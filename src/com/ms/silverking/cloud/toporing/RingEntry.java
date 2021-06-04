@@ -53,7 +53,7 @@ public class RingEntry {
   }
 
   public RingEntry(Collection<Node> primaryOwners, RingRegion region, int minPrimaryUnderFailure) {
-    this(new ArrayList<Node>(primaryOwners), emptyNodeList, region, minPrimaryUnderFailure);
+    this(new ArrayList<>(primaryOwners), emptyNodeList, region, minPrimaryUnderFailure);
   }
 
   public List<IPAndPort> getOwnersIPList(OwnerQueryMode oqm) {
@@ -170,7 +170,7 @@ public class RingEntry {
   public RingEntry replacePrimaryOwner(int index, Node newOwner) {
     List<Node> newOwners;
 
-    newOwners = new ArrayList<Node>(primaryOwners.size());
+    newOwners = new ArrayList<>(primaryOwners.size());
     if (index < 0 || index >= primaryOwners.size()) {
       throw new IndexOutOfBoundsException("bad index: " + index);
     }

@@ -69,7 +69,7 @@ public class TestOptions {
   public TimeoutResponse timeoutResponse;
 
   @Argument
-  public List<String> arguments = new ArrayList<String>();
+  public List<String> arguments = new ArrayList<>();
 
   @Override
   public String toString() {

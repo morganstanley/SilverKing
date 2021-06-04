@@ -187,7 +187,7 @@ public class RingRegion {
 
     assert numRegions >= 0;
     subRegionSize = getSize() / numRegions;
-    subRegions = new ArrayList<RingRegion>();
+    subRegions = new ArrayList<>();
     subRegionStart = start;
     for (int i = 0; i < numRegions; i++) {
       long subRegionEnd;
@@ -301,10 +301,10 @@ public class RingRegion {
     RingRegion curRegion;
     int index;
 
-    regions = new ArrayList<RingRegion>(sourceRegions.size());
+    regions = new ArrayList<>(sourceRegions.size());
     regions.addAll(sourceRegions);
     Collections.sort(regions, RingRegion.positionComparator);
-    mergedRegions = new ArrayList<RingRegion>(sourceRegions.size());
+    mergedRegions = new ArrayList<>(sourceRegions.size());
     curRegion = regions.get(0);
     index = 1;
     while (index < regions.size()) {

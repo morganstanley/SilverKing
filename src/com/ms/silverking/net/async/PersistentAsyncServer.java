@@ -103,7 +103,7 @@ public class PersistentAsyncServer<T extends Connection> implements IncomingConn
     isRunning = true;
     this.debug = debug;
     this.newConnectionTimeoutController = newConnectionTimeoutController;
-    asyncServer = new AsyncServer<T>(port, backlog, numSelectorControllers, controllerClass, connectionCreator, this,
+    asyncServer = new AsyncServer<>(port, backlog, numSelectorControllers, controllerClass, connectionCreator, this,
         readerLWTPool, writerLWTPool, acceptorPool, selectionThreadWorkLimit, enabled, debug);
     newConnectionLocks = new ConcurrentHashMap<InetSocketAddress, ReentrantLock>();
     asyncConnector = new AsyncConnector(connectorPool);

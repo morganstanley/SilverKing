@@ -130,8 +130,8 @@ public class Histogram {
     double min;
     double max;
 
-    values = new ArrayList<Double>();
-    counts = new ArrayList<Integer>();
+    values = new ArrayList<>();
+    counts = new ArrayList<>();
     reader = new BufferedReader(new InputStreamReader(inStream));
     do {
       line = reader.readLine();

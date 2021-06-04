@@ -137,7 +137,7 @@ public class Topology implements VersionedDefinition {
 
         foundPath = pathTo(child, id);
         if (foundPath != null) {
-          return new ImmutableList.Builder<Node>().add(curNode).addAll(foundPath).build();
+          return new ImmutableList.Builder<>().add(curNode).addAll(foundPath).build();
         }
       }
       return null;

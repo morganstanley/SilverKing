@@ -204,7 +204,7 @@ public class ActiveRegionSync implements KeyedOpResultListener {
       UUIDBase uuid;
       SyncRetrievalRequest srr;
 
-      batchKeys = new ConcurrentSkipListSet<DHTKey>();
+      batchKeys = new ConcurrentSkipListSet<>();
       batchSize = 0;
       while (keysToFetchList.size() > 0 && batchSize < retrievalBatchSize) {
         batchKeys.add(keysToFetchList.remove(0).getKey());

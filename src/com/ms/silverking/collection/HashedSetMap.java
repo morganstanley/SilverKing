@@ -106,9 +106,9 @@ public final class HashedSetMap<K, V> implements Serializable {
     set = map.get(key);
     if (set == null) {
       if (!useConcurrentSets) {
-        set = new HashSet<V>();
+        set = new HashSet<>();
       } else {
-        set = new ConcurrentSkipListSet<V>();
+        set = new ConcurrentSkipListSet<>();
       }
       map.put(key, set);
     }
@@ -162,9 +162,9 @@ public final class HashedSetMap<K, V> implements Serializable {
     set = map.get(key);
     if (set == null && missingKeyMode != MissingKeyMode.NULL) {
       if (!useConcurrentSets) {
-        set = new HashSet<V>();
+        set = new HashSet<>();
       } else {
-        set = new ConcurrentSkipListSet<V>();
+        set = new ConcurrentSkipListSet<>();
       }
       if (missingKeyMode == MissingKeyMode.PUT_EMPTY_SET) {
         map.put(key, set);
@@ -177,7 +177,7 @@ public final class HashedSetMap<K, V> implements Serializable {
     List<Set<V>> sets;
     Iterator<Map.Entry<K, Set<V>>> iterator;
 
-    sets = new ArrayList<Set<V>>();
+    sets = new ArrayList<>();
     iterator = map.entrySet().iterator();
     while (iterator.hasNext()) {
       sets.add(iterator.next().getValue());
@@ -189,7 +189,7 @@ public final class HashedSetMap<K, V> implements Serializable {
     List<K> keys;
     Iterator<Map.Entry<K, Set<V>>> iterator;
 
-    keys = new ArrayList<K>();
+    keys = new ArrayList<>();
     iterator = map.entrySet().iterator();
     while (iterator.hasNext()) {
       keys.add(iterator.next().getKey());

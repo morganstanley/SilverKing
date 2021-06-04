@@ -62,7 +62,7 @@ public class DiskUsageEnforcer implements SafetyEnforcer {
     List<Integer> pidList;
     Log.info("Enforcing DiskUsage");
     pidList = procReader.filteredActivePIDList(exceptions);
-    for (int storedPID : new HashSet<Integer>(diskUsageMap.keySet())) {
+    for (int storedPID : new HashSet<>(diskUsageMap.keySet())) {
       if (!pidList.contains(storedPID)) {
         diskUsageMap.remove(storedPID);
       }

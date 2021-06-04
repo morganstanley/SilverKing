@@ -50,5 +50,5 @@ public class PingPongOptions {
   public boolean verbose;
 
   @Argument
-  public List<String> arguments = new ArrayList<String>();
+  public List<String> arguments = new ArrayList<>();
 }

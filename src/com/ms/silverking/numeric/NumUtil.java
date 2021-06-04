@@ -66,7 +66,7 @@ public class NumUtil {
     List<BigDecimal> _lx;
 
     _lx = doubleToBD(lx, mc);
-    nx = new ArrayList<BigDecimal>(lx.size());
+    nx = new ArrayList<>(lx.size());
     sum = sum(_lx, mc);
     for (BigDecimal x : _lx) {
       //if (x < 0.0 || Double.isInfinite(x) || Double.isNaN(x)) {

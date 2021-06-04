@@ -74,7 +74,7 @@ public final class HashedListMap<K, V> {
 
     list = map.get(key);
     if (list == null) {
-      list = new ArrayList<V>();
+      list = new ArrayList<>();
       map.put(key, list);
     }
     list.add(value);
@@ -132,7 +132,7 @@ public final class HashedListMap<K, V> {
 
     list = map.get(key);
     if (fillEmptyListOnGet && list == null) {
-      list = new ArrayList<V>();
+      list = new ArrayList<>();
       map.put(key, list);
     }
     return list;
@@ -142,7 +142,7 @@ public final class HashedListMap<K, V> {
     List<List<V>> lists;
     Iterator<Map.Entry<K, List<V>>> iterator;
 
-    lists = new ArrayList<List<V>>();
+    lists = new ArrayList<>();
     iterator = map.entrySet().iterator();
     while (iterator.hasNext()) {
       lists.add(iterator.next().getValue());
@@ -154,7 +154,7 @@ public final class HashedListMap<K, V> {
     List<K> keys;
     Iterator<Map.Entry<K, List<V>>> iterator;
 
-    keys = new ArrayList<K>();
+    keys = new ArrayList<>();
     iterator = map.entrySet().iterator();
     while (iterator.hasNext()) {
       keys.add(iterator.next().getKey());

@@ -278,7 +278,7 @@ public class ObjectDefParser2 {
   public static <T> T parse(Class<T> _class, T template, String def) {
     ClassParser<T> cp;
 
-    cp = new ClassParser<T>(template,
+    cp = new ClassParser<>(template,
                             FieldsRequirement.ALLOW_INCOMPLETE,
                             NonFatalExceptionResponse.THROW_EXCEPTIONS,
                             null,

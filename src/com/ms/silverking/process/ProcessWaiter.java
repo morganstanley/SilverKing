@@ -11,7 +11,7 @@ public class ProcessWaiter implements Runnable {
 
   public ProcessWaiter(Process p) {
     this.p = p;
-    sq = new SynchronousQueue<Integer>();
+    sq = new SynchronousQueue<>();
     new Thread(this, "ProcessWaiter").start();
   }
 

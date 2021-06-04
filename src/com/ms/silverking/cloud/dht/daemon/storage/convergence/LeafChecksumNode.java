@@ -36,7 +36,7 @@ public class LeafChecksumNode extends AbstractChecksumNode {
   }
 
   public LeafChecksumNode(RingRegion ringRegion) {
-    this(ringRegion, new ArrayList<KeyAndVersionChecksum>(), Mutability.Mutable);
+    this(ringRegion, new ArrayList<>(), Mutability.Mutable);
   }
 
   public void freeze() {

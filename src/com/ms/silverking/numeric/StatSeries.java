@@ -233,7 +233,7 @@ public final class StatSeries {
       System.out.println("args: <sample...>");
       return;
     }
-    samples = new ArrayList<Double>();
+    samples = new ArrayList<>();
     for (String arg : args) {
       samples.add(Double.parseDouble(arg));
     }

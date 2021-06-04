@@ -50,7 +50,7 @@ public class DHTMetaWatcher implements VersionListener, RingChangeListener {
     new VersionWatcher(mc, mp.getInstanceConfigPath(), this, intervalMillis, 0);
     //new VersionWatcher(mc.getZooKeeper(), mp.getTopologyPath(), this, intervalMillis);
     this.enableLogging = enableLogging;
-    dhtMetaUpdateListeners = Collections.synchronizedList(new ArrayList<DHTMetaUpdateListener>());
+    dhtMetaUpdateListeners = Collections.synchronizedList(new ArrayList<>());
   }
 
   public DHTMetaWatcher(ZooKeeperConfig zkConfig, String dhtName, long intervalMillis)

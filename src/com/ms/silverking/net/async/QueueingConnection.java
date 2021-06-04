@@ -301,7 +301,7 @@ public abstract class QueueingConnection<D extends OutgoingData, I extends Incom
     Queue<D> queuedData;
     D datum;
 
-    queuedData = new LinkedList<D>();
+    queuedData = new LinkedList<>();
     do {
       if (!outputQueue.isEmpty()) {
         datum = outputQueue.remove();

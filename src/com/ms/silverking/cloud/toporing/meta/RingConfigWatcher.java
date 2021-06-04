@@ -32,7 +32,7 @@ public class RingConfigWatcher implements VersionListener {
 
   public RingConfigWatcher(ZooKeeperConfig zkConfig, String ringName, long intervalMillis, boolean enableLogging,
       RingChangeListener initialListener) throws IOException, KeeperException {
-    listeners = Collections.synchronizedList(new ArrayList<RingChangeListener>());
+    listeners = Collections.synchronizedList(new ArrayList<>());
     if (initialListener != null) {
       addListener(initialListener);
     }

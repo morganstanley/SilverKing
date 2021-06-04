@@ -72,8 +72,8 @@ public final class SelectorController<C extends Connection> implements Runnable 
     this.selectionThreadWorkLimit = selectionThreadWorkLimit;
     this.debug = debug;
     selector = Selector.open();
-    newServerChannels = new ConcurrentLinkedQueue<NewServerSocketChannel>();
-    keyChangeRequests = new ConcurrentLinkedQueue<KeyChangeRequest>();
+    newServerChannels = new ConcurrentLinkedQueue<>();
+    keyChangeRequests = new ConcurrentLinkedQueue<>();
     running = true;
     // FUTURE - consider making this an report that it is an LWT thread
     // to allow direct calls when the selector is idle

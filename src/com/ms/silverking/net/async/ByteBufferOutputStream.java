@@ -12,7 +12,7 @@ public class ByteBufferOutputStream extends ByteArrayOutputStream {
   private List<ByteBuffer> byteBuffers;
 
   public ByteBufferOutputStream() {
-    byteBuffers = new LinkedList<ByteBuffer>();
+    byteBuffers = new LinkedList<>();
   }
 
   @Override

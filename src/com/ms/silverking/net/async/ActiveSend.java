@@ -18,7 +18,7 @@ public final class ActiveSend /*implements AsyncSendListener*/ {
   private static final int activeSendOfferTimeoutMillis = 1000;
 
   public ActiveSend(/*AsyncSendListener listener*/) {
-    queue = new LightLinkedBlockingQueue<IOException>();
+    queue = new LightLinkedBlockingQueue<>();
     //synchronousQueue = new SynchronousQueue<IOException>();
     //this.listener = listener;
   }

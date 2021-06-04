@@ -23,5 +23,5 @@ public class MetaToolOptions {
   public String version;
 
   @Argument
-  public List<String> arguments = new ArrayList<String>();
+  public List<String> arguments = new ArrayList<>();
 }

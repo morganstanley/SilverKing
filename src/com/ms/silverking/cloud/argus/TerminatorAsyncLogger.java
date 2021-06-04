@@ -33,7 +33,7 @@ public class TerminatorAsyncLogger implements Runnable {
 
   public TerminatorAsyncLogger(String loggerFileName) {
     running = new AtomicBoolean(true);
-    logMessages = new LinkedBlockingQueue<String>();
+    logMessages = new LinkedBlockingQueue<>();
     logFileName = loggerFileName;
     asyncLogger = new SafeThread(this, argusLoggerName, true);
     asyncLogger.start();

@@ -78,7 +78,7 @@ class LWTPoolImpl implements LWTPool {
     // FUTURE - Just use common queue for now since it's faster so far. See addWork().
     if (true || lwtPoolParameters.getCommonQueue()) {
       //this.commonQueue = new BoundedPriorityBlockingQueue<AssignedWork>(1000);
-      this.commonQueue = new LightLinkedBlockingQueue<AssignedWork>(spinsBeforeParking);
+      this.commonQueue = new LightLinkedBlockingQueue<>(spinsBeforeParking);
       //this.commonQueue = new SpinningTransferQueue<AssignedWork>(spinsBeforeParking);
       //this.commonQueue = new SpinningTransferQueue<AssignedWork>();
     } else {
@@ -86,8 +86,8 @@ class LWTPoolImpl implements LWTPool {
     }
     this.workUnit = lwtPoolParameters.getWorkUnit();
     this.blockedThreads = new AtomicInteger();
-    this.idleThreads = new ArrayList<LWTThread>();
-    this.activeThreads = new ArrayList<LWTThread>();
+    this.idleThreads = new ArrayList<>();
+    this.activeThreads = new ArrayList<>();
     for (int i = 0; i < targetSize; i++) {
       addThread();
     }
@@ -114,7 +114,7 @@ class LWTPoolImpl implements LWTPool {
     if (commonQueue != null) {
       q = commonQueue;
     } else {
-      q = new LightLinkedBlockingQueue<AssignedWork>(spinsBeforeParking);
+      q = new LightLinkedBlockingQueue<>(spinsBeforeParking);
       //q = new SpinningTransferQueue<AssignedWork>(spinsBeforeParking);
       //q = new SpinningTransferQueue<AssignedWork>();
     }

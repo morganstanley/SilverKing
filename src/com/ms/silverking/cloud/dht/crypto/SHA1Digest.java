@@ -4,7 +4,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class SHA1Digest {
-  private static ThreadLocal<MessageDigest> tl = new ThreadLocal<MessageDigest>();
+  private static ThreadLocal<MessageDigest> tl = new ThreadLocal<>();
 
   public static final int BYTES = 20;
 

@@ -85,7 +85,7 @@ public class StreamParser {
 
     reader = new BufferedReader(new InputStreamReader(inStream));
     try {
-      lines = new ArrayList<String>();
+      lines = new ArrayList<>();
       do {
         line = reader.readLine();
         if (line != null) {

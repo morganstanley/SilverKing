@@ -81,9 +81,9 @@ public class ParallelSSHBase {
     }
     this.sshCmdMap = sshCmdMap;
     this.hostGroups = hostGroups;
-    successful = new ConcurrentSkipListSet<String>();
-    failed = new ConcurrentSkipListSet<String>();
-    completed = new ConcurrentSkipListSet<String>();
+    successful = new ConcurrentSkipListSet<>();
+    failed = new ConcurrentSkipListSet<>();
+    completed = new ConcurrentSkipListSet<>();
   }
 
   public ParallelSSHBase(HostGroupTable hostGroups) {

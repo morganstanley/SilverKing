@@ -6,8 +6,8 @@ import com.ms.silverking.numeric.MutableInteger;
  * Per-thread LWT state.
  */
 final class ThreadState {
-  private static final ThreadLocal<MutableInteger> depth = new ThreadLocal<MutableInteger>();
-  private static final ThreadLocal<Boolean> isLWTThread = new ThreadLocal<Boolean>();
+  private static final ThreadLocal<MutableInteger> depth = new ThreadLocal<>();
+  private static final ThreadLocal<Boolean> isLWTThread = new ThreadLocal<>();
 
   public static void setLWTThread() {
     isLWTThread.set(new Boolean(true));

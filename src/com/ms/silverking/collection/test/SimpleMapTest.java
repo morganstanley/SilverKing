@@ -82,7 +82,7 @@ public class SimpleMapTest {
 
   @Benchmark
   public void timeIntHashMap(int reps) {
-    doMap(reps, new IntHashMap<Integer>());
+    doMap(reps, new IntHashMap<>());
   }
 
   /**

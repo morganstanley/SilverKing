@@ -404,7 +404,7 @@ public class StringUtil {
     int prevEnd;
 
     prevEnd = 0;
-    tokens = new ArrayList<String>();
+    tokens = new ArrayList<>();
     pattern = Pattern.compile("'((\\S+)(\\s*))*?\\S+'");
     matcher = pattern.matcher(source);
     while (matcher.find()) {
@@ -441,7 +441,7 @@ public class StringUtil {
   public static List<String> projectColumn(List<String> src, int column, String regex, boolean filterNonexistent) {
     List<String> projection;
 
-    projection = new ArrayList<String>();
+    projection = new ArrayList<>();
     for (String line : src) {
       String[] columns;
 

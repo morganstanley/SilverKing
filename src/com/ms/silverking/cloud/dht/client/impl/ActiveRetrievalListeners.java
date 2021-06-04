@@ -89,7 +89,7 @@ class ActiveRetrievalListeners implements ActiveOperationListeners {
       boolean newListCreated;
 
       listenerList =
-          new LinkedList<WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>>();
+          new LinkedList<>();
       existingList = activeRetrievalListeners.get(opUUID).putIfAbsent(dhtKey, listenerList);
       if (existingList != null) {
         listenerList = existingList;
@@ -98,7 +98,7 @@ class ActiveRetrievalListeners implements ActiveOperationListeners {
         newListCreated = true;
       }
       listenerList.add(
-          new WeakReference<ActiveKeyedOperationResultListener<MessageGroupRetrievalResponseEntry>>(listener));
+          new WeakReference<>(listener));
       // caller should call protoMG.addKey(dhtKey) newListCreated is true
       return newListCreated;
     } else {

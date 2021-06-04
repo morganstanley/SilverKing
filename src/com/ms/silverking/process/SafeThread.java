@@ -41,7 +41,7 @@ public class SafeThread extends Thread implements Comparable<SafeThread> {
         System.exit(-1);
       }
     }
-    runningThreads = new ConcurrentSkipListSet<SafeThread>();
+    runningThreads = new ConcurrentSkipListSet<>();
   }
 
   public static void setDefaultUncaughtExceptionHandler(UncaughtExceptionHandler handler) {
@@ -72,7 +72,7 @@ public class SafeThread extends Thread implements Comparable<SafeThread> {
   public static List<SafeThread> getRunningThreads() {
     List<SafeThread> result;
 
-    result = new ArrayList<SafeThread>();
+    result = new ArrayList<>();
     result.addAll(runningThreads);
     return result;
   }

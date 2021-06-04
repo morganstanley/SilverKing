@@ -182,17 +182,17 @@ public class BlockingQueueTest implements Runnable {
       for (String qDef : qDefs) {
         System.out.println("Queue type: " + qDef);
         if (qDef.equals("LightLinkedBlockingQueue")) {
-          q = new LightLinkedBlockingQueue<Integer>(0);
+          q = new LightLinkedBlockingQueue<>(0);
           //q = new LightLinkedBlockingQueue<Integer>(10000);
           //q = new LightLinkedBlockingQueue<Integer>(20000);
         } else if (qDef.equals("LinkedBlockingQueue")) {
-          q = new LinkedBlockingQueue<Integer>();
+          q = new LinkedBlockingQueue<>();
         } else if (qDef.equals("LinkedTransferQueue")) {
-          q = new LinkedTransferQueue<Integer>();
+          q = new LinkedTransferQueue<>();
         } else if (qDef.equals("SpinningTransferQueue")) {
-          q = new SpinningTransferQueue<Integer>();
+          q = new SpinningTransferQueue<>();
         } else if (qDef.equals("SynchronousQueue")) {
-          q = new LinkedBlockingQueue<Integer>();
+          q = new LinkedBlockingQueue<>();
           if (readers != 1 || writers != 1) {
             throw new RuntimeException("readers/writers must be 1 for SynchronousQueue");
           }

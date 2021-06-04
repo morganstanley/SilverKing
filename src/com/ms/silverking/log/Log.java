@@ -87,7 +87,7 @@ public final class Log {
     } else {
       Log.warning("Unknown logging level: " + logLevel);
     }
-    logQueue = new LinkedBlockingQueue<LogEntry>(maxAsyncQueueSize);
+    logQueue = new LinkedBlockingQueue<>(maxAsyncQueueSize);
 
     val = PropertiesHelper.envHelper.getString(logAlertReceiverEnvVar, UndefinedAction.ZeroOnUndefined);
     if (val != null) {

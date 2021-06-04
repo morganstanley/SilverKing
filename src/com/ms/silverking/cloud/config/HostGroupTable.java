@@ -187,7 +187,7 @@ public class HostGroupTable implements VersionedDefinition, Serializable {
 
         tokens = line.split("\\s+");
         ipToken = tokens[0];
-        hostGroups = new HashSet<String>();
+        hostGroups = new HashSet<>();
         for (int i = 1; i < tokens.length; i++) {
           hostGroups.add(tokens[i]);
         }

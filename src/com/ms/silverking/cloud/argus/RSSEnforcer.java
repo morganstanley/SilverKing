@@ -186,7 +186,7 @@ public class RSSEnforcer implements SafetyEnforcer {
     Set<String> prioritizedUserPatterns;
 
     pidList = procReader.filteredActivePIDList(exceptions);
-    processList = new ArrayList<ProcessStatAndOwner>();
+    processList = new ArrayList<>();
     for (int pid : pidList) {
       ProcessStatAndOwner candidate;
 

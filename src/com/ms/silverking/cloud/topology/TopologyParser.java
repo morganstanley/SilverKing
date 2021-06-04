@@ -34,7 +34,7 @@ public class TopologyParser {
     root = null;
     prevToken = null;
     lineNumber = 0;
-    parentEntries = new LinkedList<TopologyEntry>();
+    parentEntries = new LinkedList<>();
     try {
       reader = new BufferedReader(new InputStreamReader(in));
       do {

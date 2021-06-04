@@ -51,7 +51,7 @@ public class ExampleTestCode {
 
       DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
       List<Reservation> reservations = describeInstancesRequest.getReservations();
-      Set<Instance> instances = new HashSet<Instance>();
+      Set<Instance> instances = new HashSet<>();
 
       System.out.println("Reserves size: " + reservations.size());
       for (Reservation reservation : reservations) {

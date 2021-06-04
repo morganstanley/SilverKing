@@ -99,7 +99,7 @@ public class TwoLevelParallelSSHMaster extends UnicastRemoteObject implements SS
     this.maxAttempts = maxAttempts;
     this.terminateUponCompletion = terminateUponCompletion;
 
-    pendingHostCommands = new LightLinkedBlockingQueue<HostAndCommand>(hostCommands);
+    pendingHostCommands = new LightLinkedBlockingQueue<>(hostCommands);
     activeHostCommands = new ConcurrentSkipListSet<>(hostCommands);
     incompleteHostCommands = new ConcurrentSkipListSet<>(hostCommands);
     completeHostCommands = new ConcurrentSkipListSet<>();

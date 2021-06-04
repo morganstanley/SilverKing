@@ -22,7 +22,7 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
 
   public LightLinkedBlockingQueue(long spinsBeforeParking) {
     this.spinsBeforeParking = spinsBeforeParking;
-    q = new ConcurrentLinkedQueue<T>();
+    q = new ConcurrentLinkedQueue<>();
     potentialWaiters = new AtomicInteger();
     lock = new ReentrantLock();
     nonEmpty = lock.newCondition();
@@ -84,7 +84,7 @@ public final class LightLinkedBlockingQueue<T> implements BlockingQueue<T> {
     Collection<? extends T> tmp;
     int numMoved;
 
-    tmp = new ArrayList<T>(c);
+    tmp = new ArrayList<>(c);
     numMoved = tmp.size();
     c.clear();
     putAll(tmp);
