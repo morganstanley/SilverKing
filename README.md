@@ -1,6 +1,8 @@
 # SilverKing
 **Scalable, high-throughput storage and coordination**
 
+![Lifecycle Archived](https://badgen.net/badge/Lifecycle/Archived/grey)  
+
 ## Project Status
 
 **This project is no longer being maintained.** However, we are still actively developing SilverKing within another project and will be open-sourcing that project (including SilverKing) under the Apache-2.0 license in future. For more information about that project, please see: https://www.youtube.com/watch?v=V0jJvgiI_xs
